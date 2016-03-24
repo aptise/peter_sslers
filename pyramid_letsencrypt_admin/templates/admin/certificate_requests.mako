@@ -17,7 +17,7 @@
     
 <%block name="content_main">
     % if LetsencryptCertificateRequests:
-        ${admin_partials.table_certificate_requests__list(LetsencryptCertificateRequests)}
+        ${admin_partials.table_certificate_requests__list(LetsencryptCertificateRequests, show_domains=True, show_certificate=True)}
     % else:
         <em>
             No certificate_requests

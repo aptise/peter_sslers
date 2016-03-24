@@ -73,8 +73,8 @@ def main(global_config, **settings):
     config.add_route('admin:inject_sample', '/.well-known/admin/inject_sample')
 
     # update the module data based on settings
-    if 'openssl' in settings:
-        acme.openssl_path = settings["openssl"]
+    if 'openssl_path' in settings:
+        acme.openssl_path = settings["openssl_path"]
     if 'openssl_path_conf' in settings:
         acme.openssl_path_conf = settings["openssl_path_conf"]
     if 'certificate_authority' in settings:
@@ -85,7 +85,8 @@ def main(global_config, **settings):
     if 'exception_redirect' in settings:
         if settings["exception_redirect"].lower() in ('1', 'true'):
             _redirect = True
-    settings["exception_redirect"] = _redirect
+    # save to the CONFIG settings
+    config.registry.settings["exception_redirect"] = _redirect
 
     config.scan()
     return config.make_wsgi_app()

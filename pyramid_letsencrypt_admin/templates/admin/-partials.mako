@@ -104,17 +104,22 @@
 </%def>
 
 
-<%def name="table_certificate_requests__list(certificate_requests, show_domains=False)">
+<%def name="table_certificate_requests__list(certificate_requests, show_domains=False, show_certificate=False)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
+                <th>type</th>
                 <th>active?</th>
                 <th>error?</th>
-                <th>type</th>
+                % if show_certificate:
+                    <th>cert issued?</th>
+                % endif
                 <th>timestamp_started</th>
                 <th>timestamp_finished</th>
-                <th>domains</th>
+                % if show_domains:
+                    <th>domains</th>
+                % endif
             </tr>
         </thead>
         <tbody>
@@ -125,6 +130,9 @@
                         href="/.well-known/admin/certificate_request/${certificate_request.id}">&gt; ${certificate_request.id}</a>
                 </td>
                 <td>
+                    <span class="label label-info">${certificate_request.certificate_request_type}</span>
+                </td>                
+                <td>
                     <span class="label label-${'success' if certificate_request.is_active else 'warning'}">
                         ${'Active' if certificate_request.is_active else 'inactive'}
                     </span>
@@ -134,12 +142,21 @@
                         ${'Error' if certificate_request.is_error else 'ok'}
                     </span>
                 </td>
-                <td>
-                    <span class="label label-info">${certificate_request.certificate_request_type}</span>
-                </td>                
+                % if show_certificate:
+                    <td>
+                        % if certificate_request.signed_certificate:
+                            <a  class="label label-default"
+                                href="/.well-known/admin/certificate/${certificate_request.signed_certificate.id}">&gt; ${certificate_request.signed_certificate.id}</a>
+                        % else:
+                            &nbsp;
+                        % endif
+                    </td>                
+                % endif
                 <td>${certificate_request.timestamp_started}</td>
                 <td>${certificate_request.timestamp_finished or ''}</td>
-                <td>${', '.join([to_d.domain.domain_name for to_d in certificate_request.certificate_request_to_domains])}</td>
+                % if show_domains:
+                    <td>${', '.join([to_d.domain.domain_name for to_d in certificate_request.certificate_request_to_domains])}</td>
+                % endif
             </tr>
         % endfor
         </tbody>
