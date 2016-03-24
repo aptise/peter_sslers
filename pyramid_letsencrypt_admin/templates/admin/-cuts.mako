@@ -2,7 +2,7 @@
                         <label for="f1-csr_text">CSR Text</label>
                         <textarea class="form-control" rows="3" name="csr_text" id="f1-csr_text"></textarea>
                         <p class="help-block">
-                            Enter the contents of a CSR request signed by a Domain Key
+                            Enter the contents of a CSR request signed by a Private Key
                         </p>
                     </div>
 

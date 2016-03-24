@@ -19,7 +19,7 @@
     <h2>Update</h2>
     <p>
         <form action="/.well-known/admin/ca_certificate_probes/probe" method="POST">
-            <input type="submit" class="btn btn-info">Proble for new certificates</span>
+            <input type="submit" class="btn btn-info" value="Probe for new certificates"/>
             <br/>
             <em>Checks for new certs on the public internet</em>
         </form>
@@ -41,8 +41,16 @@
                     <tr>
                         <td>${event.id}</td>
                         <td><timestamp>${event.timestamp_operation}</timestamp></td>
-                        <td>${True if event.is_certificates_discovered else ''}</td>
-                        <td>${True if event.is_certificates_updated else ''}</td>
+                        <td>
+                            % if event.is_certificates_discovered:
+                                <span class="label label-success">Y</span>
+                            % endif
+                        </td>
+                        <td>
+                            % if event.is_certificates_updated:
+                                <span class="label label-success">Y</span>
+                            % endif
+                        </td>
                     </tr>
                 % endfor
             </tbody>

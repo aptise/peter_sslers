@@ -5,19 +5,19 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li class="active">Domain Keys</li>
+        <li class="active">Private Keys</li>
     </ol>
 </%block>
 
 
 <%block name="page_header">
-    <h2>Domain Keys</h2>
-    <p>${request.text_library.info_DomainKeys[1]}</p>
+    <h2>Private Keys</h2>
+    <p>${request.text_library.info_PrivateKeys[1]}</p>
 </%block>
     
 
 <%block name="content_main">
-    % if LetsencryptDomainKeys:
+    % if LetsencryptPrivateKeys:
         ${admin_partials.nav_pager(pager)}
         <table class="table table-striped">
             <thead>
@@ -27,9 +27,9 @@
                     <td>key_pem_md5</td>
                 </tr>
             </thead>
-            % for cert in LetsencryptDomainKeys:
+            % for cert in LetsencryptPrivateKeys:
                 <tr>
-                    <td><a class="label label-default" href="/.well-known/admin/domain_key/${cert.id}">&gt; ${cert.id}</a></td>
+                    <td><a class="label label-default" href="/.well-known/admin/private_key/${cert.id}">&gt; ${cert.id}</a></td>
                     <td><timestamp>${cert.timestamp_first_seen}</timestamp></td>
                     <td><code>${cert.key_pem_md5}</code></td>
                 </tr>

@@ -136,6 +136,20 @@ Your `environment.ini` exposes a few configuration options:
 
 Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input).
 
+## Is there a fast way to import existing certs?
+
+Yes.  Use `curl` on the commandline
+
+If you are in a directory with certs issued by letsencrypt:
+
+	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload
+
+
+## Why use openssl? / does this work on windows?
+
+It was much easier to peg this to `openssl` in a linux environment for now; which rules out windows.
+
+In the future this could all be done with Python's crypto library.  However openssl is fast and this was primarily designed for dealing with linux environments.  sorry.
 
 
 # misc tips
@@ -176,9 +190,13 @@ prime script should:
 
 ## api hooks
 
+in the meantime, `curl` can be used to trigger normal requests
+
 ## upload CERT/Chains for 'flow' CSR
 
-## associate 
+## associate all objects to one another when imported
+
+only some objects are currently associated
 
 ## full unit tests
 

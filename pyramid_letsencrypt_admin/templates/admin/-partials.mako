@@ -294,9 +294,9 @@
         </p>
 </%def>
 
-<%def name="info_DomainKey()">
-    <h3>Need a Domain Private Key?</h3>
-        <p>NOTE: you can not use your account private key as your domain private key!</p>
+<%def name="info_PrivateKey()">
+    <h3>Need a Private Key?</h3>
+        <p>NOTE: you can not use your account private key as your private key for signing domains!</p>
         <p>
             <code>openssl genrsa 4096 > domain.key</code>
         </p>
@@ -322,17 +322,17 @@
 </%def>
 
 
-<%def name="formgroup__domain_key_file(show_text=False)">
+<%def name="formgroup__private_key_file(show_text=False)">
     <div class="form-group clearfix">
-        <label for="f1-domain_key_file">Domain Private Key</label>
-        <input class="form-control" type="file" id="f1-domain_key_file" name="domain_key_file" />
+        <label for="f1-private_key_file">Private Key</label>
+        <input class="form-control" type="file" id="f1-private_key_file" name="private_key_file" />
         <p class="help-block">
-            Enter your PRIVATE DomainKey above in PEM format; this will be used to create a CSR used for configuring servers/chains.
+            Enter your PRIVATE key used to sign CSRs above in PEM format; this will be used to create a CSR used for configuring servers/chains and matched against existing issued certs.
             This WILL be saved.
         </p>
         % if show_text:
-            <label for="f1-domain_key">Domain Private Key [text]</label>
-            <textarea class="form-control" rows="4" name="domain_key" id="f1-domain_key"></textarea>
+            <label for="f1-private_key">Private Key [text]</label>
+            <textarea class="form-control" rows="4" name="private_key" id="f1-private_key"></textarea>
             <p class="help-block">
                 Alternately, provide text inline.
             </p>

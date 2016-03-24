@@ -33,7 +33,7 @@
                 <% form = request.formhandling.get_form(request) %>
                 ${form.html_error_main('Error_Main')|n}
 
-                ${admin_partials.formgroup__domain_key_file(show_text=show_text)}
+                ${admin_partials.formgroup__private_key_file(show_text=show_text)}
                 <hr/>
 
                 ${admin_partials.formgroup__certificate_file(show_text=show_text)}
@@ -49,9 +49,15 @@
         <div class="col-sm-6">
 
             <h2>Why do you need the private key?  That is a security risk!</h2>
-            <p>YES! Storing your private key IS a security risk.</p>
-            <p>This tool was designed for distributing the ssl certificate chains -- and private keys -- within a secured LAN.</p>
-            <p>If you feel uncomfortable with this tool DO NOT USE IT.  This is for advanced deployments.</p>
+                <p>YES! Storing your private key IS a security risk.</p>
+                <p>This tool was designed for distributing the ssl certificate chains -- and private keys -- within a secured LAN.</p>
+                <p>If you feel uncomfortable with this tool DO NOT USE IT.  This is for advanced deployments.</p>
+
+            <h2>How can I do this from the command line?</h2>
+            
+            <p>running locally from a directory that includes letencrypt issued files, you could do the following:</p>
+            
+            <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload</code></p>
 
 
             <h2>What do all these mean?</h2>
@@ -62,7 +68,7 @@
             
             <table class="table table-striped table-condensed">
                 <tr>
-                    <th>Domain Private Key</th>
+                    <th>Private Key</th>
                     <td>The private key used to sign requests</td>
                     <td><code>privkey.pem</code></td>
                 </tr>

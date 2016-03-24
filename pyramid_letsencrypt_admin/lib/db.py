@@ -150,25 +150,25 @@ def get__LetsencryptAccountKey__by_id(dbSession, cert_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__LetsencryptDomainKey__count(dbSession):
-    counted = dbSession.query(LetsencryptDomainKey).count()
+def get__LetsencryptPrivateKey__count(dbSession):
+    counted = dbSession.query(LetsencryptPrivateKey).count()
     return counted
 
 
-def get__LetsencryptDomainKey__paginated(dbSession, limit=None, offset=0):
-    dbLetsencryptDomainKeys = dbSession.query(LetsencryptDomainKey)\
-        .order_by(LetsencryptDomainKey.id.desc())\
+def get__LetsencryptPrivateKey__paginated(dbSession, limit=None, offset=0):
+    dbLetsencryptPrivateKeys = dbSession.query(LetsencryptPrivateKey)\
+        .order_by(LetsencryptPrivateKey.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
-    return dbLetsencryptDomainKeys
+    return dbLetsencryptPrivateKeys
 
 
-def get__LetsencryptDomainKey__by_id(dbSession, cert_id):
-    dbLetsencryptDomainKey = dbSession.query(LetsencryptDomainKey)\
-        .filter(LetsencryptDomainKey.id == cert_id)\
+def get__LetsencryptPrivateKey__by_id(dbSession, cert_id):
+    dbLetsencryptPrivateKey = dbSession.query(LetsencryptPrivateKey)\
+        .filter(LetsencryptPrivateKey.id == cert_id)\
         .first()
-    return dbLetsencryptDomainKey
+    return dbLetsencryptPrivateKey
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -279,13 +279,13 @@ def getcreate__LetsencryptAccountKey__by_pem_text(dbSession, key_pem):
     return dbKey, is_created
 
 
-def getcreate__LetsencryptDomainKey__by_pem_text(dbSession, key_pem):
+def getcreate__LetsencryptPrivateKey__by_pem_text(dbSession, key_pem):
     key_pem = acme.cleanup_pem_text(key_pem)
     key_pem_md5 = utils.md5_text(key_pem)
     is_created = False
-    dbKey = dbSession.query(LetsencryptDomainKey)\
-        .filter(LetsencryptDomainKey.key_pem_md5 == key_pem_md5,
-                LetsencryptDomainKey.key_pem == key_pem,
+    dbKey = dbSession.query(LetsencryptPrivateKey)\
+        .filter(LetsencryptPrivateKey.key_pem_md5 == key_pem_md5,
+                LetsencryptPrivateKey.key_pem == key_pem,
                 )\
         .first()
     if not dbKey:
@@ -304,7 +304,7 @@ def getcreate__LetsencryptDomainKey__by_pem_text(dbSession, key_pem):
         finally:
             _tmpfile.close()
 
-        dbKey = LetsencryptDomainKey()
+        dbKey = LetsencryptPrivateKey()
         dbKey.timestamp_first_seen = datetime.datetime.utcnow()
         dbKey.key_pem = key_pem
         dbKey.key_pem_md5 = key_pem_md5
@@ -408,7 +408,7 @@ def create__CertificateRequest__FULL(
     dbSession,
     domain_names,
     account_key_pem=None,
-    domain_key_pem=None,
+    private_key_pem=None,
 ):
     """
 
@@ -439,7 +439,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
     try:
 
         account_key_pem = acme.cleanup_pem_text(account_key_pem)
-        domain_key_pem = acme.cleanup_pem_text(domain_key_pem)
+        private_key_pem = acme.cleanup_pem_text(private_key_pem)
 
         # we should have cleaned this up before, but just be safe
         domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
@@ -456,7 +456,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
         tmpfiles.append(tmpfile_account)
 
         tmpfile_domain = tempfile.NamedTemporaryFile()
-        tmpfile_domain.write(domain_key_pem)
+        tmpfile_domain.write(private_key_pem)
         tmpfile_domain.seek(0)
         tmpfiles.append(tmpfile_domain)
 
@@ -479,7 +479,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
 
             # have we seen these certificates before?
             dbAccountKey, _is_created = getcreate__LetsencryptAccountKey__by_pem_text(dbSession, account_key_pem)
-            dbDomainKey, _is_created = getcreate__LetsencryptDomainKey__by_pem_text(dbSession, domain_key_pem)
+            dbPrivateKey, _is_created = getcreate__LetsencryptPrivateKey__by_pem_text(dbSession, private_key_pem)
 
             dbLetsencryptCertificateRequest = LetsencryptCertificateRequest()
             dbLetsencryptCertificateRequest.is_active = True
@@ -489,7 +489,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
             dbLetsencryptCertificateRequest.csr_pem_md5 = utils.md5_text(csr_text)
             dbLetsencryptCertificateRequest.csr_pem_modulus_md5 = csr_pem_modulus_md5
             dbLetsencryptCertificateRequest.letsencrypt_account_key_id = dbAccountKey.id
-            dbLetsencryptCertificateRequest.letsencrypt_domain_key_id__signed_by = dbDomainKey.id
+            dbLetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by = dbPrivateKey.id
             dbSession.add(dbLetsencryptCertificateRequest)
             dbSession.flush()
 
@@ -562,8 +562,8 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
 
         # these MUST commit
         with transaction.manager as tx:
-            if dbDomainKey not in dbSession:
-                dbDomainKey = dbSession.merge(dbDomainKey)
+            if dbPrivateKey not in dbSession:
+                dbPrivateKey = dbSession.merge(dbPrivateKey)
             if dbLetsencryptCertificateRequest not in dbSession:
                 dbLetsencryptCertificateRequest = dbSession.merge(dbLetsencryptCertificateRequest)
             dbLetsencryptHttpsCertificate = create__LetsencryptHttpsCertificate(
@@ -574,7 +574,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
                 cert_pem = cert_pem,
                 chained_pem = chained_pem,
                 chain_name = chain_url,
-                letsencrypt_domain_key_id__signed_by = dbDomainKey.id,
+                letsencrypt_private_key_id__signed_by = dbPrivateKey.id,
                 dbLetsencryptCertificateRequest = dbLetsencryptCertificateRequest,
                 domains_list__objects = _domain_objects,
             )
@@ -608,7 +608,7 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
     dbSession,
     cert_pem,
     dbCACertificate=None,
-    dbDomainKey=None,
+    dbPrivateKey=None,
 ):
     cert_pem = acme.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
@@ -655,11 +655,11 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
             # this is the private key
             # we should make sure it signed the certificate
             # the md5 check isn't exact, BUT ITS CLOSE
-            if dbDomainKey is None:
-                raise ValueError('dbDomainKey is None')
-            if dbCertificate.cert_pem_modulus_md5 != dbDomainKey.key_pem_modulus_md5:
-                raise ValueError('dbDomainKey did not sign the certificate')
-            dbCertificate.letsencrypt_domain_key_id__signed_by = dbDomainKey.id
+            if dbPrivateKey is None:
+                raise ValueError('dbPrivateKey is None')
+            if dbCertificate.cert_pem_modulus_md5 != dbPrivateKey.key_pem_modulus_md5:
+                raise ValueError('dbPrivateKey did not sign the certificate')
+            dbCertificate.letsencrypt_private_key_id__signed_by = dbPrivateKey.id
 
             certificate_domain_names = acme.parse_cert_domains(cert_path=_tmpfileCert.name)
             certificate_domain_names = list(certificate_domain_names)
@@ -701,11 +701,11 @@ def create__LetsencryptHttpsCertificate(
     domains_list__objects = None,
 
     # only one of these 2
-    letsencrypt_domain_key_id__signed_by = None,
+    letsencrypt_private_key_id__signed_by = None,
     privkey_pem = None,
 ):
-    if not any((letsencrypt_domain_key_id__signed_by, privkey_pem)) or all((letsencrypt_domain_key_id__signed_by, privkey_pem)):
-        raise ValueError("create__LetsencryptHttpsCertificate must accept ONE OF [`letsencrypt_domain_key_id__signed_by`, `privkey_pem`]")
+    if not any((letsencrypt_private_key_id__signed_by, privkey_pem)) or all((letsencrypt_private_key_id__signed_by, privkey_pem)):
+        raise ValueError("create__LetsencryptHttpsCertificate must accept ONE OF [`letsencrypt_private_key_id__signed_by`, `privkey_pem`]")
     if privkey_pem:
         raise ValueError("need to figure this out")
 
@@ -744,7 +744,7 @@ def create__LetsencryptHttpsCertificate(
         dbLetsencryptCertificateRequest.is_active = False
         dbLetsencryptHttpsCertificate.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
     dbLetsencryptHttpsCertificate.letsencrypt_ca_certificate_id__signed_by = letsencrypt_ca_certificate_id__signed_by
-    dbLetsencryptHttpsCertificate.letsencrypt_domain_key_id__signed_by = letsencrypt_domain_key_id__signed_by
+    dbLetsencryptHttpsCertificate.letsencrypt_private_key_id__signed_by = letsencrypt_private_key_id__signed_by
     dbSession.add(dbLetsencryptHttpsCertificate)
     dbSession.flush()
 

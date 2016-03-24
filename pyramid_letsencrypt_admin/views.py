@@ -21,7 +21,8 @@ from .lib.forms import (Form_CertificateRequest_new_flow,
                         Form_CertificateRequest_new_full__file,
                         Form_CertificateRequest_process_domain,
                         Form_CertificateUpload__file,
-                        Form_DomainKey_new__file,
+                        Form_PrivateKey_new__file,
+                        Form_AccountKey_new__file,
                         )
 import lib.acme
 import lib.db
@@ -95,6 +96,11 @@ class ViewPublic(Handler):
 
 
 class ViewAdmin(Handler):
+
+    @view_config(route_name="admin_whoami", renderer="string")
+    def public_whoami(self):
+        """this is really only useful for testing"""
+        return self.active_domain_name
 
     @view_config(route_name='admin', renderer='/admin/index.mako')
     def index(self):
@@ -178,10 +184,10 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_key_pem = formStash.results['domain_key_file'].file.read()
-            dbLetsencryptDomainKey, _is_created = lib.db.getcreate__LetsencryptDomainKey__by_pem_text(
+            private_key_pem = formStash.results['private_key_file'].file.read()
+            dbLetsencryptPrivateKey, _is_created = lib.db.getcreate__LetsencryptPrivateKey__by_pem_text(
                 DBSession,
-                domain_key_pem
+                private_key_pem
             )
 
             chain_pem = formStash.results['chain_file'].file.read()
@@ -195,7 +201,7 @@ class ViewAdmin(Handler):
             dbLetsencryptHttpsCertificate, _is_created = lib.db.getcreate__LetsencryptHttpsCertificate__by_pem_text(
                 DBSession, certificate_pem,
                 dbCACertificate=dbLetsencryptCACertificate,
-                dbDomainKey=dbLetsencryptDomainKey,
+                dbPrivateKey=dbLetsencryptPrivateKey,
             )
 
             return HTTPFound('/.well-known/admin/certificate/%s' % dbLetsencryptHttpsCertificate.id)
@@ -476,14 +482,14 @@ class ViewAdmin(Handler):
                 raise ValueError("missing valid domain names")
 
             account_key_pem = formStash.results['account_key_file'].file.read()
-            domain_key_pem = formStash.results['domain_key_file'].file.read()
+            private_key_pem = formStash.results['private_key_file'].file.read()
 
             try:
                 dbLetsencryptCertificate = lib.db.create__CertificateRequest__FULL(
                     DBSession,
                     domain_names,
                     account_key_pem=account_key_pem,
-                    domain_key_pem=domain_key_pem,
+                    private_key_pem=private_key_pem,
                 )
             except:
                 if self.request.registry.settings['exception_redirect']:
@@ -544,70 +550,28 @@ class ViewAdmin(Handler):
             as_der = lib.acme.convert_pem_to_der(pem_data=dbLetsencryptAccountKey.key_pem)
             return as_der
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:domain_keys', renderer='/admin/domain_keys.mako')
-    @view_config(route_name='admin:domain_keys_paginated', renderer='/admin/domain_keys.mako')
-    def domain_keys(self):
-        dbLetsencryptDomainKeys_count = lib.db.get__LetsencryptDomainKey__count(DBSession)
-        (pager, offset) = self._paginate(dbLetsencryptDomainKeys_count, url_template='/.well-known/admin/domain_keys/{0}')
-        dbLetsencryptDomainKeys = lib.db.get__LetsencryptDomainKey__paginated(DBSession, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptDomainKeys_count': dbLetsencryptDomainKeys_count,
-                'LetsencryptDomainKeys': dbLetsencryptDomainKeys,
-                'pager': pager,
-                }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:domain_key:focus', renderer='/admin/domain_key-focus.mako')
-    def domain_key_focus(self):
-        dbLetsencryptDomainKey = lib.db.get__LetsencryptDomainKey__by_id(DBSession, self.request.matchdict['id'])
-        if not dbLetsencryptDomainKey:
-            raise HTTPNotFound('the key was not found')
-        return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptDomainKey': dbLetsencryptDomainKey
-                }
-
-    @view_config(route_name='admin:domain_key:focus:raw', renderer='string')
-    def domain_key_focus_raw(self):
-        dbLetsencryptDomainKey = lib.db.get__LetsencryptDomainKey__by_id(DBSession, self.request.matchdict['id'])
-        if not dbLetsencryptDomainKey:
-            raise HTTPNotFound('the key was not found')
-        if self.request.matchdict['format'] == 'pem':
-            self.request.response.content_type = 'application/x-pem-file'
-            return dbLetsencryptDomainKey.key_pem
-        elif self.request.matchdict['format'] == 'pem.txt':
-            return dbLetsencryptDomainKey.key_pem
-        elif self.request.matchdict['format'] == 'key':
-            self.request.response.content_type = 'application/pkcs8'
-            as_der = lib.acme.convert_pem_to_der(pem_data=dbLetsencryptDomainKey.key_pem)
-            return as_der
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:domain_key:new')
-    def domain_key_new(self):
+    @view_config(route_name='admin:account_key:new')
+    def account_key_new(self):
         if self.request.POST:
-            return self._domain_key_new__submit()
-        return self._domain_key_new__print()
+            return self._account_key_new__submit()
+        return self._account_key_new__print()
 
-    def _domain_key_new__print(self):
-        return render_to_response("/admin/domain_key-new.mako", {}, self.request)
+    def _account_key_new__print(self):
+        return render_to_response("/admin/account_key-new.mako", {}, self.request)
 
-    def _domain_key_new__submit(self):
+    def _account_key_new__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_DomainKey_new__file,
+                                                             schema=Form_AccountKey_new__file,
                                                              validate_get=False
                                                              )
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_key_pem = formStash.results['domain_key_file'].file.read()
-            dbLetsencryptDomainKey, _is_created = lib.db.getcreate__LetsencryptDomainKey__by_pem_text(DBSession, domain_key_pem)
+            account_key_pem = formStash.results['account_key_file'].file.read()
+            dbLetsencryptAccountKey, _is_created = lib.db.getcreate__LetsencryptAccountKey__by_pem_text(DBSession, account_key_pem)
 
-            return HTTPFound('/.well-known/admin/domain_key/%s%s' % (dbLetsencryptDomainKey.id, ('?is_created=1' if _is_created else '')))
+            return HTTPFound('/.well-known/admin/account_key/%s%s' % (dbLetsencryptAccountKey.id, ('?is_created=1' if _is_created else '')))
 
         except formhandling.FormInvalid:
             formStash.set_error(field="Error_Main",
@@ -617,7 +581,83 @@ class ViewAdmin(Handler):
                                 )
             return formhandling.form_reprint(
                 self.request,
-                self._domain_key_new__print,
+                self._account_key_new__print,
+                auto_error_formatter=formhandling.formatter_none,
+            )
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:private_keys', renderer='/admin/private_keys.mako')
+    @view_config(route_name='admin:private_keys_paginated', renderer='/admin/private_keys.mako')
+    def private_keys(self):
+        dbLetsencryptPrivateKeys_count = lib.db.get__LetsencryptPrivateKey__count(DBSession)
+        (pager, offset) = self._paginate(dbLetsencryptPrivateKeys_count, url_template='/.well-known/admin/private_keys/{0}')
+        dbLetsencryptPrivateKeys = lib.db.get__LetsencryptPrivateKey__paginated(DBSession, limit=items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptPrivateKeys_count': dbLetsencryptPrivateKeys_count,
+                'LetsencryptPrivateKeys': dbLetsencryptPrivateKeys,
+                'pager': pager,
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:private_key:focus', renderer='/admin/private_key-focus.mako')
+    def private_key_focus(self):
+        dbLetsencryptPrivateKey = lib.db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'])
+        if not dbLetsencryptPrivateKey:
+            raise HTTPNotFound('the key was not found')
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptPrivateKey': dbLetsencryptPrivateKey
+                }
+
+    @view_config(route_name='admin:private_key:focus:raw', renderer='string')
+    def private_key_focus_raw(self):
+        dbLetsencryptPrivateKey = lib.db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'])
+        if not dbLetsencryptPrivateKey:
+            raise HTTPNotFound('the key was not found')
+        if self.request.matchdict['format'] == 'pem':
+            self.request.response.content_type = 'application/x-pem-file'
+            return dbLetsencryptPrivateKey.key_pem
+        elif self.request.matchdict['format'] == 'pem.txt':
+            return dbLetsencryptPrivateKey.key_pem
+        elif self.request.matchdict['format'] == 'key':
+            self.request.response.content_type = 'application/pkcs8'
+            as_der = lib.acme.convert_pem_to_der(pem_data=dbLetsencryptPrivateKey.key_pem)
+            return as_der
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:private_key:new')
+    def private_key_new(self):
+        if self.request.POST:
+            return self._private_key_new__submit()
+        return self._private_key_new__print()
+
+    def _private_key_new__print(self):
+        return render_to_response("/admin/private_key-new.mako", {}, self.request)
+
+    def _private_key_new__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_PrivateKey_new__file,
+                                                             validate_get=False
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            private_key_pem = formStash.results['private_key_file'].file.read()
+            dbLetsencryptPrivateKey, _is_created = lib.db.getcreate__LetsencryptPrivateKey__by_pem_text(DBSession, private_key_pem)
+
+            return HTTPFound('/.well-known/admin/private_key/%s%s' % (dbLetsencryptPrivateKey.id, ('?is_created=1' if _is_created else '')))
+
+        except formhandling.FormInvalid:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            return formhandling.form_reprint(
+                self.request,
+                self._private_key_new__print,
                 auto_error_formatter=formhandling.formatter_none,
             )
 

@@ -65,11 +65,11 @@ class LetsencryptAccountKey(Base):
                                                )
 
 
-class LetsencryptDomainKey(Base):
+class LetsencryptPrivateKey(Base):
     """
     Tracking the certs we use to sign requests
     """
-    __tablename__ = 'letsencrypt_domain_key'
+    __tablename__ = 'letsencrypt_private_key'
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_first_seen = sa.Column(sa.DateTime, nullable=False, )
     key_pem = sa.Column(sa.Text, nullable=True, )
@@ -77,11 +77,11 @@ class LetsencryptDomainKey(Base):
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False, )
 
     certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest",
-                                               primaryjoin="LetsencryptDomainKey.id==LetsencryptCertificateRequest.letsencrypt_domain_key_id__signed_by",
-                                               back_populates='letsencrypt_domain_key__signed_by',
+                                               primaryjoin="LetsencryptPrivateKey.id==LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by",
+                                               back_populates='letsencrypt_private_key__signed_by',
                                                )
     signed_certificates = sa.orm.relationship("LetsencryptHttpsCertificate",
-                                              primaryjoin="LetsencryptDomainKey.id==LetsencryptHttpsCertificate.letsencrypt_domain_key_id__signed_by",
+                                              primaryjoin="LetsencryptPrivateKey.id==LetsencryptHttpsCertificate.letsencrypt_private_key_id__signed_by",
                                               back_populates='private_key',
                                               )
 
@@ -107,13 +107,13 @@ class LetsencryptHttpsCertificate(Base):
     letsencrypt_ca_certificate_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_ca_certificate.id"), nullable=False)
 
     # this is the private key
-    letsencrypt_domain_key_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_domain_key.id"), nullable=False)
+    letsencrypt_private_key_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_private_key.id"), nullable=False)
 
     # tracking
     letsencrypt_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_certificate_request.id"), nullable=True)
 
-    private_key = sa.orm.relationship("LetsencryptDomainKey",
-                                      primaryjoin="LetsencryptHttpsCertificate.letsencrypt_domain_key_id__signed_by==LetsencryptDomainKey.id",
+    private_key = sa.orm.relationship("LetsencryptPrivateKey",
+                                      primaryjoin="LetsencryptHttpsCertificate.letsencrypt_private_key_id__signed_by==LetsencryptPrivateKey.id",
                                       back_populates='signed_certificates',
                                       uselist=False,
                                       )
@@ -192,7 +192,7 @@ class LetsencryptCertificateRequest(Base):
                                     and (csr_pem is NOT NULL and csr_pem_md5 is NOT NULL and csr_pem_modulus_md5 is NOT NULL)
                                     )""", name='check1')
 
-    letsencrypt_domain_key_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_domain_key.id"), nullable=True)
+    letsencrypt_private_key_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_private_key.id"), nullable=True)
     letsencrypt_account_key_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_account_key.id"), nullable=True)
 
     @property
@@ -215,8 +215,8 @@ class LetsencryptCertificateRequest(Base):
                                                          back_populates='certificate_request',
                                                          )
 
-    letsencrypt_domain_key__signed_by = sa.orm.relationship("LetsencryptDomainKey",
-                                                            primaryjoin="LetsencryptCertificateRequest.letsencrypt_domain_key_id__signed_by==LetsencryptDomainKey.id",
+    letsencrypt_private_key__signed_by = sa.orm.relationship("LetsencryptPrivateKey",
+                                                            primaryjoin="LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by==LetsencryptPrivateKey.id",
                                                             back_populates='certificate_requests',
                                                             uselist=False,
                                                             )

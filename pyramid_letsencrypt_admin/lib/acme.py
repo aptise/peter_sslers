@@ -67,12 +67,12 @@ def send_signed_request(url, payload, account_key_path, header):
 
 def new_csr_for_domain_names(
     domain_names,
-    domain_key_path,
+    private_key_path,
     tmpfiles_tracker,
 ):
     if len(domain_names) == 1:
         _csr_subject = "/CN=%s" % domain_names[0]
-        proc = subprocess.Popen([openssl_path, "req", "-new", "-sha256", "-key", domain_key_path, "-subj", _csr_subject],
+        proc = subprocess.Popen([openssl_path, "req", "-new", "-sha256", "-key", private_key_path, "-subj", _csr_subject],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         csr_text, err = proc.communicate()
         if err:
@@ -97,7 +97,7 @@ def new_csr_for_domain_names(
         tmpfiles_tracker.append(tmpfile_csr_san)
 
         # note that we use /bin/cat (!)
-        _command = """%s req -new -sha256 -key %s -subj "/" -reqexts SAN -config < /bin/cat %s""" % (openssl_path, domain_key_path, tmpfile_csr_san.name)
+        _command = """%s req -new -sha256 -key %s -subj "/" -reqexts SAN -config < /bin/cat %s""" % (openssl_path, private_key_path, tmpfile_csr_san.name)
         proc = subprocess.Popen(_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         csr_text, err = proc.communicate()
         if err:

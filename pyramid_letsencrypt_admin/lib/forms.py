@@ -69,19 +69,19 @@ class Form_CertificateRequest_new_full(_Form_Schema_Base):
     account_key = UnicodeString(not_empty=False, if_missing=None)
     account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
-    domain_key = UnicodeString(not_empty=False, if_missing=None)
-    domain_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key = UnicodeString(not_empty=False, if_missing=None)
+    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
     domain_names = UnicodeString(not_empty=True)
 
     chained_validators = [OnlyOneOf(('account_key', 'account_key_file', ), not_empty=True),
-                          OnlyOneOf(('domain_key', 'domain_key_file', ), not_empty=True),
+                          OnlyOneOf(('private_key', 'private_key_file', ), not_empty=True),
                           ]
 
 
 class Form_CertificateRequest_new_full__file(_Form_Schema_Base):
     account_key_file = FieldStorageUploadConverter(not_empty=True)
-    domain_key_file = FieldStorageUploadConverter(not_empty=True)
+    private_key_file = FieldStorageUploadConverter(not_empty=True)
     domain_names = UnicodeString(not_empty=True)
 
 
@@ -90,18 +90,29 @@ class Form_CertificateRequest_process_domain(_Form_Schema_Base):
     challenge_text = UnicodeString(not_empty=True)
 
 
-class Form_DomainKey_new__full(_Form_Schema_Base):
-    domain_key = UnicodeString(not_empty=False, if_missing=None)
-    domain_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    chained_validators = [OnlyOneOf(('domain_key', 'domain_key_file', ), not_empty=True),
+class Form_AccountKey_new__full(_Form_Schema_Base):
+    account_key = UnicodeString(not_empty=False, if_missing=None)
+    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    chained_validators = [OnlyOneOf(('account_key', 'account_key_file', ), not_empty=True),
                           ]
 
 
-class Form_DomainKey_new__file(_Form_Schema_Base):
-    domain_key_file = FieldStorageUploadConverter(not_empty=True)
+class Form_AccountKey_new__file(_Form_Schema_Base):
+    account_key_file = FieldStorageUploadConverter(not_empty=True)
+
+
+class Form_PrivateKey_new__full(_Form_Schema_Base):
+    private_key = UnicodeString(not_empty=False, if_missing=None)
+    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    chained_validators = [OnlyOneOf(('private_key', 'private_key_file', ), not_empty=True),
+                          ]
+
+
+class Form_PrivateKey_new__file(_Form_Schema_Base):
+    private_key_file = FieldStorageUploadConverter(not_empty=True)
 
 
 class Form_CertificateUpload__file(_Form_Schema_Base):
-    domain_key_file = FieldStorageUploadConverter(not_empty=True)
+    private_key_file = FieldStorageUploadConverter(not_empty=True)
     certificate_file = FieldStorageUploadConverter(not_empty=True)
     chain_file = FieldStorageUploadConverter(not_empty=True)

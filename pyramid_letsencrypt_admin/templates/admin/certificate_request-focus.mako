@@ -58,10 +58,10 @@
             </td>
         </tr>
         <tr>
-            <th>letsencrypt_domain_key_id__signed_by</th>
+            <th>letsencrypt_private_key_id__signed_by</th>
             <td>
-                % if LetsencryptCertificateRequest.letsencrypt_domain_key_id__signed_by:
-                    <a class="label label-default" href="/.well-known/admin/domain_key/${LetsencryptCertificateRequest.letsencrypt_domain_key_id__signed_by}">&gt; ${LetsencryptCertificateRequest.letsencrypt_domain_key_id__signed_by}</a>
+                % if LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by:
+                    <a class="label label-default" href="/.well-known/admin/private_key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">&gt; ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
                 % endif
             </td>
         </tr>

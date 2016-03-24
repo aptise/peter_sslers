@@ -5,15 +5,15 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/domain_keys">Domain Keys</a></li>
+        <li><a href="/.well-known/admin/account_keys">Account Keys</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
 
 
 <%block name="page_header">
-    <h2>Domain Key | New</h2>
-    <p><em>${request.text_library.info_DomainKeys[1]}</em></p>
+    <h2>Account Key | New</h2>
+    <p><em>${request.text_library.info_AccountKeys[1]}</em></p>
 </%block>
 
     
@@ -25,14 +25,14 @@
             <%! show_text = False %>
 
             <form
-                action="/.well-known/admin/domain_key/new"
+                action="/.well-known/admin/account_key/new"
                 method="POST"
                 enctype="multipart/form-data"
             >
                 <% form = request.formhandling.get_form(request) %>
                 ${form.html_error_main('Error_Main')|n}
 
-                ${admin_partials.formgroup__domain_key_file(show_text=show_text)}
+                ${admin_partials.formgroup__account_key_file(show_text=show_text)}
                 <hr/>
 
                 <button type="submit" class="btn btn-default">Submit</button>
@@ -40,7 +40,7 @@
             </form>
         </div>
         <div class="col-sm-6">
-            ${admin_partials.info_DomainKey()}
+            ${admin_partials.info_AccountKey()}
         </div>
     </div>
 </%block>

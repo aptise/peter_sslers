@@ -24,6 +24,7 @@ def main(global_config, **settings):
 
     # admin
     config.add_route('admin', '/.well-known/admin')
+    config.add_route('admin_whoami', '/.well-known/admin/whoami')
 
     config.add_route('admin:domains', '/.well-known/admin/domains')
     config.add_route('admin:domains_paginated', '/.well-known/admin/domains/{page:\d+}')
@@ -55,12 +56,13 @@ def main(global_config, **settings):
     config.add_route('admin:account_keys_paginated', '/.well-known/admin/account_keys/{page:\d+}')
     config.add_route('admin:account_key:focus', '/.well-known/admin/account_key/{id:\d+}')
     config.add_route('admin:account_key:focus:raw', '/.well-known/admin/account_key/{id:\d+}/key.{format:(key|pem|pem.txt)}')
+    config.add_route('admin:account_key:new', '/.well-known/admin/account_key/new')
 
-    config.add_route('admin:domain_keys', '/.well-known/admin/domain_keys')
-    config.add_route('admin:domain_keys_paginated', '/.well-known/admin/domain_keys/{page:\d+}')
-    config.add_route('admin:domain_key:focus', '/.well-known/admin/domain_key/{id:\d+}')
-    config.add_route('admin:domain_key:focus:raw', '/.well-known/admin/domain_key/{id:\d+}/key.{format:(key|pem|pem.txt)}')
-    config.add_route('admin:domain_key:new', '/.well-known/admin/domain_key/new')
+    config.add_route('admin:private_keys', '/.well-known/admin/private_keys')
+    config.add_route('admin:private_keys_paginated', '/.well-known/admin/private_keys/{page:\d+}')
+    config.add_route('admin:private_key:focus', '/.well-known/admin/private_key/{id:\d+}')
+    config.add_route('admin:private_key:focus:raw', '/.well-known/admin/private_key/{id:\d+}/key.{format:(key|pem|pem.txt)}')
+    config.add_route('admin:private_key:new', '/.well-known/admin/private_key/new')
 
     config.add_route('admin:ca_certificates', '/.well-known/admin/ca_certificates')
     config.add_route('admin:ca_certificates_paginated', '/.well-known/admin/ca_certificates/{page:\d+}')

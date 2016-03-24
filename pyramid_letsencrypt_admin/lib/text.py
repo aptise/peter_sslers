@@ -4,8 +4,8 @@
 info_AccountKeys = ['Used to sign Certificate Requests',
                     "AccountKeys identify our account to LetsEncrypt when signing.",
                     ]
-info_DomainKeys = ['Private Keys matched to Signed Certificates',
-                   "DomainKeys are paired to our Certifcate Requests.",
+info_PrivateKeys = ['Private Keys matched to Signed Certificates',
+                   "PrivateKeys are paired to our Certifcate Requests.",
                    ]
 info_CACertificates = ['Official LetsEncrypt',
                        "CACertificates are what LetsEncrypt uses to sign our Certificates.",
@@ -34,7 +34,10 @@ info_CertificateRequest_new_full = ['FULL automates the entire certifcate reques
                                     "FULL automates the entire certifcate request process.",
                                     ]
 
-info_UploadDomainKey = ['If you need to upload a DomainKey for signing.',
+info_UploadAccountKey = ['If you need to upload a LetEncrypt Account key for issuance.',
+                        "",
+                        ]
+info_UploadPrivateKey = ['If you need to upload a PrivateKey for signing.',
                         "",
                         ]
 info_UploadExistingCertificate = ['Upload for management. Requires: `cert.pem`, `chain.pem`, `privkey.pem`',

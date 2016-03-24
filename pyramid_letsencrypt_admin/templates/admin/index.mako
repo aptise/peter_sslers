@@ -18,7 +18,7 @@
                     <li><a href="/.well-known/admin/certificates">certificates</a> (${request.text_library.info_Certificates[0]})</li>
                     <li><a href="/.well-known/admin/certificate_requests">certificate_requests</a> (${request.text_library.info_CertificateRequests[0]})</li>
                     <li><a href="/.well-known/admin/account_keys">account_keys</a> (${request.text_library.info_AccountKeys[0]})</li>
-                    <li><a href="/.well-known/admin/domain_keys">domain_keys</a> (${request.text_library.info_DomainKeys[0]})</li>
+                    <li><a href="/.well-known/admin/private_keys">private_keys</a> (${request.text_library.info_PrivateKeys[0]})</li>
                 </ul>
                 <li>View Recordkeeping</li>
                 <ul>
@@ -44,16 +44,22 @@
 
             <h2>Upload Existing</h2>
             <p>
-                <a  href="/.well-known/admin/domain_key/new"
-                    class="btn btn-info"
-                >Upload Domain Private Key</a><br/>
-                <em>${request.text_library.info_UploadDomainKey[0]}</em>
-            </p>
-            <p>
                 <a  href="/.well-known/admin/certificate/upload"
                     class="btn btn-info"
                 >Upload Existing Certificate</a><br/>
                 <em>${request.text_library.info_UploadExistingCertificate[0]}</em>
+            </p>
+            <p>
+                <a  href="/.well-known/admin/private_key/new"
+                    class="btn btn-info"
+                >Upload Private Key</a><br/>
+                <em>${request.text_library.info_UploadPrivateKey[0]}</em>
+            </p>
+            <p>
+                <a  href="/.well-known/admin/account_key/new"
+                    class="btn btn-info"
+                >Upload Account Key</a><br/>
+                <em>${request.text_library.info_UploadAccountKey[0]}</em>
             </p>
 
 
