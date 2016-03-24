@@ -50,6 +50,14 @@
             </td>
         </tr>
         <tr>
+            <th>letsencrypt_certificate_request_id</th>
+            <td>
+                % if letsencrypt_certificate_request_id:
+                    <a class="label label-default" href="/.well-known/admin/certificate_request/${LetsencryptHttpsCertificate.letsencrypt_certificate_request_id}">&gt; ${LetsencryptHttpsCertificate.letsencrypt_certificate_request_id}</a>
+                % endif
+            </td>
+        </tr>
+        <tr>
             <th>cert_pem_md5</th>
             <td><code>${LetsencryptHttpsCertificate.cert_pem_md5}</code></td>
         </tr>
