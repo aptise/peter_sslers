@@ -388,3 +388,31 @@
         </p>
     </div>
 </%def>
+
+
+<%def name="nav_pager(pager)">
+    <% if not pager: return '' %>
+    <center>
+        <nav>
+            <ul class="pagination">
+                % if pager.start > 1:
+                    <li>
+                        <a href="${pager.template.format(max(pager.current-pager.range_num, 1))}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                % endif
+                % for p in pager.pages:
+                    <li ${'class="active"' if pager.current == p else ''|n}><a href="${pager.template.format(p)}">${p}</a></li>
+                % endfor
+                % if pager.end < pager.page_num:
+                    <li>
+                        <a href="${pager.template.format(min(pager.start+pager.range_num, pager.page_num-pager.range_num))}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                % endif
+            </ul>
+        </nav>
+    </center>
+</%def>

@@ -12,16 +12,20 @@
 
 <%block name="page_header">
     <h2>Domains</h2>
+    These domains are known to the system.
 </%block>
     
 
 <%block name="content_main">
     % if LetsencryptManagedDomains:
+        ${admin_partials.nav_pager(pager)}
         <ul>
             % for d in LetsencryptManagedDomains:
-                <li><a href="/.well-known/admin/domain/${d.id}">${d.domain_name}</d></li>
+                <li><a href="/.well-known/admin/domain/${d.id}">${d.domain_name}</a></li>
             % endfor
         </ul>
+        
+        
     % else:
         <em>
             No Domains

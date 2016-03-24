@@ -20,7 +20,7 @@ requires = [
     'waitress',
     'python-dateutil',
     'formencode',
-    'Crypto',
+    'pypages',
     ]
 
 setup(name='pyramid_letsencrypt_admin',

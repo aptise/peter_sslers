@@ -10,8 +10,9 @@ import datetime
 import pdb
 
 # pypi
-import sqlalchemy
+import pypages
 import pyramid_formencode_classic as formhandling
+import sqlalchemy
 
 # localapp
 from .models import *
@@ -25,6 +26,12 @@ from .lib.forms import (Form_CertificateRequest_new_flow,
 import lib.acme
 import lib.db
 import lib.text
+
+
+# ==============================================================================
+
+
+items_per_page = 50
 
 
 # ==============================================================================
@@ -86,6 +93,7 @@ class ViewPublic(Handler):
         return 'ERROR'
 
 
+
 class ViewAdmin(Handler):
 
     @view_config(route_name='admin', renderer='/admin/index.mako')
@@ -94,14 +102,34 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def _paginate(self, collection_count, items_per_page=items_per_page, url_template=None):
+        page_requested = 1 if 'page' not in self.request.matchdict else int(self.request.matchdict['page'])
+        pager = pypages.Paginator(collection_count,
+                                  per_page=items_per_page,
+                                  current=page_requested,
+                                  start=None,
+                                  range_num=10
+                                  )
+        pager.template = url_template
+        if page_requested == 0:
+            raise HTTPFound(pager.template.format(1))
+        if page_requested > pager.page_num:
+            raise HTTPFound(pager.template.format(pager.page_num))
+        # return pager, offset
+        return pager, ((page_requested - 1) * items_per_page)
+    
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name='admin:domains', renderer='/admin/domains.mako')
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
     def domains(self):
-        dbLetsencryptManagedDomains = lib.db.get__LetsencryptManagedDomain__paginated(DBSession, limit=100, offset=0)
         dbLetsencryptManagedDomains_count = lib.db.get__LetsencryptManagedDomain__count(DBSession)
+        (pager, offset) = self._paginate(dbLetsencryptManagedDomains_count, url_template='/.well-known/admin/domains/{0}')
+        dbLetsencryptManagedDomains = lib.db.get__LetsencryptManagedDomain__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptManagedDomains': dbLetsencryptManagedDomains,
                 'LetsencryptManagedDomains_count': dbLetsencryptManagedDomains_count,
+                'LetsencryptManagedDomains': dbLetsencryptManagedDomains,
+                'pager': pager,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -120,11 +148,11 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
     def certificates(self):
-        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate__paginated(DBSession, limit=100, offset=0)
         dbLetsencryptHttpsCertificates_count = lib.db.get__LetsencryptHttpsCertificate__count(DBSession)
+        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate__paginated(DBSession, limit=100, offset=0)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
                 'LetsencryptHttpsCertificates_count': dbLetsencryptHttpsCertificates_count,
+                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -234,16 +262,18 @@ class ViewAdmin(Handler):
         return 'cert.pem'
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
+    
     @view_config(route_name='admin:certificate_requests', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
     def certificate_requests(self):
-        dbLetsencryptCertificateRequests = lib.db.get__LetsencryptCertificateRequest__paginated(DBSession, limit=100, offset=0)
         dbLetsencryptCertificateRequests_count = lib.db.get__LetsencryptCertificateRequest__count(DBSession)
+        (pager, offset) = self._paginate(dbLetsencryptCertificateRequests_count)
+        dbLetsencryptCertificateRequests = lib.db.get__LetsencryptCertificateRequest__paginated(DBSession, limit=items_per_page, offset=offset)
 
         return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptCertificateRequests_count': dbLetsencryptCertificateRequests_count,
                 'LetsencryptCertificateRequests': dbLetsencryptCertificateRequests,
-                'LetsencryptCertificateRequests_count': dbLetsencryptCertificateRequests_count
+                'pager': pager,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -476,11 +506,11 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_keys', renderer='/admin/account_keys.mako')
     @view_config(route_name='admin:account_keys_paginated', renderer='/admin/account_keys.mako')
     def account_keys(self):
-        dbLetsencryptAccountKeys = lib.db.get__LetsencryptAccountKey__paginated(DBSession, limit=100, offset=0)
         dbLetsencryptAccountKeys_count = lib.db.get__LetsencryptAccountKey__count(DBSession)
+        dbLetsencryptAccountKeys = lib.db.get__LetsencryptAccountKey__paginated(DBSession, limit=100, offset=0)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptAccountKeys': dbLetsencryptAccountKeys,
                 'LetsencryptAccountKeys_count': dbLetsencryptAccountKeys_count,
+                'LetsencryptAccountKeys': dbLetsencryptAccountKeys,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -514,11 +544,11 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain_keys', renderer='/admin/domain_keys.mako')
     @view_config(route_name='admin:domain_keys_paginated', renderer='/admin/domain_keys.mako')
     def domain_keys(self):
-        dbLetsencryptDomainKeys = lib.db.get__LetsencryptDomainKey__paginated(DBSession, limit=100, offset=0)
         dbLetsencryptDomainKeys_count = lib.db.get__LetsencryptDomainKey__count(DBSession)
+        dbLetsencryptDomainKeys = lib.db.get__LetsencryptDomainKey__paginated(DBSession, limit=100, offset=0)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptDomainKeys': dbLetsencryptDomainKeys,
                 'LetsencryptDomainKeys_count': dbLetsencryptDomainKeys_count,
+                'LetsencryptDomainKeys': dbLetsencryptDomainKeys,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -590,11 +620,11 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificates', renderer='/admin/ca_certificates.mako')
     @view_config(route_name='admin:ca_certificates_paginated', renderer='/admin/ca_certificates.mako')
     def ca_certificates(self):
-        dbLetsencryptCACertificates = lib.db.get__LetsencryptCACertificate__paginated(DBSession, limit=100, offset=0)
         dbLetsencryptCACertificates_count = lib.db.get__LetsencryptCACertificate__count(DBSession)
+        dbLetsencryptCACertificates = lib.db.get__LetsencryptCACertificate__paginated(DBSession, limit=100, offset=0)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptCACertificates': dbLetsencryptCACertificates,
                 'LetsencryptCACertificates_count': dbLetsencryptCACertificates_count,
+                'LetsencryptCACertificates': dbLetsencryptCACertificates,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -608,14 +638,14 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus', renderer='/admin/ca_certificate-focus.mako')
     def ca_certificate_focus(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
-        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate_by_LetsencryptCACertificateId__paginated(
-            DBSession, dbLetsencryptCACertificate.id, limit=10, offset=0)
         dbLetsencryptHttpsCertificates_count = lib.db.get__LetsencryptHttpsCertificate_by_LetsencryptCACertificateId__count(
             DBSession, dbLetsencryptCACertificate.id)
+        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate_by_LetsencryptCACertificateId__paginated(
+            DBSession, dbLetsencryptCACertificate.id, limit=10, offset=0)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
-                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
                 'LetsencryptHttpsCertificates_count': dbLetsencryptHttpsCertificates_count,
+                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
                 }
 
     @view_config(route_name='admin:ca_certificate:focus:raw', renderer='string')
@@ -641,12 +671,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates_paginated', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     def ca_certificate_focus__signed_certificates(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
-        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate_by_LetsencryptCACertificateId__paginated(
-            DBSession, dbLetsencryptCACertificate.id, limit=10, offset=0)
         dbLetsencryptHttpsCertificates_count = lib.db.get__LetsencryptHttpsCertificate_by_LetsencryptCACertificateId__count(
             DBSession, dbLetsencryptCACertificate.id)
+        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate_by_LetsencryptCACertificateId__paginated(
+            DBSession, dbLetsencryptCACertificate.id, limit=10, offset=0)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
-                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
                 'LetsencryptHttpsCertificates_count': dbLetsencryptHttpsCertificates_count,
+                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
                 }
