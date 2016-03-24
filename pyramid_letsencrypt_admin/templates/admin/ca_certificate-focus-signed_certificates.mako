@@ -20,8 +20,8 @@
 <%block name="content_main">
 
     % if LetsencryptHttpsCertificates:
+        ${admin_partials.nav_pager(pager)}
         ${admin_partials.table_certificates__list(LetsencryptHttpsCertificates, show_domains=True)}
-        ## TODO PAGINATION
     % else:
         No known certificates.
     % endif 

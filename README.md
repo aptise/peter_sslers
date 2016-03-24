@@ -125,13 +125,16 @@ Your `environment.ini` exposes a few configuration options:
 
 ## combined chains
 
-## pagination
-
 ## search expiring soon
 
 ## api hooks
 
 ## upload CERT/Chains for 'flow' CSR
+
+## full unit tests
+
+This is still sketching out the idea.  this is not ready for production yet.
+
 
 ## Database Docs
 
