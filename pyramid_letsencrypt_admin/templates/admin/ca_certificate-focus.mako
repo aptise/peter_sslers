@@ -38,15 +38,27 @@
         </tr>
         <tr>
             <th>is_ca_certificate</th>
-            <td>${LetsencryptCACertificate.is_ca_certificate or ''}</td>
+            <td>
+                % if LetsencryptCACertificate.is_ca_certificate:
+                    <label class="label label-success">Y</label>
+                % endif
+            </td>
         </tr>
         <tr>
             <th>is_authority_certificate</th>
-            <td>${LetsencryptCACertificate.is_authority_certificate or ''}</td>
+            <td>
+                % if LetsencryptCACertificate.is_authority_certificate:
+                    <label class="label label-success">Y</label>
+                % endif
+            </td>
         </tr>
         <tr>
             <th>is_cross_signed_authority_certificate</th>
-            <td>${LetsencryptCACertificate.is_cross_signed_authority_certificate or ''}</td>
+            <td>
+                % if LetsencryptCACertificate.is_cross_signed_authority_certificate:
+                    <label class="label label-success">Y</label>
+                % endif
+            </td>
         </tr>
         <tr>
             <th>id_cross_signed_of</th>
@@ -54,15 +66,15 @@
         </tr>
         <tr>
             <th>timestamp_signed</th>
-            <td>${LetsencryptCACertificate.timestamp_signed  or ''}</td>
+            <td><timestamp>${LetsencryptCACertificate.timestamp_signed  or ''}</timestamp></td>
         </tr>
         <tr>
             <th>timestamp_expires</th>
-            <td>${LetsencryptCACertificate.timestamp_expires  or ''}</td>
+            <td><timestamp>${LetsencryptCACertificate.timestamp_expires  or ''}</timestamp></td>
         </tr>
         <tr>
             <th>timestamp_first_seen</th>
-            <td>${LetsencryptCACertificate.timestamp_first_seen  or ''}</td>
+            <td><timestamp>${LetsencryptCACertificate.timestamp_first_seen  or ''}</timestamp></td>
         </tr>
         <tr>
             <th>cert_pem_md5</th>
@@ -96,6 +108,18 @@
                     chain.cer (der)
                 </a>
             </td>
+        </tr>
+        <tr>
+            <th>cert_subject</th>
+            <td><code>${LetsencryptCACertificate.cert_subject_hash}</code><br/>
+                <samp>${LetsencryptCACertificate.cert_subject}</samp>
+                </td>
+        </tr>
+        <tr>
+            <th>cert_issuer</th>
+            <td><code>${LetsencryptCACertificate.cert_issuer_hash}</code><br/>
+                <samp>${LetsencryptCACertificate.cert_issuer}</samp>
+                </td>
         </tr>
         <tr>
             <th>Signed Certificates</th>

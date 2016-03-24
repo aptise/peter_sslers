@@ -69,6 +69,11 @@ def main(global_config, **settings):
     config.add_route('admin:ca_certificate:focus:signed_certificates', '/.well-known/admin/ca_certificate/{id:\d+}/signed_certificates')
     config.add_route('admin:ca_certificate:focus:signed_certificates_paginated', '/.well-known/admin/ca_certificate/{id:\d+}/signed_certificates/{page:\d}')
 
+    config.add_route('admin:ca_certificate_probes', '/.well-known/admin/ca_certificate_probes')
+    config.add_route('admin:ca_certificate_probes_paginated', '/.well-known/admin/ca_certificate_probes/{page:\d}')
+    config.add_route('admin:ca_certificate_probes:probe', '/.well-known/admin/ca_certificate_probes/probe')
+
+
     # testing
     config.add_route('admin:inject_sample', '/.well-known/admin/inject_sample')
 

@@ -48,6 +48,12 @@
         </div>
         <div class="col-sm-6">
 
+            <h2>Why do you need the private key?  That is a security risk!</h2>
+            <p>YES! Storing your private key IS a security risk.</p>
+            <p>This tool was designed for distributing the ssl certificate chains -- and private keys -- within a secured LAN.</p>
+            <p>If you feel uncomfortable with this tool DO NOT USE IT.  This is for advanced deployments.</p>
+
+
             <h2>What do all these mean?</h2>
             
             <p>

@@ -37,11 +37,11 @@
         </tr>
         <tr>
             <th>timestamp_signed</th>
-            <td>${LetsencryptHttpsCertificate.timestamp_signed}</td>
+            <td><timestamp>${LetsencryptHttpsCertificate.timestamp_signed}</timestamp></td>
         </tr>
         <tr>
             <th>timestamp_expires</th>
-            <td>${LetsencryptHttpsCertificate.timestamp_expires}</td>
+            <td><timestamp>${LetsencryptHttpsCertificate.timestamp_expires}</timestamp></td>
         </tr>
         <tr>
             <th>letsencrypt_ca_certificate_id__signed_by</th>
@@ -73,6 +73,18 @@
                 <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptHttpsCertificate.id}/cert.pem.txt">cert.pem.txt</a>
                 <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptHttpsCertificate.id}/cert.crt">cert.crt (der)</a>
             </td>
+        </tr>
+        <tr>
+            <th>cert_subject</th>
+            <td><code>${LetsencryptHttpsCertificate.cert_subject_hash}</code><br/>
+                <samp>${LetsencryptHttpsCertificate.cert_subject}</samp>
+                </td>
+        </tr>
+        <tr>
+            <th>cert_issuer</th>
+            <td><code>${LetsencryptHttpsCertificate.cert_issuer_hash}</code><br/>
+                <samp>${LetsencryptHttpsCertificate.cert_issuer}</samp>
+                </td>
         </tr>
         <tr>
             <th>domains</th>

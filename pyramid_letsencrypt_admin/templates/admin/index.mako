@@ -22,7 +22,8 @@
                 </ul>
                 <li>View Recordkeeping</li>
                 <ul>
-                    <li><a href="/.well-known/admin/ca_certificates">ca_certificates</a> (${request.text_library.info_CACertificates[0]})</p></li>
+                    <li><a href="/.well-known/admin/ca_certificates">ca_certificates</a> (${request.text_library.info_CACertificates[0]})</li>
+                    <li><a href="/.well-known/admin/ca_certificate_probes">ca_certificate_probes</a> (${request.text_library.info_CACertificateProbes[0]})</li>
                 </ul>
             </ul>
         </div>
@@ -46,12 +47,17 @@
                 <a  href="/.well-known/admin/domain_key/new"
                     class="btn btn-info"
                 >Upload Domain Private Key</a><br/>
+                <em>${request.text_library.info_UploadDomainKey[0]}</em>
             </p>
             <p>
                 <a  href="/.well-known/admin/certificate/upload"
                     class="btn btn-info"
-                >Certificate Upload</a><br/>
+                >Upload Existing Certificate</a><br/>
+                <em>${request.text_library.info_UploadExistingCertificate[0]}</em>
             </p>
+
+
+
         </div>
     </div>
 </%block>

@@ -422,6 +422,32 @@ def modulus_md5_cert__pem_filepath(pem_filepath):
     return utils.md5_text(data)
 
 
+def cert_single_op__pem_filepath(pem_filepath, single_op):
+    """handles a single pem operation to `openssl x509`
+
+        openssl x509 -noout -issuer_hash -in {CERT}
+        returns the data found in
+           X509v3 extensions:
+               X509v3 Authority Key Identifier: 
+                   keyid:{VALUE}
+
+        openssl x509 -noout -subject_hash -in {CERT}
+        returns the data found in
+           X509v3 extensions:
+               X509v3 Subject Key Identifier: 
+                   {VALUE}
+    """
+    if single_op not in ('-issuer_hash', '-issuer', '-subject_hash', '-subject'):
+        raise ValueError('invalid `single_op`')
+
+    proc = subprocess.Popen([openssl_path, "x509", "-noout", single_op, "-in", pem_filepath],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    data, err = proc.communicate()
+    if not data:
+        raise errors.OpenSslError_InvalidCertificate(err)
+    return data
+
+
 def parse_enddate_cert__pem_filepath(pem_filepath):
     # openssl x509 -enddate -noout -in {CERT}
     proc = subprocess.Popen([openssl_path, "x509", "-enddate", "-noout", "-in", pem_filepath],
@@ -480,3 +506,56 @@ def probe_cert__format(filepath):
         return "der"
     except errors.OpenSslError_InvalidCertificate, e:
         raise errors.OpenSslError_InvalidCertificate("not PEM or DER")
+
+
+def probe_letsencrypt_certificates():
+    """last checked 2016.03.24
+    probes the known LetsEncrypt certificates
+    THIS DOES NOT APPLY `cleanup_pem_text`
+    """
+    certs = [{'name': "ISRG Root X1",
+              'url_pem': "https://letsencrypt.org/certs/isrgrootx1.pem",
+              'is_ca_certificate': True,
+              },
+             {'name': "Let's Encrypt Authority X1 (IdenTrust cross-signed)",
+              'url_pem': "https://letsencrypt.org/certs/lets-encrypt-x1-cross-signed.pem",
+              'le_authority_name': "Let's Encrypt Authority X1",
+              'is_authority_certificate': True,
+              'is_cross_signed_authority_certificate': True,
+              },
+             {'name': "Let's Encrypt Authority X1",
+              'url_pem': "https://letsencrypt.org/certs/letsencryptauthorityx1.pem",
+              'le_authority_name': "Let's Encrypt Authority X1",
+              'is_authority_certificate': True,
+              'is_cross_signed_authority_certificate': False,
+              },
+             {'name': "Let's Encrypt Authority X2 (IdenTrust cross-signed)",
+              'url_pem': "https://letsencrypt.org/certs/lets-encrypt-x2-cross-signed.pem",
+              'le_authority_name': "Let's Encrypt Authority X2",
+              'is_authority_certificate': True,
+              'is_cross_signed_authority_certificate': True,
+              },
+             {'name': "Let's Encrypt Authority X2",
+              'url_pem': "https://letsencrypt.org/certs/letsencryptauthorityx2.pem",
+              'le_authority_name': "Let's Encrypt Authority X2",
+              'is_authority_certificate': True,
+              'is_cross_signed_authority_certificate': False,
+              },
+             ]
+    certs2 = copy.deepcopy(certs)
+    tmpfile = None
+    try:
+        for c in certs2:
+            resp = urlopen(c['url_pem'])
+            if resp.getcode() != 200:
+                raise ValueError("Could not load certificate")
+            cert_pem_text = resp.read()
+            cert_pem_text = cleanup_pem_text(cert_pem_text)
+            c['cert_pem'] = cert_pem_text
+            c['cert_pem_md5'] = utils.md5_text(cert_pem_text)
+    finally:
+        if tmpfile:
+            tmpfile.close()
+
+    return certs2
+

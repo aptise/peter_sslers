@@ -11,7 +11,7 @@
 
 
 <%block name="page_header">
-    <h2>Account Key</h2>
+    <h2>Account Keys</h2>
     <p>${request.text_library.info_AccountKeys[1]}</p>
 </%block>
     
@@ -31,7 +31,7 @@
             % for cert in LetsencryptAccountKeys:
                 <tr>
                     <td><a class="label label-default" href="/.well-known/admin/account_key/${cert.id}">&gt; ${cert.id}</a></td>
-                    <td>${cert.timestamp_first_seen}</td>
+                    <td><timestamp>${cert.timestamp_first_seen}<timestamp></td>
                     <td><code>${cert.key_pem_md5}</code></td>
                 </tr>
             % endfor

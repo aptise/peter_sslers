@@ -174,6 +174,23 @@ def get__LetsencryptDomainKey__by_id(dbSession, cert_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__LetsencryptCACertificateProbe__count(dbSession):
+    counted = dbSession.query(LetsencryptCACertificateProbe).count()
+    return counted
+
+
+def get__LetsencryptCACertificateProbe__paginated(dbSession, limit=None, offset=0):
+    dbLetsencryptCACertificateProbes = dbSession.query(LetsencryptCACertificateProbe)\
+        .order_by(LetsencryptCACertificateProbe.id.desc())\
+        .limit(limit)\
+        .offset(offset)\
+        .all()
+    return dbLetsencryptCACertificateProbes
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__LetsencryptCACertificate__count(dbSession):
     counted = dbSession.query(LetsencryptCACertificate).count()
     return counted
@@ -301,7 +318,7 @@ def getcreate__LetsencryptDomainKey__by_pem_text(dbSession, key_pem):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem, chain_name):
+def get__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem):
     cert_pem = acme.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
     is_created = False
@@ -310,7 +327,15 @@ def getcreate__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem, chain_
                 LetsencryptCACertificate.cert_pem == cert_pem,
                 )\
         .first()
+    return dbCertificate
+
+
+def getcreate__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem, chain_name):
+    dbCertificate = get__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem)
+    is_created = False
     if not dbCertificate:
+        cert_pem = acme.cleanup_pem_text(cert_pem)
+        cert_pem_md5 = utils.md5_text(cert_pem)
         try:
             _tmpfile = tempfile.NamedTemporaryFile()
             _tmpfile.write(cert_pem)
@@ -337,6 +362,10 @@ def getcreate__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem, chain_
 
             dbCertificate.timestamp_signed = acme.parse_startdate_cert__pem_filepath(_tmpfile.name)
             dbCertificate.timestamp_expires = acme.parse_enddate_cert__pem_filepath(_tmpfile.name)
+            dbCertificate.cert_subject = acme.cert_single_op__pem_filepath(_tmpfile.name, '-subject')
+            dbCertificate.cert_subject_hash = acme.cert_single_op__pem_filepath(_tmpfile.name, '-subject_hash')
+            dbCertificate.cert_issuer = acme.cert_single_op__pem_filepath(_tmpfile.name, '-issuer')
+            dbCertificate.cert_issuer_hash = acme.cert_single_op__pem_filepath(_tmpfile.name, '-issuer_hash')
 
             dbSession.add(dbCertificate)
             dbSession.flush()
@@ -574,6 +603,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+
 def getcreate__LetsencryptHttpsCertificate__by_pem_text(
     dbSession,
     cert_pem,
@@ -589,20 +619,25 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
                 )\
         .first()
     if not dbCertificate:
+        _tmpfileCert = None
         try:
-            _tmpfile = tempfile.NamedTemporaryFile()
-            _tmpfile.write(cert_pem)
-            _tmpfile.seek(0)
+            _tmpfileCert = tempfile.NamedTemporaryFile()
+            _tmpfileCert.write(cert_pem)
+            _tmpfileCert.seek(0)
 
             # validate
-            acme.validate_cert__pem_filepath(_tmpfile.name)
+            acme.validate_cert__pem_filepath(_tmpfileCert.name)
 
             # grab the modulus
-            cert_pem_modulus_md5 = acme.modulus_md5_cert__pem_filepath(_tmpfile.name)
+            cert_pem_modulus_md5 = acme.modulus_md5_cert__pem_filepath(_tmpfileCert.name)
             dbCertificate = LetsencryptHttpsCertificate()
 
-            dbCertificate.timestamp_signed = acme.parse_startdate_cert__pem_filepath(_tmpfile.name)
-            dbCertificate.timestamp_expires = acme.parse_enddate_cert__pem_filepath(_tmpfile.name)
+            dbCertificate.timestamp_signed = acme.parse_startdate_cert__pem_filepath(_tmpfileCert.name)
+            dbCertificate.timestamp_expires = acme.parse_enddate_cert__pem_filepath(_tmpfileCert.name)
+            dbCertificate.cert_subject = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject')
+            dbCertificate.cert_subject_hash = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject_hash')
+            dbCertificate.cert_issuer = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer')
+            dbCertificate.cert_issuer_hash = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer_hash')
             dbCertificate.is_active = True
 
             dbCertificate.cert_pem = cert_pem
@@ -612,6 +647,9 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
             # this is the LetsEncrypt key
             if dbCACertificate is None:
                 raise ValueError('dbCACertificate is None')
+            # we should make sure it issued the certificate:
+            if dbCertificate.cert_issuer_hash != dbCACertificate.cert_subject_hash:
+                raise ValueError('dbCACertificate did not sign the certificate')
             dbCertificate.letsencrypt_ca_certificate_id__signed_by = dbCACertificate.id
 
             # this is the private key
@@ -621,10 +659,9 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
                 raise ValueError('dbDomainKey is None')
             if dbCertificate.cert_pem_modulus_md5 != dbDomainKey.key_pem_modulus_md5:
                 raise ValueError('dbDomainKey did not sign the certificate')
-
             dbCertificate.letsencrypt_domain_key_id__signed_by = dbDomainKey.id
 
-            certificate_domain_names = acme.parse_cert_domains(cert_path=_tmpfile.name)
+            certificate_domain_names = acme.parse_cert_domains(cert_path=_tmpfileCert.name)
             certificate_domain_names = list(certificate_domain_names)
             if not certificate_domain_names:
                 raise ValueError("could not find any domain names in the certificate")
@@ -646,7 +683,8 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
         except:
             raise
         finally:
-            _tmpfile.close()
+            if _tmpfileCert:
+                _tmpfileCert.close()
 
     return dbCertificate, is_created
 
@@ -722,3 +760,41 @@ def create__LetsencryptHttpsCertificate(
         dbSession.flush()
 
     return dbLetsencryptHttpsCertificate
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def ca_certificate_probe(dbSession):
+    certs = acme.probe_letsencrypt_certificates()
+    certs_discovered = []
+    certs_modified = []
+    for c in certs:
+        _is_created = False
+        dbCACertificate = get__LetsencryptCACertificate__by_pem_text(DBSession, c['cert_pem'])
+        if not dbCACertificate:
+            dbCACertificate, _is_created = getcreate__LetsencryptCACertificate__by_pem_text(DBSession, c['cert_pem'], c['name'])
+            if _is_created:
+                certs_discovered.append(dbCACertificate)
+        if 'is_ca_certificate' in c:
+            if dbCACertificate.is_ca_certificate != c['is_ca_certificate']:
+                dbCACertificate.is_ca_certificate = c['is_ca_certificate']
+                if dbCACertificate not in certs_discovered:
+                    certs_modified.append(dbCACertificate)
+        else:
+            attrs = ('le_authority_name',
+                     'is_authority_certificate',
+                     'is_cross_signed_authority_certificate',
+                     )
+            for _k in attrs:
+                if getattr(dbCACertificate, _k) is None:
+                    setattr(dbCACertificate, _k, c[_k])
+                    if dbCACertificate not in certs_discovered:
+                        certs_modified.append(dbCACertificate)
+    # bookkeeping
+    dbProbe = LetsencryptCACertificateProbe()
+    dbProbe.timestamp_operation = datetime.datetime.utcnow()
+    dbProbe.is_certificates_discovered = True if certs_discovered else False
+    dbProbe.is_certificates_updated = True if certs_modified else False
+    DBSession.add(dbProbe)
+    DBSession.flush()
+    return dbProbe

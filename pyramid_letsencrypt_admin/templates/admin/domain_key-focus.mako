@@ -30,7 +30,7 @@
         </tr>
         <tr>
             <th>timestamp_first_seen</th>
-            <td>${LetsencryptDomainKey.timestamp_first_seen  or ''}</td>
+            <td><timestamp>${LetsencryptDomainKey.timestamp_first_seen  or ''}</timestamp></td>
         </tr>
         <tr>
             <th>key_pem_md5</th>

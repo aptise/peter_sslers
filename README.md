@@ -37,10 +37,19 @@ in the future, an api will allow this to work.
 
 # Installation
 
-This is pretty much ready to go for development, usage
+This is pretty much ready to go for development use.
 
 you should create a virtualenv though.
 
+	mkdir certificate_admin
+	cd certificate_admin
+	git checkout https://github.com/jvanasco/pyramid_letsencrypt_admin.git
+	virtualenv pyramid_letsencrypt_admin-venv
+	source pyramid_letsencrypt_admin-venv/bin/activate
+	cd pyramid_letsencrypt_admin
+	python setup.py develop
+	initialize_pyramid_letsencrypt_admin_db development.ini
+	pserve --reload development.ini
 
 
 # Implementation Details
@@ -121,15 +130,55 @@ Your `environment.ini` exposes a few configuration options:
 * `certificate_authority` - the letsencrypt certificate authority. default is their staging.  you'll have to manually put in the production.
 
 
+# FAQ
+
+## Does this reformat certs?
+
+Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input).
+
+
+
+# misc tips
+
+So far this has been tested behind a couple of load balancers that use round-robin dns.  They were both in the same physical network.
+
+* nginx is on port 80.  everything in the /.well-known directory is proxied to an internal machine *which is not guaranteed to be up*
+* this service is only spun up when certificate management is needed
+* /admin is not on the public internet
+
+
+
+# redis
+
+redis would be something like this:
+	r['d:foo.example.com'] = ('cert:1', 'key:a', 'fullcert:99')
+	r['d:foo2.example.com'] = ('cert:2', 'key:a', 'fullcert:99')
+	r['c:1'] = CERT.DER
+	r['c:2'] = CERT.DER
+	r['k:2'] = PKEY.DER
+	r['s:99'] = CACERT.DER
+
+prime script should:
+	loop through all ca_cert> cache into redis
+	loop through all pkey> cache into redis
+	loop through all cert> cache into redis
+	
+
+
+
+
+
 # TODO
 
-## combined chains
+## export combined chains
 
 ## search expiring soon
 
 ## api hooks
 
 ## upload CERT/Chains for 'flow' CSR
+
+## associate 
 
 ## full unit tests
 

@@ -11,7 +11,7 @@
 
 
 <%block name="page_header">
-    <h2>Certificate</h2>
+    <h2>Certificates</h2>
 </%block>
     
 

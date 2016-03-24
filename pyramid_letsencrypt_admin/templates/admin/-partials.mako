@@ -21,8 +21,8 @@
                         ${'Active' if to_cert.certificate.is_active else 'inactive'}
                     </span>
                 </td>
-                <td>${to_cert.certificate.timestamp_signed}</td>
-                <td>${to_cert.certificate.timestamp_expires or ''}</td>
+                <td><timestamp>${to_cert.certificate.timestamp_signed}</timestamp></td>
+                <td><timestamp>${to_cert.certificate.timestamp_expires or ''}</timestamp></td>
                 % if show_domains:
                      <td>${', '.join([to_d.domain.domain_name for to_d in to_cert.certificate.certificate_to_domains])}</td>
                 % endif
@@ -60,7 +60,7 @@
                 <td>
                     <span class="label label-info">${to_cr.certificate_request.certificate_request_type}</span>
                 </td>                
-                <td>${to_cr.timestamp_verified or ''}</td>
+                <td><timestamp>${to_cr.timestamp_verified or ''}</timestamp></td>
                 <td><code>${to_cr.challenge_key or ''}</code></td>
                 <td><code>${to_cr.challenge_text or ''}</code></td>
             </tr>
@@ -92,8 +92,8 @@
                         ${'Active' if cert.is_active else 'inactive'}
                     </span>
                 </td>
-                <td>${cert.timestamp_signed}</td>
-                <td>${cert.timestamp_expires or ''}</td>
+                <td><timestamp>${cert.timestamp_signed}</timestamp></td>
+                <td><timestamp>${cert.timestamp_expires or ''}</timestamp></td>
                 % if show_domains:
                     <td>${', '.join([to_d.domain.domain_name for to_d in cert.certificate_to_domains])}</td>
                 % endif
@@ -152,8 +152,8 @@
                         % endif
                     </td>                
                 % endif
-                <td>${certificate_request.timestamp_started}</td>
-                <td>${certificate_request.timestamp_finished or ''}</td>
+                <td><timestamp>${certificate_request.timestamp_started}</timestamp></td>
+                <td><timestamp>${certificate_request.timestamp_finished or ''}</timestamp></td>
                 % if show_domains:
                     <td>${', '.join([to_d.domain.domain_name for to_d in certificate_request.certificate_request_to_domains])}</td>
                 % endif
@@ -180,7 +180,7 @@
                 % for to_d in lcr2mds:
                     <tr>
                         <td><a href="/.well-known/admin/domain/${to_d.domain.id}" class="label label-default">&gt; ${to_d.domain.id}</a> ${to_d.domain.domain_name}</td>
-                        <td>${to_d.timestamp_verified or ''}</td>
+                        <td><timestamp>${to_d.timestamp_verified or ''}</timestamp></td>
                         <td><code>${to_d.challenge_key or ''}</code></td>
                         <td><code>${to_d.challenge_text or ''}</code></td>
                         <td>

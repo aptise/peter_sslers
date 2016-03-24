@@ -12,6 +12,18 @@ DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
 
 
+class LetsencryptCACertificateProbe(Base):
+    """
+    Tracking official LetsEncrypt certificates.
+    These are tracked to a fullchain can be created
+    """
+    __tablename__ = 'letsencrypt_ca_certificate_probe'
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_operation = sa.Column(sa.DateTime, nullable=True, )
+    is_certificates_discovered = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_certificates_updated = sa.Column(sa.Boolean, nullable=True, default=None)
+
+
 class LetsencryptCACertificate(Base):
     """
     Tracking official LetsEncrypt certificates.
@@ -31,6 +43,10 @@ class LetsencryptCACertificate(Base):
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
     timestamp_signed = sa.Column(sa.DateTime, nullable=False, )
     timestamp_expires = sa.Column(sa.DateTime, nullable=False, )
+    cert_subject = sa.Column(sa.Text, nullable=True, )
+    cert_issuer = sa.Column(sa.Text, nullable=True, )
+    cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
+    cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
 
 
 class LetsencryptAccountKey(Base):
@@ -81,6 +97,11 @@ class LetsencryptHttpsCertificate(Base):
     cert_pem = sa.Column(sa.Text, nullable=False, )
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, )
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False, )
+
+    cert_subject = sa.Column(sa.Text, nullable=True, )
+    cert_issuer = sa.Column(sa.Text, nullable=True, )
+    cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
+    cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
 
     # this is the LetsEncrypt key
     letsencrypt_ca_certificate_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_ca_certificate.id"), nullable=False)

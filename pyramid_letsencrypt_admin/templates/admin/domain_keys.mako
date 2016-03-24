@@ -11,7 +11,7 @@
 
 
 <%block name="page_header">
-    <h2>Domain Key</h2>
+    <h2>Domain Keys</h2>
     <p>${request.text_library.info_DomainKeys[1]}</p>
 </%block>
     
@@ -30,7 +30,7 @@
             % for cert in LetsencryptDomainKeys:
                 <tr>
                     <td><a class="label label-default" href="/.well-known/admin/domain_key/${cert.id}">&gt; ${cert.id}</a></td>
-                    <td>${cert.timestamp_first_seen}</td>
+                    <td><timestamp>${cert.timestamp_first_seen}</timestamp></td>
                     <td><code>${cert.key_pem_md5}</code></td>
                 </tr>
             % endfor

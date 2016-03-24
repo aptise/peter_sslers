@@ -30,7 +30,7 @@
             % for cert in LetsencryptCACertificates:
                 <tr>
                     <td><a class="label label-default" href="/.well-known/admin/ca_certificate/${cert.id}">&gt; ${cert.id}</a></td>
-                    <td>${cert.timestamp_first_seen}</td>
+                    <td><timestamp>${cert.timestamp_first_seen}</timestamp></td>
                     <td><code>${cert.cert_pem_md5}</code></td>
                 </tr>
             % endfor

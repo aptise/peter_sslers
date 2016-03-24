@@ -691,3 +691,26 @@ class ViewAdmin(Handler):
                 'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
                 'pager': pager,
                 }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+    @view_config(route_name='admin:ca_certificate_probes', renderer='/admin/ca_certificate_probes.mako')
+    def ca_certificate_probes(self):
+        dbLetsencryptCACertificateProbes_count = lib.db.get__LetsencryptCACertificateProbe__count(DBSession)
+        (pager, offset) = self._paginate(dbLetsencryptCACertificateProbes_count, url_template='/.well-known/admin/ca_certificate_probes/{0}')
+        dbLetsencryptCACertificateProbes = lib.db.get__LetsencryptCACertificateProbe__paginated(DBSession, limit=items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptCACertificateProbes_count': dbLetsencryptCACertificateProbes_count,
+                'LetsencryptCACertificateProbes': dbLetsencryptCACertificateProbes,
+                'pager': pager,
+                }
+
+    @view_config(route_name='admin:ca_certificate_probes:probe', renderer=None)
+    def ca_certificate_probes_probe(self):
+        if self.request.POST:
+            return HTTPFound("/.well-known/admin/ca_certificate_probes?error=POST-only")
+            
+        probeEvent = lib.db.ca_certificate_probe(DBSession)
+
+        return HTTPFound("/.well-known/admin/ca_certificate_probes?success=True")
