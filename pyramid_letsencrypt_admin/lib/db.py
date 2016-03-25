@@ -847,3 +847,118 @@ def ca_certificate_probe(dbSession):
     DBSession.add(dbProbe)
     DBSession.flush()
     return dbProbe
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def operations_update_recents(dbSession):
+    dbSession.execute("""
+        UPDATE letsencrypt_domain
+        SET letsencrypt_server_certificate_id__latest_single = (
+            SELECT id FROM (
+                SELECT cert.id
+                      , max(cert.timestamp_expires)
+                      , cert2domain.letsencrypt_domain_id
+                FROM letsencrypt_server_certificate cert
+                JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
+                    ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
+                WHERE cert.is_single_domain_cert = :is_single_domain_cert
+                      AND 
+                      cert.is_active = :is_active
+                GROUP BY cert2domain.letsencrypt_domain_id
+            ) q_inner
+            WHERE
+            letsencrypt_domain.id = q_inner.letsencrypt_domain_id
+        );
+    """, {'is_single_domain_cert': True, 'is_active': True})
+    dbSession.execute("""
+        UPDATE letsencrypt_domain
+        SET letsencrypt_server_certificate_id__latest_multi = (
+            SELECT id FROM (
+                SELECT cert.id
+                      , max(cert.timestamp_expires)
+                      , cert2domain.letsencrypt_domain_id
+                FROM letsencrypt_server_certificate cert
+                JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
+                    ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
+                WHERE cert.is_single_domain_cert = :is_single_domain_cert
+                      AND 
+                      cert.is_active = :is_active
+                GROUP BY cert2domain.letsencrypt_domain_id
+            ) q_inner
+            WHERE
+            letsencrypt_domain.id = q_inner.letsencrypt_domain_id
+        );
+    """, {'is_single_domain_cert': False, 'is_active': True})
+    return True
+    
+    
+def operations_deactivate_expired(dbSession):
+    # deactivate expired certificates
+    expired_certs = DBSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.is_active is True,  # noqa
+                LetsencryptServerCertificate.timestamp_expires < datetime.datetime.utcnow(),
+                )\
+        .all()
+    for c in expired_certs:
+        c.is_active = False
+    dbSession.flush()
+    return len(expired_certs)
+
+
+def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=None):
+    """
+    this is kind of weird.
+    because we have multiple domains, it is hard to figure out which certs we should use
+    the simplest approach is this:
+    
+    1. cache the most recent certs via `operations_update_recents`
+    2. find domains that have multiple active certs
+    3. don't turn off any certs that are a latest_single or latest_multi
+    """
+    if ran_operations_update_recents is not True:
+        raise ValueError("MUST run `operations_update_recents` first")
+    _q_ids__latest_single = DBSession.query(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single)\
+        .distinct()\
+        .filter(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single != None,  # noqa
+                )\
+        .subquery()
+    _q_ids__latest_multi = DBSession.query(LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi)\
+        .distinct()\
+        .filter(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single != None,  # noqa
+                )\
+        .subquery()
+
+    # now grab the domains with many certs...
+    q_inner = DBSession.query(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id,
+                              sqlalchemy.func.count(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id).label('counted'),
+                              )\
+        .join(LetsencryptServerCertificate,
+              LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id == LetsencryptServerCertificate.id
+              )\
+        .filter(LetsencryptServerCertificate.is_active == True,  # noqa
+                )\
+        .group_by(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id)
+    q_inner = q_inner.subquery()
+    q_domains = DBSession.query(q_inner)\
+        .filter(q_inner.c.counted >= 2)
+    result = q_domains.all()
+    domain_ids_with_multiple_active_certs = [i.letsencrypt_domain_id for i in result]
+    
+    _turned_off = []
+    for _domain_id in domain_ids_with_multiple_active_certs:
+        domain_certs = DBSession.query(LetsencryptServerCertificate)\
+            .join(LetsencryptServerCertificate2LetsencryptDomain,
+                  LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
+                  )\
+            .filter(LetsencryptServerCertificate.is_active == True,  # noqa
+                    LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _domain_id,
+                    LetsencryptServerCertificate.id.notin_(_q_ids__latest_single),
+                    LetsencryptServerCertificate.id.notin_(_q_ids__latest_multi),
+                    )\
+            .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
+            .all()
+        if len(domain_certs) > 1:
+            for cert in domain_certs[1:]:
+                cert.is_active = False
+                _turned_off.append(cert)
+    return len(_turned_off)

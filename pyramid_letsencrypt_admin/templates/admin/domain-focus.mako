@@ -36,12 +36,20 @@
             <td>
                 <table class="table">
                     <tr>
-                        <th></th>
-                        <td></td>
+                        <th>latest_single</th>
+                        <td>
+                            % if LetsencryptDomain.letsencrypt_server_certificate_id__latest_single:
+                                ${admin_partials.table_certificates__list([LetsencryptDomain.latest_certificate_single,], show_domains=True)}
+                            % endif
+                        </td>
                     </tr>
                     <tr>
-                        <th></th>
-                        <td></td>
+                        <th>latest_multi</th>
+                        <td>
+                            % if LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi:
+                                ${admin_partials.table_certificates__list([LetsencryptDomain.latest_certificate_multi,], show_domains=True)}
+                            % endif
+                        </td>
                     </tr>
                 </table>
             </td>

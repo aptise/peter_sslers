@@ -134,128 +134,31 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name='admin:operations:update_recents', renderer='json')
+    def operations_update_recents(self):
+        lib_db.operations_update_recents(DBSession)
+        return {'result': 'success'
+                }
+
+
     @view_config(route_name='admin:operations:deactivate_expired', renderer='json')
     def operations_deactivate_expired(self):
         rval = {}
 
-        # deactivate expired certificates
-        expired_certs = DBSession.query(LetsencryptServerCertificate)\
-            .filter(LetsencryptServerCertificate.is_active is True,  # noqa
-                    LetsencryptServerCertificate.timestamp_expires < datetime.datetime.utcnow(),
-                    )\
-            .all()
-        for c in expired_certs:
-            c.is_active = False
-        rval['LetsencryptServerCertificate'] = {'expired': len(expired_certs), }
-        DBSession.flush()
+        # MUST run this first
+        lib_db.operations_update_recents(DBSession)
 
-        # track latest_cert_single and multi
+        count_deactivated = lib_db.operations_deactivate_expired(DBSession)
+        rval['LetsencryptServerCertificate'] = {'expired': count_deactivated, }
 
         # deactivate duplicate certificates
-        if False:
-            """
-            UPDATE letsencrypt_domain
-            SET letsencrypt_server_certificate_id__latest_single = (
-                SELECT id FROM (
-                    SELECT
-                        letsencrypt_server_certificate.id,
-                        letsencrypt_server_certificate_to_domain.letsencrypt_domain_id
-                    FROM letsencrypt_server_certificate
-                    JOIN letsencrypt_server_certificate_to_domain
-                        ON (letsencrypt_server_certificate.id = letsencrypt_server_certificate_to_domain.letsencrypt_server_certificate_id)
-                    WHERE letsencrypt_server_certificate.is_single_domain_cert = 1
-                    ORDER BY letsencrypt_server_certificate.timestamp_expires DESC
-                    LIMIT 1
-                ) q_inner
-                WHERE letsencrypt_domain.id = q_inner.letsencrypt_domain_id
-            );
-
-            UPDATE letsencrypt_domain
-            SET letsencrypt_server_certificate_id__latest_multi = (
-                SELECT id FROM (
-                    SELECT
-                        letsencrypt_server_certificate.id,
-                        letsencrypt_server_certificate_to_domain.letsencrypt_domain_id
-                    FROM letsencrypt_server_certificate
-                    JOIN letsencrypt_server_certificate_to_domain
-                        ON (letsencrypt_server_certificate.id = letsencrypt_server_certificate_to_domain.letsencrypt_server_certificate_id)
-                    WHERE letsencrypt_server_certificate.is_single_domain_cert = -1
-                    ORDER BY letsencrypt_server_certificate.timestamp_expires DESC
-                    LIMIT 1
-                ) q_inner
-                WHERE letsencrypt_domain.id = q_inner.letsencrypt_domain_id
-            );
-
-
-            """
-
-            """
-            this doesn't work right.
-            since CERTs can have multiple domains, it's a bit of a pain to find the latest cert.
-            """
-            q_inner = DBSession.query(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id,
-                                      sqlalchemy.func.count(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id).label('counted'),
-                                      )\
-                .join(LetsencryptServerCertificate,
-                      LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id == LetsencryptServerCertificate.id
-                      )\
-                .filter(LetsencryptServerCertificate.is_active == True,  # noqa
-                        )\
-                .group_by(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id)
-            q_inner = q_inner.subquery()
-            q_domains = DBSession.query(q_inner)\
-                .filter(q_inner.c.counted >= 2)
-            result = q_domains.all()
-            domain_ids_with_multiple_active_certs = [i.letsencrypt_domain_id for i in result]
-
-            print "domain_ids_with_multiple_active_certs"
-            print domain_ids_with_multiple_active_certs
-
-            _turned_off = []
-            for _domain_id in domain_ids_with_multiple_active_certs:
-                domain_certs = DBSession.query(LetsencryptServerCertificate)\
-                    .join(LetsencryptServerCertificate2LetsencryptDomain,
-                          LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
-                          )\
-                    .filter(LetsencryptServerCertificate.is_active == True,  # noqa
-                            LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _domain_id,
-                            )\
-                    .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
-                    .all()
-                if True:
-                    print "CHECKING DOMAIN_ID(%s)" % _domain_id
-                    print "-FOUND %s certs" % len(domain_certs)
-                    print domain_certs
-                    for d in domain_certs:
-                        print "-- %s, %s" % (d.id, d)
-                    print "len(domain_certs) <= 1: %s" % (len(domain_certs) <= 1)
-                if len(domain_certs) <= 1:
-                    raise ValueError("Expected more >= 2 certs")
-                for cert in domain_certs[1:]:
-                    print "TURNING OFF CERT - %s" % cert.id
-                    cert.is_active = False
-                    _turned_off.append(cert)
-            raise ValueError("ok")
-
-        rval['LetsencryptServerCertificate']['duplicates.deactivated'] = len(_turned_off)
+        count_deactivated_duplicated = lib_db.operations_deactivate_duplicates(DBSession,
+                                                                               ran_operations_update_recents=True,
+                                                                               )
+        rval['LetsencryptServerCertificate']['duplicates.deactivated'] = count_deactivated_duplicated
         DBSession.flush()
 
-        raise ValueError(domains_with_multiple_active_certs)
-
-        duplicate_certs = DBSession.query(LetsencryptServerCertificate)\
-            .join(LetsencryptServerCertificate2LetsencryptDomain,
-                  LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
-                  )\
-            .join(LetsencryptDomain,
-                  LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
-                  )\
-            .filter(LetsencryptServerCertificate.is_active.op('IS')(True),
-                    )\
-            .group_by(LetsencryptDomain.id,)\
-            .all()
-        print duplicate_certs
-        raise ValueError(duplicate_certs)
-
+        rval['result'] = 'success'
         return rval
         return HTTPFound('/.well-known/admin?result=success&operation=operations.deactivate_expired')
 

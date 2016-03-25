@@ -134,7 +134,7 @@ class LetsencryptServerCertificate(Base):
 class LetsencryptServerCertificate2LetsencryptDomain(Base):
     """
     """
-    __tablename__ = 'letsencrypt_server_certificate_2_domain'
+    __tablename__ = 'letsencrypt_server_certificate_2_letsencrypt_domain'
     letsencrypt_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), primary_key=True)
     letsencrypt_domain_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_domain.id"), primary_key=True)
 
@@ -156,6 +156,7 @@ class LetsencryptDomain(Base):
     __tablename__ = 'letsencrypt_domain'
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
+
     letsencrypt_server_certificate_id__latest_single = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=True)
     letsencrypt_server_certificate_id__latest_multi = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=True)
 
@@ -167,6 +168,15 @@ class LetsencryptDomain(Base):
                                                  primaryjoin="LetsencryptDomain.id==LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id",
                                                  back_populates='domain',
                                                  )
+                                                 
+    latest_certificate_single = sa.orm.relationship("LetsencryptServerCertificate",
+                                                 primaryjoin="LetsencryptDomain.letsencrypt_server_certificate_id__latest_single==LetsencryptServerCertificate.id",
+                                                 uselist=False,
+                                                 )
+    latest_certificate_multi = sa.orm.relationship("LetsencryptServerCertificate",
+                                                   primaryjoin="LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi==LetsencryptServerCertificate.id",
+                                                   uselist=False,
+                                                   )
 
 
 class LetsencryptCertificateRequestType(object):

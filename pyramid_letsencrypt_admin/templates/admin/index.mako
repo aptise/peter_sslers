@@ -35,11 +35,16 @@
                     >Redis Operations</a><br/>
                 </p>
             % endif
-                <p>
-                    <a  href="/.well-known/admin/operations/deactivate_expired"
-                        class="btn btn-info"
-                    >Deactivate Expired Certificates</a><br/>
-                </p>
+            <p>
+                <a  href="/.well-known/admin/operations/deactivate_expired"
+                    class="btn btn-info"
+                >Deactivate Expired Certificates</a><br/>
+            </p>
+            <p>
+                <a  href="/.well-known/admin/operations/update_recents"
+                    class="btn btn-info"
+                >Update Recents</a><br/>
+            </p>
 
         </div>
         <div class="col-sm-6">

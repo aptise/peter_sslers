@@ -108,6 +108,7 @@
                         <tr>
                             <th></th>
                             <th>domain</th>
+                            <th>is latest cert?</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -115,6 +116,21 @@
                             <tr>
                                 <td>
                                     <a class="label label-default" href="/.well-known/admin/domain/${to_d.domain.id}">&gt; ${to_d.domain.id}</a>
+                                </td>
+                                <td>
+                                    ${to_d.domain.domain_name}
+                                </td>
+                                <td>
+                                    % if LetsencryptServerCertificate.id in (to_d.domain.letsencrypt_server_certificate_id__latest_single, to_d.domain.letsencrypt_server_certificate_id__latest_multi):
+                                        <span class="label label-default">
+                                            % if LetsencryptServerCertificate.id == to_d.domain.letsencrypt_server_certificate_id__latest_single:
+                                                single
+                                            % endif
+                                            % if LetsencryptServerCertificate.id == to_d.domain.letsencrypt_server_certificate_id__latest_multi:
+                                                multi
+                                            % endif
+                                        </span>
+                                    % endif
                                 </td>
                                 <td>
                                     ${to_d.domain.domain_name}
