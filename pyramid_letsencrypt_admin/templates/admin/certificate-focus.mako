@@ -61,9 +61,9 @@
             <td><timestamp>${LetsencryptServerCertificate.timestamp_expires}</timestamp></td>
         </tr>
         <tr>
-            <th>letsencrypt_ca_certificate_id__signed_by</th>
+            <th>letsencrypt_ca_certificate_id__upchain</th>
             <td>
-                <a class="label label-default" href="/.well-known/admin/ca_certificate/${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__signed_by}">&gt; ${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__signed_by}</a>
+                <a class="label label-default" href="/.well-known/admin/ca_certificate/${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}">&gt; ${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}</a>
             </td>
         </tr>
         <tr>

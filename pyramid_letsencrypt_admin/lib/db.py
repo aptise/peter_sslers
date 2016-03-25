@@ -235,14 +235,14 @@ def get__LetsencryptCACertificate__by_id(dbSession, cert_id):
 
 def get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(dbSession, cert_id):
     counted = dbSession.query(LetsencryptServerCertificate)\
-        .filter(LetsencryptServerCertificate.letsencrypt_ca_certificate_id__signed_by == cert_id)\
+        .filter(LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain == cert_id)\
         .count()
     return counted
 
 
 def get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(dbSession, cert_id, limit=None, offset=0):
     dbLetsencryptServerCertificates = dbSession.query(LetsencryptServerCertificate)\
-        .filter(LetsencryptServerCertificate.letsencrypt_ca_certificate_id__signed_by == cert_id)\
+        .filter(LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain == cert_id)\
         .order_by(LetsencryptServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
@@ -700,7 +700,7 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
             # we should make sure it issued the certificate:
             if dbCertificate.cert_issuer_hash != dbCACertificate.cert_subject_hash:
                 raise ValueError('dbCACertificate did not sign the certificate')
-            dbCertificate.letsencrypt_ca_certificate_id__signed_by = dbCACertificate.id
+            dbCertificate.letsencrypt_ca_certificate_id__upchain = dbCACertificate.id
 
             # this is the private key
             # we should make sure it signed the certificate
@@ -766,9 +766,9 @@ def create__LetsencryptServerCertificate(
         raise ValueError("need to figure this out")
 
     # we need to figure this out; it's the chained_pem
-    # letsencrypt_ca_certificate_id__signed_by
+    # letsencrypt_ca_certificate_id__upchain
     dbCACertificate, _is_created_cert = getcreate__LetsencryptCACertificate__by_pem_text(dbSession, chained_pem, chain_name)
-    letsencrypt_ca_certificate_id__signed_by = dbCACertificate.id
+    letsencrypt_ca_certificate_id__upchain = dbCACertificate.id
 
     cert_pem = acme.cleanup_pem_text(cert_pem)
     try:
@@ -799,7 +799,7 @@ def create__LetsencryptServerCertificate(
             dbLetsencryptCertificateRequest = dbSession.merge(dbLetsencryptCertificateRequest)
         dbLetsencryptCertificateRequest.is_active = False
         dbLetsencryptServerCertificate.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
-    dbLetsencryptServerCertificate.letsencrypt_ca_certificate_id__signed_by = letsencrypt_ca_certificate_id__signed_by
+    dbLetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain = letsencrypt_ca_certificate_id__upchain
     dbLetsencryptServerCertificate.letsencrypt_private_key_id__signed_by = letsencrypt_private_key_id__signed_by
     dbSession.add(dbLetsencryptServerCertificate)
     dbSession.flush()

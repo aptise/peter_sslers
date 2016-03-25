@@ -39,7 +39,7 @@
             <tbody>
                 % for event in LetsencryptCACertificateProbes:
                     <tr>
-                        <td>${event.id}</td>
+                        <td><span class="label label-default">${event.id}</span></td>
                         <td><timestamp>${event.timestamp_operation}</timestamp></td>
                         <td>
                             % if event.is_certificates_discovered:

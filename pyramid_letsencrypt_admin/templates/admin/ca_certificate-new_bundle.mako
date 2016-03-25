@@ -45,7 +45,7 @@
             <h3>This form accepts JSON</h3>
             
             <p>
-                <code>curl http://0.0.0.0:6543/.well-known/admin/ca_certificate/upload/json</code>
+                <code>curl http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload/json</code>
             </p>
 
 <p>

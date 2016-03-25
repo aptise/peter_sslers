@@ -20,6 +20,10 @@ _le_archive_filename_templates = {'certificate': 'cert%d.pem',
 def import_letsencrypt_certs_archive(archive_path, server_url_root):
     """imports the archive path
     HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC
+    
+    usage:
+        invoke import_letsencrypt_certs_archive --archive-path="/path/to" --server-url-root="http://0.0.0.0:6543"
+        invoke import_letsencrypt_certs_archive --archive-path="/Users/jvanasco/webserver/tests/letsencrypt.test/credentials/letsencrypt_issueds" --server-url-root="http://0.0.0.0:6543"
     """
     if not archive_path:
         raise ValueError("missing `archive-path`")

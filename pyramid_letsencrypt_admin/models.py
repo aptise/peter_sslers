@@ -105,7 +105,7 @@ class LetsencryptServerCertificate(Base):
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
 
     # this is the LetsEncrypt key
-    letsencrypt_ca_certificate_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_ca_certificate.id"), nullable=False)
+    letsencrypt_ca_certificate_id__upchain = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_ca_certificate.id"), nullable=False)
 
     # this is the private key
     letsencrypt_private_key_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_private_key.id"), nullable=False)

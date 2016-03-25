@@ -135,6 +135,8 @@ Your `environment.ini` exposes a few configuration options:
 
 # tools
 
+## invoke script
+
 there is an `invoke` script in the `tools` directory that can be used to automate certain tasks.
 
 right now the invoke script offers:
@@ -142,6 +144,43 @@ right now the invoke script offers:
 `import_letsencrypt_certs_archive` given a directory of your letsencrypt archive (which has versioned certs), it will import them all into a server of your choice.
 
 
+## commandline interface
+
+### Routes Designed for JSON Automation
+
+#### /admin/operations/update_recents
+
+Updates domain records to list the most recent certificate for the domain
+
+#### /admin/operations/deactivate_expired
+
+Deactivates expired certs
+
+### Routes with JSON support
+
+several routes have support for JSON requests via a `/json` suffix. 
+
+these are usually documented on the html version
+
+#### /admin/certificate/upload/json
+
+This can be used used to directly import certs issued by letsencrypt
+
+	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json
+
+	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json
+	
+Note that the url is not `/upload` like the html form but `/upload/json`
+
+Both URLS accept the same form, but /upload/json returns json data that is probably more readable.
+
+Errors will appear in JSON if encountered.
+
+if data is not POSTed to the form, instructions are returned in the json.
+
+There is even an `invoke` script to automate these imports:
+
+	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://0.0.0.0:6543'
 
 
 # FAQ
@@ -152,22 +191,7 @@ Yes. PEM certs are reformatted to have a single trailing newline (via stripping 
 
 ## Is there a fast way to import existing certs?
 
-Yes.  Use `curl` on the commandline
-
-If you are in a directory with certs issued by letsencrypt:
-
-	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json
-
-	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json
-	
-Note that the url is not `/upload` but `/upload/json`
-
-Both URLS accept the same form, but /upload/json returns json data that is probably more readable.
-
-there is even an `invoke` script to automate imports~
-
-	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://0.0.0.0:6543'
-	
+Yes.  Use `curl` on the commandline.  see the TOOLS section	
 
 ## What happens if multiple certs are available for a domain ?
 
