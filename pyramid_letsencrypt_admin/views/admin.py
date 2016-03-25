@@ -276,12 +276,20 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:upload')
+    @view_config(route_name='admin:certificate:upload:json', renderer='json')
     def certificate_upload(self):
         if self.request.POST:
             return self._certificate_upload__submit()
         return self._certificate_upload__print()
 
     def _certificate_upload__print(self):
+        if self.request.matched_route.name == 'admin:certificate:upload:json':
+            return {'instructions': """curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' http://127.0.0.1:6543/.well-known/admin/certificate/upload/json""",
+                    'form_fields': {'private_key_file': 'required',
+                                    'chain_file': 'required',
+                                    'certificate_file': 'required',
+                                    },
+                    }
         return render_to_response("/admin/certificate-upload.mako", {}, self.request)
 
     def _certificate_upload__submit(self):
@@ -294,25 +302,38 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formStash.results['private_key_file'].file.read()
-            dbLetsencryptPrivateKey, _is_created = lib_db.getcreate__LetsencryptPrivateKey__by_pem_text(
+            dbLetsencryptPrivateKey, pkey_is_created = lib_db.getcreate__LetsencryptPrivateKey__by_pem_text(
                 DBSession,
                 private_key_pem
             )
 
             chain_pem = formStash.results['chain_file'].file.read()
-            dbLetsencryptCACertificate, _is_created = lib_db.getcreate__LetsencryptCACertificate__by_pem_text(
+            dbLetsencryptCACertificate, cacert_is_created = lib_db.getcreate__LetsencryptCACertificate__by_pem_text(
                 DBSession,
                 chain_pem,
                 'manual upload'
             )
 
             certificate_pem = formStash.results['certificate_file'].file.read()
-            dbLetsencryptServerCertificate, _is_created = lib_db.getcreate__LetsencryptServerCertificate__by_pem_text(
+            dbLetsencryptServerCertificate, cert_is_created = lib_db.getcreate__LetsencryptServerCertificate__by_pem_text(
                 DBSession, certificate_pem,
                 dbCACertificate=dbLetsencryptCACertificate,
                 dbPrivateKey=dbLetsencryptPrivateKey,
             )
-
+            
+            if self.request.matched_route.name == 'admin:certificate:upload:json':
+                return {'result': 'success',
+                        'certificate': {'created': cert_is_created,
+                                        'id': dbLetsencryptServerCertificate.id,
+                                        'url': '/.well-known/admin/certificate/%s' % dbLetsencryptServerCertificate.id,
+                                        },
+                        'ca_certificate': {'created': cacert_is_created,
+                                           'id': dbLetsencryptCACertificate.id,
+                                        },
+                        'private_key': {'created': pkey_is_created,
+                                        'id': dbLetsencryptPrivateKey.id,
+                                        },
+                        }
             return HTTPFound('/.well-known/admin/certificate/%s' % dbLetsencryptServerCertificate.id)
 
         except formhandling.FormInvalid:
@@ -321,6 +342,10 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
+            if self.request.matched_route.name == 'admin:certificate:upload:json':
+                return {'result': 'error',
+                        'form_errors': formStash.errors,
+                        }
             return formhandling.form_reprint(
                 self.request,
                 self._certificate_upload__print,

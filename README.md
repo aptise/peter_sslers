@@ -146,9 +146,15 @@ Yes.  Use `curl` on the commandline
 
 If you are in a directory with certs issued by letsencrypt:
 
-	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload
+	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json
 
-	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload
+	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json
+	
+Note that the url is not `/upload` but `/upload/json`
+
+Both URLS accept the same form, but /upload/json returns json data that is probably more readable.
+	
+	
 
 
 ## Why use openssl? / does this work on windows?

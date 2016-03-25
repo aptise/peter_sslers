@@ -58,6 +58,23 @@
             <p>running locally from a directory that includes letencrypt issued files, you could do the following:</p>
             
             <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload</code></p>
+            
+            <p>But instead of that, post to <code>upload/json</code>, which will give you a json parcel in return</p>
+
+            <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json</code></p>
+            
+            <p>The JSON response will have a <code>result</code> attribute that is "success" or "error"; if there is an error, you will see the info in <code>form_errors</code></p>
+            
+            <table class="table table-striped table-condensed">
+                <tr>
+                    <th>valid form</th>
+                    <td><code>{"private_key": {"id": 2, "created": false}, "ca_certificate": {"id": 1, "created": false}, "result": "success", "certificate": {"url": "/.well-known/admin/certificate/2", "id": 2, "created": false}}</code></td>
+                </tr>
+                <tr>
+                    <th>valid form</th>
+                    <td><code>{"form_errors": {"Error_Main": "There was an error with your form. ", "chain_file": "Missing value"}, "result": "error"}</code></td>
+                </tr>
+            </table>
 
 
             <h2>What do all these mean?</h2>

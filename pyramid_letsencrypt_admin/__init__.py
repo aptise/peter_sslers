@@ -42,6 +42,7 @@ def main(global_config, **settings):
     config.add_route('admin:certificate:focus:privatekey:raw', '/.well-known/admin/certificate/{id:\d+}/privatekey.{format:(der|pem|pem.txt)}')
     config.add_route('admin:certificate:focus:cert:raw', '/.well-known/admin/certificate/{id:\d+}/cert.{format:(crt|pem|pem.txt)}')
     config.add_route('admin:certificate:upload', '/.well-known/admin/certificate/upload')
+    config.add_route('admin:certificate:upload:json', '/.well-known/admin/certificate/upload/json')
 
     config.add_route('admin:operations:deactivate_expired', '/.well-known/admin/operations/deactivate_expired')
 
