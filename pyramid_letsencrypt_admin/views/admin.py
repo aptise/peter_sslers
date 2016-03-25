@@ -15,18 +15,18 @@ import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp
-from .models import *
-from .lib.forms import (Form_CertificateRequest_new_flow,
-                        Form_CertificateRequest_new_full,
-                        Form_CertificateRequest_new_full__file,
-                        Form_CertificateRequest_process_domain,
-                        Form_CertificateUpload__file,
-                        Form_PrivateKey_new__file,
-                        Form_AccountKey_new__file,
-                        )
-import lib.acme
-import lib.db
-import lib.text
+from ..models import *
+from ..lib.forms import (Form_CertificateRequest_new_flow,
+                         # Form_CertificateRequest_new_full,
+                         Form_CertificateRequest_new_full__file,
+                         Form_CertificateRequest_process_domain,
+                         Form_CertificateUpload__file,
+                         Form_PrivateKey_new__file,
+                         Form_AccountKey_new__file,
+                         )
+from ..lib import acme as lib_acme
+from ..lib import db as lib_db
+from ._core import Handler
 
 
 # ==============================================================================
@@ -34,62 +34,6 @@ import lib.text
 
 # misc config options
 items_per_page = 50
-
-
-# ==============================================================================
-
-
-class Handler(object):
-    request = None
-
-    def __init__(self, request):
-        self.request = request
-        self.request.formhandling = formhandling
-        self.request.text_library = lib.text
-
-
-class ViewPublic(Handler):
-
-    @view_config(route_name="public_whoami", renderer="string")
-    def public_whoami(self):
-        """this is really only useful for testing"""
-        return self.request.active_domain_name
-
-    @view_config(route_name='public_challenge', renderer='string')
-    def public_challenge(self):
-        challenge = self.request.matchdict['challenge']
-        active_request = lib.db.get__LetsencryptCertificateRequest2LetsencryptDomain__challenged(DBSession,
-                                                                                                 challenge,
-                                                                                                 self.request.active_domain_name,
-                                                                                                 )
-        if False:
-            print "----------------------"
-            print self.request.active_domain_name
-            print challenge
-            print active_request
-            print "-  -  -  -  -  -  -  -"
-            print self.request
-            print "----------------------"
-        if active_request:
-            log_verification = True if 'test' not in self.request.params else False
-            if log_verification:
-                active_request.timestamp_verified = datetime.datetime.now()
-                active_request.ip_verified = self.request.environ['REMOTE_ADDR']
-                DBSession.flush()
-                # quick cleanup
-                dbLetsencryptCertificateRequest = lib.db.get__LetsencryptCertificateRequest__by_id(DBSession,
-                                                                                                   active_request.letsencrypt_certificate_request_id,
-                                                                                                   )
-                has_unverified = False
-                for d in dbLetsencryptCertificateRequest.certificate_request_to_domains:
-                    if not d.timestamp_verified:
-                        has_unverified = True
-                        break
-                if not has_unverified and not dbLetsencryptCertificateRequest.timestamp_finished:
-                    dbLetsencryptCertificateRequest.timestamp_finished = datetime.datetime.now()
-                    DBSession.flush()
-            return active_request.challenge_text
-        return 'ERROR'
 
 
 # ==============================================================================
@@ -132,9 +76,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains', renderer='/admin/domains.mako')
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
     def domains(self):
-        dbLetsencryptDomains_count = lib.db.get__LetsencryptDomain__count(DBSession)
+        dbLetsencryptDomains_count = lib_db.get__LetsencryptDomain__count(DBSession)
         (pager, offset) = self._paginate(dbLetsencryptDomains_count, url_template='/.well-known/admin/domains/{0}')
-        dbLetsencryptDomains = lib.db.get__LetsencryptDomain__paginated(DBSession, limit=items_per_page, offset=offset)
+        dbLetsencryptDomains = lib_db.get__LetsencryptDomain__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomains_count': dbLetsencryptDomains_count,
                 'LetsencryptDomains': dbLetsencryptDomains,
@@ -144,7 +88,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _domain_focus(self):
-        dbLetsencryptDomain = lib.db.get__LetsencryptDomain__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_id(DBSession, self.request.matchdict['id'])
         if not dbLetsencryptDomain:
             raise HTTPNotFound('the domain was not found')
         return dbLetsencryptDomain
@@ -160,10 +104,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificates_paginated', renderer='/admin/domain-focus-certificates.mako')
     def domain_focus__certificates(self):
         dbLetsencryptDomain = self._domain_focus()
-        dbLetsencryptServerCertificates_count = lib.db.get__LetsencryptServerCertificate__by_LetsencryptDomain__count(
+        dbLetsencryptServerCertificates_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomain__count(
             DBSession, dbLetsencryptDomain.id)
         (pager, offset) = self._paginate(dbLetsencryptServerCertificates_count, url_template='/.well-known/admin/domain/%s/certificates/{0}' % dbLetsencryptDomain.id)
-        dbLetsencryptServerCertificates = lib.db.get__LetsencryptServerCertificate__by_LetsencryptDomain__paginated(
+        dbLetsencryptServerCertificates = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomain__paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomain': dbLetsencryptDomain,
@@ -176,10 +120,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificate_requests_paginated', renderer='/admin/domain-focus-certificate_requests.mako')
     def domain_focus__certificate_requests(self):
         dbLetsencryptDomain = self._domain_focus()
-        dbLetsencryptCertificateRequests_count = lib.db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__count(
+        dbLetsencryptCertificateRequests_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__count(
             DBSession, LetsencryptDomain.id)
         (pager, offset) = self._paginate(dbLetsencryptCertificateRequests_count, url_template='/.well-known/admin/domain/%s/certificate_requests/{0}' % LetsencryptDomain.id)
-        dbLetsencryptCertificateRequests = lib.db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__paginated(
+        dbLetsencryptCertificateRequests = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomain': dbLetsencryptDomain,
@@ -320,9 +264,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
     def certificates(self):
-        dbLetsencryptServerCertificates_count = lib.db.get__LetsencryptServerCertificate__count(DBSession)
+        dbLetsencryptServerCertificates_count = lib_db.get__LetsencryptServerCertificate__count(DBSession)
         (pager, offset) = self._paginate(dbLetsencryptServerCertificates_count, url_template='/.well-known/admin/certificates/{0}')
-        dbLetsencryptServerCertificates = lib.db.get__LetsencryptServerCertificate__paginated(DBSession, limit=items_per_page, offset=offset)
+        dbLetsencryptServerCertificates = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptServerCertificates_count': dbLetsencryptServerCertificates_count,
                 'LetsencryptServerCertificates': dbLetsencryptServerCertificates,
@@ -350,20 +294,20 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formStash.results['private_key_file'].file.read()
-            dbLetsencryptPrivateKey, _is_created = lib.db.getcreate__LetsencryptPrivateKey__by_pem_text(
+            dbLetsencryptPrivateKey, _is_created = lib_db.getcreate__LetsencryptPrivateKey__by_pem_text(
                 DBSession,
                 private_key_pem
             )
 
             chain_pem = formStash.results['chain_file'].file.read()
-            dbLetsencryptCACertificate, _is_created = lib.db.getcreate__LetsencryptCACertificate__by_pem_text(
+            dbLetsencryptCACertificate, _is_created = lib_db.getcreate__LetsencryptCACertificate__by_pem_text(
                 DBSession,
                 chain_pem,
                 'manual upload'
             )
 
             certificate_pem = formStash.results['certificate_file'].file.read()
-            dbLetsencryptServerCertificate, _is_created = lib.db.getcreate__LetsencryptServerCertificate__by_pem_text(
+            dbLetsencryptServerCertificate, _is_created = lib_db.getcreate__LetsencryptServerCertificate__by_pem_text(
                 DBSession, certificate_pem,
                 dbCACertificate=dbLetsencryptCACertificate,
                 dbPrivateKey=dbLetsencryptPrivateKey,
@@ -386,7 +330,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _certificate_focus(self):
-        dbLetsencryptServerCertificate = lib.db.get__LetsencryptServerCertificate__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptServerCertificate = lib_db.get__LetsencryptServerCertificate__by_id(DBSession, self.request.matchdict['id'])
         if not dbLetsencryptServerCertificate:
             raise HTTPNotFound('the certificate was not found')
         return dbLetsencryptServerCertificate
@@ -427,7 +371,7 @@ class ViewAdmin(Handler):
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbLetsencryptServerCertificate.cert_pem
         elif self.request.matchdict['format'] == 'crt':
-            as_der = lib.acme.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.cert_pem)
+            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.cert_pem)
             response = Response()
             response.content_type = 'application/x-x509-server-cert'
             response.body = as_der
@@ -439,9 +383,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_requests', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
     def certificate_requests(self):
-        dbLetsencryptCertificateRequests_count = lib.db.get__LetsencryptCertificateRequest__count(DBSession)
+        dbLetsencryptCertificateRequests_count = lib_db.get__LetsencryptCertificateRequest__count(DBSession)
         (pager, offset) = self._paginate(dbLetsencryptCertificateRequests_count, url_template='/.well-known/admin/certificate_requests/{0}')
-        dbLetsencryptCertificateRequests = lib.db.get__LetsencryptCertificateRequest__paginated(DBSession, limit=items_per_page, offset=offset)
+        dbLetsencryptCertificateRequests = lib_db.get__LetsencryptCertificateRequest__paginated(DBSession, limit=items_per_page, offset=offset)
 
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCertificateRequests_count': dbLetsencryptCertificateRequests_count,
@@ -454,7 +398,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:focus', renderer='/admin/certificate_request-focus.mako')
     def certificate_request_focus(self):
         certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib.db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         return {'project': 'pyramid_letsencrypt_admin',
@@ -463,7 +407,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:focus:raw', renderer='string')
     def certificate_request_focus_raw(self):
-        dbLetsencryptCertificateRequest = lib.db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         if self.request.matchdict['format'] == 'pem':
@@ -481,7 +425,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:process', renderer='/admin/certificate_request-process.mako')
     def certificate_request_process(self):
         certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib.db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
@@ -496,7 +440,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:deactivate')
     def certificate_request_deactivate(self):
         certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib.db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
@@ -510,7 +454,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:process:domain', )
     def certificate_request_process_domain(self):
         certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib.db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
@@ -604,7 +548,7 @@ class ViewAdmin(Handler):
             domain_names = set(domain_names)
             if not domain_names:
                 raise ValueError("missing valid domain names")
-            dbLetsencryptCertificateRequest = lib.db.create__CertificateRequest__by_domainNamesList_FLOW(DBSession, domain_names)
+            dbLetsencryptCertificateRequest = lib_db.create__CertificateRequest__by_domainNamesList_FLOW(DBSession, domain_names)
 
             return HTTPFound('/.well-known/admin/certificate_request/%s/process' % dbLetsencryptCertificateRequest.id)
 
@@ -649,7 +593,7 @@ class ViewAdmin(Handler):
             private_key_pem = formStash.results['private_key_file'].file.read()
 
             try:
-                dbLetsencryptCertificate = lib.db.create__CertificateRequest__FULL(
+                dbLetsencryptCertificate = lib_db.create__CertificateRequest__FULL(
                     DBSession,
                     domain_names,
                     account_key_pem=account_key_pem,
@@ -679,9 +623,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_keys', renderer='/admin/account_keys.mako')
     @view_config(route_name='admin:account_keys_paginated', renderer='/admin/account_keys.mako')
     def account_keys(self):
-        dbLetsencryptAccountKeys_count = lib.db.get__LetsencryptAccountKey__count(DBSession)
+        dbLetsencryptAccountKeys_count = lib_db.get__LetsencryptAccountKey__count(DBSession)
         (pager, offset) = self._paginate(dbLetsencryptAccountKeys_count, url_template='/.well-known/admin/account_keys/{0}')
-        dbLetsencryptAccountKeys = lib.db.get__LetsencryptAccountKey__paginated(DBSession, limit=items_per_page, offset=offset)
+        dbLetsencryptAccountKeys = lib_db.get__LetsencryptAccountKey__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptAccountKeys_count': dbLetsencryptAccountKeys_count,
                 'LetsencryptAccountKeys': dbLetsencryptAccountKeys,
@@ -692,7 +636,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:account_key:focus', renderer='/admin/account_key-focus.mako')
     def account_key_focus(self):
-        dbLetsencryptAccountKey = lib.db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptAccountKey = lib_db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'])
         if not dbLetsencryptAccountKey:
             raise HTTPNotFound('the key was not found')
         return {'project': 'pyramid_letsencrypt_admin',
@@ -701,7 +645,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:account_key:focus:raw', renderer='string')
     def account_key_focus_raw(self):
-        dbLetsencryptAccountKey = lib.db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptAccountKey = lib_db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'])
         if not dbLetsencryptAccountKey:
             raise HTTPNotFound('the key was not found')
         if self.request.matchdict['format'] == 'pem':
@@ -711,7 +655,7 @@ class ViewAdmin(Handler):
             return dbLetsencryptAccountKey.key_pem
         elif self.request.matchdict['format'] == 'key':
             self.request.response.content_type = 'application/pkcs8'
-            as_der = lib.acme.convert_pem_to_der(pem_data=dbLetsencryptAccountKey.key_pem)
+            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptAccountKey.key_pem)
             return as_der
 
     @view_config(route_name='admin:account_key:new')
@@ -733,7 +677,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             account_key_pem = formStash.results['account_key_file'].file.read()
-            dbLetsencryptAccountKey, _is_created = lib.db.getcreate__LetsencryptAccountKey__by_pem_text(DBSession, account_key_pem)
+            dbLetsencryptAccountKey, _is_created = lib_db.getcreate__LetsencryptAccountKey__by_pem_text(DBSession, account_key_pem)
 
             return HTTPFound('/.well-known/admin/account_key/%s%s' % (dbLetsencryptAccountKey.id, ('?is_created=1' if _is_created else '')))
 
@@ -753,9 +697,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_keys', renderer='/admin/private_keys.mako')
     @view_config(route_name='admin:private_keys_paginated', renderer='/admin/private_keys.mako')
     def private_keys(self):
-        dbLetsencryptPrivateKeys_count = lib.db.get__LetsencryptPrivateKey__count(DBSession)
+        dbLetsencryptPrivateKeys_count = lib_db.get__LetsencryptPrivateKey__count(DBSession)
         (pager, offset) = self._paginate(dbLetsencryptPrivateKeys_count, url_template='/.well-known/admin/private_keys/{0}')
-        dbLetsencryptPrivateKeys = lib.db.get__LetsencryptPrivateKey__paginated(DBSession, limit=items_per_page, offset=offset)
+        dbLetsencryptPrivateKeys = lib_db.get__LetsencryptPrivateKey__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptPrivateKeys_count': dbLetsencryptPrivateKeys_count,
                 'LetsencryptPrivateKeys': dbLetsencryptPrivateKeys,
@@ -766,7 +710,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:private_key:focus', renderer='/admin/private_key-focus.mako')
     def private_key_focus(self):
-        dbLetsencryptPrivateKey = lib.db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptPrivateKey = lib_db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'])
         if not dbLetsencryptPrivateKey:
             raise HTTPNotFound('the key was not found')
         return {'project': 'pyramid_letsencrypt_admin',
@@ -775,7 +719,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:private_key:focus:raw', renderer='string')
     def private_key_focus_raw(self):
-        dbLetsencryptPrivateKey = lib.db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptPrivateKey = lib_db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'])
         if not dbLetsencryptPrivateKey:
             raise HTTPNotFound('the key was not found')
         if self.request.matchdict['format'] == 'pem':
@@ -785,7 +729,7 @@ class ViewAdmin(Handler):
             return dbLetsencryptPrivateKey.key_pem
         elif self.request.matchdict['format'] == 'key':
             self.request.response.content_type = 'application/pkcs8'
-            as_der = lib.acme.convert_pem_to_der(pem_data=dbLetsencryptPrivateKey.key_pem)
+            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptPrivateKey.key_pem)
             return as_der
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -809,7 +753,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formStash.results['private_key_file'].file.read()
-            dbLetsencryptPrivateKey, _is_created = lib.db.getcreate__LetsencryptPrivateKey__by_pem_text(DBSession, private_key_pem)
+            dbLetsencryptPrivateKey, _is_created = lib_db.getcreate__LetsencryptPrivateKey__by_pem_text(DBSession, private_key_pem)
 
             return HTTPFound('/.well-known/admin/private_key/%s%s' % (dbLetsencryptPrivateKey.id, ('?is_created=1' if _is_created else '')))
 
@@ -831,9 +775,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificates', renderer='/admin/ca_certificates.mako')
     @view_config(route_name='admin:ca_certificates_paginated', renderer='/admin/ca_certificates.mako')
     def ca_certificates(self):
-        dbLetsencryptCACertificates_count = lib.db.get__LetsencryptCACertificate__count(DBSession)
+        dbLetsencryptCACertificates_count = lib_db.get__LetsencryptCACertificate__count(DBSession)
         (pager, offset) = self._paginate(dbLetsencryptCACertificates_count, url_template='/.well-known/admin/ca_certificates/{0}')
-        dbLetsencryptCACertificates = lib.db.get__LetsencryptCACertificate__paginated(DBSession, limit=items_per_page, offset=offset)
+        dbLetsencryptCACertificates = lib_db.get__LetsencryptCACertificate__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificates_count': dbLetsencryptCACertificates_count,
                 'LetsencryptCACertificates': dbLetsencryptCACertificates,
@@ -843,7 +787,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _ca_certificate_focus(self):
-        dbLetsencryptCACertificate = lib.db.get__LetsencryptCACertificate__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptCACertificate = lib_db.get__LetsencryptCACertificate__by_id(DBSession, self.request.matchdict['id'])
         if not dbLetsencryptCACertificate:
             raise HTTPNotFound('the cert was not found')
         return dbLetsencryptCACertificate
@@ -851,9 +795,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus', renderer='/admin/ca_certificate-focus.mako')
     def ca_certificate_focus(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
-        dbLetsencryptServerCertificates_count = lib.db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
+        dbLetsencryptServerCertificates_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
             DBSession, dbLetsencryptCACertificate.id)
-        dbLetsencryptServerCertificates = lib.db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
+        dbLetsencryptServerCertificates = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
             DBSession, dbLetsencryptCACertificate.id, limit=10, offset=0)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
@@ -870,7 +814,7 @@ class ViewAdmin(Handler):
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbLetsencryptCACertificate.cert_pem
         elif self.request.matchdict['format'] in ('cer', 'der'):
-            as_der = lib.acme.convert_pem_to_der(pem_data=dbLetsencryptCACertificate.cert_pem)
+            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptCACertificate.cert_pem)
             response = Response()
             if self.request.matchdict['format'] == 'cer':
                 response.content_type = 'application/pkix-cert'
@@ -884,10 +828,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates_paginated', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     def ca_certificate_focus__signed_certificates(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
-        dbLetsencryptServerCertificates_count = lib.db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
+        dbLetsencryptServerCertificates_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
             DBSession, dbLetsencryptCACertificate.id)
         (pager, offset) = self._paginate(dbLetsencryptServerCertificates_count, url_template='/.well-known/admin/ca_certificate/%s/signed_certificates/{0}' % dbLetsencryptCACertificate.id)
-        dbLetsencryptServerCertificates = lib.db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
+        dbLetsencryptServerCertificates = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
             DBSession, dbLetsencryptCACertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
@@ -900,9 +844,9 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:ca_certificate_probes', renderer='/admin/ca_certificate_probes.mako')
     def ca_certificate_probes(self):
-        dbLetsencryptCACertificateProbes_count = lib.db.get__LetsencryptCACertificateProbe__count(DBSession)
+        dbLetsencryptCACertificateProbes_count = lib_db.get__LetsencryptCACertificateProbe__count(DBSession)
         (pager, offset) = self._paginate(dbLetsencryptCACertificateProbes_count, url_template='/.well-known/admin/ca_certificate_probes/{0}')
-        dbLetsencryptCACertificateProbes = lib.db.get__LetsencryptCACertificateProbe__paginated(DBSession, limit=items_per_page, offset=offset)
+        dbLetsencryptCACertificateProbes = lib_db.get__LetsencryptCACertificateProbe__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificateProbes_count': dbLetsencryptCACertificateProbes_count,
                 'LetsencryptCACertificateProbes': dbLetsencryptCACertificateProbes,
@@ -914,7 +858,7 @@ class ViewAdmin(Handler):
         if self.request.POST:
             return HTTPFound("/.well-known/admin/ca_certificate_probes?error=POST-only")
 
-        probeEvent = lib.db.ca_certificate_probe(DBSession)
+        probeEvent = lib_db.ca_certificate_probe(DBSession)
 
         return HTTPFound("/.well-known/admin/ca_certificate_probes?success=True")
 
