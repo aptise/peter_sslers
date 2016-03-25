@@ -164,7 +164,7 @@
 </%def>
 
 
-<%def name="table_LetsencryptCertificateRequest_2_ManagedDomain(lcr2mds, request_inactive=None, active_domain_id=None, perspective=None)">
+<%def name="table_LetsencryptCertificateRequest2LetsencryptDomain(lcr2mds, request_inactive=None, active_domain_id=None, perspective=None)">
     % if perspective == 'certificate_request':
         <table class="table table-striped table-condensed">
             <thead>
@@ -221,7 +221,7 @@
             % for to_d in LetsencryptCertificateRequest.certificate_request_to_domains:
                 <tr>
                     <td>
-                        % if active_domain_id == to_d.letsencrypt_managed_domain_id:
+                        % if active_domain_id == to_d.letsencrypt_domain_id:
                             <span class="label label-info">active</span>
                         % endif
                     </td>
@@ -232,7 +232,7 @@
                         </span>
                     </td>
                     <td>
-                        % if active_domain_id == to_d.letsencrypt_managed_domain_id:
+                        % if active_domain_id == to_d.letsencrypt_domain_id:
                             % if to_d.is_configured:
                                 <span 
                                     class="label label-success">configured</span>
@@ -243,10 +243,10 @@
                         % else:
                             % if to_d.is_configured:
                                 <a 
-                                    href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_managed_domain_id}"
+                                    href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
                                     class="label label-success">&gt; configured</a>
                             % else:
-                                <a href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_managed_domain_id}"
+                                <a href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
                                     class="label label-warning">
                                     % if request_inactive:
                                         &gt; not configured
@@ -280,7 +280,7 @@
         </table>
 
     % else:
-        <!-- table_LetsencryptCertificateRequest_2_ManagedDomain missing perspective -->
+        <!-- table_LetsencryptCertificateRequest2LetsencryptDomain missing perspective -->
     % endif
 </%def>
 

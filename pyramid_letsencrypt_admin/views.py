@@ -58,10 +58,10 @@ class ViewPublic(Handler):
     @view_config(route_name='public_challenge', renderer='string')
     def public_challenge(self):
         challenge = self.request.matchdict['challenge']
-        active_request = lib.db.get__LetsencryptCertificateRequest_2_ManagedDomain__challenged(DBSession,
-                                                                                               challenge,
-                                                                                               self.request.active_domain_name,
-                                                                                               )
+        active_request = lib.db.get__LetsencryptCertificateRequest2LetsencryptDomain__challenged(DBSession,
+                                                                                                 challenge,
+                                                                                                 self.request.active_domain_name,
+                                                                                                 )
         if False:
             print "----------------------"
             print self.request.active_domain_name
@@ -91,6 +91,8 @@ class ViewPublic(Handler):
             return active_request.challenge_text
         return 'ERROR'
 
+
+# ==============================================================================
 
 
 class ViewAdmin(Handler):
@@ -124,68 +126,67 @@ class ViewAdmin(Handler):
                 raise HTTPFound(pager.template.format(pager.page_num))
         # return pager, offset
         return pager, ((page_requested - 1) * items_per_page)
-    
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:domains', renderer='/admin/domains.mako')
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
     def domains(self):
-        dbLetsencryptManagedDomains_count = lib.db.get__LetsencryptManagedDomain__count(DBSession)
-        (pager, offset) = self._paginate(dbLetsencryptManagedDomains_count, url_template='/.well-known/admin/domains/{0}')
-        dbLetsencryptManagedDomains = lib.db.get__LetsencryptManagedDomain__paginated(DBSession, limit=items_per_page, offset=offset)
+        dbLetsencryptDomains_count = lib.db.get__LetsencryptDomain__count(DBSession)
+        (pager, offset) = self._paginate(dbLetsencryptDomains_count, url_template='/.well-known/admin/domains/{0}')
+        dbLetsencryptDomains = lib.db.get__LetsencryptDomain__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptManagedDomains_count': dbLetsencryptManagedDomains_count,
-                'LetsencryptManagedDomains': dbLetsencryptManagedDomains,
+                'LetsencryptDomains_count': dbLetsencryptDomains_count,
+                'LetsencryptDomains': dbLetsencryptDomains,
                 'pager': pager,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _domain_focus(self):
-        dbLetsencryptManagedDomain = lib.db.get__LetsencryptManagedDomain__by_id(DBSession, self.request.matchdict['id'])
-        if not dbLetsencryptManagedDomain:
+        dbLetsencryptDomain = lib.db.get__LetsencryptDomain__by_id(DBSession, self.request.matchdict['id'])
+        if not dbLetsencryptDomain:
             raise HTTPNotFound('the domain was not found')
-        return dbLetsencryptManagedDomain
+        return dbLetsencryptDomain
 
     @view_config(route_name='admin:domain:focus', renderer='/admin/domain-focus.mako')
     def domain_focus(self):
-        dbLetsencryptManagedDomain = self._domain_focus()
+        dbLetsencryptDomain = self._domain_focus()
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptManagedDomain': dbLetsencryptManagedDomain
+                'LetsencryptDomain': dbLetsencryptDomain
                 }
 
     @view_config(route_name='admin:domain:focus:certificates', renderer='/admin/domain-focus-certificates.mako')
     @view_config(route_name='admin:domain:focus:certificates_paginated', renderer='/admin/domain-focus-certificates.mako')
     def domain_focus__certificates(self):
-        dbLetsencryptManagedDomain = self._domain_focus()
-        dbLetsencryptHttpsCertificates_count = lib.db.get__LetsencryptHttpsCertificate__by_LetsencryptManagedDomain__count(
-            DBSession, dbLetsencryptManagedDomain.id)
-        (pager, offset) = self._paginate(dbLetsencryptHttpsCertificates_count, url_template='/.well-known/admin/domain/%s/certificates/{0}' % dbLetsencryptManagedDomain.id)
-        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate__by_LetsencryptManagedDomain__paginated(
-            DBSession, dbLetsencryptManagedDomain.id, limit=items_per_page, offset=offset)
+        dbLetsencryptDomain = self._domain_focus()
+        dbLetsencryptServerCertificates_count = lib.db.get__LetsencryptServerCertificate__by_LetsencryptDomain__count(
+            DBSession, dbLetsencryptDomain.id)
+        (pager, offset) = self._paginate(dbLetsencryptServerCertificates_count, url_template='/.well-known/admin/domain/%s/certificates/{0}' % dbLetsencryptDomain.id)
+        dbLetsencryptServerCertificates = lib.db.get__LetsencryptServerCertificate__by_LetsencryptDomain__paginated(
+            DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptManagedDomain': dbLetsencryptManagedDomain,
-                'LetsencryptHttpsCertificates_count': dbLetsencryptHttpsCertificates_count,
-                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
+                'LetsencryptDomain': dbLetsencryptDomain,
+                'LetsencryptServerCertificates_count': dbLetsencryptServerCertificates_count,
+                'LetsencryptServerCertificates': dbLetsencryptServerCertificates,
                 'pager': pager,
                 }
 
     @view_config(route_name='admin:domain:focus:certificate_requests', renderer='/admin/domain-focus-certificate_requests.mako')
     @view_config(route_name='admin:domain:focus:certificate_requests_paginated', renderer='/admin/domain-focus-certificate_requests.mako')
     def domain_focus__certificate_requests(self):
-        dbLetsencryptManagedDomain = self._domain_focus()
-        dbLetsencryptCertificateRequest_count = lib.db.get__LetsencryptCertificateRequest__by_LetsencryptManagedDomain__count(
-            DBSession, LetsencryptManagedDomain.id)
-        (pager, offset) = self._paginate(dbLetsencryptCertificateRequest_count, url_template='/.well-known/admin/domain/%s/certificate_requests/{0}' % LetsencryptManagedDomain.id)
-        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate__by_LetsencryptManagedDomain__paginated(
-            DBSession, dbLetsencryptManagedDomain.id, limit=items_per_page, offset=offset)
+        dbLetsencryptDomain = self._domain_focus()
+        dbLetsencryptCertificateRequests_count = lib.db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__count(
+            DBSession, LetsencryptDomain.id)
+        (pager, offset) = self._paginate(dbLetsencryptCertificateRequests_count, url_template='/.well-known/admin/domain/%s/certificate_requests/{0}' % LetsencryptDomain.id)
+        dbLetsencryptCertificateRequests = lib.db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__paginated(
+            DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptManagedDomain': dbLetsencryptManagedDomain,
-                'LetsencryptCertificateRequests_count': dbLetsencryptCertificateRequest_count,
+                'LetsencryptDomain': dbLetsencryptDomain,
+                'LetsencryptCertificateRequests_count': dbLetsencryptCertificateRequests_count,
                 'LetsencryptCertificateRequests': dbLetsencryptCertificateRequests,
                 'pager': pager,
                 }
-
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -194,14 +195,14 @@ class ViewAdmin(Handler):
         rval = {}
 
         # deactivate expired certificates
-        expired_certs = DBSession.query(LetsencryptHttpsCertificate)\
-            .filter(LetsencryptHttpsCertificate.is_active is True,  # noqa
-                    LetsencryptHttpsCertificate.timestamp_expires < datetime.datetime.utcnow(),
+        expired_certs = DBSession.query(LetsencryptServerCertificate)\
+            .filter(LetsencryptServerCertificate.is_active is True,  # noqa
+                    LetsencryptServerCertificate.timestamp_expires < datetime.datetime.utcnow(),
                     )\
             .all()
         for c in expired_certs:
             c.is_active = False
-        rval['LetsencryptHttpsCertificate'] = {'expired': len(expired_certs), }
+        rval['LetsencryptServerCertificate'] = {'expired': len(expired_certs), }
         DBSession.flush()
 
         # track latest_cert_single and multi
@@ -209,73 +210,73 @@ class ViewAdmin(Handler):
         # deactivate duplicate certificates
         if False:
             """
-            UPDATE letsencrypt_managed_domain 
-            SET letsencrypt_https_certificate_id__latest_single = (
+            UPDATE letsencrypt_domain
+            SET letsencrypt_server_certificate_id__latest_single = (
                 SELECT id FROM (
-                    SELECT 
-                        letsencrypt_https_certificate.id,
-                        letsencrypt_https_certificate_to_domain.letsencrypt_managed_domain_id
-                    FROM letsencrypt_https_certificate
-                    JOIN letsencrypt_https_certificate_to_domain
-                        ON (letsencrypt_https_certificate.id = letsencrypt_https_certificate_to_domain.letsencrypt_https_certificate_id)
-                    WHERE letsencrypt_https_certificate.is_single_domain_cert = 1
-                    ORDER BY letsencrypt_https_certificate.timestamp_expires DESC
+                    SELECT
+                        letsencrypt_server_certificate.id,
+                        letsencrypt_server_certificate_to_domain.letsencrypt_domain_id
+                    FROM letsencrypt_server_certificate
+                    JOIN letsencrypt_server_certificate_to_domain
+                        ON (letsencrypt_server_certificate.id = letsencrypt_server_certificate_to_domain.letsencrypt_server_certificate_id)
+                    WHERE letsencrypt_server_certificate.is_single_domain_cert = 1
+                    ORDER BY letsencrypt_server_certificate.timestamp_expires DESC
                     LIMIT 1
                 ) q_inner
-                WHERE letsencrypt_managed_domain.id = q_inner.letsencrypt_managed_domain_id
+                WHERE letsencrypt_domain.id = q_inner.letsencrypt_domain_id
             );
 
-            UPDATE letsencrypt_managed_domain 
-            SET letsencrypt_https_certificate_id__latest_multi = (
+            UPDATE letsencrypt_domain
+            SET letsencrypt_server_certificate_id__latest_multi = (
                 SELECT id FROM (
-                    SELECT 
-                        letsencrypt_https_certificate.id,
-                        letsencrypt_https_certificate_to_domain.letsencrypt_managed_domain_id
-                    FROM letsencrypt_https_certificate
-                    JOIN letsencrypt_https_certificate_to_domain
-                        ON (letsencrypt_https_certificate.id = letsencrypt_https_certificate_to_domain.letsencrypt_https_certificate_id)
-                    WHERE letsencrypt_https_certificate.is_single_domain_cert = -1
-                    ORDER BY letsencrypt_https_certificate.timestamp_expires DESC
+                    SELECT
+                        letsencrypt_server_certificate.id,
+                        letsencrypt_server_certificate_to_domain.letsencrypt_domain_id
+                    FROM letsencrypt_server_certificate
+                    JOIN letsencrypt_server_certificate_to_domain
+                        ON (letsencrypt_server_certificate.id = letsencrypt_server_certificate_to_domain.letsencrypt_server_certificate_id)
+                    WHERE letsencrypt_server_certificate.is_single_domain_cert = -1
+                    ORDER BY letsencrypt_server_certificate.timestamp_expires DESC
                     LIMIT 1
                 ) q_inner
-                WHERE letsencrypt_managed_domain.id = q_inner.letsencrypt_managed_domain_id
+                WHERE letsencrypt_domain.id = q_inner.letsencrypt_domain_id
             );
 
-            
+
             """
-        
+
             """
             this doesn't work right.
             since CERTs can have multiple domains, it's a bit of a pain to find the latest cert.
             """
-            q_inner = DBSession.query(LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id,
-                                      sqlalchemy.func.count(LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id).label('counted'),
+            q_inner = DBSession.query(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id,
+                                      sqlalchemy.func.count(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id).label('counted'),
                                       )\
-                .join(LetsencryptHttpsCertificate,
-                      LetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id == LetsencryptHttpsCertificate.id
+                .join(LetsencryptServerCertificate,
+                      LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id == LetsencryptServerCertificate.id
                       )\
-                .filter(LetsencryptHttpsCertificate.is_active == True,  # noqa
+                .filter(LetsencryptServerCertificate.is_active == True,  # noqa
                         )\
-                .group_by(LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id)
+                .group_by(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id)
             q_inner = q_inner.subquery()
             q_domains = DBSession.query(q_inner)\
                 .filter(q_inner.c.counted >= 2)
             result = q_domains.all()
-            domain_ids_with_multiple_active_certs = [i.letsencrypt_managed_domain_id for i in result]
+            domain_ids_with_multiple_active_certs = [i.letsencrypt_domain_id for i in result]
 
             print "domain_ids_with_multiple_active_certs"
             print domain_ids_with_multiple_active_certs
 
             _turned_off = []
             for _domain_id in domain_ids_with_multiple_active_certs:
-                domain_certs = DBSession.query(LetsencryptHttpsCertificate)\
-                    .join(LetsencryptHttpsCertificateToDomain,
-                          LetsencryptHttpsCertificate.id == LetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id,
+                domain_certs = DBSession.query(LetsencryptServerCertificate)\
+                    .join(LetsencryptServerCertificate2LetsencryptDomain,
+                          LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
                           )\
-                    .filter(LetsencryptHttpsCertificate.is_active == True,  # noqa
-                            LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id == _domain_id,
+                    .filter(LetsencryptServerCertificate.is_active == True,  # noqa
+                            LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _domain_id,
                             )\
-                    .order_by(LetsencryptHttpsCertificate.timestamp_expires.desc())\
+                    .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
                     .all()
                 if True:
                     print "CHECKING DOMAIN_ID(%s)" % _domain_id
@@ -292,26 +293,24 @@ class ViewAdmin(Handler):
                     _turned_off.append(cert)
             raise ValueError("ok")
 
-        rval['LetsencryptHttpsCertificate']['duplicates.deactivated'] = len(_turned_off)
+        rval['LetsencryptServerCertificate']['duplicates.deactivated'] = len(_turned_off)
         DBSession.flush()
 
         raise ValueError(domains_with_multiple_active_certs)
-        
-        duplicate_certs = DBSession.query(LetsencryptHttpsCertificate)\
-            .join(LetsencryptHttpsCertificateToDomain,
-                  LetsencryptHttpsCertificate.id == LetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id,
+
+        duplicate_certs = DBSession.query(LetsencryptServerCertificate)\
+            .join(LetsencryptServerCertificate2LetsencryptDomain,
+                  LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
                   )\
-            .join(LetsencryptManagedDomain,
-                  LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id == LetsencryptManagedDomain.id,
+            .join(LetsencryptDomain,
+                  LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
                   )\
-            .filter(LetsencryptHttpsCertificate.is_active.op('IS')(True),
+            .filter(LetsencryptServerCertificate.is_active.op('IS')(True),
                     )\
-            .group_by(LetsencryptManagedDomain.id,
-            )\
+            .group_by(LetsencryptDomain.id,)\
             .all()
         print duplicate_certs
         raise ValueError(duplicate_certs)
-        
 
         return rval
         return HTTPFound('/.well-known/admin?result=success&operation=operations.deactivate_expired')
@@ -321,12 +320,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
     def certificates(self):
-        dbLetsencryptHttpsCertificates_count = lib.db.get__LetsencryptHttpsCertificate__count(DBSession)
-        (pager, offset) = self._paginate(dbLetsencryptHttpsCertificates_count, url_template='/.well-known/admin/certificates/{0}')
-        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate__paginated(DBSession, limit=items_per_page, offset=offset)
+        dbLetsencryptServerCertificates_count = lib.db.get__LetsencryptServerCertificate__count(DBSession)
+        (pager, offset) = self._paginate(dbLetsencryptServerCertificates_count, url_template='/.well-known/admin/certificates/{0}')
+        dbLetsencryptServerCertificates = lib.db.get__LetsencryptServerCertificate__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptHttpsCertificates_count': dbLetsencryptHttpsCertificates_count,
-                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
+                'LetsencryptServerCertificates_count': dbLetsencryptServerCertificates_count,
+                'LetsencryptServerCertificates': dbLetsencryptServerCertificates,
                 'pager': pager,
                 }
 
@@ -364,13 +363,13 @@ class ViewAdmin(Handler):
             )
 
             certificate_pem = formStash.results['certificate_file'].file.read()
-            dbLetsencryptHttpsCertificate, _is_created = lib.db.getcreate__LetsencryptHttpsCertificate__by_pem_text(
+            dbLetsencryptServerCertificate, _is_created = lib.db.getcreate__LetsencryptServerCertificate__by_pem_text(
                 DBSession, certificate_pem,
                 dbCACertificate=dbLetsencryptCACertificate,
                 dbPrivateKey=dbLetsencryptPrivateKey,
             )
 
-            return HTTPFound('/.well-known/admin/certificate/%s' % dbLetsencryptHttpsCertificate.id)
+            return HTTPFound('/.well-known/admin/certificate/%s' % dbLetsencryptServerCertificate.id)
 
         except formhandling.FormInvalid:
             formStash.set_error(field="Error_Main",
@@ -387,49 +386,48 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _certificate_focus(self):
-        dbLetsencryptHttpsCertificate = lib.db.get__LetsencryptHttpsCertificate__by_id(DBSession, self.request.matchdict['id'])
-        if not dbLetsencryptHttpsCertificate:
+        dbLetsencryptServerCertificate = lib.db.get__LetsencryptServerCertificate__by_id(DBSession, self.request.matchdict['id'])
+        if not dbLetsencryptServerCertificate:
             raise HTTPNotFound('the certificate was not found')
-        return dbLetsencryptHttpsCertificate
+        return dbLetsencryptServerCertificate
 
     @view_config(route_name='admin:certificate:focus', renderer='/admin/certificate-focus.mako')
     def certificate_focus(self):
-        dbLetsencryptHttpsCertificate = self._certificate_focus()
+        dbLetsencryptServerCertificate = self._certificate_focus()
         # x-x509-server-cert
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptHttpsCertificate': dbLetsencryptHttpsCertificate
+                'LetsencryptServerCertificate': dbLetsencryptServerCertificate
                 }
 
     @view_config(route_name='admin:certificate:focus:chain:raw', renderer='string')
     def certificate_focus_chain(self):
-        dbLetsencryptHttpsCertificate = self._certificate_focus()
-        return 'chain.pem'
         # application/x-pem-file              .pem
+        dbLetsencryptServerCertificate = self._certificate_focus()
+        return 'chain.pem'
 
     @view_config(route_name='admin:certificate:focus:fullchain:raw', renderer='string')
     def certificate_focus_fullchain(self):
-        dbLetsencryptHttpsCertificate = self._certificate_focus()
-        return 'fullchain.pem'
         #  application/x-pkcs7-certificates    .p7b .spc
+        # PKCS#12 bundles of private key + certificate(s)
+        # application/x-pkcs7-certificates    .p7b .spc
+        dbLetsencryptServerCertificate = self._certificate_focus()
+        return 'fullchain.pem'
 
     @view_config(route_name='admin:certificate:focus:privatekey:raw', renderer='string')
     def certificate_focus_privatekey(self):
-        dbLetsencryptHttpsCertificate = self._certificate_focus()
+        dbLetsencryptServerCertificate = self._certificate_focus()
         return 'privatekey.pem'
-
-    # PKCS#12 bundles of private key + certificate(s)
-    # application/x-pkcs7-certificates    .p7b .spc
 
     @view_config(route_name='admin:certificate:focus:cert:raw', renderer='string')
     def certificate_focus_cert(self):
-        dbLetsencryptHttpsCertificate = self._certificate_focus()
+        dbLetsencryptServerCertificate = self._certificate_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
-            return dbLetsencryptHttpsCertificate.cert_pem
+            return dbLetsencryptServerCertificate.cert_pem
         elif self.request.matchdict['format'] == 'pem.txt':
-            return dbLetsencryptHttpsCertificate.cert_pem
+            return dbLetsencryptServerCertificate.cert_pem
         elif self.request.matchdict['format'] == 'crt':
-            as_der = lib.acme.convert_pem_to_der(pem_data=dbLetsencryptHttpsCertificate.cert_pem)
+            as_der = lib.acme.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.cert_pem)
             response = Response()
             response.content_type = 'application/x-x509-server-cert'
             response.body = as_der
@@ -437,7 +435,7 @@ class ViewAdmin(Handler):
         return 'cert.pem'
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    
+
     @view_config(route_name='admin:certificate_requests', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
     def certificate_requests(self):
@@ -490,7 +488,7 @@ class ViewAdmin(Handler):
             raise HTTPNotFound('Only availble for FLOW')
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCertificateRequest': dbLetsencryptCertificateRequest,
-                'LetsencryptCertificateRequest_2_ManagedDomain': None,
+                'LetsencryptCertificateRequest2LetsencryptDomain': None,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -517,17 +515,17 @@ class ViewAdmin(Handler):
             raise HTTPNotFound('the certificate_request was not found')
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
             raise HTTPNotFound('Only availble for FLOW')
-        dbLetsencryptCertificateRequest_2_ManagedDomain = None
+        dbLetsencryptCertificateRequest2LetsencryptDomain = None
         domain_id = int(self.request.matchdict['domain_id'])
         for to_domain in dbLetsencryptCertificateRequest.certificate_request_to_domains:
-            if to_domain.letsencrypt_managed_domain_id == domain_id:
-                dbLetsencryptCertificateRequest_2_ManagedDomain = to_domain
+            if to_domain.letsencrypt_domain_id == domain_id:
+                dbLetsencryptCertificateRequest2LetsencryptDomain = to_domain
                 break
-        if dbLetsencryptCertificateRequest_2_ManagedDomain is None:
+        if dbLetsencryptCertificateRequest2LetsencryptDomain is None:
             raise HTTPNotFound('invalid domain for certificate request')
 
         self.db_LetsencryptCertificateRequest = dbLetsencryptCertificateRequest
-        self.db_LetsencryptCertificateRequest_2_ManagedDomain = dbLetsencryptCertificateRequest_2_ManagedDomain
+        self.db_LetsencryptCertificateRequest2LetsencryptDomain = dbLetsencryptCertificateRequest2LetsencryptDomain
 
         if self.request.POST:
             return self._certificate_request_process_domain__submit()
@@ -536,7 +534,7 @@ class ViewAdmin(Handler):
     def _certificate_request_process_domain__print(self):
         return render_to_response("/admin/certificate_request-process.mako",
                                   {'LetsencryptCertificateRequest': self.db_LetsencryptCertificateRequest,
-                                   'LetsencryptCertificateRequest_2_ManagedDomain': self.db_LetsencryptCertificateRequest_2_ManagedDomain,
+                                   'LetsencryptCertificateRequest2LetsencryptDomain': self.db_LetsencryptCertificateRequest2LetsencryptDomain,
                                    },
                                   self.request)
 
@@ -549,14 +547,14 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            if self.db_LetsencryptCertificateRequest_2_ManagedDomain.timestamp_verified:
+            if self.db_LetsencryptCertificateRequest2LetsencryptDomain.timestamp_verified:
                 raise ValueError("You can not edit the challenge of a verified item")
 
             changed = False
             for attribute in ('challenge_key', 'challenge_text'):
                 submitted_value = formStash.results[attribute]
-                if submitted_value != getattr(self.db_LetsencryptCertificateRequest_2_ManagedDomain, attribute):
-                    setattr(self.db_LetsencryptCertificateRequest_2_ManagedDomain, attribute, submitted_value)
+                if submitted_value != getattr(self.db_LetsencryptCertificateRequest2LetsencryptDomain, attribute):
+                    setattr(self.db_LetsencryptCertificateRequest2LetsencryptDomain, attribute, submitted_value)
                     changed = True
 
             if not changed:
@@ -566,7 +564,7 @@ class ViewAdmin(Handler):
 
             return HTTPFound('/.well-known/admin/certificate_request/%s/process/domain/%s' %
                              (self.db_LetsencryptCertificateRequest.id,
-                              self.db_LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_managed_domain_id
+                              self.db_LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id
                               )
                              )
 
@@ -853,14 +851,14 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus', renderer='/admin/ca_certificate-focus.mako')
     def ca_certificate_focus(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
-        dbLetsencryptHttpsCertificates_count = lib.db.get__LetsencryptHttpsCertificate__by_LetsencryptCACertificateId__count(
+        dbLetsencryptServerCertificates_count = lib.db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
             DBSession, dbLetsencryptCACertificate.id)
-        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate__by_LetsencryptCACertificateId__paginated(
+        dbLetsencryptServerCertificates = lib.db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
             DBSession, dbLetsencryptCACertificate.id, limit=10, offset=0)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
-                'LetsencryptHttpsCertificates_count': dbLetsencryptHttpsCertificates_count,
-                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
+                'LetsencryptServerCertificates_count': dbLetsencryptServerCertificates_count,
+                'LetsencryptServerCertificates': dbLetsencryptServerCertificates,
                 }
 
     @view_config(route_name='admin:ca_certificate:focus:raw', renderer='string')
@@ -886,15 +884,15 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates_paginated', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     def ca_certificate_focus__signed_certificates(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
-        dbLetsencryptHttpsCertificates_count = lib.db.get__LetsencryptHttpsCertificate__by_LetsencryptCACertificateId__count(
+        dbLetsencryptServerCertificates_count = lib.db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
             DBSession, dbLetsencryptCACertificate.id)
-        (pager, offset) = self._paginate(dbLetsencryptHttpsCertificates_count, url_template='/.well-known/admin/ca_certificate/%s/signed_certificates/{0}' % dbLetsencryptCACertificate.id)
-        dbLetsencryptHttpsCertificates = lib.db.get__LetsencryptHttpsCertificate__by_LetsencryptCACertificateId__paginated(
+        (pager, offset) = self._paginate(dbLetsencryptServerCertificates_count, url_template='/.well-known/admin/ca_certificate/%s/signed_certificates/{0}' % dbLetsencryptCACertificate.id)
+        dbLetsencryptServerCertificates = lib.db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
             DBSession, dbLetsencryptCACertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
-                'LetsencryptHttpsCertificates_count': dbLetsencryptHttpsCertificates_count,
-                'LetsencryptHttpsCertificates': dbLetsencryptHttpsCertificates,
+                'LetsencryptServerCertificates_count': dbLetsencryptServerCertificates_count,
+                'LetsencryptServerCertificates': dbLetsencryptServerCertificates,
                 'pager': pager,
                 }
 
@@ -915,13 +913,13 @@ class ViewAdmin(Handler):
     def ca_certificate_probes_probe(self):
         if self.request.POST:
             return HTTPFound("/.well-known/admin/ca_certificate_probes?error=POST-only")
-            
+
         probeEvent = lib.db.ca_certificate_probe(DBSession)
 
         return HTTPFound("/.well-known/admin/ca_certificate_probes?success=True")
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    
+
     def _ensure_redis(self):
         if not self.request.registry.settings['enable_redis']:
             raise HTTPFound('/.well-known/admin?error=no_redis')
@@ -936,11 +934,11 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:redis:prime', renderer=None)
     def admin_redis_prime(self):
         self._ensure_redis()
-        
+
         redis_url = self.request.registry.settings['redis.url']
         redis_options = {}
         redis_client = lib.utils.get_default_connection(self.request, redis_url, **redis_options)
-        
+
         """
         r['d:foo.example.com'] = ('cert:1', 'key:a', 'fullcert:99')
         r['d:foo2.example.com'] = ('cert:2', 'key:a', 'fullcert:99')
@@ -954,6 +952,5 @@ class ViewAdmin(Handler):
             loop through all pkey> cache into redis
             loop through all cert> cache into redis
         """
-        
-        
+
         raise HTTPFound('/.well-known/admin/redis?operation=prime&result=success')

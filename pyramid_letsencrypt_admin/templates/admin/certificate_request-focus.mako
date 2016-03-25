@@ -93,7 +93,7 @@
         <tr>
             <th>domains</th>
             <td>
-                ${admin_partials.table_LetsencryptCertificateRequest_2_ManagedDomain(LetsencryptCertificateRequest.certificate_request_to_domains,
+                ${admin_partials.table_LetsencryptCertificateRequest2LetsencryptDomain(LetsencryptCertificateRequest.certificate_request_to_domains,
                                                                                      request_inactive = (False if LetsencryptCertificateRequest.is_active else True),
                                                                                      perspective='certificate_request')}
             </td>

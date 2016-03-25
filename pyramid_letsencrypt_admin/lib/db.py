@@ -1,6 +1,5 @@
 # stdlib
 import datetime
-import json
 import logging
 import pdb
 import tempfile
@@ -24,16 +23,16 @@ log.setLevel(logging.INFO)
 # ==============================================================================
 
 
-def get__LetsencryptCertificateRequest_2_ManagedDomain__challenged(dbSession, challenge, domain_name):
-    active_request = dbSession.query(LetsencryptCertificateRequest_2_ManagedDomain)\
-        .join(LetsencryptManagedDomain,
-              LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_managed_domain_id == LetsencryptManagedDomain.id
+def get__LetsencryptCertificateRequest2LetsencryptDomain__challenged(dbSession, challenge, domain_name):
+    active_request = dbSession.query(LetsencryptCertificateRequest2LetsencryptDomain)\
+        .join(LetsencryptDomain,
+              LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id
               )\
         .join(LetsencryptCertificateRequest,
-              LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_certificate_request_id == LetsencryptCertificateRequest.id
+              LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id == LetsencryptCertificateRequest.id
               )\
-        .filter(LetsencryptCertificateRequest_2_ManagedDomain.challenge_key == challenge,
-                sa.func.lower(LetsencryptManagedDomain.domain_name) == sa.func.lower(domain_name),
+        .filter(LetsencryptCertificateRequest2LetsencryptDomain.challenge_key == challenge,
+                sa.func.lower(LetsencryptDomain.domain_name) == sa.func.lower(domain_name),
                 LetsencryptCertificateRequest.is_active.op('IS')(True),
                 )\
         .options(sqlalchemy.orm.contains_eager('certificate_request'),
@@ -46,54 +45,54 @@ def get__LetsencryptCertificateRequest_2_ManagedDomain__challenged(dbSession, ch
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__LetsencryptManagedDomain__count(dbSession):
-    counted = dbSession.query(LetsencryptManagedDomain).count()
+def get__LetsencryptDomain__count(dbSession):
+    counted = dbSession.query(LetsencryptDomain).count()
     return counted
 
 
-def get__LetsencryptManagedDomain__paginated(dbSession, limit=None, offset=0):
-    dbLetsencryptManagedDomains = dbSession.query(LetsencryptManagedDomain)\
-        .order_by(sa.func.lower(LetsencryptManagedDomain.domain_name).asc())\
+def get__LetsencryptDomain__paginated(dbSession, limit=None, offset=0):
+    dbLetsencryptDomains = dbSession.query(LetsencryptDomain)\
+        .order_by(sa.func.lower(LetsencryptDomain.domain_name).asc())\
         .limit(limit)\
         .offset(offset)\
         .all()
-    return dbLetsencryptManagedDomains
+    return dbLetsencryptDomains
 
 
-def get__LetsencryptManagedDomain__by_id(dbSession, domain_id):
-    dbLetsencryptManagedDomain = dbSession.query(LetsencryptManagedDomain)\
-        .filter(LetsencryptManagedDomain.id == domain_id)\
+def get__LetsencryptDomain__by_id(dbSession, domain_id):
+    dbLetsencryptDomain = dbSession.query(LetsencryptDomain)\
+        .filter(LetsencryptDomain.id == domain_id)\
         .options(sqlalchemy.orm.subqueryload('domain_to_certificates').joinedload('certificate'),
                  sqlalchemy.orm.subqueryload('domain_to_certificate_requests').joinedload('certificate_request'),
                  )\
         .first()
-    return dbLetsencryptManagedDomain
+    return dbLetsencryptDomain
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__LetsencryptHttpsCertificate__count(dbSession):
-    counted = dbSession.query(LetsencryptHttpsCertificate).count()
+def get__LetsencryptServerCertificate__count(dbSession):
+    counted = dbSession.query(LetsencryptServerCertificate).count()
     return counted
 
 
-def get__LetsencryptHttpsCertificate__paginated(dbSession, limit=None, offset=0):
-    dbLetsencryptHttpsCertificates = dbSession.query(LetsencryptHttpsCertificate)\
-        .order_by(LetsencryptHttpsCertificate.id.desc())\
+def get__LetsencryptServerCertificate__paginated(dbSession, limit=None, offset=0):
+    dbLetsencryptServerCertificates = dbSession.query(LetsencryptServerCertificate)\
+        .order_by(LetsencryptServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
-    return dbLetsencryptHttpsCertificates
+    return dbLetsencryptServerCertificates
 
 
-def get__LetsencryptHttpsCertificate__by_id(dbSession, cert_id):
-    dbLetsencryptHttpsCertificate = dbSession.query(LetsencryptHttpsCertificate)\
-        .filter(LetsencryptHttpsCertificate.id == cert_id)\
+def get__LetsencryptServerCertificate__by_id(dbSession, cert_id):
+    dbLetsencryptServerCertificate = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.id == cert_id)\
         .options(sqlalchemy.orm.subqueryload('certificate_to_domains').joinedload('domain'),
                  )\
         .first()
-    return dbLetsencryptHttpsCertificate
+    return dbLetsencryptServerCertificate
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -122,22 +121,23 @@ def get__LetsencryptCertificateRequest__by_id(dbSession, certificate_request_id)
         .one()
     return dbLetsencryptCertificateRequest
 
-def get__LetsencryptCertificateRequest__by_LetsencryptManagedDomain__count(dbSession, domain_id):
+
+def get__LetsencryptCertificateRequest__by_LetsencryptDomain__count(dbSession, domain_id):
     counted = dbSession.query(LetsencryptCertificateRequest)\
-        .join(LetsencryptCertificateRequest_2_ManagedDomain,
-              LetsencryptCertificateRequest.id == LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_certificate_request_id,
+        .join(LetsencryptCertificateRequest2LetsencryptDomain,
+              LetsencryptCertificateRequest.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id,
               )\
-        .filter(LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id == domain_id)\
+        .filter(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
         .count()
     return counted
 
 
-def get__LetsencryptCertificateRequest__by_LetsencryptManagedDomain__paginated(dbSession, domain_id, limit=None, offset=0):
+def get__LetsencryptCertificateRequest__by_LetsencryptDomain__paginated(dbSession, domain_id, limit=None, offset=0):
     dbLetsencryptCertificateRequests = dbSession.query(LetsencryptCertificateRequest)\
-        .join(LetsencryptCertificateRequest_2_ManagedDomain,
-              LetsencryptCertificateRequest.id == LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_certificate_request_id,
+        .join(LetsencryptCertificateRequest2LetsencryptDomain,
+              LetsencryptCertificateRequest.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id,
               )\
-        .filter(LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_managed_domain_id == domain_id)\
+        .filter(LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
         .order_by(LetsencryptCertificateRequest.id.desc())\
         .limit(limit)\
         .offset(offset)\
@@ -233,55 +233,55 @@ def get__LetsencryptCACertificate__by_id(dbSession, cert_id):
     return dbLetsencryptCACertificate
 
 
-def get__LetsencryptHttpsCertificate__by_LetsencryptCACertificateId__count(dbSession, cert_id):
-    counted = dbSession.query(LetsencryptHttpsCertificate)\
-        .filter(LetsencryptHttpsCertificate.letsencrypt_ca_certificate_id__signed_by == cert_id)\
+def get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(dbSession, cert_id):
+    counted = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.letsencrypt_ca_certificate_id__signed_by == cert_id)\
         .count()
     return counted
 
 
-def get__LetsencryptHttpsCertificate__by_LetsencryptCACertificateId__paginated(dbSession, cert_id, limit=None, offset=0):
-    dbLetsencryptHttpsCertificates = dbSession.query(LetsencryptHttpsCertificate)\
-        .filter(LetsencryptHttpsCertificate.letsencrypt_ca_certificate_id__signed_by == cert_id)\
-        .order_by(LetsencryptHttpsCertificate.id.desc())\
+def get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(dbSession, cert_id, limit=None, offset=0):
+    dbLetsencryptServerCertificates = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.letsencrypt_ca_certificate_id__signed_by == cert_id)\
+        .order_by(LetsencryptServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
-    return dbLetsencryptHttpsCertificates
+    return dbLetsencryptServerCertificates
 
 
-def get__LetsencryptHttpsCertificate__by_LetsencryptManagedDomain__count(dbSession, domain_id):
-    counted = dbSession.query(LetsencryptHttpsCertificate)\
-        .join(LetsencryptHttpsCertificateToDomain,
-              LetsencryptHttpsCertificate.id == LetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id,
+def get__LetsencryptServerCertificate__by_LetsencryptDomain__count(dbSession, domain_id):
+    counted = dbSession.query(LetsencryptServerCertificate)\
+        .join(LetsencryptServerCertificate2LetsencryptDomain,
+              LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
               )\
-        .filter(LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id == domain_id)\
+        .filter(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
         .count()
     return counted
 
 
-def get__LetsencryptHttpsCertificate__by_LetsencryptManagedDomain__paginated(dbSession, domain_id, limit=None, offset=0):
-    dbLetsencryptHttpsCertificates = dbSession.query(LetsencryptHttpsCertificate)\
-        .join(LetsencryptHttpsCertificateToDomain,
-              LetsencryptHttpsCertificate.id == LetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id,
+def get__LetsencryptServerCertificate__by_LetsencryptDomain__paginated(dbSession, domain_id, limit=None, offset=0):
+    dbLetsencryptServerCertificates = dbSession.query(LetsencryptServerCertificate)\
+        .join(LetsencryptServerCertificate2LetsencryptDomain,
+              LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
               )\
-        .filter(LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id == domain_id)\
-        .order_by(LetsencryptHttpsCertificate.id.desc())\
+        .filter(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
+        .order_by(LetsencryptServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
-    return dbLetsencryptHttpsCertificates
+    return dbLetsencryptServerCertificates
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__LetsencryptManagedDomain__by_domainName(dbSession, domain_name):
-    dbDomain = dbSession.query(LetsencryptManagedDomain)\
-        .filter(sa.func.lower(LetsencryptManagedDomain.domain_name) == sa.func.lower(domain_name))\
+def getcreate__LetsencryptDomain__by_domainName(dbSession, domain_name):
+    dbDomain = dbSession.query(LetsencryptDomain)\
+        .filter(sa.func.lower(LetsencryptDomain.domain_name) == sa.func.lower(domain_name))\
         .first()
     if not dbDomain:
-        dbDomain = LetsencryptManagedDomain()
+        dbDomain = LetsencryptDomain()
         dbDomain.domain_name = domain_name
         dbSession.add(dbDomain)
         dbSession.flush()
@@ -365,7 +365,6 @@ def getcreate__LetsencryptPrivateKey__by_pem_text(dbSession, key_pem):
 def get__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem):
     cert_pem = acme.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
-    is_created = False
     dbCertificate = dbSession.query(LetsencryptCACertificate)\
         .filter(LetsencryptCACertificate.cert_pem_md5 == cert_pem_md5,
                 LetsencryptCACertificate.cert_pem == cert_pem,
@@ -434,11 +433,11 @@ def create__CertificateRequest__by_domainNamesList_FLOW(dbSession, domain_names)
     dbSession.flush()
 
     for _domain_name in domain_names:
-        dbDomain = getcreate__LetsencryptManagedDomain__by_domainName(dbSession, _domain_name)
+        dbDomain = getcreate__LetsencryptDomain__by_domainName(dbSession, _domain_name)
 
-        dbLetsencryptCertificateRequest2D = LetsencryptCertificateRequest_2_ManagedDomain()
+        dbLetsencryptCertificateRequest2D = LetsencryptCertificateRequest2LetsencryptDomain()
         dbLetsencryptCertificateRequest2D.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
-        dbLetsencryptCertificateRequest2D.letsencrypt_managed_domain_id = dbDomain.id
+        dbLetsencryptCertificateRequest2D.letsencrypt_domain_id = dbDomain.id
 
         dbSession.add(dbLetsencryptCertificateRequest2D)
         dbSession.flush()
@@ -479,7 +478,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
 
     tmpfiles = []
     dbLetsencryptCertificateRequest = None
-    dbLetsencryptHttpsCertificate = None
+    dbLetsencryptServerCertificate = None
     try:
 
         account_key_pem = acme.cleanup_pem_text(account_key_pem)
@@ -540,11 +539,11 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
             # we'll use this tuple in a bit...
             _domain_objects = {}
             for _domain_name in domain_names:
-                dbDomain = getcreate__LetsencryptManagedDomain__by_domainName(dbSession, _domain_name)
+                dbDomain = getcreate__LetsencryptDomain__by_domainName(dbSession, _domain_name)
 
-                dbLetsencryptCertificateRequest2D = LetsencryptCertificateRequest_2_ManagedDomain()
+                dbLetsencryptCertificateRequest2D = LetsencryptCertificateRequest2LetsencryptDomain()
                 dbLetsencryptCertificateRequest2D.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
-                dbLetsencryptCertificateRequest2D.letsencrypt_managed_domain_id = dbDomain.id
+                dbLetsencryptCertificateRequest2D.letsencrypt_domain_id = dbDomain.id
 
                 dbSession.add(dbLetsencryptCertificateRequest2D)
                 dbSession.flush()
@@ -610,7 +609,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
                 dbPrivateKey = dbSession.merge(dbPrivateKey)
             if dbLetsencryptCertificateRequest not in dbSession:
                 dbLetsencryptCertificateRequest = dbSession.merge(dbLetsencryptCertificateRequest)
-            dbLetsencryptHttpsCertificate = create__LetsencryptHttpsCertificate(
+            dbLetsencryptServerCertificate = create__LetsencryptServerCertificate(
                 dbSession,
                 timestamp_signed = datetime_signed,
                 timestamp_expires = datetime_expires,
@@ -624,10 +623,10 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
             )
 
         # merge this back in
-        if dbLetsencryptHttpsCertificate:
-            if dbLetsencryptHttpsCertificate not in dbSession:
-                dbLetsencryptHttpsCertificate = dbSession.merge(dbLetsencryptHttpsCertificate)
-        return dbLetsencryptHttpsCertificate
+        if dbLetsencryptServerCertificate:
+            if dbLetsencryptServerCertificate not in dbSession:
+                dbLetsencryptServerCertificate = dbSession.merge(dbLetsencryptServerCertificate)
+        return dbLetsencryptServerCertificate
 
     except:
         if dbLetsencryptCertificateRequest:
@@ -648,7 +647,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__LetsencryptHttpsCertificate__by_pem_text(
+def getcreate__LetsencryptServerCertificate__by_pem_text(
     dbSession,
     cert_pem,
     dbCACertificate=None,
@@ -657,9 +656,9 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
     cert_pem = acme.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
     is_created = False
-    dbCertificate = dbSession.query(LetsencryptHttpsCertificate)\
-        .filter(LetsencryptHttpsCertificate.cert_pem_md5 == cert_pem_md5,
-                LetsencryptHttpsCertificate.cert_pem == cert_pem,
+    dbCertificate = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.cert_pem_md5 == cert_pem_md5,
+                LetsencryptServerCertificate.cert_pem == cert_pem,
                 )\
         .first()
     if not dbCertificate:
@@ -674,7 +673,7 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
 
             # grab the modulus
             cert_pem_modulus_md5 = acme.modulus_md5_cert__pem_filepath(_tmpfileCert.name)
-            dbCertificate = LetsencryptHttpsCertificate()
+            dbCertificate = LetsencryptServerCertificate()
 
             dbCertificate.timestamp_signed = acme.parse_startdate_cert__pem_filepath(_tmpfileCert.name)
             dbCertificate.timestamp_expires = acme.parse_enddate_cert__pem_filepath(_tmpfileCert.name)
@@ -722,12 +721,12 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
 
             for _domain_name in certificate_domain_names:
 
-                dbDomain = getcreate__LetsencryptManagedDomain__by_domainName(dbSession, _domain_name)
+                dbDomain = getcreate__LetsencryptDomain__by_domainName(dbSession, _domain_name)
 
-                dbLetsencryptHttpsCertificateToDomain = LetsencryptHttpsCertificateToDomain()
-                dbLetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id = dbCertificate.id
-                dbLetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id = dbDomain.id
-                dbSession.add(dbLetsencryptHttpsCertificateToDomain)
+                dbLetsencryptServerCertificate2LetsencryptDomain = LetsencryptServerCertificate2LetsencryptDomain()
+                dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id = dbCertificate.id
+                dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id = dbDomain.id
+                dbSession.add(dbLetsencryptServerCertificate2LetsencryptDomain)
                 dbSession.flush()
 
         except:
@@ -739,7 +738,7 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
     return dbCertificate, is_created
 
 
-def create__LetsencryptHttpsCertificate(
+def create__LetsencryptServerCertificate(
     dbSession,
     timestamp_signed = None,
     timestamp_expires = None,
@@ -755,7 +754,7 @@ def create__LetsencryptHttpsCertificate(
     privkey_pem = None,
 ):
     if not any((letsencrypt_private_key_id__signed_by, privkey_pem)) or all((letsencrypt_private_key_id__signed_by, privkey_pem)):
-        raise ValueError("create__LetsencryptHttpsCertificate must accept ONE OF [`letsencrypt_private_key_id__signed_by`, `privkey_pem`]")
+        raise ValueError("create__LetsencryptServerCertificate must accept ONE OF [`letsencrypt_private_key_id__signed_by`, `privkey_pem`]")
     if privkey_pem:
         raise ValueError("need to figure this out")
 
@@ -781,21 +780,21 @@ def create__LetsencryptHttpsCertificate(
     finally:
         _tmpfileCert.close()
 
-    dbLetsencryptHttpsCertificate = LetsencryptHttpsCertificate()
-    dbLetsencryptHttpsCertificate.timestamp_signed = timestamp_signed
-    dbLetsencryptHttpsCertificate.timestamp_expires = timestamp_signed
-    dbLetsencryptHttpsCertificate.is_active = is_active
-    dbLetsencryptHttpsCertificate.cert_pem = cert_pem
-    dbLetsencryptHttpsCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
-    dbLetsencryptHttpsCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
+    dbLetsencryptServerCertificate = LetsencryptServerCertificate()
+    dbLetsencryptServerCertificate.timestamp_signed = timestamp_signed
+    dbLetsencryptServerCertificate.timestamp_expires = timestamp_signed
+    dbLetsencryptServerCertificate.is_active = is_active
+    dbLetsencryptServerCertificate.cert_pem = cert_pem
+    dbLetsencryptServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
+    dbLetsencryptServerCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
     if dbLetsencryptCertificateRequest:
         if dbLetsencryptCertificateRequest not in dbSession:
             dbLetsencryptCertificateRequest = dbSession.merge(dbLetsencryptCertificateRequest)
         dbLetsencryptCertificateRequest.is_active = False
-        dbLetsencryptHttpsCertificate.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
-    dbLetsencryptHttpsCertificate.letsencrypt_ca_certificate_id__signed_by = letsencrypt_ca_certificate_id__signed_by
-    dbLetsencryptHttpsCertificate.letsencrypt_private_key_id__signed_by = letsencrypt_private_key_id__signed_by
-    dbSession.add(dbLetsencryptHttpsCertificate)
+        dbLetsencryptServerCertificate.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
+    dbLetsencryptServerCertificate.letsencrypt_ca_certificate_id__signed_by = letsencrypt_ca_certificate_id__signed_by
+    dbLetsencryptServerCertificate.letsencrypt_private_key_id__signed_by = letsencrypt_private_key_id__signed_by
+    dbSession.add(dbLetsencryptServerCertificate)
     dbSession.flush()
 
     for _domain_name in domains_list__objects.keys():
@@ -803,13 +802,13 @@ def create__LetsencryptHttpsCertificate(
         (domainObject, dbLetsencryptCertificateRequest2D) = domains_list__objects[_domain_name]
         if domainObject not in dbSession:
             domainObject = dbSession.merge(domainObject)
-        dbLetsencryptHttpsCertificateToDomain = LetsencryptHttpsCertificateToDomain()
-        dbLetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id = dbLetsencryptHttpsCertificate.id
-        dbLetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id = domainObject.id
-        dbSession.add(dbLetsencryptHttpsCertificateToDomain)
+        dbLetsencryptServerCertificate2LetsencryptDomain = LetsencryptServerCertificate2LetsencryptDomain()
+        dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id = dbLetsencryptServerCertificate.id
+        dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id = domainObject.id
+        dbSession.add(dbLetsencryptServerCertificate2LetsencryptDomain)
         dbSession.flush()
 
-    return dbLetsencryptHttpsCertificate
+    return dbLetsencryptServerCertificate
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

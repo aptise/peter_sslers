@@ -19,9 +19,9 @@
 
 <%block name="content_main">
 
-    % if LetsencryptHttpsCertificates:
+    % if LetsencryptServerCertificates:
         ${admin_partials.nav_pager(pager)}
-        ${admin_partials.table_certificates__list(LetsencryptHttpsCertificates, show_domains=True)}
+        ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
     % else:
         No known certificates.
     % endif 

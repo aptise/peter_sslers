@@ -39,32 +39,32 @@
     <div class="row">
         <div class="col-sm-6">
             <h5>Domains in Certificate Request</h5>
-            ${admin_partials.table_LetsencryptCertificateRequest_2_ManagedDomain(LetsencryptCertificateRequest.certificate_request_to_domains,
+            ${admin_partials.table_LetsencryptCertificateRequest2LetsencryptDomain(LetsencryptCertificateRequest.certificate_request_to_domains,
                                                                                  request_inactive = request_inactive,
-                                                                                 active_domain_id = (LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_managed_domain_id if LetsencryptCertificateRequest_2_ManagedDomain else None),
+                                                                                 active_domain_id = (LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id if LetsencryptCertificateRequest2LetsencryptDomain else None),
                                                                                  perspective='certificate_request_sidebar')}
 
         </div>
         <div class="col-sm-6">
             <h5>Domain Challenge Workspace</h5>
-            % if LetsencryptCertificateRequest_2_ManagedDomain is None:
+            % if LetsencryptCertificateRequest2LetsencryptDomain is None:
                 Select a domain to the left for details.
             % else:
                 <p>
-                    Domain: <code>${LetsencryptCertificateRequest_2_ManagedDomain.domain.domain_name}</code>
+                    Domain: <code>${LetsencryptCertificateRequest2LetsencryptDomain.domain.domain_name}</code>
                 </p>
                 <em>if this has not been verified and the request is still active, you can still change the params</em>
                 
                 <% 
                     form = None 
                     updates_allowed = True
-                    if LetsencryptCertificateRequest_2_ManagedDomain.timestamp_verified:
+                    if LetsencryptCertificateRequest2LetsencryptDomain.timestamp_verified:
                         updates_allowed = False
                     if request_inactive:
                         updates_allowed = False
                 %>
                 % if updates_allowed:
-                    <form action="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_managed_domain_id}" method="POST">
+                    <form action="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id}" method="POST">
                         <% form = request.formhandling.get_form(request) %>
                         ${form.html_error_main('Error_Main')|n}
                 % endif
@@ -72,29 +72,29 @@
                 <table class="table table-striped">
                     <tr>
                         <th>timestamp_verified</th>
-                        <td>${LetsencryptCertificateRequest_2_ManagedDomain.timestamp_verified or ''}</td>
+                        <td>${LetsencryptCertificateRequest2LetsencryptDomain.timestamp_verified or ''}</td>
                     </tr>
                     <tr>
                         <th>ip_verified</th>
-                        <td>${LetsencryptCertificateRequest_2_ManagedDomain.ip_verified or ''}</td>
+                        <td>${LetsencryptCertificateRequest2LetsencryptDomain.ip_verified or ''}</td>
                     </tr>
                     % if updates_allowed:
                         <tr>
                             <th>challenge_key</th>
-                            <td><input type="text" class="form-control" name="challenge_key"  value="${LetsencryptCertificateRequest_2_ManagedDomain.challenge_key or ''}"/></td>
+                            <td><input type="text" class="form-control" name="challenge_key"  value="${LetsencryptCertificateRequest2LetsencryptDomain.challenge_key or ''}"/></td>
                         </tr>
                         <tr>
                             <th>challenge_text</th>
-                            <td><input type="text" class="form-control" name="challenge_text"  value="${LetsencryptCertificateRequest_2_ManagedDomain.challenge_text or ''}"/></td>
+                            <td><input type="text" class="form-control" name="challenge_text"  value="${LetsencryptCertificateRequest2LetsencryptDomain.challenge_text or ''}"/></td>
                         </tr>
                     % else:
                         <tr>
                             <th>challenge_key</th>
-                            <td><code>${LetsencryptCertificateRequest_2_ManagedDomain.challenge_key}</code></td>
+                            <td><code>${LetsencryptCertificateRequest2LetsencryptDomain.challenge_key}</code></td>
                         </tr>
                         <tr>
                             <th>challenge_text</th>
-                            <td><code>${LetsencryptCertificateRequest_2_ManagedDomain.challenge_text}</code></td>
+                            <td><code>${LetsencryptCertificateRequest2LetsencryptDomain.challenge_text}</code></td>
                         </tr>
                     % endif
 

@@ -80,16 +80,16 @@ class LetsencryptPrivateKey(Base):
                                                primaryjoin="LetsencryptPrivateKey.id==LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by",
                                                back_populates='letsencrypt_private_key__signed_by',
                                                )
-    signed_certificates = sa.orm.relationship("LetsencryptHttpsCertificate",
-                                              primaryjoin="LetsencryptPrivateKey.id==LetsencryptHttpsCertificate.letsencrypt_private_key_id__signed_by",
+    signed_certificates = sa.orm.relationship("LetsencryptServerCertificate",
+                                              primaryjoin="LetsencryptPrivateKey.id==LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by",
                                               back_populates='private_key',
                                               )
 
 
-class LetsencryptHttpsCertificate(Base):
+class LetsencryptServerCertificate(Base):
     """
     """
-    __tablename__ = 'letsencrypt_https_certificate'
+    __tablename__ = 'letsencrypt_server_certificate'
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_signed = sa.Column(sa.DateTime, nullable=False, )
     timestamp_expires = sa.Column(sa.DateTime, nullable=False, )
@@ -114,57 +114,57 @@ class LetsencryptHttpsCertificate(Base):
     letsencrypt_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_certificate_request.id"), nullable=True)
 
     private_key = sa.orm.relationship("LetsencryptPrivateKey",
-                                      primaryjoin="LetsencryptHttpsCertificate.letsencrypt_private_key_id__signed_by==LetsencryptPrivateKey.id",
+                                      primaryjoin="LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by==LetsencryptPrivateKey.id",
                                       back_populates='signed_certificates',
                                       uselist=False,
                                       )
 
-    certificate_to_domains = sa.orm.relationship("LetsencryptHttpsCertificateToDomain",
-                                                 primaryjoin="LetsencryptHttpsCertificate.id==LetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id",
+    certificate_to_domains = sa.orm.relationship("LetsencryptServerCertificate2LetsencryptDomain",
+                                                 primaryjoin="LetsencryptServerCertificate.id==LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id",
                                                  back_populates='certificate',
                                                  )
 
     certificate_request = sa.orm.relationship("LetsencryptCertificateRequest",
-                                              primaryjoin="LetsencryptHttpsCertificate.letsencrypt_certificate_request_id==LetsencryptCertificateRequest.id",
+                                              primaryjoin="LetsencryptServerCertificate.letsencrypt_certificate_request_id==LetsencryptCertificateRequest.id",
                                               back_populates='signed_certificate',
                                               uselist=False,
                                               )
 
 
-class LetsencryptHttpsCertificateToDomain(Base):
+class LetsencryptServerCertificate2LetsencryptDomain(Base):
     """
     """
-    __tablename__ = 'letsencrypt_https_certificate_to_domain'
-    letsencrypt_https_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_https_certificate.id"), primary_key=True)
-    letsencrypt_managed_domain_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_managed_domain.id"), primary_key=True)
+    __tablename__ = 'letsencrypt_server_certificate_2_domain'
+    letsencrypt_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), primary_key=True)
+    letsencrypt_domain_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_domain.id"), primary_key=True)
 
-    certificate = sa.orm.relationship("LetsencryptHttpsCertificate",
-                                      primaryjoin="LetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id==LetsencryptHttpsCertificate.id",
+    certificate = sa.orm.relationship("LetsencryptServerCertificate",
+                                      primaryjoin="LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id==LetsencryptServerCertificate.id",
                                       uselist=False,
                                       back_populates='certificate_to_domains',
                                       )
-    domain = sa.orm.relationship("LetsencryptManagedDomain",
-                                 primaryjoin="LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id==LetsencryptManagedDomain.id",
+    domain = sa.orm.relationship("LetsencryptDomain",
+                                 primaryjoin="LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id==LetsencryptDomain.id",
                                  uselist=False,
                                  back_populates='domain_to_certificates',
                                  )
 
 
-class LetsencryptManagedDomain(Base):
+class LetsencryptDomain(Base):
     """
     """
-    __tablename__ = 'letsencrypt_managed_domain'
+    __tablename__ = 'letsencrypt_domain'
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
-    letsencrypt_https_certificate_id__latest_single = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_https_certificate.id"), nullable=True)
-    letsencrypt_https_certificate_id__latest_multi = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_https_certificate.id"), nullable=True)
+    letsencrypt_server_certificate_id__latest_single = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=True)
+    letsencrypt_server_certificate_id__latest_multi = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=True)
 
-    domain_to_certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest_2_ManagedDomain",
-                                                         primaryjoin="LetsencryptManagedDomain.id==LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_managed_domain_id",
+    domain_to_certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest2LetsencryptDomain",
+                                                         primaryjoin="LetsencryptDomain.id==LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id",
                                                          back_populates='domain',
                                                          )
-    domain_to_certificates = sa.orm.relationship("LetsencryptHttpsCertificateToDomain",
-                                                 primaryjoin="LetsencryptManagedDomain.id==LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id",
+    domain_to_certificates = sa.orm.relationship("LetsencryptServerCertificate2LetsencryptDomain",
+                                                 primaryjoin="LetsencryptDomain.id==LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id",
                                                  back_populates='domain',
                                                  )
 
@@ -213,16 +213,16 @@ class LetsencryptCertificateRequest(Base):
             return True
         return False
 
-    certificate_request_to_domains = sa.orm.relationship("LetsencryptCertificateRequest_2_ManagedDomain",
-                                                         primaryjoin="LetsencryptCertificateRequest.id==LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_certificate_request_id",
+    certificate_request_to_domains = sa.orm.relationship("LetsencryptCertificateRequest2LetsencryptDomain",
+                                                         primaryjoin="LetsencryptCertificateRequest.id==LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id",
                                                          back_populates='certificate_request',
                                                          )
 
     letsencrypt_private_key__signed_by = sa.orm.relationship("LetsencryptPrivateKey",
-                                                            primaryjoin="LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by==LetsencryptPrivateKey.id",
-                                                            back_populates='certificate_requests',
-                                                            uselist=False,
-                                                            )
+                                                              primaryjoin="LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by==LetsencryptPrivateKey.id",
+                                                              back_populates='certificate_requests',
+                                                              uselist=False,
+                                                              )
 
     letsencrypt_account_key = sa.orm.relationship("LetsencryptAccountKey",
                                                   primaryjoin="LetsencryptCertificateRequest.letsencrypt_account_key_id==LetsencryptAccountKey.id",
@@ -230,17 +230,17 @@ class LetsencryptCertificateRequest(Base):
                                                   uselist=False,
                                                   )
 
-    signed_certificate = sa.orm.relationship("LetsencryptHttpsCertificate",
-                                             primaryjoin="LetsencryptCertificateRequest.id==LetsencryptHttpsCertificate.letsencrypt_certificate_request_id",
+    signed_certificate = sa.orm.relationship("LetsencryptServerCertificate",
+                                             primaryjoin="LetsencryptCertificateRequest.id==LetsencryptServerCertificate.letsencrypt_certificate_request_id",
                                              back_populates='certificate_request',
                                              uselist=False,
                                              )
 
 
-class LetsencryptCertificateRequest_2_ManagedDomain(Base):
-    __tablename__ = 'letsencrypt_certificate_request_2_managed_domain'
+class LetsencryptCertificateRequest2LetsencryptDomain(Base):
+    __tablename__ = 'letsencrypt_certificate_request_2_letsencrypt_domain'
     letsencrypt_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_certificate_request.id"), primary_key=True)
-    letsencrypt_managed_domain_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_managed_domain.id"), primary_key=True)
+    letsencrypt_domain_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_domain.id"), primary_key=True)
     timestamp_verified = sa.Column(sa.DateTime, nullable=True, )
     ip_verified = sa.Column(sa.Unicode(255), nullable=True, )
     challenge_key = sa.Column(sa.Unicode(255), nullable=True, )
@@ -251,12 +251,12 @@ class LetsencryptCertificateRequest_2_ManagedDomain(Base):
         return True if (self.challenge_key and self.challenge_text) else False
 
     certificate_request = sa.orm.relationship("LetsencryptCertificateRequest",
-                                              primaryjoin="LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_certificate_request_id==LetsencryptCertificateRequest.id",
+                                              primaryjoin="LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id==LetsencryptCertificateRequest.id",
                                               uselist=False,
                                               back_populates='certificate_request_to_domains',
                                               )
-    domain = sa.orm.relationship("LetsencryptManagedDomain",
-                                 primaryjoin="LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_managed_domain_id==LetsencryptManagedDomain.id",
+    domain = sa.orm.relationship("LetsencryptDomain",
+                                 primaryjoin="LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id==LetsencryptDomain.id",
                                  uselist=False,
                                  back_populates='domain_to_certificate_requests',
                                  )

@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
         <li><a href="/.well-known/admin/domains">Domains</a></li>
-        <li><a href="/.well-known/admin/domain/${LetsencryptManagedDomain.id}">Focus [${LetsencryptManagedDomain.id}]</a></li>
+        <li><a href="/.well-known/admin/domain/${LetsencryptDomain.id}">Focus [${LetsencryptDomain.id}]</a></li>
         <li class="active">Certificate Requests</li>
     </ol>
 </%block>
@@ -19,7 +19,7 @@
     
 <%block name="content_main">
 
-    % if LetsencryptHttpsCertificates:
+    % if LetsencryptServerCertificates:
         ${admin_partials.nav_pager(pager)}
         ${admin_partials.table_certificates__list(LetsencryptCertificateRequests, show_domains=True)}
     % else:

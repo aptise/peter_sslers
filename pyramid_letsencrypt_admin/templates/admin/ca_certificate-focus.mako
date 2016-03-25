@@ -124,8 +124,8 @@
         <tr>
             <th>Signed Certificates</th>
             <td>
-                % if LetsencryptHttpsCertificates:
-                    ${admin_partials.table_certificates__list(LetsencryptHttpsCertificates, show_domains=True)}
+                % if LetsencryptServerCertificates:
+                    ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
                     <nav>
                       <ul class="pager">
                         <li>

@@ -2,8 +2,6 @@
 import hashlib
 
 try:
-    # this might not be needed
-    import redis
     from redis import Redis
 except ImportError:
     pass
@@ -22,7 +20,7 @@ def get_default_connection(request,
                            **redis_options):
     """
     # largely from `pyramid_redis_sessions/connection.py`
-    
+
     Default Redis connection handler. Once a connection is established it is
     saved in `request.registry`.
 

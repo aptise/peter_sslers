@@ -17,7 +17,7 @@
     
 
 <%block name="content_main">
-    % if LetsencryptManagedDomains:
+    % if LetsencryptDomains:
         ${admin_partials.nav_pager(pager)}
         <table class="table table-striped">
             <thead>
@@ -26,7 +26,7 @@
                     <th>domain name</th>
                 </tr>
             </thead>
-            % for d in LetsencryptManagedDomains:
+            % for d in LetsencryptDomains:
                 <tr>
                     <td>
                         <a  class="label label-default"

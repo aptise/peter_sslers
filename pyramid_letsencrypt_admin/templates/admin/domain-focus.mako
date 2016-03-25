@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
         <li><a href="/.well-known/admin/domains">Domains</a></li>
-        <li class="active">Focus [${LetsencryptManagedDomain.id}]</li>
+        <li class="active">Focus [${LetsencryptDomain.id}]</li>
     </ol>
 </%block>
 
@@ -23,24 +23,39 @@
             <th>id</th>
             <td>
                 <span class="label label-default">
-                    ${LetsencryptManagedDomain.id}
+                    ${LetsencryptDomain.id}
                 </span>
             </td>
         </tr>
         <tr>
             <th>domain_name</th>
-            <td>${LetsencryptManagedDomain.domain_name}</td>
+            <td>${LetsencryptDomain.domain_name}</td>
         </tr>
         <tr>
-            <th>certificates</th>
+            <th>certificates recent</th>
             <td>
-                ${admin_partials.table_to_certificates(LetsencryptManagedDomain.domain_to_certificates, show_domains=True)}
-                % if LetsencryptManagedDomain.domain_to_certificates:
+                <table class="table">
+                    <tr>
+                        <th></th>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <td></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <th>certificates history</th>
+            <td>
+                ${admin_partials.table_to_certificates(LetsencryptDomain.domain_to_certificates, show_domains=True)}
+                % if LetsencryptDomain.domain_to_certificates:
                     <nav>
                       <ul class="pager">
                         <li>
                             <a 
-                                href="/.well-known/admin/domain/${LetsencryptManagedDomain.id}/certificates"
+                                href="/.well-known/admin/domain/${LetsencryptDomain.id}/certificates"
                             >See All</a>
                         </li>
                       </ul>
@@ -51,13 +66,13 @@
         <tr>
             <th>certificate requests</th>
             <td>
-                ${admin_partials.table_to_certificate_requests(LetsencryptManagedDomain.domain_to_certificate_requests)}
-                % if LetsencryptManagedDomain.domain_to_certificate_requests:
+                ${admin_partials.table_to_certificate_requests(LetsencryptDomain.domain_to_certificate_requests)}
+                % if LetsencryptDomain.domain_to_certificate_requests:
                     <nav>
                       <ul class="pager">
                         <li>
                             <a 
-                                href="/.well-known/admin/domain/${LetsencryptManagedDomain.id}/certificate_requests"
+                                href="/.well-known/admin/domain/${LetsencryptDomainLetsencryptDomain.id}/certificate_requests"
                             >See All</a>
                         </li>
                       </ul>

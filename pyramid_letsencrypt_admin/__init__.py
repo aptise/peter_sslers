@@ -106,9 +106,10 @@ def main(global_config, **settings):
     if 'enable_redis' in settings:
         if settings["enable_redis"].lower() in ('1', 'true'):
             _enable_redis = True
-            import redis
+            # this is just a test
+            import redis  # noqa
     config.registry.settings["enable_redis"] = _enable_redis  # save to the CONFIG settings
-    
+
     # let's extend the request too!
     config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)
 

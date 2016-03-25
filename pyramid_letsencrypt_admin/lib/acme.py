@@ -143,7 +143,7 @@ def parse_cert_domains(
 ):
     subject_domain, san_domains = parse_cert_domains__segmented(cert_path=cert_path)
     if subject_domain is not None and subject_domain not in san_domains:
-        san_domains.insert(0,  subject_domain)
+        san_domains.insert(0, subject_domain)
     return san_domains
 
 
@@ -441,13 +441,13 @@ def cert_single_op__pem_filepath(pem_filepath, single_op):
         openssl x509 -noout -issuer_hash -in {CERT}
         returns the data found in
            X509v3 extensions:
-               X509v3 Authority Key Identifier: 
+               X509v3 Authority Key Identifier:
                    keyid:{VALUE}
 
         openssl x509 -noout -subject_hash -in {CERT}
         returns the data found in
            X509v3 extensions:
-               X509v3 Subject Key Identifier: 
+               X509v3 Subject Key Identifier:
                    {VALUE}
     """
     if single_op not in ('-issuer_hash', '-issuer', '-subject_hash', '-subject'):
@@ -571,4 +571,3 @@ def probe_letsencrypt_certificates():
             tmpfile.close()
 
     return certs2
-
