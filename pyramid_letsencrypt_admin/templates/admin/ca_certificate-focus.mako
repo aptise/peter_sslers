@@ -91,22 +91,13 @@
         <tr>
             <th>download</th>
             <td>
-                <a  class="btn btn-xs btn-info"
-                    href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.pem">
-                    chain.pem
-                </a>
-                <a  class="btn btn-xs btn-info"
-                    href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.pem.txt">
-                    chain.pem.txt
-                </a>
-                <a  class="btn btn-xs btn-info"
-                    href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.der">
-                    chain.der
-                </a>
-                <a  class="btn btn-xs btn-info"
-                    href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.cer">
-                    chain.cer (der)
-                </a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.pem.txt">chain.pem.txt</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.pem">chain.pem</a>
+
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.cer">chain.cer (der)</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.crt">chain.crt (der)</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.der">chain.der (der)</a>
+
             </td>
         </tr>
         <tr>

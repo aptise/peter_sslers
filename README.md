@@ -94,10 +94,13 @@ There are several ways to download each file.  Different file suffix will change
 
 ### CA Certificate
 
+	could be `cert` or `chain`
+
 	cert.pem 		PEM		application/x-pem-file
 	cert.pem.txt	PEM		text/plain
 	cert.cer 		DER		application/pkix-cert
 	cert.der 		DER		application/x-x509-ca-cert
+	cert.crt 		DER		application/x-x509-ca-cert
 
 ### Signed Certificate
 

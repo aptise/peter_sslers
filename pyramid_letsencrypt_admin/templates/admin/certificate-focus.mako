@@ -97,6 +97,56 @@
             </td>
         </tr>
         <tr>
+            <th>json payload</th>
+            <td>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/json">json payload</a><br/>
+                <em>designed for downstream http config</em>
+            </td>
+        </tr>
+        <tr>
+            <th>related payloads</th>
+            <td>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/json">json payload</a><br/>
+                <em>designed for downstream http config</em>
+                <hr/>
+                <table class="table table-condensed">
+                    <thead>
+                        <tr>
+                            <th>related</th>
+                            <th>payloads</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>chain (upstream)</td>
+                            <td>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.pem.txt">chain.pem.txt</a>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.pem">chain.pem</a>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.cer">chain.cer (der)</a>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.crt">chain.crt (der)</a>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.der">chain.der (der)</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>fullchain (cert+upstream chain)</td>
+                            <td>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/fullchain.pem.txt">fullchain.pem.txt</a>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/fullchain.pem">fullchain.pem</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>privatekey</td>
+                            <td>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/privkey.pem.txt">privkey.pem.txt</a>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/privkey.pem">privkey.pem</a>
+                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/privkey.key">privkey.key (der)</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+        <tr>
             <th>cert_subject</th>
             <td>
                 <code>${LetsencryptServerCertificate.cert_subject_hash}</code>

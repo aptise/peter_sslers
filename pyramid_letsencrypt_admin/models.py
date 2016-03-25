@@ -106,6 +106,10 @@ class LetsencryptServerCertificate(Base):
 
     # this is the LetsEncrypt key
     letsencrypt_ca_certificate_id__upchain = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_ca_certificate.id"), nullable=False)
+    
+    @property
+    def cert_fullchain_pem(self):
+        return '\n'.join((self.cert_pem, self.certificate_upchain.cert_pem))
 
     # this is the private key
     letsencrypt_private_key_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_private_key.id"), nullable=False)
@@ -127,6 +131,11 @@ class LetsencryptServerCertificate(Base):
     certificate_request = sa.orm.relationship("LetsencryptCertificateRequest",
                                               primaryjoin="LetsencryptServerCertificate.letsencrypt_certificate_request_id==LetsencryptCertificateRequest.id",
                                               back_populates='signed_certificate',
+                                              uselist=False,
+                                              )
+
+    certificate_upchain = sa.orm.relationship("LetsencryptCACertificate",
+                                              primaryjoin="LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain==LetsencryptCACertificate.id",
                                               uselist=False,
                                               )
 

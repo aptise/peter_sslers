@@ -298,21 +298,48 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate:focus:chain:raw', renderer='string')
     def certificate_focus_chain(self):
-        # application/x-pem-file              .pem
         dbLetsencryptServerCertificate = self._certificate_focus()
+        if self.request.matchdict['format'] == 'pem':
+            self.request.response.content_type = 'application/x-pem-file'
+            return dbLetsencryptServerCertificate.certificate_upchain.cert_pem
+        elif self.request.matchdict['format'] == 'pem.txt':
+            return dbLetsencryptServerCertificate.certificate_upchain.cert_pem
+        elif self.request.matchdict['format'] in ('cer', 'crt', 'der'):
+            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.certificate_upchain.cert_pem)
+            response = Response()
+            if self.request.matchdict['format'] in ('crt', 'der'):
+                response.content_type = 'application/x-x509-ca-cert'
+            elif self.request.matchdict['format'] in ('cer', ):
+                response.content_type = 'application/pkix-cert'
+            response.body = as_der
+            return response
         return 'chain.pem'
+
 
     @view_config(route_name='admin:certificate:focus:fullchain:raw', renderer='string')
     def certificate_focus_fullchain(self):
-        #  application/x-pkcs7-certificates    .p7b .spc
-        # PKCS#12 bundles of private key + certificate(s)
-        # application/x-pkcs7-certificates    .p7b .spc
         dbLetsencryptServerCertificate = self._certificate_focus()
+        if self.request.matchdict['format'] == 'pem':
+            self.request.response.content_type = 'application/x-pem-file'
+            return dbLetsencryptServerCertificate.cert_fullchain_pem
+        elif self.request.matchdict['format'] == 'pem.txt':
+            return dbLetsencryptServerCertificate.cert_fullchain_pem
         return 'fullchain.pem'
 
     @view_config(route_name='admin:certificate:focus:privatekey:raw', renderer='string')
     def certificate_focus_privatekey(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
+        if self.request.matchdict['format'] == 'pem':
+            self.request.response.content_type = 'application/x-pem-file'
+            return dbLetsencryptServerCertificate.private_key.key_pem
+        elif self.request.matchdict['format'] == 'pem.txt':
+            return dbLetsencryptServerCertificate.private_key.key_pem
+        elif self.request.matchdict['format'] == 'key':
+            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.private_key.key_pem)
+            response = Response()
+            response.content_type = 'application/pkcs8'
+            response.body = as_der
+            return response
         return 'privatekey.pem'
 
     @view_config(route_name='admin:certificate:focus:cert:raw', renderer='string')
@@ -330,6 +357,27 @@ class ViewAdmin(Handler):
             response.body = as_der
             return response
         return 'cert.pem'
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:certificate:focus:json', renderer='json')
+    def certificate_focus_json(self):
+        dbLetsencryptServerCertificate = self._certificate_focus()
+        rval = {'id': dbLetsencryptServerCertificate.id,
+                'private_key': {'id': dbLetsencryptServerCertificate.private_key.id,
+                                'pem': dbLetsencryptServerCertificate.private_key.key_pem,
+                                },
+                'certificate': {'id': dbLetsencryptServerCertificate.id,
+                                'pem': dbLetsencryptServerCertificate.cert_pem,
+                                },
+                'chain': {'id': dbLetsencryptServerCertificate.certificate_upchain.id,
+                          'pem': dbLetsencryptServerCertificate.certificate_upchain.cert_pem,
+                          },
+                'fullchain': {'id': '%s,%s' % (dbLetsencryptServerCertificate.id, dbLetsencryptServerCertificate.certificate_upchain.id),
+                              'pem': "\n".join([dbLetsencryptServerCertificate.cert_fullchain_pem]),
+                              },
+                }
+        return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -766,13 +814,13 @@ class ViewAdmin(Handler):
             return dbLetsencryptCACertificate.cert_pem
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbLetsencryptCACertificate.cert_pem
-        elif self.request.matchdict['format'] in ('cer', 'der'):
+        elif self.request.matchdict['format'] in ('cer', 'crt', 'der'):
             as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptCACertificate.cert_pem)
             response = Response()
-            if self.request.matchdict['format'] == 'cer':
-                response.content_type = 'application/pkix-cert'
-            elif self.request.matchdict['format'] == 'der':
+            if self.request.matchdict['format'] in ('crt', 'der'):
                 response.content_type = 'application/x-x509-ca-cert'
+            elif self.request.matchdict['format'] in ('cer', ):
+                response.content_type = 'application/pkix-cert'
             response.body = as_der
             return response
         return 'chain.?'
