@@ -42,3 +42,6 @@ info_UploadPrivateKey = ['If you need to upload a PrivateKey for signing.',
 info_UploadExistingCertificate = ['Upload for management. Requires: `cert.pem`, `chain.pem`, `privkey.pem`',
                                   "This requires: `cert.pem`, `chain.pem`, `privkey.pem`.",
                                   ]
+info_UploadCACertificate = ['Upload a trusted cerficate.  This is the `chain.pem`',
+                            "This requires: `chain.pem`",
+                            ]

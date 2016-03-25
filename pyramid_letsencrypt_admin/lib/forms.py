@@ -116,3 +116,16 @@ class Form_CertificateUpload__file(_Form_Schema_Base):
     private_key_file = FieldStorageUploadConverter(not_empty=True)
     certificate_file = FieldStorageUploadConverter(not_empty=True)
     chain_file = FieldStorageUploadConverter(not_empty=True)
+
+
+class Form_CACertificateUpload__file(_Form_Schema_Base):
+    chain_file = FieldStorageUploadConverter(not_empty=True)
+    chain_file_name = UnicodeString(not_empty=False, if_missing=None)
+
+
+class Form_CACertificateUploadBundle__file(_Form_Schema_Base):
+    isrgrootx1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    le_x1_cross_signed_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    le_x2_cross_signed_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    le_x1_auth_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    le_x2_auth_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)

@@ -81,6 +81,12 @@
                 >Upload Account Key</a><br/>
                 <em>${request.text_library.info_UploadAccountKey[0]}</em>
             </p>
+            <p>
+                <a  href="/.well-known/admin/ca_certificate/upload"
+                    class="btn btn-primary"
+                >Upload CA Certificate</a><br/>
+                <em>${request.text_library.info_UploadCACertificate[0]}</em>
+            </p>
 
 
 

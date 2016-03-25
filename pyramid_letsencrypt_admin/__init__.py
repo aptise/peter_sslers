@@ -81,6 +81,11 @@ def main(global_config, **settings):
     config.add_route('admin:ca_certificate:focus:signed_certificates', '/.well-known/admin/ca_certificate/{id:\d+}/signed_certificates')
     config.add_route('admin:ca_certificate:focus:signed_certificates_paginated', '/.well-known/admin/ca_certificate/{id:\d+}/signed_certificates/{page:\d}')
 
+    config.add_route('admin:ca_certificate:upload', '/.well-known/admin/ca_certificate/upload')
+    config.add_route('admin:ca_certificate:upload:json', '/.well-known/admin/ca_certificate/upload/json')
+    config.add_route('admin:ca_certificate:upload_bundle', '/.well-known/admin/ca_certificate/upload_bundle')
+    config.add_route('admin:ca_certificate:upload_bundle:json', '/.well-known/admin/ca_certificate/upload_bundle/json')
+
     config.add_route('admin:ca_certificate_probes', '/.well-known/admin/ca_certificate_probes')
     config.add_route('admin:ca_certificate_probes_paginated', '/.well-known/admin/ca_certificate_probes/{page:\d}')
     config.add_route('admin:ca_certificate_probes:probe', '/.well-known/admin/ca_certificate_probes/probe')

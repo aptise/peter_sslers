@@ -133,6 +133,16 @@ Your `environment.ini` exposes a few configuration options:
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
 * `certificate_authority` - the letsencrypt certificate authority. default is their staging.  you'll have to manually put in the production.
 
+# tools
+
+there is an `invoke` script in the `tools` directory that can be used to automate certain tasks.
+
+right now the invoke script offers:
+
+`import_letsencrypt_certs_archive` given a directory of your letsencrypt archive (which has versioned certs), it will import them all into a server of your choice.
+
+
+
 
 # FAQ
 
@@ -153,6 +163,10 @@ If you are in a directory with certs issued by letsencrypt:
 Note that the url is not `/upload` but `/upload/json`
 
 Both URLS accept the same form, but /upload/json returns json data that is probably more readable.
+
+there is even an `invoke` script to automate imports~
+
+	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://0.0.0.0:6543'
 	
 
 ## What happens if multiple certs are available for a domain ?
@@ -187,7 +201,9 @@ So far this has been tested behind a couple of load balancers that use round-rob
 
 
 
-# redis
+# redis support
+
+currently building support for redis
 
 redis would be something like this:
 	r['d:foo.example.com'] = ('cert:1', 'key:a', 'fullcert:99')
@@ -202,10 +218,6 @@ prime script should:
 	loop through all pkey> cache into redis
 	loop through all cert> cache into redis
 	
-
-
-
-
 
 # TODO
 
@@ -225,7 +237,9 @@ only some objects are currently associated
 
 ## full unit tests
 
-This is still sketching out the idea.  this is not ready for production yet.
+This is still sketching out the idea.
+this is not ready for production yet.
+i'm personally using it, but the API is not stable and tests are not integrated.
 
 
 ## Database Docs

@@ -521,44 +521,51 @@ def probe_cert__format(filepath):
         raise errors.OpenSslError_InvalidCertificate("not PEM or DER")
 
 
+CA_CERTS_DATA = [{'name': "ISRG Root X1",
+                  'url_pem': "https://letsencrypt.org/certs/isrgrootx1.pem",
+                  'is_ca_certificate': True,
+                  'formfield_base': 'isrgrootx1',
+                  },
+                 {'name': "Let's Encrypt Authority X1 (IdenTrust cross-signed)",
+                  'url_pem': "https://letsencrypt.org/certs/lets-encrypt-x1-cross-signed.pem",
+                  'le_authority_name': "Let's Encrypt Authority X1",
+                  'is_authority_certificate': True,
+                  'is_cross_signed_authority_certificate': True,
+                  'formfield_base': 'le_x1_cross_signed',
+                  },
+                 {'name': "Let's Encrypt Authority X1",
+                  'url_pem': "https://letsencrypt.org/certs/letsencryptauthorityx1.pem",
+                  'le_authority_name': "Let's Encrypt Authority X1",
+                  'is_authority_certificate': True,
+                  'is_cross_signed_authority_certificate': False,
+                  'formfield_base': 'le_x1_auth',
+                  },
+                 {'name': "Let's Encrypt Authority X2 (IdenTrust cross-signed)",
+                  'url_pem': "https://letsencrypt.org/certs/lets-encrypt-x2-cross-signed.pem",
+                  'le_authority_name': "Let's Encrypt Authority X2",
+                  'is_authority_certificate': True,
+                  'is_cross_signed_authority_certificate': True,
+                  'formfield_base': 'le_x2_cross_signed',
+                  },
+                 {'name': "Let's Encrypt Authority X2",
+                  'url_pem': "https://letsencrypt.org/certs/letsencryptauthorityx2.pem",
+                  'le_authority_name': "Let's Encrypt Authority X2",
+                  'is_authority_certificate': True,
+                  'is_cross_signed_authority_certificate': False,
+                  'formfield_base': 'le_x1_auth',
+                  },
+                 ]
+
+
 def probe_letsencrypt_certificates():
     """last checked 2016.03.24
     probes the known LetsEncrypt certificates
     THIS DOES NOT APPLY `cleanup_pem_text`
     """
-    certs = [{'name': "ISRG Root X1",
-              'url_pem': "https://letsencrypt.org/certs/isrgrootx1.pem",
-              'is_ca_certificate': True,
-              },
-             {'name': "Let's Encrypt Authority X1 (IdenTrust cross-signed)",
-              'url_pem': "https://letsencrypt.org/certs/lets-encrypt-x1-cross-signed.pem",
-              'le_authority_name': "Let's Encrypt Authority X1",
-              'is_authority_certificate': True,
-              'is_cross_signed_authority_certificate': True,
-              },
-             {'name': "Let's Encrypt Authority X1",
-              'url_pem': "https://letsencrypt.org/certs/letsencryptauthorityx1.pem",
-              'le_authority_name': "Let's Encrypt Authority X1",
-              'is_authority_certificate': True,
-              'is_cross_signed_authority_certificate': False,
-              },
-             {'name': "Let's Encrypt Authority X2 (IdenTrust cross-signed)",
-              'url_pem': "https://letsencrypt.org/certs/lets-encrypt-x2-cross-signed.pem",
-              'le_authority_name': "Let's Encrypt Authority X2",
-              'is_authority_certificate': True,
-              'is_cross_signed_authority_certificate': True,
-              },
-             {'name': "Let's Encrypt Authority X2",
-              'url_pem': "https://letsencrypt.org/certs/letsencryptauthorityx2.pem",
-              'le_authority_name': "Let's Encrypt Authority X2",
-              'is_authority_certificate': True,
-              'is_cross_signed_authority_certificate': False,
-              },
-             ]
-    certs2 = copy.deepcopy(certs)
+    certs = copy.deepcopy(CA_CERTS_DATA)
     tmpfile = None
     try:
-        for c in certs2:
+        for c in certs:
             resp = urlopen(c['url_pem'])
             if resp.getcode() != 200:
                 raise ValueError("Could not load certificate")
@@ -570,4 +577,4 @@ def probe_letsencrypt_certificates():
         if tmpfile:
             tmpfile.close()
 
-    return certs2
+    return certs

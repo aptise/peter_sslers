@@ -373,7 +373,14 @@ def get__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem):
     return dbCertificate
 
 
-def getcreate__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem, chain_name):
+def getcreate__LetsencryptCACertificate__by_pem_text(
+    dbSession,
+    cert_pem,
+    chain_name,
+    le_authority_name = None,
+    is_authority_certificate = None,
+    is_cross_signed_authority_certificate = None,
+):
     dbCertificate = get__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem)
     is_created = False
     if not dbCertificate:
@@ -393,10 +400,10 @@ def getcreate__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem, chain_
             dbCertificate = LetsencryptCACertificate()
             dbCertificate.name = chain_name or 'unknown'
 
-            dbCertificate.le_authority_name = None
+            dbCertificate.le_authority_name = le_authority_name
             dbCertificate.is_ca_certificate = True
-            dbCertificate.is_authority_certificate = False
-            dbCertificate.is_cross_signed_authority_certificate = None
+            dbCertificate.is_authority_certificate = is_authority_certificate
+            dbCertificate.is_cross_signed_authority_certificate = is_cross_signed_authority_certificate
             dbCertificate.id_cross_signed_of = None
             dbCertificate.timestamp_first_seen = datetime.datetime.utcnow()
             dbCertificate.cert_pem = cert_pem
@@ -810,6 +817,53 @@ def create__LetsencryptServerCertificate(
 
     return dbLetsencryptServerCertificate
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def upload__LetsencryptCACertificateBundle__by_pem_text(dbSession, bundle_data):
+    results = {}
+    for cert_pem in bundle_data.keys():
+        if cert_pem[-4:] != '_pem':
+            raise ValueError("key does not end in `_pem`")
+        cert_base = cert_pem[:-4]
+        cert_pem_text = bundle_data[cert_pem]
+        cert_name = None
+        le_authority_name = None
+        is_authority_certificate = None
+        is_cross_signed_authority_certificate = None
+        for c in acme.CA_CERTS_DATA:
+            if cert_base == c['formfield_base']:
+                cert_name = c['name']
+                if 'le_authority_name' in c:
+                    le_authority_name = c['le_authority_name']
+                if 'is_authority_certificate' in c:
+                    is_authority_certificate = c['is_authority_certificate']
+                if 'is_cross_signed_authority_certificate' in c:
+                    is_cross_signed_authority_certificate = c['is_cross_signed_authority_certificate']
+                break
+
+        dbCertificate, is_created = getcreate__LetsencryptCACertificate__by_pem_text(
+            dbSession,
+            cert_pem_text,
+            cert_name,
+            le_authority_name = None,
+            is_authority_certificate = None,
+            is_cross_signed_authority_certificate = None,
+        )
+        if not is_created:
+            if dbCertificate.name in ('unknown', 'manual upload'):
+                dbCertificate.name = cert_name
+            if dbCertificate.le_authority_name is None:
+                dbCertificate.le_authority_name = le_authority_name
+            if dbCertificate.is_authority_certificate is None:
+                dbCertificate.is_authority_certificate = is_authority_certificate
+            if dbCertificate.le_authority_name is None:
+                dbCertificate.is_cross_signed_authority_certificate = is_cross_signed_authority_certificate
+            
+        results[cert_pem] = (dbCertificate, is_created)
+
+    return results
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -851,7 +905,8 @@ def ca_certificate_probe(dbSession):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def operations_update_recents(dbSession):
-    if False:
+    '''
+    older select version
         dbSession.execute("""
             UPDATE letsencrypt_domain
             SET letsencrypt_server_certificate_id__latest_single = (
@@ -890,27 +945,44 @@ def operations_update_recents(dbSession):
                 letsencrypt_domain.id = q_inner.letsencrypt_domain_id
             );
         """, {'is_single_domain_cert': False, 'is_active': True})
-    else:
-        # first the single
-        _t_domain = LetsencryptDomain.__table__.alias('domain')
-        _q_sub = dbSession.query(LetsencryptServerCertificate.id)\
-            .join(LetsencryptServerCertificate2LetsencryptDomain,
-                  LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
-            )\
-            .filter(LetsencryptServerCertificate.is_active is True,  # noqa
-                    LetsencryptServerCertificate.timestamp_expires < datetime.datetime.utcnow(),
-                    LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _t_domain.c.id,
-                    )\
-            .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
-            .limit(1)\
-            .subquery()\
-            .alias()
-            # .alias().select()
-            
-        dbSession.execute(LetsencryptDomain.__table__
-                          .update()
-                          .values(letsencrypt_server_certificate_id__latest_single=_q_sub)
-                          )
+    '''
+    # first the single
+    _t_domain = LetsencryptDomain.__table__.alias('domain')
+    _q_sub = dbSession.query(LetsencryptServerCertificate.id)\
+        .join(LetsencryptServerCertificate2LetsencryptDomain,
+              LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
+        )\
+        .filter(LetsencryptServerCertificate.is_active is True,  # noqa
+                LetsencryptServerCertificate.is_single_domain_cert is True,  # noqa
+                LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _t_domain.c.id,
+                )\
+        .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
+        .limit(1)\
+        .subquery()\
+        .as_scalar()
+    dbSession.execute(LetsencryptDomain.__table__
+                      .update()
+                      .values(letsencrypt_server_certificate_id__latest_single=_q_sub)
+                      )
+
+    # then the multiple
+    _t_domain = LetsencryptDomain.__table__.alias('domain')
+    _q_sub = dbSession.query(LetsencryptServerCertificate.id)\
+        .join(LetsencryptServerCertificate2LetsencryptDomain,
+              LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
+        )\
+        .filter(LetsencryptServerCertificate.is_active is True,  # noqa
+                LetsencryptServerCertificate.is_single_domain_cert is False,  # noqa
+                LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _t_domain.c.id,
+                )\
+        .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
+        .limit(1)\
+        .subquery()\
+        .as_scalar()
+    dbSession.execute(LetsencryptDomain.__table__
+                      .update()
+                      .values(letsencrypt_server_certificate_id__latest_multi=_q_sub)
+                      )
     return True
     
     

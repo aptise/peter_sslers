@@ -294,12 +294,22 @@
         </p>
 </%def>
 
+
 <%def name="info_PrivateKey()">
     <h3>Need a Private Key?</h3>
         <p>NOTE: you can not use your account private key as your private key for signing domains!</p>
         <p>
             <code>openssl genrsa 4096 > domain.key</code>
         </p>
+</%def>
+
+
+<%def name="info_CACertificate()">
+    <h3>What are CA Certificates?</h3>
+    <p>
+        These are the trusted(?) certs that CertificateAuthorities use to sign your certs.  They are used for building fullchains.
+        Often these are called 'chain.pem'.
+    </p>
 </%def>
 
 
@@ -377,6 +387,55 @@
     </div>
 </%def>
 
+
+
+<%def name="formgroup__chain_bundle_file()">
+    <div class="form-group clearfix">
+        <label for="f1-isrgrootx1_file">ISRG Root X1</label>
+        <input class="form-control" type="file" id="f1-isrgrootx1_file" name="isrgrootx1_file" />
+        <p class="help-block">
+            As linked to from https://letsencrypt.org/certificates/
+        </p>
+    </div>
+    <hr/>
+
+    <div class="form-group clearfix">
+        <label for="f1-le_x1_auth_file">Let’s Encrypt Authority X1</label>
+        <input class="form-control" type="file" id="f1-le_x1_auth_file" name="le_x1_auth_file" />
+        <p class="help-block">
+            As linked to from https://letsencrypt.org/certificates/
+        </p>
+    </div>
+    <hr/>
+
+    <div class="form-group clearfix">
+        <label for="f1-le_x1_cross_signed_file">Let’s Encrypt Authority X1 (IdenTrust cross-signed)</label>
+        <input class="form-control" type="file" id="f1-le_x1_cross_signed_file" name="le_x1_cross_signed_file" />
+        <p class="help-block">
+            As linked to from https://letsencrypt.org/certificates/
+        </p>
+    </div>
+    <hr/>
+
+    <div class="form-group clearfix">
+        <label for="f1-le_x2_auth_file">Let’s Encrypt Authority X2</label>
+        <input class="form-control" type="file" id="f1-le_x2_auth_file" name="le_x2_auth_file" />
+        <p class="help-block">
+            As linked to from https://letsencrypt.org/certificates/
+        </p>
+    </div>
+    <hr/>
+
+    <div class="form-group clearfix">
+        <label for="f1-le_x2_cross_signed_file">Let’s Encrypt Authority X2 (IdenTrust cross-signed)</label>
+        <input class="form-control" type="file" id="f1-le_x2_cross_signed_file" name="le_x2_cross_signed_file" />
+        <p class="help-block">
+            As linked to from https://letsencrypt.org/certificates/
+        </p>
+    </div>
+    <hr/>
+
+</%def>
 
 
 <%def name="formgroup__domain_names()">
