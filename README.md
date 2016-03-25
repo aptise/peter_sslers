@@ -136,6 +136,9 @@ Your `environment.ini` exposes a few configuration options:
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
 * `certificate_authority` - the letsencrypt certificate authority. default is their staging.  you'll have to manually put in the production.
 
+* `enable_views_public` - boolean, should we enable the public views?
+* `enable_views_admin` - boolean, should we enable the admin views?
+
 # tools
 
 ## invoke script
