@@ -122,6 +122,27 @@ def get__LetsencryptCertificateRequest__by_id(dbSession, certificate_request_id)
         .one()
     return dbLetsencryptCertificateRequest
 
+def get__LetsencryptCertificateRequest__by_LetsencryptManagedDomain__count(dbSession, domain_id):
+    counted = dbSession.query(LetsencryptCertificateRequest)\
+        .join(LetsencryptCertificateRequest_2_ManagedDomain,
+              LetsencryptCertificateRequest.id == LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_certificate_request_id,
+              )\
+        .filter(LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id == domain_id)\
+        .count()
+    return counted
+
+
+def get__LetsencryptCertificateRequest__by_LetsencryptManagedDomain__paginated(dbSession, domain_id, limit=None, offset=0):
+    dbLetsencryptCertificateRequests = dbSession.query(LetsencryptCertificateRequest)\
+        .join(LetsencryptCertificateRequest_2_ManagedDomain,
+              LetsencryptCertificateRequest.id == LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_certificate_request_id,
+              )\
+        .filter(LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_managed_domain_id == domain_id)\
+        .order_by(LetsencryptCertificateRequest.id.desc())\
+        .limit(limit)\
+        .offset(offset)\
+        .all()
+    return dbLetsencryptCertificateRequests
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -212,16 +233,39 @@ def get__LetsencryptCACertificate__by_id(dbSession, cert_id):
     return dbLetsencryptCACertificate
 
 
-def get__LetsencryptHttpsCertificate_by_LetsencryptCACertificateId__count(dbSession, cert_id):
+def get__LetsencryptHttpsCertificate__by_LetsencryptCACertificateId__count(dbSession, cert_id):
     counted = dbSession.query(LetsencryptHttpsCertificate)\
         .filter(LetsencryptHttpsCertificate.letsencrypt_ca_certificate_id__signed_by == cert_id)\
         .count()
     return counted
 
 
-def get__LetsencryptHttpsCertificate_by_LetsencryptCACertificateId__paginated(dbSession, cert_id, limit=None, offset=0):
+def get__LetsencryptHttpsCertificate__by_LetsencryptCACertificateId__paginated(dbSession, cert_id, limit=None, offset=0):
     dbLetsencryptHttpsCertificates = dbSession.query(LetsencryptHttpsCertificate)\
         .filter(LetsencryptHttpsCertificate.letsencrypt_ca_certificate_id__signed_by == cert_id)\
+        .order_by(LetsencryptHttpsCertificate.id.desc())\
+        .limit(limit)\
+        .offset(offset)\
+        .all()
+    return dbLetsencryptHttpsCertificates
+
+
+def get__LetsencryptHttpsCertificate__by_LetsencryptManagedDomain__count(dbSession, domain_id):
+    counted = dbSession.query(LetsencryptHttpsCertificate)\
+        .join(LetsencryptHttpsCertificateToDomain,
+              LetsencryptHttpsCertificate.id == LetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id,
+              )\
+        .filter(LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id == domain_id)\
+        .count()
+    return counted
+
+
+def get__LetsencryptHttpsCertificate__by_LetsencryptManagedDomain__paginated(dbSession, domain_id, limit=None, offset=0):
+    dbLetsencryptHttpsCertificates = dbSession.query(LetsencryptHttpsCertificate)\
+        .join(LetsencryptHttpsCertificateToDomain,
+              LetsencryptHttpsCertificate.id == LetsencryptHttpsCertificateToDomain.letsencrypt_https_certificate_id,
+              )\
+        .filter(LetsencryptHttpsCertificateToDomain.letsencrypt_managed_domain_id == domain_id)\
         .order_by(LetsencryptHttpsCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
@@ -661,10 +705,16 @@ def getcreate__LetsencryptHttpsCertificate__by_pem_text(
                 raise ValueError('dbPrivateKey did not sign the certificate')
             dbCertificate.letsencrypt_private_key_id__signed_by = dbPrivateKey.id
 
-            certificate_domain_names = acme.parse_cert_domains(cert_path=_tmpfileCert.name)
-            certificate_domain_names = list(certificate_domain_names)
+            _subject_domain, _san_domains = acme.parse_cert_domains__segmented(cert_path=_tmpfileCert.name)
+            certificate_domain_names = _san_domains
+            if _subject_domain is not None and _subject_domain not in certificate_domain_names:
+                certificate_domain_names.insert(0, _subject_domain)
             if not certificate_domain_names:
                 raise ValueError("could not find any domain names in the certificate")
+            if len(certificate_domain_names) == 1:
+                dbCertificate.is_single_domain_cert = True
+            elif len(certificate_domain_names) > 1:
+                dbCertificate.is_single_domain_cert = False
 
             dbSession.add(dbCertificate)
             dbSession.flush()

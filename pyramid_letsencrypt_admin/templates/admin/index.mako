@@ -26,18 +26,33 @@
                     <li><a href="/.well-known/admin/ca_certificate_probes">ca_certificate_probes</a> (${request.text_library.info_CACertificateProbes[0]})</li>
                 </ul>
             </ul>
+
+            <h2>Operations</h2>
+            % if enable_redis:
+                <p>
+                    <a  href="/.well-known/admin/redis"
+                        class="btn btn-info"
+                    >Redis Operations</a><br/>
+                </p>
+            % endif
+                <p>
+                    <a  href="/.well-known/admin/operations/deactivate_expired"
+                        class="btn btn-info"
+                    >Deactivate Expired Certificates</a><br/>
+                </p>
+
         </div>
         <div class="col-sm-6">
             <h2>Create New</h2>
             <p>
                 <a  href="/.well-known/admin/certificate_request/new-flow"
-                    class="btn btn-info"
+                    class="btn btn-primary"
                 >certificate request FLOW</a><br/>
                 <em>${request.text_library.info_CertificateRequest_new_flow[0]}</em>
             </p>
             <p>
                 <a  href="/.well-known/admin/certificate_request/new-full"
-                    class="btn btn-info"
+                    class="btn btn-primary"
                 >certificate request FULL</a><br/>
                 <em>${request.text_library.info_CertificateRequest_new_full[0]}</em>
             </p>
@@ -45,19 +60,19 @@
             <h2>Upload Existing</h2>
             <p>
                 <a  href="/.well-known/admin/certificate/upload"
-                    class="btn btn-info"
+                    class="btn btn-primary"
                 >Upload Existing Certificate</a><br/>
                 <em>${request.text_library.info_UploadExistingCertificate[0]}</em>
             </p>
             <p>
                 <a  href="/.well-known/admin/private_key/new"
-                    class="btn btn-info"
+                    class="btn btn-primary"
                 >Upload Private Key</a><br/>
                 <em>${request.text_library.info_UploadPrivateKey[0]}</em>
             </p>
             <p>
                 <a  href="/.well-known/admin/account_key/new"
-                    class="btn btn-info"
+                    class="btn btn-primary"
                 >Upload Account Key</a><br/>
                 <em>${request.text_library.info_UploadAccountKey[0]}</em>
             </p>

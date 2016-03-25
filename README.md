@@ -1,7 +1,7 @@
 pyramid_letsencrypt_admin README
 ==================
 
-`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS ENGINEERS manage certificate deployment on large systems
+`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS ENGINEERS manage certificate deployment on large systems.  it offers  a lightweight database backed webserver that can handle the letsencrypt issuance process, import any existing ssl certificates, and easily provision them to servers.  this tool has absolutely no security measures and should only be used by people who understand that.  (that should be a self-selecting group, because many people won't want this)
 
 # A HUGE WARNING
 
@@ -79,6 +79,10 @@ To solve this you can:
 * make `/admin` usable within your LAN
 * on a machine within your LAN, you can query for the latest certs for domain(s)
 
+In a more advanced implementation, the certificates need to be loaded into `redis` for use by an `openresty`/`nginx` server that will dynamically handle ssl connections.  
+
+This package does all the hard openssl work.  You just tell it what certificates you need and in which format, and THERE YOU GO.
+
 
 # notes
 
@@ -143,6 +147,8 @@ Yes.  Use `curl` on the commandline
 If you are in a directory with certs issued by letsencrypt:
 
 	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload
+
+	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload
 
 
 ## Why use openssl? / does this work on windows?

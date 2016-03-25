@@ -141,22 +141,35 @@ def account_key__header_thumbprint(
 def parse_cert_domains(
     cert_path=None,
 ):
+    subject_domain, san_domains = parse_cert_domains__segmented(cert_path=cert_path)
+    if subject_domain is not None and subject_domain not in san_domains:
+        san_domains.insert(0,  subject_domain)
+    return san_domains
+
+
+def parse_cert_domains__segmented(
+    cert_path=None,
+):
     log.info("Parsing CERT...")
     proc = subprocess.Popen([openssl_path, "x509", "-in", cert_path, "-noout", "-text"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
     if proc.returncode != 0:
         raise IOError("Error loading {0}: {1}".format(cert_path, err))
-    found_domains = set([])
-    common_name = re.search(r"Subject:.*? CN=([^\s,;/]+)", out.decode("utf8"))
-    if common_name is not None:
-        found_domains.add(common_name.group(1).lower())
-    subject_alt_names = re.search(r"X509v3 Subject Alternative Name: \n +([^\n]+)\n", out.decode("utf8"), re.MULTILINE | re.DOTALL)
-    if subject_alt_names is not None:
-        for san in subject_alt_names.group(1).split(", "):
-            if san.startswith("DNS:"):
-                found_domains.add(san[4:].lower())
-    return found_domains
+
+    # init
+    subject_domain = None
+    san_domains = set([])  # convert to list on return
+
+    _common_name = re.search(r"Subject:.*? CN=([^\s,;/]+)", out.decode("utf8"))
+    if _common_name is not None:
+        subject_domain = _common_name.group(1).lower()
+    _subject_alt_names = re.search(r"X509v3 Subject Alternative Name: \n +([^\n]+)\n", out.decode("utf8"), re.MULTILINE | re.DOTALL)
+    if _subject_alt_names is not None:
+        for _san in _subject_alt_names.group(1).split(", "):
+            if _san.startswith("DNS:"):
+                san_domains.add(_san[4:].lower())
+    return subject_domain, list(san_domains)
 
 
 def parse_csr_domains(

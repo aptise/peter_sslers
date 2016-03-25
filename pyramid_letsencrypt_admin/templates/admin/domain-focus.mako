@@ -12,7 +12,7 @@
 
 
 <%block name="page_header">
-    <h2>Domains Focus</h2>
+    <h2>Domain Focus</h2>
 </%block>
 
     
@@ -35,12 +35,34 @@
             <th>certificates</th>
             <td>
                 ${admin_partials.table_to_certificates(LetsencryptManagedDomain.domain_to_certificates, show_domains=True)}
+                % if LetsencryptManagedDomain.domain_to_certificates:
+                    <nav>
+                      <ul class="pager">
+                        <li>
+                            <a 
+                                href="/.well-known/admin/domain/${LetsencryptManagedDomain.id}/certificates"
+                            >See All</a>
+                        </li>
+                      </ul>
+                    </nav>
+                % endif
             </td>
         </tr>
         <tr>
             <th>certificate requests</th>
             <td>
                 ${admin_partials.table_to_certificate_requests(LetsencryptManagedDomain.domain_to_certificate_requests)}
+                % if LetsencryptManagedDomain.domain_to_certificate_requests:
+                    <nav>
+                      <ul class="pager">
+                        <li>
+                            <a 
+                                href="/.well-known/admin/domain/${LetsencryptManagedDomain.id}/certificate_requests"
+                            >See All</a>
+                        </li>
+                      </ul>
+                    </nav>
+                % endif
             </td>
         </tr>
     </table>

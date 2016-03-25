@@ -36,6 +36,20 @@
             </td>
         </tr>
         <tr>
+            <th>is_single_domain_cert</th>
+            <td>
+                % if LetsencryptHttpsCertificate.is_single_domain_cert is True:
+                    <span class="label label-default">
+                        single domain certificate
+                    </span>
+                % elif LetsencryptHttpsCertificate.is_single_domain_cert is False:
+                    <span class="label label-default">
+                        multiple domain certificate
+                    </span>
+                % endif
+            </td>
+        </tr>
+        <tr>
             <th>timestamp_signed</th>
             <td><timestamp>${LetsencryptHttpsCertificate.timestamp_signed}</timestamp></td>
         </tr>

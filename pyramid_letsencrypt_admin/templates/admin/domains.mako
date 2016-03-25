@@ -19,11 +19,23 @@
 <%block name="content_main">
     % if LetsencryptManagedDomains:
         ${admin_partials.nav_pager(pager)}
-        <ul>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>id</th>
+                    <th>domain name</th>
+                </tr>
+            </thead>
             % for d in LetsencryptManagedDomains:
-                <li><a href="/.well-known/admin/domain/${d.id}">${d.domain_name}</a></li>
+                <tr>
+                    <td>
+                        <a  class="label label-default"
+                            href="/.well-known/admin/domain/${d.id}">&gt; ${d.id}</a>
+                    </td>
+                    <td>${d.domain_name}</td>
+                </tr>
             % endfor
-        </ul>
+        </table>
         
     % else:
         <em>

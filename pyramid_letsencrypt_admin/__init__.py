@@ -29,6 +29,10 @@ def main(global_config, **settings):
     config.add_route('admin:domains', '/.well-known/admin/domains')
     config.add_route('admin:domains_paginated', '/.well-known/admin/domains/{page:\d+}')
     config.add_route('admin:domain:focus', '/.well-known/admin/domain/{id:\d+}')
+    config.add_route('admin:domain:focus:certificates', '/.well-known/admin/domain/{id:\d+}/certificates')
+    config.add_route('admin:domain:focus:certificates_paginated', '/.well-known/admin/domain/{id:\d+}/certificates/{page:\d+}')
+    config.add_route('admin:domain:focus:certificate_requests', '/.well-known/admin/domain/{id:\d+}/certificate_requests')
+    config.add_route('admin:domain:focus:certificate_requests_paginated', '/.well-known/admin/domain/{id:\d+}/certificate_requests/{page:\d+}')
 
     config.add_route('admin:certificates', '/.well-known/admin/certificates')
     config.add_route('admin:certificates_paginated', '/.well-known/admin/certificates/{page:\d+}')
@@ -38,6 +42,8 @@ def main(global_config, **settings):
     config.add_route('admin:certificate:focus:privatekey:raw', '/.well-known/admin/certificate/{id:\d+}/privatekey.{format:(der|pem|pem.txt)}')
     config.add_route('admin:certificate:focus:cert:raw', '/.well-known/admin/certificate/{id:\d+}/cert.{format:(crt|pem|pem.txt)}')
     config.add_route('admin:certificate:upload', '/.well-known/admin/certificate/upload')
+
+    config.add_route('admin:operations:deactivate_expired', '/.well-known/admin/operations/deactivate_expired')
 
     config.add_route('admin:certificate_requests', '/.well-known/admin/certificate_requests')
     config.add_route('admin:certificate_requests_paginated', '/.well-known/admin/certificate_requests/{page:\d+}')
@@ -75,9 +81,10 @@ def main(global_config, **settings):
     config.add_route('admin:ca_certificate_probes_paginated', '/.well-known/admin/ca_certificate_probes/{page:\d}')
     config.add_route('admin:ca_certificate_probes:probe', '/.well-known/admin/ca_certificate_probes/probe')
 
+    config.add_route('admin:redis', '/.well-known/admin/redis')
+    config.add_route('admin:redis:prime', '/.well-known/admin/redis/prime')
 
-    # testing
-    config.add_route('admin:inject_sample', '/.well-known/admin/inject_sample')
+    # Parse settings
 
     # update the module data based on settings
     if 'openssl_path' in settings:
@@ -92,8 +99,18 @@ def main(global_config, **settings):
     if 'exception_redirect' in settings:
         if settings["exception_redirect"].lower() in ('1', 'true'):
             _redirect = True
-    # save to the CONFIG settings
-    config.registry.settings["exception_redirect"] = _redirect
+    config.registry.settings["exception_redirect"] = _redirect  # save to the CONFIG settings
+
+    # use redis?
+    _enable_redis = False
+    if 'enable_redis' in settings:
+        if settings["enable_redis"].lower() in ('1', 'true'):
+            _enable_redis = True
+            import redis
+    config.registry.settings["enable_redis"] = _enable_redis  # save to the CONFIG settings
+    
+    # let's extend the request too!
+    config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)
 
     config.scan()
     return config.make_wsgi_app()

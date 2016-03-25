@@ -94,6 +94,7 @@ class LetsencryptHttpsCertificate(Base):
     timestamp_signed = sa.Column(sa.DateTime, nullable=False, )
     timestamp_expires = sa.Column(sa.DateTime, nullable=False, )
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_single_domain_cert = sa.Column(sa.Boolean, nullable=True, default=None)
     cert_pem = sa.Column(sa.Text, nullable=False, )
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, )
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False, )
@@ -155,6 +156,8 @@ class LetsencryptManagedDomain(Base):
     __tablename__ = 'letsencrypt_managed_domain'
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
+    letsencrypt_https_certificate_id__latest_single = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_https_certificate.id"), nullable=True)
+    letsencrypt_https_certificate_id__latest_multi = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_https_certificate.id"), nullable=True)
 
     domain_to_certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest_2_ManagedDomain",
                                                          primaryjoin="LetsencryptManagedDomain.id==LetsencryptCertificateRequest_2_ManagedDomain.letsencrypt_managed_domain_id",
