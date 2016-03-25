@@ -154,7 +154,20 @@ Note that the url is not `/upload` but `/upload/json`
 
 Both URLS accept the same form, but /upload/json returns json data that is probably more readable.
 	
-	
+
+## What happens if multiple certs are available for a domain ?
+
+Multiple Domains on a cert make this part of management epically & especially annoying.
+
+The current solution is quick and dirty:
+
+* there is a an "operation" hook that caches the most-recent "multi" and "single" cert for every domain
+* certificates will not be deactivated if they are the most-recent used multi or single cert for any domain.
+
+This means that a cert will stay active so long as any domain has not yet-replaced it.
+
+When querying for a domain's cert, the system will currently send the most recent cert.  a future feature might allow for this to be customized, and show the most widely usable cert.
+
 
 
 ## Why use openssl? / does this work on windows?
