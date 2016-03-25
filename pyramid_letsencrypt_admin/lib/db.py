@@ -7,6 +7,7 @@ import tempfile
 # pypi
 import sqlalchemy
 import transaction
+from zope.sqlalchemy import mark_changed
 
 # localapp
 from ..models import *
@@ -947,17 +948,16 @@ def operations_update_recents(dbSession):
         """, {'is_single_domain_cert': False, 'is_active': True})
     '''
     # first the single
-    _t_domain = LetsencryptDomain.__table__.alias('domain')
+    # _t_domain = LetsencryptDomain.__table__.alias('domain')
     _q_sub = dbSession.query(LetsencryptServerCertificate.id)\
         .join(LetsencryptServerCertificate2LetsencryptDomain,
               LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
         )\
-        .filter(LetsencryptServerCertificate.is_active is True,  # noqa
-                LetsencryptServerCertificate.is_single_domain_cert is True,  # noqa
-                LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _t_domain.c.id,
+        .filter(LetsencryptServerCertificate.is_active == True,  # noqa
+                LetsencryptServerCertificate.is_single_domain_cert == True,  # noqa
+                LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
                 )\
         .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
-        .limit(1)\
         .subquery()\
         .as_scalar()
     dbSession.execute(LetsencryptDomain.__table__
@@ -966,23 +966,25 @@ def operations_update_recents(dbSession):
                       )
 
     # then the multiple
-    _t_domain = LetsencryptDomain.__table__.alias('domain')
+    # _t_domain = LetsencryptDomain.__table__.alias('domain')
     _q_sub = dbSession.query(LetsencryptServerCertificate.id)\
         .join(LetsencryptServerCertificate2LetsencryptDomain,
               LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
         )\
-        .filter(LetsencryptServerCertificate.is_active is True,  # noqa
-                LetsencryptServerCertificate.is_single_domain_cert is False,  # noqa
-                LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _t_domain.c.id,
+        .filter(LetsencryptServerCertificate.is_active == True,  # noqa
+                LetsencryptServerCertificate.is_single_domain_cert == False,  # noqa
+                LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
                 )\
         .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
-        .limit(1)\
         .subquery()\
         .as_scalar()
     dbSession.execute(LetsencryptDomain.__table__
                       .update()
                       .values(letsencrypt_server_certificate_id__latest_multi=_q_sub)
                       )
+
+    # mark the session changed, but we need to mark the session not scoped session.  ugh.
+    mark_changed(dbSession())
     return True
     
     
