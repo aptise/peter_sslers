@@ -106,7 +106,7 @@ class LetsencryptServerCertificate(Base):
 
     # this is the LetsEncrypt key
     letsencrypt_ca_certificate_id__upchain = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_ca_certificate.id"), nullable=False)
-    
+
     @property
     def cert_fullchain_pem(self):
         return '\n'.join((self.cert_pem, self.certificate_upchain.cert_pem))
@@ -177,10 +177,10 @@ class LetsencryptDomain(Base):
                                                  primaryjoin="LetsencryptDomain.id==LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id",
                                                  back_populates='domain',
                                                  )
-                                                 
+
     latest_certificate_single = sa.orm.relationship("LetsencryptServerCertificate",
-                                                 primaryjoin="LetsencryptDomain.letsencrypt_server_certificate_id__latest_single==LetsencryptServerCertificate.id",
-                                                 uselist=False,
+                                                    primaryjoin="LetsencryptDomain.letsencrypt_server_certificate_id__latest_single==LetsencryptServerCertificate.id",
+                                                    uselist=False,
                                                  )
     latest_certificate_multi = sa.orm.relationship("LetsencryptServerCertificate",
                                                    primaryjoin="LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi==LetsencryptServerCertificate.id",
@@ -238,10 +238,10 @@ class LetsencryptCertificateRequest(Base):
                                                          )
 
     letsencrypt_private_key__signed_by = sa.orm.relationship("LetsencryptPrivateKey",
-                                                              primaryjoin="LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by==LetsencryptPrivateKey.id",
-                                                              back_populates='certificate_requests',
-                                                              uselist=False,
-                                                              )
+                                                             primaryjoin="LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by==LetsencryptPrivateKey.id",
+                                                             back_populates='certificate_requests',
+                                                             uselist=False,
+                                                             )
 
     letsencrypt_account_key = sa.orm.relationship("LetsencryptAccountKey",
                                                   primaryjoin="LetsencryptCertificateRequest.letsencrypt_account_key_id==LetsencryptAccountKey.id",

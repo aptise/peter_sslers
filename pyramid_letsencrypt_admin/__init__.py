@@ -27,7 +27,6 @@ def main(global_config, **settings):
     config.include('pyramid_mako')
     # config.add_static_view('static', 'static', cache_max_age=3600)
 
-
     enable_views_admin = set_bool_setting(config.registry.settings, 'enable_views_admin')
     enable_views_public = set_bool_setting(config.registry.settings, 'enable_views_public')
 
@@ -126,7 +125,7 @@ def main(global_config, **settings):
         acme.CERTIFICATE_AUTHORITY = settings["certificate_authority"]
 
     # will we redirect on error?
-    _redirect = set_bool_setting(config.registry.settings, 'exception_redirect')
+    set_bool_setting(config.registry.settings, 'exception_redirect')
 
     # will we redirect on error?
     _enable_redis = set_bool_setting(config.registry.settings, 'enable_redis')

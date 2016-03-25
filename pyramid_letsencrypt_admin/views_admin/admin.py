@@ -92,7 +92,7 @@ class ViewAdmin(Handler):
 
     def _search__submit(self, search_params):
         certs = {}
-        return render_to_response("/admin/search.mako", {'ResultsPage': True, 
+        return render_to_response("/admin/search.mako", {'ResultsPage': True,
                                                          'certs': certs,
                                                          }, self.request)
 
@@ -164,7 +164,6 @@ class ViewAdmin(Handler):
         lib_db.operations_update_recents(DBSession)
         return {'result': 'success'
                 }
-
 
     @view_config(route_name='admin:operations:deactivate_expired', renderer='json')
     def operations_deactivate_expired(self):
@@ -248,7 +247,7 @@ class ViewAdmin(Handler):
                 dbCACertificate=dbLetsencryptCACertificate,
                 dbPrivateKey=dbLetsencryptPrivateKey,
             )
-            
+
             if self.request.matched_route.name == 'admin:certificate:upload:json':
                 return {'result': 'success',
                         'certificate': {'created': cert_is_created,
@@ -257,7 +256,7 @@ class ViewAdmin(Handler):
                                         },
                         'ca_certificate': {'created': cacert_is_created,
                                            'id': dbLetsencryptCACertificate.id,
-                                        },
+                                           },
                         'private_key': {'created': pkey_is_created,
                                         'id': dbLetsencryptPrivateKey.id,
                                         },
@@ -314,7 +313,6 @@ class ViewAdmin(Handler):
             response.body = as_der
             return response
         return 'chain.pem'
-
 
     @view_config(route_name='admin:certificate:focus:fullchain:raw', renderer='string')
     def certificate_focus_fullchain(self):
@@ -901,7 +899,7 @@ class ViewAdmin(Handler):
                 return {'result': 'success',
                         'ca_certificate': {'created': cacert_is_created,
                                            'id': dbLetsencryptCACertificate.id,
-                                        },
+                                           },
                         }
             return HTTPFound('/.well-known/admin/ca_certificate/%s?is_created=%s' % (dbLetsencryptCACertificate.id, (1 if cacert_is_created else 0)))
 
@@ -977,7 +975,7 @@ class ViewAdmin(Handler):
 
             if formStash.results['le_x2_auth_file'] is not None:
                 bundle_data['le_x2_auth_pem'] = formStash.results['le_x2_auth_file'].file.read()
-            
+
             bundle_data = dict([i for i in bundle_data.items() if i[1]])
 
             dbResults = lib_db.upload__LetsencryptCACertificateBundle__by_pem_text(

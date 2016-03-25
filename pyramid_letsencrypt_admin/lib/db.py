@@ -860,13 +860,14 @@ def upload__LetsencryptCACertificateBundle__by_pem_text(dbSession, bundle_data):
                 dbCertificate.is_authority_certificate = is_authority_certificate
             if dbCertificate.le_authority_name is None:
                 dbCertificate.is_cross_signed_authority_certificate = is_cross_signed_authority_certificate
-            
+
         results[cert_pem] = (dbCertificate, is_created)
 
     return results
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 
 def ca_certificate_probe(dbSession):
     certs = acme.probe_letsencrypt_certificates()
@@ -905,6 +906,7 @@ def ca_certificate_probe(dbSession):
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+
 def operations_update_recents(dbSession):
     '''
     older select version
@@ -919,7 +921,7 @@ def operations_update_recents(dbSession):
                     JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
                         ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
                     WHERE cert.is_single_domain_cert = :is_single_domain_cert
-                          AND 
+                          AND
                           cert.is_active = :is_active
                     GROUP BY cert2domain.letsencrypt_domain_id
                 ) q_inner
@@ -938,7 +940,7 @@ def operations_update_recents(dbSession):
                     JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
                         ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
                     WHERE cert.is_single_domain_cert = :is_single_domain_cert
-                          AND 
+                          AND
                           cert.is_active = :is_active
                     GROUP BY cert2domain.letsencrypt_domain_id
                 ) q_inner
@@ -986,8 +988,8 @@ def operations_update_recents(dbSession):
     # mark the session changed, but we need to mark the session not scoped session.  ugh.
     mark_changed(dbSession())
     return True
-    
-    
+
+
 def operations_deactivate_expired(dbSession):
     # deactivate expired certificates
     expired_certs = dbSession.query(LetsencryptServerCertificate)\
@@ -1006,7 +1008,7 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
     this is kind of weird.
     because we have multiple domains, it is hard to figure out which certs we should use
     the simplest approach is this:
-    
+
     1. cache the most recent certs via `operations_update_recents`
     2. find domains that have multiple active certs
     3. don't turn off any certs that are a latest_single or latest_multi
@@ -1039,7 +1041,7 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
         .filter(q_inner.c.counted >= 2)
     result = q_domains.all()
     domain_ids_with_multiple_active_certs = [i.letsencrypt_domain_id for i in result]
-    
+
     _turned_off = []
     for _domain_id in domain_ids_with_multiple_active_certs:
         domain_certs = dbSession.query(LetsencryptServerCertificate)\
