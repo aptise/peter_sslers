@@ -819,9 +819,9 @@ def ca_certificate_probe(dbSession):
     certs_modified = []
     for c in certs:
         _is_created = False
-        dbCACertificate = get__LetsencryptCACertificate__by_pem_text(DBSession, c['cert_pem'])
+        dbCACertificate = get__LetsencryptCACertificate__by_pem_text(dbSession, c['cert_pem'])
         if not dbCACertificate:
-            dbCACertificate, _is_created = getcreate__LetsencryptCACertificate__by_pem_text(DBSession, c['cert_pem'], c['name'])
+            dbCACertificate, _is_created = getcreate__LetsencryptCACertificate__by_pem_text(dbSession, c['cert_pem'], c['name'])
             if _is_created:
                 certs_discovered.append(dbCACertificate)
         if 'is_ca_certificate' in c:
@@ -844,57 +844,79 @@ def ca_certificate_probe(dbSession):
     dbProbe.timestamp_operation = datetime.datetime.utcnow()
     dbProbe.is_certificates_discovered = True if certs_discovered else False
     dbProbe.is_certificates_updated = True if certs_modified else False
-    DBSession.add(dbProbe)
-    DBSession.flush()
+    dbSession.add(dbProbe)
+    dbSession.flush()
     return dbProbe
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def operations_update_recents(dbSession):
-    dbSession.execute("""
-        UPDATE letsencrypt_domain
-        SET letsencrypt_server_certificate_id__latest_single = (
-            SELECT id FROM (
-                SELECT cert.id
-                      , max(cert.timestamp_expires)
-                      , cert2domain.letsencrypt_domain_id
-                FROM letsencrypt_server_certificate cert
-                JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
-                    ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
-                WHERE cert.is_single_domain_cert = :is_single_domain_cert
-                      AND 
-                      cert.is_active = :is_active
-                GROUP BY cert2domain.letsencrypt_domain_id
-            ) q_inner
-            WHERE
-            letsencrypt_domain.id = q_inner.letsencrypt_domain_id
-        );
-    """, {'is_single_domain_cert': True, 'is_active': True})
-    dbSession.execute("""
-        UPDATE letsencrypt_domain
-        SET letsencrypt_server_certificate_id__latest_multi = (
-            SELECT id FROM (
-                SELECT cert.id
-                      , max(cert.timestamp_expires)
-                      , cert2domain.letsencrypt_domain_id
-                FROM letsencrypt_server_certificate cert
-                JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
-                    ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
-                WHERE cert.is_single_domain_cert = :is_single_domain_cert
-                      AND 
-                      cert.is_active = :is_active
-                GROUP BY cert2domain.letsencrypt_domain_id
-            ) q_inner
-            WHERE
-            letsencrypt_domain.id = q_inner.letsencrypt_domain_id
-        );
-    """, {'is_single_domain_cert': False, 'is_active': True})
+    if False:
+        dbSession.execute("""
+            UPDATE letsencrypt_domain
+            SET letsencrypt_server_certificate_id__latest_single = (
+                SELECT id FROM (
+                    SELECT cert.id
+                          , max(cert.timestamp_expires)
+                          , cert2domain.letsencrypt_domain_id
+                    FROM letsencrypt_server_certificate cert
+                    JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
+                        ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
+                    WHERE cert.is_single_domain_cert = :is_single_domain_cert
+                          AND 
+                          cert.is_active = :is_active
+                    GROUP BY cert2domain.letsencrypt_domain_id
+                ) q_inner
+                WHERE
+                letsencrypt_domain.id = q_inner.letsencrypt_domain_id
+            );
+        """, {'is_single_domain_cert': True, 'is_active': True})
+        dbSession.execute("""
+            UPDATE letsencrypt_domain
+            SET letsencrypt_server_certificate_id__latest_multi = (
+                SELECT id FROM (
+                    SELECT cert.id
+                          , max(cert.timestamp_expires)
+                          , cert2domain.letsencrypt_domain_id
+                    FROM letsencrypt_server_certificate cert
+                    JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
+                        ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
+                    WHERE cert.is_single_domain_cert = :is_single_domain_cert
+                          AND 
+                          cert.is_active = :is_active
+                    GROUP BY cert2domain.letsencrypt_domain_id
+                ) q_inner
+                WHERE
+                letsencrypt_domain.id = q_inner.letsencrypt_domain_id
+            );
+        """, {'is_single_domain_cert': False, 'is_active': True})
+    else:
+        # first the single
+        _t_domain = LetsencryptDomain.__table__.alias('domain')
+        _q_sub = dbSession.query(LetsencryptServerCertificate.id)\
+            .join(LetsencryptServerCertificate2LetsencryptDomain,
+                  LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
+            )\
+            .filter(LetsencryptServerCertificate.is_active is True,  # noqa
+                    LetsencryptServerCertificate.timestamp_expires < datetime.datetime.utcnow(),
+                    LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _t_domain.c.id,
+                    )\
+            .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
+            .limit(1)\
+            .subquery()\
+            .alias()
+            # .alias().select()
+            
+        dbSession.execute(LetsencryptDomain.__table__
+                          .update()
+                          .values(letsencrypt_server_certificate_id__latest_single=_q_sub)
+                          )
     return True
     
     
 def operations_deactivate_expired(dbSession):
     # deactivate expired certificates
-    expired_certs = DBSession.query(LetsencryptServerCertificate)\
+    expired_certs = dbSession.query(LetsencryptServerCertificate)\
         .filter(LetsencryptServerCertificate.is_active is True,  # noqa
                 LetsencryptServerCertificate.timestamp_expires < datetime.datetime.utcnow(),
                 )\
@@ -917,19 +939,19 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
     """
     if ran_operations_update_recents is not True:
         raise ValueError("MUST run `operations_update_recents` first")
-    _q_ids__latest_single = DBSession.query(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single)\
+    _q_ids__latest_single = dbSession.query(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single)\
         .distinct()\
         .filter(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single != None,  # noqa
                 )\
         .subquery()
-    _q_ids__latest_multi = DBSession.query(LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi)\
+    _q_ids__latest_multi = dbSession.query(LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi)\
         .distinct()\
         .filter(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single != None,  # noqa
                 )\
         .subquery()
 
     # now grab the domains with many certs...
-    q_inner = DBSession.query(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id,
+    q_inner = dbSession.query(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id,
                               sqlalchemy.func.count(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id).label('counted'),
                               )\
         .join(LetsencryptServerCertificate,
@@ -939,14 +961,14 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
                 )\
         .group_by(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id)
     q_inner = q_inner.subquery()
-    q_domains = DBSession.query(q_inner)\
+    q_domains = dbSession.query(q_inner)\
         .filter(q_inner.c.counted >= 2)
     result = q_domains.all()
     domain_ids_with_multiple_active_certs = [i.letsencrypt_domain_id for i in result]
     
     _turned_off = []
     for _domain_id in domain_ids_with_multiple_active_certs:
-        domain_certs = DBSession.query(LetsencryptServerCertificate)\
+        domain_certs = dbSession.query(LetsencryptServerCertificate)\
             .join(LetsencryptServerCertificate2LetsencryptDomain,
                   LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
                   )\

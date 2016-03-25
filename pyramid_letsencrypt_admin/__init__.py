@@ -34,6 +34,8 @@ def main(global_config, **settings):
     config.add_route('admin:domain:focus:certificate_requests', '/.well-known/admin/domain/{id:\d+}/certificate_requests')
     config.add_route('admin:domain:focus:certificate_requests_paginated', '/.well-known/admin/domain/{id:\d+}/certificate_requests/{page:\d+}')
 
+    config.add_route('admin:search', '/.well-known/admin/search')
+
     config.add_route('admin:certificates', '/.well-known/admin/certificates')
     config.add_route('admin:certificates_paginated', '/.well-known/admin/certificates/{page:\d+}')
     config.add_route('admin:certificate:focus', '/.well-known/admin/certificate/{id:\d+}')

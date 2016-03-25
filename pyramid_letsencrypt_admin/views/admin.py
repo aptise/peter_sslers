@@ -73,6 +73,30 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name='admin:search', renderer=None)
+    def search(self):
+        search_params = {'cert_pem_modulus_md5': self.request.params.get('cert_pem_modulus_md5', None),
+                         'cert_subject': self.request.params.get('cert_subject', None),
+                         'cert_subject_hash': self.request.params.get('cert_subject_hash', None),
+                         'cert_issuer': self.request.params.get('cert_issuer', None),
+                         'cert_issuer_hash': self.request.params.get('cert_issuer_hash', None),
+                         }
+        search_params = dict([i for i in search_params.items() if i[1]])
+        if search_params:
+            return self._search__submit(search_params)
+        return self._search__print()
+
+    def _search__print(self):
+        return render_to_response("/admin/search.mako", {'ResultsPage': None, }, self.request)
+
+    def _search__submit(self, search_params):
+        certs = {}
+        return render_to_response("/admin/search.mako", {'ResultsPage': True, 
+                                                         'certs': certs,
+                                                         }, self.request)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name='admin:domains', renderer='/admin/domains.mako')
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
     def domains(self):

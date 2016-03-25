@@ -2,6 +2,9 @@
 <%namespace name="admin_partials" file="/admin/-partials.mako"/>
 
 
+<%! enable_search = False %>
+
+
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
@@ -77,7 +80,12 @@
         </tr>
         <tr>
             <th>cert_pem_modulus_md5</th>
-            <td><code>${LetsencryptServerCertificate.cert_pem_modulus_md5}</code></td>
+            <td><code>${LetsencryptServerCertificate.cert_pem_modulus_md5}</code>
+                % if enable_search:
+                    <a  class="label label-info"
+                        href="/.well-known/admin/search?cert_pem_modulus_md5=${LetsencryptServerCertificate.cert_pem_modulus_md5}">(i)</a>
+                % endif
+            </td>
         </tr>
         <tr>
             <th>cert_pem</th>
@@ -90,15 +98,40 @@
         </tr>
         <tr>
             <th>cert_subject</th>
-            <td><code>${LetsencryptServerCertificate.cert_subject_hash}</code><br/>
+            <td>
+                <code>${LetsencryptServerCertificate.cert_subject_hash}</code>
+                % if enable_search:
+                    <a  class="label label-info"
+                        href="/.well-known/admin/search?cert_subject_hash=${LetsencryptServerCertificate.cert_subject_hash}">(i)</a>
+                % endif
+
+                <br/>
+
+                % if enable_search:
                 <samp>${LetsencryptServerCertificate.cert_subject}</samp>
-                </td>
+                    <a  class="label label-info"
+                        href="/.well-known/admin/search?cert_subject=${LetsencryptServerCertificate.cert_subject}">(i)</a>
+                % endif
+
+            </td>
         </tr>
         <tr>
             <th>cert_issuer</th>
-            <td><code>${LetsencryptServerCertificate.cert_issuer_hash}</code><br/>
+            <td>
+                <code>${LetsencryptServerCertificate.cert_issuer_hash}</code>
+                % if enable_search:
+                    <a  class="label label-info"
+                        href="/.well-known/admin/search?cert_issuer_hash=${LetsencryptServerCertificate.cert_issuer_hash}">(i)</a>
+                % endif
+                
+                <br/>
+
                 <samp>${LetsencryptServerCertificate.cert_issuer}</samp>
-                </td>
+                % if enable_search:
+                    <a  class="label label-info"
+                        href="/.well-known/admin/search?cert_issuer=${LetsencryptServerCertificate.cert_issuer}">(i)</a>
+                % endif
+            </td>
         </tr>
         <tr>
             <th>domains</th>
