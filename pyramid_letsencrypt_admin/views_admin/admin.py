@@ -28,7 +28,7 @@ from ..lib.forms import (Form_CertificateRequest_new_flow,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
-from ._core import Handler
+from ..lib.handler import Handler
 
 # ==============================================================================
 
