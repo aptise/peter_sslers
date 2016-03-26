@@ -61,12 +61,20 @@ def get__LetsencryptDomain__paginated(dbSession, limit=None, offset=0):
     return dbLetsencryptDomains
 
 
-def get__LetsencryptDomain__by_id(dbSession, domain_id):
+def get__LetsencryptDomain__by_id(dbSession, domain_id, preload=False):
     dbLetsencryptDomain = dbSession.query(LetsencryptDomain)\
         .filter(LetsencryptDomain.id == domain_id)\
         .options(sqlalchemy.orm.subqueryload('domain_to_certificates').joinedload('certificate'),
                  sqlalchemy.orm.subqueryload('domain_to_certificate_requests').joinedload('certificate_request'),
-                 )\
+
+                 sqlalchemy.orm.subqueryload('latest_certificate_single'),
+                 sqlalchemy.orm.joinedload('latest_certificate_single.private_key'),
+                 sqlalchemy.orm.joinedload('latest_certificate_single.certificate_upchain'),
+
+                 sqlalchemy.orm.subqueryload('latest_certificate_multi'),
+                 sqlalchemy.orm.joinedload('latest_certificate_multi.private_key'),
+                 sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_upchain'),
+                )\
         .first()
     return dbLetsencryptDomain
 

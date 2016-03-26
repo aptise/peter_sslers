@@ -99,16 +99,13 @@
         <tr>
             <th>json payload</th>
             <td>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/json">json payload</a><br/>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/config.json">config.json</a><br/>
                 <em>designed for downstream http config</em>
             </td>
         </tr>
         <tr>
             <th>related payloads</th>
             <td>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/json">json payload</a><br/>
-                <em>designed for downstream http config</em>
-                <hr/>
                 <table class="table table-condensed">
                     <thead>
                         <tr>

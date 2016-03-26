@@ -87,7 +87,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _domain_focus(self):
-        dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_id(DBSession, self.request.matchdict['id'], preload=True)
         if not dbLetsencryptDomain:
             raise HTTPNotFound('the domain was not found')
         return dbLetsencryptDomain
@@ -98,6 +98,21 @@ class ViewAdmin(Handler):
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomain': dbLetsencryptDomain
                 }
+
+    @view_config(route_name='admin:domain:focus:config_json', renderer='json')
+    def domain_focus_config_json(self):
+        dbLetsencryptDomain = self._domain_focus()
+        rval = {'domain': {'id': dbLetsencryptDomain.id,
+                           'domain_name': dbLetsencryptDomain.domain_name,
+                           },
+                'latest_certificate_single': None,
+                'latest_certificate_multi': None,
+                }
+        if dbLetsencryptDomain.letsencrypt_server_certificate_id__latest_single:
+            rval['latest_certificate_single'] = dbLetsencryptDomain.latest_certificate_single.config_payload
+        if dbLetsencryptDomain.letsencrypt_server_certificate_id__latest_multi:
+            rval['latest_certificate_multi'] = dbLetsencryptDomain.latest_certificate_multi.config_payload
+        return rval
 
     @view_config(route_name='admin:domain:focus:certificates', renderer='/admin/domain-focus-certificates.mako')
     @view_config(route_name='admin:domain:focus:certificates_paginated', renderer='/admin/domain-focus-certificates.mako')
@@ -303,23 +318,10 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:certificate:focus:json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:config_json', renderer='json')
     def certificate_focus_json(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
-        rval = {'id': dbLetsencryptServerCertificate.id,
-                'private_key': {'id': dbLetsencryptServerCertificate.private_key.id,
-                                'pem': dbLetsencryptServerCertificate.private_key.key_pem,
-                                },
-                'certificate': {'id': dbLetsencryptServerCertificate.id,
-                                'pem': dbLetsencryptServerCertificate.cert_pem,
-                                },
-                'chain': {'id': dbLetsencryptServerCertificate.certificate_upchain.id,
-                          'pem': dbLetsencryptServerCertificate.certificate_upchain.cert_pem,
-                          },
-                'fullchain': {'id': '%s,%s' % (dbLetsencryptServerCertificate.id, dbLetsencryptServerCertificate.certificate_upchain.id),
-                              'pem': "\n".join([dbLetsencryptServerCertificate.cert_fullchain_pem]),
-                              },
-                }
+        rval = dbLetsencryptServerCertificate.config_payload
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

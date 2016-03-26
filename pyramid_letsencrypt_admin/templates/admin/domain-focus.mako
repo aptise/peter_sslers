@@ -32,6 +32,14 @@
             <td>${LetsencryptDomain.domain_name}</td>
         </tr>
         <tr>
+            <th>json_config</th>
+            <td>
+                <a  class="btn btn-xs btn-info"
+                    href="/.well-known/admin/domain/${LetsencryptDomain.id}/config.json"
+                >config.json</a>
+            </td>
+        </tr>
+        <tr>
             <th>certificates recent</th>
             <td>
                 <table class="table">

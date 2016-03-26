@@ -156,11 +156,6 @@ class LetsencryptServerCertificate(Base):
                                       uselist=False,
                                       )
 
-    certificate_to_domains = sa.orm.relationship("LetsencryptServerCertificate2LetsencryptDomain",
-                                                 primaryjoin="LetsencryptServerCertificate.id==LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id",
-                                                 back_populates='certificate',
-                                                 )
-
     certificate_request = sa.orm.relationship("LetsencryptCertificateRequest",
                                               primaryjoin="LetsencryptServerCertificate.letsencrypt_certificate_request_id==LetsencryptCertificateRequest.id",
                                               back_populates='signed_certificate',
@@ -171,6 +166,30 @@ class LetsencryptServerCertificate(Base):
                                               primaryjoin="LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain==LetsencryptCACertificate.id",
                                               uselist=False,
                                               )
+
+    certificate_to_domains = sa.orm.relationship("LetsencryptServerCertificate2LetsencryptDomain",
+                                                 primaryjoin="LetsencryptServerCertificate.id==LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id",
+                                                 back_populates='certificate',
+                                                 )
+
+    @property
+    def config_payload(self):
+        # the ids are strings so that the fullchain id can be split by a client without further processing
+        return {'id': str(self.id),
+                'private_key': {'id': str(self.private_key.id),
+                                'pem': self.private_key.key_pem,
+                                },
+                'certificate': {'id': str(self.id),
+                                'pem': self.cert_pem,
+                                },
+                'chain': {'id': str(self.certificate_upchain.id),
+                          'pem': self.certificate_upchain.cert_pem,
+                          },
+                'fullchain': {'id': '%s,%s' % (self.id, self.certificate_upchain.id),
+                              'pem': "\n".join([self.cert_fullchain_pem]),
+                              },
+                }
+
 
 
 class LetsencryptServerCertificate2LetsencryptDomain(Base):
