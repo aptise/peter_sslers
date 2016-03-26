@@ -11,9 +11,9 @@ pyramid_letsencrypt_admin README
 
 # What this package does:
 
-The package spins up a Webserver that manages certificate data in a SQL database.
+The package spins up a lightweight webserver to centrally manage SSL Certificate data in a SQL database.
 
-SqlAlchemy is the DB library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc).
+SqlAlchemy is the DB library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc).  sqlite is the default.
 
 You can manage certificates in a few ways:
 
