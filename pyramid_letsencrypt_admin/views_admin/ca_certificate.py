@@ -38,12 +38,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificates', renderer='/admin/ca_certificates.mako')
     @view_config(route_name='admin:ca_certificates_paginated', renderer='/admin/ca_certificates.mako')
     def ca_certificates(self):
-        dbLetsencryptCACertificates_count = lib_db.get__LetsencryptCACertificate__count(DBSession)
-        (pager, offset) = self._paginate(dbLetsencryptCACertificates_count, url_template='/.well-known/admin/ca_certificates/{0}')
-        dbLetsencryptCACertificates = lib_db.get__LetsencryptCACertificate__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_count = lib_db.get__LetsencryptCACertificate__count(DBSession)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca_certificates/{0}')
+        items_paged = lib_db.get__LetsencryptCACertificate__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptCACertificates_count': dbLetsencryptCACertificates_count,
-                'LetsencryptCACertificates': dbLetsencryptCACertificates,
+                'LetsencryptCACertificates_count': items_count,
+                'LetsencryptCACertificates': items_paged,
                 'pager': pager,
                 }
 
@@ -58,14 +58,14 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus', renderer='/admin/ca_certificate-focus.mako')
     def ca_certificate_focus(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
-        dbLetsencryptServerCertificates_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
+        items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
             DBSession, dbLetsencryptCACertificate.id)
-        dbLetsencryptServerCertificates = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
+        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
             DBSession, dbLetsencryptCACertificate.id, limit=10, offset=0)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
-                'LetsencryptServerCertificates_count': dbLetsencryptServerCertificates_count,
-                'LetsencryptServerCertificates': dbLetsencryptServerCertificates,
+                'LetsencryptServerCertificates_count': items_count,
+                'LetsencryptServerCertificates': items_paged,
                 }
 
     @view_config(route_name='admin:ca_certificate:focus:raw', renderer='string')
@@ -91,15 +91,15 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates_paginated', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     def ca_certificate_focus__signed_certificates(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
-        dbLetsencryptServerCertificates_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
+        items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
             DBSession, dbLetsencryptCACertificate.id)
-        (pager, offset) = self._paginate(dbLetsencryptServerCertificates_count, url_template='/.well-known/admin/ca_certificate/%s/signed_certificates/{0}' % dbLetsencryptCACertificate.id)
-        dbLetsencryptServerCertificates = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca_certificate/%s/signed_certificates/{0}' % dbLetsencryptCACertificate.id)
+        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
             DBSession, dbLetsencryptCACertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
-                'LetsencryptServerCertificates_count': dbLetsencryptServerCertificates_count,
-                'LetsencryptServerCertificates': dbLetsencryptServerCertificates,
+                'LetsencryptServerCertificates_count': items_count,
+                'LetsencryptServerCertificates': items_paged,
                 'pager': pager,
                 }
 

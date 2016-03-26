@@ -38,12 +38,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_keys', renderer='/admin/private_keys.mako')
     @view_config(route_name='admin:private_keys_paginated', renderer='/admin/private_keys.mako')
     def private_keys(self):
-        dbLetsencryptPrivateKeys_count = lib_db.get__LetsencryptPrivateKey__count(DBSession)
-        (pager, offset) = self._paginate(dbLetsencryptPrivateKeys_count, url_template='/.well-known/admin/private_keys/{0}')
-        dbLetsencryptPrivateKeys = lib_db.get__LetsencryptPrivateKey__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_count = lib_db.get__LetsencryptPrivateKey__count(DBSession)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private_keys/{0}')
+        items_paged = lib_db.get__LetsencryptPrivateKey__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptPrivateKeys_count': dbLetsencryptPrivateKeys_count,
-                'LetsencryptPrivateKeys': dbLetsencryptPrivateKeys,
+                'LetsencryptPrivateKeys_count': items_count,
+                'LetsencryptPrivateKeys': items_paged,
                 'pager': pager,
                 }
 

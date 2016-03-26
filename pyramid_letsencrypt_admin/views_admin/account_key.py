@@ -40,12 +40,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_keys', renderer='/admin/account_keys.mako')
     @view_config(route_name='admin:account_keys_paginated', renderer='/admin/account_keys.mako')
     def account_keys(self):
-        dbLetsencryptAccountKeys_count = lib_db.get__LetsencryptAccountKey__count(DBSession)
-        (pager, offset) = self._paginate(dbLetsencryptAccountKeys_count, url_template='/.well-known/admin/account_keys/{0}')
-        dbLetsencryptAccountKeys = lib_db.get__LetsencryptAccountKey__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_count = lib_db.get__LetsencryptAccountKey__count(DBSession)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account_keys/{0}')
+        items_paged = lib_db.get__LetsencryptAccountKey__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptAccountKeys_count': dbLetsencryptAccountKeys_count,
-                'LetsencryptAccountKeys': dbLetsencryptAccountKeys,
+                'LetsencryptAccountKeys_count': items_count,
+                'LetsencryptAccountKeys': items_paged,
                 'pager': pager,
                 }
 

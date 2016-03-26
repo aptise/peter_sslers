@@ -39,12 +39,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
     def certificates(self):
-        dbLetsencryptServerCertificates_count = lib_db.get__LetsencryptServerCertificate__count(DBSession)
-        (pager, offset) = self._paginate(dbLetsencryptServerCertificates_count, url_template='/.well-known/admin/certificates/{0}')
-        dbLetsencryptServerCertificates = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_count = lib_db.get__LetsencryptServerCertificate__count(DBSession)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificates/{0}')
+        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptServerCertificates_count': dbLetsencryptServerCertificates_count,
-                'LetsencryptServerCertificates': dbLetsencryptServerCertificates,
+                'LetsencryptServerCertificates_count': items_count,
+                'LetsencryptServerCertificates': items_paged,
                 'pager': pager,
                 }
 

@@ -40,12 +40,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains', renderer='/admin/domains.mako')
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
     def domains(self):
-        dbLetsencryptDomains_count = lib_db.get__LetsencryptDomain__count(DBSession)
-        (pager, offset) = self._paginate(dbLetsencryptDomains_count, url_template='/.well-known/admin/domains/{0}')
-        dbLetsencryptDomains = lib_db.get__LetsencryptDomain__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_count = lib_db.get__LetsencryptDomain__count(DBSession)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domains/{0}')
+        items_paged = lib_db.get__LetsencryptDomain__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptDomains_count': dbLetsencryptDomains_count,
-                'LetsencryptDomains': dbLetsencryptDomains,
+                'LetsencryptDomains_count': items_count,
+                'LetsencryptDomains': items_paged,
                 'pager': pager,
                 }
 
@@ -83,15 +83,15 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificates_paginated', renderer='/admin/domain-focus-certificates.mako')
     def domain_focus__certificates(self):
         dbLetsencryptDomain = self._domain_focus()
-        dbLetsencryptServerCertificates_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomain__count(
+        items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomain__count(
             DBSession, dbLetsencryptDomain.id)
-        (pager, offset) = self._paginate(dbLetsencryptServerCertificates_count, url_template='/.well-known/admin/domain/%s/certificates/{0}' % dbLetsencryptDomain.id)
-        dbLetsencryptServerCertificates = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomain__paginated(
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificates/{0}' % dbLetsencryptDomain.id)
+        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomain__paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomain': dbLetsencryptDomain,
-                'LetsencryptServerCertificates_count': dbLetsencryptServerCertificates_count,
-                'LetsencryptServerCertificates': dbLetsencryptServerCertificates,
+                'LetsencryptServerCertificates_count': items_count,
+                'LetsencryptServerCertificates': items_paged,
                 'pager': pager,
                 }
 
@@ -99,14 +99,14 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificate_requests_paginated', renderer='/admin/domain-focus-certificate_requests.mako')
     def domain_focus__certificate_requests(self):
         dbLetsencryptDomain = self._domain_focus()
-        dbLetsencryptCertificateRequests_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__count(
+        items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__count(
             DBSession, LetsencryptDomain.id)
-        (pager, offset) = self._paginate(dbLetsencryptCertificateRequests_count, url_template='/.well-known/admin/domain/%s/certificate_requests/{0}' % LetsencryptDomain.id)
-        dbLetsencryptCertificateRequests = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__paginated(
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificate_requests/{0}' % LetsencryptDomain.id)
+        items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomain': dbLetsencryptDomain,
-                'LetsencryptCertificateRequests_count': dbLetsencryptCertificateRequests_count,
-                'LetsencryptCertificateRequests': dbLetsencryptCertificateRequests,
+                'LetsencryptCertificateRequests_count': items_count,
+                'LetsencryptCertificateRequests': items_paged,
                 'pager': pager,
                 }
