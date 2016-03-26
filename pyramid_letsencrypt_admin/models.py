@@ -190,6 +190,20 @@ class LetsencryptServerCertificate(Base):
                               },
                 }
 
+    @property
+    def config_payload_idonly(self):
+        # the ids are strings so that the fullchain id can be split by a client without further processing
+        return {'id': str(self.id),
+                'private_key': {'id': str(self.private_key.id),
+                                },
+                'certificate': {'id': str(self.id),
+                                },
+                'chain': {'id': str(self.certificate_upchain.id),
+                          },
+                'fullchain': {'id': '%s,%s' % (self.id, self.certificate_upchain.id),
+                              },
+                }
+
 
 class LetsencryptServerCertificate2LetsencryptDomain(Base):
     """

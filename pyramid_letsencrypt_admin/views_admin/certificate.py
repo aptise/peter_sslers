@@ -209,7 +209,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:config_json', renderer='json')
     def certificate_focus_json(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
-        rval = dbLetsencryptServerCertificate.config_payload
+        if self.request.params.get('idonly', None):
+            rval = dbLetsencryptServerCertificate.config_payload_idonly
+        else:
+            rval = dbLetsencryptServerCertificate.config_payload
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

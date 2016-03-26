@@ -1,7 +1,7 @@
 pyramid_letsencrypt_admin README
 ==================
 
-`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS ENGINEERS manage certificate deployment on large systems.  it offers  a lightweight database backed webserver that can handle the letsencrypt issuance process, import any existing ssl certificates, and easily provision them to servers.  this tool has absolutely no security measures and should only be used by people who understand that.  (that should be a self-selecting group, because many people won't want this)
+`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS people to manage certificate deployment on large systems.  it offers  a lightweight database backed webserver that can handle the letsencrypt issuance process, import any existing ssl certificates, and easily provision them to servers.  this tool has absolutely no security measures and should only be used by people who understand that.  (that should be a self-selecting group, because many people won't want this)
 
 # A HUGE WARNING
 
@@ -17,23 +17,26 @@ SqlAlchemy is the DB library, so virtually any database can be used (sqlite, pos
 
 You can manage certificates in a few ways:
 
-* Input
+## Input
 
 1. An admin dashboard allows you to upload certificates (in a triplet of Cert, Signing Key, CA-Chain)
 2. An admin dashboard allows you to initiate LetsEncrypt certificate signing. Upload a list of domains, your LetsEncrypt account key, and private key used for signing/serving, and the system will generate the CSR and perform all the verifications.
 3. An admin dashboard allows you to proxy the acme-challenges that LetsEncrypt issues for manual verification
 
-* Output
+## Output
 
 1. All the keys & certs are viewable in a wonderfully connected RDMBS browser.
 2. Any keys/certs/chains can be queried in PEM & DER formats.
 3. All the certificates are checked to track their validity dates, so you can search and re-issue
 
-* Management
+## Management
 
-Everything is in RDBMS and de-duped.
-chains are built on-the-fly.
-in the future, an api will allow this to work.
+* Everything is in the RDBMS and de-duped.
+* chains are built on-the-fly.
+* a growing API powers most functionality
+* public and admin routes can be isolated in the app & firewall, so you can just turn this on/off as needed
+* query to see when things expire
+* if sqlite is your backend, you can just run this for signing and deployment; then handle everything else offline.
 
 # Installation
 
@@ -50,6 +53,8 @@ you should create a virtualenv though.
 	python setup.py develop
 	initialize_pyramid_letsencrypt_admin_db development.ini
 	pserve --reload development.ini
+	
+some tools are provided, see below, to automatically import existing certificates and chains
 
 
 # Implementation Details
@@ -76,12 +81,12 @@ Imagine you want to issue a certificate for 100 domains, which could be served f
 To solve this you can:
 
 * proxy external `/acme-challenge/` to one or more machines running this tool (they just need to share a common datastore)
-* make `/admin` usable within your LAN
-* on a machine within your LAN, you can query for the latest certs for domain(s)
+* make `/admin` only usable within your LAN
+* on a machine within your LAN, you can query for the latest certs for domain(s) using simple `curl` commands
 
 In a more advanced implementation, the certificates need to be loaded into `redis` for use by an `openresty`/`nginx` server that will dynamically handle ssl connections.  
 
-This package does all the hard openssl work.  You just tell it what certificates you need and in which format, and THERE YOU GO.
+This package does all the annoying openssl work in terms of building chains and converting formats  *You just tell it what domains you need certificates for and in which format, and THERE YOU GO.*
 
 
 # notes
@@ -189,6 +194,77 @@ There is even an `invoke` script to automate these imports:
 	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://0.0.0.0:6543'
 
 
+### Routes Designed for JSON access
+
+#### Domain Data
+
+`/admin/domain/{DOMAIN|ID}/config.json`
+
+`{DOMAIN|ID}` can be the internal numeric id or the domain name.
+
+will return a JSON document:
+
+    {"domain": {"id": "1",
+                "domain_name": "a",
+                },
+     "latest_certificate_single": null,
+     "latest_certificate_multi": {"id": "1",
+                                  "private_key": {"id": "1",
+                                                  "pem": "a",
+                                                  },
+                                  "certificate": {"id": "1",
+                                                  "pem": "a",
+                                                  },
+                                  "chain": {"id": "1",
+                                            "pem": "a",
+                                            },
+                                  "fullchain": {"id": "1",
+                                                "pem": "a",
+                                                },
+                                  }
+     }
+
+if you pass in the querystring '?idonly=1', the PEMs will not be returned.
+
+
+#### Certificate Access
+
+`/admin/certificate/{ID}/config.json`
+
+The certificate JSON payload is what is nested in the DOMAIN payload
+
+    {"id": "1",
+     "private_key": {"id": "1",
+                     "pem": "a",
+                     },
+     "certificate": {"id": "1",
+                     "pem": "a",
+                     },
+     "chain": {"id": "1",
+               "pem": "a",
+               },
+     "fullchain": {"id": "1",
+                   "pem": "a",
+                   },
+     }
+
+Need to get the cert data directly?  NO SWEAT.  transforms on the server and sent to you with the appropriate headers.
+
+* /admin/certificate/{ID}/cert.crt
+* /admin/certificate/{ID}/cert.pem
+* /admin/certificate/{ID}/cert.pem.txt
+* /admin/certificate/{ID}/chain.cer
+* /admin/certificate/{ID}/chain.crt
+* /admin/certificate/{ID}/chain.der
+* /admin/certificate/{ID}/chain.pem
+* /admin/certificate/{ID}/chain.pem.txt
+* /admin/certificate/{ID}/fullchain.pem
+* /admin/certificate/{ID}/fullchain.pem.txt
+* /admin/certificate/{ID}/privkey.key
+* /admin/certificate/{ID}/privkey.pem
+* /admin/certificate/{ID}/privkey.pem.txt
+
+
 # FAQ
 
 ## Does this reformat certs?
@@ -256,8 +332,6 @@ prime script should:
 	
 
 # TODO
-
-## export combined chains
 
 ## search expiring soon
 

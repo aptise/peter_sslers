@@ -71,16 +71,22 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:config_json', renderer='json')
     def domain_focus_config_json(self):
         dbLetsencryptDomain = self._domain_focus()
-        rval = {'domain': {'id': dbLetsencryptDomain.id,
+        rval = {'domain': {'id': str(dbLetsencryptDomain.id),
                            'domain_name': dbLetsencryptDomain.domain_name,
                            },
                 'latest_certificate_single': None,
                 'latest_certificate_multi': None,
                 }
         if dbLetsencryptDomain.letsencrypt_server_certificate_id__latest_single:
-            rval['latest_certificate_single'] = dbLetsencryptDomain.latest_certificate_single.config_payload
+            if self.request.params.get('idonly', None):
+                rval['latest_certificate_single'] = dbLetsencryptDomain.latest_certificate_single.config_payload_idonly
+            else:
+                rval['latest_certificate_single'] = dbLetsencryptDomain.latest_certificate_single.config_payload
         if dbLetsencryptDomain.letsencrypt_server_certificate_id__latest_multi:
-            rval['latest_certificate_multi'] = dbLetsencryptDomain.latest_certificate_multi.config_payload
+            if self.request.params.get('idonly', None):
+                rval['latest_certificate_multi'] = dbLetsencryptDomain.latest_certificate_multi.config_payload_idonly
+            else:
+                rval['latest_certificate_multi'] = dbLetsencryptDomain.latest_certificate_multi.config_payload
         return rval
 
     @view_config(route_name='admin:domain:focus:certificates', renderer='/admin/domain-focus-certificates.mako')
