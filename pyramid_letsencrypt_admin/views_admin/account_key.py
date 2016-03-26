@@ -1,0 +1,113 @@
+# pyramid
+from pyramid.response import Response
+from pyramid.view import view_config
+from pyramid.renderers import render, render_to_response
+from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPNotFound
+
+# stdlib
+import datetime
+import pdb
+
+# pypi
+import pyramid_formencode_classic as formhandling
+import sqlalchemy
+
+# localapp
+from ..models import *
+from ..lib.forms import (Form_CertificateRequest_new_flow,
+                         # Form_CertificateRequest_new_full,
+                         Form_CertificateRequest_new_full__file,
+                         Form_CertificateRequest_process_domain,
+                         Form_CertificateUpload__file,
+                         Form_CACertificateUpload__file,
+                         Form_CACertificateUploadBundle__file,
+                         Form_PrivateKey_new__file,
+                         Form_AccountKey_new__file,
+                         )
+from ..lib import acme as lib_acme
+from ..lib import db as lib_db
+from ..lib.handler import Handler, items_per_page
+
+
+# ==============================================================================
+
+
+class ViewAdmin(Handler):
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:account_keys', renderer='/admin/account_keys.mako')
+    @view_config(route_name='admin:account_keys_paginated', renderer='/admin/account_keys.mako')
+    def account_keys(self):
+        dbLetsencryptAccountKeys_count = lib_db.get__LetsencryptAccountKey__count(DBSession)
+        (pager, offset) = self._paginate(dbLetsencryptAccountKeys_count, url_template='/.well-known/admin/account_keys/{0}')
+        dbLetsencryptAccountKeys = lib_db.get__LetsencryptAccountKey__paginated(DBSession, limit=items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptAccountKeys_count': dbLetsencryptAccountKeys_count,
+                'LetsencryptAccountKeys': dbLetsencryptAccountKeys,
+                'pager': pager,
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:account_key:focus', renderer='/admin/account_key-focus.mako')
+    def account_key_focus(self):
+        dbLetsencryptAccountKey = lib_db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'])
+        if not dbLetsencryptAccountKey:
+            raise HTTPNotFound('the key was not found')
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptAccountKey': dbLetsencryptAccountKey
+                }
+
+    @view_config(route_name='admin:account_key:focus:raw', renderer='string')
+    def account_key_focus_raw(self):
+        dbLetsencryptAccountKey = lib_db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'])
+        if not dbLetsencryptAccountKey:
+            raise HTTPNotFound('the key was not found')
+        if self.request.matchdict['format'] == 'pem':
+            self.request.response.content_type = 'application/x-pem-file'
+            return dbLetsencryptAccountKey.key_pem
+        elif self.request.matchdict['format'] == 'pem.txt':
+            return dbLetsencryptAccountKey.key_pem
+        elif self.request.matchdict['format'] == 'key':
+            self.request.response.content_type = 'application/pkcs8'
+            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptAccountKey.key_pem)
+            return as_der
+
+    @view_config(route_name='admin:account_key:new')
+    def account_key_new(self):
+        if self.request.POST:
+            return self._account_key_new__submit()
+        return self._account_key_new__print()
+
+    def _account_key_new__print(self):
+        return render_to_response("/admin/account_key-new.mako", {}, self.request)
+
+    def _account_key_new__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_AccountKey_new__file,
+                                                             validate_get=False
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            account_key_pem = formStash.results['account_key_file'].file.read()
+            dbLetsencryptAccountKey, _is_created = lib_db.getcreate__LetsencryptAccountKey__by_pem_text(DBSession, account_key_pem)
+
+            return HTTPFound('/.well-known/admin/account_key/%s%s' % (dbLetsencryptAccountKey.id, ('?is_created=1' if _is_created else '')))
+
+        except formhandling.FormInvalid:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            return formhandling.form_reprint(
+                self.request,
+                self._account_key_new__print,
+                auto_error_formatter=formhandling.formatter_none,
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
