@@ -17,6 +17,9 @@ def set_bool_setting(settings, key):
     return _bool
 
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
@@ -45,12 +48,14 @@ def main(global_config, **settings):
 
         config.add_route('admin:domains', '/.well-known/admin/domains')
         config.add_route('admin:domains_paginated', '/.well-known/admin/domains/{page:\d+}')
-        config.add_route('admin:domain:focus', '/.well-known/admin/domain/{id:\d+}')
-        config.add_route('admin:domain:focus:config_json', '/.well-known/admin/domain/{id:\d+}/config.json')
-        config.add_route('admin:domain:focus:certificates', '/.well-known/admin/domain/{id:\d+}/certificates')
-        config.add_route('admin:domain:focus:certificates_paginated', '/.well-known/admin/domain/{id:\d+}/certificates/{page:\d+}')
-        config.add_route('admin:domain:focus:certificate_requests', '/.well-known/admin/domain/{id:\d+}/certificate_requests')
-        config.add_route('admin:domain:focus:certificate_requests_paginated', '/.well-known/admin/domain/{id:\d+}/certificate_requests/{page:\d+}')
+
+        config.add_route('admin:domain:focus', '/.well-known/admin/domain/{domain_identifier}')
+        config.add_route('admin:domain:focus_name', '/.well-known/admin/domain/{domain_identifier}')
+        config.add_route('admin:domain:focus:config_json', '/.well-known/admin/domain/{domain_identifier}/config.json')
+        config.add_route('admin:domain:focus:certificates', '/.well-known/admin/domain/{domain_identifier}/certificates')
+        config.add_route('admin:domain:focus:certificates_paginated', '/.well-known/admin/domain/{domain_identifier}/certificates/{page:\d+}')
+        config.add_route('admin:domain:focus:certificate_requests', '/.well-known/admin/domain/{domain_identifier}/certificate_requests')
+        config.add_route('admin:domain:focus:certificate_requests_paginated', '/.well-known/admin/domain/{domain_identifier}/certificate_requests/{page:\d+}')
 
         config.add_route('admin:search', '/.well-known/admin/search')
 

@@ -52,7 +52,11 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _domain_focus(self):
-        dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_id(DBSession, self.request.matchdict['id'], preload=True)
+        domain_identifier = self.request.matchdict['domain_identifier'].strip()
+        if domain_identifier.isdigit():
+            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_id(DBSession, domain_identifier, preload=True)
+        else:
+            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_name(DBSession, domain_identifier, preload=True)
         if not dbLetsencryptDomain:
             raise HTTPNotFound('the domain was not found')
         return dbLetsencryptDomain
