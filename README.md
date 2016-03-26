@@ -1,7 +1,7 @@
 pyramid_letsencrypt_admin README
 ==================
 
-`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS people to manage certificate deployment on large systems.  it offers  a lightweight database backed webserver that can handle the letsencrypt issuance process, import any existing ssl certificates, and easily provision them to servers.  this tool has absolutely no security measures and should only be used by people who understand that.  (that should be a self-selecting group, because many people won't want this)
+`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS people to manage certificate deployment on large systems.  it offers  a lightweight database backed webserver that can handle the LetsEncrypt issuance process, import any existing ssl certificates, and easily provision them to servers.  this tool has absolutely no security measures and should only be used by people who understand that.  (that should be a self-selecting group, because many people won't want this)
 
 # A HUGE WARNING
 
@@ -139,7 +139,7 @@ Your `environment.ini` exposes a few configuration options:
 * `exception_redirect` - boolean, should we redirect on certain exceptions or raise?
 * `openssl_path` - the full path to your openssl binary (default `openssl`)
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
-* `certificate_authority` - the letsencrypt certificate authority. default is their staging.  you'll have to manually put in the production.
+* `certificate_authority` - the LetsEncrypt certificate authority. default is their staging.  you'll have to manually put in the production.
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
@@ -152,7 +152,7 @@ there is an `invoke` script in the `tools` directory that can be used to automat
 
 right now the invoke script offers:
 
-`import_letsencrypt_certs_archive` given a directory of your letsencrypt archive (which has versioned certs), it will import them all into a server of your choice.
+`import_letsencrypt_certs_archive` given a directory of your local LetsEncrypt archive (which has versioned certs), it will import them all into a server of your choice.
 
 
 ## commandline interface
@@ -175,7 +175,7 @@ these are usually documented on the html version
 
 #### /admin/certificate/upload/json
 
-This can be used used to directly import certs issued by letsencrypt
+This can be used used to directly import certs issued by LetsEncrypt
 
 	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json
 
