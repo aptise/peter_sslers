@@ -226,6 +226,8 @@ will return a JSON document:
 
 if you pass in the querystring '?idonly=1', the PEMs will not be returned.
 
+notice that the numeric ids are returned as strings. this is by design.
+
 
 #### Certificate Access
 
@@ -247,6 +249,8 @@ The certificate JSON payload is what is nested in the DOMAIN payload
                    "pem": "a",
                    },
      }
+
+notice that the numeric ids are returned as strings. this is by design.
 
 Need to get the cert data directly?  NO SWEAT.  transforms on the server and sent to you with the appropriate headers.
 
@@ -317,18 +321,32 @@ So far this has been tested behind a couple of load balancers that use round-rob
 
 currently building support for redis
 
-redis would be something like this:
-	r['d:foo.example.com'] = ('cert:1', 'key:a', 'fullcert:99')
-	r['d:foo2.example.com'] = ('cert:2', 'key:a', 'fullcert:99')
-	r['c:1'] = CERT.DER
-	r['c:2'] = CERT.DER
-	r['k:2'] = PKEY.DER
-	r['s:99'] = CACERT.DER
+* priming a redis datastore with domain data
+* writing to redis when queried directly
+
+the redis datastore might look something like this:
+
+	r['d:foo.example.com'] = ('c:1', 'p:1', 'i:99')  # certid, pkeyid, chainid
+	r['d:foo2.example.com'] = ('c:2', 'p:1', 'i:99')  # certid, pkeyid, chainid
+	r['c:1'] = CERT.PEM  # (c)ert
+	r['c:2'] = CERT.PEM
+	r['p:2'] = PKEY.PEM  # (p)rivate
+	r['i:99'] = CACERT.PEM  # (i)ntermediate cert
+	
+to assemble the data for `foo.example.com`:
+
+* (c, p, i) = r.get('d:foo.example.com')
+** returns ('c:1', 'p:1', 'i:99')
+* cert = r.get('c:1')
+* pkey = r.get('p:1')
+* chain = r.get('i:99')
+* fullchain = cert + "\n" + chain
 
 prime script should:
-	loop through all ca_cert> cache into redis
-	loop through all pkey> cache into redis
-	loop through all cert> cache into redis
+
+*	loop through all active cert > cache into redis
+*	loop through all active pkey > cache into redis
+*	loop through all active ca_cert > cache into redis
 	
 
 # TODO
