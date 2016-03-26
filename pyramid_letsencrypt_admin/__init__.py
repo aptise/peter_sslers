@@ -111,10 +111,15 @@ def main(global_config, **settings):
 
         config.add_route('admin:operations:ca_certificate_probes', '/.well-known/admin/operations/ca_certificate_probes')
         config.add_route('admin:operations:ca_certificate_probes_paginated', '/.well-admin/operations/ca_certificate_probes/{page:\d}')
+
         config.add_route('admin:operations:ca_certificate_probes:probe', '/.well-known/admin/operations/ca_certificate_probes/probe')
+        config.add_route('admin:operations:ca_certificate_probes:probe:json', '/.well-known/admin/operations/ca_certificate_probes/probe/json')
 
         config.add_route('admin:operations:update_recents', '/.well-known/admin/operations/update_recents')
+        config.add_route('admin:operations:update_recents:json', '/.well-known/admin/operations/update_recents/json')
+
         config.add_route('admin:operations:deactivate_expired', '/.well-known/admin/operations/deactivate_expired')
+        config.add_route('admin:operations:deactivate_expired:json', '/.well-known/admin/operations/deactivate_expired/json')
 
         config.add_route('admin:operations:redis', '/.well-known/admin/operations/redis')
         config.add_route('admin:operations:redis:prime', '/.well-known/admin/operations/redis/prime')

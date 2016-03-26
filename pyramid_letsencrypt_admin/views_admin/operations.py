@@ -61,27 +61,38 @@ class ViewAdminOperations(Handler):
                 }
 
     @view_config(route_name='admin:operations:ca_certificate_probes:probe', renderer=None)
+    @view_config(route_name='admin:operations:ca_certificate_probes:probe:json', renderer='json')
     def ca_certificate_probes__probe(self):
-        if self.request.POST:
-            return HTTPFound("/.well-known/admin/operations/ca_certificate_probes?error=POST-only")
-
         operations_event = lib_db.ca_certificate_probe(DBSession)
 
+        if self.request.matched_route.name == 'admin:operations:ca_certificate_probes:probe:json':
+            return {'result': 'success',
+                    'operations_event': {'id': operations_event.id,
+                                         'is_certificates_discovered': operations_event.event_payload_json['is_certificates_discovered'],
+                                         'is_certificates_updated': operations_event.event_payload_json['is_certificates_updated'],
+                                         },
+                     }
         return HTTPFound("/.well-known/admin/operations/ca_certificate_probes?success=True&event.id=%s" % operations_event.id)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:operations:update_recents', renderer='json')
+    @view_config(route_name='admin:operations:update_recents', renderer=None)
+    @view_config(route_name='admin:operations:update_recents:json', renderer='json')
     def operations_update_recents(self):
         operations_event = lib_db.operations_update_recents(DBSession)
-        return {'result': 'success',
-                'operations_event': operations_event.id,
-                }
+
+        if self.request.matched_route.name == 'admin:operations:update_recents:json':
+            return {'result': 'success',
+                    'operations_event': operations_event.id,
+                    }
+
+        return HTTPFound("/.well-known/admin/operations/log?success=True&event.id=%s" % operations_event.id)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:operations:deactivate_expired', renderer='json')
+    @view_config(route_name='admin:operations:deactivate_expired', renderer=None)
+    @view_config(route_name='admin:operations:deactivate_expired:json', renderer='json')
     def operations_deactivate_expired(self):
         rval = {}
 
@@ -99,11 +110,14 @@ class ViewAdminOperations(Handler):
         count_deactivated_duplicated = operations_event2.event_payload_json['count_deactivated']
         rval['LetsencryptServerCertificate']['duplicates.deactivated'] = count_deactivated_duplicated
         DBSession.flush()
-
+        
         rval['result'] = 'success'
         rval['operations_event'] = operations_event3.id
-        return rval
-        return HTTPFound('/.well-known/admin?result=success&operation=operations.deactivate_expired')
+
+        if self.request.matched_route.name == 'admin:operations:deactivate_expired:json':
+            return rval
+
+        return HTTPFound('/.well-known/admin/operations/log?result=success&event.id=%s' % operations_event3.id)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
