@@ -193,7 +193,7 @@ There is even an `invoke` script to automate these imports:
 
 ## Does this reformat certs?
 
-Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input).
+Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input).  This seems to be one of the more common standards people have for saving certs.  Otherwise certs are left as-is.
 
 ## Is there a fast way to import existing certs?
 
@@ -212,13 +212,19 @@ This means that a cert will stay active so long as any domain has not yet-replac
 
 When querying for a domain's cert, the system will currently send the most recent cert.  a future feature might allow for this to be customized, and show the most widely usable cert.
 
-
-
 ## Why use openssl? / does this work on windows?
 
 It was much easier to peg this to `openssl` in a linux environment for now; which rules out windows.
 
 In the future this could all be done with Python's crypto library.  However openssl is fast and this was primarily designed for dealing with linux environments.  sorry.
+
+## Where does data come from?
+
+When imported, certs are read into text form and parsed.
+
+When generated via acme, cert data is provided in the headers.
+
+Useful fields are duplicated from the cert into SQL to allow for better searching.  Certs are not changed in any way (aside from whitespace cleanup)
 
 
 # misc tips
