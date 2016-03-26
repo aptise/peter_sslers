@@ -36,11 +36,11 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:log', renderer='/admin/operations-log.mako')
     @view_config(route_name='admin:operations:log_paginated', renderer='/admin/operations-log.mako')
     def operations_log(self):
-        item_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession)
-        (pager, offset) = self._paginate(item_count, url_template='/.well-known/admin/operations/log/{0}')
+        items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/log/{0}')
         items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptOperationsEvents__count': item_count,
+                'LetsencryptOperationsEvents__count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
                 'pager': pager,
                 }
@@ -51,11 +51,11 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:ca_certificate_probes', renderer='/admin/operations-ca_certificate_probes.mako')
     @view_config(route_name='admin:operations:ca_certificate_probes_paginated', renderer='/admin/operations-ca_certificate_probes.mako')
     def ca_certificate_probes(self):
-        item_count = lib_db.get__LetsencryptOperationsEvent__certificate_probe__count(DBSession)
-        (pager, offset) = self._paginate(item_count, url_template='/.well-known/admin/operations/ca_certificate_probes/{0}')
+        items_count = lib_db.get__LetsencryptOperationsEvent__certificate_probe__count(DBSession)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/ca_certificate_probes/{0}')
         items_paged = lib_db.get__LetsencryptOperationsEvent__certificate_probe__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptOperationsEvents_count': item_count,
+                'LetsencryptOperationsEvents_count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
                 'pager': pager,
                 }
