@@ -46,6 +46,7 @@ def main(global_config, **settings):
         config.add_route('admin:domains', '/.well-known/admin/domains')
         config.add_route('admin:domains_paginated', '/.well-known/admin/domains/{page:\d+}')
         config.add_route('admin:domain:focus', '/.well-known/admin/domain/{id:\d+}')
+        config.add_route('admin:domain:focus:json', '/.well-known/admin/domain/{id:\d+}/json')
         config.add_route('admin:domain:focus:certificates', '/.well-known/admin/domain/{id:\d+}/certificates')
         config.add_route('admin:domain:focus:certificates_paginated', '/.well-known/admin/domain/{id:\d+}/certificates/{page:\d+}')
         config.add_route('admin:domain:focus:certificate_requests', '/.well-known/admin/domain/{id:\d+}/certificate_requests')
@@ -63,9 +64,6 @@ def main(global_config, **settings):
         config.add_route('admin:certificate:focus:cert:raw', '/.well-known/admin/certificate/{id:\d+}/cert.{format:(crt|pem|pem.txt)}')
         config.add_route('admin:certificate:upload', '/.well-known/admin/certificate/upload')
         config.add_route('admin:certificate:upload:json', '/.well-known/admin/certificate/upload/json')
-
-        config.add_route('admin:operations:update_recents', '/.well-known/admin/operations/update_recents')
-        config.add_route('admin:operations:deactivate_expired', '/.well-known/admin/operations/deactivate_expired')
 
         config.add_route('admin:certificate_requests', '/.well-known/admin/certificate_requests')
         config.add_route('admin:certificate_requests_paginated', '/.well-known/admin/certificate_requests/{page:\d+}')
@@ -105,12 +103,21 @@ def main(global_config, **settings):
         config.add_route('admin:ca_certificate:upload_bundle', '/.well-known/admin/ca_certificate/upload_bundle')
         config.add_route('admin:ca_certificate:upload_bundle:json', '/.well-known/admin/ca_certificate/upload_bundle/json')
 
-        config.add_route('admin:ca_certificate_probes', '/.well-known/admin/ca_certificate_probes')
-        config.add_route('admin:ca_certificate_probes_paginated', '/.well-known/admin/ca_certificate_probes/{page:\d}')
-        config.add_route('admin:ca_certificate_probes:probe', '/.well-known/admin/ca_certificate_probes/probe')
+        # sync events
+        config.add_route('admin:operations', '/.well-known/admin/operations')
 
-        config.add_route('admin:redis', '/.well-known/admin/redis')
-        config.add_route('admin:redis:prime', '/.well-known/admin/redis/prime')
+        config.add_route('admin:operations:log', '/.well-known/admin/operations/log')
+        config.add_route('admin:operations:log_paginated', '/.well-known/admin/operations/log/{page:\d}')
+
+        config.add_route('admin:operations:ca_certificate_probes', '/.well-known/admin/operations/ca_certificate_probes')
+        config.add_route('admin:operations:ca_certificate_probes_paginated', '/.well-admin/operations/ca_certificate_probes/{page:\d}')
+        config.add_route('admin:operations:ca_certificate_probes:probe', '/.well-known/admin/operations/ca_certificate_probes/probe')
+
+        config.add_route('admin:operations:update_recents', '/.well-known/admin/operations/update_recents')
+        config.add_route('admin:operations:deactivate_expired', '/.well-known/admin/operations/deactivate_expired')
+
+        config.add_route('admin:operations:redis', '/.well-known/admin/operations/redis')
+        config.add_route('admin:operations:redis:prime', '/.well-known/admin/operations/redis/prime')
 
         config.scan("pyramid_letsencrypt_admin.views_admin")
 

@@ -1,27 +1,60 @@
 import sqlalchemy as sa
-
 from sqlalchemy.ext.declarative import declarative_base
-
 from sqlalchemy.orm import (scoped_session,
                             sessionmaker,
                             )
-
 from zope.sqlalchemy import ZopeTransactionExtension
+
+
+import json
+
+
+# ==============================================================================
+
 
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
 
 
-class LetsencryptCACertificateProbe(Base):
+# ==============================================================================
+
+
+class LetsencryptOperationsEventType(object):
+    ca_certificate_probe = 1
+    update_recents = 2
+    deactivate_expired = 3
+    deactivate_duplicate = 4
+
+
+class LetsencryptOperationsEvent(Base):
     """
     Tracking official LetsEncrypt certificates.
     These are tracked to a fullchain can be created
     """
-    __tablename__ = 'letsencrypt_ca_certificate_probe'
+    __tablename__ = 'letsencrypt_sync_event'
     id = sa.Column(sa.Integer, primary_key=True)
+    letsencrypt_operations_event_type_id = sa.Column(sa.Integer, nullable=False)
     timestamp_operation = sa.Column(sa.DateTime, nullable=True, )
-    is_certificates_discovered = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_certificates_updated = sa.Column(sa.Boolean, nullable=True, default=None)
+    event_payload = sa.Column(sa.Text, nullable=False, )
+
+    @property
+    def event_payload_json(self):
+        if self._event_payload_json is None:
+            self._event_payload_json = json.loads(self.event_payload)
+        return self._event_payload_json
+    _event_payload_json = None
+
+    @property
+    def event_type_text(self):
+        if self.letsencrypt_operations_event_type_id == 1:
+            return 'ca_certificate_probe'
+        if self.letsencrypt_operations_event_type_id == 2:
+            return 'update_recents'
+        if self.letsencrypt_operations_event_type_id == 3:
+            return 'deactivate_expired'
+        if self.letsencrypt_operations_event_type_id == 4:
+            return 'deactivate_duplicate'
+        return 'unknown'
 
 
 class LetsencryptCACertificate(Base):
@@ -181,7 +214,7 @@ class LetsencryptDomain(Base):
     latest_certificate_single = sa.orm.relationship("LetsencryptServerCertificate",
                                                     primaryjoin="LetsencryptDomain.letsencrypt_server_certificate_id__latest_single==LetsencryptServerCertificate.id",
                                                     uselist=False,
-                                                 )
+                                                    )
     latest_certificate_multi = sa.orm.relationship("LetsencryptServerCertificate",
                                                    primaryjoin="LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi==LetsencryptServerCertificate.id",
                                                    uselist=False,

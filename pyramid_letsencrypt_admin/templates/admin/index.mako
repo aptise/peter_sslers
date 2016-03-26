@@ -23,14 +23,13 @@
                 <li>View Recordkeeping</li>
                 <ul>
                     <li><a href="/.well-known/admin/ca_certificates">ca_certificates</a> (${request.text_library.info_CACertificates[0]})</li>
-                    <li><a href="/.well-known/admin/ca_certificate_probes">ca_certificate_probes</a> (${request.text_library.info_CACertificateProbes[0]})</li>
                 </ul>
             </ul>
 
             <h2>Operations</h2>
             % if enable_redis:
                 <p>
-                    <a  href="/.well-known/admin/redis"
+                    <a  href="/.well-known/admin/operations/redis"
                         class="btn btn-info"
                     >Redis Operations</a><br/>
                 </p>
@@ -44,6 +43,12 @@
                 <a  href="/.well-known/admin/operations/update_recents"
                     class="btn btn-info"
                 >Update Recents</a><br/>
+            </p>
+            <p>
+                <a  href="/.well-known/admin/operations/ca_certificate_probes"
+                    class="btn btn-info"
+                >Probe for CA Certificates</a><br/>
+                <em>${request.text_library.info_CACertificateProbes[0]}</em>
             </p>
 
         </div>

@@ -10,7 +10,7 @@ import pdb
 # localapp
 from ..models import DBSession
 from ..lib import db as lib_db
-from ..lib.handler import Handler
+from ..lib.handler import Handler, items_per_page
 
 
 # ==============================================================================

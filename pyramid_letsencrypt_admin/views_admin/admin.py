@@ -10,7 +10,6 @@ import datetime
 import pdb
 
 # pypi
-import pypages
 import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
@@ -28,13 +27,7 @@ from ..lib.forms import (Form_CertificateRequest_new_flow,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
-from ..lib.handler import Handler
-
-# ==============================================================================
-
-
-# misc config options
-items_per_page = 50
+from ..lib.handler import Handler, items_per_page
 
 
 # ==============================================================================
@@ -52,25 +45,6 @@ class ViewAdmin(Handler):
         return {'project': 'pyramid_letsencrypt_admin',
                 'enable_redis': self.request.registry.settings['enable_redis'],
                 }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    def _paginate(self, collection_count, items_per_page=items_per_page, url_template=None):
-        page_requested = 1 if 'page' not in self.request.matchdict else int(self.request.matchdict['page'])
-        pager = pypages.Paginator(collection_count,
-                                  per_page=items_per_page,
-                                  current=page_requested,
-                                  start=None,
-                                  range_num=10
-                                  )
-        pager.template = url_template
-        if page_requested == 0:
-            raise HTTPFound(pager.template.format(1))
-        if page_requested > pager.page_num:
-            if pager.page_num > 0:
-                raise HTTPFound(pager.template.format(pager.page_num))
-        # return pager, offset
-        return pager, ((page_requested - 1) * items_per_page)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -156,35 +130,6 @@ class ViewAdmin(Handler):
                 'LetsencryptCertificateRequests': dbLetsencryptCertificateRequests,
                 'pager': pager,
                 }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:operations:update_recents', renderer='json')
-    def operations_update_recents(self):
-        lib_db.operations_update_recents(DBSession)
-        return {'result': 'success'
-                }
-
-    @view_config(route_name='admin:operations:deactivate_expired', renderer='json')
-    def operations_deactivate_expired(self):
-        rval = {}
-
-        # MUST run this first
-        lib_db.operations_update_recents(DBSession)
-
-        count_deactivated = lib_db.operations_deactivate_expired(DBSession)
-        rval['LetsencryptServerCertificate'] = {'expired': count_deactivated, }
-
-        # deactivate duplicate certificates
-        count_deactivated_duplicated = lib_db.operations_deactivate_duplicates(DBSession,
-                                                                               ran_operations_update_recents=True,
-                                                                               )
-        rval['LetsencryptServerCertificate']['duplicates.deactivated'] = count_deactivated_duplicated
-        DBSession.flush()
-
-        rval['result'] = 'success'
-        return rval
-        return HTTPFound('/.well-known/admin?result=success&operation=operations.deactivate_expired')
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -841,28 +786,6 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:ca_certificate_probes', renderer='/admin/ca_certificate_probes.mako')
-    def ca_certificate_probes(self):
-        dbLetsencryptCACertificateProbes_count = lib_db.get__LetsencryptCACertificateProbe__count(DBSession)
-        (pager, offset) = self._paginate(dbLetsencryptCACertificateProbes_count, url_template='/.well-known/admin/ca_certificate_probes/{0}')
-        dbLetsencryptCACertificateProbes = lib_db.get__LetsencryptCACertificateProbe__paginated(DBSession, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
-                'LetsencryptCACertificateProbes_count': dbLetsencryptCACertificateProbes_count,
-                'LetsencryptCACertificateProbes': dbLetsencryptCACertificateProbes,
-                'pager': pager,
-                }
-
-    @view_config(route_name='admin:ca_certificate_probes:probe', renderer=None)
-    def ca_certificate_probes_probe(self):
-        if self.request.POST:
-            return HTTPFound("/.well-known/admin/ca_certificate_probes?error=POST-only")
-
-        probeEvent = lib_db.ca_certificate_probe(DBSession)
-
-        return HTTPFound("/.well-known/admin/ca_certificate_probes?success=True")
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(route_name='admin:ca_certificate:upload')
     @view_config(route_name='admin:ca_certificate:upload:json', renderer='json')
     def ca_certificate_upload(self):
@@ -1007,41 +930,3 @@ class ViewAdmin(Handler):
                 self._ca_certificate_upload_bundle__print,
                 auto_error_formatter=formhandling.formatter_none,
             )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    def _ensure_redis(self):
-        if not self.request.registry.settings['enable_redis']:
-            raise HTTPFound('/.well-known/admin?error=no_redis')
-
-    @view_config(route_name='admin:redis', renderer='/admin/redis.mako')
-    def admin_redis(self):
-        self._ensure_redis()
-        return {'project': 'pyramid_letsencrypt_admin',
-                'enable_redis': self.request.registry.settings['enable_redis'],
-                }
-
-    @view_config(route_name='admin:redis:prime', renderer=None)
-    def admin_redis_prime(self):
-        self._ensure_redis()
-
-        redis_url = self.request.registry.settings['redis.url']
-        redis_options = {}
-        redis_client = lib.utils.get_default_connection(self.request, redis_url, **redis_options)
-
-        """
-        r['d:foo.example.com'] = ('cert:1', 'key:a', 'fullcert:99')
-        r['d:foo2.example.com'] = ('cert:2', 'key:a', 'fullcert:99')
-        r['c:1'] = CERT.DER
-        r['c:2'] = CERT.DER
-        r['k:2'] = PKEY.DER
-        r['s:99'] = CACERT.DER
-
-        prime script should:
-            loop through all ca_cert> cache into redis
-            loop through all pkey> cache into redis
-            loop through all cert> cache into redis
-        """
-
-        raise HTTPFound('/.well-known/admin/redis?operation=prime&result=success')

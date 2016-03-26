@@ -5,7 +5,8 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li class="active">Redis Operations</li>
+        <li><a href="/.well-known/admin/operations">Operations</a></li>
+        <li class="active">Redis</li>
     </ol>
 </%block>
 
@@ -22,7 +23,7 @@
                 Redis is enabled for this server.
             </div>
             <p>
-                <a  href="/.well-known/admin/redis/prime"
+                <a  href="/.well-known/admin/operations/redis/prime"
                     class="btn btn-primary"
                 >
                     Prime Redis Cache

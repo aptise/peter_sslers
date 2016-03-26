@@ -1,5 +1,6 @@
 # stdlib
 import datetime
+import json
 import logging
 import pdb
 import tempfile
@@ -196,18 +197,40 @@ def get__LetsencryptPrivateKey__by_id(dbSession, cert_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__LetsencryptCACertificateProbe__count(dbSession):
-    counted = dbSession.query(LetsencryptCACertificateProbe).count()
+def get__LetsencryptOperationsEvent__count(dbSession):
+    counted = dbSession.query(LetsencryptOperationsEvent).count()
     return counted
 
 
-def get__LetsencryptCACertificateProbe__paginated(dbSession, limit=None, offset=0):
-    dbLetsencryptCACertificateProbes = dbSession.query(LetsencryptCACertificateProbe)\
-        .order_by(LetsencryptCACertificateProbe.id.desc())\
+def get__LetsencryptOperationsEvent__paginated(dbSession, limit=None, offset=0):
+    dbLetsencryptOperationsEvents = dbSession.query(LetsencryptOperationsEvent)\
+        .order_by(LetsencryptOperationsEvent.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
-    return dbLetsencryptCACertificateProbes
+    return dbLetsencryptOperationsEvents
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__LetsencryptOperationsEvent__certificate_probe__count(dbSession):
+    counted = dbSession.query(LetsencryptOperationsEvent)\
+        .filter(LetsencryptOperationsEvent.letsencrypt_operations_event_type_id == LetsencryptOperationsEventType.ca_certificate_probe,
+                )\
+        .count()
+    return counted
+
+
+def get__LetsencryptOperationsEvent__certificate_probe__paginated(dbSession, limit=None, offset=0):
+    paged_items = dbSession.query(LetsencryptOperationsEvent)\
+        .order_by(LetsencryptOperationsEvent.id.desc())\
+        .filter(LetsencryptOperationsEvent.letsencrypt_operations_event_type_id == LetsencryptOperationsEventType.ca_certificate_probe,
+                )\
+        .limit(limit)\
+        .offset(offset)\
+        .all()
+    return paged_items
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -896,13 +919,17 @@ def ca_certificate_probe(dbSession):
                     if dbCACertificate not in certs_discovered:
                         certs_modified.append(dbCACertificate)
     # bookkeeping
-    dbProbe = LetsencryptCACertificateProbe()
-    dbProbe.timestamp_operation = datetime.datetime.utcnow()
-    dbProbe.is_certificates_discovered = True if certs_discovered else False
-    dbProbe.is_certificates_updated = True if certs_modified else False
-    dbSession.add(dbProbe)
+    dbEvent = LetsencryptOperationsEvent()
+    dbEvent.letsencrypt_operations_event_type_id = LetsencryptOperationsEventType.ca_certificate_probe
+    dbEvent.timestamp_operation = datetime.datetime.utcnow()
+    event_payload_json = {'is_certificates_discovered': True if certs_discovered else False,
+                          'is_certificates_updated': True if certs_modified else False,
+                          'v': 1,
+                          }
+    dbEvent.event_payload = json.dumps(event_payload_json)
+    dbSession.add(dbEvent)
     dbSession.flush()
-    return dbProbe
+    return dbEvent
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -987,7 +1014,17 @@ def operations_update_recents(dbSession):
 
     # mark the session changed, but we need to mark the session not scoped session.  ugh.
     mark_changed(dbSession())
-    return True
+
+    # bookkeeping
+    dbEvent = LetsencryptOperationsEvent()
+    dbEvent.letsencrypt_operations_event_type_id = LetsencryptOperationsEventType.update_recents
+    dbEvent.timestamp_operation = datetime.datetime.utcnow()
+    event_payload_json = {'v': 1,
+                          }
+    dbEvent.event_payload = json.dumps(event_payload_json)
+    dbSession.add(dbEvent)
+    dbSession.flush()
+    return dbEvent
 
 
 def operations_deactivate_expired(dbSession):
@@ -1000,7 +1037,18 @@ def operations_deactivate_expired(dbSession):
     for c in expired_certs:
         c.is_active = False
     dbSession.flush()
-    return len(expired_certs)
+
+    # bookkeeping
+    dbEvent = LetsencryptOperationsEvent()
+    dbEvent.letsencrypt_operations_event_type_id = LetsencryptOperationsEventType.deactivate_expired
+    dbEvent.timestamp_operation = datetime.datetime.utcnow()
+    event_payload_json = {'count_deactivated': len(expired_certs),
+                          'v': 1,
+                          }
+    dbEvent.event_payload = json.dumps(event_payload_json)
+    dbSession.add(dbEvent)
+    dbSession.flush()
+    return dbEvent
 
 
 def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=None):
@@ -1059,4 +1107,16 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
             for cert in domain_certs[1:]:
                 cert.is_active = False
                 _turned_off.append(cert)
-    return len(_turned_off)
+
+    # bookkeeping
+    dbEvent = LetsencryptOperationsEvent()
+    dbEvent.letsencrypt_operations_event_type_id = LetsencryptOperationsEventType.deactivate_duplicate
+    dbEvent.timestamp_operation = datetime.datetime.utcnow()
+    event_payload_json = {'count_deactivated': len(_turned_off),
+                          'v': 1,
+                          }
+    dbEvent.event_payload = json.dumps(event_payload_json)
+    dbSession.add(dbEvent)
+    dbSession.flush()
+
+    return dbEvent
