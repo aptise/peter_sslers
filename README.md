@@ -191,7 +191,7 @@ if data is not POSTed to the form, instructions are returned in the json.
 
 There is even an `invoke` script to automate these imports:
 
-	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://0.0.0.0:6543'
+	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:6543'
 
 
 ### Routes Designed for JSON access
@@ -373,6 +373,21 @@ Getting Started
 - $VENV/bin/initialize_pyramid_letsencrypt_admin_db development.ini
 
 - $VENV/bin/pserve development.ini
+
+
+Import Letsencrypt Data?
+-------------------------
+
+after running the server, in another window...
+
+- $VENV/bin/pip install invoke
+
+- cd tools
+
+- $VENV/bin/invoke import_letsencrypt_certs_archive --archive-path='//etc/letsencrypt/archive' --server-url-root='http://http://127.0.0.1:6543'
+
+
+There is also a button under "operations" to probe LetsEncrypt's public website and update your certs with data.
 
 
 What does it look like?
