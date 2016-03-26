@@ -71,7 +71,7 @@ class ViewAdminOperations(Handler):
                                          'is_certificates_discovered': operations_event.event_payload_json['is_certificates_discovered'],
                                          'is_certificates_updated': operations_event.event_payload_json['is_certificates_updated'],
                                          },
-                     }
+                    }
         return HTTPFound("/.well-known/admin/operations/ca_certificate_probes?success=True&event.id=%s" % operations_event.id)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -110,7 +110,7 @@ class ViewAdminOperations(Handler):
         count_deactivated_duplicated = operations_event2.event_payload_json['count_deactivated']
         rval['LetsencryptServerCertificate']['duplicates.deactivated'] = count_deactivated_duplicated
         DBSession.flush()
-        
+
         rval['result'] = 'success'
         rval['operations_event'] = operations_event3.id
 

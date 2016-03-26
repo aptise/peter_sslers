@@ -109,4 +109,3 @@ class ViewAdmin(Handler):
                 self._private_key_new__print,
                 auto_error_formatter=formhandling.formatter_none,
             )
-

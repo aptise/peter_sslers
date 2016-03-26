@@ -191,7 +191,6 @@ class LetsencryptServerCertificate(Base):
                 }
 
 
-
 class LetsencryptServerCertificate2LetsencryptDomain(Base):
     """
     """
