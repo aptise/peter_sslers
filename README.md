@@ -5,7 +5,7 @@ pyramid_letsencrypt_admin README
 
 # A HUGE WARNING
 
-* This package DOES NOT USE/KNOW/CARE ABOUT SECURITY. 
+* This package DOES NOT USE/KNOW/CARE ABOUT SECURITY.
 * This package manages PRIVATE KEYS and makes them readable.
 * If you do are not really awesome with basic network security PLEASE DO NOT USE THIS.
 
@@ -62,10 +62,10 @@ some tools are provided, see below, to automatically import existing certificate
 The webserver exposes the following routes/directors:
 
 * `/.well-known/acme-challenge` - directory
-* `/.well-known/whoami` - URL prints host 
+* `/.well-known/whoami` - URL prints host
 * `/.well-known/admin` - admin tool THIS EXPLORES PRIVATE KEYS ON PURPOSE
 
-THE ADMIN TOOL SHOULD NOT BE PUBLICLY ACCESSIBLE.  
+THE ADMIN TOOL SHOULD NOT BE PUBLICLY ACCESSIBLE.
 YOU SHOULD ONLY RUN IT ON YOUR PRIVATE NETWORK
 
 # why/how?
@@ -84,7 +84,7 @@ To solve this you can:
 * make `/admin` only usable within your LAN
 * on a machine within your LAN, you can query for the latest certs for domain(s) using simple `curl` commands
 
-In a more advanced implementation, the certificates need to be loaded into `redis` for use by an `openresty`/`nginx` server that will dynamically handle ssl connections.  
+In a more advanced implementation, the certificates need to be loaded into `redis` for use by an `openresty`/`nginx` server that will dynamically handle ssl connections.
 
 This package does all the annoying openssl work in terms of building chains and converting formats  *You just tell it what domains you need certificates for and in which format, and THERE YOU GO.*
 
@@ -144,6 +144,16 @@ Your `environment.ini` exposes a few configuration options:
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
 
+* `redis.url` - URL of redis (includes port)
+* `redis.prime_style` - MUST be "1"
+* `redis.timeout.cacert` - INT seconds (default None)
+* `redis.timeout.cert` - INT seconds (default None)
+* `redis.timeout.pkey` - INT seconds (default None)
+* `redis.timeout.domain` - INT seconds (default None)
+
+
+
+
 # tools
 
 ## invoke script
@@ -169,7 +179,7 @@ Deactivates expired certs
 
 ### Routes with JSON support
 
-several routes have support for JSON requests via a `/json` suffix. 
+several routes have support for JSON requests via a `/json` suffix.
 
 these are usually documented on the html version
 
@@ -319,10 +329,20 @@ So far this has been tested behind a couple of load balancers that use round-rob
 
 # redis support
 
-currently building support for redis
+The first version of support for redis caching is done.
 
-* priming a redis datastore with domain data
-* writing to redis when queried directly
+there are several config options for redis support, they are listed above.
+
+## redis priming style
+
+currently only `redis.prime_style = 1` is supported.
+
+this prime style will store data into redis in the following format:
+
+* `d:{DOMAIN_NAME}` a 3 element tuple ids for ServerCertificate, PrivateKey, CACertificate
+* `c:{ID}` the ServerCertificate in PEM format; (c)ert
+* `p:{ID}` the PrivateKey in PEM format; (p)rivate
+* `i:{ID}` the CACertificate in PEM format; (i)ntermediate cert
 
 the redis datastore might look something like this:
 
@@ -342,12 +362,6 @@ to assemble the data for `foo.example.com`:
 * chain = r.get('i:99')
 * fullchain = cert + "\n" + chain
 
-prime script should:
-
-*	loop through all active cert > cache into redis
-*	loop through all active pkey > cache into redis
-*	loop through all active ca_cert > cache into redis
-	
 
 # TODO
 

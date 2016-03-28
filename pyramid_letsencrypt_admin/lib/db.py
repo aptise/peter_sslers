@@ -58,7 +58,7 @@ def get__LetsencryptDomain__paginated(dbSession, limit=None, offset=0, active_on
         q = q.filter(sqlalchemy.or_(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single.op('IS NOT')(None),
                                     LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi.op('IS NOT')(None),
                                     ),
-                    )
+                     )
     q = q.order_by(sa.func.lower(LetsencryptDomain.domain_name).asc())\
         .limit(limit)\
         .offset(offset)
@@ -210,7 +210,7 @@ def get__LetsencryptPrivateKey__count(dbSession):
 def get__LetsencryptPrivateKey__paginated(dbSession, limit=None, offset=0, active_only=False):
     q = dbSession.query(LetsencryptPrivateKey)
     if active_only:
-        q = q.filter(LetsencryptPrivateKey.count_active_certificates >= 1 )
+        q = q.filter(LetsencryptPrivateKey.count_active_certificates >= 1)
     q = q.order_by(LetsencryptPrivateKey.id.desc())\
         .limit(limit)\
         .offset(offset)
@@ -275,7 +275,7 @@ def get__LetsencryptCACertificate__count(dbSession):
 def get__LetsencryptCACertificate__paginated(dbSession, limit=None, offset=0, active_only=False):
     q = dbSession.query(LetsencryptCACertificate)
     if active_only:
-        q = q.filter(LetsencryptCACertificate.count_active_certificates >= 1 )
+        q = q.filter(LetsencryptCACertificate.count_active_certificates >= 1)
     q = q.order_by(LetsencryptCACertificate.id.desc())\
         .limit(limit)\
         .offset(offset)
@@ -1011,11 +1011,11 @@ def operations_update_recents(dbSession):
     LetsencryptServerCertificate2 = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
     _q_sub = dbSession.query(sqlalchemy.func.count(LetsencryptDomain.id))\
         .outerjoin(LetsencryptServerCertificate1,
-              LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificate1.id
-        )\
+                   LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificate1.id
+                   )\
         .outerjoin(LetsencryptServerCertificate2,
-              LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi == LetsencryptServerCertificate2.id
-        )\
+                   LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi == LetsencryptServerCertificate2.id
+                   )\
         .filter(sqlalchemy.or_(LetsencryptCACertificate.id == LetsencryptServerCertificate1.letsencrypt_ca_certificate_id__upchain,
                                LetsencryptCACertificate.id == LetsencryptServerCertificate2.letsencrypt_ca_certificate_id__upchain,
                                ),
@@ -1032,11 +1032,11 @@ def operations_update_recents(dbSession):
     LetsencryptServerCertificate2 = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
     _q_sub = dbSession.query(sqlalchemy.func.count(LetsencryptDomain.id))\
         .outerjoin(LetsencryptServerCertificate1,
-              LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificate1.id
-        )\
+                   LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificate1.id
+                   )\
         .outerjoin(LetsencryptServerCertificate2,
-              LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi == LetsencryptServerCertificate2.id
-        )\
+                   LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi == LetsencryptServerCertificate2.id
+                   )\
         .filter(sqlalchemy.or_(LetsencryptPrivateKey.id == LetsencryptServerCertificate1.letsencrypt_private_key_id__signed_by,
                                LetsencryptPrivateKey.id == LetsencryptServerCertificate2.letsencrypt_private_key_id__signed_by,
                                ),

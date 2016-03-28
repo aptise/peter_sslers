@@ -141,6 +141,10 @@ class ViewAdminOperations(Handler):
     def admin_redis_prime(self):
         self._ensure_redis()
 
+        prime_style = self.request.registry.settings['redis.prime_style']
+        if prime_style != '1':
+            raise ValueError("invalid `redis.prime_style`")
+
         redis_url = self.request.registry.settings['redis.url']
         redis_options = {}
         redis_client = lib_utils.get_default_connection(self.request, redis_url, **redis_options)
@@ -155,26 +159,27 @@ class ViewAdminOperations(Handler):
             if key_ini in self.request.registry.settings:
                 timeouts[_t] = int(self.request.registry.settings[key_ini])
 
-        # first priming style
-        """
-        our data should look like this
-            r['d:foo.example.com'] = ('c:1', 'p:1', 'i:99')  # certid, pkeyid, chainid
-            r['d:foo2.example.com'] = ('c:2', 'p:1', 'i:99')  # certid, pkeyid, chainid
-            r['c:1'] = CERT.PEM  # (c)ert
-            r['c:2'] = CERT.PEM
-            r['p:2'] = PKEY.PEM  # (p)rivate
-            r['i:99'] = CACERT.PEM  # (i)ntermediate cert
+        if prime_style == '1':
+            """
+            first priming style
+            --
+            our data should look like this
+                r['d:foo.example.com'] = ('c:1', 'p:1', 'i:99')  # certid, pkeyid, chainid
+                r['d:foo2.example.com'] = ('c:2', 'p:1', 'i:99')  # certid, pkeyid, chainid
+                r['c:1'] = CERT.PEM  # (c)ert
+                r['c:2'] = CERT.PEM
+                r['p:2'] = PKEY.PEM  # (p)rivate
+                r['i:99'] = CACERT.PEM  # (i)ntermediate cert
 
-        to assemble the data for `foo.example.com`:
+            to assemble the data for `foo.example.com`:
 
-            * (c, p, i) = r.get('d:foo.example.com')
-            ** returns ('c:1', 'p:1', 'i:99')
-            * cert = r.get('c:1')
-            * pkey = r.get('p:1')
-            * chain = r.get('i:99')
-            * fullchain = cert + "\n" + chain
-        """
-        if True:
+                * (c, p, i) = r.get('d:foo.example.com')
+                ** returns ('c:1', 'p:1', 'i:99')
+                * cert = r.get('c:1')
+                * pkey = r.get('p:1')
+                * chain = r.get('i:99')
+                * fullchain = cert + "\n" + chain
+            """
             # prime the CACertificates that are active
             offset = 0
             limit = 100
@@ -240,20 +245,20 @@ class ViewAdminOperations(Handler):
                     else:
                         raise ValueError("this domain is not active: `%s`" % domain.domain_name)
 
-                    # first do the domain                    
+                    # first do the domain
                     key_redis = "d:%s" % domain.domain_name
                     value_redis = ('c:%s' % cert.id,
                                    'p:%s' % cert.letsencrypt_private_key_id__signed_by,
                                    'i:%s' % cert.letsencrypt_ca_certificate_id__upchain,
                                    )
                     redis_client.set(key_redis, value_redis, timeouts['domain'])
-                    
+
                     # then do the cert
                     key_redis = "c:%s" % cert.id
                     # only send over the wire if it doesn't exist
                     if not redis_client.exists(key_redis):
                         redis_client.set(key_redis, cert.cert_pem, timeouts['cert'])
-                    
+
                 if len(active_domains) < limit:
                     # no more
                     break
