@@ -52,12 +52,17 @@ def get__LetsencryptDomain__count(dbSession):
     return counted
 
 
-def get__LetsencryptDomain__paginated(dbSession, limit=None, offset=0):
-    items_paged = dbSession.query(LetsencryptDomain)\
-        .order_by(sa.func.lower(LetsencryptDomain.domain_name).asc())\
+def get__LetsencryptDomain__paginated(dbSession, limit=None, offset=0, active_only=False):
+    q = dbSession.query(LetsencryptDomain)
+    if active_only:
+        q = q.filter(sqlalchemy.or_(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single.op('IS NOT')(None),
+                                    LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi.op('IS NOT')(None),
+                                    ),
+                    )
+    q = q.order_by(sa.func.lower(LetsencryptDomain.domain_name).asc())\
         .limit(limit)\
-        .offset(offset)\
-        .all()
+        .offset(offset)
+    items_paged = q.all()
     return items_paged
 
 
@@ -202,12 +207,14 @@ def get__LetsencryptPrivateKey__count(dbSession):
     return counted
 
 
-def get__LetsencryptPrivateKey__paginated(dbSession, limit=None, offset=0):
-    items_paged = dbSession.query(LetsencryptPrivateKey)\
-        .order_by(LetsencryptPrivateKey.id.desc())\
+def get__LetsencryptPrivateKey__paginated(dbSession, limit=None, offset=0, active_only=False):
+    q = dbSession.query(LetsencryptPrivateKey)
+    if active_only:
+        q = q.filter(LetsencryptPrivateKey.count_active_certificates >= 1 )
+    q = q.order_by(LetsencryptPrivateKey.id.desc())\
         .limit(limit)\
-        .offset(offset)\
-        .all()
+        .offset(offset)
+    items_paged = q.all()
     return items_paged
 
 
@@ -265,13 +272,15 @@ def get__LetsencryptCACertificate__count(dbSession):
     return counted
 
 
-def get__LetsencryptCACertificate__paginated(dbSession, limit=None, offset=0):
-    dbLetsencryptCACertificates = dbSession.query(LetsencryptCACertificate)\
-        .order_by(LetsencryptCACertificate.id.desc())\
+def get__LetsencryptCACertificate__paginated(dbSession, limit=None, offset=0, active_only=False):
+    q = dbSession.query(LetsencryptCACertificate)
+    if active_only:
+        q = q.filter(LetsencryptCACertificate.count_active_certificates >= 1 )
+    q = q.order_by(LetsencryptCACertificate.id.desc())\
         .limit(limit)\
-        .offset(offset)\
-        .all()
-    return dbLetsencryptCACertificates
+        .offset(offset)
+    items_paged = q.all()
+    return items_paged
 
 
 def get__LetsencryptCACertificate__by_id(dbSession, cert_id):
@@ -279,6 +288,9 @@ def get__LetsencryptCACertificate__by_id(dbSession, cert_id):
         .filter(LetsencryptCACertificate.id == cert_id)\
         .first()
     return dbLetsencryptCACertificate
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 def get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(dbSession, cert_id):
@@ -943,16 +955,14 @@ def ca_certificate_probe(dbSession):
                     if dbCACertificate not in certs_discovered:
                         certs_modified.append(dbCACertificate)
     # bookkeeping
-    dbEvent = LetsencryptOperationsEvent()
-    dbEvent.letsencrypt_operations_event_type_id = LetsencryptOperationsEventType.ca_certificate_probe
-    dbEvent.timestamp_operation = datetime.datetime.utcnow()
-    event_payload_json = {'is_certificates_discovered': True if certs_discovered else False,
-                          'is_certificates_updated': True if certs_modified else False,
-                          'v': 1,
-                          }
-    dbEvent.event_payload = json.dumps(event_payload_json)
-    dbSession.add(dbEvent)
-    dbSession.flush()
+    dbEvent = create__LetsencryptOperationsEvent(dbSession,
+                                                 LetsencryptOperationsEventType.ca_certificate_probe,
+                                                 {'is_certificates_discovered': True if certs_discovered else False,
+                                                  'is_certificates_updated': True if certs_modified else False,
+                                                  'v': 1,
+                                                  }
+                                                 )
+
     return dbEvent
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -995,8 +1005,8 @@ def operations_update_recents(dbSession):
                       .update()
                       .values(letsencrypt_server_certificate_id__latest_multi=_q_sub)
                       )
-                      
-    # and finally
+
+    # update the count of active certs
     LetsencryptServerCertificate1 = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
     LetsencryptServerCertificate2 = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
     _q_sub = dbSession.query(sqlalchemy.func.count(LetsencryptDomain.id))\
@@ -1012,8 +1022,28 @@ def operations_update_recents(dbSession):
                 )\
         .subquery()\
         .as_scalar()
-        
     dbSession.execute(LetsencryptCACertificate.__table__
+                      .update()
+                      .values(count_active_certificates=_q_sub)
+                      )
+
+    # update the count of active PrivateKeys
+    LetsencryptServerCertificate1 = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
+    LetsencryptServerCertificate2 = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
+    _q_sub = dbSession.query(sqlalchemy.func.count(LetsencryptDomain.id))\
+        .outerjoin(LetsencryptServerCertificate1,
+              LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificate1.id
+        )\
+        .outerjoin(LetsencryptServerCertificate2,
+              LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi == LetsencryptServerCertificate2.id
+        )\
+        .filter(sqlalchemy.or_(LetsencryptPrivateKey.id == LetsencryptServerCertificate1.letsencrypt_private_key_id__signed_by,
+                               LetsencryptPrivateKey.id == LetsencryptServerCertificate2.letsencrypt_private_key_id__signed_by,
+                               ),
+                )\
+        .subquery()\
+        .as_scalar()
+    dbSession.execute(LetsencryptPrivateKey.__table__
                       .update()
                       .values(count_active_certificates=_q_sub)
                       )
@@ -1023,14 +1053,11 @@ def operations_update_recents(dbSession):
     mark_changed(dbSession())
 
     # bookkeeping
-    dbEvent = LetsencryptOperationsEvent()
-    dbEvent.letsencrypt_operations_event_type_id = LetsencryptOperationsEventType.update_recents
-    dbEvent.timestamp_operation = datetime.datetime.utcnow()
-    event_payload_json = {'v': 1,
-                          }
-    dbEvent.event_payload = json.dumps(event_payload_json)
-    dbSession.add(dbEvent)
-    dbSession.flush()
+    dbEvent = create__LetsencryptOperationsEvent(dbSession,
+                                                 LetsencryptOperationsEventType.update_recents,
+                                                 {'v': 1,
+                                                  }
+                                                 )
     return dbEvent
 
 
@@ -1046,15 +1073,12 @@ def operations_deactivate_expired(dbSession):
     dbSession.flush()
 
     # bookkeeping
-    dbEvent = LetsencryptOperationsEvent()
-    dbEvent.letsencrypt_operations_event_type_id = LetsencryptOperationsEventType.deactivate_expired
-    dbEvent.timestamp_operation = datetime.datetime.utcnow()
-    event_payload_json = {'count_deactivated': len(expired_certs),
-                          'v': 1,
-                          }
-    dbEvent.event_payload = json.dumps(event_payload_json)
-    dbSession.add(dbEvent)
-    dbSession.flush()
+    dbEvent = create__LetsencryptOperationsEvent(dbSession,
+                                                 LetsencryptOperationsEventType.deactivate_expired,
+                                                 {'count_deactivated': len(expired_certs),
+                                                  'v': 1,
+                                                  }
+                                                 )
     return dbEvent
 
 
@@ -1116,14 +1140,21 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
                 _turned_off.append(cert)
 
     # bookkeeping
+    dbEvent = create__LetsencryptOperationsEvent(dbSession,
+                                                 LetsencryptOperationsEventType.deactivate_duplicate,
+                                                 {'count_deactivated': len(_turned_off),
+                                                  'v': 1,
+                                                  }
+                                                 )
+    return dbEvent
+
+
+def create__LetsencryptOperationsEvent(dbSession, event_type_id, event_payload_dict):
+    # bookkeeping
     dbEvent = LetsencryptOperationsEvent()
-    dbEvent.letsencrypt_operations_event_type_id = LetsencryptOperationsEventType.deactivate_duplicate
+    dbEvent.letsencrypt_operations_event_type_id = event_type_id
     dbEvent.timestamp_operation = datetime.datetime.utcnow()
-    event_payload_json = {'count_deactivated': len(_turned_off),
-                          'v': 1,
-                          }
-    dbEvent.event_payload = json.dumps(event_payload_json)
+    dbEvent.event_payload = json.dumps(event_payload_dict)
     dbSession.add(dbEvent)
     dbSession.flush()
-
     return dbEvent

@@ -78,7 +78,7 @@
         </tr>
         <tr>
             <th>count_active_certificates</th>
-            <td>${LetsencryptCACertificate.count_active_certificates  or ''}</td>
+            <td><span class="badge">${LetsencryptCACertificate.count_active_certificates  or ''}</span></td>
         </tr>
         <tr>
             <th>cert_pem_md5</th>

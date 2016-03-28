@@ -28,18 +28,18 @@
                 </tr>
             </thead>
             <tbody>
-            % for cert in LetsencryptAccountKeys:
+            % for key in LetsencryptAccountKeys:
                 <tr>
-                    <td><a class="label label-default" href="/.well-known/admin/account_key/${cert.id}">&gt; ${cert.id}</a></td>
-                    <td><timestamp>${cert.timestamp_first_seen}<timestamp></td>
-                    <td><code>${cert.key_pem_md5}</code></td>
+                    <td><a class="label label-default" href="/.well-known/admin/account_key/${key.id}">&gt; ${key.id}</a></td>
+                    <td><timestamp>${key.timestamp_first_seen}<timestamp></td>
+                    <td><code>${key.key_pem_md5}</code></td>
                 </tr>
             % endfor
             </tbody>
         </table>
     % else:
         <em>
-            No Account certificates
+            No Account Keys
         </em>
     % endif
 </%block>

@@ -14,6 +14,10 @@
     timestamp {font-size: .8em;
                font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
                }
+    samp {background-color: #EEE;
+          padding: 3px;
+          font-size: .9em;
+          }
 </style>
 
 <title>

@@ -18,6 +18,7 @@ import sqlalchemy
 from ..models import *
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
+from ..lib import utils as lib_utils
 from ..lib.handler import Handler, items_per_page
 
 
@@ -28,7 +29,7 @@ class ViewAdminOperations(Handler):
 
     @view_config(route_name='admin:operations', renderer=None)
     def operations(self):
-    
+
         return HTTPFound('/.well-known/admin/operations/log')
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -142,36 +143,126 @@ class ViewAdminOperations(Handler):
 
         redis_url = self.request.registry.settings['redis.url']
         redis_options = {}
-        redis_client = lib.utils.get_default_connection(self.request, redis_url, **redis_options)
+        redis_client = lib_utils.get_default_connection(self.request, redis_url, **redis_options)
 
+        timeouts = {'cacert': None,
+                    'cert': None,
+                    'pkey': None,
+                    'domain': None,
+                    }
+        for _t in timeouts.keys():
+            key_ini = 'redis.timeout.%s' % _t
+            if key_ini in self.request.registry.settings:
+                timeouts[_t] = int(self.request.registry.settings[key_ini])
 
-
-
-
+        # first priming style
         """
-	r['d:foo.example.com'] = ('c:1', 'p:1', 'i:99')  # certid, pkeyid, chainid
-	r['d:foo2.example.com'] = ('c:2', 'p:1', 'i:99')  # certid, pkeyid, chainid
-	r['c:1'] = CERT.PEM  # (c)ert
-	r['c:2'] = CERT.PEM
-	r['p:2'] = PKEY.PEM  # (p)rivate
-	r['i:99'] = CACERT.PEM  # (i)ntermediate cert
-	
-to assemble the data for `foo.example.com`:
+        our data should look like this
+            r['d:foo.example.com'] = ('c:1', 'p:1', 'i:99')  # certid, pkeyid, chainid
+            r['d:foo2.example.com'] = ('c:2', 'p:1', 'i:99')  # certid, pkeyid, chainid
+            r['c:1'] = CERT.PEM  # (c)ert
+            r['c:2'] = CERT.PEM
+            r['p:2'] = PKEY.PEM  # (p)rivate
+            r['i:99'] = CACERT.PEM  # (i)ntermediate cert
 
-* (c, p, i) = r.get('d:foo.example.com')
-** returns ('c:1', 'p:1', 'i:99')
-* cert = r.get('c:1')
-* pkey = r.get('p:1')
-* chain = r.get('i:99')
-* fullchain = cert + "\n" + chain
+        to assemble the data for `foo.example.com`:
 
-prime script should:
-
-*	loop through all active cert > cache into redis
-*	loop through all active pkey > cache into redis
-*	loop through all active ca_cert > cache into redis
-	
-	
+            * (c, p, i) = r.get('d:foo.example.com')
+            ** returns ('c:1', 'p:1', 'i:99')
+            * cert = r.get('c:1')
+            * pkey = r.get('p:1')
+            * chain = r.get('i:99')
+            * fullchain = cert + "\n" + chain
         """
+        if True:
+            # prime the CACertificates that are active
+            offset = 0
+            limit = 100
+            while True:
+                active_certs = lib_db.get__LetsencryptCACertificate__paginated(
+                    DBSession,
+                    offset=offset,
+                    limit=limit,
+                    active_only=True
+                )
+                if not active_certs:
+                    # no certs
+                    break
+                for cert in active_certs:
+                    key_redis = "i:%s" % cert.id
+                    redis_client.set(key_redis, cert.cert_pem, timeouts['cacert'])
+                if len(active_certs) < limit:
+                    # no more
+                    break
+                offset += limit
 
-        raise HTTPFound('/.well-known/admin/operations/redis?operation=prime&result=success')
+            # prime PrivateKeys that are active
+            offset = 0
+            limit = 100
+            while True:
+                active_keys = lib_db.get__LetsencryptPrivateKey__paginated(
+                    DBSession,
+                    offset=offset,
+                    limit=limit,
+                    active_only=True
+                )
+                if not active_keys:
+                    # no keys
+                    break
+                for key in active_keys:
+                    key_redis = "p:%s" % key.id
+                    redis_client.set(key_redis, key.key_pem, timeouts['pkey'])
+                if len(active_keys) < limit:
+                    # no more
+                    break
+                offset += limit
+
+            # prime Domains
+            offset = 0
+            limit = 100
+            while True:
+                active_domains = lib_db.get__LetsencryptDomain__paginated(
+                    DBSession,
+                    offset=offset,
+                    limit=limit,
+                    active_only=True
+                )
+                if not active_domains:
+                    # no domains
+                    break
+                for domain in active_domains:
+                    # favor the multi:
+                    cert = None
+                    if domain.letsencrypt_server_certificate_id__latest_multi:
+                        cert = domain.latest_certificate_multi
+                    elif domain.letsencrypt_server_certificate_id__latest_single:
+                        cert = domain.latest_certificate_single
+                    else:
+                        raise ValueError("this domain is not active: `%s`" % domain.domain_name)
+
+                    # first do the domain                    
+                    key_redis = "d:%s" % domain.domain_name
+                    value_redis = ('c:%s' % cert.id,
+                                   'p:%s' % cert.letsencrypt_private_key_id__signed_by,
+                                   'i:%s' % cert.letsencrypt_ca_certificate_id__upchain,
+                                   )
+                    redis_client.set(key_redis, value_redis, timeouts['domain'])
+                    
+                    # then do the cert
+                    key_redis = "c:%s" % cert.id
+                    # only send over the wire if it doesn't exist
+                    if not redis_client.exists(key_redis):
+                        redis_client.set(key_redis, cert.cert_pem, timeouts['cert'])
+                    
+                if len(active_domains) < limit:
+                    # no more
+                    break
+                offset += limit
+
+            dbEvent = lib_db.create__LetsencryptOperationsEvent(DBSession,
+                                                                LetsencryptOperationsEventType.redis_prime,
+                                                                {'v': 1,
+                                                                 }
+                                                                )
+
+        return HTTPFound('/.well-known/admin/operations/redis?operation=prime&result=success')

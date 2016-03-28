@@ -22,22 +22,24 @@
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <td>id</td>
-                    <td>timestamp_first_seen</td>
-                    <td>key_pem_md5</td>
+                    <th>id</th>
+                    <th>count_active_certificates</th>
+                    <th>timestamp_first_seen</th>
+                    <th>key_pem_md5</th>
                 </tr>
             </thead>
-            % for cert in LetsencryptPrivateKeys:
+            % for key in LetsencryptPrivateKeys:
                 <tr>
-                    <td><a class="label label-default" href="/.well-known/admin/private_key/${cert.id}">&gt; ${cert.id}</a></td>
-                    <td><timestamp>${cert.timestamp_first_seen}</timestamp></td>
-                    <td><code>${cert.key_pem_md5}</code></td>
+                    <td><a class="label label-default" href="/.well-known/admin/private_key/${key.id}">&gt; ${key.id}</a></td>
+                    <td><span class="badge">${key.count_active_certificates or ''}</span></td>
+                    <td><timestamp>${key.timestamp_first_seen}</timestamp></td>
+                    <td><code>${key.key_pem_md5}</code></td>
                 </tr>
             % endfor
         </table>
     % else:
         <em>
-            No Domain certificates
+            No Private Keys
         </em>
     % endif
 </%block>
