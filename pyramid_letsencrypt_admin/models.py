@@ -24,6 +24,7 @@ class LetsencryptOperationsEventType(object):
     update_recents = 2
     deactivate_expired = 3
     deactivate_duplicate = 4
+    redis_prime = 5
 
 
 class LetsencryptOperationsEvent(Base):
@@ -48,12 +49,14 @@ class LetsencryptOperationsEvent(Base):
     def event_type_text(self):
         if self.letsencrypt_operations_event_type_id == 1:
             return 'ca_certificate_probe'
-        if self.letsencrypt_operations_event_type_id == 2:
+        elif self.letsencrypt_operations_event_type_id == 2:
             return 'update_recents'
-        if self.letsencrypt_operations_event_type_id == 3:
+        elif self.letsencrypt_operations_event_type_id == 3:
             return 'deactivate_expired'
-        if self.letsencrypt_operations_event_type_id == 4:
+        elif self.letsencrypt_operations_event_type_id == 4:
             return 'deactivate_duplicate'
+        elif self.letsencrypt_operations_event_type_id == 5:
+            return 'redis_prime'
         return 'unknown'
 
 
@@ -80,6 +83,7 @@ class LetsencryptCACertificate(Base):
     cert_issuer = sa.Column(sa.Text, nullable=True, )
     cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
+    count_active_certificates = sa.Column(sa.Integer, nullable=True)
 
 
 class LetsencryptAccountKey(Base):

@@ -77,6 +77,10 @@
             <td><timestamp>${LetsencryptCACertificate.timestamp_first_seen  or ''}</timestamp></td>
         </tr>
         <tr>
+            <th>count_active_certificates</th>
+            <td>${LetsencryptCACertificate.count_active_certificates  or ''}</td>
+        </tr>
+        <tr>
             <th>cert_pem_md5</th>
             <td><code>${LetsencryptCACertificate.cert_pem_md5}</code></td>
         </tr>

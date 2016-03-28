@@ -28,6 +28,7 @@ class ViewAdminOperations(Handler):
 
     @view_config(route_name='admin:operations', renderer=None)
     def operations(self):
+    
         return HTTPFound('/.well-known/admin/operations/log')
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -36,13 +37,15 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:log', renderer='/admin/operations-log.mako')
     @view_config(route_name='admin:operations:log_paginated', renderer='/admin/operations-log.mako')
     def operations_log(self):
+        _items_per_page = 10
         items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/log/{0}')
-        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, limit=items_per_page, offset=offset)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/log/{0}', items_per_page=_items_per_page)
+        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, limit=_items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptOperationsEvents__count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
                 'pager': pager,
+                'enable_redis': self.request.registry.settings['enable_redis'],
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -141,18 +144,34 @@ class ViewAdminOperations(Handler):
         redis_options = {}
         redis_client = lib.utils.get_default_connection(self.request, redis_url, **redis_options)
 
-        """
-        r['d:foo.example.com'] = ('cert:1', 'key:a', 'fullcert:99')
-        r['d:foo2.example.com'] = ('cert:2', 'key:a', 'fullcert:99')
-        r['c:1'] = CERT.DER
-        r['c:2'] = CERT.DER
-        r['k:2'] = PKEY.DER
-        r['s:99'] = CACERT.DER
 
-        prime script should:
-            loop through all ca_cert> cache into redis
-            loop through all pkey> cache into redis
-            loop through all cert> cache into redis
+
+
+
+        """
+	r['d:foo.example.com'] = ('c:1', 'p:1', 'i:99')  # certid, pkeyid, chainid
+	r['d:foo2.example.com'] = ('c:2', 'p:1', 'i:99')  # certid, pkeyid, chainid
+	r['c:1'] = CERT.PEM  # (c)ert
+	r['c:2'] = CERT.PEM
+	r['p:2'] = PKEY.PEM  # (p)rivate
+	r['i:99'] = CACERT.PEM  # (i)ntermediate cert
+	
+to assemble the data for `foo.example.com`:
+
+* (c, p, i) = r.get('d:foo.example.com')
+** returns ('c:1', 'p:1', 'i:99')
+* cert = r.get('c:1')
+* pkey = r.get('p:1')
+* chain = r.get('i:99')
+* fullchain = cert + "\n" + chain
+
+prime script should:
+
+*	loop through all active cert > cache into redis
+*	loop through all active pkey > cache into redis
+*	loop through all active ca_cert > cache into redis
+	
+	
         """
 
         raise HTTPFound('/.well-known/admin/operations/redis?operation=prime&result=success')

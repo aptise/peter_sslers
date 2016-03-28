@@ -959,47 +959,7 @@ def ca_certificate_probe(dbSession):
 
 
 def operations_update_recents(dbSession):
-    '''
-    older select version
-        dbSession.execute("""
-            UPDATE letsencrypt_domain
-            SET letsencrypt_server_certificate_id__latest_single = (
-                SELECT id FROM (
-                    SELECT cert.id
-                          , max(cert.timestamp_expires)
-                          , cert2domain.letsencrypt_domain_id
-                    FROM letsencrypt_server_certificate cert
-                    JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
-                        ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
-                    WHERE cert.is_single_domain_cert = :is_single_domain_cert
-                          AND
-                          cert.is_active = :is_active
-                    GROUP BY cert2domain.letsencrypt_domain_id
-                ) q_inner
-                WHERE
-                letsencrypt_domain.id = q_inner.letsencrypt_domain_id
-            );
-        """, {'is_single_domain_cert': True, 'is_active': True})
-        dbSession.execute("""
-            UPDATE letsencrypt_domain
-            SET letsencrypt_server_certificate_id__latest_multi = (
-                SELECT id FROM (
-                    SELECT cert.id
-                          , max(cert.timestamp_expires)
-                          , cert2domain.letsencrypt_domain_id
-                    FROM letsencrypt_server_certificate cert
-                    JOIN letsencrypt_server_certificate_2_letsencrypt_domain cert2domain
-                        ON (cert.id = cert2domain.letsencrypt_server_certificate_id)
-                    WHERE cert.is_single_domain_cert = :is_single_domain_cert
-                          AND
-                          cert.is_active = :is_active
-                    GROUP BY cert2domain.letsencrypt_domain_id
-                ) q_inner
-                WHERE
-                letsencrypt_domain.id = q_inner.letsencrypt_domain_id
-            );
-        """, {'is_single_domain_cert': False, 'is_active': True})
-    '''
+
     # first the single
     # _t_domain = LetsencryptDomain.__table__.alias('domain')
     _q_sub = dbSession.query(LetsencryptServerCertificate.id)\
@@ -1035,8 +995,31 @@ def operations_update_recents(dbSession):
                       .update()
                       .values(letsencrypt_server_certificate_id__latest_multi=_q_sub)
                       )
+                      
+    # and finally
+    LetsencryptServerCertificate1 = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
+    LetsencryptServerCertificate2 = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
+    _q_sub = dbSession.query(sqlalchemy.func.count(LetsencryptDomain.id))\
+        .outerjoin(LetsencryptServerCertificate1,
+              LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificate1.id
+        )\
+        .outerjoin(LetsencryptServerCertificate2,
+              LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi == LetsencryptServerCertificate2.id
+        )\
+        .filter(sqlalchemy.or_(LetsencryptCACertificate.id == LetsencryptServerCertificate1.letsencrypt_ca_certificate_id__upchain,
+                               LetsencryptCACertificate.id == LetsencryptServerCertificate2.letsencrypt_ca_certificate_id__upchain,
+                               ),
+                )\
+        .subquery()\
+        .as_scalar()
+        
+    dbSession.execute(LetsencryptCACertificate.__table__
+                      .update()
+                      .values(count_active_certificates=_q_sub)
+                      )
 
     # mark the session changed, but we need to mark the session not scoped session.  ugh.
+    # we don't need this if we add the bookkeeping object, but let's just keep this to be safe
     mark_changed(dbSession())
 
     # bookkeeping

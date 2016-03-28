@@ -45,6 +45,7 @@ def main(global_config, **settings):
     if enable_views_admin:
         config.add_route('admin', '/.well-known/admin')
         config.add_route('admin_whoami', '/.well-known/admin/whoami')
+        config.add_route('admin:help', '/.well-known/admin/help')
 
         config.add_route('admin:domains', '/.well-known/admin/domains')
         config.add_route('admin:domains_paginated', '/.well-known/admin/domains/{page:\d+}')

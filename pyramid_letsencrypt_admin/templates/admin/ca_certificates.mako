@@ -23,6 +23,7 @@
             <thead>
                 <tr>
                     <td>id</td>
+                    <td>count_active_certificates</td>
                     <td>timestamp_first_seen</td>
                     <td>cert_pem_md5</td>
                 </tr>
@@ -30,6 +31,7 @@
             % for cert in LetsencryptCACertificates:
                 <tr>
                     <td><a class="label label-default" href="/.well-known/admin/ca_certificate/${cert.id}">&gt; ${cert.id}</a></td>
+                    <td>${cert.count_active_certificates or ''}</td>
                     <td><timestamp>${cert.timestamp_first_seen}</timestamp></td>
                     <td><code>${cert.cert_pem_md5}</code></td>
                 </tr>

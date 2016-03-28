@@ -50,6 +50,13 @@ class ViewAdminMain(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name='admin:help', renderer='/admin/help.mako')
+    def help(self):
+        return {'project': 'pyramid_letsencrypt_admin',
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name='admin:search', renderer=None)
     def search(self):
         search_params = {'cert_pem_modulus_md5': self.request.params.get('cert_pem_modulus_md5', None),

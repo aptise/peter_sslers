@@ -27,32 +27,16 @@
             </ul>
 
             <h2>Operations</h2>
-            % if enable_redis:
-                <p>
-                    <a  href="/.well-known/admin/operations/redis"
-                        class="btn btn-info"
-                    >Redis Operations</a><br/>
-                </p>
-            % endif
-            <p>
-                <a  href="/.well-known/admin/operations/deactivate_expired"
-                    class="btn btn-info"
-                >Deactivate Expired Certificates</a><br/>
-            </p>
-            <p>
-                <a  href="/.well-known/admin/operations/update_recents"
-                    class="btn btn-info"
-                >Update Recents</a><br/>
-            </p>
-            <p>
-                <a  href="/.well-known/admin/operations/ca_certificate_probes"
-                    class="btn btn-info"
-                >Probe for CA Certificates</a><br/>
-                <em>${request.text_library.info_CACertificateProbes[0]}</em>
-            </p>
+            ${admin_partials.operations_options(enable_redis=enable_redis)}
 
         </div>
         <div class="col-sm-6">
+            <p>
+                <a  href="/.well-known/admin/help"
+                    class="btn btn-warning"
+                >Help</a><br/>
+            </p>
+
             <h2>Create New</h2>
             <p>
                 <a  href="/.well-known/admin/certificate_request/new-flow"

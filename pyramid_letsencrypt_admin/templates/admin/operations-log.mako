@@ -16,31 +16,39 @@
     
 
 <%block name="content_main">
-    % if LetsencryptOperationsEvents:
-        ${admin_partials.nav_pager(pager)}
-        <table class="table table-striped table-condensed">
-            <thead>
-                <tr>
-                    <th>id</th>
-                    <th>event_type</th>
-                    <th>event timestamp</th>
-                </tr>
-            </thead>
-            <tbody>
-                % for event in LetsencryptOperationsEvents:
-                    <tr>
-                        <td><span class="label label-default">${event.id}</span></td>
-                        <td><span class="label label-default">${event.event_type_text}</span></td>
-                        <td><timestamp>${event.timestamp_operation}</timestamp></td>
-                    </tr>
-                % endfor
-            </tbody>
-        </table>
-    % else:
-        <em>
-            No certificate probes
-        </em>
-    % endif
+    <div class="row">
+        <div class="col-sm-9">
+            % if LetsencryptOperationsEvents:
+                ${admin_partials.nav_pager(pager)}
+                <table class="table table-striped table-condensed">
+                    <thead>
+                        <tr>
+                            <th>id</th>
+                            <th>event_type</th>
+                            <th>event timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        % for event in LetsencryptOperationsEvents:
+                            <tr>
+                                <td><span class="label label-default">${event.id}</span></td>
+                                <td><span class="label label-default">${event.event_type_text}</span></td>
+                                <td><timestamp>${event.timestamp_operation}</timestamp></td>
+                            </tr>
+                        % endfor
+                    </tbody>
+                </table>
+            % else:
+                <em>
+                    No certificate probes
+                </em>
+            % endif
+    </div>
+    <div class="row">
+        <div class="col-sm-3">
+            ${admin_partials.operations_options(enable_redis=enable_redis)}
+        </div>
+    </div>
 
 
 
