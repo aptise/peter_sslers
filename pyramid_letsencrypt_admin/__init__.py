@@ -43,6 +43,9 @@ def main(global_config, **settings):
 
     # admin
     if enable_views_admin:
+
+        config.add_static_view('/.well-known/admin/static', 'static', cache_max_age=3600)
+
         config.add_route('admin', '/.well-known/admin')
         config.add_route('admin_whoami', '/.well-known/admin/whoami')
         config.add_route('admin:help', '/.well-known/admin/help')

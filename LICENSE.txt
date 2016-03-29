@@ -4,6 +4,9 @@ acme-tiny is released under the MIT license and Copyright (c) 2015 Daniel Roesle
 This includes code from pryramid_redis_sessions [https://github.com/ericrasmussen/pyramid_redis_sessions]
 pryramid_redis_sessions is released under the FreeBSD license and Copyright (c) 2015 Eric Rasmussen
 
+This also includes the bootstrap library [http://getbootstrap.com]
+bootstrap is Licensed under the MIT license and Copyright 2011-2015 Twitter, Inc.
+
 --------------------------------------------------------------------------------
 
 Copyright (c) 2015, Jonathan Vanasco <jonathan@findmeon.com>

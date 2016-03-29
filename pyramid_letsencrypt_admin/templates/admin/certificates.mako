@@ -16,12 +16,18 @@
     
 
 <%block name="content_main">
-    % if LetsencryptServerCertificates:
-        ${admin_partials.nav_pager(pager)}
-        ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
-    % else:
-        <em>
-            No Server Certificates
-        </em>
-    % endif
+    <div class="row">
+        <div class="col-sm-9">
+            % if LetsencryptServerCertificates:
+                ${admin_partials.nav_pager(pager)}
+                ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
+            % else:
+                <em>
+                    No Server Certificates
+                </em>
+            % endif
+        </div>
+        <div class="col-sm-3">
+        </div>
+    </div>
 </%block>
