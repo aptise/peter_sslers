@@ -335,8 +335,8 @@ class ViewAdminOperations(Handler):
 
                     # the domain will hold the fullchain and private key
                     key_redis = "%s" % domain.domain_name
-                    value_redis = {'f': '%s\n%s' % (cert.cert_pem, cert.letsencrypt_ca_certificate_id__upchain.cert_pem),
-                                   'p': '%s' % cert.letsencrypt_private_key_id__signed_by,
+                    value_redis = {'f': '%s' % cert.cert_fullchain_pem,
+                                   'p': '%s' % cert.private_key.key_pem,
                                    }
                     redis_client.hmset(key_redis, value_redis)
 

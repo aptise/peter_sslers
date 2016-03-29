@@ -152,6 +152,10 @@ def main(global_config, **settings):
     if _enable_redis:
         # try to load, otherwise error out
         import redis  # noqa
+        if 'redis.prime_style' not in settings:
+            raise ValueError("No `redis.prime_style` is configured")
+        if settings['redis.prime_style'] not in ('1', '2'):
+            raise ValueError("No `redis.prime_style` must be one of: (`1`, `2`)")
 
     # let's extend the request too!
     config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)

@@ -63,7 +63,12 @@
     <div class="row">
         <div class="col-sm-3">
             <div class="alert alert-info">
-                Redis is enabled for this server.
+                <p>
+                    Redis is enabled for this server.
+                </p>
+                <p>
+                    The prime style is: <em>${request.registry.settings['redis.prime_style']}</em>
+                </p>
             </div>
             <p>
                 <a  href="/.well-known/admin/operations/redis/prime"
