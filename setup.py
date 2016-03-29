@@ -48,5 +48,6 @@ setup(name='pyramid_letsencrypt_admin',
       main = pyramid_letsencrypt_admin:main
       [console_scripts]
       initialize_pyramid_letsencrypt_admin_db = pyramid_letsencrypt_admin.scripts.initializedb:main
+      update_foo = pyramid_letsencrypt_admin.scripts.update_foo:main
       """,
       )

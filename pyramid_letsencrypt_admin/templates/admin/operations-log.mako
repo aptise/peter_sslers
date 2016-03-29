@@ -20,27 +20,10 @@
         <div class="col-sm-9">
             % if LetsencryptOperationsEvents:
                 ${admin_partials.nav_pager(pager)}
-                <table class="table table-striped table-condensed">
-                    <thead>
-                        <tr>
-                            <th>id</th>
-                            <th>event_type</th>
-                            <th>event timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        % for event in LetsencryptOperationsEvents:
-                            <tr>
-                                <td><span class="label label-default">${event.id}</span></td>
-                                <td><span class="label label-default">${event.event_type_text}</span></td>
-                                <td><timestamp>${event.timestamp_operation}</timestamp></td>
-                            </tr>
-                        % endfor
-                    </tbody>
-                </table>
+                ${admin_partials.table_LetsencryptOperationsEvents(LetsencryptOperationsEvents, show_event='event.id')}
             % else:
                 <em>
-                    No certificate probes
+                    No events
                 </em>
             % endif
     </div>

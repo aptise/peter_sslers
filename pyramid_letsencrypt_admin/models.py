@@ -37,6 +37,7 @@ class LetsencryptOperationsEvent(Base):
     letsencrypt_operations_event_type_id = sa.Column(sa.Integer, nullable=False)
     timestamp_operation = sa.Column(sa.DateTime, nullable=True, )
     event_payload = sa.Column(sa.Text, nullable=False, )
+    letsencrypt_sync_event_id_child_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_sync_event.id"), nullable=True)
 
     @property
     def event_payload_json(self):

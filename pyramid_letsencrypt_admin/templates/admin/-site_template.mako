@@ -18,6 +18,8 @@
           padding: 3px;
           font-size: .9em;
           }
+    tr.success {border-left: 2px solid green;
+                }
 </style>
 
 <title>

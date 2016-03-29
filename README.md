@@ -1,19 +1,19 @@
 pyramid_letsencrypt_admin README
 ==================
 
-`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS people to manage certificate deployment on large systems.  it offers  a lightweight database backed webserver that can handle the LetsEncrypt issuance process, import any existing ssl certificates, and easily provision them to servers.  this tool has absolutely no security measures and should only be used by people who understand that.  (that should be a self-selecting group, because many people won't want this)
+`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS people to manage SSL Certificate deployment on large systems. This package offers a lightweight database backed "webserver" that can handle the LetsEncrypt issuance process, import any existing ssl certificates, and easily provision them to servers. This tool has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this).  This package offers several commandline tools, so spinning it up in "webserver" mode may not be necessary.
 
-# A HUGE WARNING
+# An important WARNING:
 
 * This package DOES NOT USE/KNOW/CARE ABOUT SECURITY.
-* This package manages PRIVATE KEYS and makes them readable.
-* If you do are not really awesome with basic network security PLEASE DO NOT USE THIS.
+* This package manages PRIVATE SSL KEYS and makes them readable.
+* If you do not known / are not really awesome with basic network security PLEASE DO NOT USE THIS.
 
 # What this package does:
 
-The package spins up a lightweight webserver to centrally manage SSL Certificate data in a SQL database.
+The package offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
 
-SqlAlchemy is the DB library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc).  sqlite is the default.
+SqlAlchemy is the DB library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). sqlite is the default.  sqlite is actually kind of great, because it can be sftpd onto different machines for local use.
 
 You can manage certificates in a few ways:
 
@@ -56,14 +56,15 @@ you should create a virtualenv though.
 	
 some tools are provided, see below, to automatically import existing certificates and chains
 
-
 # Implementation Details
 
-The webserver exposes the following routes/directors:
+The webserver exposes the following routes/directories:
 
 * `/.well-known/acme-challenge` - directory
 * `/.well-known/whoami` - URL prints host
 * `/.well-known/admin` - admin tool THIS EXPLORES PRIVATE KEYS ON PURPOSE
+
+# Just a friendly reminder:
 
 THE ADMIN TOOL SHOULD NOT BE PUBLICLY ACCESSIBLE.
 YOU SHOULD ONLY RUN IT ON YOUR PRIVATE NETWORK
@@ -84,10 +85,9 @@ To solve this you can:
 * make ` /.well-known/admin` only usable within your LAN or NEVER USABLE
 * on a machine within your LAN, you can query for the latest certs for domain(s) using simple `curl` commands
 
-In a more advanced implementation, the certificates need to be loaded into `redis` for use by an `openresty`/`nginx` server that will dynamically handle ssl connections.
+In a more advanced implementation (such as what this was designed to manage) the certificates need to be loaded into a `Redis` server for use by an `openresty`/`nginx` webserver/gateway that will dynamically handle ssl certificates.
 
-This package does all the annoying openssl work in terms of building chains and converting formats  *You just tell it what domains you need certificates for and in which format, and THERE YOU GO.*
-
+This package does all the annoying openssl work in terms of building chains and converting formats *You just tell it what domains you need certificates for and in which format and THERE YOU GO.*
 
 # notes
 
@@ -95,7 +95,7 @@ This package does all the annoying openssl work in terms of building chains and 
 
 Certificates and Keys are stored in the PEM format, but can be downloaded in the DER format if needed.
 
-There are several ways to download each file.  Different file suffix will change the format and headers.
+There are several ways to download each file. Different file suffix will change the format and headers.
 
 ### CA Certificate
 
@@ -139,19 +139,17 @@ Your `environment.ini` exposes a few configuration options:
 * `exception_redirect` - boolean, should we redirect on certain exceptions or raise?
 * `openssl_path` - the full path to your openssl binary (default `openssl`)
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
-* `certificate_authority` - the LetsEncrypt certificate authority. default is their staging.  you'll have to manually put in the production.
+* `certificate_authority` - the LetsEncrypt certificate authority. default is their staging. you'll have to manually put in the production.
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
 
 * `redis.url` - URL of redis (includes port)
-* `redis.prime_style` - MUST be "1"
+* `redis.prime_style` - MUST be "1" or "2"; see Redis Prime section below.
 * `redis.timeout.cacert` - INT seconds (default None)
 * `redis.timeout.cert` - INT seconds (default None)
 * `redis.timeout.pkey` - INT seconds (default None)
 * `redis.timeout.domain` - INT seconds (default None)
-
-
 
 
 # tools
@@ -170,7 +168,7 @@ right now the invoke script offers:
 You can interact with this project via a commandline interface in several ways.
 
 * run a webserver instance and query JSON urls
-* run explicit routes via `prequest`.  this allows you to do admin tasks without spinnig up a server
+* run explicit routes via `prequest`. this allows you to do admin tasks without spinnig up a server
 
 ### prequest
 
@@ -290,7 +288,7 @@ The certificate JSON payload is what is nested in the DOMAIN payload
 
 notice that the numeric ids are returned as strings. this is by design.
 
-Need to get the cert data directly?  NO SWEAT.  transforms on the server and sent to you with the appropriate headers.
+Need to get the cert data directly? NO SWEAT. transforms on the server and sent to you with the appropriate headers.
 
 * /.well-known/admin/certificate/{ID}/cert.crt
 * /.well-known/admin/certificate/{ID}/cert.pem
@@ -311,11 +309,11 @@ Need to get the cert data directly?  NO SWEAT.  transforms on the server and sen
 
 ## Does this reformat certs?
 
-Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input).  This seems to be one of the more common standards people have for saving certs.  Otherwise certs are left as-is.
+Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input). This seems to be one of the more common standards people have for saving certs. Otherwise certs are left as-is.
 
 ## Is there a fast way to import existing certs?
 
-Yes.  Use `curl` on the commandline.  see the TOOLS section	
+Yes. Use `curl` on the commandline. see the TOOLS section	
 
 ## What happens if multiple certs are available for a domain ?
 
@@ -328,13 +326,13 @@ The current solution is quick and dirty:
 
 This means that a cert will stay active so long as any domain has not yet-replaced it.
 
-When querying for a domain's cert, the system will currently send the most recent cert.  a future feature might allow for this to be customized, and show the most widely usable cert.
+When querying for a domain's cert, the system will currently send the most recent cert. a future feature might allow for this to be customized, and show the most widely usable cert.
 
 ## Why use openssl? / does this work on windows?
 
 It was much easier to peg this to `openssl` in a linux environment for now; which rules out windows.
 
-In the future this could all be done with Python's crypto library.  However openssl is fast and this was primarily designed for dealing with linux environments.  sorry.
+In the future this could all be done with Python's crypto library. However openssl is fast and this was primarily designed for dealing with linux environments. sorry.
 
 ## Where does data come from?
 
@@ -342,14 +340,14 @@ When imported, certs are read into text form and parsed.
 
 When generated via acme, cert data is provided in the headers.
 
-Useful fields are duplicated from the cert into SQL to allow for better searching.  Certs are not changed in any way (aside from whitespace cleanup)
+Useful fields are duplicated from the cert into SQL to allow for better searching. Certs are not changed in any way (aside from whitespace cleanup)
 
 
 # misc tips
 
-So far this has been tested behind a couple of load balancers that use round-robin dns.  They were both in the same physical network.
+So far this has been tested behind a couple of load balancers that use round-robin dns. They were both in the same physical network.
 
-* nginx is on port 80.  everything in the /.well-known directory is proxied to an internal machine *which is not guaranteed to be up*
+* nginx is on port 80. everything in the /.well-known directory is proxied to an internal machine *which is not guaranteed to be up*
 * this service is only spun up when certificate management is needed
 * /.well-known/admin is not on the public internet
 
@@ -363,7 +361,9 @@ there are several config options for redis support, they are listed above.
 
 ## redis priming style
 
-currently only `redis.prime_style = 1` is supported.
+currently only `redis.prime_style = 1` and `redis.prime_style = 2` are supported.
+
+### prime_style = 1
 
 this prime style will store data into redis in the following format:
 
@@ -390,8 +390,17 @@ to assemble the data for `foo.example.com`:
 * chain = r.get('i99')
 * fullchain = cert + "\n" + chain
 
+### prime_style = 2
 
-# TODO
+this prime style will store data into redis in the following format:
+
+* `{DOMAIN_NAME}` a 2 element hash for FullChain [ServerCertificate+CACertificate] (f), PrivateKey (p)
+
+the redis datastore might look something like this:
+
+	r['foo.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
+	r['foo2.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
+
 
 ## search expiring soon
 

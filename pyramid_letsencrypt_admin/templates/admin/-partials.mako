@@ -285,6 +285,39 @@
 </%def>
 
 
+<%def name="table_LetsencryptOperationsEvents(LetsencryptOperationsEvents, show_event=None)">
+    <%
+        event_id = None
+        if show_event is not None:
+            event_id = request.params.get('event.id')
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>child of</th>
+                <th>event_type</th>
+                <th>event timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for event in LetsencryptOperationsEvents:
+                <tr class="${'success' if event_id == str(event.id) else ''}">
+                    <td><span class="label label-default">${event.id}</span></td>
+                    <td>
+                        % if event.letsencrypt_sync_event_id_child_of:
+                            <span class="label label-default">${event.letsencrypt_sync_event_id_child_of}</span>
+                        % endif
+                    </td>
+                    <td><span class="label label-default">${event.event_type_text}</span></td>
+                    <td><timestamp>${event.timestamp_operation}</timestamp></td>
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="info_AccountKey()">
     <h3>Need a Private Key?</h3>
         <p>Use an Existing LetsEncrypt key from their client.  This is the easiest way to register with LetsEncrypt.</p>
@@ -486,19 +519,19 @@
         </p>
     % endif
     <p>
-        <a  href="/.well-known/admin/operations/deactivate_expired"
+        <a  href="/.well-known/admin/operations/ca_certificate_probes"
             class="btn btn-info"
+        >CA Certificate Probes</a><br/>
+        <em>${request.text_library.info_CACertificateProbes[0]}</em>
+    </p>
+    <p>
+        <a  href="/.well-known/admin/operations/deactivate_expired"
+            class="btn btn-primary"
         >Deactivate Expired Certificates</a><br/>
     </p>
     <p>
         <a  href="/.well-known/admin/operations/update_recents"
-            class="btn btn-info"
+            class="btn btn-primary"
         >Update Recents</a><br/>
-    </p>
-    <p>
-        <a  href="/.well-known/admin/operations/ca_certificate_probes"
-            class="btn btn-info"
-        >Probe for CA Certificates</a><br/>
-        <em>${request.text_library.info_CACertificateProbes[0]}</em>
     </p>
 </%def>

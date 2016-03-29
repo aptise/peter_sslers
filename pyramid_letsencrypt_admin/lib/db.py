@@ -228,18 +228,23 @@ def get__LetsencryptPrivateKey__by_id(dbSession, cert_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__LetsencryptOperationsEvent__count(dbSession):
-    counted = dbSession.query(LetsencryptOperationsEvent).count()
-    return counted
+def get__LetsencryptOperationsEvent__count(dbSession, event_type_ids=None):
+    q = dbSession.query(LetsencryptOperationsEvent)
+    if event_type_ids is not None:
+        q = q.filter(LetsencryptOperationsEvent.letsencrypt_operations_event_type_id.in_(event_type_ids))
+    items_count = q.count()    
+    return items_count
 
 
-def get__LetsencryptOperationsEvent__paginated(dbSession, limit=None, offset=0):
-    dbLetsencryptOperationsEvents = dbSession.query(LetsencryptOperationsEvent)\
-        .order_by(LetsencryptOperationsEvent.id.desc())\
+def get__LetsencryptOperationsEvent__paginated(dbSession, event_type_ids=None, limit=None, offset=0):
+    q = dbSession.query(LetsencryptOperationsEvent)
+    if event_type_ids is not None:
+        q = q.filter(LetsencryptOperationsEvent.letsencrypt_operations_event_type_id.in_(event_type_ids))
+    items_paged = q.order_by(LetsencryptOperationsEvent.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
-    return dbLetsencryptOperationsEvents
+    return items_paged
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

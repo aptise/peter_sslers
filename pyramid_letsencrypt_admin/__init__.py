@@ -128,6 +128,7 @@ def main(global_config, **settings):
         config.add_route('admin:operations:deactivate_expired:json', '/.well-known/admin/operations/deactivate_expired.json')
 
         config.add_route('admin:operations:redis', '/.well-known/admin/operations/redis')
+        config.add_route('admin:operations:redis_paginated', '/.well-known/admin/operations/redis/{page:\d}')
         config.add_route('admin:operations:redis:prime', '/.well-known/admin/operations/redis/prime')
         config.add_route('admin:operations:redis:prime:json', '/.well-known/admin/operations/redis/prime.json')
 
