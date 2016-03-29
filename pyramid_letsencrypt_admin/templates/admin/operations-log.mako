@@ -23,7 +23,7 @@
                 ${admin_partials.table_LetsencryptOperationsEvents(LetsencryptOperationsEvents, show_event='event.id')}
             % else:
                 <em>
-                    No events
+                    no events
                 </em>
             % endif
     </div>

@@ -21,7 +21,7 @@
         ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
     % else:
         <em>
-            No certificate_requests
+            No Server Certificates
         </em>
     % endif
 </%block>

@@ -39,7 +39,7 @@
         </table>
     % else:
         <em>
-            No CA certificates
+            No Certificate Authority Certificates
         </em>
     % endif
 </%block>

@@ -58,7 +58,7 @@
                 </table>
             % else:
                 <em>
-                    No certificate probes
+                    no certificate probes
                 </em>
             % endif
 

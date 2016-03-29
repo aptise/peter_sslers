@@ -56,7 +56,7 @@
                 </table>
             % else:
                 <em>
-                    No Primes
+                    no events
                 </em>
             % endif
     </div>
