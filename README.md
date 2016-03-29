@@ -170,6 +170,53 @@ You can interact with this project via a commandline interface in several ways.
 * run a webserver instance and query JSON urls
 * run explicit routes via `prequest`. this allows you to do admin tasks without spinnig up a server
 
+## openresty/nginx lua script
+
+`tools.ssl_lookup.lua` is an script that can be used in an openresty/nginx environment to select a SSL cert
+
+It supports both prime 1 & prime 2 cache types, but you'll need to manually edit it (or PR a better solution)
+
+look for this line:
+
+	-- actually query redis
+	cert, key = prime_2__query_redis(redcon, server_name)
+
+and just change it to 
+
+	cert, key = prime_1__query_redis(redcon, server_name)
+
+It is also hardcoded to use db9 in redis.  if you want another option, edit or PR
+
+	ngx.log(ngx.ERR, "changing to db 9: ", times)
+	redcon:select(9)
+
+This approach makes aggressive use of caching in the nginx workers (via a shared dict) and redis; and caches both hits and misses.
+
+The nginx worker dicts are shared across reloads (`kill -HUP {PID}`); so if a bad value gets in there you must restart or wait for the timeout.
+
+The logic in pseudocode:
+
+	# grab certs
+	(key, fullchain) = cert_cache.get(domain)
+	if all((key, fullchain)):
+		if (key == 'x') or (fullchain == 'x'):
+			# default cert is still active
+			return
+	else:
+		(key, fullchain) = redis.get(domain)
+		# redis is a write-through cache
+		if all((key, fullchain)):
+			cert_cache.set(domain, key, fullchain)
+		else:
+			# mark domain invalid		
+			cert_cache.set(domain, 'x', 'x')
+			# default cert is still active
+			return
+	ssl.clear_certs()
+	ssl.set_der_cert(cert)
+	ssl.set_der_priv_key(key)
+
+
 ### prequest
 
 `$VENV/bin/prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json`
@@ -403,6 +450,10 @@ the redis datastore might look something like this:
 
 
 ## search expiring soon
+
+## expire nginx worker cache
+
+After priming redis with new data, one should be able to hit an nginx route that expires the shared cache
 
 ## api hooks
 
