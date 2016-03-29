@@ -47,7 +47,7 @@
                         <th>latest_single</th>
                         <td>
                             % if LetsencryptDomain.letsencrypt_server_certificate_id__latest_single:
-                                ${admin_partials.table_certificates__list([LetsencryptDomain.latest_certificate_single,], show_domains=True)}
+                                ${admin_partials.table_certificates__list([LetsencryptDomain.latest_certificate_single,], show_domains=True, show_expiring_days=True)}
                             % endif
                         </td>
                     </tr>
@@ -55,7 +55,7 @@
                         <th>latest_multi</th>
                         <td>
                             % if LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi:
-                                ${admin_partials.table_certificates__list([LetsencryptDomain.latest_certificate_multi,], show_domains=True)}
+                                ${admin_partials.table_certificates__list([LetsencryptDomain.latest_certificate_multi,], show_domains=True, show_expiring_days=True)}
                             % endif
                         </td>
                     </tr>
@@ -65,37 +65,23 @@
         <tr>
             <th>certificates history</th>
             <td>
-                ${admin_partials.table_to_certificates(LetsencryptDomain.domain_to_certificates, show_domains=True)}
-                % if LetsencryptDomain.domain_to_certificates:
-                    <nav>
-                      <ul class="pager">
-                        <li>
-                            <a 
-                                href="/.well-known/admin/domain/${LetsencryptDomain.id}/certificates"
-                            >See All</a>
-                        </li>
-                      </ul>
-                    </nav>
+                ${admin_partials.table_to_certificates(LetsencryptDomain.domain_to_certificates_5, show_domains=True, show_expiring_days=True)}
+                % if LetsencryptDomain.domain_to_certificates_5:
+                    ${admin_partials.nav_pager("/.well-known/admin/domain/%s/certificates" % LetsencryptDomain.id)}
                 % endif
             </td>
         </tr>
+        % if False:
         <tr>
             <th>certificate requests</th>
             <td>
-                ${admin_partials.table_to_certificate_requests(LetsencryptDomain.domain_to_certificate_requests)}
-                % if LetsencryptDomain.domain_to_certificate_requests:
-                    <nav>
-                      <ul class="pager">
-                        <li>
-                            <a 
-                                href="/.well-known/admin/domain/${LetsencryptDomainLetsencryptDomain.id}/certificate_requests"
-                            >See All</a>
-                        </li>
-                      </ul>
-                    </nav>
+                ${admin_partials.table_to_certificate_requests(LetsencryptDomain.domain_to_certificate_requests_5)}
+                % if LetsencryptDomain.domain_to_certificate_requests_5:
+                    ${admin_partials.nav_pager("/.well-known/admin/domain/%s/certificate_requests" % LetsencryptDomain.id)}
                 % endif
             </td>
         </tr>
+        % endif
     </table>
 
 </%block>

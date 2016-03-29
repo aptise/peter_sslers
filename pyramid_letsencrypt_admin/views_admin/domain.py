@@ -42,7 +42,7 @@ class ViewAdmin(Handler):
     def domains(self):
         items_count = lib_db.get__LetsencryptDomain__count(DBSession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domains/{0}')
-        items_paged = lib_db.get__LetsencryptDomain__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptDomain__paginated(DBSession, eagerload_web=True, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomains_count': items_count,
                 'LetsencryptDomains': items_paged,
@@ -51,19 +51,19 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _domain_focus(self):
+    def _domain_focus(self, eagerload_web=False):
         domain_identifier = self.request.matchdict['domain_identifier'].strip()
         if domain_identifier.isdigit():
-            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_id(DBSession, domain_identifier, preload=True)
+            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_id(DBSession, domain_identifier, preload=True, eagerload_web=eagerload_web)
         else:
-            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_name(DBSession, domain_identifier, preload=True)
+            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_name(DBSession, domain_identifier, preload=True, eagerload_web=eagerload_web)
         if not dbLetsencryptDomain:
             raise HTTPNotFound('the domain was not found')
         return dbLetsencryptDomain
 
     @view_config(route_name='admin:domain:focus', renderer='/admin/domain-focus.mako')
     def domain_focus(self):
-        dbLetsencryptDomain = self._domain_focus()
+        dbLetsencryptDomain = self._domain_focus(eagerload_web=True)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomain': dbLetsencryptDomain
                 }
@@ -93,10 +93,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificates_paginated', renderer='/admin/domain-focus-certificates.mako')
     def domain_focus__certificates(self):
         dbLetsencryptDomain = self._domain_focus()
-        items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomain__count(
+        items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomainId__count(
             DBSession, dbLetsencryptDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificates/{0}' % dbLetsencryptDomain.id)
-        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomain__paginated(
+        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomainId__paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomain': dbLetsencryptDomain,

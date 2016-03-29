@@ -41,10 +41,26 @@ class ViewAdmin(Handler):
     def certificates(self):
         items_count = lib_db.get__LetsencryptServerCertificate__count(DBSession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificates/{0}')
-        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, limit=items_per_page, offset=offset, eagerload_web=True)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptServerCertificates_count': items_count,
                 'LetsencryptServerCertificates': items_paged,
+                'sidenav_option': 'all',
+                'pager': pager,
+                }
+
+    @view_config(route_name='admin:certificates:expiring', renderer='/admin/certificates.mako')
+    @view_config(route_name='admin:certificates:expiring_paginated', renderer='/admin/certificates.mako')
+    def certificates_expiring_only(self):
+        expiring_days = 90
+        items_count = lib_db.get__LetsencryptServerCertificate__count(DBSession, expiring_days=expiring_days)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificates/expiring/{0}')
+        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptServerCertificates_count': items_count,
+                'LetsencryptServerCertificates': items_paged,
+                'sidenav_option': 'expiring',
+                'expiring_days': expiring_days,
                 'pager': pager,
                 }
 

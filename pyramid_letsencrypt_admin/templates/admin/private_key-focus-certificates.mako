@@ -5,15 +5,15 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/domains">Domains</a></li>
-        <li><a href="/.well-known/admin/domain/${LetsencryptDomain.id}">Focus [${LetsencryptDomain.id}]</a></li>
-        <li class="active">Certificate Requests</li>
+        <li><a href="/.well-known/admin/private_keys">Private Keys</a></li>
+        <li><a href="/.well-known/admin/private_key/${LetsencryptPrivateKey.id}">Focus [${LetsencryptPrivateKey.id}]</a></li>
+        <li class="active">Certificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header">
-    <h2>Domain Focus - Certificate Requests</h2>
+    <h2>Private Key - Focus | Certificates</h2>
 </%block>
 
     
@@ -21,7 +21,7 @@
 
     % if LetsencryptServerCertificates:
         ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_certificates__list(LetsencryptCertificateRequests, show_domains=True)}
+        ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True, show_expiring_days=True)}
     % else:
         No known certificates.
     % endif 

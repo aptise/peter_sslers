@@ -51,20 +51,24 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:account_key:focus', renderer='/admin/account_key-focus.mako')
-    def account_key_focus(self):
-        dbLetsencryptAccountKey = lib_db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'])
+    def _account_key_focus(self, eagerload_web=False):
+        dbLetsencryptAccountKey = lib_db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'], eagerload_web=eagerload_web, )
         if not dbLetsencryptAccountKey:
             raise HTTPNotFound('the key was not found')
+        return dbLetsencryptAccountKey
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:account_key:focus', renderer='/admin/account_key-focus.mako')
+    def account_key_focus(self):
+        dbLetsencryptAccountKey = self._account_key_focus(eagerload_web=True)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptAccountKey': dbLetsencryptAccountKey
                 }
 
     @view_config(route_name='admin:account_key:focus:raw', renderer='string')
     def account_key_focus_raw(self):
-        dbLetsencryptAccountKey = lib_db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'])
-        if not dbLetsencryptAccountKey:
-            raise HTTPNotFound('the key was not found')
+        dbLetsencryptAccountKey = self._account_key_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
             return dbLetsencryptAccountKey.key_pem
@@ -74,6 +78,42 @@ class ViewAdmin(Handler):
             self.request.response.content_type = 'application/pkcs8'
             as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptAccountKey.key_pem)
             return as_der
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:account_key:focus:certificates', renderer='/admin/account_key-focus-certificates.mako')
+    @view_config(route_name='admin:account_key:focus:certificates_paginated', renderer='/admin/account_key-focus-certificates.mako')
+    def account_key_focus__certificates(self):
+        dbLetsencryptAccountKey = self._account_key_focus()
+        items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__count(
+            DBSession, dbLetsencryptAccountKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account_key/%s/certificates/{0}' % dbLetsencryptAccountKey.id)
+        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyIdId__paginated(
+            DBSession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptAccountKey': dbLetsencryptAccountKey,
+                'LetsencryptServerCertificates_count': items_count,
+                'LetsencryptServerCertificates': items_paged,
+                'pager': pager,
+                }
+
+    @view_config(route_name='admin:account_key:focus:certificate_requests', renderer='/admin/account_key-focus-certificate_requests.mako')
+    @view_config(route_name='admin:account_key:focus:certificate_requests_paginated', renderer='/admin/account_key-focus-certificate_requests.mako')
+    def account_key_focus__certificate_requests(self):
+        dbLetsencryptAccountKey = self._account_key_focus()
+        items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__count(
+            DBSession, dbLetsencryptAccountKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account_key/%s/certificate_requests/{0}' % dbLetsencryptAccountKey.id)
+        items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__paginated(
+            DBSession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptAccountKey': dbLetsencryptAccountKey,
+                'LetsencryptCertificateRequests_count': items_count,
+                'LetsencryptCertificateRequests': items_paged,
+                'pager': pager,
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:account_key:new')
     def account_key_new(self):

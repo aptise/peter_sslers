@@ -55,9 +55,21 @@
             </td>
         </tr>
         <tr>
+            <th>certificates</th>
+            <td>
+                ${admin_partials.table_certificates__list(LetsencryptPrivateKey.signed_certificates_5, show_domains=True, show_expiring_days=True)}
+                % if LetsencryptPrivateKey.signed_certificates_5:
+                    ${admin_partials.nav_pager("/.well-known/admin/private_key/%s/certificates" % LetsencryptPrivateKey.id)}
+                % endif
+            </td>
+        </tr>
+        <tr>
             <th>certificate_requests</th>
             <td>
-                ${admin_partials.table_certificate_requests__list(LetsencryptPrivateKey.certificate_requests, show_domains=True)}
+                ${admin_partials.table_certificate_requests__list(LetsencryptPrivateKey.certificate_requests_5, show_domains=True)}
+                % if LetsencryptPrivateKey.certificate_requests_5:
+                    ${admin_partials.nav_pager("/.well-known/admin/private_key/%s/certificate_requests" % LetsencryptPrivateKey.id)}
+                % endif
             </td>
         </tr>
     </table>

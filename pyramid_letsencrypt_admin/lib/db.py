@@ -52,13 +52,17 @@ def get__LetsencryptDomain__count(dbSession):
     return counted
 
 
-def get__LetsencryptDomain__paginated(dbSession, limit=None, offset=0, active_only=False):
+def get__LetsencryptDomain__paginated(dbSession, eagerload_web=False, limit=None, offset=0, active_only=False):
     q = dbSession.query(LetsencryptDomain)
     if active_only:
         q = q.filter(sqlalchemy.or_(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single.op('IS NOT')(None),
                                     LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi.op('IS NOT')(None),
                                     ),
                      )
+    if eagerload_web:
+        q = q.options(sqlalchemy.orm.joinedload('latest_certificate_single'),
+                      sqlalchemy.orm.joinedload('latest_certificate_multi'),
+                      )
     q = q.order_by(sa.func.lower(LetsencryptDomain.domain_name).asc())\
         .limit(limit)\
         .offset(offset)
@@ -71,49 +75,72 @@ def get__LetsencryptDomain__paginated(dbSession, limit=None, offset=0, active_on
 
 def _get__LetsencryptDomain__core(query, preload=False):
     return query.options(
-        sqlalchemy.orm.subqueryload('domain_to_certificates').joinedload('certificate'),
-        sqlalchemy.orm.subqueryload('domain_to_certificate_requests').joinedload('certificate_request'),
-
         sqlalchemy.orm.subqueryload('latest_certificate_single'),
         sqlalchemy.orm.joinedload('latest_certificate_single.private_key'),
         sqlalchemy.orm.joinedload('latest_certificate_single.certificate_upchain'),
+        sqlalchemy.orm.joinedload('latest_certificate_single.certificate_to_domains'),
+        sqlalchemy.orm.joinedload('latest_certificate_single.certificate_to_domains.domain'),
 
         sqlalchemy.orm.subqueryload('latest_certificate_multi'),
         sqlalchemy.orm.joinedload('latest_certificate_multi.private_key'),
         sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_upchain'),
+        sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_to_domains'),
+        sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_to_domains.domain'),
     )
 
 
-def get__LetsencryptDomain__by_id(dbSession, domain_id, preload=False):
+def get__LetsencryptDomain__by_id(dbSession, domain_id, preload=False, eagerload_web=False):
     q = dbSession.query(LetsencryptDomain)\
         .filter(LetsencryptDomain.id == domain_id)
     q = _get__LetsencryptDomain__core(q, preload=preload)
-    result = q.first()
-    return result
+    item = q.first()
+    if eagerload_web and item:
+        item.domain_to_certificate_requests_5
+        item.domain_to_certificates_5
+    return item
 
 
-def get__LetsencryptDomain__by_name(dbSession, domain_name, preload=False):
+def get__LetsencryptDomain__by_name(dbSession, domain_name, preload=False, eagerload_web=False):
     q = dbSession.query(LetsencryptDomain)\
         .filter(LetsencryptDomain.domain_name == domain_name)
     q = _get__LetsencryptDomain__core(q, preload=preload)
-    result = q.first()
-    return result
+    item = q.first()
+    if eagerload_web and item:
+        item.certificate_requests_5
+        item.signed_certificates_5
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__LetsencryptServerCertificate__count(dbSession):
-    counted = dbSession.query(LetsencryptServerCertificate).count()
+def get__LetsencryptServerCertificate__count(dbSession, expiring_days=None):
+    q = dbSession.query(LetsencryptServerCertificate)
+    if expiring_days:
+        _until = datetime.datetime.utcnow() + datetime.timedelta(days=expiring_days)
+        q = q.filter(LetsencryptServerCertificate.is_active == True,  # noqa
+                     LetsencryptServerCertificate.timestamp_expires <= _until,
+                     )
+    counted = q.count()
     return counted
 
 
-def get__LetsencryptServerCertificate__paginated(dbSession, limit=None, offset=0):
-    items_paged = dbSession.query(LetsencryptServerCertificate)\
-        .order_by(LetsencryptServerCertificate.id.desc())\
-        .limit(limit)\
-        .offset(offset)\
-        .all()
+def get__LetsencryptServerCertificate__paginated(dbSession, expiring_days=None, eagerload_web=False, limit=None, offset=0):
+    q = dbSession.query(LetsencryptServerCertificate)
+    if eagerload_web:
+        q = q.options(sqlalchemy.orm.joinedload('certificate_to_domains').joinedload('domain'),
+                      )
+    if expiring_days:
+        _until = datetime.datetime.utcnow() + datetime.timedelta(days=expiring_days)
+        q = q.filter(LetsencryptServerCertificate.is_active == True,  # noqa
+                     LetsencryptServerCertificate.timestamp_expires <= _until,
+                     )\
+            .order_by(LetsencryptServerCertificate.timestamp_expires.asc())
+    else:
+        q = q.order_by(LetsencryptServerCertificate.id.desc())
+    q = q.limit(limit)\
+        .offset(offset)
+    items_paged = q.all()
     return items_paged
 
 
@@ -135,7 +162,8 @@ def get__LetsencryptCertificateRequest__count(dbSession):
 
 def get__LetsencryptCertificateRequest__paginated(dbSession, limit=None, offset=0):
     items_paged = dbSession.query(LetsencryptCertificateRequest)\
-        .options(sqlalchemy.orm.subqueryload('certificate_request_to_domains').joinedload('domain'),
+        .options(sqlalchemy.orm.joinedload('signed_certificate'),
+                 sqlalchemy.orm.subqueryload('certificate_request_to_domains').joinedload('domain'),
                  )\
         .order_by(LetsencryptCertificateRequest.id.desc())\
         .limit(limit)\
@@ -147,7 +175,8 @@ def get__LetsencryptCertificateRequest__paginated(dbSession, limit=None, offset=
 def get__LetsencryptCertificateRequest__by_id(dbSession, certificate_request_id):
     dbLetsencryptCertificateRequest = dbSession.query(LetsencryptCertificateRequest)\
         .filter(LetsencryptCertificateRequest.id == certificate_request_id)\
-        .options(sqlalchemy.orm.subqueryload('certificate_request_to_domains').joinedload('domain'),
+        .options(sqlalchemy.orm.joinedload('signed_certificate'),
+                 sqlalchemy.orm.subqueryload('certificate_request_to_domains').joinedload('domain'),
                  )\
         .one()
     return dbLetsencryptCertificateRequest
@@ -192,11 +221,14 @@ def get__LetsencryptAccountKey__paginated(dbSession, limit=None, offset=0):
     return dbLetsencryptAccountKeys
 
 
-def get__LetsencryptAccountKey__by_id(dbSession, cert_id):
-    dbLetsencryptAccountKey = dbSession.query(LetsencryptAccountKey)\
-        .filter(LetsencryptAccountKey.id == cert_id)\
-        .first()
-    return dbLetsencryptAccountKey
+def get__LetsencryptAccountKey__by_id(dbSession, key_id, eagerload_web=False):
+    q = dbSession.query(LetsencryptAccountKey)\
+        .filter(LetsencryptAccountKey.id == key_id)
+    item = q.first()
+    if eagerload_web and item:
+        item.certificate_requests_5
+        item.signed_certificates_5
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -218,11 +250,14 @@ def get__LetsencryptPrivateKey__paginated(dbSession, limit=None, offset=0, activ
     return items_paged
 
 
-def get__LetsencryptPrivateKey__by_id(dbSession, cert_id):
-    dbLetsencryptPrivateKey = dbSession.query(LetsencryptPrivateKey)\
-        .filter(LetsencryptPrivateKey.id == cert_id)\
-        .first()
-    return dbLetsencryptPrivateKey
+def get__LetsencryptPrivateKey__by_id(dbSession, cert_id, eagerload_web=False):
+    q = dbSession.query(LetsencryptPrivateKey)\
+        .filter(LetsencryptPrivateKey.id == cert_id)
+    item = q.first()
+    if eagerload_web and item:
+        item.certificate_requests_5
+        item.signed_certificates_5
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -232,7 +267,7 @@ def get__LetsencryptOperationsEvent__count(dbSession, event_type_ids=None):
     q = dbSession.query(LetsencryptOperationsEvent)
     if event_type_ids is not None:
         q = q.filter(LetsencryptOperationsEvent.letsencrypt_operations_event_type_id.in_(event_type_ids))
-    items_count = q.count()    
+    items_count = q.count()
     return items_count
 
 
@@ -298,6 +333,63 @@ def get__LetsencryptCACertificate__by_id(dbSession, cert_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__count(dbSession, key_id):
+    counted = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by == key_id)\
+        .count()
+    return counted
+
+
+def get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(dbSession, key_id, limit=None, offset=0):
+    items_paged = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by == key_id)\
+        .order_by(LetsencryptServerCertificate.id.desc())\
+        .limit(limit)\
+        .offset(offset)\
+        .all()
+    return items_paged
+
+
+def get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__count(dbSession, key_id):
+    counted = dbSession.query(LetsencryptCertificateRequest)\
+        .filter(LetsencryptCertificateRequest.letsencrypt_account_key_id == key_id)\
+        .count()
+    return counted
+
+
+def get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__paginated(dbSession, key_id, limit=None, offset=0):
+    items_paged = dbSession.query(LetsencryptCertificateRequest)\
+        .filter(LetsencryptCertificateRequest.letsencrypt_account_key_id == key_id)\
+        .options(sqlalchemy.orm.joinedload('certificate_request_to_domains').joinedload('domain'),
+                 )\
+        .order_by(LetsencryptCertificateRequest.id.desc())\
+        .limit(limit)\
+        .offset(offset)\
+        .all()
+    return items_paged
+
+
+def get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__count(dbSession, key_id):
+    counted = dbSession.query(LetsencryptCertificateRequest)\
+        .filter(LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by == key_id)\
+        .count()
+    return counted
+
+
+def get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__paginated(dbSession, key_id, limit=None, offset=0):
+    items_paged = dbSession.query(LetsencryptCertificateRequest)\
+        .filter(LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by == key_id)\
+        .options(sqlalchemy.orm.joinedload('certificate_request_to_domains').joinedload('domain'),
+                 )\
+        .order_by(LetsencryptCertificateRequest.id.desc())\
+        .limit(limit)\
+        .offset(offset)\
+        .all()
+    return items_paged
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(dbSession, cert_id):
     counted = dbSession.query(LetsencryptServerCertificate)\
         .filter(LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain == cert_id)\
@@ -315,7 +407,10 @@ def get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
     return items_paged
 
 
-def get__LetsencryptServerCertificate__by_LetsencryptDomain__count(dbSession, domain_id):
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__LetsencryptServerCertificate__by_LetsencryptDomainId__count(dbSession, domain_id):
     counted = dbSession.query(LetsencryptServerCertificate)\
         .join(LetsencryptServerCertificate2LetsencryptDomain,
               LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
@@ -325,7 +420,7 @@ def get__LetsencryptServerCertificate__by_LetsencryptDomain__count(dbSession, do
     return counted
 
 
-def get__LetsencryptServerCertificate__by_LetsencryptDomain__paginated(dbSession, domain_id, limit=None, offset=0):
+def get__LetsencryptServerCertificate__by_LetsencryptDomainId__paginated(dbSession, domain_id, limit=None, offset=0):
     items_paged = dbSession.query(LetsencryptServerCertificate)\
         .join(LetsencryptServerCertificate2LetsencryptDomain,
               LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,

@@ -49,20 +49,22 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:private_key:focus', renderer='/admin/private_key-focus.mako')
-    def private_key_focus(self):
-        dbLetsencryptPrivateKey = lib_db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'])
+    def _private_key_focus(self, eagerload_web=False):
+        dbLetsencryptPrivateKey = lib_db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'], eagerload_web=eagerload_web, )
         if not dbLetsencryptPrivateKey:
             raise HTTPNotFound('the key was not found')
+        return dbLetsencryptPrivateKey
+
+    @view_config(route_name='admin:private_key:focus', renderer='/admin/private_key-focus.mako')
+    def private_key_focus(self):
+        dbLetsencryptPrivateKey = self._private_key_focus(eagerload_web=True)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptPrivateKey': dbLetsencryptPrivateKey
                 }
 
     @view_config(route_name='admin:private_key:focus:raw', renderer='string')
     def private_key_focus_raw(self):
-        dbLetsencryptPrivateKey = lib_db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'])
-        if not dbLetsencryptPrivateKey:
-            raise HTTPNotFound('the key was not found')
+        dbLetsencryptPrivateKey = self._private_key_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
             return dbLetsencryptPrivateKey.key_pem
@@ -72,6 +74,40 @@ class ViewAdmin(Handler):
             self.request.response.content_type = 'application/pkcs8'
             as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptPrivateKey.key_pem)
             return as_der
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:private_key:focus:certificates', renderer='/admin/private_key-focus-certificates.mako')
+    @view_config(route_name='admin:private_key:focus:certificates_paginated', renderer='/admin/private_key-focus-certificates.mako')
+    def private_key_focus__certificates(self):
+        dbLetsencryptPrivateKey = self._private_key_focus()
+        items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__count(
+            DBSession, dbLetsencryptPrivateKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private_key/%s/certificates/{0}' % dbLetsencryptPrivateKey.id)
+        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(
+            DBSession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptPrivateKey': dbLetsencryptPrivateKey,
+                'LetsencryptServerCertificates_count': items_count,
+                'LetsencryptServerCertificates': items_paged,
+                'pager': pager,
+                }
+
+    @view_config(route_name='admin:private_key:focus:certificate_requests', renderer='/admin/private_key-focus-certificate_requests.mako')
+    @view_config(route_name='admin:private_key:focus:certificate_requests_paginated', renderer='/admin/private_key-focus-certificate_requests.mako')
+    def private_key_focus__certificate_requests(self):
+        dbLetsencryptPrivateKey = self._private_key_focus()
+        items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__count(
+            DBSession, dbLetsencryptPrivateKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private_key/%s/certificate_requests/{0}' % dbLetsencryptPrivateKey.id)
+        items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__paginated(
+            DBSession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptPrivateKey': dbLetsencryptPrivateKey,
+                'LetsencryptCertificateRequests_count': items_count,
+                'LetsencryptCertificateRequests': items_paged,
+                'pager': pager,
+                }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

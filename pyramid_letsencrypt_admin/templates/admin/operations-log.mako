@@ -19,7 +19,7 @@
     <div class="row">
         <div class="col-sm-9">
             % if LetsencryptOperationsEvents:
-                ${admin_partials.nav_pager(pager)}
+                ${admin_partials.nav_pagination(pager)}
                 ${admin_partials.table_LetsencryptOperationsEvents(LetsencryptOperationsEvents, show_event='event.id')}
             % else:
                 <em>

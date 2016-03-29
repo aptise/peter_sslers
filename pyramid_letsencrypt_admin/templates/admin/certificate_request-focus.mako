@@ -46,7 +46,7 @@
         <tr>
             <th>certificate_request_type</th>
             <td>
-                <span class="label label-info">${LetsencryptCertificateRequest.certificate_request_type}</span>
+                <span class="label label-default">${LetsencryptCertificateRequest.certificate_request_type}</span>
             </td>
         </tr>
         <tr>
@@ -109,7 +109,7 @@
         </a>
         <a 
             href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/deactivate"
-            class="btn btn-info"
+            class="btn btn-primary"
         >
             deactivate
         </a>

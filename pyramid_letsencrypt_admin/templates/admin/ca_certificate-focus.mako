@@ -121,15 +121,7 @@
             <td>
                 % if LetsencryptServerCertificates:
                     ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
-                    <nav>
-                      <ul class="pager">
-                        <li>
-                            <a 
-                                href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/signed_certificates"
-                            >See All</a>
-                        </li>
-                      </ul>
-                    </nav>
+                    ${admin_partials.nav_pager("/.well-known/admin/ca_certificate/%s/signed_certificates" % LetsencryptCACertificate.id)}
                 % else:
                     No known certificates.
                 % endif 

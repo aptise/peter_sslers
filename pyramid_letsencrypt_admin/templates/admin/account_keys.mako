@@ -18,7 +18,7 @@
 
 <%block name="content_main">
     % if LetsencryptAccountKeys:
-        ${admin_partials.nav_pager(pager)}
+        ${admin_partials.nav_pagination(pager)}
         <table class="table table-striped">
             <thead>
                 <tr>

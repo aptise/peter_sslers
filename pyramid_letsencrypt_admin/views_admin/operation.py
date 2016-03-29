@@ -115,12 +115,11 @@ class ViewAdminOperations(Handler):
                                                                     )
         count_deactivated_duplicated = operations_event3.event_payload_json['count_deactivated']
         rval['LetsencryptServerCertificate']['duplicates.deactivated'] = count_deactivated_duplicated
-        
+
         DBSession.flush()
-        
+
         operations_event1.letsencrypt_sync_event_id_child_of = operations_event3.id
         operations_event2.letsencrypt_sync_event_id_child_of = operations_event3.id
-        
 
         rval['result'] = 'success'
         rval['operations_event'] = operations_event3.id
@@ -143,11 +142,9 @@ class ViewAdminOperations(Handler):
         self._ensure_redis()
 
         _items_per_page = 25
-        items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession, 
-            event_type_ids=(LetsencryptOperationsEventType.redis_prime, ))
+        items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ))
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/log/{0}', items_per_page=_items_per_page)
-        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession,
-            event_type_ids=(LetsencryptOperationsEventType.redis_prime, ), limit=_items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ), limit=_items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptOperationsEvents__count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
@@ -167,11 +164,11 @@ class ViewAdminOperations(Handler):
         redis_url = self.request.registry.settings['redis.url']
         redis_options = {}
         redis_client = lib_utils.get_default_connection(self.request, redis_url, **redis_options)
-        
+
         total_primed = {'cacert': 0,
                         'cert': 0,
                         'pkey': 0,
-                        'domain': 0,        
+                        'domain': 0,
                         }
 
         timeouts = {'cacert': None,
@@ -344,7 +341,6 @@ class ViewAdminOperations(Handler):
                     # no more
                     break
                 offset += limit
-
 
         dbEvent = lib_db.create__LetsencryptOperationsEvent(DBSession,
                                                             LetsencryptOperationsEventType.redis_prime,

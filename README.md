@@ -455,6 +455,14 @@ the redis datastore might look something like this:
 
 After priming redis with new data, one should be able to hit an nginx route that expires the shared cache
 
+## update objects
+
+account keys:
+* timestamp last cert issue
+* timestamp last csr
+* count certs
+* count issues
+
 ## api hooks
 
 in the meantime, `curl` can be used to trigger normal requests

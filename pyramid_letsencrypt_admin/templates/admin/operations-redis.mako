@@ -20,7 +20,7 @@
     <div class="row">
         <div class="col-sm-9">
             % if LetsencryptOperationsEvents:
-                ${admin_partials.nav_pager(pager)}
+                ${admin_partials.nav_pagination(pager)}
                 <%
                     event_id = None
                     if show_event is not None:

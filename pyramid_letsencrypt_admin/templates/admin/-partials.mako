@@ -1,5 +1,5 @@
 
-<%def name="table_to_certificates(to_certificates, show_domains=False, show_domains_title='domains')">
+<%def name="table_to_certificates(to_certificates, show_domains=False, show_domains_title='domains', show_expiring_days=False)">
     <table class="table table-striped">
         <thead>
             <tr>
@@ -7,6 +7,9 @@
                 <th>active?</th>
                 <th>timestamp_signed</th>
                 <th>timestamp_expires</th>
+                % if show_expiring_days:
+                    <th>expiring days</th>
+                % endif
                 % if show_domains:
                     <th>${show_domains_title}</th>
                 % endif
@@ -23,6 +26,13 @@
                 </td>
                 <td><timestamp>${to_cert.certificate.timestamp_signed}</timestamp></td>
                 <td><timestamp>${to_cert.certificate.timestamp_expires or ''}</timestamp></td>
+                % if show_expiring_days:
+                    <td>
+                        <span class="label label-${to_cert.certificate.expiring_days_label}">
+                            ${to_cert.certificate.expiring_days}
+                        </span>
+                    </td>
+                % endif
                 % if show_domains:
                      <td>${', '.join([to_d.domain.domain_name for to_d in to_cert.certificate.certificate_to_domains])}</td>
                 % endif
@@ -58,7 +68,7 @@
                     </span>
                 </td>
                 <td>
-                    <span class="label label-info">${to_cr.certificate_request.certificate_request_type}</span>
+                    <span class="label label-defaul">${to_cr.certificate_request.certificate_request_type}</span>
                 </td>                
                 <td><timestamp>${to_cr.timestamp_verified or ''}</timestamp></td>
                 <td><code>${to_cr.challenge_key or ''}</code></td>
@@ -70,7 +80,7 @@
 </%def>
 
 
-<%def name="table_certificates__list(certificates, show_domains=False)">
+<%def name="table_certificates__list(certificates, show_domains=False, show_expiring_days=False)">
     <table class="table table-striped">
         <thead>
             <tr>
@@ -78,6 +88,9 @@
                 <th>active?</th>
                 <th>timestamp_signed</th>
                 <th>timestamp_expires</th>
+                % if show_expiring_days:
+                    <th>expiring days</th>
+                % endif
                 % if show_domains:
                     <th>domains</th>
                 % endif
@@ -94,6 +107,13 @@
                 </td>
                 <td><timestamp>${cert.timestamp_signed}</timestamp></td>
                 <td><timestamp>${cert.timestamp_expires or ''}</timestamp></td>
+                % if show_expiring_days:
+                    <td>
+                        <span class="label label-${cert.expiring_days_label}">
+                            ${cert.expiring_days}
+                        </span>
+                    </td>
+                % endif
                 % if show_domains:
                     <td>${', '.join([to_d.domain.domain_name for to_d in cert.certificate_to_domains])}</td>
                 % endif
@@ -130,7 +150,7 @@
                         href="/.well-known/admin/certificate_request/${certificate_request.id}">&gt; ${certificate_request.id}</a>
                 </td>
                 <td>
-                    <span class="label label-info">${certificate_request.certificate_request_type}</span>
+                    <span class="label label-default">${certificate_request.certificate_request_type}</span>
                 </td>                
                 <td>
                     <span class="label label-${'success' if certificate_request.is_active else 'warning'}">
@@ -222,7 +242,7 @@
                 <tr>
                     <td>
                         % if active_domain_id == to_d.letsencrypt_domain_id:
-                            <span class="label label-info">active</span>
+                            <span class="label label-success">active</span>
                         % endif
                     </td>
                     <td>
@@ -482,7 +502,7 @@
 </%def>
 
 
-<%def name="nav_pager(pager)">
+<%def name="nav_pagination(pager)">
     <% if not pager: return '' %>
     <center>
         <nav>
@@ -507,6 +527,19 @@
             </ul>
         </nav>
     </center>
+</%def>
+
+
+<%def name="nav_pager(see_all_url, see_all_text='See All')">
+    <nav>
+      <ul class="pager">
+        <li>
+            <a 
+                href="${see_all_url}"
+            >${see_all_text}</a>
+        </li>
+      </ul>
+    </nav>
 </%def>
 
 

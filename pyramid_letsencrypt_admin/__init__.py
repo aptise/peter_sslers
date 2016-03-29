@@ -65,6 +65,9 @@ def main(global_config, **settings):
 
         config.add_route('admin:certificates', '/.well-known/admin/certificates')
         config.add_route('admin:certificates_paginated', '/.well-known/admin/certificates/{page:\d+}')
+        config.add_route('admin:certificates:expiring', '/.well-known/admin/certificates/expiring')
+        config.add_route('admin:certificates:expiring_paginated', '/.well-known/admin/certificates/expiring/{page:\d+}')
+
         config.add_route('admin:certificate:focus', '/.well-known/admin/certificate/{id:\d+}')
         config.add_route('admin:certificate:focus:config_json', '/.well-known/admin/certificate/{id:\d+}/config.json')
         config.add_route('admin:certificate:focus:chain:raw', '/.well-known/admin/certificate/{id:\d+}/chain.{format:(cer|crt|der|pem|pem.txt)}')
@@ -91,12 +94,20 @@ def main(global_config, **settings):
         config.add_route('admin:account_keys_paginated', '/.well-known/admin/account_keys/{page:\d+}')
         config.add_route('admin:account_key:focus', '/.well-known/admin/account_key/{id:\d+}')
         config.add_route('admin:account_key:focus:raw', '/.well-known/admin/account_key/{id:\d+}/key.{format:(key|pem|pem.txt)}')
+        config.add_route('admin:account_key:focus:certificate_requests', '/.well-known/admin/account_key/{id:\d+}/certificate_requests')
+        config.add_route('admin:account_key:focus:certificate_requests_paginated', '/.well-known/admin/account_key/{id:\d+}/certificate_requests/{page:\d+}')
+        config.add_route('admin:account_key:focus:certificates', '/.well-known/admin/account_key/{id:\d+}/certificates')
+        config.add_route('admin:account_key:focus:certificates_paginated', '/.well-known/admin/account_key/{id:\d+}/certificates/{page:\d+}')
         config.add_route('admin:account_key:new', '/.well-known/admin/account_key/new')
 
         config.add_route('admin:private_keys', '/.well-known/admin/private_keys')
         config.add_route('admin:private_keys_paginated', '/.well-known/admin/private_keys/{page:\d+}')
         config.add_route('admin:private_key:focus', '/.well-known/admin/private_key/{id:\d+}')
         config.add_route('admin:private_key:focus:raw', '/.well-known/admin/private_key/{id:\d+}/key.{format:(key|pem|pem.txt)}')
+        config.add_route('admin:private_key:focus:certificates', '/.well-known/admin/private_key/{id:\d+}/certificates')
+        config.add_route('admin:private_key:focus:certificates_paginated', '/.well-known/admin/private_key/{id:\d+}/certificates/{page:\d+}')
+        config.add_route('admin:private_key:focus:certificate_requests', '/.well-known/admin/private_key/{id:\d+}/certificate_requests')
+        config.add_route('admin:private_key:focus:certificate_requests_paginated', '/.well-known/admin/private_key/{id:\d+}/certificate_requests/{page:\d+}')
         config.add_route('admin:private_key:new', '/.well-known/admin/private_key/new')
 
         config.add_route('admin:ca_certificates', '/.well-known/admin/ca_certificates')

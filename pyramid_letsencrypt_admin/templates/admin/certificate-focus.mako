@@ -61,9 +61,23 @@
             <td><timestamp>${LetsencryptServerCertificate.timestamp_expires}</timestamp></td>
         </tr>
         <tr>
+            <th>expires in days</th>
+            <td>
+                <span class="label label-${LetsencryptServerCertificate.expiring_days_label}">
+                    ${LetsencryptServerCertificate.expiring_days}
+                </span>
+            </td>
+        </tr>
+        <tr>
             <th>letsencrypt_ca_certificate_id__upchain</th>
             <td>
                 <a class="label label-info" href="/.well-known/admin/ca_certificate/${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}">&gt; ${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}</a>
+            </td>
+        </tr>
+        <tr>
+            <th>letsencrypt_private_key_id__signed_by</th>
+            <td>
+                <a class="label label-info" href="/.well-known/admin/private_key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">&gt; ${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}</a>
             </td>
         </tr>
         <tr>
