@@ -30,7 +30,7 @@
             <tbody>
             % for key in LetsencryptAccountKeys:
                 <tr>
-                    <td><a class="label label-default" href="/.well-known/admin/account_key/${key.id}">&gt; ${key.id}</a></td>
+                    <td><a class="label label-info" href="/.well-known/admin/account_key/${key.id}">&gt; ${key.id}</a></td>
                     <td><timestamp>${key.timestamp_first_seen}<timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>
                 </tr>

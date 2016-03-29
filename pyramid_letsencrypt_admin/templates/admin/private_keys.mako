@@ -30,7 +30,7 @@
             </thead>
             % for key in LetsencryptPrivateKeys:
                 <tr>
-                    <td><a class="label label-default" href="/.well-known/admin/private_key/${key.id}">&gt; ${key.id}</a></td>
+                    <td><a class="label label-info" href="/.well-known/admin/private_key/${key.id}">&gt; ${key.id}</a></td>
                     <td><span class="badge">${key.count_active_certificates or ''}</span></td>
                     <td><timestamp>${key.timestamp_first_seen}</timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>

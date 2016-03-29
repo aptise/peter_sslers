@@ -15,7 +15,7 @@
         <tbody>
         % for to_cert in to_certificates:
             <tr>
-                <td><a class="label label-default" href="/.well-known/admin/certificate/${to_cert.certificate.id}">&gt; ${to_cert.certificate.id}</a></td>
+                <td><a class="label label-info" href="/.well-known/admin/certificate/${to_cert.certificate.id}">&gt; ${to_cert.certificate.id}</a></td>
                 <td>
                     <span class="label label-${'success' if to_cert.certificate.is_active else 'warning'}">
                         ${'Active' if to_cert.certificate.is_active else 'inactive'}
@@ -49,7 +49,7 @@
         % for to_cr in to_certificate_requests:
             <tr>
                 <td>
-                    <a  class="label label-default"
+                    <a  class="label label-info"
                         href="/.well-known/admin/certificate_request/${to_cr.certificate_request.id}">&gt; ${to_cr.certificate_request.id}</a>
                 </td>
                 <td>
@@ -86,7 +86,7 @@
         <tbody>
         % for cert in certificates:
             <tr>
-                <td><a class="label label-default" href="/.well-known/admin/certificate/${cert.id}">&gt; ${cert.id}</a></td>
+                <td><a class="label label-info" href="/.well-known/admin/certificate/${cert.id}">&gt; ${cert.id}</a></td>
                 <td>
                     <span class="label label-${'success' if cert.is_active else 'warning'}">
                         ${'Active' if cert.is_active else 'inactive'}
@@ -126,7 +126,7 @@
         % for certificate_request in certificate_requests:
             <tr>
                 <td>
-                    <a  class="label label-default"
+                    <a  class="label label-info"
                         href="/.well-known/admin/certificate_request/${certificate_request.id}">&gt; ${certificate_request.id}</a>
                 </td>
                 <td>
@@ -145,7 +145,7 @@
                 % if show_certificate:
                     <td>
                         % if certificate_request.signed_certificate:
-                            <a  class="label label-default"
+                            <a  class="label label-info"
                                 href="/.well-known/admin/certificate/${certificate_request.signed_certificate.id}">&gt; ${certificate_request.signed_certificate.id}</a>
                         % else:
                             &nbsp;
@@ -179,7 +179,7 @@
             <tbody>
                 % for to_d in lcr2mds:
                     <tr>
-                        <td><a href="/.well-known/admin/domain/${to_d.domain.id}" class="label label-default">&gt; ${to_d.domain.id}</a> ${to_d.domain.domain_name}</td>
+                        <td><a href="/.well-known/admin/domain/${to_d.domain.id}" class="label label-info">&gt; ${to_d.domain.id}</a> ${to_d.domain.domain_name}</td>
                         <td><timestamp>${to_d.timestamp_verified or ''}</timestamp></td>
                         <td><code>${to_d.challenge_key or ''}</code></td>
                         <td><code>${to_d.challenge_text or ''}</code></td>
@@ -266,7 +266,7 @@
                     </td>
                     <td>
                         % if to_d.is_configured:
-                            <a  class="label label-default"
+                            <a  class="label label-info"
                                 target="_blank"
                                 href="http://${to_d.domain.domain_name}/.well-known/acme-challenge/${to_d.challenge_key}?test=1"
                             >

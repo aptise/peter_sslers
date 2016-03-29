@@ -53,7 +53,7 @@
             <th>letsencrypt_account_key_id</th>
             <td>
                 % if LetsencryptCertificateRequest.letsencrypt_account_key_id:
-                    <a class="label label-default" href="/.well-known/admin/account_key/${LetsencryptCertificateRequest.letsencrypt_account_key_id}">&gt; ${LetsencryptCertificateRequest.letsencrypt_account_key_id}</a>
+                    <a class="label label-info" href="/.well-known/admin/account_key/${LetsencryptCertificateRequest.letsencrypt_account_key_id}">&gt; ${LetsencryptCertificateRequest.letsencrypt_account_key_id}</a>
                 % endif
             </td>
         </tr>
@@ -61,7 +61,7 @@
             <th>letsencrypt_private_key_id__signed_by</th>
             <td>
                 % if LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by:
-                    <a class="label label-default" href="/.well-known/admin/private_key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">&gt; ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
+                    <a class="label label-info" href="/.well-known/admin/private_key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">&gt; ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
                 % endif
             </td>
         </tr>

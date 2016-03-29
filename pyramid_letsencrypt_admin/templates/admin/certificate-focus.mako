@@ -63,14 +63,14 @@
         <tr>
             <th>letsencrypt_ca_certificate_id__upchain</th>
             <td>
-                <a class="label label-default" href="/.well-known/admin/ca_certificate/${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}">&gt; ${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}</a>
+                <a class="label label-info" href="/.well-known/admin/ca_certificate/${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}">&gt; ${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}</a>
             </td>
         </tr>
         <tr>
             <th>letsencrypt_certificate_request_id</th>
             <td>
                 % if LetsencryptServerCertificate.letsencrypt_certificate_request_id:
-                    <a class="label label-default" href="/.well-known/admin/certificate_request/${LetsencryptServerCertificate.letsencrypt_certificate_request_id}">&gt; ${LetsencryptServerCertificate.letsencrypt_certificate_request_id}</a>
+                    <a class="label label-info" href="/.well-known/admin/certificate_request/${LetsencryptServerCertificate.letsencrypt_certificate_request_id}">&gt; ${LetsencryptServerCertificate.letsencrypt_certificate_request_id}</a>
                 % endif
             </td>
         </tr>
@@ -195,7 +195,7 @@
                         % for to_d in LetsencryptServerCertificate.certificate_to_domains:
                             <tr>
                                 <td>
-                                    <a class="label label-default" href="/.well-known/admin/domain/${to_d.domain.id}">&gt; ${to_d.domain.id}</a>
+                                    <a class="label label-info" href="/.well-known/admin/domain/${to_d.domain.id}">&gt; ${to_d.domain.id}</a>
                                 </td>
                                 <td>
                                     ${to_d.domain.domain_name}

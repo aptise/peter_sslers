@@ -29,7 +29,7 @@
             % for d in LetsencryptDomains:
                 <tr>
                     <td>
-                        <a  class="label label-default"
+                        <a  class="label label-info"
                             href="/.well-known/admin/domain/${d.id}">&gt; ${d.id}</a>
                     </td>
                     <td>${d.domain_name}</td>
