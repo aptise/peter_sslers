@@ -45,7 +45,7 @@
             <h3>This form accepts JSON</h3>
             
             <p>
-                <code>curl http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload/json</code>
+                <code>curl http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload.json</code>
             </p>
 
 <p>
@@ -55,7 +55,7 @@
 &nbsp;--form 'le_x2_cross_signed_file=@lets-encrypt-x2-cross-signed.pem'\<br/>
 &nbsp;--form 'le_x1_auth_file=@letsencryptauthorityx2.pem'\<br/>
 &nbsp;--form 'le_x2_auth_file=@letsencryptauthorityx2.pem'\<br/>
-&nbsp;http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload_bundle/json
+&nbsp;http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload_bundle.json
 </code>
 </p>
 

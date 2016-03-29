@@ -114,7 +114,7 @@ class ViewAdmin(Handler):
 
     def _ca_certificate_upload__print(self):
         if self.request.matched_route.name == 'admin:ca_certificate:upload:json':
-            return {'instructions': """curl --form 'chain_file=@chain1.pem' --form http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload/json""",
+            return {'instructions': """curl --form 'chain_file=@chain1.pem' --form http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload.json""",
                     'form_fields': {'chain_file': 'required',
                                     },
                     }
@@ -172,7 +172,7 @@ class ViewAdmin(Handler):
 
     def _ca_certificate_upload_bundle__print(self):
         if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle:json':
-            return {'instructions': """curl --form 'isrgrootx1_file=@isrgrootx1.pem' --form 'le_x1_cross_signed_file=@lets-encrypt-x1-cross-signed.pem' --form 'le_x2_cross_signed_file=@lets-encrypt-x2-cross-signed.pem' --form 'le_x1_auth_file=@letsencryptauthorityx2.pem' --form 'le_x2_auth_file=@letsencryptauthorityx2.pem' --form http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload_bundle/json""",
+            return {'instructions': """curl --form 'isrgrootx1_file=@isrgrootx1.pem' --form 'le_x1_cross_signed_file=@lets-encrypt-x1-cross-signed.pem' --form 'le_x2_cross_signed_file=@lets-encrypt-x2-cross-signed.pem' --form 'le_x1_auth_file=@letsencryptauthorityx2.pem' --form 'le_x2_auth_file=@letsencryptauthorityx2.pem' --form http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload_bundle.json""",
                     'form_fields': {'isrgrootx1_file': 'optional',
                                     'le_x1_cross_signed_file': 'optional',
                                     'le_x2_cross_signed_file': 'optional',

@@ -80,8 +80,8 @@ Imagine you want to issue a certificate for 100 domains, which could be served f
 
 To solve this you can:
 
-* proxy external `/acme-challenge/` to one or more machines running this tool (they just need to share a common datastore)
-* make `/admin` only usable within your LAN
+* proxy external ` /.well-known/acme-challenge/` to one or more machines running this tool (they just need to share a common datastore)
+* make ` /.well-known/admin` only usable within your LAN or NEVER USABLE
 * on a machine within your LAN, you can query for the latest certs for domain(s) using simple `curl` commands
 
 In a more advanced implementation, the certificates need to be loaded into `redis` for use by an `openresty`/`nginx` server that will dynamically handle ssl connections.
@@ -167,33 +167,55 @@ right now the invoke script offers:
 
 ## commandline interface
 
+You can interact with this project via a commandline interface in several ways.
+
+* run a webserver instance and query JSON urls
+* run explicit routes via `prequest`.  this allows you to do admin tasks without spinnig up a server
+
+### prequest
+
+`$VENV/bin/prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json`
+
+
 ### Routes Designed for JSON Automation
 
-#### /admin/operations/update_recents
 
-Updates domain records to list the most recent certificate for the domain
+#### `/.well-known/admin/operations/ca_certificate_probes/probe.json`
 
-#### /admin/operations/deactivate_expired
+Probes known URLs of LetsEncrypt keys and saves them with the correct role information.
+
+If the keys were previously discovered during a signing process, it will decorate the existing records with the role data.
+
+#### `/.well-known/admin/operations/deactivate_expired.json`
 
 Deactivates expired certs
 
+#### `/.well-known/admin/operations/redis/prime.json`
+
+Primes a redis cache with domain data.
+
+#### `/.well-known/admin/operations/update_recents.json`
+
+Updates domain records to list the most recent certificate for the domain
+
+
 ### Routes with JSON support
 
-several routes have support for JSON requests via a `/json` suffix.
+several routes have support for JSON requests via a `.json` suffix.
 
 these are usually documented on the html version
 
-#### /admin/certificate/upload/json
+#### `/.well-known/admin/certificate/upload.json`
 
 This can be used used to directly import certs issued by LetsEncrypt
 
-	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json
+	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload.json
 
-	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json
+	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload.json
 	
-Note that the url is not `/upload` like the html form but `/upload/json`
+Note that the url is not `/upload` like the html form but `/upload.json`
 
-Both URLS accept the same form, but /upload/json returns json data that is probably more readable.
+Both URLS accept the same form data, but `/upload.json` returns json data that is probably more readable from the commandline
 
 Errors will appear in JSON if encountered.
 
@@ -204,11 +226,19 @@ There is even an `invoke` script to automate these imports:
 	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:6543'
 
 
-### Routes Designed for JSON access
+#### `/.well-known/admin/ca_certificate/upload.json`
 
-#### Domain Data
+Upload a new LetsEncrypt certificate.
 
-`/admin/domain/{DOMAIN|ID}/config.json`
+`uplaod_bundle` is preferred as it provides better tracking.
+
+
+#### `/.well-known/admin/ca_certificate/upload_bundle.json`
+
+Upload a new LetsEncrypt certificate with a known role.
+
+
+#### `/.well-known/admin/domain/{DOMAIN|ID}/config.json` Domain Data
 
 `{DOMAIN|ID}` can be the internal numeric id or the domain name.
 
@@ -239,9 +269,7 @@ if you pass in the querystring '?idonly=1', the PEMs will not be returned.
 notice that the numeric ids are returned as strings. this is by design.
 
 
-#### Certificate Access
-
-`/admin/certificate/{ID}/config.json`
+#### `/.well-known/admin/certificate/{ID}/config.json` Certificate Data
 
 The certificate JSON payload is what is nested in the DOMAIN payload
 
@@ -264,19 +292,19 @@ notice that the numeric ids are returned as strings. this is by design.
 
 Need to get the cert data directly?  NO SWEAT.  transforms on the server and sent to you with the appropriate headers.
 
-* /admin/certificate/{ID}/cert.crt
-* /admin/certificate/{ID}/cert.pem
-* /admin/certificate/{ID}/cert.pem.txt
-* /admin/certificate/{ID}/chain.cer
-* /admin/certificate/{ID}/chain.crt
-* /admin/certificate/{ID}/chain.der
-* /admin/certificate/{ID}/chain.pem
-* /admin/certificate/{ID}/chain.pem.txt
-* /admin/certificate/{ID}/fullchain.pem
-* /admin/certificate/{ID}/fullchain.pem.txt
-* /admin/certificate/{ID}/privkey.key
-* /admin/certificate/{ID}/privkey.pem
-* /admin/certificate/{ID}/privkey.pem.txt
+* /.well-known/admin/certificate/{ID}/cert.crt
+* /.well-known/admin/certificate/{ID}/cert.pem
+* /.well-known/admin/certificate/{ID}/cert.pem.txt
+* /.well-known/admin/certificate/{ID}/chain.cer
+* /.well-known/admin/certificate/{ID}/chain.crt
+* /.well-known/admin/certificate/{ID}/chain.der
+* /.well-known/admin/certificate/{ID}/chain.pem
+* /.well-known/admin/certificate/{ID}/chain.pem.txt
+* /.well-known/admin/certificate/{ID}/fullchain.pem
+* /.well-known/admin/certificate/{ID}/fullchain.pem.txt
+* /.well-known/admin/certificate/{ID}/privkey.key
+* /.well-known/admin/certificate/{ID}/privkey.pem
+* /.well-known/admin/certificate/{ID}/privkey.pem.txt
 
 
 # FAQ
@@ -323,7 +351,7 @@ So far this has been tested behind a couple of load balancers that use round-rob
 
 * nginx is on port 80.  everything in the /.well-known directory is proxied to an internal machine *which is not guaranteed to be up*
 * this service is only spun up when certificate management is needed
-* /admin is not on the public internet
+* /.well-known/admin is not on the public internet
 
 
 
@@ -339,27 +367,27 @@ currently only `redis.prime_style = 1` is supported.
 
 this prime style will store data into redis in the following format:
 
-* `d:{DOMAIN_NAME}` a 3 element tuple ids for ServerCertificate, PrivateKey, CACertificate
-* `c:{ID}` the ServerCertificate in PEM format; (c)ert
-* `p:{ID}` the PrivateKey in PEM format; (p)rivate
-* `i:{ID}` the CACertificate in PEM format; (i)ntermediate cert
+* `d:{DOMAIN_NAME}` a 3 element hash for ServerCertificate (c), PrivateKey (p), CACertificate (i). note it has a leading colon.
+* `c{ID}` the ServerCertificate in PEM format; (c)ert
+* `p{ID}` the PrivateKey in PEM format; (p)rivate
+* `i{ID}` the CACertificate in PEM format; (i)ntermediate cert
 
 the redis datastore might look something like this:
 
-	r['d:foo.example.com'] = ('c:1', 'p:1', 'i:99')  # certid, pkeyid, chainid
-	r['d:foo2.example.com'] = ('c:2', 'p:1', 'i:99')  # certid, pkeyid, chainid
-	r['c:1'] = CERT.PEM  # (c)ert
-	r['c:2'] = CERT.PEM
-	r['p:2'] = PKEY.PEM  # (p)rivate
-	r['i:99'] = CACERT.PEM  # (i)ntermediate cert
+	r['d:foo.example.com'] = {'c': '1', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+	r['d:foo2.example.com'] = {'c': '2', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+	r['c1'] = CERT.PEM  # (c)ert
+	r['c2'] = CERT.PEM
+	r['p2'] = PKEY.PEM  # (p)rivate
+	r['i99'] = CACERT.PEM  # (i)ntermediate cert
 	
 to assemble the data for `foo.example.com`:
 
-* (c, p, i) = r.get('d:foo.example.com')
-** returns ('c:1', 'p:1', 'i:99')
-* cert = r.get('c:1')
-* pkey = r.get('p:1')
-* chain = r.get('i:99')
+* (c, p, i) = r.hmget('d:foo.example.com', 'c', 'p', 'i')
+** returns {'c': '1', 'p': '1', 'i': '99'}
+* cert = r.get('c1')
+* pkey = r.get('p1')
+* chain = r.get('i99')
 * fullchain = cert + "\n" + chain
 
 

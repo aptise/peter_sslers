@@ -138,6 +138,7 @@ class ViewAdminOperations(Handler):
                 }
 
     @view_config(route_name='admin:operations:redis:prime', renderer=None)
+    @view_config(route_name='admin:operations:redis:prime:json', renderer='json')
     def admin_redis_prime(self):
         self._ensure_redis()
 
@@ -148,6 +149,12 @@ class ViewAdminOperations(Handler):
         redis_url = self.request.registry.settings['redis.url']
         redis_options = {}
         redis_client = lib_utils.get_default_connection(self.request, redis_url, **redis_options)
+        
+        total_primed = {'cacert': 0,
+                        'cert': 0,
+                        'pkey': 0,
+                        'domain': 0,        
+                        }
 
         timeouts = {'cacert': None,
                     'cert': None,
@@ -159,25 +166,27 @@ class ViewAdminOperations(Handler):
             if key_ini in self.request.registry.settings:
                 timeouts[_t] = int(self.request.registry.settings[key_ini])
 
+        dbEvent = None
         if prime_style == '1':
             """
             first priming style
             --
-            our data should look like this
-                r['d:foo.example.com'] = ('c:1', 'p:1', 'i:99')  # certid, pkeyid, chainid
-                r['d:foo2.example.com'] = ('c:2', 'p:1', 'i:99')  # certid, pkeyid, chainid
-                r['c:1'] = CERT.PEM  # (c)ert
-                r['c:2'] = CERT.PEM
-                r['p:2'] = PKEY.PEM  # (p)rivate
-                r['i:99'] = CACERT.PEM  # (i)ntermediate cert
+            the redis datastore will look like this:
+
+                r['d:foo.example.com'] = {'c': '1', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+                r['d:foo2.example.com'] = {'c': '2', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+                r['c1'] = CERT.PEM  # (c)ert
+                r['c2'] = CERT.PEM
+                r['p2'] = PKEY.PEM  # (p)rivate
+                r['i99'] = CACERT.PEM  # (i)ntermediate cert
 
             to assemble the data for `foo.example.com`:
 
-                * (c, p, i) = r.get('d:foo.example.com')
-                ** returns ('c:1', 'p:1', 'i:99')
-                * cert = r.get('c:1')
-                * pkey = r.get('p:1')
-                * chain = r.get('i:99')
+                * (c, p, i) = r.hmget('d:foo.example.com', 'c', 'p', 'i')
+                ** returns {'c': '1', 'p': '1', 'i': '99'}
+                * cert = r.get('c1')
+                * pkey = r.get('p1')
+                * chain = r.get('i99')
                 * fullchain = cert + "\n" + chain
             """
             # prime the CACertificates that are active
@@ -194,7 +203,8 @@ class ViewAdminOperations(Handler):
                     # no certs
                     break
                 for cert in active_certs:
-                    key_redis = "i:%s" % cert.id
+                    total_primed['cacert'] += 1
+                    key_redis = "i%s" % cert.id
                     redis_client.set(key_redis, cert.cert_pem, timeouts['cacert'])
                 if len(active_certs) < limit:
                     # no more
@@ -215,7 +225,8 @@ class ViewAdminOperations(Handler):
                     # no keys
                     break
                 for key in active_keys:
-                    key_redis = "p:%s" % key.id
+                    total_primed['pkey'] += 1
+                    key_redis = "p%s" % key.id
                     redis_client.set(key_redis, key.key_pem, timeouts['pkey'])
                 if len(active_keys) < limit:
                     # no more
@@ -237,6 +248,7 @@ class ViewAdminOperations(Handler):
                     break
                 for domain in active_domains:
                     # favor the multi:
+                    total_primed['domain'] += 1
                     cert = None
                     if domain.letsencrypt_server_certificate_id__latest_multi:
                         cert = domain.latest_certificate_multi
@@ -247,16 +259,17 @@ class ViewAdminOperations(Handler):
 
                     # first do the domain
                     key_redis = "d:%s" % domain.domain_name
-                    value_redis = ('c:%s' % cert.id,
-                                   'p:%s' % cert.letsencrypt_private_key_id__signed_by,
-                                   'i:%s' % cert.letsencrypt_ca_certificate_id__upchain,
-                                   )
-                    redis_client.set(key_redis, value_redis, timeouts['domain'])
+                    value_redis = {'c': '%s' % cert.id,
+                                   'p': '%s' % cert.letsencrypt_private_key_id__signed_by,
+                                   'i': '%s' % cert.letsencrypt_ca_certificate_id__upchain,
+                                   }
+                    redis_client.hmset(key_redis, value_redis)
 
                     # then do the cert
-                    key_redis = "c:%s" % cert.id
+                    key_redis = "c%s" % cert.id
                     # only send over the wire if it doesn't exist
                     if not redis_client.exists(key_redis):
+                        total_primed['cert'] += 1
                         redis_client.set(key_redis, cert.cert_pem, timeouts['cert'])
 
                 if len(active_domains) < limit:
@@ -267,7 +280,13 @@ class ViewAdminOperations(Handler):
             dbEvent = lib_db.create__LetsencryptOperationsEvent(DBSession,
                                                                 LetsencryptOperationsEventType.redis_prime,
                                                                 {'v': 1,
+                                                                 'total_primed': total_primed,
                                                                  }
                                                                 )
-
+        if self.request.matched_route.name == 'admin:operations:redis:prime:json':
+            return {'result': 'success',
+                    'operations_event': {'id': dbEvent.id,
+                                         'total_primed': dbEvent.event_payload_json['total_primed'],
+                                         },
+                    }
         return HTTPFound('/.well-known/admin/operations/redis?operation=prime&result=success')

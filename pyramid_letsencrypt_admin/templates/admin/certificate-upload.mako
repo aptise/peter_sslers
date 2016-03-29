@@ -59,9 +59,9 @@
             
             <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload</code></p>
             
-            <p>But instead of that, post to <code>upload/json</code>, which will give you a json parcel in return</p>
+            <p>But instead of that, post to <code>upload.json</code>, which will give you a json parcel in return</p>
 
-            <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload/json</code></p>
+            <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload.json</code></p>
             
             <p>The JSON response will have a <code>result</code> attribute that is "success" or "error"; if there is an error, you will see the info in <code>form_errors</code></p>
             

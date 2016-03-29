@@ -69,7 +69,7 @@ def main(global_config, **settings):
         config.add_route('admin:certificate:focus:privatekey:raw', '/.well-known/admin/certificate/{id:\d+}/privkey.{format:(key|pem|pem.txt)}')
         config.add_route('admin:certificate:focus:cert:raw', '/.well-known/admin/certificate/{id:\d+}/cert.{format:(crt|pem|pem.txt)}')
         config.add_route('admin:certificate:upload', '/.well-known/admin/certificate/upload')
-        config.add_route('admin:certificate:upload:json', '/.well-known/admin/certificate/upload/json')
+        config.add_route('admin:certificate:upload:json', '/.well-known/admin/certificate/upload.json')
 
         config.add_route('admin:certificate_requests', '/.well-known/admin/certificate_requests')
         config.add_route('admin:certificate_requests_paginated', '/.well-known/admin/certificate_requests/{page:\d+}')
@@ -100,14 +100,14 @@ def main(global_config, **settings):
         config.add_route('admin:ca_certificates_paginated', '/.well-known/admin/ca_certificates/{page:\d+}')
         config.add_route('admin:ca_certificate:focus', '/.well-known/admin/ca_certificate/{id:\d+}')
         config.add_route('admin:ca_certificate:focus:raw', '/.well-known/admin/ca_certificate/{id:\d+}/chain.{format:(cer|crt|der|pem|pem.txt)}')
-        config.add_route('admin:ca_certificate:focus:json', '/.well-known/admin/ca_certificate/{id:\d+}/json')
         config.add_route('admin:ca_certificate:focus:signed_certificates', '/.well-known/admin/ca_certificate/{id:\d+}/signed_certificates')
         config.add_route('admin:ca_certificate:focus:signed_certificates_paginated', '/.well-known/admin/ca_certificate/{id:\d+}/signed_certificates/{page:\d}')
 
         config.add_route('admin:ca_certificate:upload', '/.well-known/admin/ca_certificate/upload')
-        config.add_route('admin:ca_certificate:upload:json', '/.well-known/admin/ca_certificate/upload/json')
+        config.add_route('admin:ca_certificate:upload:json', '/.well-known/admin/ca_certificate/upload.json')
+
         config.add_route('admin:ca_certificate:upload_bundle', '/.well-known/admin/ca_certificate/upload_bundle')
-        config.add_route('admin:ca_certificate:upload_bundle:json', '/.well-known/admin/ca_certificate/upload_bundle/json')
+        config.add_route('admin:ca_certificate:upload_bundle:json', '/.well-known/admin/ca_certificate/upload_bundle.json')
 
         # sync events
         config.add_route('admin:operations', '/.well-known/admin/operations')
@@ -119,16 +119,17 @@ def main(global_config, **settings):
         config.add_route('admin:operations:ca_certificate_probes_paginated', '/.well-admin/operations/ca_certificate_probes/{page:\d}')
 
         config.add_route('admin:operations:ca_certificate_probes:probe', '/.well-known/admin/operations/ca_certificate_probes/probe')
-        config.add_route('admin:operations:ca_certificate_probes:probe:json', '/.well-known/admin/operations/ca_certificate_probes/probe/json')
+        config.add_route('admin:operations:ca_certificate_probes:probe:json', '/.well-known/admin/operations/ca_certificate_probes/probe.json')
 
         config.add_route('admin:operations:update_recents', '/.well-known/admin/operations/update_recents')
-        config.add_route('admin:operations:update_recents:json', '/.well-known/admin/operations/update_recents/json')
+        config.add_route('admin:operations:update_recents:json', '/.well-known/admin/operations/update_recents.json')
 
         config.add_route('admin:operations:deactivate_expired', '/.well-known/admin/operations/deactivate_expired')
-        config.add_route('admin:operations:deactivate_expired:json', '/.well-known/admin/operations/deactivate_expired/json')
+        config.add_route('admin:operations:deactivate_expired:json', '/.well-known/admin/operations/deactivate_expired.json')
 
         config.add_route('admin:operations:redis', '/.well-known/admin/operations/redis')
         config.add_route('admin:operations:redis:prime', '/.well-known/admin/operations/redis/prime')
+        config.add_route('admin:operations:redis:prime:json', '/.well-known/admin/operations/redis/prime.json')
 
         config.scan("pyramid_letsencrypt_admin.views_admin")
 
