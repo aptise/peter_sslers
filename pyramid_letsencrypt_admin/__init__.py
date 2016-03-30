@@ -17,6 +17,16 @@ def set_bool_setting(settings, key):
     return _bool
 
 
+def set_int_setting(settings, key, default=None):
+    # make sure to pass in config.registry.settings
+    value = default
+    if key in settings:
+        value = int(settings[key])
+    else:
+        value = int(default)
+    settings[key] = value
+    return value
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -52,6 +62,8 @@ def main(global_config, **settings):
 
         config.add_route('admin:domains', '/.well-known/admin/domains')
         config.add_route('admin:domains_paginated', '/.well-known/admin/domains/{page:\d+}')
+        config.add_route('admin:domains:expiring', '/.well-known/admin/domains/expiring')
+        config.add_route('admin:domains:expiring_paginated', '/.well-known/admin/domains/expiring/{page:\d+}')
 
         config.add_route('admin:domain:focus', '/.well-known/admin/domain/{domain_identifier}')
         config.add_route('admin:domain:focus_name', '/.well-known/admin/domain/{domain_identifier}')
@@ -160,6 +172,10 @@ def main(global_config, **settings):
 
     # will we redirect on error?
     set_bool_setting(config.registry.settings, 'exception_redirect')
+    
+    # this is an int
+    set_int_setting(config.registry.settings, 'expiring_days', default=30)
+    
 
     # will we redirect on error?
     _enable_redis = set_bool_setting(config.registry.settings, 'enable_redis')

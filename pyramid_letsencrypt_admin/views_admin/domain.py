@@ -46,6 +46,22 @@ class ViewAdmin(Handler):
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomains_count': items_count,
                 'LetsencryptDomains': items_paged,
+                'sidenav_option': 'all',
+                'pager': pager,
+                }
+
+    @view_config(route_name='admin:domains:expiring', renderer='/admin/domains.mako')
+    @view_config(route_name='admin:domains:expiring_paginated', renderer='/admin/domains.mako')
+    def domains_expiring_only(self):
+        expiring_days = self.request.registry.settings['expiring_days']
+        items_count = lib_db.get__LetsencryptDomain__count(DBSession, expiring_days=expiring_days)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domains/expiring/{0}')
+        items_paged = lib_db.get__LetsencryptDomain__paginated(DBSession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptDomains_count': items_count,
+                'LetsencryptDomains': items_paged,
+                'sidenav_option': 'expiring',
+                'expiring_days': expiring_days,
                 'pager': pager,
                 }
 

@@ -47,14 +47,28 @@ def get__LetsencryptCertificateRequest2LetsencryptDomain__challenged(dbSession, 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__LetsencryptDomain__count(dbSession):
-    counted = dbSession.query(LetsencryptDomain).count()
+def get__LetsencryptDomain__count(dbSession, expiring_days=None, active_only=False):
+    q = dbSession.query(LetsencryptDomain)
+    if active_only and not expiring_days:
+        q = q.filter(sqlalchemy.or_(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single.op('IS NOT')(None),
+                                    LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi.op('IS NOT')(None),
+                                    ),
+                     )
+    if expiring_days:
+        _until = datetime.datetime.utcnow() + datetime.timedelta(days=expiring_days)
+        q = q.join(LetsencryptServerCertificate,
+                   LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificate.id
+                   )\
+            .filter(LetsencryptServerCertificate.is_active == True,  # noqa
+                    LetsencryptServerCertificate.timestamp_expires <= _until,
+                    )
+    counted = q.count()
     return counted
 
 
-def get__LetsencryptDomain__paginated(dbSession, eagerload_web=False, limit=None, offset=0, active_only=False):
+def get__LetsencryptDomain__paginated(dbSession, expiring_days=None, eagerload_web=False, limit=None, offset=0, active_only=False):
     q = dbSession.query(LetsencryptDomain)
-    if active_only:
+    if active_only and not expiring_days:
         q = q.filter(sqlalchemy.or_(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single.op('IS NOT')(None),
                                     LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi.op('IS NOT')(None),
                                     ),
@@ -63,8 +77,31 @@ def get__LetsencryptDomain__paginated(dbSession, eagerload_web=False, limit=None
         q = q.options(sqlalchemy.orm.joinedload('latest_certificate_single'),
                       sqlalchemy.orm.joinedload('latest_certificate_multi'),
                       )
-    q = q.order_by(sa.func.lower(LetsencryptDomain.domain_name).asc())\
-        .limit(limit)\
+    if expiring_days:
+        LetsencryptServerCertificateMulti = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
+        LetsencryptServerCertificateSingle = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
+        _until = datetime.datetime.utcnow() + datetime.timedelta(days=expiring_days)
+        q = q.outerjoin(LetsencryptServerCertificateMulti,
+                        LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi == LetsencryptServerCertificateMulti.id
+                        )\
+            .outerjoin(LetsencryptServerCertificateSingle,
+                       LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificateSingle.id
+                       )\
+            .filter(sqlalchemy.or_(sqlalchemy.and_(LetsencryptServerCertificateMulti.is_active == True,  # noqa
+                                                   LetsencryptServerCertificateMulti.timestamp_expires <= _until,
+                                                   ),
+                                   sqlalchemy.and_(LetsencryptServerCertificateSingle.is_active == True,  # noqa
+                                                   LetsencryptServerCertificateSingle.timestamp_expires <= _until,
+                                                   ),
+                                   )
+                    )\
+            .order_by(sqlalchemy.func.min(LetsencryptServerCertificateMulti.timestamp_expires,
+                                          LetsencryptServerCertificateSingle.timestamp_expires,
+                                          ).asc(),
+                      )
+    else:
+        q = q.order_by(sa.func.lower(LetsencryptDomain.domain_name).asc())
+    q = q.limit(limit)\
         .offset(offset)
     items_paged = q.all()
     return items_paged
