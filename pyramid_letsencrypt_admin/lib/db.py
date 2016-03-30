@@ -748,6 +748,12 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
             # increment account/private key counts
             dbAccountKey.count_certificate_requests += 1
             dbPrivateKey.count_certificate_requests += 1
+            t_now = datetime.datetime.utcnow()
+            if not dbAccountKey.timestamp_last_certificate_request or (dbAccountKey.timestamp_last_certificate_request < t_now):
+                dbAccountKey.timestamp_last_certificate_request = t_now
+            if not dbPrivateKey.timestamp_last_certificate_request or (dbPrivateKey.timestamp_last_certificate_request < t_now):
+                dbPrivateKey.timestamp_last_certificate_request = t_now
+            
             dbSession.flush()
 
             # we'll use this tuple in a bit...
@@ -886,6 +892,8 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
             elif dbCertificate.letsencrypt_private_key_id__signed_by is None:
                 dbCertificate.letsencrypt_private_key_id__signed_by = dbPrivateKey.id
                 dbPrivateKey.count_certificates_issued += 1
+                if not dbPrivateKey.timestamp_last_certificate_issue or (dbPrivateKey.timestamp_last_certificate_issue < dbCertificate.timestamp_signed):
+                    dbPrivateKey.timestamp_last_certificate_issue = dbCertificate.timestamp_signed
                 dbSession.flush()
         if dbAccountKey and (dbCertificate.letsencrypt_account_key_id != dbAccountKey.id):
             if dbCertificate.letsencrypt_account_key_id:
@@ -893,6 +901,8 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
             elif dbCertificate.letsencrypt_account_key_id is None:
                 dbCertificate.letsencrypt_account_key_id = dbAccountKey.id
                 dbAccountKey.count_certificates_issued += 1
+                if not dbAccountKey.timestamp_last_certificate_issue or (dbAccountKey.timestamp_last_certificate_issue < dbCertificate.timestamp_signed):
+                    dbAccountKey.timestamp_last_certificate_issue = dbAccountKey.timestamp_signed
                 dbSession.flush()
     elif not dbCertificate:
         _tmpfileCert = None
@@ -937,11 +947,15 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
                 raise ValueError('dbPrivateKey did not sign the certificate')
             dbCertificate.letsencrypt_private_key_id__signed_by = dbPrivateKey.id
             dbPrivateKey.count_certificates_issued += 1
+            if not dbPrivateKey.timestamp_last_certificate_issue or (dbPrivateKey.timestamp_last_certificate_issue < dbCertificate.timestamp_signed):
+                dbPrivateKey.timestamp_last_certificate_issue = dbCertificate.timestamp_signed
 
             # did we submit an account key?
             if dbAccountKey:
                 dbCertificate.letsencrypt_account_key_id = dbAccountKey.id
                 dbAccountKey.count_certificates_issued += 1
+                if not dbAccountKey.timestamp_last_certificate_issue or (dbAccountKey.timestamp_last_certificate_issue < dbAccountKey.timestamp_signed):
+                    dbAccountKey.timestamp_last_certificate_issue = dbCertificate.timestamp_signed
 
             _subject_domain, _san_domains = acme.parse_cert_domains__segmented(cert_path=_tmpfileCert.name)
             certificate_domain_names = _san_domains
@@ -1043,6 +1057,11 @@ def create__LetsencryptServerCertificate(
     # increment account/private key counts
     dbLetsencryptAccountKey.count_certificates_issued += 1
     dbLetsencryptPrivateKey.count_certificates_issued += 1
+    if not dbAccountKey.timestamp_last_certificate_issue or (dbAccountKey.timestamp_last_certificate_issue < timestamp_signed):
+        dbAccountKey.timestamp_last_certificate_issue = timestamp_signed
+    if not dbPrivateKey.timestamp_last_certificate_issue or (dbPrivateKey.timestamp_last_certificate_issue < timestamp_signed):
+        dbPrivateKey.timestamp_last_certificate_issue = timestamp_signed
+
     dbSession.flush()
 
     for _domain_name in domains_list__objects.keys():
@@ -1083,7 +1102,7 @@ def upload__LetsencryptCACertificateBundle__by_pem_text(dbSession, bundle_data):
                     is_cross_signed_authority_certificate = c['is_cross_signed_authority_certificate']
                 break
 
-        dbCertificate, is_created = getcreate__LetsencryptCACertificate__by_pem_text(
+        dbCACertificate, is_created = getcreate__LetsencryptCACertificate__by_pem_text(
             dbSession,
             cert_pem_text,
             cert_name,
@@ -1092,16 +1111,16 @@ def upload__LetsencryptCACertificateBundle__by_pem_text(dbSession, bundle_data):
             is_cross_signed_authority_certificate = None,
         )
         if not is_created:
-            if dbCertificate.name in ('unknown', 'manual upload'):
-                dbCertificate.name = cert_name
-            if dbCertificate.le_authority_name is None:
-                dbCertificate.le_authority_name = le_authority_name
-            if dbCertificate.is_authority_certificate is None:
-                dbCertificate.is_authority_certificate = is_authority_certificate
-            if dbCertificate.le_authority_name is None:
-                dbCertificate.is_cross_signed_authority_certificate = is_cross_signed_authority_certificate
+            if dbCACertificate.name in ('unknown', 'manual upload'):
+                dbCACertificate.name = cert_name
+            if dbCACertificate.le_authority_name is None:
+                dbCACertificate.le_authority_name = le_authority_name
+            if dbCACertificate.is_authority_certificate is None:
+                dbCACertificate.is_authority_certificate = is_authority_certificate
+            if dbCACertificate.le_authority_name is None:
+                dbCACertificate.is_cross_signed_authority_certificate = is_cross_signed_authority_certificate
 
-        results[cert_pem] = (dbCertificate, is_created)
+        results[cert_pem] = (dbCACertificate, is_created)
 
     return results
 
@@ -1261,6 +1280,25 @@ def operations_update_recents(dbSession):
                                   count_certificates_issued=_q_sub_iss,
                                   )
                           )
+
+    # should we do the timestamps?
+    """
+    UPDATE letsencrypt_account_key SET timestamp_last_certificate_request = (
+    SELECT MAX(timestamp_finished) FROM letsencrypt_certificate_request
+    WHERE letsencrypt_certificate_request.letsencrypt_account_key_id = letsencrypt_account_key.id);
+
+    UPDATE letsencrypt_account_key SET timestamp_last_certificate_issue = (
+    SELECT MAX(timestamp_signed) FROM letsencrypt_server_certificate
+    WHERE letsencrypt_server_certificate.letsencrypt_account_key_id = letsencrypt_account_key.id);
+
+    UPDATE letsencrypt_private_key SET timestamp_last_certificate_request = (
+    SELECT MAX(timestamp_finished) FROM letsencrypt_certificate_request
+    WHERE letsencrypt_certificate_request.letsencrypt_private_key_id__signed_by = letsencrypt_private_key.id);
+
+    UPDATE letsencrypt_private_key SET timestamp_last_certificate_issue = (
+    SELECT MAX(timestamp_signed) FROM letsencrypt_server_certificate
+    WHERE letsencrypt_server_certificate.letsencrypt_private_key_id__signed_by = letsencrypt_private_key.id);
+    """
 
     # mark the session changed, but we need to mark the session not scoped session.  ugh.
     # we don't need this if we add the bookkeeping object, but let's just keep this to be safe

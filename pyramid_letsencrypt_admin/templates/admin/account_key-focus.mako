@@ -33,6 +33,14 @@
             <td><timestamp>${LetsencryptAccountKey.timestamp_first_seen  or ''}</timestamp></td>
         </tr>
         <tr>
+            <th>timestamp_last_certificate_request</th>
+            <td><timestamp>${LetsencryptAccountKey.timestamp_last_certificate_request  or ''}</timestamp></td>
+        </tr>
+        <tr>
+            <th>timestamp_last_certificate_issue</th>
+            <td><timestamp>${LetsencryptAccountKey.timestamp_last_certificate_issue  or ''}</timestamp></td>
+        </tr>
+        <tr>
             <th>count_certificate_requests</th>
             <td><span class="badge">${LetsencryptAccountKey.count_certificate_requests or ''}</span></td>
         </tr>

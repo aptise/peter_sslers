@@ -33,6 +33,14 @@
             <td><timestamp>${LetsencryptPrivateKey.timestamp_first_seen  or ''}</timestamp></td>
         </tr>
         <tr>
+            <th>timestamp_last_certificate_request</th>
+            <td><timestamp>${LetsencryptPrivateKey.timestamp_last_certificate_request  or ''}</timestamp></td>
+        </tr>
+        <tr>
+            <th>timestamp_last_certificate_issue</th>
+            <td><timestamp>${LetsencryptPrivateKey.timestamp_last_certificate_issue  or ''}</timestamp></td>
+        </tr>
+        <tr>
             <th>count_active_certificates</th>
             <td><span class="badge">${LetsencryptPrivateKey.count_active_certificates  or ''}</span></td>
         </tr>

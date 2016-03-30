@@ -21,13 +21,15 @@ You can manage certificates in a few ways:
 
 1. An admin dashboard allows you to upload certificates (in a triplet of Cert, Signing Key, CA-Chain)
 2. An admin dashboard allows you to initiate LetsEncrypt certificate signing. Upload a list of domains, your LetsEncrypt account key, and private key used for signing/serving, and the system will generate the CSR and perform all the verifications.
-3. An admin dashboard allows you to proxy the acme-challenges that LetsEncrypt issues for manual verification
+3. A public interface allows you to proxypass the acme-challenges that LetsEncrypt issues for manual verification. (ie, run this behind nginx)
+4. You can run the 'webserver' on a private IP, and `curl` data into it via the commandline or miscellaneous scripts
 
 ## Output
 
 1. All the keys & certs are viewable in a wonderfully connected RDMBS browser.
 2. Any keys/certs/chains can be queried in PEM & DER formats.
 3. All the certificates are checked to track their validity dates, so you can search and re-issue
+4. This can "prime" a Redis cache with SSL Cert info in several formats.  A LUA script for OpenResty is included that enables dynamic SSL certs.
 
 ## Management
 
@@ -35,12 +37,13 @@ You can manage certificates in a few ways:
 * chains are built on-the-fly.
 * a growing API powers most functionality
 * public and admin routes can be isolated in the app & firewall, so you can just turn this on/off as needed
-* query to see when things expire
+* you can easily see when certificates and/or domains expire and need to be renewed
 * if sqlite is your backend, you can just run this for signing and deployment; then handle everything else offline.
+* "Admin" and "Public" functions are isolated from each other. By changing the config, you can run a public-only "validation" interface or enable the admin tools that broadcast certificate information.
 
 # Installation
 
-This is pretty much ready to go for development use.
+This is pretty much ready to go for development use.  Python will install everything for you.
 
 you should create a virtualenv though.
 
@@ -454,7 +457,7 @@ the redis datastore might look something like this:
 
 After priming redis with new data, one should be able to hit an nginx route that expires the shared cache
 
-## update objects
+## Show Object Data
 
 account keys:
 * timestamp last cert issue
