@@ -28,6 +28,7 @@ from ..lib.forms import (Form_CertificateRequest_new_flow,
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
+from ..lib import utils as lib_utils
 
 
 # ==============================================================================
@@ -83,6 +84,20 @@ class ViewAdmin(Handler):
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptDomain': dbLetsencryptDomain
                 }
+
+    @view_config(route_name='admin:domain:focus:nginx_cache_expire', renderer=None)
+    @view_config(route_name='admin:domain:focus:nginx_cache_expire:json', renderer='json')
+    def domain_focus_nginx_expire(self):
+        dbLetsencryptDomain = self._domain_focus(eagerload_web=True)
+        if not self.request.registry.settings['enable_nginx']:
+            raise HTTPFound('/.well-known/admin/domain/%s?error=no_nginx' % dbLetsencryptDomain.id)
+        success, dbEvent = lib_utils.nginx_expire_cache(self.request, DBSession, dbDomains=[dbLetsencryptDomain, ])
+        if self.request.matched_route.name == 'admin:domain:focus:nginx_cache_expire:json':
+            return {'result': 'success',
+                    'operations_event': {'id': dbEvent.id,
+                                         },
+                    }
+        return HTTPFound('/.well-known/admin/domain/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (dbLetsencryptDomain.id, dbEvent.id))
 
     @view_config(route_name='admin:domain:focus:config_json', renderer='json')
     def domain_focus_config_json(self):

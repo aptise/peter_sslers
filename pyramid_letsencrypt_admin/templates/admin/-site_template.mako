@@ -15,6 +15,11 @@
           padding: 3px;
           font-size: .9em;
           }
+    payload {font-size: .8em;
+             font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+             background-color: #EEE;
+             padding: 2px;
+             }
     tr.success {border-left: 2px solid green;
                 }
 </style>

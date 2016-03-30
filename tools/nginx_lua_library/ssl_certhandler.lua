@@ -1,21 +1,5 @@
-local ssl = require "ngx.ssl"
-local server_name = ssl.server_name()
-local addr, addrtyp, err = ssl.raw_server_addr()
-local byte = string.byte
-local key, cert
 local redis = require "resty.redis"
-
--- Local cache related
-local cert_cache = ngx.shared.cert_cache
-local cert_cache_duration = 7200 -- 2 hours
-
-
--- local request debug
-if false then
-	ngx.log(ngx.NOTICE, "===========================================================")
-	ngx.log(ngx.NOTICE, server_name)
-end
-
+local ssl = require "ngx.ssl"
 
 -- ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 -- START: these are just some helper functions
@@ -140,91 +124,142 @@ end
 
 -- START MAIN LOGIC
 
--- Check for SNI request.
-if server_name == nil then
-	ngx.log(ngx.NOTICE, "SNI Not present - performing IP lookup")
-	
-	-- don't bother with IP lookups
-	-- exit out and just fall back on the default ssl cert
-	return
-end 
 
+function set_ssl_certificate(_cert_cache, _cert_cache_duration, prime_method)
 
--- Check cache for certficate
-cert = cert_cache:get(server_name .. ":c")
-key  = cert_cache:get(server_name .. ":k")
-if cert ~= nil and key ~= nil then
-    ngx.log(ngx.ERR, "Cert cache HIT for: ", server_name)
-    
-    if cert == 'x' or key == 'x' then
-		ngx.log(ngx.NOTICE, "Previously seen unsupported domain")
+	local server_name = ssl.server_name()
+
+	-- local request debug
+	if false then
+		ngx.log(ngx.NOTICE, "===========================================================")
+		ngx.log(ngx.NOTICE, server_name)
+	end
+
+	-- Check for SNI request.
+	if server_name == nil then
+		ngx.log(ngx.NOTICE, "SNI Not present - performing IP lookup")
 	
 		-- don't bother with IP lookups
 		-- exit out and just fall back on the default ssl cert
 		return
-	end
-    
-else
-    ngx.log(ngx.ERR, "Cert cache MISS for: ", server_name)
-	-- ok, try to get it from redis
+	end 
 
-	-- grab redis connection
-	local redcon, err = get_redcon()
-	if redcon == nil then
-		-- exit out and just fall back on the default ssl cert
+	-- Check cache for certficate
+	local cert = _cert_cache:get(server_name .. ":c")
+	local key = _cert_cache:get(server_name .. ":k")
+	if cert ~= nil and key ~= nil then
+		ngx.log(ngx.ERR, "Cert cache HIT for: ", server_name)
+	
+		if cert == 'x' or key == 'x' then
+			ngx.log(ngx.NOTICE, "Previously seen unsupported domain")
+	
+			-- don't bother with IP lookups
+			-- exit out and just fall back on the default ssl cert
+			return
+		end
+	
+	else
+		ngx.log(ngx.ERR, "Cert cache MISS for: ", server_name)
+		-- ok, try to get it from redis
+
+		-- grab redis connection
+		local redcon, err = get_redcon()
+		if redcon == nil then
+			-- exit out and just fall back on the default ssl cert
+			return
+		end
+	
+		-- actually query redis
+		if prime_method == 1 then
+			cert, key = prime_1__query_redis(redcon, server_name)
+		elseif prime_method == 2 then
+			cert, key = prime_2__query_redis(redcon, server_name)
+		else
+			ngx.log(ngx.ERR, "invalid `prime_method` not (1, 2) is `", prime_method)
+			-- don't bother with IP lookups
+			-- exit out and just fall back on the default ssl cert
+			return
+		end
+
+		-- eventually use a fallback search here
+		-- but we can't do that yet
+		if cert ~= nil and key ~= nil then 
+	
+			-- convert from PEM to der
+			cert = ssl.cert_pem_to_der(cert)
+			key = ssl.priv_key_pem_to_der(key)
+	
+			-- Add key and cert to the cache 
+			local success, err, forcible = _cert_cache:set(server_name .. ":c", cert, _cert_cache_duration)
+			ngx.log(ngx.DEBUG, "Caching Result: ", success, " Err: ",  err)
+
+			local success, err, forcible = _cert_cache:set(server_name .. ":k", key, _cert_cache_duration)
+			ngx.log(ngx.DEBUG, "Caching Result: ", success, " Err: ",  err)
+
+			ngx.log(ngx.DEBUG, "Cert and key retrieved and cached for: ", server_name)
+
+			-- return the redcon to the connection pool
+			redis_keepalive(redcon)
+		else     
+			ngx.log(ngx.ERR, "Failed to retrieve " .. (cert and "" or "cert ") ..  (key and "" or "key "), "for ", server_name)
+
+			-- set a fail marker
+			local success, err, forcible = _cert_cache:set(server_name .. ":c", 'x', _cert_cache_duration)
+			local success, err, forcible = _cert_cache:set(server_name .. ":k", 'x', _cert_cache_duration)
+		
+			-- return the redcon to the connection pool
+			redis_keepalive(redcon)
+
+			-- exit out and just fall back on the default ssl cert
+			return
+		end
+	end
+
+	-- since we have a server name, now we can continue...
+	ssl.clear_certs()
+
+	-- Set cert
+	local ok, err = ssl.set_der_cert(cert)
+	if not ok then
+		ngx.log(ngx.ERR, "failed to set DER cert: ", err)
 		return
 	end
-	
-	-- actually query redis
-	cert, key = prime_2__query_redis(redcon, server_name)
 
-	-- eventually use a fallback search here
-	-- but we can't do that yet
-    if cert ~= nil and key ~= nil then 
-    
-    	-- convert from PEM to der
-    	cert = ssl.cert_pem_to_der(cert)
-    	key = ssl.priv_key_pem_to_der(key)
-    
-        -- Add key and cert to the cache 
-        local success, err, forcible = cert_cache:set(server_name .. ":c", cert, cert_cache_duration)
-        ngx.log(ngx.DEBUG, "Caching Result: ", success, " Err: ",  err)
-
-        local success, err, forcible = cert_cache:set(server_name .. ":k", key, cert_cache_duration)
-        ngx.log(ngx.DEBUG, "Caching Result: ", success, " Err: ",  err)
-
-        ngx.log(ngx.DEBUG, "Cert and key retrieved and cached for: ", server_name)
-
-		-- return the redcon to the connection pool
-		redis_keepalive(redcon)
-    else     
-        ngx.log(ngx.ERR, "Failed to retrieve " .. (cert and "" or "cert ") ..  (key and "" or "key "), "for ", server_name)
-
-		-- set a fail marker
-        local success, err, forcible = cert_cache:set(server_name .. ":c", 'x', cert_cache_duration)
-        local success, err, forcible = cert_cache:set(server_name .. ":k", 'x', cert_cache_duration)
-        
-		-- return the redcon to the connection pool
-		redis_keepalive(redcon)
-
-		-- exit out and just fall back on the default ssl cert
-        return
-    end
+	-- Set key
+	local ok, err = ssl.set_der_priv_key(key)
+	if not ok then
+		ngx.log(ngx.ERR, "failed to set DER key: ", err)
+		return
+	end
 end
 
--- since we have a server name, now we can continue...
-ssl.clear_certs()
 
--- Set cert
-local ok, err = ssl.set_der_cert(cert)
-if not ok then
-    ngx.log(ngx.ERR, "failed to set DER cert: ", err)
-    return
+function expire_ssl_certs(_cert_cache)
+	ngx.header.content_type = 'text/plain'
+	local prefix = ngx.var.location
+	if ngx.var.request_uri == prefix..'/all' then
+		_cert_cache:flush_all()
+		ngx.say('{"result": "success", "expired": "all"}')
+		return
+	end
+	local _domain = string.match(ngx.var.request_uri, '^'..prefix..'/domain/([%w-.]+)$')  
+	if _domain then
+		_cert_cache:delete(_domain)
+		ngx.say('{"result": "success", "expired": "domain", "domain": "' .. _domain ..'"}')
+		return
+	end
+	ngx.say('{"result": "error", "expired": "None", "reason": "Unknown URI"}')
+	ngx.status = 404
+	return
 end
 
--- Set key
-local ok, err = ssl.set_der_priv_key(key)
-if not ok then
-    ngx.log(ngx.ERR, "failed to set DER key: ", err)
-    return
-end
+
+local _M = {get_redcon = get_redcon,
+			redis_keepalive = redis_keepalive,
+			prime_1__query_redis = prime_1__query_redis,
+			prime_2__query_redis = prime_2__query_redis,
+			set_ssl_certificate = set_ssl_certificate,
+			expire_ssl_certs = expire_ssl_certs,
+			}
+
+return _M

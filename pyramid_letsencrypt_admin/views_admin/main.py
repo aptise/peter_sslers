@@ -50,6 +50,7 @@ class ViewAdminMain(Handler):
     def index(self):
         return {'project': 'pyramid_letsencrypt_admin',
                 'enable_redis': self.request.registry.settings['enable_redis'],
+                'enable_nginx': self.request.registry.settings['enable_nginx'],
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

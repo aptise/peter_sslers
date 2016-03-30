@@ -753,7 +753,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
                 dbAccountKey.timestamp_last_certificate_request = t_now
             if not dbPrivateKey.timestamp_last_certificate_request or (dbPrivateKey.timestamp_last_certificate_request < t_now):
                 dbPrivateKey.timestamp_last_certificate_request = t_now
-            
+
             dbSession.flush()
 
             # we'll use this tuple in a bit...

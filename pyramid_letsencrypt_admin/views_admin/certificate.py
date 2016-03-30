@@ -28,6 +28,7 @@ from ..lib.forms import (Form_CertificateRequest_new_flow,
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
+from ..lib import utils as lib_utils
 
 
 # ==============================================================================
@@ -233,3 +234,18 @@ class ViewAdmin(Handler):
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:certificate:focus:nginx_cache_expire', renderer=None)
+    @view_config(route_name='admin:certificate:focus:nginx_cache_expire:json', renderer='json')
+    def certificate_focus_nginx_expire(self):
+        dbLetsencryptServerCertificate = self._certificate_focus()
+        if not self.request.registry.settings['enable_nginx']:
+            raise HTTPFound('/.well-known/admin/certificate/%s?error=no_nginx' % dbLetsencryptServerCertificate.id)
+        dbDomains = [c2d.domain for c2d in dbLetsencryptServerCertificate.certificate_to_domains]
+        success, dbEvent = lib_utils.nginx_expire_cache(self.request, DBSession, dbDomains=dbDomains)
+        if self.request.matched_route.name == 'admin:certificate:focus:nginx_cache_expire:json':
+            return {'result': 'success',
+                    'operations_event': {'id': dbEvent.id,
+                                         },
+                    }
+        return HTTPFound('/.well-known/admin/certificate/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (dbLetsencryptServerCertificate.id, dbEvent.id))

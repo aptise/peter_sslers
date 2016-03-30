@@ -27,7 +27,9 @@
             </ul>
 
             <h2>Operations</h2>
-            ${admin_partials.operations_options(enable_redis=enable_redis)}
+            ${admin_partials.operations_options(enable_redis=enable_redis,
+                                                enable_nginx=enable_nginx,
+                                                )}
 
         </div>
         <div class="col-sm-6">

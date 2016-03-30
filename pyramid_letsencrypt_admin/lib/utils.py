@@ -1,11 +1,16 @@
 # stdlib
 import hashlib
+import json
 
+# pypi
 try:
     from redis import Redis
 except ImportError:
     pass
+import requests
 
+from .. import lib
+from .. import models
 
 # ==============================================================================
 
@@ -71,3 +76,54 @@ def get_default_connection(request,
     setattr(request.registry, '_redis_connection', redis)
 
     return redis
+
+
+def nginx_flush_cache(request, dbSession):
+    _reset_path = request.registry.settings['nginx.reset_path']
+    for _server in request.registry.settings['nginx.reset_servers']:
+        reset_url = _server + _reset_path + '/all'
+        response = requests.get(reset_url, verify=False)
+        if response.status_code == 200:
+            response_json = json.loads(response.content)
+            if response_json['result'] != 'success':
+                raise ValueError("could not flush cache: `%s`" % reset_url)
+        else:
+            raise ValueError("could not flush cache: `%s`" % reset_url)
+    dbEvent = lib.db.create__LetsencryptOperationsEvent(dbSession,
+                                                        models.LetsencryptOperationsEventType.nginx_cache_flush,
+                                                        {'v': 1,
+                                                         }
+                                                        )
+    return True, dbEvent
+
+def nginx_expire_cache(request, dbSession, dbDomains=None):
+    if not dbDomains:
+        raise ValueError("no domains submitted")
+    domain_ids = {'success': set([]),
+                  'failure': set([]),
+                  }
+    _reset_path = request.registry.settings['nginx.reset_path']
+    for _server in request.registry.settings['nginx.reset_servers']:
+        for domain in dbDomains:
+            reset_url = _server + _reset_path + '/domain/%s' % domain.domain_name
+            response = requests.get(reset_url, verify=False)
+            if response.status_code == 200:
+                response_json = json.loads(response.content)
+                if response_json['result'] == 'success':
+                    domain_ids['success'].add(domain.id)
+                else:
+                    # log the url?
+                    domain_ids['failure'].add(domain.id)
+            else:
+                # log the url?
+                domain_ids['failure'].add(domain.id)
+
+    dbEvent = lib.db.create__LetsencryptOperationsEvent(dbSession,
+                                                        models.LetsencryptOperationsEventType.nginx_cache_expire,
+                                                        {'v': 1,
+                                                         'domain_ids': {'success': list(domain_ids['success']),
+                                                                        'failure': list(domain_ids['failure']),
+                                                                         }
+                                                         }
+                                                        )
+    return True, dbEvent

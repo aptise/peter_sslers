@@ -47,6 +47,7 @@ class ViewAdminOperations(Handler):
                 'LetsencryptOperationsEvents': items_paged,
                 'pager': pager,
                 'enable_redis': self.request.registry.settings['enable_redis'],
+                'enable_nginx': self.request.registry.settings['enable_nginx'],
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -143,7 +144,7 @@ class ViewAdminOperations(Handler):
 
         _items_per_page = 25
         items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ))
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/log/{0}', items_per_page=_items_per_page)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/redis/log/{0}', items_per_page=_items_per_page)
         items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ), limit=_items_per_page, offset=offset)
         return {'project': 'pyramid_letsencrypt_admin',
                 'LetsencryptOperationsEvents__count': items_count,
@@ -356,3 +357,41 @@ class ViewAdminOperations(Handler):
                                          },
                     }
         return HTTPFound('/.well-known/admin/operations/redis?operation=redis_prime&result=success&event.id=%s' % dbEvent.id)
+
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def _ensure_nginx(self):
+        if not self.request.registry.settings['enable_nginx']:
+            raise HTTPFound('/.well-known/admin?error=no_nginx')
+
+    @view_config(route_name='admin:operations:nginx', renderer='/admin/operations-nginx.mako')
+    @view_config(route_name='admin:operations:nginx_paginated', renderer='/admin/operations-nginx.mako')
+    def admin_nginx(self):
+        self._ensure_nginx()
+
+        _items_per_page = 25
+        _event_type_ids = (LetsencryptOperationsEventType.nginx_cache_expire, LetsencryptOperationsEventType.nginx_cache_flush)
+        items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession, event_type_ids=_event_type_ids)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/nginx/log/{0}', items_per_page=_items_per_page)
+        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, event_type_ids=_event_type_ids,
+            limit=_items_per_page, offset=offset)
+        return {'project': 'pyramid_letsencrypt_admin',
+                'LetsencryptOperationsEvents__count': items_count,
+                'LetsencryptOperationsEvents': items_paged,
+                'pager': pager,
+                'enable_nginx': self.request.registry.settings['enable_nginx'],
+                }
+
+    @view_config(route_name='admin:operations:nginx:cache_flush', renderer=None)
+    @view_config(route_name='admin:operations:nginx:cache_flush:json', renderer='json')
+    def admin_nginx_cache_flush(self):
+        self._ensure_nginx()
+        success, dbEvent = lib_utils.nginx_flush_cache(self.request, DBSession)
+        if self.request.matched_route.name == 'admin:operations:nginx:cache_flush:json':
+            return {'result': 'success',
+                    'operations_event': {'id': dbEvent.id,
+                                         },
+                    }
+        return HTTPFound('/.well-known/admin/operations/nginx?operation=nginx_cache_flush&result=success&event.id=%s' % dbEvent.id)

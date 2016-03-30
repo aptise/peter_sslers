@@ -543,12 +543,19 @@
 </%def>
 
 
-<%def name="operations_options(enable_redis=False)">
+<%def name="operations_options(enable_redis=False, enable_nginx=False)">
     % if enable_redis:
         <p>
             <a  href="/.well-known/admin/operations/redis"
                 class="btn btn-info"
             >Redis Operations</a><br/>
+        </p>
+    % endif
+    % if enable_nginx:
+        <p>
+            <a  href="/.well-known/admin/operations/nginx"
+                class="btn btn-info"
+            >nginx Operations</a><br/>
         </p>
     % endif
     <p>

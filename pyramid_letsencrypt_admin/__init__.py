@@ -68,6 +68,8 @@ def main(global_config, **settings):
         config.add_route('admin:domain:focus', '/.well-known/admin/domain/{domain_identifier}')
         config.add_route('admin:domain:focus_name', '/.well-known/admin/domain/{domain_identifier}')
         config.add_route('admin:domain:focus:config_json', '/.well-known/admin/domain/{domain_identifier}/config.json')
+        config.add_route('admin:domain:focus:nginx_cache_expire', '/.well-known/admin/domain/{domain_identifier}/nginx_cache_expire')
+        config.add_route('admin:domain:focus:nginx_cache_expire:json', '/.well-known/admin/domain/{domain_identifier}/nginx_cache_expire.json')
         config.add_route('admin:domain:focus:certificates', '/.well-known/admin/domain/{domain_identifier}/certificates')
         config.add_route('admin:domain:focus:certificates_paginated', '/.well-known/admin/domain/{domain_identifier}/certificates/{page:\d+}')
         config.add_route('admin:domain:focus:certificate_requests', '/.well-known/admin/domain/{domain_identifier}/certificate_requests')
@@ -86,6 +88,8 @@ def main(global_config, **settings):
         config.add_route('admin:certificate:focus:fullchain:raw', '/.well-known/admin/certificate/{id:\d+}/fullchain.{format:(pem|pem.txt)}')
         config.add_route('admin:certificate:focus:privatekey:raw', '/.well-known/admin/certificate/{id:\d+}/privkey.{format:(key|pem|pem.txt)}')
         config.add_route('admin:certificate:focus:cert:raw', '/.well-known/admin/certificate/{id:\d+}/cert.{format:(crt|pem|pem.txt)}')
+        config.add_route('admin:certificate:focus:nginx_cache_expire', '/.well-known/admin/certificate/{id:\d}/nginx_cache_expire')
+        config.add_route('admin:certificate:focus:nginx_cache_expire:json', '/.well-known/admin/certificate/{id:\d}/nginx_cache_expire.json')
         config.add_route('admin:certificate:upload', '/.well-known/admin/certificate/upload')
         config.add_route('admin:certificate:upload:json', '/.well-known/admin/certificate/upload.json')
 
@@ -153,6 +157,11 @@ def main(global_config, **settings):
         config.add_route('admin:operations:deactivate_expired', '/.well-known/admin/operations/deactivate_expired')
         config.add_route('admin:operations:deactivate_expired:json', '/.well-known/admin/operations/deactivate_expired.json')
 
+        config.add_route('admin:operations:nginx', '/.well-known/admin/operations/nginx')
+        config.add_route('admin:operations:nginx_paginated', '/.well-known/admin/operations/nginx/{page:\d}')
+        config.add_route('admin:operations:nginx:cache_flush', '/.well-known/admin/operations/nginx/cache_flush')
+        config.add_route('admin:operations:nginx:cache_flush:json', '/.well-known/admin/operations/nginx/cache_flush.json')
+
         config.add_route('admin:operations:redis', '/.well-known/admin/operations/redis')
         config.add_route('admin:operations:redis_paginated', '/.well-known/admin/operations/redis/{page:\d}')
         config.add_route('admin:operations:redis:prime', '/.well-known/admin/operations/redis/prime')
@@ -185,6 +194,14 @@ def main(global_config, **settings):
             raise ValueError("No `redis.prime_style` is configured")
         if settings['redis.prime_style'] not in ('1', '2'):
             raise ValueError("No `redis.prime_style` must be one of: (`1`, `2`)")
+    
+    _enable_nginx = False
+    if 'nginx.reset_servers' in config.registry.settings:
+        config.registry.settings['nginx.reset_servers'] = [i.strip() for i in config.registry.settings['nginx.reset_servers'].split(',')]
+        _enable_nginx =True
+    if 'nginx.reset_path' not in config.registry.settings:
+        config.registry.settings['nginx.reset_path'] = '/ngxadmin/shared_cache/expire'
+    config.registry.settings['enable_nginx'] = _enable_nginx
 
     # let's extend the request too!
     config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)

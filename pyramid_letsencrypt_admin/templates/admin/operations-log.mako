@@ -29,7 +29,9 @@
     </div>
     <div class="row">
         <div class="col-sm-3">
-            ${admin_partials.operations_options(enable_redis=enable_redis)}
+            ${admin_partials.operations_options(enable_redis=enable_redis,
+                                                enable_nginx=enable_nginx,
+                                                )}
         </div>
     </div>
 

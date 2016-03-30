@@ -282,6 +282,8 @@ class LetsencryptOperationsEventType(object):
     deactivate_expired = 3
     deactivate_duplicate = 4
     redis_prime = 5
+    nginx_cache_expire = 6
+    nginx_cache_flush = 7
 
 
 class LetsencryptOperationsEvent(Base):
@@ -315,6 +317,10 @@ class LetsencryptOperationsEvent(Base):
             return 'deactivate_duplicate'
         elif self.letsencrypt_operations_event_type_id == 5:
             return 'redis_prime'
+        elif self.letsencrypt_operations_event_type_id == 6:
+            return 'nginx_cache_expire'
+        elif self.letsencrypt_operations_event_type_id == 7:
+            return 'nginx_cache_flush'
         return 'unknown'
 
 

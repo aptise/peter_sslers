@@ -39,6 +39,19 @@
                 >config.json</a>
             </td>
         </tr>
+        % if request.registry.settings['enable_nginx']:
+            <tr>
+                <th>nginx cache</th>
+                <td>
+                    <a  class="btn btn-xs btn-primary"
+                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx_cache_expire"
+                    >nginx_cache_expire</a>
+                    <a  class="btn btn-xs btn-primary"
+                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx_cache_expire.json"
+                    >nginx_cache_expire.json</a>
+                </td>
+            </tr>
+        % endif
         <tr>
             <th>certificates recent</th>
             <td>

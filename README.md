@@ -153,6 +153,9 @@ Your `environment.ini` exposes a few configuration options:
 * `redis.timeout.pkey` - INT seconds (default None)
 * `redis.timeout.domain` - INT seconds (default None)
 
+* `nginx.reset_servers` - comma(,) separated list of servers with an expiry route; see Redis Prime section below
+* `nginx.reset_path` - defaults to `/ngxadmin/shared_cache/expire`
+
 
 # tools
 
@@ -174,23 +177,95 @@ You can interact with this project via a commandline interface in several ways.
 
 ## openresty/nginx lua script
 
-`tools.ssl_lookup.lua` is an script that can be used in an openresty/nginx environment to select a SSL cert
+`tools/nginx_lua_library` is a library that can be used in an openresty/nginx environment to dynamically select a SSL cert
 
-It supports both prime 1 & prime 2 cache types, but you'll need to manually edit it (or PR a better solution)
+It supports both prime 1 & prime 2 cache types
 
-look for this line:
+It is implemented as a library with 2 scripts that invoke it.
 
-	-- actually query redis
-	cert, key = prime_2__query_redis(redcon, server_name)
+* `ssl_certhandler.lua`
+* `ssl_certhandler-lookup.lua`
+* `ssl_certhandler-expire.lua`
 
-and just change it to 
-
-	cert, key = prime_1__query_redis(redcon, server_name)
+The `-lookup.lua` and `-expire.lua` scripts can set via `_by_lua_file` or copied into a block.  
 
 It is also hardcoded to use db9 in redis.  if you want another option, edit or PR
 
 	ngx.log(ngx.ERR, "changing to db 9: ", times)
 	redcon:select(9)
+
+
+### ssl_certhandler.lua
+
+Core library.  Exposes several functions.
+
+Make sure your nginx contains:
+
+    server {
+		init_by_lua 'require "resty.core"';
+	    lua_shared_dict cert_cache 1m;
+	}
+
+
+### ssl_certhandler-lookup.lua
+
+This is very simple, it merely specfies a cache, duration, and prime_version
+
+	local ssl_certhandler = require "ssl_certhandler"
+
+	-- Local cache related
+	local cert_cache = ngx.shared.cert_cache
+	local cert_cache_duration = 7200 -- 2 hours
+
+	local prime_version = 1
+	ssl_certhandler.set_ssl_certificate(cert_cache, cert_cache_duration, prime_version)
+
+	return
+
+invoked within nginx...
+
+    server {
+        listen 443 default_server;
+        ...
+		ssl_certificate_by_lua_file /path/to/ssl_certhandler-lookup.lua;
+	}
+
+
+### ssl_certhandler-expire.lua
+
+	local ssl_certhandler = require "ssl_certhandler"
+
+	-- Local cache related
+	local cert_cache = ngx.shared.cert_cache
+
+	ssl_certhandler.expire_ssl_certs(cert_cache)
+
+invoked within nginx
+
+    server {
+        listen 443 default_server;
+        ...
+	    location /ngxadmin/shared_cache/expire {
+			content_by_lua_file /path/to/ssl_certhandler-expire.lua;
+	    }
+	}
+	
+This creates the following routes:
+
+* `/ngxadmin/shared_cache/expire/all`
+** Flushes the entire nginx certificate cache
+* `/ngxadmin/shared_cache/expire/domain/{DOMAIN}`
+** Flushes the domain's pkey & chain entires in the certificate cache
+
+On success, these routes return JSON in a HTTP-200-OK document.
+
+* {"result": "success", "expired": "all"}
+* {"result": "success", "expired": "domain", "domain": "{DOMAIN}"}
+* {"result": "error", "expired": "None", "reason": "Unknown URI"}
+
+On error, these routes should generate a bad status code.
+
+### Details
 
 This approach makes aggressive use of caching in the nginx workers (via a shared dict) and redis; and caches both hits and misses.
 
@@ -451,11 +526,14 @@ the redis datastore might look something like this:
 	r['foo2.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
 
 
+### expire the nginx worker cache
+
+If you set `nginx.reset_servers` in your config.ini... you can use an operation to clear out the nginx cache on those servers
+
+OTHERWISE you will need to manually restart those servers (the cache persists configuration reloads)
+
 ## search expiring soon
 
-## expire nginx worker cache
-
-After priming redis with new data, one should be able to hit an nginx route that expires the shared cache
 
 ## Show Object Data
 
