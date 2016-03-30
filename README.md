@@ -40,6 +40,7 @@ You can manage certificates in a few ways:
 * you can easily see when certificates and/or domains expire and need to be renewed
 * if sqlite is your backend, you can just run this for signing and deployment; then handle everything else offline.
 * "Admin" and "Public" functions are isolated from each other. By changing the config, you can run a public-only "validation" interface or enable the admin tools that broadcast certificate information.
+* the pyramid server can query nginx locations to clear out the shared cache 
 
 # Installation
 
@@ -294,40 +295,40 @@ The logic in pseudocode:
 	ssl.set_der_priv_key(key)
 
 
-### prequest
+## prequest
 
 `$VENV/bin/prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json`
 
 
-### Routes Designed for JSON Automation
+## Routes Designed for JSON Automation
 
 
-#### `/.well-known/admin/operations/ca_certificate_probes/probe.json`
+### `/.well-known/admin/operations/ca_certificate_probes/probe.json`
 
 Probes known URLs of LetsEncrypt keys and saves them with the correct role information.
 
 If the keys were previously discovered during a signing process, it will decorate the existing records with the role data.
 
-#### `/.well-known/admin/operations/deactivate_expired.json`
+### `/.well-known/admin/operations/deactivate_expired.json`
 
 Deactivates expired certs
 
-#### `/.well-known/admin/operations/redis/prime.json`
+### `/.well-known/admin/operations/redis/prime.json`
 
 Primes a redis cache with domain data.
 
-#### `/.well-known/admin/operations/update_recents.json`
+### `/.well-known/admin/operations/update_recents.json`
 
 Updates domain records to list the most recent certificate for the domain
 
 
-### Routes with JSON support
+## Routes with JSON support
 
 several routes have support for JSON requests via a `.json` suffix.
 
 these are usually documented on the html version
 
-#### `/.well-known/admin/certificate/upload.json`
+### `/.well-known/admin/certificate/upload.json`
 
 This can be used used to directly import certs issued by LetsEncrypt
 
@@ -348,19 +349,19 @@ There is even an `invoke` script to automate these imports:
 	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:6543'
 
 
-#### `/.well-known/admin/ca_certificate/upload.json`
+### `/.well-known/admin/ca_certificate/upload.json`
 
 Upload a new LetsEncrypt certificate.
 
 `uplaod_bundle` is preferred as it provides better tracking.
 
 
-#### `/.well-known/admin/ca_certificate/upload_bundle.json`
+### `/.well-known/admin/ca_certificate/upload_bundle.json`
 
 Upload a new LetsEncrypt certificate with a known role.
 
 
-#### `/.well-known/admin/domain/{DOMAIN|ID}/config.json` Domain Data
+### `/.well-known/admin/domain/{DOMAIN|ID}/config.json` Domain Data
 
 `{DOMAIN|ID}` can be the internal numeric id or the domain name.
 
@@ -391,7 +392,7 @@ if you pass in the querystring '?idonly=1', the PEMs will not be returned.
 notice that the numeric ids are returned as strings. this is by design.
 
 
-#### `/.well-known/admin/certificate/{ID}/config.json` Certificate Data
+### `/.well-known/admin/certificate/{ID}/config.json` Certificate Data
 
 The certificate JSON payload is what is nested in the DOMAIN payload
 
