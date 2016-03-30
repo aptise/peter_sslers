@@ -33,6 +33,14 @@
             <td><timestamp>${LetsencryptAccountKey.timestamp_first_seen  or ''}</timestamp></td>
         </tr>
         <tr>
+            <th>count_certificate_requests</th>
+            <td><span class="badge">${LetsencryptAccountKey.count_certificate_requests or ''}</span></td>
+        </tr>
+        <tr>
+            <th>count_certificates_issued</th>
+            <td><span class="badge">${LetsencryptAccountKey.count_certificates_issued or ''}</span></td>
+        </tr>
+        <tr>
             <th>key_pem_md5</th>
             <td><code>${LetsencryptAccountKey.key_pem_md5}</code></td>
         </tr>

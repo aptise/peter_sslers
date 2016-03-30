@@ -1148,6 +1148,38 @@ def operations_update_recents(dbSession):
                       .values(count_active_certificates=_q_sub)
                       )
 
+
+    # update the counts on Account Keys
+    _q_sub_req = dbSession.query(sqlalchemy.func.count(LetsencryptCertificateRequest.id))\
+        .filter(LetsencryptCertificateRequest.letsencrypt_account_key_id == LetsencryptAccountKey.id,
+                )\
+        .subquery()\
+        .as_scalar()
+    dbSession.execute(LetsencryptAccountKey.__table__
+                      .update()
+                      .values(count_certificate_requests=_q_sub_req,
+                              # count_certificates_issued=_q_sub_iss,
+                              )
+                      )
+    # update the counts on Private Keys
+    _q_sub_req = dbSession.query(sqlalchemy.func.count(LetsencryptCertificateRequest.id))\
+        .filter(LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by == LetsencryptPrivateKey.id,
+                )\
+        .subquery()\
+        .as_scalar()
+    _q_sub_iss = dbSession.query(sqlalchemy.func.count(LetsencryptServerCertificate.id))\
+        .filter(LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by == LetsencryptPrivateKey.id,
+                )\
+        .subquery()\
+        .as_scalar()
+        
+    dbSession.execute(LetsencryptPrivateKey.__table__
+                      .update()
+                      .values(count_certificate_requests=_q_sub_req,
+                              count_certificates_issued=_q_sub_iss,
+                              )
+                      )
+
     # mark the session changed, but we need to mark the session not scoped session.  ugh.
     # we don't need this if we add the bookkeeping object, but let's just keep this to be safe
     mark_changed(dbSession())

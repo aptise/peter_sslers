@@ -40,6 +40,8 @@ class LetsencryptAccountKey(Base):
     key_pem = sa.Column(sa.Text, nullable=True, )
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, )
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False, )
+    count_certificate_requests = sa.Column(sa.Integer, nullable=True, default=0, )
+    count_certificates_issued = sa.Column(sa.Integer, nullable=True, default=0, )
 
     certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest",
                                                primaryjoin="LetsencryptAccountKey.id==LetsencryptCertificateRequest.letsencrypt_account_key_id",
@@ -294,6 +296,9 @@ class LetsencryptPrivateKey(Base):
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, )
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False, )
     count_active_certificates = sa.Column(sa.Integer, nullable=True, )
+
+    count_certificate_requests = sa.Column(sa.Integer, nullable=True, default=0, )
+    count_certificates_issued = sa.Column(sa.Integer, nullable=True, default=0, )
 
     certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest",
                                                primaryjoin="LetsencryptPrivateKey.id==LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by",

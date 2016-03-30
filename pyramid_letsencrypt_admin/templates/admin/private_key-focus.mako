@@ -37,6 +37,14 @@
             <td><span class="badge">${LetsencryptPrivateKey.count_active_certificates  or ''}</span></td>
         </tr>
         <tr>
+            <th>count_certificate_requests</th>
+            <td><span class="badge">${LetsencryptPrivateKey.count_certificate_requests or ''}</span></td>
+        </tr>
+        <tr>
+            <th>count_certificates_issued</th>
+            <td><span class="badge">${LetsencryptPrivateKey.count_certificates_issued or ''}</span></td>
+        </tr>
+        <tr>
             <th>key_pem_md5</th>
             <td><code>${LetsencryptPrivateKey.key_pem_md5}</code></td>
         </tr>

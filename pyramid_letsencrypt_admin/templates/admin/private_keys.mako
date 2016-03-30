@@ -26,6 +26,8 @@
                     <th>count_active_certificates</th>
                     <th>timestamp_first_seen</th>
                     <th>key_pem_md5</th>
+                    <th>count_certificate_requests</th>
+                    <th>count_certificates_issued</th>
                 </tr>
             </thead>
             % for key in LetsencryptPrivateKeys:
@@ -34,6 +36,8 @@
                     <td><span class="badge">${key.count_active_certificates or ''}</span></td>
                     <td><timestamp>${key.timestamp_first_seen}</timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>
+                    <td><span class="badge">${key.count_certificate_requests or ''}</span></td>
+                    <td><span class="badge">${key.count_certificates_issued or ''}</span></td>
                 </tr>
             % endfor
         </table>
