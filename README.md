@@ -514,7 +514,7 @@ after running the server, in another window...
 
 - cd tools
 
-- $VENV/bin/invoke import_letsencrypt_certs_archive --archive-path='//etc/letsencrypt/archive' --server-url-root='http://http://127.0.0.1:6543'
+- $VENV/bin/invoke import_letsencrypt_certs_archive --archive-path='//etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
 
 
 There is also a button under "operations" to probe LetsEncrypt's public website and update your certs with data.

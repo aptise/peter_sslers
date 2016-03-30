@@ -412,6 +412,7 @@ def modulus_md5_key__pem_filepath(pem_filepath):
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError(err)
+    data = data.strip()
     return utils.md5_text(data)
 
 
@@ -422,6 +423,7 @@ def modulus_md5_csr__pem_filepath(pem_filepath):
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCSR(err)
+    data = data.strip()
     return utils.md5_text(data)
 
 
@@ -432,6 +434,7 @@ def modulus_md5_cert__pem_filepath(pem_filepath):
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCertificate(err)
+    data = data.strip()
     return utils.md5_text(data)
 
 
@@ -458,6 +461,7 @@ def cert_single_op__pem_filepath(pem_filepath, single_op):
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCertificate(err)
+    data = data.strip()
     return data
 
 

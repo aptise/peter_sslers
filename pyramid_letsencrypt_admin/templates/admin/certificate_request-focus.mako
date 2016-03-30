@@ -79,7 +79,15 @@
         </tr>
         <tr>
             <th>csr_pem_modulus_md5</th>
-            <td><code>${LetsencryptCertificateRequest.csr_pem_modulus_md5}</code></td>
+            <td>
+                <code>${LetsencryptCertificateRequest.csr_pem_modulus_md5}</code>
+                <a
+                    class="btn btn-xs btn-info"
+                    href="/.well-known/admin/search?${LetsencryptCertificateRequest.csr_pem_modulus_search}"
+                >
+                    <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                </a>
+            </td>
         </tr>
         <tr>
             <th>csr_pem</th>

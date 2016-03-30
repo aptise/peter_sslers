@@ -94,11 +94,14 @@
         </tr>
         <tr>
             <th>cert_pem_modulus_md5</th>
-            <td><code>${LetsencryptServerCertificate.cert_pem_modulus_md5}</code>
-                % if enable_search:
-                    <a  class="label label-info"
-                        href="/.well-known/admin/search?cert_pem_modulus_md5=${LetsencryptServerCertificate.cert_pem_modulus_md5}">(i)</a>
-                % endif
+            <td>
+                <code>${LetsencryptServerCertificate.cert_pem_modulus_md5}</code>
+                <a
+                    class="btn btn-xs btn-info"
+                    href="/.well-known/admin/search?${LetsencryptServerCertificate.cert_pem_modulus_search}"
+                >
+                    <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                </a>
             </td>
         </tr>
         <tr>
@@ -161,37 +164,29 @@
             <th>cert_subject</th>
             <td>
                 <code>${LetsencryptServerCertificate.cert_subject_hash}</code>
-                % if enable_search:
-                    <a  class="label label-info"
-                        href="/.well-known/admin/search?cert_subject_hash=${LetsencryptServerCertificate.cert_subject_hash}">(i)</a>
-                % endif
-
+                <a
+                    class="btn btn-xs btn-info"
+                    href="/.well-known/admin/search?${LetsencryptServerCertificate.cert_subject_hash_search}"
+                >
+                    <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                </a>
                 <br/>
-
-                % if enable_search:
                 <samp>${LetsencryptServerCertificate.cert_subject}</samp>
-                    <a  class="label label-info"
-                        href="/.well-known/admin/search?cert_subject=${LetsencryptServerCertificate.cert_subject}">(i)</a>
-                % endif
-
             </td>
         </tr>
         <tr>
             <th>cert_issuer</th>
             <td>
                 <code>${LetsencryptServerCertificate.cert_issuer_hash}</code>
-                % if enable_search:
-                    <a  class="label label-info"
-                        href="/.well-known/admin/search?cert_issuer_hash=${LetsencryptServerCertificate.cert_issuer_hash}">(i)</a>
-                % endif
-                
+                <a
+                    class="btn btn-xs btn-info"
+                    href="/.well-known/admin/search?${LetsencryptServerCertificate.cert_issuer_hash_search}"
+                >
+                    <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                </a>
                 <br/>
 
                 <samp>${LetsencryptServerCertificate.cert_issuer}</samp>
-                % if enable_search:
-                    <a  class="label label-info"
-                        href="/.well-known/admin/search?cert_issuer=${LetsencryptServerCertificate.cert_issuer}">(i)</a>
-                % endif
             </td>
         </tr>
         <tr>

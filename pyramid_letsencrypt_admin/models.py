@@ -60,6 +60,10 @@ class LetsencryptAccountKey(Base):
                                               )
 
     @property
+    def key_pem_modulus_search(self):
+        return "type=modulus&modulus=%s&source=account_key&account_key.id=%s" % (self.key_pem_modulus_md5, self.id, )
+
+    @property
     def certificate_requests_5(self):
         if self._certificate_requests_5 is None:
             self._certificate_requests_5 = self.certificate_requests\
@@ -106,6 +110,18 @@ class LetsencryptCACertificate(Base):
     cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
+
+    @property
+    def cert_pem_modulus_search(self):
+        return "type=modulus&modulus=%s&source=ca_certificate&ca_certificate.id=%s" % (self.cert_pem_modulus_md5, self.id, )
+
+    @property
+    def cert_subject_hash_search(self):
+        return "type=cert_subject_hash&cert_subject_hash=%s&source=ca_certificate&ca_certificate.id=%s" % (self.cert_subject_hash, self.id, )
+
+    @property
+    def cert_issuer_hash_search(self):
+        return "type=cert_issuer_hash&cert_issuer_hash=%s&source=ca_certificate&ca_certificate.id=%s" % (self.cert_issuer_hash, self.id, )
 
 
 class LetsencryptCertificateRequestType(object):
@@ -159,6 +175,10 @@ class LetsencryptCertificateRequest(Base):
                                    (certificate_request_type_id = 2
                                     and (csr_pem is NOT NULL and csr_pem_md5 is NOT NULL and csr_pem_modulus_md5 is NOT NULL)
                                     )""", name='check1')
+
+    @property
+    def csr_pem_modulus_search(self):
+        return "type=modulus&modulus=%s&source=certificate_request&certificate_request.id=%s" % (self.csr_pem_modulus_md5, self.id, )
 
     @property
     def certificate_request_type(self):
@@ -329,6 +349,10 @@ class LetsencryptPrivateKey(Base):
                                               )
 
     @property
+    def key_pem_modulus_search(self):
+        return "type=modulus&modulus=%s&source=private_key&private_key.id=%s" % (self.key_pem_modulus_md5, self.id, )
+
+    @property
     def certificate_requests_5(self):
         if self._certificate_requests_5 is None:
             self._certificate_requests_5 = self.certificate_requests\
@@ -408,6 +432,18 @@ class LetsencryptServerCertificate(Base):
                                                   back_populates='issued_certificates',
                                                   uselist=False,
                                                   )
+
+    @property
+    def cert_pem_modulus_search(self):
+        return "type=modulus&modulus=%s&source=certificate&certificate.id=%s" % (self.cert_pem_modulus_md5, self.id, )
+
+    @property
+    def cert_subject_hash_search(self):
+        return "type=cert_subject_hash&cert_subject_hash=%s&source=certificate&certificate.id=%s" % (self.cert_subject_hash, self.id, )
+
+    @property
+    def cert_issuer_hash_search(self):
+        return "type=cert_issuer_hash&cert_issuer_hash=%s&source=certificate&certificate.id=%s" % (self.cert_issuer_hash, self.id, )
 
     @property
     def cert_fullchain_pem(self):
