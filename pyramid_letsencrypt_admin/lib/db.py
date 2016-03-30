@@ -47,6 +47,34 @@ def get__LetsencryptCertificateRequest2LetsencryptDomain__challenged(dbSession, 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def _LetsencryptDomain_inject_exipring_days(q, expiring_days, order=False):
+    """helper function for the count/paginated queries"""
+    LetsencryptServerCertificateMulti = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
+    LetsencryptServerCertificateSingle = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
+    _until = datetime.datetime.utcnow() + datetime.timedelta(days=expiring_days)
+    q = q.outerjoin(LetsencryptServerCertificateMulti,
+                    LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi == LetsencryptServerCertificateMulti.id
+                    )\
+        .outerjoin(LetsencryptServerCertificateSingle,
+                   LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificateSingle.id
+                   )\
+        .filter(sqlalchemy.or_(sqlalchemy.and_(LetsencryptServerCertificateMulti.is_active == True,  # noqa
+                                               LetsencryptServerCertificateMulti.timestamp_expires <= _until,
+                                               ),
+                               sqlalchemy.and_(LetsencryptServerCertificateSingle.is_active == True,  # noqa
+                                               LetsencryptServerCertificateSingle.timestamp_expires <= _until,
+                                               ),
+                               )
+                )
+    if order:
+        q = q.order_by(sqlalchemy.func.min(LetsencryptServerCertificateMulti.timestamp_expires,
+                                           LetsencryptServerCertificateSingle.timestamp_expires,
+                                           ).asc(),
+                       )
+    return q                
+
+
+
 def get__LetsencryptDomain__count(dbSession, expiring_days=None, active_only=False):
     q = dbSession.query(LetsencryptDomain)
     if active_only and not expiring_days:
@@ -55,13 +83,7 @@ def get__LetsencryptDomain__count(dbSession, expiring_days=None, active_only=Fal
                                     ),
                      )
     if expiring_days:
-        _until = datetime.datetime.utcnow() + datetime.timedelta(days=expiring_days)
-        q = q.join(LetsencryptServerCertificate,
-                   LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificate.id
-                   )\
-            .filter(LetsencryptServerCertificate.is_active == True,  # noqa
-                    LetsencryptServerCertificate.timestamp_expires <= _until,
-                    )
+        q = _LetsencryptDomain_inject_exipring_days(q, expiring_days, order=False)
     counted = q.count()
     return counted
 
@@ -78,27 +100,7 @@ def get__LetsencryptDomain__paginated(dbSession, expiring_days=None, eagerload_w
                       sqlalchemy.orm.joinedload('latest_certificate_multi'),
                       )
     if expiring_days:
-        LetsencryptServerCertificateMulti = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
-        LetsencryptServerCertificateSingle = sqlalchemy.orm.aliased(LetsencryptServerCertificate)
-        _until = datetime.datetime.utcnow() + datetime.timedelta(days=expiring_days)
-        q = q.outerjoin(LetsencryptServerCertificateMulti,
-                        LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi == LetsencryptServerCertificateMulti.id
-                        )\
-            .outerjoin(LetsencryptServerCertificateSingle,
-                       LetsencryptDomain.letsencrypt_server_certificate_id__latest_single == LetsencryptServerCertificateSingle.id
-                       )\
-            .filter(sqlalchemy.or_(sqlalchemy.and_(LetsencryptServerCertificateMulti.is_active == True,  # noqa
-                                                   LetsencryptServerCertificateMulti.timestamp_expires <= _until,
-                                                   ),
-                                   sqlalchemy.and_(LetsencryptServerCertificateSingle.is_active == True,  # noqa
-                                                   LetsencryptServerCertificateSingle.timestamp_expires <= _until,
-                                                   ),
-                                   )
-                    )\
-            .order_by(sqlalchemy.func.min(LetsencryptServerCertificateMulti.timestamp_expires,
-                                          LetsencryptServerCertificateSingle.timestamp_expires,
-                                          ).asc(),
-                      )
+        q = _LetsencryptDomain_inject_exipring_days(q, expiring_days, order=True)
     else:
         q = q.order_by(sa.func.lower(LetsencryptDomain.domain_name).asc())
     q = q.limit(limit)\
