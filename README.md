@@ -136,7 +136,6 @@ There are several ways to download each file. Different file suffix will change 
 
 Your `environment.ini` exposes a few configuration options:
 
-* `exception_redirect` - boolean, should we redirect on certain exceptions or raise?
 * `openssl_path` - the full path to your openssl binary (default `openssl`)
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
 * `certificate_authority` - the LetsEncrypt certificate authority. default is their staging. you'll have to manually put in the production.
