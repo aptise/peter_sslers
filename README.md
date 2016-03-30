@@ -1,7 +1,17 @@
 pyramid_letsencrypt_admin README
-==================
+================================
 
-`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS people to manage SSL Certificate deployment on large systems. This package offers a lightweight database backed "webserver" that can handle the LetsEncrypt issuance process, import any existing ssl certificates, and easily provision them to servers. This tool has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this).  This package offers several commandline tools, so spinning it up in "webserver" mode may not be necessary.
+`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS people to manage SSL Certificate deployment on large systems. This package offers a lightweight database backed "webserver" that can handle the LetsEncrypt issuance process, import any existing ssl certificates, and easily provision them to servers. This ships with a `lua` module for the `openresty` framework on the `nginx` server which will (i) dynamically request certificates from a primed redis cache, (ii) store data in shared `nginx` worker memory and (iii) expose routes to flush the worker shared memory or expire select keys.  The `Pyramid` based webserver can be configured to do all of these tasks, and can function as a daemon or a commandline script.
+
+Do you like bookkeeping?  The `Pryamid` component logs everything into sql.  Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable.
+
+This tool has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this).  This package offers several commandline tools, so spinning it up in "webserver" mode may not be necessary.
+
+
+# personal note:
+
+I hate having to spend time on DevOps tasks; I would rather spend time on the Product side.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just a test-suite.
+
 
 # An important WARNING:
 
@@ -234,6 +244,10 @@ invoked within nginx...
 
 ### ssl_certhandler-expire.lua
 
+The nginx shared memory cache persists across configuration reloads.  Servers must be fully restarted to clear memory.
+
+The workaround?  API endpoints to "flush" the cache or expire certain keys(domains):
+
 	local ssl_certhandler = require "ssl_certhandler"
 
 	-- Local cache related
@@ -266,6 +280,8 @@ On success, these routes return JSON in a HTTP-200-OK document.
 
 On error, these routes should generate a bad status code.
 
+The Pyramid component can query these endpoints automatically for you.
+
 ### Details
 
 This approach makes aggressive use of caching in the nginx workers (via a shared dict) and redis; and caches both hits and misses.
@@ -297,7 +313,11 @@ The logic in pseudocode:
 
 ## prequest
 
+you can use the prequest syntax to spin up a URL and get or post data
+
 `$VENV/bin/prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json`
+
+a bit of warning  -- prequest will log to the commandline unless you update the logging settings.
 
 
 ## Routes Designed for JSON Automation
@@ -527,14 +547,8 @@ the redis datastore might look something like this:
 	r['foo2.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
 
 
-### expire the nginx worker cache
-
-If you set `nginx.reset_servers` in your config.ini... you can use an operation to clear out the nginx cache on those servers
-
-OTHERWISE you will need to manually restart those servers (the cache persists configuration reloads)
 
 ## search expiring soon
-
 
 ## Show Object Data
 
