@@ -73,7 +73,11 @@ class LetsencryptAccountKey(Base):
     @property
     def issued_certificates_5(self):
         if self._issued_certificates_5 is None:
-            self._issued_certificates_5 = []
+            self._issued_certificates_5 = self.issued_certificates\
+                .options(sa.orm.joinedload('certificate_to_domains').joinedload('domain'),
+                         )\
+                .limit(5)\
+                .all()
         return self._issued_certificates_5
     _issued_certificates_5 = None
 
@@ -475,3 +479,4 @@ class LetsencryptServerCertificate2LetsencryptDomain(Base):
                                  uselist=False,
                                  back_populates='domain_to_certificates',
                                  )
+
