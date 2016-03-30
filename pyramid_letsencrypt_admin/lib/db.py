@@ -111,41 +111,40 @@ def get__LetsencryptDomain__paginated(dbSession, expiring_days=None, eagerload_w
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _get__LetsencryptDomain__core(query, preload=False):
-    return query.options(
-        sqlalchemy.orm.subqueryload('latest_certificate_single'),
-        sqlalchemy.orm.joinedload('latest_certificate_single.private_key'),
-        sqlalchemy.orm.joinedload('latest_certificate_single.certificate_upchain'),
-        sqlalchemy.orm.joinedload('latest_certificate_single.certificate_to_domains'),
-        sqlalchemy.orm.joinedload('latest_certificate_single.certificate_to_domains.domain'),
+def _get__LetsencryptDomain__core(q, preload=False, eagerload_web=False):
+    q = q.options(sqlalchemy.orm.subqueryload('latest_certificate_single'),
+                  sqlalchemy.orm.joinedload('latest_certificate_single.private_key'),
+                  sqlalchemy.orm.joinedload('latest_certificate_single.certificate_upchain'),
+                  sqlalchemy.orm.joinedload('latest_certificate_single.certificate_to_domains'),
+                  sqlalchemy.orm.joinedload('latest_certificate_single.certificate_to_domains.domain'),
 
-        sqlalchemy.orm.subqueryload('latest_certificate_multi'),
-        sqlalchemy.orm.joinedload('latest_certificate_multi.private_key'),
-        sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_upchain'),
-        sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_to_domains'),
-        sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_to_domains.domain'),
-    )
+                  sqlalchemy.orm.subqueryload('latest_certificate_multi'),
+                  sqlalchemy.orm.joinedload('latest_certificate_multi.private_key'),
+                  sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_upchain'),
+                  sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_to_domains'),
+                  sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_to_domains.domain'),
+                  )
+    if eagerload_web:
+        # need to join back the domains to show alternate domains.
+        q = q.options(sqlalchemy.orm.subqueryload('domain_to_certificate_requests_5').joinedload('certificate_request').joinedload('certificate_request_to_domains').joinedload('domain'),
+                      sqlalchemy.orm.subqueryload('domain_to_certificates_5').joinedload('certificate').joinedload('certificate_to_domains').joinedload('domain'),
+                      )
+    return q
 
 
 def get__LetsencryptDomain__by_id(dbSession, domain_id, preload=False, eagerload_web=False):
     q = dbSession.query(LetsencryptDomain)\
         .filter(LetsencryptDomain.id == domain_id)
-    q = _get__LetsencryptDomain__core(q, preload=preload)
+    q = _get__LetsencryptDomain__core(q, preload=preload, eagerload_web=eagerload_web)
     item = q.first()
-    if eagerload_web and item:
-        item.domain_to_certificate_requests_5
-        item.domain_to_certificates_5
     return item
 
 
 def get__LetsencryptDomain__by_name(dbSession, domain_name, preload=False, eagerload_web=False):
     q = dbSession.query(LetsencryptDomain)\
         .filter(LetsencryptDomain.domain_name == domain_name)
-    q = _get__LetsencryptDomain__core(q, preload=preload)
+    q = _get__LetsencryptDomain__core(q, preload=preload, eagerload_web=eagerload_web)
     item = q.first()
-    if eagerload_web and item:
-        item.certificate_requests_5
-        item.signed_certificates_5
     return item
 
 
@@ -262,10 +261,11 @@ def get__LetsencryptAccountKey__paginated(dbSession, limit=None, offset=0):
 def get__LetsencryptAccountKey__by_id(dbSession, key_id, eagerload_web=False):
     q = dbSession.query(LetsencryptAccountKey)\
         .filter(LetsencryptAccountKey.id == key_id)
+    if eagerload_web:
+        q = q.options(sqlalchemy.orm.subqueryload('certificate_requests_5').joinedload('certificate_request_to_domains').joinedload('domain'),
+                      sqlalchemy.orm.subqueryload('issued_certificates_5').joinedload('certificate_to_domains').joinedload('domain'),
+                      )
     item = q.first()
-    if eagerload_web and item:
-        item.certificate_requests_5
-        item.issued_certificates_5
     return item
 
 
@@ -291,10 +291,11 @@ def get__LetsencryptPrivateKey__paginated(dbSession, limit=None, offset=0, activ
 def get__LetsencryptPrivateKey__by_id(dbSession, cert_id, eagerload_web=False):
     q = dbSession.query(LetsencryptPrivateKey)\
         .filter(LetsencryptPrivateKey.id == cert_id)
+    if eagerload_web:
+        q = q.options(sqlalchemy.orm.subqueryload('certificate_requests_5').joinedload('certificate_request_to_domains').joinedload('domain'),
+                      sqlalchemy.orm.subqueryload('signed_certificates_5').joinedload('certificate_to_domains').joinedload('domain'),
+                      )
     item = q.first()
-    if eagerload_web and item:
-        item.certificate_requests_5
-        item.signed_certificates_5
     return item
 
 

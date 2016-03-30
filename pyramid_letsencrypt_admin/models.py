@@ -49,41 +49,17 @@ class LetsencryptAccountKey(Base):
                                                primaryjoin="LetsencryptAccountKey.id==LetsencryptCertificateRequest.letsencrypt_account_key_id",
                                                back_populates='letsencrypt_account_key',
                                                order_by='LetsencryptCertificateRequest.id.desc()',
-                                               lazy="dynamic",
                                                )
 
     issued_certificates = sa.orm.relationship("LetsencryptServerCertificate",
                                               primaryjoin="LetsencryptAccountKey.id==LetsencryptServerCertificate.letsencrypt_account_key_id",
                                               back_populates='letsencrypt_account_key',
                                               order_by='LetsencryptServerCertificate.id.desc()',
-                                              lazy="dynamic",
                                               )
 
     @property
     def key_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=account_key&account_key.id=%s" % (self.key_pem_modulus_md5, self.id, )
-
-    @property
-    def certificate_requests_5(self):
-        if self._certificate_requests_5 is None:
-            self._certificate_requests_5 = self.certificate_requests\
-                .options(sa.orm.joinedload('certificate_request_to_domains').joinedload('domain'),
-                         )\
-                .limit(5)\
-                .all()
-        return self._certificate_requests_5
-    _certificate_requests_5 = None
-
-    @property
-    def issued_certificates_5(self):
-        if self._issued_certificates_5 is None:
-            self._issued_certificates_5 = self.issued_certificates\
-                .options(sa.orm.joinedload('certificate_to_domains').joinedload('domain'),
-                         )\
-                .limit(5)\
-                .all()
-        return self._issued_certificates_5
-    _issued_certificates_5 = None
 
 
 class LetsencryptCACertificate(Base):
@@ -235,13 +211,11 @@ class LetsencryptDomain(Base):
                                                          primaryjoin="LetsencryptDomain.id==LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id",
                                                          back_populates='domain',
                                                          order_by='LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.desc()',
-                                                         lazy='dynamic',
                                                          )
     domain_to_certificates = sa.orm.relationship("LetsencryptServerCertificate2LetsencryptDomain",
                                                  primaryjoin="LetsencryptDomain.id==LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id",
                                                  back_populates='domain',
                                                  order_by='LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id.desc()',
-                                                 lazy='dynamic',
                                                  )
 
     latest_certificate_single = sa.orm.relationship("LetsencryptServerCertificate",
@@ -252,28 +226,6 @@ class LetsencryptDomain(Base):
                                                    primaryjoin="LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi==LetsencryptServerCertificate.id",
                                                    uselist=False,
                                                    )
-
-    @property
-    def domain_to_certificate_requests_5(self):
-        if self._domain_to_certificate_requests_5 is None:
-            self._domain_to_certificate_requests_5 = self.domain_to_certificate_requests\
-                .options(sa.orm.joinedload('certificate_request').joinedload('certificate_request_to_domains').joinedload('domain'),
-                         )\
-                .limit(5)\
-                .all()
-        return self._domain_to_certificate_requests_5
-    _domain_to_certificate_requests_5 = None
-
-    @property
-    def domain_to_certificates_5(self):
-        if self._domain_to_certificates_5 is None:
-            self._domain_to_certificates_5 = self.domain_to_certificates\
-                .options(sa.orm.joinedload('certificate').joinedload('certificate_to_domains').joinedload('domain'),
-                         )\
-                .limit(5)\
-                .all()
-        return self._domain_to_certificates_5
-    _domain_to_certificates_5 = None
 
 
 class LetsencryptOperationsEventType(object):
@@ -345,40 +297,16 @@ class LetsencryptPrivateKey(Base):
                                                primaryjoin="LetsencryptPrivateKey.id==LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by",
                                                back_populates='letsencrypt_private_key__signed_by',
                                                order_by='LetsencryptCertificateRequest.id.desc()',
-                                               lazy='dynamic',
                                                )
     signed_certificates = sa.orm.relationship("LetsencryptServerCertificate",
                                               primaryjoin="LetsencryptPrivateKey.id==LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by",
                                               back_populates='private_key',
                                               order_by='LetsencryptServerCertificate.id.desc()',
-                                              lazy='dynamic',
                                               )
 
     @property
     def key_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=private_key&private_key.id=%s" % (self.key_pem_modulus_md5, self.id, )
-
-    @property
-    def certificate_requests_5(self):
-        if self._certificate_requests_5 is None:
-            self._certificate_requests_5 = self.certificate_requests\
-                .options(sa.orm.joinedload('certificate_request_to_domains').joinedload('domain'),
-                         )\
-                .limit(5)\
-                .all()
-        return self._certificate_requests_5
-    _certificate_requests_5 = None
-
-    @property
-    def signed_certificates_5(self):
-        if self._signed_certificates_5 is None:
-            self._signed_certificates_5 = self.signed_certificates\
-                .options(sa.orm.joinedload('certificate_to_domains').joinedload('domain'),
-                         )\
-                .limit(5)\
-                .all()
-        return self._signed_certificates_5
-    _signed_certificates_5 = None
 
 
 class LetsencryptServerCertificate(Base):
@@ -522,3 +450,118 @@ class LetsencryptServerCertificate2LetsencryptDomain(Base):
                                  back_populates='domain_to_certificates',
                                  )
 
+
+# ==============================================================================
+
+
+# advanced relationships
+
+
+LetsencryptAccountKey.certificate_requests_5 = sa.orm.relationship(
+     LetsencryptCertificateRequest,
+     primaryjoin=(
+         sa.and_(LetsencryptAccountKey.id == LetsencryptCertificateRequest.letsencrypt_account_key_id,
+                 LetsencryptCertificateRequest.id.in_(sa.select([LetsencryptCertificateRequest.id])
+                                                        .where(LetsencryptAccountKey.id == LetsencryptCertificateRequest.letsencrypt_account_key_id)
+                                                        .order_by(LetsencryptCertificateRequest.id.desc())
+                                                        .limit(5)
+                                                        .correlate()
+                                                        )
+                 )
+     ),
+     order_by=LetsencryptCertificateRequest.id.desc(),
+     viewonly=True
+)
+
+
+LetsencryptAccountKey.issued_certificates_5 = sa.orm.relationship(
+     LetsencryptServerCertificate,
+     primaryjoin=(
+         sa.and_(LetsencryptAccountKey.id == LetsencryptServerCertificate.letsencrypt_account_key_id,
+                 LetsencryptServerCertificate.id.in_(sa.select([LetsencryptServerCertificate.id])
+                                                       .where(LetsencryptAccountKey.id == LetsencryptServerCertificate.letsencrypt_account_key_id)
+                                                       .order_by(LetsencryptServerCertificate.id.desc())
+                                                       .limit(5)
+                                                       .correlate()
+                                                       )
+                 )
+     ),
+     order_by=LetsencryptServerCertificate.id.desc(),
+     viewonly=True
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+LetsencryptPrivateKey.certificate_requests_5 = sa.orm.relationship(
+     LetsencryptCertificateRequest,
+     primaryjoin=(
+         sa.and_(LetsencryptPrivateKey.id == LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by,
+                 LetsencryptCertificateRequest.id.in_(sa.select([LetsencryptCertificateRequest.id])
+                                                        .where(LetsencryptPrivateKey.id == LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by)
+                                                        .order_by(LetsencryptCertificateRequest.id.desc())
+                                                        .limit(5)
+                                                        .correlate()
+                                                        )
+                 )
+     ),
+     order_by=LetsencryptCertificateRequest.id.desc(),
+     viewonly=True
+)
+
+
+LetsencryptPrivateKey.signed_certificates_5 = sa.orm.relationship(
+     LetsencryptServerCertificate,
+     primaryjoin=(
+         sa.and_(LetsencryptPrivateKey.id == LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by,
+                 LetsencryptServerCertificate.id.in_(sa.select([LetsencryptServerCertificate.id])
+                                                       .where(LetsencryptPrivateKey.id == LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by)
+                                                       .order_by(LetsencryptServerCertificate.id.desc())
+                                                       .limit(5)
+                                                       .correlate()
+                                                       )
+                 )
+     ),
+     order_by=LetsencryptServerCertificate.id.desc(),
+     viewonly=True
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+LetsencryptDomain.domain_to_certificate_requests_5 = sa.orm.relationship(
+     LetsencryptCertificateRequest2LetsencryptDomain,
+     primaryjoin=(
+         sa.and_(LetsencryptDomain.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id,
+                 LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.in_(
+                    sa.select([LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id])
+                              .where(LetsencryptDomain.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id)
+                              .order_by(LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.desc())
+                              .limit(5)
+                              .correlate()
+                              )
+                 )
+     ),
+     order_by=LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.desc(),
+     viewonly=True
+)
+
+
+LetsencryptDomain.domain_to_certificates_5 = sa.orm.relationship(
+     LetsencryptServerCertificate2LetsencryptDomain,
+     primaryjoin=(
+         sa.and_(LetsencryptDomain.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id,
+                 LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id.in_(
+                    sa.select([LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id])
+                              .where(LetsencryptDomain.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id)
+                              .order_by(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id.desc())
+                              .limit(5)
+                              .correlate()
+                              )
+                 )
+     ),
+     order_by=LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id.desc(),
+     viewonly=True
+)
