@@ -69,7 +69,7 @@ def import_letsencrypt_certs_archive(archive_path, server_url_root):
         raise ValueError("No files!")
 
     server_url_root = server_url_root + ('' if server_url_root[-1] == '/' else '/')
-    url = '%s.well-known/admin/certificate/upload/json' % server_url_root
+    url = '%s.well-known/admin/certificate/upload.json' % server_url_root
 
     for fset in filesets:
         proc = subprocess.Popen(['curl',

@@ -16,3 +16,11 @@ class OpenSslError_InvalidCSR(OpenSslError):
 
 class OpenSslError_InvalidCertificate(OpenSslError):
     pass
+
+
+class AcmeCommunicationError(Exception):
+    pass
+
+
+class DomainVerificationError(Exception):
+    pass

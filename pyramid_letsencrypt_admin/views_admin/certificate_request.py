@@ -27,6 +27,7 @@ from ..lib.forms import (Form_CertificateRequest_new_flow,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
+from ..lib import errors as lib_errors
 from ..lib.handler import Handler, items_per_page
 
 
@@ -254,6 +255,8 @@ class ViewAdmin(Handler):
                     account_key_pem=account_key_pem,
                     private_key_pem=private_key_pem,
                 )
+            except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
+                return HTTPFound('/.well-known/admin/certificate_requests?error=new-full&message=%s' % e.message)
             except:
                 if self.request.registry.settings['exception_redirect']:
                     return HTTPFound('/.well-known/admin/certificate_requests?error=new-full')

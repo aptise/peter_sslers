@@ -23,10 +23,10 @@
             <thead>
                 <tr>
                     <th>id</th>
-                    <th>timestamp_first_seen</th>
+                    <th>timestamp first seen</th>
                     <th>key_pem_md5</th>
-                    <th>count_certificate_requests</th>
-                    <th>count_certificates_issued</th>
+                    <th>count certificate requests</th>
+                    <th>count certificates issued</th>
                 </tr>
             </thead>
             <tbody>

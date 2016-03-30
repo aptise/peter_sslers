@@ -61,8 +61,8 @@
         <tr>
             <th>certificates</th>
             <td>
-                ${admin_partials.table_certificates__list(LetsencryptAccountKey.signed_certificates_5, show_domains=True, show_expiring_days=True)}
-                % if LetsencryptAccountKey.signed_certificates_5:
+                ${admin_partials.table_certificates__list(LetsencryptAccountKey.issued_certificates_5, show_domains=True, show_expiring_days=True)}
+                % if LetsencryptAccountKey.issued_certificates_5:
                     ${admin_partials.nav_pager("/.well-known/admin/account_key/%s/certificates" % LetsencryptAccountKey.id)}
                 % endif
             </td>

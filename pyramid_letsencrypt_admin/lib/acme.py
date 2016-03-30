@@ -224,7 +224,7 @@ def acme_register_account(
     elif code == 409:
         log.info("Already registered!")
     else:
-        raise ValueError("Error registering: {0} {1}".format(code, result))
+        raise errors.AcmeCommunicationError("Error registering: {0} {1}".format(code, result))
     return True
 
 
@@ -253,7 +253,7 @@ def acme_verify_domains(
             header,
         )
         if code != 201:
-            raise ValueError("Error requesting challenges: {0} {1}".format(code, result))
+            raise errors.AcmeCommunicationError("Error requesting challenges: {0} {1}".format(code, result))
 
         # make the challenge file
         challenge = [c for c in json.loads(result.decode("utf8"))["challenges"] if c["type"] == "http-01"][0]
@@ -269,7 +269,7 @@ def acme_verify_domains(
             assert resp_data == keyauthorization
         except (IOError, AssertionError):
             handle_keyauth_cleanup(domain, token, keyauthorization)
-            raise ValueError("Wrote keyauth challenge, but couldn't download {0}".format(wellknown_url))
+            raise errors.DomainVerificationError("Wrote keyauth challenge, but couldn't download {0}".format(wellknown_url))
 
         # notify challenge are met
         code, result, headers = send_signed_request(
@@ -281,7 +281,7 @@ def acme_verify_domains(
             header,
         )
         if code != 202:
-            raise ValueError("Error triggering challenge: {0} {1}".format(code, result))
+            raise errors.AcmeCommunicationError("Error triggering challenge: {0} {1}".format(code, result))
 
         # wait for challenge to be verified
         while True:
@@ -289,7 +289,7 @@ def acme_verify_domains(
                 resp = urlopen(challenge["uri"])
                 challenge_status = json.loads(resp.read().decode("utf8"))
             except IOError as e:
-                raise ValueError("Error checking challenge: {0} {1}".format(e.code, json.loads(e.read().decode("utf8"))))
+                raise errors.AcmeCommunicationError("Error checking challenge: {0} {1}".format(e.code, json.loads(e.read().decode("utf8"))))
             if challenge_status["status"] == "pending":
                 time.sleep(2)
             elif challenge_status["status"] == "valid":
@@ -297,7 +297,7 @@ def acme_verify_domains(
                 handle_keyauth_cleanup(domain, token, keyauthorization)
                 break
             else:
-                raise ValueError("{0} challenge did not pass: {1}".format(domain, challenge_status))
+                raise errors.DomainVerificationError("{0} challenge did not pass: {1}".format(domain, challenge_status))
     return True
 
 
@@ -320,7 +320,7 @@ def acme_sign_certificate(
         header,
     )
     if code != 201:
-        raise ValueError("Error signing certificate: {0} {1}".format(code, result))
+        raise errors.AcmeCommunicationError("Error signing certificate: {0} {1}".format(code, result))
 
     # format as PEM
     log.info("Certificate signed!")

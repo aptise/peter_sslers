@@ -110,6 +110,7 @@ class ViewAdmin(Handler):
                 DBSession, certificate_pem,
                 dbCACertificate=dbLetsencryptCACertificate,
                 dbPrivateKey=dbLetsencryptPrivateKey,
+                dbAccountKey=None,
             )
 
             if self.request.matched_route.name == 'admin:certificate:upload:json':

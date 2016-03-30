@@ -71,8 +71,7 @@ def _LetsencryptDomain_inject_exipring_days(q, expiring_days, order=False):
                                            LetsencryptServerCertificateSingle.timestamp_expires,
                                            ).asc(),
                        )
-    return q                
-
+    return q
 
 
 def get__LetsencryptDomain__count(dbSession, expiring_days=None, active_only=False):
@@ -266,7 +265,7 @@ def get__LetsencryptAccountKey__by_id(dbSession, key_id, eagerload_web=False):
     item = q.first()
     if eagerload_web and item:
         item.certificate_requests_5
-        item.signed_certificates_5
+        item.issued_certificates_5
     return item
 
 
@@ -685,6 +684,8 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
     tmpfiles = []
     dbLetsencryptCertificateRequest = None
     dbLetsencryptServerCertificate = None
+    dbAccountKey = None
+    dbPrivateKey = None
     try:
 
         account_key_pem = acme.cleanup_pem_text(account_key_pem)
@@ -737,9 +738,16 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
             dbLetsencryptCertificateRequest.csr_pem = csr_text
             dbLetsencryptCertificateRequest.csr_pem_md5 = utils.md5_text(csr_text)
             dbLetsencryptCertificateRequest.csr_pem_modulus_md5 = csr_pem_modulus_md5
+
+            # note account/private keys
             dbLetsencryptCertificateRequest.letsencrypt_account_key_id = dbAccountKey.id
             dbLetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by = dbPrivateKey.id
             dbSession.add(dbLetsencryptCertificateRequest)
+            dbSession.flush()
+
+            # increment account/private key counts
+            dbAccountKey.count_certificate_requests += 1
+            dbPrivateKey.count_certificate_requests += 1
             dbSession.flush()
 
             # we'll use this tuple in a bit...
@@ -811,6 +819,8 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
 
         # these MUST commit
         with transaction.manager as tx:
+            if dbAccountKey not in dbSession:
+                dbAccountKey = dbSession.merge(dbAccountKey)
             if dbPrivateKey not in dbSession:
                 dbPrivateKey = dbSession.merge(dbPrivateKey)
             if dbLetsencryptCertificateRequest not in dbSession:
@@ -823,8 +833,9 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
                 cert_pem = cert_pem,
                 chained_pem = chained_pem,
                 chain_name = chain_url,
-                letsencrypt_private_key_id__signed_by = dbPrivateKey.id,
                 dbLetsencryptCertificateRequest = dbLetsencryptCertificateRequest,
+                dbLetsencryptAccountKey = dbAccountKey,
+                dbLetsencryptPrivateKey = dbPrivateKey,
                 domains_list__objects = _domain_objects,
             )
 
@@ -857,6 +868,7 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
     dbSession,
     cert_pem,
     dbCACertificate=None,
+    dbAccountKey=None,
     dbPrivateKey=None,
 ):
     cert_pem = acme.cleanup_pem_text(cert_pem)
@@ -867,7 +879,22 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
                 LetsencryptServerCertificate.cert_pem == cert_pem,
                 )\
         .first()
-    if not dbCertificate:
+    if dbCertificate:
+        if dbPrivateKey and (dbCertificate.letsencrypt_private_key_id__signed_by != dbPrivateKey.id):
+            if dbCertificate.letsencrypt_private_key_id__signed_by:
+                raise ValueError("Integrity Error. Competing PrivateKey (!?)")
+            elif dbCertificate.letsencrypt_private_key_id__signed_by is None:
+                dbCertificate.letsencrypt_private_key_id__signed_by = dbPrivateKey.id
+                dbPrivateKey.count_certificates_issued += 1
+                dbSession.flush()
+        if dbAccountKey and (dbCertificate.letsencrypt_account_key_id != dbAccountKey.id):
+            if dbCertificate.letsencrypt_account_key_id:
+                raise ValueError("Integrity Error. Competing AccountKey (!?)")
+            elif dbCertificate.letsencrypt_account_key_id is None:
+                dbCertificate.letsencrypt_account_key_id = dbAccountKey.id
+                dbAccountKey.count_certificates_issued += 1
+                dbSession.flush()
+    elif not dbCertificate:
         _tmpfileCert = None
         try:
             _tmpfileCert = tempfile.NamedTemporaryFile()
@@ -909,6 +936,12 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
             if dbCertificate.cert_pem_modulus_md5 != dbPrivateKey.key_pem_modulus_md5:
                 raise ValueError('dbPrivateKey did not sign the certificate')
             dbCertificate.letsencrypt_private_key_id__signed_by = dbPrivateKey.id
+            dbPrivateKey.count_certificates_issued += 1
+
+            # did we submit an account key?
+            if dbAccountKey:
+                dbCertificate.letsencrypt_account_key_id = dbAccountKey.id
+                dbAccountKey.count_certificates_issued += 1
 
             _subject_domain, _san_domains = acme.parse_cert_domains__segmented(cert_path=_tmpfileCert.name)
             certificate_domain_names = _san_domains
@@ -926,7 +959,6 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
             is_created = True
 
             for _domain_name in certificate_domain_names:
-
                 dbDomain = getcreate__LetsencryptDomain__by_domainName(dbSession, _domain_name)
 
                 dbLetsencryptServerCertificate2LetsencryptDomain = LetsencryptServerCertificate2LetsencryptDomain()
@@ -953,16 +985,17 @@ def create__LetsencryptServerCertificate(
     chained_pem = None,
     chain_name = None,
     dbLetsencryptCertificateRequest = None,
+    dbLetsencryptAccountKey = None,
     domains_list__objects = None,
 
     # only one of these 2
-    letsencrypt_private_key_id__signed_by = None,
+    dbLetsencryptPrivateKey = None,
     privkey_pem = None,
 ):
-    if not any((letsencrypt_private_key_id__signed_by, privkey_pem)) or all((letsencrypt_private_key_id__signed_by, privkey_pem)):
-        raise ValueError("create__LetsencryptServerCertificate must accept ONE OF [`letsencrypt_private_key_id__signed_by`, `privkey_pem`]")
+    if not any((dbLetsencryptPrivateKey, privkey_pem)) or all((dbLetsencryptPrivateKey, privkey_pem)):
+        raise ValueError("create__LetsencryptServerCertificate must accept ONE OF [`dbLetsencryptPrivateKey`, `privkey_pem`]")
     if privkey_pem:
-        raise ValueError("need to figure this out")
+        raise ValueError("need to figure this out; might not need it")
 
     # we need to figure this out; it's the chained_pem
     # letsencrypt_ca_certificate_id__upchain
@@ -999,8 +1032,17 @@ def create__LetsencryptServerCertificate(
         dbLetsencryptCertificateRequest.is_active = False
         dbLetsencryptServerCertificate.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
     dbLetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain = letsencrypt_ca_certificate_id__upchain
-    dbLetsencryptServerCertificate.letsencrypt_private_key_id__signed_by = letsencrypt_private_key_id__signed_by
+
+    # note account/private keys
+    dbLetsencryptServerCertificate.letsencrypt_account_key_id = dbLetsencryptAccountKey.id
+    dbLetsencryptServerCertificate.letsencrypt_private_key_id__signed_by = dbLetsencryptPrivateKey.id
+
     dbSession.add(dbLetsencryptServerCertificate)
+    dbSession.flush()
+
+    # increment account/private key counts
+    dbLetsencryptAccountKey.count_certificates_issued += 1
+    dbLetsencryptPrivateKey.count_certificates_issued += 1
     dbSession.flush()
 
     for _domain_name in domains_list__objects.keys():
@@ -1187,37 +1229,38 @@ def operations_update_recents(dbSession):
                       .values(count_active_certificates=_q_sub)
                       )
 
+    # the following works, but this is currently tracked
+    if False:
+        # update the counts on Account Keys
+        _q_sub_req = dbSession.query(sqlalchemy.func.count(LetsencryptCertificateRequest.id))\
+            .filter(LetsencryptCertificateRequest.letsencrypt_account_key_id == LetsencryptAccountKey.id,
+                    )\
+            .subquery()\
+            .as_scalar()
+        dbSession.execute(LetsencryptAccountKey.__table__
+                          .update()
+                          .values(count_certificate_requests=_q_sub_req,
+                                  # count_certificates_issued=_q_sub_iss,
+                                  )
+                          )
+        # update the counts on Private Keys
+        _q_sub_req = dbSession.query(sqlalchemy.func.count(LetsencryptCertificateRequest.id))\
+            .filter(LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by == LetsencryptPrivateKey.id,
+                    )\
+            .subquery()\
+            .as_scalar()
+        _q_sub_iss = dbSession.query(sqlalchemy.func.count(LetsencryptServerCertificate.id))\
+            .filter(LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by == LetsencryptPrivateKey.id,
+                    )\
+            .subquery()\
+            .as_scalar()
 
-    # update the counts on Account Keys
-    _q_sub_req = dbSession.query(sqlalchemy.func.count(LetsencryptCertificateRequest.id))\
-        .filter(LetsencryptCertificateRequest.letsencrypt_account_key_id == LetsencryptAccountKey.id,
-                )\
-        .subquery()\
-        .as_scalar()
-    dbSession.execute(LetsencryptAccountKey.__table__
-                      .update()
-                      .values(count_certificate_requests=_q_sub_req,
-                              # count_certificates_issued=_q_sub_iss,
-                              )
-                      )
-    # update the counts on Private Keys
-    _q_sub_req = dbSession.query(sqlalchemy.func.count(LetsencryptCertificateRequest.id))\
-        .filter(LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by == LetsencryptPrivateKey.id,
-                )\
-        .subquery()\
-        .as_scalar()
-    _q_sub_iss = dbSession.query(sqlalchemy.func.count(LetsencryptServerCertificate.id))\
-        .filter(LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by == LetsencryptPrivateKey.id,
-                )\
-        .subquery()\
-        .as_scalar()
-        
-    dbSession.execute(LetsencryptPrivateKey.__table__
-                      .update()
-                      .values(count_certificate_requests=_q_sub_req,
-                              count_certificates_issued=_q_sub_iss,
-                              )
-                      )
+        dbSession.execute(LetsencryptPrivateKey.__table__
+                          .update()
+                          .values(count_certificate_requests=_q_sub_req,
+                                  count_certificates_issued=_q_sub_iss,
+                                  )
+                          )
 
     # mark the session changed, but we need to mark the session not scoped session.  ugh.
     # we don't need this if we add the bookkeeping object, but let's just keep this to be safe
