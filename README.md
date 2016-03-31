@@ -1,14 +1,39 @@
 peter_sslers README
 ================================
 
-`peter_sslers` is a tool designed to help EXPERIENCED DEVOPS people to manage SSL Certificate deployment on large systems. This package offers a lightweight database backed "webserver" that can handle the LetsEncrypt issuance process, import any existing ssl certificates, and easily provision them to servers. This ships with a `lua` module for the `openresty` framework on the `nginx` server which will (i) dynamically request certificates from a primed redis cache, (ii) store data in shared `nginx` worker memory and (iii) expose routes to flush the worker shared memory or expire select keys.  The `Pyramid` based webserver can be configured to do all of these tasks, and can function as a daemon or a commandline script.
+`peter_sslers` is a package designed to help *experienced* devops and admins to manage SSL Certificates and their deployment on larger systems.
 
-Do you like bookkeeping?  The `Pryamid` component logs everything into sql.  Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable.
+This package is now aimed at casual or single-site users.
 
-This tool has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this).  This package offers several commandline tools, so spinning it up in "webserver" mode may not be necessary.
+Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
 
+The package offers a lightweight database backed `Pyramid` application that can:
 
-# personal note:
+* act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver,
+* import any existing ssl certificates,
+* ease provisioning certificates onto various servers,
+* browse certificate data and easily see what needs to be renewed
+* communicate with a properly configured `nginx` web server (see next)
+
+The package ships with a `lua` module for the `openresty` framework on the `nginx` server which will:
+
+* dynamically request certificates from a primed redis cache
+* store data in shared `nginx` worker memory and
+* expose routes to flush the worker shared memory or expire select keys. 
+
+The `Pyramid` based application can function as a daemon or a commandline script.
+
+Do you like bookkeeping?  Peter's `Pryamid` component logs everything into sql.  
+
+Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable within Peter as well.
+
+Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool).  
+
+Peter offers several commandline tools, so spinning it up in "webserver" mode may not be necessary, or will only be necessary for brief periods of time.
+
+SqlAlchemy is the backing database library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). `sqlite` is the default.  sqlite is actually kind of great, because it can be sftp'd onto different machines for local use.
+
+## personal note:
 
 I hate having to spend time on DevOps tasks; I would rather spend time on the Product side.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just a test-suite.
 
@@ -19,13 +44,6 @@ I hate having to spend time on DevOps tasks; I would rather spend time on the Pr
 * This package manages PRIVATE SSL KEYS and makes them readable.
 * If you do not known / are not really awesome with basic network security PLEASE DO NOT USE THIS.
 
-# What this package does:
-
-The package offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
-
-SqlAlchemy is the DB library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). sqlite is the default.  sqlite is actually kind of great, because it can be sftpd onto different machines for local use.
-
-You can manage certificates in a few ways:
 
 # The Components
 
@@ -44,6 +62,7 @@ The "/tools" directory contains scripts useful for certificate operations.  Curr
 * an `invoke` script
 * a `lua` library for integrating with nginx/openresty
 
+# General Management Concepts
 
 ## Input
 
@@ -70,23 +89,39 @@ The "/tools" directory contains scripts useful for certificate operations.  Curr
 * "Admin" and "Public" functions are isolated from each other. By changing the config, you can run a public-only "validation" interface or enable the admin tools that broadcast certificate information.
 * the pyramid server can query nginx locations to clear out the shared cache 
 
+
 # Installation
 
 This is pretty much ready to go for development use.  Python will install everything for you.
 
-you should create a virtualenv though.
+You should create a virtualenv for this. In this example, we will create the following directory structure:
+
+* `certificate_admin` - core page
+* `certificate_admin/peter_sslers-venv` - dedicated virtualenv
+* `certificate_admin/peter_sslers` - git checkout
+
+Here we go...
 
 	mkdir certificate_admin
 	cd certificate_admin
-	git checkout https://github.com/jvanasco/peter_sslers.git
+
 	virtualenv peter_sslers-venv
 	source peter_sslers-venv/bin/activate
+
+	git checkout https://github.com/jvanasco/peter_sslers.git
 	cd peter_sslers
 	python setup.py develop
 	initialize_peter_sslers_db development.ini
 	pserve --reload development.ini
 	
-some tools are provided, see below, to automatically import existing certificates and chains
+Then you can visit `http://127.0.0.1:6543`
+
+Editing the `development.ini` file will let you specify how the package runs.
+
+`Pyramid` applications are based on `.ini` configuration files.  You can use multiple files to deploy the server differently on the same machine, or on different environments.
+
+Some tools are provided to automatically import existing certificates and chains (see below).
+
 
 # Implementation Details
 
@@ -95,6 +130,7 @@ The webserver exposes the following routes/directories:
 * `/.well-known/acme-challenge` - directory
 * `/.well-known/whoami` - URL prints host
 * `/.well-known/admin` - admin tool THIS EXPLORES PRIVATE KEYS ON PURPOSE
+
 
 # Just a friendly reminder:
 
@@ -117,9 +153,10 @@ To solve this you can:
 * make ` /.well-known/admin` only usable within your LAN or NEVER USABLE
 * on a machine within your LAN, you can query for the latest certs for domain(s) using simple `curl` commands
 
-In a more advanced implementation (such as what this was designed to manage) the certificates need to be loaded into a `Redis` server for use by an `openresty`/`nginx` webserver/gateway that will dynamically handle ssl certificates.
+In a more advanced implementation (such as what this was originally designed to manage) the certificates need to be loaded into a `Redis` server for use by an `openresty`/`nginx` webserver/gateway that will dynamically handle ssl certificates.
 
 This package does all the annoying openssl work in terms of building chains and converting formats *You just tell it what domains you need certificates for and in which format and THERE YOU GO.*
+
 
 # notes
 
@@ -128,6 +165,8 @@ This package does all the annoying openssl work in terms of building chains and 
 Certificates and Keys are stored in the PEM format, but can be downloaded in the DER format if needed.
 
 There are several ways to download each file. Different file suffix will change the format and headers.
+
+Peter shows you buttons for available formats on each page.
 
 ### CA Certificate
 
@@ -151,13 +190,13 @@ There are several ways to download each file. Different file suffix will change 
 	csr.pem.txt		PEM		text/plain
 	csr.csr 		PEM		application/pkcs10
 
-## Account/Domain Keys
+### Account/Domain Keys
 
 	key.pem 		PEM		application/x-pem-file
 	key.pem.txt		PEM		text/plain
 	key.key 		DER		application/pkcs8
 
-## Account/Domain Keys
+### Account/Domain Keys
 
 	key.pem 		PEM		application/x-pem-file
 	key.pem.txt		PEM		text/plain
@@ -170,7 +209,8 @@ Your `environment.ini` exposes a few configuration options:
 
 * `openssl_path` - the full path to your openssl binary (default `openssl`)
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
-* `certificate_authority` - the LetsEncrypt certificate authority. default is their staging. you'll have to manually put in the production.
+
+* `certificate_authority` - the LetsEncrypt certificate authority. by default we use their staging URL. you will have to manually put in the real URL as defined on their docs.
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
@@ -203,6 +243,7 @@ You can interact with this project via a commandline interface in several ways.
 
 * run a webserver instance and query JSON urls
 * run explicit routes via `prequest`. this allows you to do admin tasks without spinnig up a server
+
 
 ## openresty/nginx lua script
 
@@ -452,7 +493,7 @@ The certificate JSON payload is what is nested in the DOMAIN payload
 
 notice that the numeric ids are returned as strings. this is by design.
 
-Need to get the cert data directly? NO SWEAT. transforms on the server and sent to you with the appropriate headers.
+Need to get the cert data directly? NO SWEAT. Peter transforms this for you on the server, and sends it to you with the appropriate headers.
 
 * /.well-known/admin/certificate/{ID}/cert.crt
 * /.well-known/admin/certificate/{ID}/cert.pem
@@ -475,64 +516,66 @@ Need to get the cert data directly? NO SWEAT. transforms on the server and sent 
 
 Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input). This seems to be one of the more common standards people have for saving certs. Otherwise certs are left as-is.
 
+
 ## Is there a fast way to import existing certs?
 
-Yes. Use `curl` on the commandline. see the TOOLS section	
+Yes. Use `curl` on the commandline. see the TOOLS section for an `invoke` script that can automate many.
+
 
 ## What happens if multiple certs are available for a domain ?
 
 Multiple Domains on a cert make this part of management epically & especially annoying.
 
-The current solution is quick and dirty:
+The current solution:
 
-* there is a an "operation" hook that caches the most-recent "multi" and "single" cert for every domain
-* certificates will not be deactivated if they are the most-recent used multi or single cert for any domain.
+* there is a an "operation" hook to caches the most-recent "multi" and "single" cert for every domain onto the domain's record
+* certificates *will not* be deactivated if they are the most-recent "multi" or "single" cert for any one domain.
 
-This means that a cert will stay active so long as any domain has not yet-replaced it.
+This means that a cert will stay active so long as any one domain has not yet-replaced it.
 
 When querying for a domain's cert, the system will currently send the most recent cert. a future feature might allow for this to be customized, and show the most widely usable cert.
 
-## Why use openssl? / does this work on windows?
+## Why use openssl directly? / does this work on windows?
 
 It was much easier to peg this to `openssl` in a linux environment for now; which rules out windows.
 
 In the future this could all be done with Python's crypto library. However openssl is fast and this was primarily designed for dealing with linux environments. sorry.
 
-## Where does data come from?
-
-When imported, certs are read into text form and parsed.
-
-When generated via acme, cert data is provided in the headers.
-
-Useful fields are duplicated from the cert into SQL to allow for better searching. Certs are not changed in any way (aside from whitespace cleanup)
+If someone wants to make a PR to make this fully python based: ok!
 
 
-# misc tips
+## Where does the various data come from?
+
+When imported, certificates are read into "text" form and parsed for data.
+
+When generated via the acme protocol, certificate data is provided in the headers.
+
+Useful fields are duplicated from the certificate into SQL to allow for better searching. Certificates are not changed in any way (aside from whitespace cleanup).
+
+
+# Misc tips
 
 So far this has been tested behind a couple of load balancers that use round-robin dns. They were both in the same physical network.
 
-* nginx is on port 80. everything in the /.well-known directory is proxied to an internal machine *which is not guaranteed to be up*
+* nginx is on port 80. everything in the `/.well-known directory` is proxied to an internal machine *which is not guaranteed to be up*
 * this service is only spun up when certificate management is needed
-* /.well-known/admin is not on the public internet
+* `/.well-known/admin` is not on the public internet
 
+For testing certificates, these 2 commands can be useful:
 
-For testing certs, these 2 can be useful:
+reprime Redis cache
 
-reprime cache
+	$ prequest development.ini /.well-known/admin/operations/redis/prime.json
 
-	prequest development.ini /.well-known/admin/operations/redis/prime.json
-
-clear out nginx
+clear out nginx cache
 
 	curl -k -f https://127.0.0.1/ngxadmin/shared_cache/expire/all	
 
 the `-k` will keep the cert from verifying, the `-f` wont blow up from errors
 
-# redis support
+# Redis support
 
-The first version of support for redis caching is done.
-
-there are several config options for redis support, they are listed above.
+There are several `.ini` config options for Redis support, they are listed above.
 
 ## redis priming style
 
@@ -577,16 +620,9 @@ the redis datastore might look something like this:
 	r['foo2.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
 
 
+# TODO
 
 ## search expiring soon
-
-## Show Object Data
-
-account keys:
-* timestamp last cert issue
-* timestamp last csr
-* count certs
-* count issues
 
 ## api hooks
 
@@ -603,7 +639,6 @@ only some objects are currently associated
 This is still sketching out the idea.
 this is not ready for production yet.
 i'm personally using it, but the API is not stable and tests are not integrated.
-
 
 ## Database Docs
 
