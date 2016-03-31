@@ -316,6 +316,7 @@ The logic in pseudocode:
 you can use the prequest syntax to spin up a URL and get or post data
 
 `$VENV/bin/prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json`
+`$VENV/bin/prequest development.ini /.well-known/admin/operations/redis/prime.json`
 
 a bit of warning  -- prequest will log to the commandline unless you update the logging settings.
 
@@ -497,6 +498,17 @@ So far this has been tested behind a couple of load balancers that use round-rob
 * /.well-known/admin is not on the public internet
 
 
+For testing certs, these 2 can be useful:
+
+reprime cache
+
+	prequest development.ini /.well-known/admin/operations/redis/prime.json
+
+clear out nginx
+
+	curl -k -f https://127.0.0.1/ngxadmin/shared_cache/expire/all	
+
+the `-k` will keep the cert from verifying, the `-f` wont blow up from errors
 
 # redis support
 
