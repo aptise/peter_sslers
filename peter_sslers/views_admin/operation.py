@@ -358,7 +358,6 @@ class ViewAdminOperations(Handler):
                     }
         return HTTPFound('/.well-known/admin/operations/redis?operation=redis_prime&result=success&event.id=%s' % dbEvent.id)
 
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -376,7 +375,7 @@ class ViewAdminOperations(Handler):
         items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession, event_type_ids=_event_type_ids)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/nginx/log/{0}', items_per_page=_items_per_page)
         items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, event_type_ids=_event_type_ids,
-            limit=_items_per_page, offset=offset)
+                                                                        limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents__count': items_count,
                 'LetsencryptOperationsEvents': items_paged,

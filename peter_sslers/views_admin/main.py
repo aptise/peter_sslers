@@ -91,7 +91,7 @@ class ViewAdminMain(Handler):
         # lightweight pagination
         item_limit = 25
         offset = int(self.request.params.get('offset', 0))
-        
+
         # show only X items
         show_only = dict([(k, True) for k in results.keys()])
         _show_only = self.request.params.get('show_only', None)
@@ -101,7 +101,7 @@ class ViewAdminMain(Handler):
 
         source_type = self.request.params.get('source', None)
         source_id = int(self.request.params.get('%s.id' % source_type), 0)
-        
+
         q_query_args = {'type': search_type,
                         'offset': offset + item_limit,
                         'source': source_type,
@@ -158,7 +158,7 @@ class ViewAdminMain(Handler):
         elif search_type in ('cert_subject_hash', 'cert_issuer_hash'):
             cert_subject_hash = self.request.params.get('cert_subject_hash', None)
             cert_issuer_hash = self.request.params.get('cert_issuer_hash', None)
-            
+
             if not any((source_type, source_id)):
                 raise ValueError("invalid search")
 
@@ -197,7 +197,7 @@ class ViewAdminMain(Handler):
         query_args = urlencode(q_query_args)
         for k in results.keys():
             if results[k]['count'] and results[k]['items']:
-                if (len(results[k]['items']) + offset) <  results[k]['count']:
+                if (len(results[k]['items']) + offset) < results[k]['count']:
                     results[k]['next'] = '/.well-known/admin/search?show_only=%s&%s' % (k, query_args)
 
         return render_to_response("/admin/search.mako", {'search_type': search_type,

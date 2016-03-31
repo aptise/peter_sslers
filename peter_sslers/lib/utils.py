@@ -96,6 +96,7 @@ def nginx_flush_cache(request, dbSession):
                                                         )
     return True, dbEvent
 
+
 def nginx_expire_cache(request, dbSession, dbDomains=None):
     if not dbDomains:
         raise ValueError("no domains submitted")
@@ -123,7 +124,7 @@ def nginx_expire_cache(request, dbSession, dbDomains=None):
                                                         {'v': 1,
                                                          'domain_ids': {'success': list(domain_ids['success']),
                                                                         'failure': list(domain_ids['failure']),
-                                                                         }
+                                                                        }
                                                          }
                                                         )
     return True, dbEvent

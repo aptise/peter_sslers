@@ -21,7 +21,9 @@ requires = [
     'python-dateutil',
     'formencode',
     'pypages',
-    ]
+    'pyramid_route_7',
+    'requests',
+]
 
 setup(name='peter_sslers',
       version='0.0',
@@ -33,7 +35,7 @@ setup(name='peter_sslers',
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
         'License :: OSI Approved :: MIT License',
-        ],
+      ],
       author='jonathan vanasco',
       author_email='jonathan@findmeon.com',
       url='https://github.com/jvanasco/peter_sslers',
