@@ -683,6 +683,13 @@ What does it look like?
 It uses bootstrap.
 
 ![Admin Index](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/01-admin_index.png)
-![Enter Domains](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/02-enter_domains.png)
-![Enter Challenges](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/03-enter_challenge.png)
-![Check Status](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/04-view_status.png)
+![CSR: Automate 'manual': Enter Domains](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/02-enter_domains.png)
+![CSR: Automate 'manual': Enter Challenges](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/03-enter_challenge.png)
+![CSR: Check Verification Status](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/04-view_status.png)
+![CSR: New FULL](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/09-new_csr.png)
+![Operations Log](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/05-operations_log.png)
+![List: Authority Certificates](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/06-ca_certificates.png)
+![Focus: Authority Certificate](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/07-ca_certificates_focus.png)
+![Upload Existing Certificates](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/10-upload_cert.png)
+![List Certificates](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/11-certificates_list.png)
+![List Domains](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/12-domains_list.png)
