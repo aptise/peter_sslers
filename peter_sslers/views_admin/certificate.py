@@ -43,7 +43,7 @@ class ViewAdmin(Handler):
         items_count = lib_db.get__LetsencryptServerCertificate__count(DBSession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificates/{0}')
         items_paged = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, limit=items_per_page, offset=offset, eagerload_web=True)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptServerCertificates_count': items_count,
                 'LetsencryptServerCertificates': items_paged,
                 'sidenav_option': 'all',
@@ -57,7 +57,7 @@ class ViewAdmin(Handler):
         items_count = lib_db.get__LetsencryptServerCertificate__count(DBSession, expiring_days=expiring_days)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificates/expiring/{0}')
         items_paged = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptServerCertificates_count': items_count,
                 'LetsencryptServerCertificates': items_paged,
                 'sidenav_option': 'expiring',
@@ -157,7 +157,7 @@ class ViewAdmin(Handler):
     def certificate_focus(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
         # x-x509-server-cert
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptServerCertificate': dbLetsencryptServerCertificate
                 }
 

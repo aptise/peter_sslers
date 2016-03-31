@@ -48,7 +48,7 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name='admin', renderer='/admin/index.mako')
     def index(self):
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'enable_redis': self.request.registry.settings['enable_redis'],
                 'enable_nginx': self.request.registry.settings['enable_nginx'],
                 }
@@ -57,7 +57,7 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name='admin:help', renderer='/admin/help.mako')
     def help(self):
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

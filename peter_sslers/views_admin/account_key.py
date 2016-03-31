@@ -43,7 +43,7 @@ class ViewAdmin(Handler):
         items_count = lib_db.get__LetsencryptAccountKey__count(DBSession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account_keys/{0}')
         items_paged = lib_db.get__LetsencryptAccountKey__paginated(DBSession, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptAccountKeys_count': items_count,
                 'LetsencryptAccountKeys': items_paged,
                 'pager': pager,
@@ -62,7 +62,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_key:focus', renderer='/admin/account_key-focus.mako')
     def account_key_focus(self):
         dbLetsencryptAccountKey = self._account_key_focus(eagerload_web=True)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptAccountKey': dbLetsencryptAccountKey
                 }
 
@@ -90,7 +90,7 @@ class ViewAdmin(Handler):
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account_key/%s/certificates/{0}' % dbLetsencryptAccountKey.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyIdId__paginated(
             DBSession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptAccountKey': dbLetsencryptAccountKey,
                 'LetsencryptServerCertificates_count': items_count,
                 'LetsencryptServerCertificates': items_paged,
@@ -106,7 +106,7 @@ class ViewAdmin(Handler):
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account_key/%s/certificate_requests/{0}' % dbLetsencryptAccountKey.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__paginated(
             DBSession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptAccountKey': dbLetsencryptAccountKey,
                 'LetsencryptCertificateRequests_count': items_count,
                 'LetsencryptCertificateRequests': items_paged,

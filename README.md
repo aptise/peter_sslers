@@ -1,7 +1,7 @@
-pyramid_letsencrypt_admin README
+peter_sslers README
 ================================
 
-`pyramid_letsencrypt_admin` is a tool designed to help EXPERIENCED DEVOPS people to manage SSL Certificate deployment on large systems. This package offers a lightweight database backed "webserver" that can handle the LetsEncrypt issuance process, import any existing ssl certificates, and easily provision them to servers. This ships with a `lua` module for the `openresty` framework on the `nginx` server which will (i) dynamically request certificates from a primed redis cache, (ii) store data in shared `nginx` worker memory and (iii) expose routes to flush the worker shared memory or expire select keys.  The `Pyramid` based webserver can be configured to do all of these tasks, and can function as a daemon or a commandline script.
+`peter_sslers` is a tool designed to help EXPERIENCED DEVOPS people to manage SSL Certificate deployment on large systems. This package offers a lightweight database backed "webserver" that can handle the LetsEncrypt issuance process, import any existing ssl certificates, and easily provision them to servers. This ships with a `lua` module for the `openresty` framework on the `nginx` server which will (i) dynamically request certificates from a primed redis cache, (ii) store data in shared `nginx` worker memory and (iii) expose routes to flush the worker shared memory or expire select keys.  The `Pyramid` based webserver can be configured to do all of these tasks, and can function as a daemon or a commandline script.
 
 Do you like bookkeeping?  The `Pryamid` component logs everything into sql.  Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable.
 
@@ -26,6 +26,24 @@ The package offers lightweight tools to centrally manage SSL Certificate data in
 SqlAlchemy is the DB library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). sqlite is the default.  sqlite is actually kind of great, because it can be sftpd onto different machines for local use.
 
 You can manage certificates in a few ways:
+
+# The Components
+
+## "Peter SSLers" - a Pyramid Application
+
+"Peter SSLers" is the core toolkit.  It is a `Pyramid` application that can be spun up as a webserver or used via a commandline interface.  Peter is your friend and handles all of the Certificate Management and translation functions for you.
+
+## "SSL Minnow" - The Datastore
+
+By default, the "SSL Minnow" is a sqlite database `ssl_minnow.sqlite`.  It is the backing datastore for SSL Certificates and the operations log.  Your data is ONLY served to the SSL Minnow, so you should be careful with it.  If the Minnow would be lost, it can not be recovered.
+
+## "Tools"
+
+The "/tools" directory contains scripts useful for certificate operations.  Currently this includes:
+
+* an `invoke` script
+* a `lua` library for integrating with nginx/openresty
+
 
 ## Input
 
@@ -60,12 +78,12 @@ you should create a virtualenv though.
 
 	mkdir certificate_admin
 	cd certificate_admin
-	git checkout https://github.com/jvanasco/pyramid_letsencrypt_admin.git
-	virtualenv pyramid_letsencrypt_admin-venv
-	source pyramid_letsencrypt_admin-venv/bin/activate
-	cd pyramid_letsencrypt_admin
+	git checkout https://github.com/jvanasco/peter_sslers.git
+	virtualenv peter_sslers-venv
+	source peter_sslers-venv/bin/activate
+	cd peter_sslers
 	python setup.py develop
-	initialize_pyramid_letsencrypt_admin_db development.ini
+	initialize_peter_sslers_db development.ini
 	pserve --reload development.ini
 	
 some tools are provided, see below, to automatically import existing certificates and chains
@@ -591,11 +609,10 @@ i'm personally using it, but the API is not stable and tests are not integrated.
 
 If using postgresql...
 
-	create user letsencrypt_admin with password 'le_admin';
-	create database letsencrypt_admin with owner letsencrypt_admin ;
+	create user ssl_minnow with password '{PASSWORD}';
+	create database ssl_minnow with owner ssl_minnow ;
 	
 	change the config settings
-
 
 
 Getting Started
@@ -605,7 +622,7 @@ Getting Started
 
 - $VENV/bin/python setup.py develop
 
-- $VENV/bin/initialize_pyramid_letsencrypt_admin_db development.ini
+- $VENV/bin/initialize_peter_sslers_db development.ini
 
 - $VENV/bin/pserve development.ini
 
@@ -630,7 +647,7 @@ What does it look like?
 
 It uses bootstrap.
 
-![Admin Index](https://raw.github.com/jvanasco/pyramid_letsencrypt_admin/master/docs/images/01-admin_index.png)
-![Enter Domains](https://raw.github.com/jvanasco/pyramid_letsencrypt_admin/master/docs/images/02-enter_domains.png)
-![Enter Challenges](https://raw.github.com/jvanasco/pyramid_letsencrypt_admin/master/docs/images/03-enter_challenge.png)
-![Check Status](https://raw.github.com/jvanasco/pyramid_letsencrypt_admin/master/docs/images/04-view_status.png)
+![Admin Index](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/01-admin_index.png)
+![Enter Domains](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/02-enter_domains.png)
+![Enter Challenges](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/03-enter_challenge.png)
+![Check Status](https://raw.github.com/jvanasco/peter_sslers/master/docs/images/04-view_status.png)

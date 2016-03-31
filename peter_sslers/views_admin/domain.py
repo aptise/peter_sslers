@@ -44,7 +44,7 @@ class ViewAdmin(Handler):
         items_count = lib_db.get__LetsencryptDomain__count(DBSession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domains/{0}')
         items_paged = lib_db.get__LetsencryptDomain__paginated(DBSession, eagerload_web=True, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptDomains_count': items_count,
                 'LetsencryptDomains': items_paged,
                 'sidenav_option': 'all',
@@ -58,7 +58,7 @@ class ViewAdmin(Handler):
         items_count = lib_db.get__LetsencryptDomain__count(DBSession, expiring_days=expiring_days)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domains/expiring/{0}')
         items_paged = lib_db.get__LetsencryptDomain__paginated(DBSession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptDomains_count': items_count,
                 'LetsencryptDomains': items_paged,
                 'sidenav_option': 'expiring',
@@ -81,7 +81,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus', renderer='/admin/domain-focus.mako')
     def domain_focus(self):
         dbLetsencryptDomain = self._domain_focus(eagerload_web=True)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptDomain': dbLetsencryptDomain
                 }
 
@@ -129,7 +129,7 @@ class ViewAdmin(Handler):
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificates/{0}' % dbLetsencryptDomain.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomainId__paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptDomain': dbLetsencryptDomain,
                 'LetsencryptServerCertificates_count': items_count,
                 'LetsencryptServerCertificates': items_paged,
@@ -145,7 +145,7 @@ class ViewAdmin(Handler):
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificate_requests/{0}' % LetsencryptDomain.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptDomain': dbLetsencryptDomain,
                 'LetsencryptCertificateRequests_count': items_count,
                 'LetsencryptCertificateRequests': items_paged,

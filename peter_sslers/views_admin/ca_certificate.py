@@ -41,7 +41,7 @@ class ViewAdmin(Handler):
         items_count = lib_db.get__LetsencryptCACertificate__count(DBSession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca_certificates/{0}')
         items_paged = lib_db.get__LetsencryptCACertificate__paginated(DBSession, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptCACertificates_count': items_count,
                 'LetsencryptCACertificates': items_paged,
                 'pager': pager,
@@ -62,7 +62,7 @@ class ViewAdmin(Handler):
             DBSession, dbLetsencryptCACertificate.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
             DBSession, dbLetsencryptCACertificate.id, limit=10, offset=0)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
                 'LetsencryptServerCertificates_count': items_count,
                 'LetsencryptServerCertificates': items_paged,
@@ -96,7 +96,7 @@ class ViewAdmin(Handler):
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca_certificate/%s/signed_certificates/{0}' % dbLetsencryptCACertificate.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
             DBSession, dbLetsencryptCACertificate.id, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
                 'LetsencryptServerCertificates_count': items_count,
                 'LetsencryptServerCertificates': items_paged,

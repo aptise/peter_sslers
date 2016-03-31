@@ -49,7 +49,7 @@ def main(global_config, **settings):
         config.add_route('public_challenge', '/.well-known/acme-challenge/{challenge}')
         config.add_route('public_whoami', '/.well-known/whoami')
 
-        config.scan("pyramid_letsencrypt_admin.views_public")
+        config.scan("peter_sslers.views_public")
 
     # admin
     if enable_views_admin:
@@ -167,7 +167,7 @@ def main(global_config, **settings):
         config.add_route('admin:operations:redis:prime', '/.well-known/admin/operations/redis/prime')
         config.add_route('admin:operations:redis:prime:json', '/.well-known/admin/operations/redis/prime.json')
 
-        config.scan("pyramid_letsencrypt_admin.views_admin")
+        config.scan("peter_sslers.views_admin")
 
     # Parse settings
 

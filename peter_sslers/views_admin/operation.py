@@ -42,7 +42,7 @@ class ViewAdminOperations(Handler):
         items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/log/{0}', items_per_page=_items_per_page)
         items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, limit=_items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents__count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
                 'pager': pager,
@@ -59,7 +59,7 @@ class ViewAdminOperations(Handler):
         items_count = lib_db.get__LetsencryptOperationsEvent__certificate_probe__count(DBSession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/ca_certificate_probes/{0}')
         items_paged = lib_db.get__LetsencryptOperationsEvent__certificate_probe__paginated(DBSession, limit=items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents_count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
                 'pager': pager,
@@ -146,7 +146,7 @@ class ViewAdminOperations(Handler):
         items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ))
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/redis/log/{0}', items_per_page=_items_per_page)
         items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ), limit=_items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents__count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
                 'pager': pager,
@@ -377,7 +377,7 @@ class ViewAdminOperations(Handler):
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/nginx/log/{0}', items_per_page=_items_per_page)
         items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, event_type_ids=_event_type_ids,
             limit=_items_per_page, offset=offset)
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents__count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
                 'pager': pager,

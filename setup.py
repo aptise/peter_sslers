@@ -23,9 +23,9 @@ requires = [
     'pypages',
     ]
 
-setup(name='pyramid_letsencrypt_admin',
+setup(name='peter_sslers',
       version='0.0',
-      description='pyramid_letsencrypt_admin',
+      description='peter_sslers',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
         "Programming Language :: Python",
@@ -36,18 +36,18 @@ setup(name='pyramid_letsencrypt_admin',
         ],
       author='jonathan vanasco',
       author_email='jonathan@findmeon.com',
-      url='https://github.com/jvanasco/pyramid_letsencrypt_admin',
+      url='https://github.com/jvanasco/peter_sslers',
       keywords='web wsgi bfg pylons pyramid letsencrypt',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      test_suite='pyramid_letsencrypt_admin',
+      test_suite='peter_sslers',
       install_requires=requires,
       entry_points="""\
       [paste.app_factory]
-      main = pyramid_letsencrypt_admin:main
+      main = peter_sslers:main
       [console_scripts]
-      initialize_pyramid_letsencrypt_admin_db = pyramid_letsencrypt_admin.scripts.initializedb:main
-      update_foo = pyramid_letsencrypt_admin.scripts.update_foo:main
+      initialize_peter_sslers_db = peter_sslers.scripts.initializedb:main
+      update_foo = peter_sslers.scripts.update_foo:main
       """,
       )

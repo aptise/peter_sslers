@@ -1,2 +1,2 @@
 include *.txt *.ini *.cfg *.rst
-recursive-include pyramid_letsencrypt_admin *.ico *.png *.css *.gif *.jpg *.pt *.txt *.mak *.mako *.js *.html *.xml
+recursive-include peter_sslers *.ico *.png *.css *.gif *.jpg *.pt *.txt *.mak *.mako *.js *.html *.xml

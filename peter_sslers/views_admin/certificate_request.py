@@ -43,7 +43,7 @@ class ViewAdmin(Handler):
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificate_requests/{0}')
         items_paged = lib_db.get__LetsencryptCertificateRequest__paginated(DBSession, limit=items_per_page, offset=offset)
 
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptCertificateRequests_count': items_count,
                 'LetsencryptCertificateRequests': items_paged,
                 'pager': pager,
@@ -57,7 +57,7 @@ class ViewAdmin(Handler):
         dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptCertificateRequest': dbLetsencryptCertificateRequest
                 }
 
@@ -86,7 +86,7 @@ class ViewAdmin(Handler):
             raise HTTPNotFound('the certificate_request was not found')
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
             raise HTTPNotFound('Only availble for FLOW')
-        return {'project': 'pyramid_letsencrypt_admin',
+        return {'project': 'peter_sslers',
                 'LetsencryptCertificateRequest': dbLetsencryptCertificateRequest,
                 'LetsencryptCertificateRequest2LetsencryptDomain': None,
                 }
