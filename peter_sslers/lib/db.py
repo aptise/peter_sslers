@@ -1037,7 +1037,7 @@ def create__LetsencryptServerCertificate(
         acme.validate_cert__pem_filepath(_tmpfileCert.name)
 
         dbLetsencryptServerCertificate = LetsencryptServerCertificate()
-        _certificate_parse_to_record(_tmpfileCert, dbCertificate)
+        _certificate_parse_to_record(_tmpfileCert, dbLetsencryptServerCertificate)
 
         # we don't need these anymore, because we're parsing the cert
         # dbLetsencryptServerCertificate.timestamp_signed = timestamp_signed
