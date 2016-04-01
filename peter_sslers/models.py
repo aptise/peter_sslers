@@ -33,52 +33,19 @@ Base = declarative_base()
 # ==============================================================================
 
 
-if False:
-    # still testing this
-
-    import pdb
-
-    import sqlalchemy.types
-
-    # pypi
-    import dateutil.tz
-
-    class DateTimeUTC(sqlalchemy.types.TypeDecorator):
-        impl = sqlalchemy.types.DateTime
-
-        def _cleanup(self, value):
-            if value is not None:
-                if value.tzinfo is None:
-                    value = value.replace(tzinfo=dateutil.tz.tzutc())
-            return value
-
-        def process_bind_param(self, value, dialect):
-            return value
-
-        def process_result_value(self, value, dialect):
-            # sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite
-            return self._cleanup(value)
-
-        def coerce_compared_value(self, op, value):
-            return self._cleanup(value)
-
-else:
-    DateTimeUTC = sa.DateTime
-
-
 class LetsencryptAccountKey(Base):
     """
     """
     __tablename__ = 'letsencrypt_account_key'
     id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_first_seen = sa.Column(DateTimeUTC, nullable=False, )
+    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False, )
     key_pem = sa.Column(sa.Text, nullable=True, )
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, )
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False, )
     count_certificate_requests = sa.Column(sa.Integer, nullable=True, default=0, )
     count_certificates_issued = sa.Column(sa.Integer, nullable=True, default=0, )
-    timestamp_last_certificate_request = sa.Column(DateTimeUTC, nullable=True, )
-    timestamp_last_certificate_issue = sa.Column(DateTimeUTC, nullable=True, )
+    timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True, )
+    timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True, )
 
     certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest",
                                                primaryjoin="LetsencryptAccountKey.id==LetsencryptCertificateRequest.letsencrypt_account_key_id",
@@ -110,12 +77,12 @@ class LetsencryptCACertificate(Base):
     is_authority_certificate = sa.Column(sa.Boolean, nullable=True, default=None)
     is_cross_signed_authority_certificate = sa.Column(sa.Boolean, nullable=True, default=None)
     id_cross_signed_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_ca_certificate.id"), nullable=True)
-    timestamp_first_seen = sa.Column(DateTimeUTC, nullable=False, )
+    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False, )
     cert_pem = sa.Column(sa.Text, nullable=False, )
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
-    timestamp_signed = sa.Column(DateTimeUTC, nullable=False, )
-    timestamp_expires = sa.Column(DateTimeUTC, nullable=False, )
+    timestamp_signed = sa.Column(sa.DateTime, nullable=False, )
+    timestamp_expires = sa.Column(sa.DateTime, nullable=False, )
     cert_subject = sa.Column(sa.Text, nullable=True, )
     cert_issuer = sa.Column(sa.Text, nullable=True, )
     cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
@@ -146,8 +113,8 @@ class LetsencryptCertificateRequest(Base):
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_error = sa.Column(sa.Boolean, nullable=True, default=None)
     certificate_request_type_id = sa.Column(sa.Integer, nullable=False)  # 1=FLOW, 2=FULL; see LetsencryptCertificateRequest
-    timestamp_started = sa.Column(DateTimeUTC, nullable=False, )
-    timestamp_finished = sa.Column(DateTimeUTC, nullable=True, )
+    timestamp_started = sa.Column(sa.DateTime, nullable=False, )
+    timestamp_finished = sa.Column(sa.DateTime, nullable=True, )
 
     csr_pem = sa.Column(sa.Text, nullable=True, )
     csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=True, )
@@ -211,7 +178,7 @@ class LetsencryptCertificateRequest2LetsencryptDomain(Base):
     __tablename__ = 'letsencrypt_certificate_request_2_letsencrypt_domain'
     letsencrypt_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_certificate_request.id"), primary_key=True)
     letsencrypt_domain_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_domain.id"), primary_key=True)
-    timestamp_verified = sa.Column(DateTimeUTC, nullable=True, )
+    timestamp_verified = sa.Column(sa.DateTime, nullable=True, )
     ip_verified = sa.Column(sa.Unicode(255), nullable=True, )
     challenge_key = sa.Column(sa.Unicode(255), nullable=True, )
     challenge_text = sa.Column(sa.Unicode(255), nullable=True, )
@@ -281,7 +248,7 @@ class LetsencryptOperationsEvent(Base):
     __tablename__ = 'letsencrypt_sync_event'
     id = sa.Column(sa.Integer, primary_key=True)
     letsencrypt_operations_event_type_id = sa.Column(sa.Integer, nullable=False)
-    timestamp_operation = sa.Column(DateTimeUTC, nullable=True, )
+    timestamp_operation = sa.Column(sa.DateTime, nullable=True, )
     event_payload = sa.Column(sa.Text, nullable=False, )
     letsencrypt_sync_event_id_child_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_sync_event.id"), nullable=True)
 
@@ -317,7 +284,7 @@ class LetsencryptPrivateKey(Base):
     """
     __tablename__ = 'letsencrypt_private_key'
     id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_first_seen = sa.Column(DateTimeUTC, nullable=False, )
+    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False, )
     key_pem = sa.Column(sa.Text, nullable=True, )
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False, )
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False, )
@@ -325,8 +292,8 @@ class LetsencryptPrivateKey(Base):
 
     count_certificate_requests = sa.Column(sa.Integer, nullable=True, default=0, )
     count_certificates_issued = sa.Column(sa.Integer, nullable=True, default=0, )
-    timestamp_last_certificate_request = sa.Column(DateTimeUTC, nullable=True, )
-    timestamp_last_certificate_issue = sa.Column(DateTimeUTC, nullable=True, )
+    timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True, )
+    timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True, )
 
     certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest",
                                                primaryjoin="LetsencryptPrivateKey.id==LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by",
@@ -349,8 +316,8 @@ class LetsencryptServerCertificate(Base):
     """
     __tablename__ = 'letsencrypt_server_certificate'
     id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_signed = sa.Column(DateTimeUTC, nullable=False, )
-    timestamp_expires = sa.Column(DateTimeUTC, nullable=False, )
+    timestamp_signed = sa.Column(sa.DateTime, nullable=False, )
+    timestamp_expires = sa.Column(sa.DateTime, nullable=False, )
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_single_domain_cert = sa.Column(sa.Boolean, nullable=True, default=None)
     cert_pem = sa.Column(sa.Text, nullable=False, )
