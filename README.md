@@ -249,7 +249,7 @@ You can interact with this project via a commandline interface in several ways.
 
 `tools/nginx_lua_library` is a library that can be used in an openresty/nginx environment to dynamically select a SSL cert
 
-It supports both prime 1 & prime 2 cache types
+It supports both the prime cache types 1 & 2.
 
 It is implemented as a library with 2 scripts that invoke it.
 
@@ -259,10 +259,16 @@ It is implemented as a library with 2 scripts that invoke it.
 
 The `-lookup.lua` and `-expire.lua` scripts can set via `_by_lua_file` or copied into a block.  
 
-It is also hardcoded to use db9 in redis.  if you want another option, edit or PR
+It is also hardcoded to use db9 in redis.  if you want another option, edit or PR a fix.
 
 	ngx.log(ngx.ERR, "changing to db 9: ", times)
 	redcon:select(9)
+	
+Redis is NOT required, but recommended.  Instead you can failover to directly query a peter_sslers pyramid instance.
+
+To use the peter, you must install this lua-resty library:
+
+* lua-resty-http https://github.com/pintsized/lua-resty-http
 
 
 ### ssl_certhandler.lua
@@ -288,7 +294,8 @@ This is very simple, it merely specfies a cache, duration, and prime_version
 	local cert_cache_duration = 7200 -- 2 hours
 
 	local prime_version = 1
-	ssl_certhandler.set_ssl_certificate(cert_cache, cert_cache_duration, prime_version)
+    local fallback_server = 'http://0.0.0.0:6543'
+	ssl_certhandler.set_ssl_certificate(cert_cache, cert_cache_duration, prime_version, fallback_server)
 
 	return
 
