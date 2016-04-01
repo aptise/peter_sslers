@@ -14,6 +14,12 @@
 <%block name="page_header">
     <h2>Certificate Request - FULL | New</h2>
     <p><em>${request.text_library.info_CertificateRequest_new_full[1]}</em></p>
+    <div class="alert alert-info">
+        <em>
+            Requests will be performed against the following Certificate Authority:
+            <b>${CERTIFICATE_AUTHORITY}</b>
+        </em>
+    </div>
 </%block>
 
     

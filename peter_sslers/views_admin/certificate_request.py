@@ -229,7 +229,10 @@ class ViewAdmin(Handler):
         return self._certificate_request_new_full__print()
 
     def _certificate_request_new_full__print(self):
-        return render_to_response("/admin/certificate_request-new_full.mako", {}, self.request)
+        active_ca = lib_acme.CERTIFICATE_AUTHORITY
+        return render_to_response("/admin/certificate_request-new_full.mako",
+                                  {'CERTIFICATE_AUTHORITY': active_ca,
+                                   }, self.request)
 
     def _certificate_request_new_full__submit(self):
         try:

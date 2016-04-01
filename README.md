@@ -123,7 +123,19 @@ Editing the `development.ini` file will let you specify how the package runs.
 
 Some tools are provided to automatically import existing certificates and chains (see below).
 
-The `prequest` command above will import the current LetsEncrypt certificates to get you started!
+
+It is recommended to open up a new terminal and do the following commands
+
+	cd certificate_admin
+	source peter_sslers-venv/bin/activate
+	cd peter_sslers
+	prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json
+	cd tools
+	invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
+
+
+The `prequest` command above will import the current LetsEncrypt certificates to get you started.
+The `invoke` command will import existing LetsEncrypt issued certificates
 
 
 # Implementation Details
