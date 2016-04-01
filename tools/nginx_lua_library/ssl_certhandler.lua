@@ -1,5 +1,6 @@
 local redis = require "resty.redis"
 local ssl = require "ngx.ssl"
+local cjson = require "cjson"
 
 -- ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 -- START: these are just some helper functions
@@ -117,6 +118,46 @@ function prime_2__query_redis(redcon, _server_name)
 end
 
 
+function query_api_upstream(fallback_server, server_name)
+	local http = require "resty.http"
+	
+	local cert, key
+
+	local httpc = http.new()
+
+	local data_uri = fallback_server.."/.well-known/admin/domain/"..server_name.."/config.json?openresty=1"
+	ngx.log(ngx.ERR, "querysing upstream API server at: ", data_uri)
+	local response, err = httpc:request_uri(data_uri, {method = "GET", })
+
+	if not response then
+		ngx.log(ngx.ERR, 'API upstream - no response')
+	else 
+		local status = response.status
+		-- local headers = response.headers
+		-- local body = response.body
+		if status == 200 then
+			local body_value = cjson.decode(response.body)
+			-- prefer the multi
+			if body_value['latest_certificate_multi'] ~= cjson.null then
+				cert = body_value['latest_certificate_multi']['fullchain']['pem']
+				key = body_value['latest_certificate_multi']['private_key']['pem']
+			elseif body_value['latest_certificate_single'] ~= cjson.null then
+				cert = body_value['latest_certificate_single']['fullchain']['pem']
+				key = body_value['latest_certificate_single']['private_key']['pem']
+			end
+		else
+			ngx.log(ngx.ERR, 'API upstream - bad response: ', status)
+		end
+	end
+	if cert ~= nil and key ~= nil then
+		ngx.log(ngx.ERR, "API cache HIT for: ", server_name)
+	else
+		ngx.log(ngx.ERR, "API cache MISS for: ", server_name)
+	end
+	return cert, key
+end
+
+
 -- END helper functions
 -- ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
@@ -125,7 +166,7 @@ end
 -- START MAIN LOGIC
 
 
-function set_ssl_certificate(_cert_cache, _cert_cache_duration, prime_method)
+function set_ssl_certificate(_cert_cache, _cert_cache_duration, prime_method, fallback_server)
 
 	local server_name = ssl.server_name()
 
@@ -160,29 +201,46 @@ function set_ssl_certificate(_cert_cache, _cert_cache_duration, prime_method)
 	
 	else
 		ngx.log(ngx.ERR, "Cert cache MISS for: ", server_name)
-		-- ok, try to get it from redis
+		
+		
+		if prime_method ~= nil then
+			-- ok, try to get it from redis
+			ngx.log(ngx.ERR, "Redis: lookup enabled")
+			
+			local allowed_prime_methods = {1, 2, }
+			if not allowed_prime_methods[prime_method] then
+				ngx.log(ngx.ERR, "Redis: invalid `prime_method` not (1, 2) is `", prime_method)
+				return
+			end
 
-		-- grab redis connection
-		local redcon, err = get_redcon()
-		if redcon == nil then
-			-- exit out and just fall back on the default ssl cert
-			return
-		end
+			-- grab redis connection
+			local redcon, err = get_redcon()
+			if redcon == nil then
+	 			ngx.log(ngx.ERR, "Redis: could not get connection")
+
+				-- exit out and just fall back on the default ssl cert
+				return
+			end
 	
-		-- actually query redis
-		if prime_method == 1 then
-			cert, key = prime_1__query_redis(redcon, server_name)
-		elseif prime_method == 2 then
-			cert, key = prime_2__query_redis(redcon, server_name)
-		else
-			ngx.log(ngx.ERR, "invalid `prime_method` not (1, 2) is `", prime_method)
-			-- don't bother with IP lookups
-			-- exit out and just fall back on the default ssl cert
-			return
+			-- actually query redis
+			if prime_method == 1 then
+				cert, key = prime_1__query_redis(redcon, server_name)
+			elseif prime_method == 2 then
+				cert, key = prime_2__query_redis(redcon, server_name)
+			end
+
+			-- return the redcon to the connection pool
+			redis_keepalive(redcon)
 		end
 
-		-- eventually use a fallback search here
-		-- but we can't do that yet
+		-- let's use a fallback search
+		if cert == nil or key == nil then
+			if fallback_server ~= nil then
+				ngx.log(ngx.ERR, "Upstream API: lookup enabled")
+				cert, key = query_api_upstream(fallback_server, server_name)
+			end
+		end
+
 		if cert ~= nil and key ~= nil then 
 	
 			-- convert from PEM to der
@@ -198,24 +256,19 @@ function set_ssl_certificate(_cert_cache, _cert_cache_duration, prime_method)
 
 			ngx.log(ngx.DEBUG, "Cert and key retrieved and cached for: ", server_name)
 
-			-- return the redcon to the connection pool
-			redis_keepalive(redcon)
 		else     
 			ngx.log(ngx.ERR, "Failed to retrieve " .. (cert and "" or "cert ") ..  (key and "" or "key "), "for ", server_name)
 
 			-- set a fail marker
 			local success, err, forcible = _cert_cache:set(server_name .. ":c", 'x', _cert_cache_duration)
 			local success, err, forcible = _cert_cache:set(server_name .. ":k", 'x', _cert_cache_duration)
-		
-			-- return the redcon to the connection pool
-			redis_keepalive(redcon)
 
 			-- exit out and just fall back on the default ssl cert
 			return
 		end
 	end
 
-	-- since we have a server name, now we can continue...
+	-- since we have a certs for this server, now we can continue...
 	ssl.clear_certs()
 
 	-- Set cert
@@ -258,6 +311,7 @@ local _M = {get_redcon = get_redcon,
 			redis_keepalive = redis_keepalive,
 			prime_1__query_redis = prime_1__query_redis,
 			prime_2__query_redis = prime_2__query_redis,
+			query_api_upstream = query_api_upstream,
 			set_ssl_certificate = set_ssl_certificate,
 			expire_ssl_certs = expire_ssl_certs,
 			}
