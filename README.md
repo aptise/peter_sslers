@@ -108,10 +108,11 @@ Here we go...
 	virtualenv peter_sslers-venv
 	source peter_sslers-venv/bin/activate
 
-	git checkout https://github.com/jvanasco/peter_sslers.git
+	git clone https://github.com/jvanasco/peter_sslers.git
 	cd peter_sslers
 	python setup.py develop
-	initialize_peter_sslers_db development.ini
+	initialize_peter_sslers_db development.ini	
+	prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json
 	pserve --reload development.ini
 	
 Then you can visit `http://127.0.0.1:6543`
@@ -122,13 +123,15 @@ Editing the `development.ini` file will let you specify how the package runs.
 
 Some tools are provided to automatically import existing certificates and chains (see below).
 
+The `prequest` command above will import the current LetsEncrypt certificates to get you started!
+
 
 # Implementation Details
 
 The webserver exposes the following routes/directories:
 
 * `/.well-known/acme-challenge` - directory
-* `/.well-known/whoami` - URL prints host
+* `/.well-known/public/whoami` - URL prints host
 * `/.well-known/admin` - admin tool THIS EXPLORES PRIVATE KEYS ON PURPOSE
 
 

@@ -52,7 +52,7 @@ def main(global_config, **settings):
     if enable_views_public:
         # public url
         config.add_route_7('public_challenge', '/.well-known/acme-challenge/{challenge}')
-        config.add_route_7('public_whoami', '/.well-known/whoami')
+        config.add_route_7('public_whoami', '/.well-known/public/whoami')
 
         config.scan("peter_sslers.views_public")
 
