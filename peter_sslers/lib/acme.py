@@ -351,6 +351,10 @@ def acme_sign_certificate(
     datetime_signed = dateutil_parser.parse(headers["Date"])
     datetime_expires = dateutil_parser.parse(headers["Expires"])
 
+    # we need to make these naive
+    datetime_signed = datetime_signed.replace(tzinfo=None)
+    datetime_expires = datetime_expires.replace(tzinfo=None)
+
     # return signed certificate!
 
     # openssl x509 -inform der -in issuer-cert -out issuer-cert.pem
