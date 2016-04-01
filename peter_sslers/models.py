@@ -3,17 +3,12 @@ import datetime
 import json
 
 
-# pypi
-import dateutil.tz
-
-
 # sqlalchemy
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (scoped_session,
                             sessionmaker,
                             )
-import sqlalchemy.types
 from zope.sqlalchemy import ZopeTransactionExtension
 
 
@@ -38,15 +33,37 @@ Base = declarative_base()
 # ==============================================================================
 
 
-class DateTimeUTC(sqlalchemy.types.TypeDecorator):
-    impl = sqlalchemy.types.DateTime
+if False:
+    # still testing this
 
-    def process_result_value(self, value, dialect):
-        # sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite
-        if value is not None:
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=dateutil.tz.tzutc())
-        return value
+    import pdb
+
+    import sqlalchemy.types
+
+    # pypi
+    import dateutil.tz
+
+    class DateTimeUTC(sqlalchemy.types.TypeDecorator):
+        impl = sqlalchemy.types.DateTime
+
+        def _cleanup(self, value):
+            if value is not None:
+                if value.tzinfo is None:
+                    value = value.replace(tzinfo=dateutil.tz.tzutc())
+            return value
+
+        def process_bind_param(self, value, dialect):
+            return value
+
+        def process_result_value(self, value, dialect):
+            # sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite
+            return self._cleanup(value)
+
+        def coerce_compared_value(self, op, value):
+            return self._cleanup(value)
+
+else:
+    DateTimeUTC = sa.DateTime
 
 
 class LetsencryptAccountKey(Base):

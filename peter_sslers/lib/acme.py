@@ -453,10 +453,30 @@ def cert_single_op__pem_filepath(pem_filepath, single_op):
                X509v3 Subject Key Identifier:
                    {VALUE}
     """
-    if single_op not in ('-issuer_hash', '-issuer', '-subject_hash', '-subject'):
+    if single_op not in ('-issuer_hash', '-issuer', '-subject_hash', '-subject', '-startdate', '-enddate'):
         raise ValueError('invalid `single_op`')
 
     proc = subprocess.Popen([openssl_path, "x509", "-noout", single_op, "-in", pem_filepath],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    data, err = proc.communicate()
+    if not data:
+        raise errors.OpenSslError_InvalidCertificate(err)
+    data = data.strip()
+    return data
+
+
+def key_single_op__pem_filepath(pem_filepath, single_op):
+    """handles a single pem operation to `openssl rsa`
+
+        openssl rsa -noout -check -in {KEY}
+        openssl rsa -noout -modulus -in {KEY}
+        openssl rsa -noout -text -in {KEY}
+
+    """
+    if single_op not in ('-check', '-modulus', '-text'):
+        raise ValueError('invalid `single_op`')
+
+    proc = subprocess.Popen([openssl_path, "rsa", "-noout", single_op, "-in", pem_filepath],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     data, err = proc.communicate()
     if not data:
@@ -476,6 +496,7 @@ def parse_enddate_cert__pem_filepath(pem_filepath):
         raise errors.OpenSslError_InvalidCertificate('unexpected format')
     data_date = data[9:]
     date = dateutil_parser.parse(data_date)
+    date = date.replace(tzinfo=None)
     return date
 
 
@@ -490,6 +511,7 @@ def parse_startdate_cert__pem_filepath(pem_filepath):
         raise errors.OpenSslError_InvalidCertificate('unexpected format')
     data_date = data[10:]
     date = dateutil_parser.parse(data_date)
+    date = date.replace(tzinfo=None)
     return date
 
 
@@ -582,3 +604,61 @@ def probe_letsencrypt_certificates():
             tmpfile.close()
 
     return certs
+
+
+def parse_key(key_pem=None, pem_filepath=None):
+    if not any((key_pem, pem_filepath)) or all((key_pem, pem_filepath)):
+        raise ValueError("only submit `key_pem` OR `pem_filepath`")
+
+    tmpfile_pem = None
+    try:
+        if pem_filepath:
+            raise NotImplemented
+        else:
+            tmpfile_pem = tempfile.NamedTemporaryFile()
+            tmpfile_pem.write(key_pem)
+            tmpfile_pem.seek(0)
+            pem_filepath = tmpfile_pem.name
+
+        rval = {}
+        rval['modulus'] = key_single_op__pem_filepath(pem_filepath, '-modulus')
+        rval['check'] = key_single_op__pem_filepath(pem_filepath, '-check')
+        rval['text'] = key_single_op__pem_filepath(pem_filepath, '-text')
+        return rval
+    except:
+        raise
+    finally:
+        if tmpfile_pem:
+            tmpfile_pem.close()
+
+
+def parse_cert(cert_pem=None, pem_filepath=None):
+    if not any((cert_pem, pem_filepath)) or all((cert_pem, pem_filepath)):
+        raise ValueError("only submit `cert_pem` OR `pem_filepath`")
+
+    tmpfile_pem = None
+    try:
+        if pem_filepath:
+            raise NotImplemented
+        else:
+            tmpfile_pem = tempfile.NamedTemporaryFile()
+            tmpfile_pem.write(cert_pem)
+            tmpfile_pem.seek(0)
+            pem_filepath = tmpfile_pem.name
+
+        rval = {}
+        rval['issuer_hash'] = cert_single_op__pem_filepath(pem_filepath, '-issuer_hash')
+        rval['issuer'] = cert_single_op__pem_filepath(pem_filepath, '-issuer')
+        rval['subject_hash'] = cert_single_op__pem_filepath(pem_filepath, '-subject_hash')
+        rval['subject'] = cert_single_op__pem_filepath(pem_filepath, '-subject')
+        rval['startdate'] = cert_single_op__pem_filepath(pem_filepath, '-startdate')
+        rval['enddate'] = cert_single_op__pem_filepath(pem_filepath, '-enddate')
+        rval['parse_enddate_cert__pem_filepath'] = str(parse_enddate_cert__pem_filepath(pem_filepath))
+        rval['parse_startdate_cert__pem_filepath'] = str(parse_startdate_cert__pem_filepath(pem_filepath))
+
+        return rval
+    except:
+        raise
+    finally:
+        if tmpfile_pem:
+            tmpfile_pem.close()

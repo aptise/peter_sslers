@@ -87,6 +87,14 @@ class ViewAdmin(Handler):
             return response
         return 'chain.?'
 
+    @view_config(route_name='admin:ca_certificate:focus:parse.json', renderer='json')
+    def ca_certificate_focus_parse_json(self):
+        dbLetsencryptCACertificate = self._ca_certificate_focus()
+        return {"%s" % dbLetsencryptCACertificate.id: lib_acme.parse_cert(cert_pem=dbLetsencryptCACertificate.cert_pem),
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates_paginated', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     def ca_certificate_focus__signed_certificates(self):

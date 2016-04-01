@@ -75,6 +75,12 @@ class ViewAdmin(Handler):
             as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptPrivateKey.key_pem)
             return as_der
 
+    @view_config(route_name='admin:private_key:focus:parse.json', renderer='json')
+    def private_key_focus_parse_json(self):
+        dbLetsencryptPrivateKey = self._private_key_focus()
+        return {"%s" % dbLetsencryptPrivateKey.id: lib_acme.parse_key(key_pem=dbLetsencryptPrivateKey.key_pem),
+                }
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:private_key:focus:certificates', renderer='/admin/private_key-focus-certificates.mako')

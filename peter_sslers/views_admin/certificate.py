@@ -161,6 +161,12 @@ class ViewAdmin(Handler):
                 'LetsencryptServerCertificate': dbLetsencryptServerCertificate
                 }
 
+    @view_config(route_name='admin:certificate:focus:parse.json', renderer='json')
+    def ca_certificate_focus_parse_json(self):
+        dbLetsencryptServerCertificate = self._certificate_focus()
+        return {"%s" % dbLetsencryptServerCertificate.id: lib_acme.parse_cert(cert_pem=dbLetsencryptServerCertificate.cert_pem),
+                }
+
     @view_config(route_name='admin:certificate:focus:chain:raw', renderer='string')
     def certificate_focus_chain(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
