@@ -1058,10 +1058,10 @@ def create__LetsencryptServerCertificate(
     # increment account/private key counts
     dbLetsencryptAccountKey.count_certificates_issued += 1
     dbLetsencryptPrivateKey.count_certificates_issued += 1
-    if not dbAccountKey.timestamp_last_certificate_issue or (dbAccountKey.timestamp_last_certificate_issue < timestamp_signed):
-        dbAccountKey.timestamp_last_certificate_issue = timestamp_signed
-    if not dbPrivateKey.timestamp_last_certificate_issue or (dbPrivateKey.timestamp_last_certificate_issue < timestamp_signed):
-        dbPrivateKey.timestamp_last_certificate_issue = timestamp_signed
+    if not dbLetsencryptAccountKey.timestamp_last_certificate_issue or (dbLetsencryptAccountKey.timestamp_last_certificate_issue < timestamp_signed):
+        dbLetsencryptAccountKey.timestamp_last_certificate_issue = timestamp_signed
+    if not dbLetsencryptPrivateKey.timestamp_last_certificate_issue or (dbLetsencryptPrivateKey.timestamp_last_certificate_issue < timestamp_signed):
+        dbLetsencryptPrivateKey.timestamp_last_certificate_issue = timestamp_signed
 
     dbSession.flush()
 
