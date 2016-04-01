@@ -19,10 +19,10 @@ def md5_text(text):
     return hashlib.md5(text).hexdigest()
 
 
-def get_default_connection(request,
-                           url=None,
-                           redis_client=Redis,
-                           **redis_options):
+def redis_default_connection(request,
+                             url=None,
+                             redis_client=Redis,
+                             **redis_options):
     """
     # largely from `pyramid_redis_sessions/connection.py`
 
@@ -128,3 +128,132 @@ def nginx_expire_cache(request, dbSession, dbDomains=None):
                                                          }
                                                         )
     return True, dbEvent
+
+
+def redis_connection_from_registry(request):
+    redis_url = request.registry.settings['redis.url']
+    redis_options = {}
+    redis_client = redis_default_connection(request, redis_url, **redis_options)
+    return redis_client
+
+
+def redis_prime_style(request):
+    prime_style = request.registry.settings['redis.prime_style']
+    if prime_style not in ('1', '2'):
+        return False
+    return prime_style
+
+
+def redis_timeouts_from_registry(request):
+    timeouts = {'cacert': None,
+                'cert': None,
+                'pkey': None,
+                'domain': None,
+                }
+    for _t in timeouts.keys():
+        key_ini = 'redis.timeout.%s' % _t
+        if key_ini in request.registry.settings:
+            timeouts[_t] = int(request.registry.settings[key_ini])
+    return timeouts
+
+
+def prime_redis_domain(request, dbDomain):
+    """prime the domain for redis
+       return True if primed
+       return False if not
+    """
+    if not request.registry.settings['enable_redis']:
+        # don't error out here
+        return False
+
+    prime_style = redis_prime_style(request)
+    if not prime_style:
+        return False
+    redis_client = redis_connection_from_registry(request)
+    redis_timeouts = redis_timeouts_from_registry(request)
+
+    try:
+        if prime_style == '1':
+            dbServerCertificate = redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts)
+            redis_prime_logic__style_1_PrivateKey(redis_client, dbServerCertificate.private_key, redis_timeouts)
+            redis_prime_logic__style_1_CACertificate(redis_client, dbServerCertificate.certificate_upchain, redis_timeouts)
+        elif prime_style == '2':
+            is_primed = redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts)
+
+    except Exception as e:
+        raise
+        return False
+
+    return True
+
+
+def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
+    """
+    primes the domain, returns the certificate
+    r['d:foo.example.com'] = {'c': '1', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+    r['d:foo2.example.com'] = {'c': '2', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
+    r['c1'] = CERT.PEM  # (c)ert
+    r['c2'] = CERT.PEM
+    """
+    dbServerCertificate = None
+    if dbDomain.letsencrypt_server_certificate_id__latest_multi:
+        dbServerCertificate = dbDomain.latest_certificate_multi
+    elif dbDomain.letsencrypt_server_certificate_id__latest_single:
+        dbServerCertificate = dbDomain.latest_certificate_single
+    else:
+        raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
+
+    # first do the domain
+    key_redis = "d:%s" % dbDomain.domain_name
+    value_redis = {'c': '%s' % dbServerCertificate.id,
+                   'p': '%s' % dbServerCertificate.letsencrypt_private_key_id__signed_by,
+                   'i': '%s' % dbServerCertificate.letsencrypt_ca_certificate_id__upchain,
+                   }
+    redis_client.hmset(key_redis, value_redis)
+
+    # then do the cert
+    key_redis = "c%s" % dbServerCertificate.id
+    # only send over the wire if it doesn't exist
+    if not redis_client.exists(key_redis):
+        value_redis = dbServerCertificate.cert_pem
+        redis_client.set(key_redis, value_redis, redis_timeouts['cert'])
+
+    return dbServerCertificate
+
+
+def redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_timeouts):
+    """
+    r['p2'] = PKEY.PEM  # (p)rivate
+    """
+    key_redis = "p%s" % dbPrivateKey.id
+    redis_client.set(key_redis, dbPrivateKey.key_pem, redis_timeouts['pkey'])
+    return True
+
+
+def redis_prime_logic__style_1_CACertificate(redis_client, dbCACertificate, redis_timeouts):
+    """
+    r['i99'] = CACERT.PEM  # (i)ntermediate cert
+    """
+    key_redis = "i%s" % dbCACertificate.id
+    redis_client.set(key_redis, dbCACertificate.cert_pem, redis_timeouts['cacert'])
+    return True
+
+
+def redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts):
+    """returns the certificate
+    """
+    dbServerCertificate = None
+    if dbDomain.letsencrypt_server_certificate_id__latest_multi:
+        dbServerCertificate = dbDomain.latest_certificate_multi
+    elif dbDomain.letsencrypt_server_certificate_id__latest_single:
+        dbServerCertificate = dbDomain.latest_certificate_single
+    else:
+        raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
+
+    # the domain will hold the fullchain and private key
+    key_redis = "%s" % dbDomain.domain_name
+    value_redis = {'f': '%s' % dbServerCertificate.cert_fullchain_pem,
+                   'p': '%s' % dbServerCertificate.private_key.key_pem,
+                   }
+    redis_client.hmset(key_redis, value_redis)
+    return dbServerCertificate

@@ -118,6 +118,8 @@ class ViewAdmin(Handler):
                 rval['latest_certificate_multi'] = dbLetsencryptDomain.latest_certificate_multi.config_payload_idonly
             else:
                 rval['latest_certificate_multi'] = dbLetsencryptDomain.latest_certificate_multi.config_payload
+        if self.request.params.get('openresty', None):
+            lib_utils.prime_redis_domain(self.request, dbLetsencryptDomain)
         return rval
 
     @view_config(route_name='admin:domain:focus:certificates', renderer='/admin/domain-focus-certificates.mako')

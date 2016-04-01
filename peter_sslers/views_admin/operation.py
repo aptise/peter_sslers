@@ -158,29 +158,17 @@ class ViewAdminOperations(Handler):
     def admin_redis_prime(self):
         self._ensure_redis()
 
-        prime_style = self.request.registry.settings['redis.prime_style']
-        if prime_style not in ('1', '2'):
+        prime_style = lib_utils.redis_prime_style(self.request)
+        if not prime_style:
             raise ValueError("invalid `redis.prime_style`")
-
-        redis_url = self.request.registry.settings['redis.url']
-        redis_options = {}
-        redis_client = lib_utils.get_default_connection(self.request, redis_url, **redis_options)
+        redis_client = lib_utils.redis_connection_from_registry(self.request)
+        redis_timeouts = lib_utils.redis_timeouts_from_registry(self.request)
 
         total_primed = {'cacert': 0,
                         'cert': 0,
                         'pkey': 0,
                         'domain': 0,
                         }
-
-        timeouts = {'cacert': None,
-                    'cert': None,
-                    'pkey': None,
-                    'domain': None,
-                    }
-        for _t in timeouts.keys():
-            key_ini = 'redis.timeout.%s' % _t
-            if key_ini in self.request.registry.settings:
-                timeouts[_t] = int(self.request.registry.settings[key_ini])
 
         dbEvent = None
         if prime_style == '1':
@@ -218,10 +206,9 @@ class ViewAdminOperations(Handler):
                 if not active_certs:
                     # no certs
                     break
-                for cert in active_certs:
+                for dbCACertificate in active_keys:
                     total_primed['cacert'] += 1
-                    key_redis = "i%s" % cert.id
-                    redis_client.set(key_redis, cert.cert_pem, timeouts['cacert'])
+                    is_primed = lib_utils.redis_prime_logic__style_1_CACertificate(redis_client, dbCACertificate, redis_timeouts)
                 if len(active_certs) < limit:
                     # no more
                     break
@@ -240,10 +227,10 @@ class ViewAdminOperations(Handler):
                 if not active_keys:
                     # no keys
                     break
-                for key in active_keys:
+                for dbPrivateKey in active_keys:
                     total_primed['pkey'] += 1
-                    key_redis = "p%s" % key.id
-                    redis_client.set(key_redis, key.key_pem, timeouts['pkey'])
+                    is_primed = lib_utils.redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_timeouts)
+
                 if len(active_keys) < limit:
                     # no more
                     break
@@ -262,31 +249,10 @@ class ViewAdminOperations(Handler):
                 if not active_domains:
                     # no domains
                     break
-                for domain in active_domains:
+                for dbDomain in active_domains:
                     # favor the multi:
                     total_primed['domain'] += 1
-                    cert = None
-                    if domain.letsencrypt_server_certificate_id__latest_multi:
-                        cert = domain.latest_certificate_multi
-                    elif domain.letsencrypt_server_certificate_id__latest_single:
-                        cert = domain.latest_certificate_single
-                    else:
-                        raise ValueError("this domain is not active: `%s`" % domain.domain_name)
-
-                    # first do the domain
-                    key_redis = "d:%s" % domain.domain_name
-                    value_redis = {'c': '%s' % cert.id,
-                                   'p': '%s' % cert.letsencrypt_private_key_id__signed_by,
-                                   'i': '%s' % cert.letsencrypt_ca_certificate_id__upchain,
-                                   }
-                    redis_client.hmset(key_redis, value_redis)
-
-                    # then do the cert
-                    key_redis = "c%s" % cert.id
-                    # only send over the wire if it doesn't exist
-                    if not redis_client.exists(key_redis):
-                        total_primed['cert'] += 1
-                        redis_client.set(key_redis, cert.cert_pem, timeouts['cert'])
+                    is_primed = lib_utils.redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts)
 
                 if len(active_domains) < limit:
                     # no more
@@ -323,20 +289,7 @@ class ViewAdminOperations(Handler):
                 for domain in active_domains:
                     # favor the multi:
                     total_primed['domain'] += 1
-                    cert = None
-                    if domain.letsencrypt_server_certificate_id__latest_multi:
-                        cert = domain.latest_certificate_multi
-                    elif domain.letsencrypt_server_certificate_id__latest_single:
-                        cert = domain.latest_certificate_single
-                    else:
-                        raise ValueError("this domain is not active: `%s`" % domain.domain_name)
-
-                    # the domain will hold the fullchain and private key
-                    key_redis = "%s" % domain.domain_name
-                    value_redis = {'f': '%s' % cert.cert_fullchain_pem,
-                                   'p': '%s' % cert.private_key.key_pem,
-                                   }
-                    redis_client.hmset(key_redis, value_redis)
+                    is_primed = lib_utils.redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts)
 
                 if len(active_domains) < limit:
                     # no more
