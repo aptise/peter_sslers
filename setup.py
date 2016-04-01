@@ -23,6 +23,7 @@ requires = [
     'pypages',
     'pyramid_route_7',
     'requests',
+    'redis',
 ]
 
 setup(name='peter_sslers',
