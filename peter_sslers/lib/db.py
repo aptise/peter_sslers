@@ -630,6 +630,25 @@ def getcreate__LetsencryptCACertificate__by_pem_text(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def _certificate_parse_to_record(_tmpfileCert, dbCertificate):
+
+    # grab the modulus
+    cert_pem_modulus_md5 = acme.modulus_md5_cert__pem_filepath(_tmpfileCert.name)
+    dbCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
+
+    dbCertificate.timestamp_signed = acme.parse_startdate_cert__pem_filepath(_tmpfileCert.name)
+    dbCertificate.timestamp_expires = acme.parse_enddate_cert__pem_filepath(_tmpfileCert.name)
+    dbCertificate.cert_subject = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject')
+    dbCertificate.cert_subject_hash = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject_hash')
+    dbCertificate.cert_issuer = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer')
+    dbCertificate.cert_issuer_hash = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer_hash')
+
+    return dbCertificate
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def create__CertificateRequest__by_domainNamesList_FLOW(dbSession, domain_names):
     dbLetsencryptCertificateRequest = LetsencryptCertificateRequest()
     dbLetsencryptCertificateRequest.is_active = True
@@ -915,21 +934,12 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
             # validate
             acme.validate_cert__pem_filepath(_tmpfileCert.name)
 
-            # grab the modulus
-            cert_pem_modulus_md5 = acme.modulus_md5_cert__pem_filepath(_tmpfileCert.name)
             dbCertificate = LetsencryptServerCertificate()
+            _certificate_parse_to_record(_tmpfileCert, dbCertificate)
 
-            dbCertificate.timestamp_signed = acme.parse_startdate_cert__pem_filepath(_tmpfileCert.name)
-            dbCertificate.timestamp_expires = acme.parse_enddate_cert__pem_filepath(_tmpfileCert.name)
-            dbCertificate.cert_subject = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject')
-            dbCertificate.cert_subject_hash = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject_hash')
-            dbCertificate.cert_issuer = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer')
-            dbCertificate.cert_issuer_hash = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer_hash')
             dbCertificate.is_active = True
-
             dbCertificate.cert_pem = cert_pem
             dbCertificate.cert_pem_md5 = cert_pem_md5
-            dbCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
 
             # this is the LetsEncrypt key
             if dbCACertificate is None:
@@ -1026,57 +1036,58 @@ def create__LetsencryptServerCertificate(
         # validate
         acme.validate_cert__pem_filepath(_tmpfileCert.name)
 
-        # grab the modulus
-        cert_pem_modulus_md5 = acme.modulus_md5_cert__pem_filepath(_tmpfileCert.name)
+        dbLetsencryptServerCertificate = LetsencryptServerCertificate()
+        _certificate_parse_to_record(_tmpfileCert, dbCertificate)
+
+        # we don't need these anymore, because we're parsing the cert
+        # dbLetsencryptServerCertificate.timestamp_signed = timestamp_signed
+        # dbLetsencryptServerCertificate.timestamp_expires = timestamp_signed
+
+        dbLetsencryptServerCertificate.is_active = is_active
+        dbLetsencryptServerCertificate.cert_pem = cert_pem
+        dbLetsencryptServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
+        if dbLetsencryptCertificateRequest:
+            if dbLetsencryptCertificateRequest not in dbSession:
+                dbLetsencryptCertificateRequest = dbSession.merge(dbLetsencryptCertificateRequest)
+            dbLetsencryptCertificateRequest.is_active = False
+            dbLetsencryptServerCertificate.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
+        dbLetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain = letsencrypt_ca_certificate_id__upchain
+
+        # note account/private keys
+        dbLetsencryptServerCertificate.letsencrypt_account_key_id = dbLetsencryptAccountKey.id
+        dbLetsencryptServerCertificate.letsencrypt_private_key_id__signed_by = dbLetsencryptPrivateKey.id
+
+        dbSession.add(dbLetsencryptServerCertificate)
+        dbSession.flush()
+
+        # increment account/private key counts
+        dbLetsencryptAccountKey.count_certificates_issued += 1
+        dbLetsencryptPrivateKey.count_certificates_issued += 1
+        if not dbLetsencryptAccountKey.timestamp_last_certificate_issue or (dbLetsencryptAccountKey.timestamp_last_certificate_issue < timestamp_signed):
+            dbLetsencryptAccountKey.timestamp_last_certificate_issue = timestamp_signed
+        if not dbLetsencryptPrivateKey.timestamp_last_certificate_issue or (dbLetsencryptPrivateKey.timestamp_last_certificate_issue < timestamp_signed):
+            dbLetsencryptPrivateKey.timestamp_last_certificate_issue = timestamp_signed
+
+        dbSession.flush()
+
+        for _domain_name in domains_list__objects.keys():
+            # we dont' care about the dbLetsencryptCertificateRequest2D
+            (domainObject, dbLetsencryptCertificateRequest2D) = domains_list__objects[_domain_name]
+            if domainObject not in dbSession:
+                domainObject = dbSession.merge(domainObject)
+            dbLetsencryptServerCertificate2LetsencryptDomain = LetsencryptServerCertificate2LetsencryptDomain()
+            dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id = dbLetsencryptServerCertificate.id
+            dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id = domainObject.id
+            dbSession.add(dbLetsencryptServerCertificate2LetsencryptDomain)
+            dbSession.flush()
 
     except:
         raise
     finally:
         _tmpfileCert.close()
 
-    dbLetsencryptServerCertificate = LetsencryptServerCertificate()
-    dbLetsencryptServerCertificate.timestamp_signed = timestamp_signed
-    dbLetsencryptServerCertificate.timestamp_expires = timestamp_signed
-    dbLetsencryptServerCertificate.is_active = is_active
-    dbLetsencryptServerCertificate.cert_pem = cert_pem
-    dbLetsencryptServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
-    dbLetsencryptServerCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
-    if dbLetsencryptCertificateRequest:
-        if dbLetsencryptCertificateRequest not in dbSession:
-            dbLetsencryptCertificateRequest = dbSession.merge(dbLetsencryptCertificateRequest)
-        dbLetsencryptCertificateRequest.is_active = False
-        dbLetsencryptServerCertificate.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
-    dbLetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain = letsencrypt_ca_certificate_id__upchain
-
-    # note account/private keys
-    dbLetsencryptServerCertificate.letsencrypt_account_key_id = dbLetsencryptAccountKey.id
-    dbLetsencryptServerCertificate.letsencrypt_private_key_id__signed_by = dbLetsencryptPrivateKey.id
-
-    dbSession.add(dbLetsencryptServerCertificate)
-    dbSession.flush()
-
-    # increment account/private key counts
-    dbLetsencryptAccountKey.count_certificates_issued += 1
-    dbLetsencryptPrivateKey.count_certificates_issued += 1
-    if not dbLetsencryptAccountKey.timestamp_last_certificate_issue or (dbLetsencryptAccountKey.timestamp_last_certificate_issue < timestamp_signed):
-        dbLetsencryptAccountKey.timestamp_last_certificate_issue = timestamp_signed
-    if not dbLetsencryptPrivateKey.timestamp_last_certificate_issue or (dbLetsencryptPrivateKey.timestamp_last_certificate_issue < timestamp_signed):
-        dbLetsencryptPrivateKey.timestamp_last_certificate_issue = timestamp_signed
-
-    dbSession.flush()
-
-    for _domain_name in domains_list__objects.keys():
-        # we dont' care about the dbLetsencryptCertificateRequest2D
-        (domainObject, dbLetsencryptCertificateRequest2D) = domains_list__objects[_domain_name]
-        if domainObject not in dbSession:
-            domainObject = dbSession.merge(domainObject)
-        dbLetsencryptServerCertificate2LetsencryptDomain = LetsencryptServerCertificate2LetsencryptDomain()
-        dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id = dbLetsencryptServerCertificate.id
-        dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id = domainObject.id
-        dbSession.add(dbLetsencryptServerCertificate2LetsencryptDomain)
-        dbSession.flush()
-
     return dbLetsencryptServerCertificate
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
