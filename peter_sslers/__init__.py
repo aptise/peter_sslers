@@ -121,6 +121,7 @@ def main(global_config, **settings):
         config.add_route_7('admin:account_key:focus:certificate_requests_paginated', '/.well-known/admin/account_key/{@id}/certificate_requests/{@page}')
         config.add_route_7('admin:account_key:focus:certificates', '/.well-known/admin/account_key/{@id}/certificates')
         config.add_route_7('admin:account_key:focus:certificates_paginated', '/.well-known/admin/account_key/{@id}/certificates/{@page}')
+        config.add_route_7('admin:account_key:focus:authenticate', '/.well-known/admin/account_key/{@id}/authenticate')
         config.add_route_7('admin:account_key:new', '/.well-known/admin/account_key/new')
 
         config.add_route_7('admin:private_keys', '/.well-known/admin/private_keys')

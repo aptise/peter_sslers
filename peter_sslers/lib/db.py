@@ -372,23 +372,6 @@ def get__LetsencryptCACertificate__by_id(dbSession, cert_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__count(dbSession, key_id):
-    counted = dbSession.query(LetsencryptServerCertificate)\
-        .filter(LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by == key_id)\
-        .count()
-    return counted
-
-
-def get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(dbSession, key_id, limit=None, offset=0):
-    items_paged = dbSession.query(LetsencryptServerCertificate)\
-        .filter(LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by == key_id)\
-        .order_by(LetsencryptServerCertificate.id.desc())\
-        .limit(limit)\
-        .offset(offset)\
-        .all()
-    return items_paged
-
-
 def get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__count(dbSession, key_id):
     counted = dbSession.query(LetsencryptCertificateRequest)\
         .filter(LetsencryptCertificateRequest.letsencrypt_account_key_id == key_id)\
@@ -472,6 +455,40 @@ def get__LetsencryptServerCertificate__by_LetsencryptDomainId__paginated(dbSessi
     return items_paged
 
 
+def get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__count(dbSession, key_id):
+    counted = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.letsencrypt_account_key_id == key_id)\
+        .count()
+    return counted
+
+
+def get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__paginated(dbSession, key_id, limit=None, offset=0):
+    items_paged = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.letsencrypt_account_key_id == key_id)\
+        .options(sqlalchemy.orm.joinedload('certificate_to_domains').joinedload('domain'),
+                 )\
+        .order_by(LetsencryptServerCertificate.id.desc())\
+        .limit(limit)\
+        .offset(offset)\
+        .all()
+    return items_paged
+    
+
+def get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__count(dbSession, key_id):
+    counted = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by == key_id)\
+        .count()
+    return counted
+
+
+def get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(dbSession, key_id, limit=None, offset=0):
+    items_paged = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by == key_id)\
+        .order_by(LetsencryptServerCertificate.id.desc())\
+        .limit(limit)\
+        .offset(offset)\
+        .all()
+    return items_paged
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -649,6 +666,39 @@ def _certificate_parse_to_record(_tmpfileCert, dbCertificate):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def do__LetsencryptAccountKey_authenticate(dbSession, dbLetsencryptAccountKey, account_key_path=None):
+    _tmpfile = None
+    try:
+        if account_key_path is None:
+            _tmpfile = tempfile.NamedTemporaryFile()
+            _tmpfile.write(dbLetsencryptAccountKey.key_pem)
+            _tmpfile.seek(0)
+            account_key_path = _tmpfile.name
+
+        # parse account key to get public key
+        header, thumbprint = acme.account_key__header_thumbprint(account_key_path=account_key_path, )
+        
+        acme.acme_register_account(header,
+                                   account_key_path=account_key_path)
+        
+        # this would raise if we couldn't authenticate
+
+        dbLetsencryptAccountKey.timestamp_last_authenticated = datetime.datetime.utcnow()
+        dbSession.flush()
+        
+        return True
+    
+    finally:
+        if _tmpfile:
+            _tmpfile.close()
+    
+
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+
 def create__CertificateRequest__by_domainNamesList_FLOW(dbSession, domain_names):
     dbLetsencryptCertificateRequest = LetsencryptCertificateRequest()
     dbLetsencryptCertificateRequest.is_active = True
@@ -817,8 +867,11 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
                                              )
 
         # register the account / ensure that it is registered
-        acme.acme_register_account(header,
-                                   account_key_path=tmpfile_account.name)
+        if not dbAccountKey.timestamp_last_authenticated:
+            do__LetsencryptAccountKey_authenticate(dbSession,
+                                                   dbAccountKey,
+                                                   account_key_path=tmpfile_account.name,
+                                                   )
 
         # verify each domain
         acme.acme_verify_domains(csr_domains=csr_domains,

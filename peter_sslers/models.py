@@ -46,6 +46,7 @@ class LetsencryptAccountKey(Base):
     count_certificates_issued = sa.Column(sa.Integer, nullable=True, default=0, )
     timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True, )
     timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True, )
+    timestamp_last_authenticated = sa.Column(sa.DateTime, nullable=True, )
 
     certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest",
                                                primaryjoin="LetsencryptAccountKey.id==LetsencryptCertificateRequest.letsencrypt_account_key_id",

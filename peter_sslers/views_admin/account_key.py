@@ -87,6 +87,14 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name='admin:account_key:focus:authenticate', renderer=None)
+    def account_key_focus__authenticate(self):
+        dbLetsencryptAccountKey = self._account_key_focus()
+        is_authenticated = lib_db.do__LetsencryptAccountKey_authenticate(DBSession, dbLetsencryptAccountKey)
+        return HTTPFound('/.well-known/admin/account_key/%s?is_authenticated=%s' % (dbLetsencryptAccountKey.id, ('1' if is_authenticated else '0')))
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name='admin:account_key:focus:certificates', renderer='/admin/account_key-focus-certificates.mako')
     @view_config(route_name='admin:account_key:focus:certificates_paginated', renderer='/admin/account_key-focus-certificates.mako')
     def account_key_focus__certificates(self):
@@ -94,7 +102,7 @@ class ViewAdmin(Handler):
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__count(
             DBSession, dbLetsencryptAccountKey.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account_key/%s/certificates/{0}' % dbLetsencryptAccountKey.id)
-        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyIdId__paginated(
+        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__paginated(
             DBSession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptAccountKey': dbLetsencryptAccountKey,

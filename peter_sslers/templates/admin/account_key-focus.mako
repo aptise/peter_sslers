@@ -29,6 +29,18 @@
             </td>
         </tr>
         <tr>
+            <th>timestamp_last_authenticated</th>
+            <td><timestamp>${LetsencryptAccountKey.timestamp_last_authenticated  or ''}</timestamp>
+                % if not LetsencryptAccountKey.timestamp_last_authenticated:
+                    <a  href="/.well-known/admin/account_key/${LetsencryptAccountKey.id}/authenticate"
+                        class="btn btn-xs btn-primary"
+                    >
+                        authenticate against LetsEncrypt
+                    </a>
+                % endif
+            </td>
+        </tr>
+        <tr>
             <th>timestamp_first_seen</th>
             <td><timestamp>${LetsencryptAccountKey.timestamp_first_seen  or ''}</timestamp></td>
         </tr>
