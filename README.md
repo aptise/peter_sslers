@@ -478,6 +478,8 @@ if you pass in the querystring '?idonly=1', the PEMs will not be returned.
 
 notice that the numeric ids are returned as strings. this is by design.
 
+if you pass in the querystring '?openresty=1' to identify the request as coming from openresty (as an api request), this will function as a write-through cache for redis and load the domain's info into redis (if redis is configured)
+
 
 ### `/.well-known/admin/certificate/{ID}/config.json` Certificate Data
 
