@@ -115,6 +115,17 @@
             </td>
         </tr>
         <tr>
+            <th>is renewal?</th>
+            <td>
+                % if LetsencryptServerCertificate.letsencrypt_server_certificate_id__renewal_of:
+                    <span class="label label-success">Yes</span>&nbsp;
+                    <a class="label label-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.letsencrypt_server_certificate_id__renewal_of}">&gt; ${LetsencryptServerCertificate.letsencrypt_server_certificate_id__renewal_of}</a>
+                % else
+                    <span class="label label-default">No</span>
+                % endif
+            </td>
+        </tr>
+        <tr>
             <th>cert_pem_md5</th>
             <td><code>${LetsencryptServerCertificate.cert_pem_md5}</code></td>
         </tr>

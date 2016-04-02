@@ -304,6 +304,7 @@ class ViewAdmin(Handler):
             dbAccountKey = None
             account_key_pem = None
             if formStash.results['account_key_option'] == 'upload':
+                try:
                 account_key_pem = formStash.results['account_key_file'].file.read()
             elif formStash.results['account_key_option'] == 'existing':
                 if not dbLetsencryptServerCertificate.letsencrypt_account_key_id:
@@ -341,7 +342,7 @@ class ViewAdmin(Handler):
                     return HTTPFound('/.well-known/admin/certificate_requests?error=new-full')
                 raise
 
-            return HTTPFound('/.well-known/admin/certificate/%s&is_renewal=True' % newLetsencryptCertificate.id)
+            return HTTPFound('/.well-known/admin/certificate/%s?is_renewal=True' % newLetsencryptCertificate.id)
 
         except formhandling.FormInvalid:
             formStash.set_error(field="Error_Main",
