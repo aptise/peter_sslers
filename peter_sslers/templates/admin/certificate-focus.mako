@@ -84,11 +84,10 @@
                             <button class="btn btn-xs btn-primary">Quick Renew</button>
                         </form>
                     % else:
-                        <form method="POST"
-                              action="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
+                        <a  href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
+                            span class="btn btn-xs btn-primary"
                         >
-                            <input type="hidden" name="renewal_type" value="custom"/>
-                            <button class="btn btn-xs btn-primary">Custom Renew</button>
+                            Custom Renewal
                         </form>
                     % endif
                 
