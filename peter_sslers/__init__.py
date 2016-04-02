@@ -96,6 +96,10 @@ def main(global_config, **settings):
         config.add_route_7('admin:certificate:focus:nginx_cache_expire', '/.well-known/admin/certificate/{id:\d}/nginx_cache_expire')
         config.add_route_7('admin:certificate:focus:nginx_cache_expire:json', '/.well-known/admin/certificate/{id:\d}/nginx_cache_expire.json')
         config.add_route_7('admin:certificate:focus:parse.json', '/.well-known/admin/certificate/{@id}/parse.json')
+        config.add_route_7('admin:certificate:focus:renew:quick', '/.well-known/admin/certificate/{@id}/renew/quick')
+        config.add_route_7('admin:certificate:focus:renew:quick:json', '/.well-known/admin/certificate/{@id}/renew/quick.json')
+        config.add_route_7('admin:certificate:focus:renew:custom', '/.well-known/admin/certificate/{@id}/renew/custom')
+        config.add_route_7('admin:certificate:focus:renew:custom:json', '/.well-known/admin/certificate/{@id}/renew/custom.json')
         config.add_route_7('admin:certificate:upload', '/.well-known/admin/certificate/upload')
         config.add_route_7('admin:certificate:upload:json', '/.well-known/admin/certificate/upload.json')
 

@@ -71,16 +71,16 @@
         </tr>
         <tr>
             <th>timestamp_finished</th>
-            <td>${LetsencryptCertificateRequest.timestamp_finished}</td>
+            <td>${LetsencryptCertificateRequest.timestamp_finished or ''}</td>
         </tr>
         <tr>
             <th>csr_pem_md5</th>
-            <td><code>${LetsencryptCertificateRequest.csr_pem_md5}</code></td>
+            <td><code>${LetsencryptCertificateRequest.csr_pem_md5 or ''}</code></td>
         </tr>
         <tr>
             <th>csr_pem_modulus_md5</th>
             <td>
-                <code>${LetsencryptCertificateRequest.csr_pem_modulus_md5}</code>
+                <code>${LetsencryptCertificateRequest.csr_pem_modulus_md5 or ''}</code>
                 <a
                     class="btn btn-xs btn-info"
                     href="/.well-known/admin/search?${LetsencryptCertificateRequest.csr_pem_modulus_search}"
@@ -92,10 +92,14 @@
         <tr>
             <th>csr_pem</th>
             <td>
-                ## <textarea class="form-control">${LetsencryptCertificateRequest.key_pem}</textarea>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/csr.pem">csr.pem</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
+                % if LetsencryptCertificateRequest.csr_pem:
+                    ## <textarea class="form-control">${LetsencryptCertificateRequest.csr_pem}</textarea>
+                    <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/csr.pem">csr.pem</a>
+                    <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
+                    <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
+                % else:
+                    <em>pem is not tracked</em>
+                % endif
             </td>
         </tr>
         <tr>

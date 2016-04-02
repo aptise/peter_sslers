@@ -124,6 +124,8 @@ class LetsencryptCertificateRequest(Base):
     letsencrypt_private_key_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_private_key.id"), nullable=True)
     letsencrypt_account_key_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_account_key.id"), nullable=True)
 
+    letsencrypt_server_certificate_id__renewal_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=True)
+
     certificate_request_to_domains = sa.orm.relationship("LetsencryptCertificateRequest2LetsencryptDomain",
                                                          primaryjoin="LetsencryptCertificateRequest.id==LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id",
                                                          back_populates='certificate_request',
@@ -146,6 +148,12 @@ class LetsencryptCertificateRequest(Base):
                                              back_populates='certificate_request',
                                              uselist=False,
                                              )
+
+    certificate_renewal_of = sa.orm.relationship("LetsencryptServerCertificate",
+                                                 primaryjoin="LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of==LetsencryptServerCertificate.id",
+                                                 back_populates='renewal_requests',
+                                                 uselist=False,
+                                                 )
 
     check1 = sa.CheckConstraint("""(certificate_request_type_id = 1
                                     and (csr_pem is NULL and csr_pem_md5 is NULL and csr_pem_modulus_md5 is NULL)
@@ -173,6 +181,18 @@ class LetsencryptCertificateRequest(Base):
         elif (check.lower() == 'full') and (self.certificate_request_type_id == LetsencryptCertificateRequestType.FULL):
             return True
         return False
+
+    @property
+    def domains_as_string(self):
+        domains = sorted([to_d.domain.domain_name for to_d in self.certificate_request_to_domains])
+        return ', '.join(domains)
+
+    @property
+    def domains_as_list(self):
+        domain_names = [to_d.domain.domain_name.lower() for to_d in self.certificate_request_to_domains]
+        domain_names = list(set(domain_names))
+        domain_names = sorted(domain_names)
+        return domain_names
 
 
 class LetsencryptCertificateRequest2LetsencryptDomain(Base):
@@ -370,6 +390,11 @@ class LetsencryptServerCertificate(Base):
                                                   uselist=False,
                                                   )
 
+    renewal_requests = sa.orm.relationship("LetsencryptCertificateRequest",
+                                           primaryjoin="LetsencryptServerCertificate.id==LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of",
+                                           back_populates='certificate_renewal_of',
+                                           )
+
     @property
     def cert_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=certificate&certificate.id=%s" % (self.cert_pem_modulus_md5, self.id, )
@@ -433,6 +458,25 @@ class LetsencryptServerCertificate(Base):
                 'fullchain': {'id': '%s,%s' % (self.id, self.certificate_upchain.id),
                               },
                 }
+
+    @property
+    def can_quick_renew(self):
+        """only allow renewable of LE certificates"""
+        if self.letsencrypt_account_key_id:
+            return True
+        return False
+
+    @property
+    def domains_as_string(self):
+        domains = sorted([to_d.domain.domain_name for to_d in self.certificate_to_domains])
+        return ', '.join(domains)
+
+    @property
+    def domains_as_list(self):
+        domain_names = [to_d.domain.domain_name.lower() for to_d in self.certificate_to_domains]
+        domain_names = list(set(domain_names))
+        domain_names = sorted(domain_names)
+        return domain_names
 
 
 class LetsencryptServerCertificate2LetsencryptDomain(Base):

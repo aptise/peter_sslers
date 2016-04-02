@@ -4,6 +4,7 @@ from formencode.validators import (
     FieldStorageUploadConverter,
     FormValidator,
     Invalid,
+    OneOf,
     UnicodeString,
 )
 
@@ -129,3 +130,10 @@ class Form_CACertificateUploadBundle__file(_Form_Schema_Base):
     le_x2_cross_signed_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     le_x1_auth_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     le_x2_auth_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+
+
+class Form_CertificateRenewal_Custom(_Form_Schema_Base):
+    private_key_option = OneOf(('existing', 'upload', ))
+    account_key_option = OneOf(('existing', 'upload', ))
+    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)

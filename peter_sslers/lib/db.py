@@ -472,7 +472,7 @@ def get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__paginated(dbS
         .offset(offset)\
         .all()
     return items_paged
-    
+
 
 def get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__count(dbSession, key_id):
     counted = dbSession.query(LetsencryptServerCertificate)\
@@ -679,26 +679,22 @@ def do__LetsencryptAccountKey_authenticate(dbSession, dbLetsencryptAccountKey, a
 
         # parse account key to get public key
         header, thumbprint = acme.account_key__header_thumbprint(account_key_path=account_key_path, )
-        
+
         acme.acme_register_account(header,
                                    account_key_path=account_key_path)
-        
+
         # this would raise if we couldn't authenticate
 
         dbLetsencryptAccountKey.timestamp_last_authenticated = datetime.datetime.utcnow()
         dbSession.flush()
-        
+
         return True
-    
+
     finally:
         if _tmpfile:
             _tmpfile.close()
-    
-
-
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 
 
 def create__CertificateRequest__by_domainNamesList_FLOW(dbSession, domain_names):
@@ -727,8 +723,14 @@ def create__CertificateRequest__by_domainNamesList_FLOW(dbSession, domain_names)
 def create__CertificateRequest__FULL(
     dbSession,
     domain_names,
+
+    dbAccountKey=None,
     account_key_pem=None,
+
+    dbPrivateKey=None,
     private_key_pem=None,
+
+    letsencrypt_server_certificate_id__renewal_of=None,
 ):
     """
 
@@ -752,16 +754,17 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
 /usr/local/opt/openssl/bin/openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <
 
     """
+    if not any((dbAccountKey, account_key_pem)) or all((dbAccountKey, account_key_pem)):
+        raise ValueError("Submit one and only one of: `dbAccountKey`, `account_key_pem`")
+
+    if not any((dbPrivateKey, private_key_pem)) or all((dbPrivateKey, private_key_pem)):
+        raise ValueError("Submit one and only one of: `dbPrivateKey`, `private_key_pem`")
 
     tmpfiles = []
     dbLetsencryptCertificateRequest = None
     dbLetsencryptServerCertificate = None
-    dbAccountKey = None
     dbPrivateKey = None
     try:
-
-        account_key_pem = acme.cleanup_pem_text(account_key_pem)
-        private_key_pem = acme.cleanup_pem_text(private_key_pem)
 
         # we should have cleaned this up before, but just be safe
         domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
@@ -771,18 +774,30 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
         # we need a list
         domain_names = list(domain_names)
 
+        if dbAccountKey is None:
+            account_key_pem = acme.cleanup_pem_text(account_key_pem)
+            dbAccountKey, _is_created = getcreate__LetsencryptAccountKey__by_pem_text(dbSession, account_key_pem)
+        else:
+            account_key_pem = dbAccountKey.key_pem
         # we need to use tmpfiles on the disk
         tmpfile_account = tempfile.NamedTemporaryFile()
         tmpfile_account.write(account_key_pem)
         tmpfile_account.seek(0)
         tmpfiles.append(tmpfile_account)
 
-        tmpfile_domain = tempfile.NamedTemporaryFile()
-        tmpfile_domain.write(private_key_pem)
-        tmpfile_domain.seek(0)
-        tmpfiles.append(tmpfile_domain)
+        if dbPrivateKey is None:
+            private_key_pem = acme.cleanup_pem_text(private_key_pem)
+            dbPrivateKey, _is_created = getcreate__LetsencryptPrivateKey__by_pem_text(dbSession, private_key_pem)
+        else:
+            private_key_pem = dbPrivateKey.key_pem
+        # we need to use tmpfiles on the disk
+        tmpfile_pkey = tempfile.NamedTemporaryFile()
+        tmpfile_pkey.write(private_key_pem)
+        tmpfile_pkey.seek(0)
+        tmpfiles.append(tmpfile_pkey)
 
-        csr_text = acme.new_csr_for_domain_names(domain_names, tmpfile_domain.name, tmpfiles)
+        # make the CSR
+        csr_text = acme.new_csr_for_domain_names(domain_names, tmpfile_pkey.name, tmpfiles)
 
         # store the csr_text in a tmpfile
         tmpfile_csr = tempfile.NamedTemporaryFile()
@@ -800,9 +815,6 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
         with transaction.manager as tx:
 
             # have we seen these certificates before?
-            dbAccountKey, _is_created = getcreate__LetsencryptAccountKey__by_pem_text(dbSession, account_key_pem)
-            dbPrivateKey, _is_created = getcreate__LetsencryptPrivateKey__by_pem_text(dbSession, private_key_pem)
-
             dbLetsencryptCertificateRequest = LetsencryptCertificateRequest()
             dbLetsencryptCertificateRequest.is_active = True
             dbLetsencryptCertificateRequest.certificate_request_type_id = LetsencryptCertificateRequestType.FULL
@@ -814,6 +826,8 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
             # note account/private keys
             dbLetsencryptCertificateRequest.letsencrypt_account_key_id = dbAccountKey.id
             dbLetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by = dbPrivateKey.id
+            dbLetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of = letsencrypt_server_certificate_id__renewal_of
+
             dbSession.add(dbLetsencryptCertificateRequest)
             dbSession.flush()
 
@@ -918,6 +932,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
                 dbLetsencryptAccountKey = dbAccountKey,
                 dbLetsencryptPrivateKey = dbPrivateKey,
                 domains_list__objects = _domain_objects,
+                letsencrypt_server_certificate_id__renewal_of = letsencrypt_server_certificate_id__renewal_of,
             )
 
         # merge this back in
@@ -951,6 +966,7 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
     dbCACertificate=None,
     dbAccountKey=None,
     dbPrivateKey=None,
+    letsencrypt_server_certificate_id__renewal_of=None,
 ):
     cert_pem = acme.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
@@ -995,6 +1011,8 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
             dbCertificate.is_active = True
             dbCertificate.cert_pem = cert_pem
             dbCertificate.cert_pem_md5 = cert_pem_md5
+
+            dbCertificate.letsencrypt_server_certificate_id__renewal_of = letsencrypt_server_certificate_id__renewal_of
 
             # this is the LetsEncrypt key
             if dbCACertificate is None:
@@ -1067,6 +1085,7 @@ def create__LetsencryptServerCertificate(
     dbLetsencryptCertificateRequest = None,
     dbLetsencryptAccountKey = None,
     domains_list__objects = None,
+    letsencrypt_server_certificate_id__renewal_of = None,
 
     # only one of these 2
     dbLetsencryptPrivateKey = None,
@@ -1107,6 +1126,7 @@ def create__LetsencryptServerCertificate(
             dbLetsencryptCertificateRequest.is_active = False
             dbLetsencryptServerCertificate.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
         dbLetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain = letsencrypt_ca_certificate_id__upchain
+        dbLetsencryptServerCertificate.letsencrypt_server_certificate_id__renewal_of = letsencrypt_server_certificate_id__renewal_of
 
         # note account/private keys
         dbLetsencryptServerCertificate.letsencrypt_account_key_id = dbLetsencryptAccountKey.id

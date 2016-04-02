@@ -87,7 +87,7 @@ def new_csr_for_domain_names(
         # to get around this, we'll do two things:
         # 1. cat the [SAN] and openssl path file onto a tempfile
         # 2. use shell=True
-        
+
         domain_names = sorted(domain_names)
 
         # generate the [SAN]

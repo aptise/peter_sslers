@@ -15,20 +15,14 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_CertificateRequest_new_flow,
-                         # Form_CertificateRequest_new_full,
-                         Form_CertificateRequest_new_full__file,
-                         Form_CertificateRequest_process_domain,
-                         Form_CertificateUpload__file,
-                         Form_CACertificateUpload__file,
-                         Form_CACertificateUploadBundle__file,
-                         Form_PrivateKey_new__file,
-                         Form_AccountKey_new__file,
+from ..lib.forms import (Form_CertificateUpload__file,
+                         Form_CertificateRenewal_Custom,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
 from ..lib import utils as lib_utils
+from ..lib import errors as lib_errors
 
 
 # ==============================================================================
@@ -162,7 +156,7 @@ class ViewAdmin(Handler):
                 }
 
     @view_config(route_name='admin:certificate:focus:parse.json', renderer='json')
-    def ca_certificate_focus_parse_json(self):
+    def certificate_focus_parse_json(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
         return {"%s" % dbLetsencryptServerCertificate.id: lib_acme.parse_cert(cert_pem=dbLetsencryptServerCertificate.cert_pem),
                 }
@@ -255,3 +249,108 @@ class ViewAdmin(Handler):
                                          },
                     }
         return HTTPFound('/.well-known/admin/certificate/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (dbLetsencryptServerCertificate.id, dbEvent.id))
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:certificate:focus:renew:quick', renderer=None)
+    @view_config(route_name='admin:certificate:focus:renew:quick:json', renderer='json')
+    def certificate_focus_renew_quick(self):
+        dbLetsencryptServerCertificate = self._certificate_focus()
+        try:
+            if not self.request.POST:
+                raise lib_errors.DisplayableError('Post Only')
+            if not dbLetsencryptServerCertificate.can_quick_renew:
+                raise lib_errors.DisplayableError('Thie cert is not eligible for `Quick Renew`')
+
+            raise NotImplementedError()
+
+        except lib_errors.DisplayableError, e:
+            url_failure = '/.well-known/admin/certificate/%s?operation=renewal&renewal_type=quick&error=%s' % (
+                dbLetsencryptServerCertificate.id,
+                e.message,
+            )
+            return HTTPFound("%s&error=POST-ONLY" % url_failure)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:certificate:focus:renew:custom', renderer=None)
+    @view_config(route_name='admin:certificate:focus:renew:custom:json', renderer='json')
+    def certificate_focus_renew_custom(self):
+        dbLetsencryptServerCertificate = self._certificate_focus()
+        self.dbLetsencryptServerCertificate = dbLetsencryptServerCertificate
+        if self.request.POST:
+            return self._certificate_focus_renew_custom__submit()
+        return self._certificate_focus_renew_custom__print()
+
+    def _certificate_focus_renew_custom__print(self):
+        return render_to_response("/admin/certificate-focus-renew.mako",
+                                  {'LetsencryptServerCertificate': self.dbLetsencryptServerCertificate},
+                                  self.request
+                                  )
+
+    def _certificate_focus_renew_custom__submit(self):
+        dbLetsencryptServerCertificate = self.dbLetsencryptServerCertificate
+        try:
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_CertificateRenewal_Custom,
+                                                             validate_get=False
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            #
+            # handle the Account Key
+            #
+            dbAccountKey = None
+            account_key_pem = None
+            if formStash['account_key_option'] == 'upload':
+                account_key_pem = formStash.results['account_key_file'].file.read()
+            elif formStash['account_key_option'] == 'existing':
+                if not dbLetsencryptServerCertificate.letsencrypt_account_key_id:
+                    raise ValueError("This Certificate does not have an existing Account Key")
+                dbAccountKey = dbLetsencryptServerCertificate.letsencrypt_account_key
+            else:
+                raise ValueError("unknown option")
+
+            #
+            # handle the Private Key
+            #
+            dbPrivateKey = None
+            private_key_pem = None
+            if formStash['private_key_option'] == 'upload':
+                private_key_pem = formStash.results['private_key_file'].file.read()
+            elif formStash['private_key_option'] == 'existing':
+                dbPrivateKey = dbLetsencryptServerCertificate.private_key
+            else:
+                raise ValueError("unknown option")
+
+            try:
+                newLetsencryptCertificate = lib_db.create__CertificateRequest__FULL(
+                    DBSession,
+                    domain_names=dbLetsencryptServerCertificate.domains_as_list,
+                    account_key_pem=account_key_pem,
+                    dbAccountKey=dbAccountKey,
+                    private_key_pem=private_key_pem,
+                    dbPrivateKey=dbPrivateKey,
+                    letsencrypt_server_certificate_id__renewal_of=dbLetsencryptServerCertificate.id,
+                )
+            except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
+                return HTTPFound('/.well-known/admin/certificate_requests?error=new-full&message=%s' % e.message)
+            except:
+                if self.request.registry.settings['exception_redirect']:
+                    return HTTPFound('/.well-known/admin/certificate_requests?error=new-full')
+                raise
+
+            return HTTPFound('/.well-known/admin/certificate/%s&is_renewal=True' % newLetsencryptCertificate.id)
+
+        except formhandling.FormInvalid:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            return formhandling.form_reprint(
+                self.request,
+                self._certificate_focus_renew_custom__print,
+                auto_error_formatter=formhandling.formatter_none,
+            )

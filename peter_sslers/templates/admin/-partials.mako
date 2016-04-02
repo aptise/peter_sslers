@@ -34,7 +34,7 @@
                     </td>
                 % endif
                 % if show_domains:
-                     <td>${', '.join([to_d.domain.domain_name for to_d in to_cert.certificate.certificate_to_domains])}</td>
+                     <td>${to_cert.certificate.domains_as_string}</td>
                 % endif
             </tr>
         % endfor
@@ -115,7 +115,7 @@
                     </td>
                 % endif
                 % if show_domains:
-                    <td>${', '.join([to_d.domain.domain_name for to_d in cert.certificate_to_domains])}</td>
+                    <td>${cert.domains_as_string}</td>
                 % endif
             </tr>
         % endfor
@@ -175,7 +175,7 @@
                 <td><timestamp>${certificate_request.timestamp_started}</timestamp></td>
                 <td><timestamp>${certificate_request.timestamp_finished or ''}</timestamp></td>
                 % if show_domains:
-                    <td>${', '.join([to_d.domain.domain_name for to_d in certificate_request.certificate_request_to_domains])}</td>
+                    <td>${certificate_request.domains_as_string}</td>
                 % endif
             </tr>
         % endfor
@@ -372,7 +372,7 @@
         <input class="form-control" type="file" id="f1-account_key_file" name="account_key_file" />
         <p class="help-block">
             Enter your LetsEncrypted registered PRIVATE AccountKey above in PEM format; this will be used to sign your request.
-            This is save dot the DB and used to track requests and handle reiussues.
+            This is saved ot the DB and is used to track requests and handle reiussues.
         </p>
         % if show_text:
             <label for="f1-account_key">Account Private Key [text]</label>

@@ -2,8 +2,8 @@
 
 LIMITS = {'names/certificate': {'limit': 100, },
           'certificates/domain': {'limit': 20,
-                                       'timeframe': '1 week',
-                                       },
+                                  'timeframe': '1 week',
+                                  },
           'certificates/fqdn': {'limit': 5,
                                 'timeframe': '1 week',
                                 },

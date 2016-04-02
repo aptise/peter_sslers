@@ -16,6 +16,15 @@
 
 <%block name="page_header">
     <h2>Certificate - Focus</h2>
+    
+    % if request.params.get('error'):
+        <div class="alert alert-danger">
+            <b>Error</b>
+            <br/>
+            ${request.params.get('error')}
+        </div>
+    % endif
+    
 </%block>
     
 
@@ -66,6 +75,23 @@
                 <span class="label label-${LetsencryptServerCertificate.expiring_days_label}">
                     ${LetsencryptServerCertificate.expiring_days}
                 </span>
+                &nbsp;
+                    % if LetsencryptServerCertificate.can_quick_renew:
+                        <form method="POST"
+                              action="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/quick"
+                        >
+                            <input type="hidden" name="renewal_type" value="quick"/>
+                            <button class="btn btn-xs btn-primary">Quick Renew</button>
+                        </form>
+                    % else:
+                        <form method="POST"
+                              action="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
+                        >
+                            <input type="hidden" name="renewal_type" value="custom"/>
+                            <button class="btn btn-xs btn-primary">Custom Renew</button>
+                        </form>
+                    % endif
+                
             </td>
         </tr>
         <tr>
@@ -241,6 +267,12 @@
                         % endfor
                     </tbody>
                 </table>
+            </td>
+        </tr>
+        <tr>
+            <th>renewal requests</th>
+            <td>
+                ${admin_partials.table_certificate_requests__list(LetsencryptServerCertificate.renewal_requests, show_domains=False, show_certificate=True)}
             </td>
         </tr>
     </table>

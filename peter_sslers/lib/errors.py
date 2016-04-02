@@ -24,3 +24,7 @@ class AcmeCommunicationError(Exception):
 
 class DomainVerificationError(Exception):
     pass
+
+
+class DisplayableError(Exception):
+    pass
