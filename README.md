@@ -241,6 +241,12 @@ Your `environment.ini` exposes a few configuration options:
 * `nginx.reset_path` - defaults to `/ngxadmin/shared_cache/expire`
 
 
+If you have a custom openssl install, you probably want these settings
+
+	openssl_path = /opt/openssl/bin/openssl
+	openssl_path_conf = /usr/local/ssl/openssl.cnf
+
+
 # tools
 
 ## invoke script
