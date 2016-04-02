@@ -50,6 +50,28 @@
             </td>
         </tr>
         <tr>
+            <th>is issued?</th>
+            <td>
+                % if LetsencryptCertificateRequest.signed_certificate:
+                    <span class="label label-success">Yes</span>&nbsp;
+                    <a class="label label-info" href="/.well-known/admin/certificate/${LetsencryptCertificateRequest.signed_certificate.id}">&gt; ${LetsencryptCertificateRequest.signed_certificate.id}</a>
+                % else:
+                    <span class="label label-default">No</span>
+                % endif
+            </td>
+        </tr>
+        <tr>
+            <th>is renewal?</th>
+            <td>
+                % if LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of:
+                    <span class="label label-success">Yes</span>&nbsp;
+                    <a class="label label-info" href="/.well-known/admin/certificate/${LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of}">&gt; ${LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of}</a>
+                % else:
+                    <span class="label label-default">No</span>
+                % endif
+            </td>
+        </tr>
+        <tr>
             <th>letsencrypt_account_key_id</th>
             <td>
                 % if LetsencryptCertificateRequest.letsencrypt_account_key_id:
