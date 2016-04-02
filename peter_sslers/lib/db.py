@@ -763,7 +763,6 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
     tmpfiles = []
     dbLetsencryptCertificateRequest = None
     dbLetsencryptServerCertificate = None
-    dbPrivateKey = None
     try:
 
         # we should have cleaned this up before, but just be safe
