@@ -303,9 +303,9 @@ class ViewAdmin(Handler):
             #
             dbAccountKey = None
             account_key_pem = None
-            if formStash['account_key_option'] == 'upload':
+            if formStash.results['account_key_option'] == 'upload':
                 account_key_pem = formStash.results['account_key_file'].file.read()
-            elif formStash['account_key_option'] == 'existing':
+            elif formStash.results['account_key_option'] == 'existing':
                 if not dbLetsencryptServerCertificate.letsencrypt_account_key_id:
                     raise ValueError("This Certificate does not have an existing Account Key")
                 dbAccountKey = dbLetsencryptServerCertificate.letsencrypt_account_key
@@ -317,9 +317,9 @@ class ViewAdmin(Handler):
             #
             dbPrivateKey = None
             private_key_pem = None
-            if formStash['private_key_option'] == 'upload':
+            if formStash.results['private_key_option'] == 'upload':
                 private_key_pem = formStash.results['private_key_file'].file.read()
-            elif formStash['private_key_option'] == 'existing':
+            elif formStash.results['private_key_option'] == 'existing':
                 dbPrivateKey = dbLetsencryptServerCertificate.private_key
             else:
                 raise ValueError("unknown option")
