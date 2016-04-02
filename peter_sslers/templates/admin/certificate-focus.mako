@@ -76,21 +76,11 @@
                     ${LetsencryptServerCertificate.expiring_days}
                 </span>
                 &nbsp;
-                    % if LetsencryptServerCertificate.can_quick_renew:
-                        <form method="POST"
-                              action="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/quick"
-                        >
-                            <input type="hidden" name="renewal_type" value="quick"/>
-                            <button class="btn btn-xs btn-primary">Quick Renew</button>
-                        </form>
-                    % else:
-                        <a  href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
-                            span class="btn btn-xs btn-primary"
-                        >
-                            Custom Renewal
-                        </form>
-                    % endif
-                
+                <a  href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
+                    span class="btn btn-xs btn-primary"
+                >
+                    Custom Renewal
+                </form>
             </td>
         </tr>
         <tr>
