@@ -27,6 +27,7 @@
 
             <form method="POST"
                   action="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
+                  enctype="multipart/form-data"
             >
                 <h3>Custom Renewal</h3>
         
@@ -83,7 +84,7 @@
                                     </label>
                                 </div>
                             % else:
-                                <input type="hidden" name="account_key_option" id="account_key_option-upload" value="upload" checked>
+                                <input type="hidden" name="account_key_option" id="account_key_option-upload" value="upload">
                             % endif
 
                             ${admin_partials.formgroup__account_key_file(show_text=False)}
