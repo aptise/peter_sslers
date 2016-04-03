@@ -305,6 +305,33 @@
 </%def>
 
 
+<%def name="table_LetsencryptUniqueFQDNSets(LetsencryptUniqueFQDNSets)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>timestamp first seen</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for i in LetsencryptUniqueFQDNSets:
+            <tr>
+                <td>
+                    <a  class="btn btn-xs btn-info"
+                        href="/.well-known/admin/unique_fqdn_set/${i.id}"
+                    >&gt;
+                     ${i.id}
+                    </a>
+                </td>
+                <td>
+                    <timestamp>${i.timestamp_first_seen}</timestamp>
+                </td>
+            </tr>
+        % endfor
+        </tbody>
+</%def>
+
+
 <%def name="table_LetsencryptOperationsEvents(LetsencryptOperationsEvents, show_event=None)">
     <%
         event_id = None

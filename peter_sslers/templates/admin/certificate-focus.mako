@@ -104,6 +104,12 @@
             </td>
         </tr>
         <tr>
+            <th>unique fqdn set</th>
+            <td>
+                <a class="label label-info" href="/.well-known/admin/unique_fqdn_set/${LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id}">&gt; ${LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id}</a>
+            </td>
+        </tr>
+        <tr>
             <th>is renewal?</th>
             <td>
                 % if LetsencryptServerCertificate.letsencrypt_server_certificate_id__renewal_of:

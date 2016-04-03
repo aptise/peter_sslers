@@ -20,9 +20,7 @@
         <div class="col-sm-9">
             % if LetsencryptUniqueFQDNSets:
                 ${admin_partials.nav_pagination(pager)}
-                % for i in LetsencryptUniqueFQDNSets:
-                    ${i}
-                % endfor
+                ${admin_partials.table_LetsencryptUniqueFQDNSets(LetsencryptUniqueFQDNSets)}
             % else:
                 <em>
                     No Unique FQDN Sets

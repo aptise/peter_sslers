@@ -16,6 +16,7 @@ from dateutil import parser as dateutil_parser
 
 # localapp
 from . import errors
+from . import letsencrypt_info
 from . import utils
 
 
@@ -77,8 +78,8 @@ def new_csr_for_domain_names(
         raise ValueError("LetsEncrypt can only allow `%s` domains per certificate" % max_domains_certificate)
 
     return csr_text
-    
-    
+
+
 def parse_cert_domains(
     cert_path=None,
 ):

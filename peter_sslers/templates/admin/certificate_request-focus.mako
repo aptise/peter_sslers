@@ -88,6 +88,12 @@
             </td>
         </tr>
         <tr>
+            <th>unique fqdn set</th>
+            <td>
+                <a class="label label-info" href="/.well-known/admin/unique_fqdn_set/${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}">&gt; ${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}</a>
+            </td>
+        </tr>
+        <tr>
             <th>timestamp_started</th>
             <td>${LetsencryptCertificateRequest.timestamp_started}</td>
         </tr>

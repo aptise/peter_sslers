@@ -142,10 +142,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificate_requests_paginated', renderer='/admin/domain-focus-certificate_requests.mako')
     def domain_focus__certificate_requests(self):
         dbLetsencryptDomain = self._domain_focus()
-        items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__count(
+        items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId_count(
             DBSession, LetsencryptDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificate_requests/{0}' % LetsencryptDomain.id)
-        items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomain__paginated(
+        items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId_paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptDomain': dbLetsencryptDomain,
@@ -175,3 +175,21 @@ class ViewAdmin(Handler):
         for wc in weekly_certs:
             rval['issues'][str(wc[0])] = wc[1]
         return rval
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:domain:focus:unique_fqdn_sets', renderer='/admin/domain-focus-unique_fqdn_sets.mako')
+    @view_config(route_name='admin:domain:focus:unique_fqdn_sets_paginated', renderer='/admin/domain-focus-unique_fqdn_sets.mako')
+    def domain_focus__unique_fqdns(self):
+        dbLetsencryptDomain = self._domain_focus()
+        items_count = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__count(
+            DBSession, LetsencryptDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/unique_fqdn_sets/{0}' % LetsencryptDomain.id)
+        items_paged = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__paginated(
+            DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
+        return {'project': 'peter_sslers',
+                'LetsencryptDomain': dbLetsencryptDomain,
+                'LetsencryptUniqueFQDNSets_count': items_count,
+                'LetsencryptUniqueFQDNSets': items_paged,
+                'pager': pager,
+                }
