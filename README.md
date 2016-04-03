@@ -3,11 +3,11 @@ peter_sslers README
 
 `peter_sslers` is a package designed to help *experienced* devops and admins to manage SSL Certificates and their deployment on larger systems.
 
-This package is now aimed at casual or single-site users.
+This package is *not* aimed at casual or single-site users.
 
 Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
 
-The package offers a lightweight database backed `Pyramid` application that can:
+One of Peter's tools is a lightweight database backed `Pyramid` application that can:
 
 * act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver,
 * import any existing ssl certificates,
@@ -15,7 +15,7 @@ The package offers a lightweight database backed `Pyramid` application that can:
 * browse certificate data and easily see what needs to be renewed
 * communicate with a properly configured `nginx` web server (see next)
 
-The package ships with a `lua` module for the `openresty` framework on the `nginx` server which will:
+Peter ships with a `lua` module for the `openresty` framework on the `nginx` server which will:
 
 * dynamically request certificates from a primed redis cache
 * store data in shared `nginx` worker memory and
@@ -23,19 +23,19 @@ The package ships with a `lua` module for the `openresty` framework on the `ngin
 
 The `Pyramid` based application can function as a daemon or a commandline script.
 
-Do you like bookkeeping?  Peter's `Pryamid` component logs everything into sql.  
+Do you like book-keeping?  Peter's `Pryamid` component logs everything into sql.  
 
 Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable within Peter as well.
 
-Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool).  
+Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool).  Peter is a honeybadger, he don't care.  He just takes what he wants.
 
-Peter offers several commandline tools, so spinning it up in "webserver" mode may not be necessary, or will only be necessary for brief periods of time.
+Peter offers several commandline tools, so spinning up a tool "webserver" mode may not be necessary at all, or might only be needed for brief periods of time.
 
-SqlAlchemy is the backing database library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). `sqlite` is the default.  sqlite is actually kind of great, because it can be sftp'd onto different machines for local use.
+SqlAlchemy is the backing database library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). `sqlite` is the default, but this has been tested on postgres.  sqlite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
 
 ## personal note:
 
-I hate having to spend time on DevOps tasks; I would rather spend time on the Product side.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just a test-suite.
+I hate having to spend time on DevOps tasks; I would rather spend time on the Product or consumer sides.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just a test-suite.
 
 
 # An important WARNING:
@@ -49,18 +49,19 @@ I hate having to spend time on DevOps tasks; I would rather spend time on the Pr
 
 ## "Peter SSLers" - a Pyramid Application
 
-"Peter SSLers" is the core toolkit.  It is a `Pyramid` application that can be spun up as a webserver or used via a commandline interface.  Peter is your friend and handles all of the Certificate Management and translation functions for you.
+"Peter SSLers" is the core toolkit.  It is a `Pyramid` application that can be spun up as a webserver or used via a commandline interface.  Peter is your friend and handles all of the Certificate Management and translation functions for you.  He's a bit eccentric, but basically a good guy.
 
 ## "SSL Minnow" - The Datastore
 
-By default, the "SSL Minnow" is a sqlite database `ssl_minnow.sqlite`.  It is the backing datastore for SSL Certificates and the operations log.  Your data is ONLY served to the SSL Minnow, so you should be careful with it.  If the Minnow would be lost, it can not be recovered.
+By default, the "SSL Minnow" is a sqlite database `ssl_minnow.sqlite`.  It is the backing datastore for SSL Certificates and the operations log.  Your data is ONLY saved to the SSL Minnow - not to the filesystem like other LE clients - so you should be careful with it.  If the Minnow would be lost, it can not be recovered.  Be a good skipper, or your three hour tour could end up taking many years and might involve the Harlem Globetrotters.
 
 ## "Tools"
 
 The "/tools" directory contains scripts useful for certificate operations.  Currently this includes:
 
-* an `invoke` script
+* an `invoke` script for some miscellaneous tasks
 * a `lua` library for integrating with nginx/openresty
+* sample `nginx` configuration files for admin and public routes
 
 # General Management Concepts
 
@@ -92,9 +93,9 @@ The "/tools" directory contains scripts useful for certificate operations.  Curr
 
 # Installation
 
-This is pretty much ready to go for development use.  Python will install everything for you.
+This is pretty much ready to go for development use.  Python should install everything for you.  If it doesn't, either I screwed up or you screwed up.
 
-You should create a virtualenv for this. In this example, we will create the following directory structure:
+You should create a virtualenv for this project. In this example, we will create the following directory structure:
 
 * `certificate_admin` - core page
 * `certificate_admin/peter_sslers-venv` - dedicated virtualenv
@@ -123,7 +124,6 @@ Editing the `development.ini` file will let you specify how the package runs.
 
 Some tools are provided to automatically import existing certificates and chains (see below).
 
-
 It is recommended to open up a new terminal and do the following commands
 
 	cd certificate_admin
@@ -132,7 +132,6 @@ It is recommended to open up a new terminal and do the following commands
 	prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json
 	cd tools
 	invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
-
 
 The `prequest` command above will import the current LetsEncrypt certificates to get you started.
 The `invoke` command will import existing LetsEncrypt issued certificates
@@ -151,6 +150,9 @@ The webserver exposes the following routes/directories:
 
 THE ADMIN TOOL SHOULD NOT BE PUBLICLY ACCESSIBLE.
 YOU SHOULD ONLY RUN IT ON YOUR PRIVATE NETWORK
+
+By default, the production.ini file won't even run the admin tools.  that is how serious I am about telling you to be careful!
+
 
 # why/how?
 
@@ -268,7 +270,7 @@ You can interact with this project via a commandline interface in several ways.
 
 ## openresty/nginx lua script
 
-`tools/nginx_lua_library` is a library that can be used in an openresty/nginx environment to dynamically select a SSL cert
+`tools/nginx_lua_library` is a library that can be used in an openresty/nginx environment to dynamically serve the correct SSL certificate for a given domain.
 
 It supports both the prime cache types 1 & 2.
 
@@ -280,16 +282,18 @@ It is implemented as a library with 2 scripts that invoke it.
 
 The `-lookup.lua` and `-expire.lua` scripts can set via `_by_lua_file` or copied into a block.  
 
-It is also hardcoded to use db9 in redis.  if you want another option, edit or PR a fix.
+The library is hardcoded to use db9 in redis.  if you want another option, edit or PR a fix on the line that looks like:
 
 	ngx.log(ngx.ERR, "changing to db 9: ", times)
 	redcon:select(9)
 	
 Redis is NOT required, but recommended.  Instead you can failover to directly query a peter_sslers pyramid instance.
 
-To use the peter, you must install this lua-resty library:
+To use the Peter fallback, you must install this lua-resty library:
 
 * lua-resty-http https://github.com/pintsized/lua-resty-http
+
+Hits and misses from the fallback API will be cached in the shared cache dict.  If you need to remove values, you will need to restart the server OR use one of the nginx/lua examples for cache clearing.  Fallback API requests will notify the Pyramid app that the request should have write-through cache behavior.
 
 
 ### ssl_certhandler.lua
