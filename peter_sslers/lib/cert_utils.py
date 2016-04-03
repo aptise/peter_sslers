@@ -54,6 +54,10 @@ def new_csr_for_domain_names(
 
         domain_names = sorted(domain_names)
 
+        # the subject should be /, which will become the serial number
+        # see https://community.letsencrypt.org/t/certificates-with-serialnumber-in-subject/11891
+        _csr_subject = "/"
+
         # generate the [SAN]
         _csr_san = "[SAN]\nsubjectAltName=" + ",".join(["DNS:%s" % d for d in domain_names])
 
