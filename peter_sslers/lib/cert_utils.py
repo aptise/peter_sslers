@@ -16,9 +16,8 @@ from dateutil import parser as dateutil_parser
 
 # localapp
 from . import errors
-from . import letsencrypt_info
 from . import utils
-
+from .. import lib
 
 # ==============================================================================
 
@@ -35,7 +34,7 @@ def new_csr_for_domain_names(
     private_key_path,
     tmpfiles_tracker,
 ):
-    max_domains_certificate = letsencrypt_info.LIMITS['names/certificate']['limit']
+    max_domains_certificate = lib.letsencrypt_info.LIMITS['names/certificate']['limit']
 
     _csr_subject = "/CN=%s" % domain_names[0]
     if len(domain_names) == 1:
