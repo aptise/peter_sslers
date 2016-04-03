@@ -79,6 +79,7 @@ def main(global_config, **settings):
         config.add_route_7('admin:domain:focus:certificates_paginated', '/.well-known/admin/domain/{domain_identifier}/certificates/{@page}')
         config.add_route_7('admin:domain:focus:certificate_requests', '/.well-known/admin/domain/{domain_identifier}/certificate_requests')
         config.add_route_7('admin:domain:focus:certificate_requests_paginated', '/.well-known/admin/domain/{domain_identifier}/certificate_requests/{@page}')
+        config.add_route_7('admin:domain:focus:calendar', '/.well-known/admin/domain/{domain_identifier}/calendar')
 
         config.add_route_7('admin:search', '/.well-known/admin/search')
 

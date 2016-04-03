@@ -33,6 +33,61 @@ Base = declarative_base()
 # ==============================================================================
 
 
+from sqlalchemy.sql import expression
+from sqlalchemy.ext.compiler import compiles
+import sqlalchemy.types
+
+
+class year_week(expression.FunctionElement):
+    type = sqlalchemy.types.String()
+    name = 'year_week'
+
+
+@compiles(year_week)
+def year_week__default(element, compiler, **kw):
+    # return compiler.visit_function(element)
+    """
+    ## select extract(week from timestamp_event) from table_a; 
+    week_num = sqlalchemy.sql.expression.extract('WEEK', LetsencryptServerCertificate.timestamp_signed)
+    """    
+    args = list(element.clauses)
+    return "concat(extract(year from %s), '.', extract(week from %s)) " % (
+        compiler.process(args[0]),
+        compiler.process(args[0]),
+    )
+    
+    
+@compiles(year_week, 'postgresql')
+def year_week__postgresql(element, compiler, **kw):
+    """
+    # select to_char(timestamp_event, 'YYYY.WW')  from table_a;
+    week_num = sqlalchemy.func.to_char(LetsencryptServerCertificate.timestamp_signed, 'YYYY.WW')
+    """
+    args = list(element.clauses)
+    return "to_char(%s, 'YYYY.WW')" % (
+        compiler.process(args[0]),
+    )
+
+
+@compiles(year_week, 'sqlite')
+def year_week__sqlite(element, compiler, **kw):
+    """
+    # strftime('%Y.%W', cast(LetsencryptServerCertificate.timestamp_signed) as text)
+    week_num = sqlalchemy.func.strftime('%Y.%W',
+                                        sqlalchemy.cast(TABLE.COLUMN,
+                                                        sqlalchemy.Unicode
+                                                        )
+                                        ) 
+    """
+    args = list(element.clauses)
+    return "strftime('%%Y.%%W', %s)" % (
+        compiler.process(args[0]),
+    )
+
+
+# ==============================================================================
+
+
 class LetsencryptAccountKey(Base):
     """
     """
@@ -613,3 +668,18 @@ LetsencryptDomain.domain_to_certificates_5 = sa.orm.relationship(
     order_by=LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id.desc(),
     viewonly=True
 )
+
+
+class LetsencryptRatelimitedAction(Base):
+    """
+    iso_week is used for quick lookups
+    stores a float of datetime.datetime.utcnow().isocalendar()[:2]
+    i.e. {YEAR}.{WEEKNUMBER}
+    """
+    __tablename__ = 'letsencrypt_ratelimited_action'
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp = sa.Column(sa.DateTime, nullable=False)
+    iso_week = sa.Column(sa.Float, nullable=False, )
+
+
+

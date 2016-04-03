@@ -153,3 +153,26 @@ class ViewAdmin(Handler):
                 'LetsencryptCertificateRequests': items_paged,
                 'pager': pager,
                 }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:domain:focus:calendar', renderer='json')
+    def domain_focus__calendar(self):
+        rval = {}
+        dbLetsencryptDomain = self._domain_focus()
+        weekly_certs = DBSession.query(
+                year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
+                sqlalchemy.func.count(LetsencryptServerCertificate.id)
+            )\
+            .join(LetsencryptServerCertificate2LetsencryptDomain,
+                  LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
+                  )\
+            .filter(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == dbLetsencryptDomain.id,
+                    )\
+            .group_by('week_num')\
+            .order_by(sqlalchemy.asc('week_num'))\
+            .all()
+        rval['issues'] = {}
+        for wc in weekly_certs:
+            rval['issues'][str(wc[0])] = wc[1]
+        return rval
