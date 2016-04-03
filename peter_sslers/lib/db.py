@@ -13,6 +13,7 @@ from zope.sqlalchemy import mark_changed
 # localapp
 from ..models import *
 from . import acme
+from . import letsencrypt_info
 from . import errors
 from . import utils
 
@@ -1177,7 +1178,7 @@ def upload__LetsencryptCACertificateBundle__by_pem_text(dbSession, bundle_data):
         le_authority_name = None
         is_authority_certificate = None
         is_cross_signed_authority_certificate = None
-        for c in acme.CA_CERTS_DATA:
+        for c in letsencrypt_info.CA_CERTS_DATA:
             if cert_base == c['formfield_base']:
                 cert_name = c['name']
                 if 'le_authority_name' in c:
@@ -1215,7 +1216,7 @@ def upload__LetsencryptCACertificateBundle__by_pem_text(dbSession, bundle_data):
 
 
 def ca_certificate_probe(dbSession):
-    certs = acme.probe_letsencrypt_certificates()
+    certs = letsencrypt_info.probe_letsencrypt_certificates()
     certs_discovered = []
     certs_modified = []
     for c in certs:

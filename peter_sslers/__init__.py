@@ -6,6 +6,7 @@ from .models import (DBSession,
                      )
 
 from .lib import acme
+from .lib import cert_utils
 
 
 def set_bool_setting(settings, key):
@@ -26,6 +27,7 @@ def set_int_setting(settings, key, default=None):
         value = int(default)
     settings[key] = value
     return value
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -188,9 +190,9 @@ def main(global_config, **settings):
 
     # update the module data based on settings
     if 'openssl_path' in settings:
-        acme.openssl_path = settings["openssl_path"]
+        cert_utils.openssl_path = settings["openssl_path"]
     if 'openssl_path_conf' in settings:
-        acme.openssl_path_conf = settings["openssl_path_conf"]
+        cert_utils.openssl_path_conf = settings["openssl_path_conf"]
     if 'certificate_authority' in settings:
         acme.CERTIFICATE_AUTHORITY = settings["certificate_authority"]
 

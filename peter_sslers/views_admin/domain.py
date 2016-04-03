@@ -160,10 +160,9 @@ class ViewAdmin(Handler):
     def domain_focus__calendar(self):
         rval = {}
         dbLetsencryptDomain = self._domain_focus()
-        weekly_certs = DBSession.query(
-                year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
-                sqlalchemy.func.count(LetsencryptServerCertificate.id)
-            )\
+        weekly_certs = DBSession.query(year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
+                                       sqlalchemy.func.count(LetsencryptServerCertificate.id)
+                                       )\
             .join(LetsencryptServerCertificate2LetsencryptDomain,
                   LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
                   )\

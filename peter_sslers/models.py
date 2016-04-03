@@ -47,16 +47,16 @@ class year_week(expression.FunctionElement):
 def year_week__default(element, compiler, **kw):
     # return compiler.visit_function(element)
     """
-    ## select extract(week from timestamp_event) from table_a; 
+    ## select extract(week from timestamp_event) from table_a;
     week_num = sqlalchemy.sql.expression.extract('WEEK', LetsencryptServerCertificate.timestamp_signed)
-    """    
+    """
     args = list(element.clauses)
     return "concat(extract(year from %s), '.', extract(week from %s)) " % (
         compiler.process(args[0]),
         compiler.process(args[0]),
     )
-    
-    
+
+
 @compiles(year_week, 'postgresql')
 def year_week__postgresql(element, compiler, **kw):
     """
@@ -77,7 +77,7 @@ def year_week__sqlite(element, compiler, **kw):
                                         sqlalchemy.cast(TABLE.COLUMN,
                                                         sqlalchemy.Unicode
                                                         )
-                                        ) 
+                                        )
     """
     args = list(element.clauses)
     return "strftime('%%Y.%%W', %s)" % (
@@ -417,7 +417,7 @@ class LetsencryptServerCertificate(Base):
     # tracking
     letsencrypt_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_certificate_request.id"), nullable=True)
     letsencrypt_server_certificate_id__renewal_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=True)
-    
+
     private_key = sa.orm.relationship("LetsencryptPrivateKey",
                                       primaryjoin="LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by==LetsencryptPrivateKey.id",
                                       back_populates='signed_certificates',
@@ -680,6 +680,3 @@ class LetsencryptRatelimitedAction(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp = sa.Column(sa.DateTime, nullable=False)
     iso_week = sa.Column(sa.Float, nullable=False, )
-
-
-
