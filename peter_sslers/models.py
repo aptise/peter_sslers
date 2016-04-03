@@ -755,14 +755,3 @@ LetsencryptUniqueFQDNSet.signed_certificates_5 = sa.orm.relationship(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-class LetsencryptRatelimitedAction(Base):
-    """
-    iso_week is used for quick lookups
-    stores a float of datetime.datetime.utcnow().isocalendar()[:2]
-    i.e. {YEAR}.{WEEKNUMBER}
-    """
-    __tablename__ = 'letsencrypt_ratelimited_action'
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp = sa.Column(sa.DateTime, nullable=False)
-    iso_week = sa.Column(sa.Float, nullable=False, )

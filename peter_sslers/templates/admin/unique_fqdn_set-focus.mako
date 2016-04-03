@@ -40,9 +40,9 @@
                     <tr>
                         <th>domain_ids_string</th>
                         <td>
-                            <timestamp>
+                            <code>
                                 ${LetsencryptUniqueFQDNSet.domain_ids_string}
-                            </timestamp>
+                            </code>
                         </td>
                     </tr>
                     <tr>
