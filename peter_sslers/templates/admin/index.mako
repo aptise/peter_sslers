@@ -17,11 +17,12 @@
                     <li><a class="label label-info" href="/.well-known/admin/domains">domains</a> (${request.text_library.info_Domains[0]})</li>
                     <li><a class="label label-info" href="/.well-known/admin/certificates">certificates</a> (${request.text_library.info_Certificates[0]})</li>
                     <li><a class="label label-info" href="/.well-known/admin/certificate_requests">certificate_requests</a> (${request.text_library.info_CertificateRequests[0]})</li>
-                    <li><a class="label label-info" href="/.well-known/admin/account_keys">account_keys</a> (${request.text_library.info_AccountKeys[0]})</li>
                     <li><a class="label label-info" href="/.well-known/admin/private_keys">private_keys</a> (${request.text_library.info_PrivateKeys[0]})</li>
                 </ul>
                 <li>View Recordkeeping</li>
                 <ul>
+                    <li><a class="label label-info" href="/.well-known/admin/unique_fqdn_sets">unique_fqdn_sets</a> (${request.text_library.info_UniqueFQDNs[0]})</li>
+                    <li><a class="label label-info" href="/.well-known/admin/account_keys">account_keys</a> (${request.text_library.info_AccountKeys[0]})</li>
                     <li><a class="label label-info" href="/.well-known/admin/ca_certificates">ca_certificates</a> (${request.text_library.info_CACertificates[0]})</li>
                 </ul>
             </ul>

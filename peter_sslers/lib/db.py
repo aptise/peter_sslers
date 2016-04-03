@@ -153,6 +153,37 @@ def get__LetsencryptDomain__by_name(dbSession, domain_name, preload=False, eager
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__LetsencryptUniqueFQDNSet__count(dbSession):
+    q = dbSession.query(LetsencryptUniqueFQDNSet)
+    counted = q.count()
+    return counted
+
+
+def get__LetsencryptUniqueFQDNSet__paginated(dbSession, eagerload_web=False, limit=None, offset=0):
+    q = dbSession.query(LetsencryptUniqueFQDNSet)
+    if eagerload_web:
+        q = q.options(sqlalchemy.orm.joinedload('to_domains').joinedload('domain'),
+                      )
+    else:
+        q = q.order_by(LetsencryptUniqueFQDNSet.id.desc())
+    q = q.limit(limit)\
+        .offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__LetsencryptUniqueFQDNSet__by_id(dbSession, set_id):
+    item = dbSession.query(LetsencryptUniqueFQDNSet)\
+        .filter(LetsencryptUniqueFQDNSet.id == set_id)\
+        .options(sqlalchemy.orm.subqueryload('to_domains').joinedload('domain'),
+                 )\
+        .first()
+    return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__LetsencryptServerCertificate__count(dbSession, expiring_days=None):
     q = dbSession.query(LetsencryptServerCertificate)
     if expiring_days:

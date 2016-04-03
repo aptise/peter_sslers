@@ -69,56 +69,6 @@ def send_signed_request(url, payload, account_key_path, header):
         return getattr(e, "code", None), getattr(e, "read", e.__str__)(), None
 
 
-def new_csr_for_domain_names(
-    domain_names,
-    private_key_path,
-    tmpfiles_tracker,
-):
-    max_domains_certificate = letsencrypt_info.LIMITS['names/certificate']['limit']
-
-    if len(domain_names) == 1:
-        _csr_subject = "/CN=%s" % domain_names[0]
-        proc = subprocess.Popen([cert_utils.openssl_path, "req", "-new", "-sha256", "-key", private_key_path, "-subj", _csr_subject],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        csr_text, err = proc.communicate()
-        if err:
-            raise errors.OpenSslError_CsrGeneration("could not create a CSR")
-
-    elif len(domain_names) <= max_domains_certificate:
-
-        # getting subprocess to work right is a pain, because we need to chain a bunch of commands
-        # to get around this, we'll do two things:
-        # 1. cat the [SAN] and openssl path file onto a tempfile
-        # 2. use shell=True
-
-        domain_names = sorted(domain_names)
-
-        # generate the [SAN]
-        _csr_san = "[SAN]\nsubjectAltName=" + ",".join(["DNS:%s" % d for d in domain_names])
-
-        # store some data in a tempfile
-        tmpfile_csr_san = tempfile.NamedTemporaryFile()
-        tmpfile_csr_san.write(open(cert_utils.openssl_path_conf).read())
-        tmpfile_csr_san.write("\n\n")
-        tmpfile_csr_san.write(_csr_san)
-        tmpfile_csr_san.seek(0)
-        tmpfiles_tracker.append(tmpfile_csr_san)
-
-        # note that we use /bin/cat (!)
-        _command = """%s req -new -sha256 -key %s -subj "/" -reqexts SAN -config < /bin/cat %s""" % (cert_utils.openssl_path, private_key_path, tmpfile_csr_san.name)
-        proc = subprocess.Popen(_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        csr_text, err = proc.communicate()
-        if err:
-            raise errors.OpenSslError_CsrGeneration("could not create a CSR")
-
-        csr_text = cert_utils.cleanup_pem_text(csr_text)
-
-    else:
-        raise ValueError("LetsEncrypt can only allow `%s` domains per certificate" % max_domains_certificate)
-
-    return csr_text
-
-
 def account_key__header_thumbprint(
     account_key_path=None
 ):

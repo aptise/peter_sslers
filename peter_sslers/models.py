@@ -89,7 +89,7 @@ def year_week__sqlite(element, compiler, **kw):
 
 
 class LetsencryptAccountKey(Base):
-    """
+    """Represents a registered account with LetsEncrypt.
     """
     __tablename__ = 'letsencrypt_account_key'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -121,9 +121,8 @@ class LetsencryptAccountKey(Base):
 
 
 class LetsencryptCACertificate(Base):
-    """
-    Tracking official LetsEncrypt certificates.
-    These are tracked to a fullchain can be created
+    """The trusted LetsEncrypt "Certificate Authority" Certificates that are used to sign domain certificates.
+    These are used to create a fullchain certificate.
     """
     __tablename__ = 'letsencrypt_ca_certificate'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -164,6 +163,8 @@ class LetsencryptCertificateRequestType(object):
 
 
 class LetsencryptCertificateRequest(Base):
+    """A CertificateRequest
+    """
     __tablename__ = 'letsencrypt_certificate_request'
     id = sa.Column(sa.Integer, primary_key=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
@@ -276,7 +277,7 @@ class LetsencryptCertificateRequest2LetsencryptDomain(Base):
 
 
 class LetsencryptDomain(Base):
-    """
+    """Domains that are included in CertificateRequests or Certificates
     """
     __tablename__ = 'letsencrypt_domain'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -317,9 +318,7 @@ class LetsencryptOperationsEventType(object):
 
 
 class LetsencryptOperationsEvent(Base):
-    """
-    Tracking official LetsEncrypt certificates.
-    These are tracked to a fullchain can be created
+    """Certain events are tracked for bookkeeping
     """
     __tablename__ = 'letsencrypt_sync_event'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -355,8 +354,8 @@ class LetsencryptOperationsEvent(Base):
 
 
 class LetsencryptPrivateKey(Base):
-    """
-    Tracking the certs we use to sign requests
+    """These keys are used to sign CertificateRequests and are the PrivateKey
+    component to a server certificate
     """
     __tablename__ = 'letsencrypt_private_key'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -388,7 +387,8 @@ class LetsencryptPrivateKey(Base):
 
 
 class LetsencryptServerCertificate(Base):
-    """
+    """A signed server certificate.
+    To install on a webserver, must be paired with the PrivateKey and Trusted CA Certificate.
     """
     __tablename__ = 'letsencrypt_server_certificate'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -552,6 +552,47 @@ class LetsencryptServerCertificate2LetsencryptDomain(Base):
                                  uselist=False,
                                  back_populates='domain_to_certificates',
                                  )
+
+
+class LetsencryptUniqueFQDNSet(Base):
+    """There is a ratelimit in effect for unique sets of fully-qualified domain names
+    #RATELIMIT.FQDN
+    CREATE TABLE letsencrypt_unique_fqdn_set (id INTEGER PRIMARY KEY, domain_ids_string TEXT NOT NULL, timestamp_first_seen TIMESTAMP NOT NULL);
+    CREATE TABLE letsencrypt_unique_fqdn_set_2_letsencrypt_domain (
+        letsencrypt_unique_fqdn_set_id INTEGER NOT NULL REFERENCES letsencrypt_unique_fqdn_set(id),
+        letsencrypt_domain_id INTEGER NOT NULL REFERENCES letsencrypt_domain(id),
+        PRIMARY KEY(letsencrypt_unique_fqdn_set_id, letsencrypt_domain_id)
+    );
+    """
+    __tablename__ = 'letsencrypt_unique_fqdn_set'
+    id = sa.Column(sa.Integer, primary_key=True)
+    domain_ids_string = sa.Column(sa.Text, nullable=False, )
+    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False, )
+
+    to_domains = sa.orm.relationship("LetsencryptUniqueFQDNSet2LetsencryptDomain",
+                                     primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id",
+                                     back_populates='unique_fqdn_set',
+                                     )
+
+class LetsencryptUniqueFQDNSet2LetsencryptDomain(Base):
+    """
+    #RATELIMIT.FQDN
+    """
+    __tablename__ = 'letsencrypt_unique_fqdn_set_2_letsencrypt_domain'
+    letsencrypt_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_unique_fqdn_set.id"), primary_key=True)
+    letsencrypt_domain_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_domain.id"), primary_key=True)
+
+    unique_fqdn_set = sa.orm.relationship("LetsencryptUniqueFQDNSet",
+                                      primaryjoin="LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id==LetsencryptUniqueFQDNSet.id",
+                                      uselist=False,
+                                      back_populates='to_domains',
+                                      )
+
+    domain = sa.orm.relationship("LetsencryptDomain",
+                                  primaryjoin="LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id==LetsencryptDomain.id",
+                                  uselist=False,
+                                  )
+
 
 
 # ==============================================================================

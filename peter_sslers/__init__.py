@@ -85,6 +85,10 @@ def main(global_config, **settings):
 
         config.add_route_7('admin:search', '/.well-known/admin/search')
 
+        config.add_route_7('admin:unique_fqdn_sets', '/.well-known/admin/unique_fqdn_sets')
+        config.add_route_7('admin:unique_fqdn_sets_paginated', '/.well-known/admin/unique_fqdn_sets/{@page}')
+        config.add_route_7('admin:unique_fqdn_set:focus', '/.well-known/admin/unique_fqdn_set/{@id}')
+
         config.add_route_7('admin:certificates', '/.well-known/admin/certificates')
         config.add_route_7('admin:certificates_paginated', '/.well-known/admin/certificates/{@page}')
         config.add_route_7('admin:certificates:expiring', '/.well-known/admin/certificates/expiring')

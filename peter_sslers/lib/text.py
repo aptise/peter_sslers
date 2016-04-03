@@ -18,6 +18,9 @@ info_CACertificateProbes = ['Probe Events',
 info_Domains = ['Domains we manage certificates for.',
                 "Domains we manage certificates for.",
                 ]
+info_UniqueFQDNs = ['LetsEncrypt ratelimits the exact set of FQDNs',
+                    'The LetsEncrypt Authority ratelimits the exact set of FQDNs.',
+                    ]
 info_Certificates = ['Issued Certificates we manage.',
                      "Issued Certificates we manage.",
                      ]
