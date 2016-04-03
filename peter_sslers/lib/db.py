@@ -13,6 +13,7 @@ from zope.sqlalchemy import mark_changed
 # localapp
 from ..models import *
 from . import acme
+from . import cert_utils
 from . import letsencrypt_info
 from . import errors
 from . import utils
@@ -508,7 +509,7 @@ def getcreate__LetsencryptDomain__by_domainName(dbSession, domain_name):
 
 
 def getcreate__LetsencryptAccountKey__by_pem_text(dbSession, key_pem):
-    key_pem = acme.cleanup_pem_text(key_pem)
+    key_pem = cert_utils.cleanup_pem_text(key_pem)
     key_pem_md5 = utils.md5_text(key_pem)
     is_created = False
     dbKey = dbSession.query(LetsencryptAccountKey)\
@@ -523,10 +524,10 @@ def getcreate__LetsencryptAccountKey__by_pem_text(dbSession, key_pem):
             _tmpfile.seek(0)
 
             # validate
-            acme.validate_key__pem_filepath(_tmpfile.name)
+            cert_utils.validate_key__pem_filepath(_tmpfile.name)
 
             # grab the modulus
-            key_pem_modulus_md5 = acme.modulus_md5_key__pem_filepath(_tmpfile.name)
+            key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
         except:
             raise
         finally:
@@ -543,7 +544,7 @@ def getcreate__LetsencryptAccountKey__by_pem_text(dbSession, key_pem):
 
 
 def getcreate__LetsencryptPrivateKey__by_pem_text(dbSession, key_pem):
-    key_pem = acme.cleanup_pem_text(key_pem)
+    key_pem = cert_utils.cleanup_pem_text(key_pem)
     key_pem_md5 = utils.md5_text(key_pem)
     is_created = False
     dbKey = dbSession.query(LetsencryptPrivateKey)\
@@ -558,10 +559,10 @@ def getcreate__LetsencryptPrivateKey__by_pem_text(dbSession, key_pem):
             _tmpfile.seek(0)
 
             # validate
-            acme.validate_key__pem_filepath(_tmpfile.name)
+            cert_utils.validate_key__pem_filepath(_tmpfile.name)
 
             # grab the modulus
-            key_pem_modulus_md5 = acme.modulus_md5_key__pem_filepath(_tmpfile.name)
+            key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
         except:
             raise
         finally:
@@ -582,7 +583,7 @@ def getcreate__LetsencryptPrivateKey__by_pem_text(dbSession, key_pem):
 
 
 def get__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem):
-    cert_pem = acme.cleanup_pem_text(cert_pem)
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
     dbCertificate = dbSession.query(LetsencryptCACertificate)\
         .filter(LetsencryptCACertificate.cert_pem_md5 == cert_pem_md5,
@@ -603,7 +604,7 @@ def getcreate__LetsencryptCACertificate__by_pem_text(
     dbCertificate = get__LetsencryptCACertificate__by_pem_text(dbSession, cert_pem)
     is_created = False
     if not dbCertificate:
-        cert_pem = acme.cleanup_pem_text(cert_pem)
+        cert_pem = cert_utils.cleanup_pem_text(cert_pem)
         cert_pem_md5 = utils.md5_text(cert_pem)
         try:
             _tmpfile = tempfile.NamedTemporaryFile()
@@ -611,10 +612,10 @@ def getcreate__LetsencryptCACertificate__by_pem_text(
             _tmpfile.seek(0)
 
             # validate
-            acme.validate_cert__pem_filepath(_tmpfile.name)
+            cert_utils.validate_cert__pem_filepath(_tmpfile.name)
 
             # grab the modulus
-            cert_pem_modulus_md5 = acme.modulus_md5_cert__pem_filepath(_tmpfile.name)
+            cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(_tmpfile.name)
 
             dbCertificate = LetsencryptCACertificate()
             dbCertificate.name = chain_name or 'unknown'
@@ -629,12 +630,12 @@ def getcreate__LetsencryptCACertificate__by_pem_text(
             dbCertificate.cert_pem_md5 = cert_pem_md5
             dbCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
 
-            dbCertificate.timestamp_signed = acme.parse_startdate_cert__pem_filepath(_tmpfile.name)
-            dbCertificate.timestamp_expires = acme.parse_enddate_cert__pem_filepath(_tmpfile.name)
-            dbCertificate.cert_subject = acme.cert_single_op__pem_filepath(_tmpfile.name, '-subject')
-            dbCertificate.cert_subject_hash = acme.cert_single_op__pem_filepath(_tmpfile.name, '-subject_hash')
-            dbCertificate.cert_issuer = acme.cert_single_op__pem_filepath(_tmpfile.name, '-issuer')
-            dbCertificate.cert_issuer_hash = acme.cert_single_op__pem_filepath(_tmpfile.name, '-issuer_hash')
+            dbCertificate.timestamp_signed = cert_utils.parse_startdate_cert__pem_filepath(_tmpfile.name)
+            dbCertificate.timestamp_expires = cert_utils.parse_enddate_cert__pem_filepath(_tmpfile.name)
+            dbCertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-subject')
+            dbCertificate.cert_subject_hash = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-subject_hash')
+            dbCertificate.cert_issuer = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-issuer')
+            dbCertificate.cert_issuer_hash = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-issuer_hash')
 
             dbSession.add(dbCertificate)
             dbSession.flush()
@@ -653,15 +654,15 @@ def getcreate__LetsencryptCACertificate__by_pem_text(
 def _certificate_parse_to_record(_tmpfileCert, dbCertificate):
 
     # grab the modulus
-    cert_pem_modulus_md5 = acme.modulus_md5_cert__pem_filepath(_tmpfileCert.name)
+    cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(_tmpfileCert.name)
     dbCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
 
-    dbCertificate.timestamp_signed = acme.parse_startdate_cert__pem_filepath(_tmpfileCert.name)
-    dbCertificate.timestamp_expires = acme.parse_enddate_cert__pem_filepath(_tmpfileCert.name)
-    dbCertificate.cert_subject = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject')
-    dbCertificate.cert_subject_hash = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject_hash')
-    dbCertificate.cert_issuer = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer')
-    dbCertificate.cert_issuer_hash = acme.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer_hash')
+    dbCertificate.timestamp_signed = cert_utils.parse_startdate_cert__pem_filepath(_tmpfileCert.name)
+    dbCertificate.timestamp_expires = cert_utils.parse_enddate_cert__pem_filepath(_tmpfileCert.name)
+    dbCertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject')
+    dbCertificate.cert_subject_hash = cert_utils.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject_hash')
+    dbCertificate.cert_issuer = cert_utils.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer')
+    dbCertificate.cert_issuer_hash = cert_utils.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer_hash')
 
     return dbCertificate
 
@@ -775,7 +776,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
         domain_names = list(domain_names)
 
         if dbAccountKey is None:
-            account_key_pem = acme.cleanup_pem_text(account_key_pem)
+            account_key_pem = cert_utils.cleanup_pem_text(account_key_pem)
             dbAccountKey, _is_created = getcreate__LetsencryptAccountKey__by_pem_text(dbSession, account_key_pem)
         else:
             account_key_pem = dbAccountKey.key_pem
@@ -786,7 +787,7 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
         tmpfiles.append(tmpfile_account)
 
         if dbPrivateKey is None:
-            private_key_pem = acme.cleanup_pem_text(private_key_pem)
+            private_key_pem = cert_utils.cleanup_pem_text(private_key_pem)
             dbPrivateKey, _is_created = getcreate__LetsencryptPrivateKey__by_pem_text(dbSession, private_key_pem)
         else:
             private_key_pem = dbPrivateKey.key_pem
@@ -806,10 +807,10 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
         tmpfiles.append(tmpfile_csr)
 
         # validate
-        acme.validate_csr__pem_filepath(tmpfile_csr.name)
+        cert_utils.validate_csr__pem_filepath(tmpfile_csr.name)
 
         # grab the modulus
-        csr_pem_modulus_md5 = acme.modulus_md5_csr__pem_filepath(tmpfile_csr.name)
+        csr_pem_modulus_md5 = cert_utils.modulus_md5_csr__pem_filepath(tmpfile_csr.name)
 
         # these MUST commit
         with transaction.manager as tx:
@@ -878,9 +879,9 @@ cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursi
         header, thumbprint = acme.account_key__header_thumbprint(account_key_path=tmpfile_account.name, )
 
         # pull domains from csr
-        csr_domains = acme.parse_csr_domains(csr_path=tmpfile_csr.name,
-                                             submitted_domain_names=domain_names,
-                                             )
+        csr_domains = cert_utils.parse_csr_domains(csr_path=tmpfile_csr.name,
+                                                   submitted_domain_names=domain_names,
+                                                   )
 
         # register the account / ensure that it is registered
         if not dbAccountKey.timestamp_last_authenticated:
@@ -968,7 +969,7 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
     dbPrivateKey=None,
     letsencrypt_server_certificate_id__renewal_of=None,
 ):
-    cert_pem = acme.cleanup_pem_text(cert_pem)
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
     is_created = False
     dbCertificate = dbSession.query(LetsencryptServerCertificate)\
@@ -1003,7 +1004,7 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
             _tmpfileCert.seek(0)
 
             # validate
-            acme.validate_cert__pem_filepath(_tmpfileCert.name)
+            cert_utils.validate_cert__pem_filepath(_tmpfileCert.name)
 
             dbCertificate = LetsencryptServerCertificate()
             _certificate_parse_to_record(_tmpfileCert, dbCertificate)
@@ -1041,7 +1042,7 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
                 if not dbAccountKey.timestamp_last_certificate_issue or (dbAccountKey.timestamp_last_certificate_issue < dbAccountKey.timestamp_signed):
                     dbAccountKey.timestamp_last_certificate_issue = dbCertificate.timestamp_signed
 
-            _subject_domain, _san_domains = acme.parse_cert_domains__segmented(cert_path=_tmpfileCert.name)
+            _subject_domain, _san_domains = cert_utils.parse_cert_domains__segmented(cert_path=_tmpfileCert.name)
             certificate_domain_names = _san_domains
             if _subject_domain is not None and _subject_domain not in certificate_domain_names:
                 certificate_domain_names.insert(0, _subject_domain)
@@ -1101,14 +1102,14 @@ def create__LetsencryptServerCertificate(
     dbCACertificate, _is_created_cert = getcreate__LetsencryptCACertificate__by_pem_text(dbSession, chained_pem, chain_name)
     letsencrypt_ca_certificate_id__upchain = dbCACertificate.id
 
-    cert_pem = acme.cleanup_pem_text(cert_pem)
+    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     try:
         _tmpfileCert = tempfile.NamedTemporaryFile()
         _tmpfileCert.write(cert_pem)
         _tmpfileCert.seek(0)
 
         # validate
-        acme.validate_cert__pem_filepath(_tmpfileCert.name)
+        cert_utils.validate_cert__pem_filepath(_tmpfileCert.name)
 
         dbLetsencryptServerCertificate = LetsencryptServerCertificate()
         _certificate_parse_to_record(_tmpfileCert, dbLetsencryptServerCertificate)

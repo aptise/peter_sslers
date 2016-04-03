@@ -27,6 +27,7 @@ from ..lib.forms import (Form_CertificateRequest_new_flow,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
+from ..lib import cert_utils as lib_cert_utils
 from ..lib.handler import Handler, items_per_page
 
 
@@ -72,13 +73,13 @@ class ViewAdmin(Handler):
             return dbLetsencryptPrivateKey.key_pem
         elif self.request.matchdict['format'] == 'key':
             self.request.response.content_type = 'application/pkcs8'
-            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptPrivateKey.key_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbLetsencryptPrivateKey.key_pem)
             return as_der
 
     @view_config(route_name='admin:private_key:focus:parse.json', renderer='json')
     def private_key_focus_parse_json(self):
         dbLetsencryptPrivateKey = self._private_key_focus()
-        return {"%s" % dbLetsencryptPrivateKey.id: lib_acme.parse_key(key_pem=dbLetsencryptPrivateKey.key_pem),
+        return {"%s" % dbLetsencryptPrivateKey.id: lib_cert_utils.parse_key(key_pem=dbLetsencryptPrivateKey.key_pem),
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1,3 +1,4 @@
 *.sqlite
 *.egg-info
+peter_sslers/scripts/update_foo.py
 

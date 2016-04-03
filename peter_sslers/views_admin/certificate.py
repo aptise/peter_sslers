@@ -158,7 +158,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:parse.json', renderer='json')
     def certificate_focus_parse_json(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
-        return {"%s" % dbLetsencryptServerCertificate.id: lib_acme.parse_cert(cert_pem=dbLetsencryptServerCertificate.cert_pem),
+        return {"%s" % dbLetsencryptServerCertificate.id: lib_cert_utils.parse_cert(cert_pem=dbLetsencryptServerCertificate.cert_pem),
                 }
 
     @view_config(route_name='admin:certificate:focus:chain:raw', renderer='string')
@@ -170,7 +170,7 @@ class ViewAdmin(Handler):
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbLetsencryptServerCertificate.certificate_upchain.cert_pem
         elif self.request.matchdict['format'] in ('cer', 'crt', 'der'):
-            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.certificate_upchain.cert_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.certificate_upchain.cert_pem)
             response = Response()
             if self.request.matchdict['format'] in ('crt', 'der'):
                 response.content_type = 'application/x-x509-ca-cert'
@@ -199,7 +199,7 @@ class ViewAdmin(Handler):
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbLetsencryptServerCertificate.private_key.key_pem
         elif self.request.matchdict['format'] == 'key':
-            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.private_key.key_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.private_key.key_pem)
             response = Response()
             response.content_type = 'application/pkcs8'
             response.body = as_der
@@ -215,7 +215,7 @@ class ViewAdmin(Handler):
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbLetsencryptServerCertificate.cert_pem
         elif self.request.matchdict['format'] == 'crt':
-            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.cert_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.cert_pem)
             response = Response()
             response.content_type = 'application/x-x509-server-cert'
             response.body = as_der

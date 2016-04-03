@@ -19,6 +19,7 @@ from ..lib.forms import (Form_CACertificateUpload__file,
                          Form_CACertificateUploadBundle__file,
                          )
 from ..lib import acme as lib_acme
+from ..lib import cert_utils as lib_cert_utils
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
 
@@ -70,7 +71,7 @@ class ViewAdmin(Handler):
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbLetsencryptCACertificate.cert_pem
         elif self.request.matchdict['format'] in ('cer', 'crt', 'der'):
-            as_der = lib_acme.convert_pem_to_der(pem_data=dbLetsencryptCACertificate.cert_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbLetsencryptCACertificate.cert_pem)
             response = Response()
             if self.request.matchdict['format'] in ('crt', 'der'):
                 response.content_type = 'application/x-x509-ca-cert'
@@ -83,7 +84,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus:parse.json', renderer='json')
     def ca_certificate_focus_parse_json(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
-        return {"%s" % dbLetsencryptCACertificate.id: lib_acme.parse_cert(cert_pem=dbLetsencryptCACertificate.cert_pem),
+        return {"%s" % dbLetsencryptCACertificate.id: lib_cert_utils.parse_cert(cert_pem=dbLetsencryptCACertificate.cert_pem),
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
