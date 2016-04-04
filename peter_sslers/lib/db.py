@@ -1405,12 +1405,12 @@ def operations_update_recents(dbSession):
     # first the single
     # _t_domain = LetsencryptDomain.__table__.alias('domain')
     _q_sub = dbSession.query(LetsencryptServerCertificate.id)\
-        .join(LetsencryptServerCertificate2LetsencryptDomain,
-              LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
+        .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
+              LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id
         )\
         .filter(LetsencryptServerCertificate.is_active == True,  # noqa
                 LetsencryptServerCertificate.is_single_domain_cert == True,  # noqa
-                LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
+                LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
                 )\
         .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
         .subquery()\
@@ -1423,12 +1423,12 @@ def operations_update_recents(dbSession):
     # then the multiple
     # _t_domain = LetsencryptDomain.__table__.alias('domain')
     _q_sub = dbSession.query(LetsencryptServerCertificate.id)\
-        .join(LetsencryptServerCertificate2LetsencryptDomain,
-              LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
+        .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
+              LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id
         )\
         .filter(LetsencryptServerCertificate.is_active == True,  # noqa
                 LetsencryptServerCertificate.is_single_domain_cert == False,  # noqa
-                LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
+                LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
                 )\
         .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
         .subquery()\
@@ -1590,15 +1590,15 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
         .subquery()
 
     # now grab the domains with many certs...
-    q_inner = dbSession.query(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id,
-                              sqlalchemy.func.count(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id).label('counted'),
+    q_inner = dbSession.query(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id,
+                              sqlalchemy.func.count(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id).label('counted'),
                               )\
         .join(LetsencryptServerCertificate,
-              LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id == LetsencryptServerCertificate.id
+              LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id
               )\
         .filter(LetsencryptServerCertificate.is_active == True,  # noqa
                 )\
-        .group_by(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id)
+        .group_by(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id)
     q_inner = q_inner.subquery()
     q_domains = dbSession.query(q_inner)\
         .filter(q_inner.c.counted >= 2)
@@ -1608,11 +1608,11 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
     _turned_off = []
     for _domain_id in domain_ids_with_multiple_active_certs:
         domain_certs = dbSession.query(LetsencryptServerCertificate)\
-            .join(LetsencryptServerCertificate2LetsencryptDomain,
-                  LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
+            .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
+                  LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id,
                   )\
             .filter(LetsencryptServerCertificate.is_active == True,  # noqa
-                    LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == _domain_id,
+                    LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == _domain_id,
                     LetsencryptServerCertificate.id.notin_(_q_ids__latest_single),
                     LetsencryptServerCertificate.id.notin_(_q_ids__latest_multi),
                     )\
