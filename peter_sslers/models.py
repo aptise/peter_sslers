@@ -89,7 +89,9 @@ def year_week__sqlite(element, compiler, **kw):
 
 
 class LetsencryptAccountKey(Base):
-    """Represents a registered account with LetsEncrypt.
+    """
+    Represents a registered account with the LetsEncrypt Service.
+    This is used for authentication to the LE API, it is not tied to any certificates.
     """
     __tablename__ = 'letsencrypt_account_key'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -121,8 +123,9 @@ class LetsencryptAccountKey(Base):
 
 
 class LetsencryptCACertificate(Base):
-    """The trusted LetsEncrypt "Certificate Authority" Certificates that are used to sign domain certificates.
-    These are used to create a fullchain certificate.
+    """
+    These are trusted "Certificate Authority" Certificates from LetsEncrypt that are used to sign server certificates.
+    These are directly tied to a ServerCertificate and are needed to create a "fullchain" certificate for most deployments.
     """
     __tablename__ = 'letsencrypt_ca_certificate'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -158,12 +161,23 @@ class LetsencryptCACertificate(Base):
 
 
 class LetsencryptCertificateRequestType(object):
+  """
+  This package tracks two types of CSRs
+  - Flow = handling the challenges from another client
+  - Full = acting as the full LE Client
+  """
     FLOW = 1
     FULL = 2
 
 
 class LetsencryptCertificateRequest(Base):
-    """A CertificateRequest
+    """
+    A CertificateRequest is submitted to the LE signing authority.
+    In goes your hope, out comes your dreams.
+    
+    The domains will be stored in 2 places:
+    * LetsencryptCertificateRequest2LetsencryptDomain - an association table to store validation data
+    * LetsencryptUniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
     """
     __tablename__ = 'letsencrypt_certificate_request'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -260,6 +274,9 @@ class LetsencryptCertificateRequest(Base):
 
 
 class LetsencryptCertificateRequest2LetsencryptDomain(Base):
+    """
+    The Domains in a CSR are stored in an association table because there is associated verification data.
+    """
     __tablename__ = 'letsencrypt_certificate_request_2_letsencrypt_domain'
     letsencrypt_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_certificate_request.id"), primary_key=True)
     letsencrypt_domain_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_domain.id"), primary_key=True)
@@ -317,6 +334,9 @@ class LetsencryptDomain(Base):
 
 
 class LetsencryptOperationsEventType(object):
+    """
+    This client tracks different types of events:
+    """
     ca_certificate_probe = 1
     update_recents = 2
     deactivate_expired = 3
@@ -327,7 +347,8 @@ class LetsencryptOperationsEventType(object):
 
 
 class LetsencryptOperationsEvent(Base):
-    """Certain events are tracked for bookkeeping
+    """
+    Certain events are tracked for bookkeeping
     """
     __tablename__ = 'letsencrypt_sync_event'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -363,8 +384,8 @@ class LetsencryptOperationsEvent(Base):
 
 
 class LetsencryptPrivateKey(Base):
-    """These keys are used to sign CertificateRequests and are the PrivateKey
-    component to a server certificate
+    """
+    These keys are used to sign CertificateRequests and are the PrivateKey component to a ServerCertificate.
     """
     __tablename__ = 'letsencrypt_private_key'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -396,8 +417,12 @@ class LetsencryptPrivateKey(Base):
 
 
 class LetsencryptServerCertificate(Base):
-    """A signed server certificate.
+    """
+    A signed ServerCertificate.
     To install on a webserver, must be paired with the PrivateKey and Trusted CA Certificate.
+
+    The domains will be stored in:
+    * LetsencryptUniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
     """
     __tablename__ = 'letsencrypt_server_certificate'
     id = sa.Column(sa.Integer, primary_key=True)
@@ -548,7 +573,10 @@ class LetsencryptServerCertificate(Base):
 
 
 class LetsencryptUniqueFQDNSet(Base):
-    """There is a ratelimit in effect for unique sets of fully-qualified domain names
+    """
+    There is a ratelimit in effect from LetsEncrypt for unique sets of fully-qualified domain names
+    * `domain_ids_string` should be a unique list of ordered ids, separated by commas.
+    * the association table is used to actually join domains to Certificates and CSRs
     #RATELIMIT.FQDN
     """
     __tablename__ = 'letsencrypt_unique_fqdn_set'
@@ -575,6 +603,7 @@ class LetsencryptUniqueFQDNSet(Base):
 class LetsencryptUniqueFQDNSet2LetsencryptDomain(Base):
     """
     #RATELIMIT.FQDN
+    association table
     """
     __tablename__ = 'letsencrypt_unique_fqdn_set_2_letsencrypt_domain'
     letsencrypt_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_unique_fqdn_set.id"), primary_key=True)
