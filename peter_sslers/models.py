@@ -718,27 +718,29 @@ LetsencryptDomain.domain_to_certificate_requests_5 = sa.orm.relationship(
     viewonly=True
 )
 
+
 # returns an object with a `certificate` on it
 LetsencryptDomain.certificates_5 = sa.orm.relationship(
-    LetsencryptServerCertificate,
+    "LetsencryptServerCertificate",
+    secondary=(  """join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
+                         LetsencryptServerCertificate,
+                         LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id
+                  )"""),
     primaryjoin=(sa.and_(LetsencryptDomain.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id,
-                         LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id,
-                         LetsencryptUniqueFQDNSet.id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id,
-                         LetsencryptServerCertificate.id.in_(
-                             sa.select([LetsencryptServerCertificate.id])
-                             .where(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id)
-                             .where(LetsencryptUniqueFQDNSet.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id)
-                             .where(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id)
-                             .order_by(LetsencryptServerCertificate.id.desc())
-                             .limit(5)
-                             .correlate()
-                         )
                          )
                  ),
-    secondaryjoin=(sa.and_(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id,
+    secondaryjoin=(sa.and_(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == sa.orm.foreign(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id),
+                           LetsencryptServerCertificate.id.in_(
+                               sa.select([LetsencryptServerCertificate.id])
+                               .where(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id)
+                               .where(LetsencryptUniqueFQDNSet.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id)
+                               .where(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id)
+                               .order_by(LetsencryptServerCertificate.id.desc())
+                               .limit(5)
+                               .correlate()
+                           )
                            )
                    ),
-    secondary=("join(LetsencryptUniqueFQDNSet2LetsencryptDomain, LetsencryptUniqueFQDNSet, LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id)"),
     order_by=LetsencryptServerCertificate.id.desc(),
     viewonly=True
 )
