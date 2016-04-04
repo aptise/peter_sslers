@@ -163,10 +163,10 @@ class ViewAdmin(Handler):
         weekly_certs = DBSession.query(year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
                                        sqlalchemy.func.count(LetsencryptServerCertificate.id)
                                        )\
-            .join(LetsencryptServerCertificate2LetsencryptDomain,
-                  LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id
-                  )\
-            .filter(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == dbLetsencryptDomain.id,
+            .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
+                  LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id,
+            )\
+            .filter(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == dbLetsencryptDomain.id,
                     )\
             .group_by('week_num')\
             .order_by(sqlalchemy.asc('week_num'))\

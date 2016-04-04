@@ -117,20 +117,29 @@ def _get__LetsencryptDomain__core(q, preload=False, eagerload_web=False):
     q = q.options(sqlalchemy.orm.subqueryload('latest_certificate_single'),
                   sqlalchemy.orm.joinedload('latest_certificate_single.private_key'),
                   sqlalchemy.orm.joinedload('latest_certificate_single.certificate_upchain'),
-                  sqlalchemy.orm.joinedload('latest_certificate_single.certificate_to_domains'),
-                  sqlalchemy.orm.joinedload('latest_certificate_single.certificate_to_domains.domain'),
+                  sqlalchemy.orm.joinedload('latest_certificate_single.unique_fqdn_set'),
+                  sqlalchemy.orm.joinedload('latest_certificate_single.unique_fqdn_set.to_domains'),
+                  sqlalchemy.orm.joinedload('latest_certificate_single.unique_fqdn_set.to_domains.domain'),
 
                   sqlalchemy.orm.subqueryload('latest_certificate_multi'),
                   sqlalchemy.orm.joinedload('latest_certificate_multi.private_key'),
                   sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_upchain'),
-                  sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_to_domains'),
-                  sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_to_domains.domain'),
+                  sqlalchemy.orm.joinedload('latest_certificate_multi.unique_fqdn_set'),
+                  sqlalchemy.orm.joinedload('latest_certificate_multi.unique_fqdn_set.to_domains'),
+                  sqlalchemy.orm.joinedload('latest_certificate_multi.unique_fqdn_set.to_domains.domain'),
                   )
     if eagerload_web:
         # need to join back the domains to show alternate domains.
-        q = q.options(sqlalchemy.orm.subqueryload('domain_to_certificate_requests_5').joinedload('certificate_request').joinedload('certificate_request_to_domains').joinedload('domain'),
-                      sqlalchemy.orm.subqueryload('domain_to_certificates_5').joinedload('certificate').joinedload('certificate_to_domains').joinedload('domain'),
-                      )
+        q = q.options(
+            sqlalchemy.orm.subqueryload('domain_to_certificate_requests_5')\
+                .joinedload('certificate_request')
+                .joinedload('certificate_request_to_domains')\
+                .joinedload('domain'),
+            sqlalchemy.orm.subqueryload('certificates_5')\
+                .joinedload('unique_fqdn_set')\
+                .joinedload('to_domains')\
+                .joinedload('domain'),
+        )
     return q
 
 
@@ -221,7 +230,7 @@ def get__LetsencryptServerCertificate__count(dbSession, expiring_days=None):
 def get__LetsencryptServerCertificate__paginated(dbSession, expiring_days=None, eagerload_web=False, limit=None, offset=0):
     q = dbSession.query(LetsencryptServerCertificate)
     if eagerload_web:
-        q = q.options(sqlalchemy.orm.joinedload('certificate_to_domains').joinedload('domain'),
+        q = q.options(sqlalchemy.orm.joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                       )
     if expiring_days:
         _until = datetime.datetime.utcnow() + datetime.timedelta(days=expiring_days)
@@ -240,7 +249,7 @@ def get__LetsencryptServerCertificate__paginated(dbSession, expiring_days=None, 
 def get__LetsencryptServerCertificate__by_id(dbSession, cert_id):
     dbLetsencryptServerCertificate = dbSession.query(LetsencryptServerCertificate)\
         .filter(LetsencryptServerCertificate.id == cert_id)\
-        .options(sqlalchemy.orm.subqueryload('certificate_to_domains').joinedload('domain'),
+        .options(sqlalchemy.orm.subqueryload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                  )\
         .first()
     return dbLetsencryptServerCertificate
@@ -299,7 +308,7 @@ def get__LetsencryptCertificateRequest__by_LetsencryptDomainId__count(dbSession,
         .join(LetsencryptCertificateRequest2LetsencryptDomain,
               LetsencryptCertificateRequest.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id,
               )\
-        .filter(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
+        .filter(LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
         .count()
     return counted
 
@@ -374,7 +383,7 @@ def get__LetsencryptAccountKey__by_id(dbSession, key_id, eagerload_web=False):
         .filter(LetsencryptAccountKey.id == key_id)
     if eagerload_web:
         q = q.options(sqlalchemy.orm.subqueryload('certificate_requests_5').joinedload('certificate_request_to_domains').joinedload('domain'),
-                      sqlalchemy.orm.subqueryload('issued_certificates_5').joinedload('certificate_to_domains').joinedload('domain'),
+                      sqlalchemy.orm.subqueryload('issued_certificates_5').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                       )
     item = q.first()
     return item
@@ -404,7 +413,7 @@ def get__LetsencryptPrivateKey__by_id(dbSession, cert_id, eagerload_web=False):
         .filter(LetsencryptPrivateKey.id == cert_id)
     if eagerload_web:
         q = q.options(sqlalchemy.orm.subqueryload('certificate_requests_5').joinedload('certificate_request_to_domains').joinedload('domain'),
-                      sqlalchemy.orm.subqueryload('signed_certificates_5').joinedload('certificate_to_domains').joinedload('domain'),
+                      sqlalchemy.orm.subqueryload('signed_certificates_5').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                       )
     item = q.first()
     return item
@@ -493,7 +502,7 @@ def get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__count(dbSessi
 def get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__paginated(dbSession, key_id, limit=None, offset=0):
     items_paged = dbSession.query(LetsencryptServerCertificate)\
         .filter(LetsencryptServerCertificate.letsencrypt_account_key_id == key_id)\
-        .options(sqlalchemy.orm.joinedload('certificate_to_domains').joinedload('domain'),
+        .options(sqlalchemy.orm.joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                  )\
         .order_by(LetsencryptServerCertificate.id.desc())\
         .limit(limit)\
@@ -527,20 +536,26 @@ def get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
 
 def get__LetsencryptServerCertificate__by_LetsencryptDomainId__count(dbSession, domain_id):
     counted = dbSession.query(LetsencryptServerCertificate)\
-        .join(LetsencryptServerCertificate2LetsencryptDomain,
-              LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
+        .join(LetsencryptUniqueFQDNSet,
+              LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id
               )\
-        .filter(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
+        .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
+              LetsencryptUniqueFQDNSet.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id,
+              )\
+        .filter(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
         .count()
     return counted
 
 
 def get__LetsencryptServerCertificate__by_LetsencryptDomainId__paginated(dbSession, domain_id, limit=None, offset=0):
     items_paged = dbSession.query(LetsencryptServerCertificate)\
-        .join(LetsencryptServerCertificate2LetsencryptDomain,
-              LetsencryptServerCertificate.id == LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id,
+        .join(LetsencryptUniqueFQDNSet,
+              LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id
               )\
-        .filter(LetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
+        .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
+              LetsencryptUniqueFQDNSet.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id,
+              )\
+        .filter(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == domain_id)\
         .order_by(LetsencryptServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
@@ -745,6 +760,10 @@ def getcreate__LetsencryptUniqueFQDNSet__by_domainObjects(
     domainObjects,
 ):
     is_created = False
+
+    for dbDomain in domainObjects: 
+        if dbDomain not in dbSession:
+            dbDomain = dbSession.merge(dbDomain)
 
     domain_ids = [dbDomain.id for dbDomain in domainObjects]
     domain_ids.sort()
@@ -1196,13 +1215,6 @@ def getcreate__LetsencryptServerCertificate__by_pem_text(
             dbSession.flush()
             is_created = True
 
-            for dbDomain in dbDomainObjects:
-                dbLetsencryptServerCertificate2LetsencryptDomain = LetsencryptServerCertificate2LetsencryptDomain()
-                dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id = dbCertificate.id
-                dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id = dbDomain.id
-                dbSession.add(dbLetsencryptServerCertificate2LetsencryptDomain)
-                dbSession.flush()
-
         except:
             raise
         finally:
@@ -1288,15 +1300,6 @@ def create__LetsencryptServerCertificate(
             dbLetsencryptPrivateKey.timestamp_last_certificate_issue = timestamp_signed
 
         dbSession.flush()
-
-        for domainObject in dbLetsencryptDomains:
-            if domainObject not in dbSession:
-                domainObject = dbSession.merge(domainObject)
-            dbLetsencryptServerCertificate2LetsencryptDomain = LetsencryptServerCertificate2LetsencryptDomain()
-            dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_server_certificate_id = dbLetsencryptServerCertificate.id
-            dbLetsencryptServerCertificate2LetsencryptDomain.letsencrypt_domain_id = domainObject.id
-            dbSession.add(dbLetsencryptServerCertificate2LetsencryptDomain)
-            dbSession.flush()
 
     except:
         raise

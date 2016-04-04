@@ -246,7 +246,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        % for to_d in LetsencryptServerCertificate.certificate_to_domains:
+                        % for to_d in LetsencryptServerCertificate.unique_fqdn_set.to_domains:
                             <tr>
                                 <td>
                                     <a class="label label-info" href="/.well-known/admin/domain/${to_d.domain.id}">&gt; ${to_d.domain.id}</a>

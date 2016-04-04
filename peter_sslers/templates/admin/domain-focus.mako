@@ -80,8 +80,8 @@
         <tr>
             <th>certificates history</th>
             <td>
-                ${admin_partials.table_to_certificates(LetsencryptDomain.domain_to_certificates_5, show_domains=True, show_expiring_days=True)}
-                % if LetsencryptDomain.domain_to_certificates_5:
+                ${admin_partials.table_certificates__list(LetsencryptDomain.certificates_5, show_domains=True, show_expiring_days=True)}
+                % if LetsencryptDomain.certificates_5:
                     ${admin_partials.nav_pager("/.well-known/admin/domain/%s/certificates" % LetsencryptDomain.id)}
                 % endif
             </td>

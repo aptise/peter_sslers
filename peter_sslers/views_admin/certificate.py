@@ -241,7 +241,7 @@ class ViewAdmin(Handler):
         dbLetsencryptServerCertificate = self._certificate_focus()
         if not self.request.registry.settings['enable_nginx']:
             raise HTTPFound('/.well-known/admin/certificate/%s?error=no_nginx' % dbLetsencryptServerCertificate.id)
-        dbDomains = [c2d.domain for c2d in dbLetsencryptServerCertificate.certificate_to_domains]
+        dbDomains = [c2d.domain for c2d in dbLetsencryptServerCertificate.unique_fqdn_set.to_domains]
         success, dbEvent = lib_utils.nginx_expire_cache(self.request, DBSession, dbDomains=dbDomains)
         if self.request.matched_route.name == 'admin:certificate:focus:nginx_cache_expire:json':
             return {'result': 'success',
