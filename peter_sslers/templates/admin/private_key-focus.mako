@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/private_keys">Private Keys</a></li>
+        <li><a href="/.well-known/admin/private-keys">Private Keys</a></li>
         <li class="active">Focus [${LetsencryptPrivateKey.id}]</li>
     </ol>
 </%block>
@@ -73,9 +73,9 @@
             <td>
                 ## ${'tracked' if LetsencryptPrivateKey.key_pem else 'untracked'}
                 ## <textarea class="form-control">${LetsencryptPrivateKey.key_pem}</textarea>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/private_key/${LetsencryptPrivateKey.id}/key.pem">key.pem</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/private_key/${LetsencryptPrivateKey.id}/key.pem.txt">key.pem.txt</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/private_key/${LetsencryptPrivateKey.id}/key.key">key.key (der)</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}/key.pem">key.pem</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}/key.pem.txt">key.pem.txt</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}/key.key">key.key (der)</a>
             </td>
         </tr>
         <tr>
@@ -83,7 +83,7 @@
             <td>
                 ${admin_partials.table_certificates__list(LetsencryptPrivateKey.signed_certificates_5, show_domains=True, show_expiring_days=True)}
                 % if LetsencryptPrivateKey.signed_certificates_5:
-                    ${admin_partials.nav_pager("/.well-known/admin/private_key/%s/certificates" % LetsencryptPrivateKey.id)}
+                    ${admin_partials.nav_pager("/.well-known/admin/private-key/%s/certificates" % LetsencryptPrivateKey.id)}
                 % endif
             </td>
         </tr>
@@ -92,7 +92,7 @@
             <td>
                 ${admin_partials.table_certificate_requests__list(LetsencryptPrivateKey.certificate_requests_5, show_domains=True)}
                 % if LetsencryptPrivateKey.certificate_requests_5:
-                    ${admin_partials.nav_pager("/.well-known/admin/private_key/%s/certificate_requests" % LetsencryptPrivateKey.id)}
+                    ${admin_partials.nav_pager("/.well-known/admin/private-key/%s/certificate-requests" % LetsencryptPrivateKey.id)}
                 % endif
             </td>
         </tr>

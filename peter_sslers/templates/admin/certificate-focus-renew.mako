@@ -72,7 +72,7 @@
                                         Use existing Account Key 
                                     </label>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/account_keys/${LetsencryptServerCertificate.letsencrypt_account_key_id}"
+                                        href="/.well-known/admin/account-keys/${LetsencryptServerCertificate.letsencrypt_account_key_id}"
                                     >
                                         &gt; ${LetsencryptServerCertificate.letsencrypt_account_key_id}
                                     </a>

@@ -60,7 +60,7 @@
             <tr>
                 <td>
                     <a  class="label label-info"
-                        href="/.well-known/admin/certificate_request/${to_cr.certificate_request.id}">&gt; ${to_cr.certificate_request.id}</a>
+                        href="/.well-known/admin/certificate-request/${to_cr.certificate_request.id}">&gt; ${to_cr.certificate_request.id}</a>
                 </td>
                 <td>
                     <span class="label label-${'success' if to_cr.certificate_request.is_active else 'warning'}">
@@ -147,7 +147,7 @@
             <tr>
                 <td>
                     <a  class="label label-info"
-                        href="/.well-known/admin/certificate_request/${certificate_request.id}">&gt; ${certificate_request.id}</a>
+                        href="/.well-known/admin/certificate-request/${certificate_request.id}">&gt; ${certificate_request.id}</a>
                 </td>
                 <td>
                     <span class="label label-default">${certificate_request.certificate_request_type}</span>
@@ -209,7 +209,7 @@
                                     <span class="label label-success">configured</span>
                                 % else:
                                     <a  class="label label-success"
-                                        href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
+                                        href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
                                         >&gt; configured</a>
                                 % endif
                             % else:
@@ -217,7 +217,7 @@
                                     <span class="label label-warning">not configured</span>
                                 % else:
                                     <a  class="label label-warning"
-                                        href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
+                                        href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
                                         >&gt; configure!</a>
                                 % endif
                             % endif
@@ -263,10 +263,10 @@
                         % else:
                             % if to_d.is_configured:
                                 <a 
-                                    href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
+                                    href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
                                     class="label label-success">&gt; configured</a>
                             % else:
-                                <a href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
+                                <a href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
                                     class="label label-warning">
                                     % if request_inactive:
                                         &gt; not configured
@@ -319,7 +319,7 @@
             <tr>
                 <td>
                     <a  class="btn btn-xs btn-info"
-                        href="/.well-known/admin/unique_fqdn_set/${i.id}"
+                        href="/.well-known/admin/unique-fqdn-set/${i.id}"
                     >&gt;
                      ${i.id}
                     </a>
@@ -576,18 +576,18 @@
         </p>
     % endif
     <p>
-        <a  href="/.well-known/admin/operations/ca_certificate_probes"
+        <a  href="/.well-known/admin/operations/ca-certificate-probes"
             class="btn btn-info"
         >CA Certificate Probes</a><br/>
         <em>${request.text_library.info_CACertificateProbes[0]}</em>
     </p>
     <p>
-        <a  href="/.well-known/admin/operations/deactivate_expired"
+        <a  href="/.well-known/admin/operations/deactivate-expired"
             class="btn btn-primary"
         >Deactivate Expired Certificates</a><br/>
     </p>
     <p>
-        <a  href="/.well-known/admin/operations/update_recents"
+        <a  href="/.well-known/admin/operations/update-recents"
             class="btn btn-primary"
         >Update Recents</a><br/>
     </p>

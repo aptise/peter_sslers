@@ -113,7 +113,7 @@ Here we go...
 	cd peter_sslers
 	python setup.py develop
 	initialize_peter_sslers_db development.ini	
-	prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json
+	prequest development.ini /.well-known/admin/operations/ca-certificate-probes/probe.json
 	pserve --reload development.ini
 	
 Then you can visit `http://127.0.0.1:6543`
@@ -129,7 +129,7 @@ It is recommended to open up a new terminal and do the following commands
 	cd certificate_admin
 	source peter_sslers-venv/bin/activate
 	cd peter_sslers
-	prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json
+	prequest development.ini /.well-known/admin/operations/ca-certificate-probes/probe.json
 	cd tools
 	invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
 
@@ -406,7 +406,7 @@ The logic in pseudocode:
 
 you can use the prequest syntax to spin up a URL and get or post data
 
-`$VENV/bin/prequest development.ini /.well-known/admin/operations/ca_certificate_probes/probe.json`
+`$VENV/bin/prequest development.ini /.well-known/admin/operations/ca-certificate-probes/probe.json`
 `$VENV/bin/prequest development.ini /.well-known/admin/operations/redis/prime.json`
 
 a bit of warning  -- prequest will log to the commandline unless you update the logging settings.
@@ -415,13 +415,13 @@ a bit of warning  -- prequest will log to the commandline unless you update the 
 ## Routes Designed for JSON Automation
 
 
-### `/.well-known/admin/operations/ca_certificate_probes/probe.json`
+### `/.well-known/admin/operations/ca-certificate-probes/probe.json`
 
 Probes known URLs of LetsEncrypt keys and saves them with the correct role information.
 
 If the keys were previously discovered during a signing process, it will decorate the existing records with the role data.
 
-### `/.well-known/admin/operations/deactivate_expired.json`
+### `/.well-known/admin/operations/deactivate-expired.json`
 
 Deactivates expired certs
 
@@ -429,7 +429,7 @@ Deactivates expired certs
 
 Primes a redis cache with domain data.
 
-### `/.well-known/admin/operations/update_recents.json`
+### `/.well-known/admin/operations/update-recents.json`
 
 Updates domain records to list the most recent certificate for the domain
 
@@ -461,14 +461,14 @@ There is even an `invoke` script to automate these imports:
 	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:6543'
 
 
-### `/.well-known/admin/ca_certificate/upload.json`
+### `/.well-known/admin/ca-certificate/upload.json`
 
 Upload a new LetsEncrypt certificate.
 
 `uplaod_bundle` is preferred as it provides better tracking.
 
 
-### `/.well-known/admin/ca_certificate/upload_bundle.json`
+### `/.well-known/admin/ca-certificate/upload-bundle.json`
 
 Upload a new LetsEncrypt certificate with a known role.
 

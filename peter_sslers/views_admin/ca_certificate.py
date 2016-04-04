@@ -34,7 +34,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificates_paginated', renderer='/admin/ca_certificates.mako')
     def ca_certificates(self):
         items_count = lib_db.get__LetsencryptCACertificate__count(DBSession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca_certificates/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca-certificates/{0}')
         items_paged = lib_db.get__LetsencryptCACertificate__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptCACertificates_count': items_count,
@@ -96,7 +96,7 @@ class ViewAdmin(Handler):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
             DBSession, dbLetsencryptCACertificate.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca_certificate/%s/signed_certificates/{0}' % dbLetsencryptCACertificate.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca-certificate/%s/signed_certificates/{0}' % dbLetsencryptCACertificate.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
             DBSession, dbLetsencryptCACertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -117,7 +117,7 @@ class ViewAdmin(Handler):
 
     def _ca_certificate_upload__print(self):
         if self.request.matched_route.name == 'admin:ca_certificate:upload:json':
-            return {'instructions': """curl --form 'chain_file=@chain1.pem' --form http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload.json""",
+            return {'instructions': """curl --form 'chain_file=@chain1.pem' --form http://127.0.0.1:6543/.well-known/admin/ca-certificate/upload.json""",
                     'form_fields': {'chain_file': 'required',
                                     },
                     }
@@ -146,7 +146,7 @@ class ViewAdmin(Handler):
                                            'id': dbLetsencryptCACertificate.id,
                                            },
                         }
-            return HTTPFound('/.well-known/admin/ca_certificate/%s?is_created=%s' % (dbLetsencryptCACertificate.id, (1 if cacert_is_created else 0)))
+            return HTTPFound('/.well-known/admin/ca-certificate/%s?is_created=%s' % (dbLetsencryptCACertificate.id, (1 if cacert_is_created else 0)))
 
         except formhandling.FormInvalid:
             formStash.set_error(field="Error_Main",
@@ -184,7 +184,7 @@ class ViewAdmin(Handler):
                 _instructions.append("""--form 'le_%s_auth_file=@letsencryptauthority%s'""" % (xi, xi))
                 _form_fields['le_%s_auth_file' % xi] = 'optional'
             # and the post
-            _instructions.append("""http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload_bundle.json""")
+            _instructions.append("""http://127.0.0.1:6543/.well-known/admin/ca-certificate/upload-bundle.json""")
         
             return {'instructions': ' '.join(_instructions),
                     'form_fields': _form_fields
@@ -239,7 +239,7 @@ class ViewAdmin(Handler):
                                        'id': cert_result[0].id,
                                        }
                 return rval
-            return HTTPFound('/.well-known/admin/ca_certificates?uploaded=1')
+            return HTTPFound('/.well-known/admin/ca-certificates?uploaded=1')
 
         except formhandling.FormInvalid:
             formStash.set_error(field="Error_Main",

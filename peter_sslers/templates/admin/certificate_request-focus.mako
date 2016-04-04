@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/certificate_requests">Certificate Requests</a></li>
+        <li><a href="/.well-known/admin/certificate-requests">Certificate Requests</a></li>
         <li class="active">Focus [${LetsencryptCertificateRequest.id}]</li>
     </ol>
 </%block>
@@ -75,7 +75,7 @@
             <th>letsencrypt_account_key_id</th>
             <td>
                 % if LetsencryptCertificateRequest.letsencrypt_account_key_id:
-                    <a class="label label-info" href="/.well-known/admin/account_key/${LetsencryptCertificateRequest.letsencrypt_account_key_id}">&gt; ${LetsencryptCertificateRequest.letsencrypt_account_key_id}</a>
+                    <a class="label label-info" href="/.well-known/admin/account-key/${LetsencryptCertificateRequest.letsencrypt_account_key_id}">&gt; ${LetsencryptCertificateRequest.letsencrypt_account_key_id}</a>
                 % endif
             </td>
         </tr>
@@ -83,14 +83,14 @@
             <th>letsencrypt_private_key_id__signed_by</th>
             <td>
                 % if LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by:
-                    <a class="label label-info" href="/.well-known/admin/private_key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">&gt; ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
+                    <a class="label label-info" href="/.well-known/admin/private-key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">&gt; ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
                 % endif
             </td>
         </tr>
         <tr>
             <th>unique fqdn set</th>
             <td>
-                <a class="label label-info" href="/.well-known/admin/unique_fqdn_set/${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}">&gt; ${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}</a>
+                <a class="label label-info" href="/.well-known/admin/unique-fqdn-set/${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}">&gt; ${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}</a>
             </td>
         </tr>
         <tr>
@@ -122,9 +122,9 @@
             <td>
                 % if LetsencryptCertificateRequest.csr_pem:
                     ## <textarea class="form-control">${LetsencryptCertificateRequest.csr_pem}</textarea>
-                    <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/csr.pem">csr.pem</a>
-                    <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
-                    <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
+                    <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/csr.pem">csr.pem</a>
+                    <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
+                    <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
                 % else:
                     <em>pem is not tracked</em>
                 % endif
@@ -142,13 +142,13 @@
     
     % if LetsencryptCertificateRequest.is_active and LetsencryptCertificateRequest.certificate_request_type_is('flow'):
         <a 
-            href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/process"
+            href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process"
             class="btn btn-info"
         >
             Edit Codes
         </a>
         <a 
-            href="/.well-known/admin/certificate_request/${LetsencryptCertificateRequest.id}/deactivate"
+            href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/deactivate"
             class="btn btn-primary"
         >
             deactivate

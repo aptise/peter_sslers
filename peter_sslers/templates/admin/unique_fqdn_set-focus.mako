@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/unique_fqdn_sets">Unique FQDN Sets</a></li>
+        <li><a href="/.well-known/admin/unique-fqdn-sets">Unique FQDN Sets</a></li>
         <li class="active">Focus</li>
     </ol>
 </%block>
@@ -70,7 +70,7 @@
                         <td>
                             ${admin_partials.table_certificates__list(LetsencryptUniqueFQDNSet.signed_certificates_5, show_domains=True, show_expiring_days=True)}
                             % if LetsencryptUniqueFQDNSet.signed_certificates_5:
-                                ${admin_partials.nav_pager("/.well-known/admin/unique_fqdn_set/%s/certificates" % LetsencryptUniqueFQDNSet.id)}
+                                ${admin_partials.nav_pager("/.well-known/admin/unique-fqdn-set/%s/certificates" % LetsencryptUniqueFQDNSet.id)}
                             % endif
                         </td>
                     </tr>
@@ -79,7 +79,7 @@
                         <td>
                             ${admin_partials.table_certificate_requests__list(LetsencryptUniqueFQDNSet.certificate_requests_5)}
                             % if LetsencryptUniqueFQDNSet.certificate_requests_5:
-                                ${admin_partials.nav_pager("/.well-known/admin/unique_fqdn_set/%s/certificate_requests" % LetsencryptUniqueFQDNSet.id)}
+                                ${admin_partials.nav_pager("/.well-known/admin/unique-fqdn-set/%s/certificate-requests" % LetsencryptUniqueFQDNSet.id)}
                             % endif
                         </td>
                     </tr>
@@ -88,7 +88,7 @@
         </div>
         <div class="col-sm-3">
             <a  class="btn btn-info"
-                href="/.well-known/admin/unique_fqdn_set/${LetsencryptUniqueFQDNSet.id}/calendar"
+                href="/.well-known/admin/unique-fqdn-set/${LetsencryptUniqueFQDNSet.id}/calendar"
             >
                 Calendar
             </a>

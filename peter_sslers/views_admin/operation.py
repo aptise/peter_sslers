@@ -57,7 +57,7 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:ca_certificate_probes_paginated', renderer='/admin/operations-ca_certificate_probes.mako')
     def ca_certificate_probes(self):
         items_count = lib_db.get__LetsencryptOperationsEvent__certificate_probe__count(DBSession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/ca_certificate_probes/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/ca-certificate-probes/{0}')
         items_paged = lib_db.get__LetsencryptOperationsEvent__certificate_probe__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents_count': items_count,
@@ -77,7 +77,7 @@ class ViewAdminOperations(Handler):
                                          'is_certificates_updated': operations_event.event_payload_json['is_certificates_updated'],
                                          },
                     }
-        return HTTPFound("/.well-known/admin/operations/ca_certificate_probes?success=True&event.id=%s" % operations_event.id)
+        return HTTPFound("/.well-known/admin/operations/ca-certificate-probes?success=True&event.id=%s" % operations_event.id)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

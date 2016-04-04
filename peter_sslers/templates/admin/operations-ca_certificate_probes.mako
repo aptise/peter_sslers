@@ -66,7 +66,7 @@
         <div class="col-sm-3">
 
             <p>
-                <form action="/.well-known/admin/operations/ca_certificate_probes/probe" method="POST">
+                <form action="/.well-known/admin/operations/ca-certificate-probes/probe" method="POST">
                     <input type="submit" class="btn btn-primary" value="Probe for new certificates"/>
                     <br/>
                     <em>Checks for new certs on the public internet</em>

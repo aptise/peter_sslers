@@ -86,27 +86,27 @@
         <tr>
             <th>letsencrypt_ca_certificate_id__upchain</th>
             <td>
-                <a class="label label-info" href="/.well-known/admin/ca_certificate/${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}">&gt; ${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}</a>
+                <a class="label label-info" href="/.well-known/admin/ca-certificate/${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}">&gt; ${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}</a>
             </td>
         </tr>
         <tr>
             <th>letsencrypt_private_key_id__signed_by</th>
             <td>
-                <a class="label label-info" href="/.well-known/admin/private_key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">&gt; ${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}</a>
+                <a class="label label-info" href="/.well-known/admin/private-key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">&gt; ${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}</a>
             </td>
         </tr>
         <tr>
             <th>letsencrypt_certificate_request_id</th>
             <td>
                 % if LetsencryptServerCertificate.letsencrypt_certificate_request_id:
-                    <a class="label label-info" href="/.well-known/admin/certificate_request/${LetsencryptServerCertificate.letsencrypt_certificate_request_id}">&gt; ${LetsencryptServerCertificate.letsencrypt_certificate_request_id}</a>
+                    <a class="label label-info" href="/.well-known/admin/certificate-request/${LetsencryptServerCertificate.letsencrypt_certificate_request_id}">&gt; ${LetsencryptServerCertificate.letsencrypt_certificate_request_id}</a>
                 % endif
             </td>
         </tr>
         <tr>
             <th>unique fqdn set</th>
             <td>
-                <a class="label label-info" href="/.well-known/admin/unique_fqdn_set/${LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id}">&gt; ${LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id}</a>
+                <a class="label label-info" href="/.well-known/admin/unique-fqdn-set/${LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id}">&gt; ${LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id}</a>
             </td>
         </tr>
         <tr>
@@ -157,11 +157,11 @@
                 <th>nginx cache</th>
                 <td>
                     <a  class="btn btn-xs btn-primary"
-                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/nginx_cache_expire"
-                    >nginx_cache_expire</a>
+                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/nginx-cache-expire"
+                    >nginx-cache-expire</a>
                     <a  class="btn btn-xs btn-primary"
-                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/nginx_cache_expire.json"
-                    >nginx_cache_expire.json</a>
+                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/nginx-cache-expire.json"
+                    >nginx-cache-expire.json</a>
                 </td>
             </tr>
         % endif

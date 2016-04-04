@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/ca_certificates">CA Certificates</a></li>
+        <li><a href="/.well-known/admin/ca-certificates">CA Certificates</a></li>
         <li class="active">Focus [${LetsencryptCACertificate.id}]</li>
     </ol>
 </%block>
@@ -103,12 +103,12 @@
         <tr>
             <th>download</th>
             <td>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.pem.txt">chain.pem.txt</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.pem">chain.pem</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.pem.txt">chain.pem.txt</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.pem">chain.pem</a>
 
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.cer">chain.cer (der)</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.crt">chain.crt (der)</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca_certificate/${LetsencryptCACertificate.id}/chain.der">chain.der (der)</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.cer">chain.cer (der)</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.crt">chain.crt (der)</a>
+                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.der">chain.der (der)</a>
 
             </td>
         </tr>
@@ -129,7 +129,7 @@
             <td>
                 % if LetsencryptServerCertificates:
                     ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
-                    ${admin_partials.nav_pager("/.well-known/admin/ca_certificate/%s/signed_certificates" % LetsencryptCACertificate.id)}
+                    ${admin_partials.nav_pager("/.well-known/admin/ca-certificate/%s/signed_certificates" % LetsencryptCACertificate.id)}
                 % else:
                     No known certificates.
                 % endif 

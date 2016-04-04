@@ -86,7 +86,7 @@
                 </tr>
             </table>
             <p>
-                <a  href="/.well-known/admin/operations/nginx/cache_flush"
+                <a  href="/.well-known/admin/operations/nginx/cache-flush"
                     class="btn btn-primary"
                 >
                     Flush nginx Cache

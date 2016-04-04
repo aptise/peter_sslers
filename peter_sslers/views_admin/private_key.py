@@ -106,7 +106,7 @@ class ViewAdmin(Handler):
         dbLetsencryptPrivateKey = self._private_key_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__count(
             DBSession, dbLetsencryptPrivateKey.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private_key/%s/certificate_requests/{0}' % dbLetsencryptPrivateKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private_key/%s/certificate-requests/{0}' % dbLetsencryptPrivateKey.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__paginated(
             DBSession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',

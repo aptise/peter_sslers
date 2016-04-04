@@ -39,7 +39,7 @@
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/account_key/${key.id}"
+                                        href="/.well-known/admin/account-key/${key.id}"
                                     >&gt; ${key.id}</a>
                                 </td>
                                 <td><code>${key.key_pem_modulus_md5}</code></td>
@@ -76,7 +76,7 @@
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/private_key/${key.id}"
+                                        href="/.well-known/admin/private-key/${key.id}"
                                     >&gt; ${key.id}</a>
                                 </td>
                                 <td><code>${key.key_pem_modulus_md5}</code></td>
@@ -158,7 +158,7 @@
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/ca_certificate/${cert.id}"
+                                        href="/.well-known/admin/ca-certificate/${cert.id}"
                                     >&gt; ${cert.id}</a>
                                 </td>
                                 <td><code>${cert.cert_pem_modulus_md5}</code></td>
@@ -188,7 +188,7 @@
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/certificate_request/${csr.id}"
+                                        href="/.well-known/admin/certificate-request/${csr.id}"
                                     >&gt; ${csr.id}</a>
                                 </td>
                             </tr>

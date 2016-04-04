@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/account_keys">Account Keys</a></li>
+        <li><a href="/.well-known/admin/account-keys">Account Keys</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
@@ -25,7 +25,7 @@
             <%! show_text = False %>
 
             <form
-                action="/.well-known/admin/account_key/new"
+                action="/.well-known/admin/account-key/new"
                 method="POST"
                 enctype="multipart/form-data"
             >

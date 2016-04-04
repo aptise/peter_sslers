@@ -46,11 +46,11 @@
                 <th>nginx cache</th>
                 <td>
                     <a  class="btn btn-xs btn-primary"
-                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx_cache_expire"
-                    >nginx_cache_expire</a>
+                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx-cache-expire"
+                    >nginx-cache-expire</a>
                     <a  class="btn btn-xs btn-primary"
-                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx_cache_expire.json"
-                    >nginx_cache_expire.json</a>
+                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx-cache-expire.json"
+                    >nginx-cache-expire.json</a>
                 </td>
             </tr>
         % endif
@@ -91,14 +91,14 @@
             <td>
                 ${admin_partials.table_to_certificate_requests(LetsencryptDomain.domain_to_certificate_requests_5)}
                 % if LetsencryptDomain.domain_to_certificate_requests_5:
-                    ${admin_partials.nav_pager("/.well-known/admin/domain/%s/certificate_requests" % LetsencryptDomain.id)}
+                    ${admin_partials.nav_pager("/.well-known/admin/domain/%s/certificate-requests" % LetsencryptDomain.id)}
                 % endif
             </td>
         </tr>
         <tr>
             <th>unique FQDN Sets</th>
             <td>
-                ${admin_partials.nav_pager("/.well-known/admin/domain/%s/unique_fqdn_sets" % LetsencryptDomain.id)}
+                ${admin_partials.nav_pager("/.well-known/admin/domain/%s/unique-fqdn-sets" % LetsencryptDomain.id)}
             </td>
         </tr>
     </table>

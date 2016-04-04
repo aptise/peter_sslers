@@ -335,10 +335,10 @@ class ViewAdmin(Handler):
                     letsencrypt_server_certificate_id__renewal_of=dbLetsencryptServerCertificate.id,
                 )
             except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
-                return HTTPFound('/.well-known/admin/certificate_requests?error=new-full&message=%s' % e.message)
+                return HTTPFound('/.well-known/admin/certificate-requests?error=new-full&message=%s' % e.message)
             except:
                 if self.request.registry.settings['exception_redirect']:
-                    return HTTPFound('/.well-known/admin/certificate_requests?error=new-full')
+                    return HTTPFound('/.well-known/admin/certificate-requests?error=new-full')
                 raise
 
             return HTTPFound('/.well-known/admin/certificate/%s?is_renewal=True' % newLetsencryptCertificate.id)

@@ -5,8 +5,8 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/unique_fqdn_sets">Unique FQDN Sets</a></li>
-        <li><a href="/.well-known/admin/unique_fqdn_set/${LetsencryptUniqueFQDNSet.id}">Focus [${LetsencryptUniqueFQDNSet.id}]</a></li>
+        <li><a href="/.well-known/admin/unique-fqdn-sets">Unique FQDN Sets</a></li>
+        <li><a href="/.well-known/admin/unique-fqdn-set/${LetsencryptUniqueFQDNSet.id}">Focus [${LetsencryptUniqueFQDNSet.id}]</a></li>
         <li class="active">Certificate Requests</li>
     </ol>
 </%block>

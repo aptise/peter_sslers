@@ -144,7 +144,7 @@ class ViewAdmin(Handler):
         dbLetsencryptDomain = self._domain_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId_count(
             DBSession, LetsencryptDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificate_requests/{0}' % LetsencryptDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificate-requests/{0}' % LetsencryptDomain.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId_paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -184,7 +184,7 @@ class ViewAdmin(Handler):
         dbLetsencryptDomain = self._domain_focus()
         items_count = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__count(
             DBSession, LetsencryptDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/unique_fqdn_sets/{0}' % LetsencryptDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/unique-fqdn-sets/{0}' % LetsencryptDomain.id)
         items_paged = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',

@@ -31,7 +31,7 @@
             </thead>
             % for cert in LetsencryptCACertificates:
                 <tr>
-                    <td><a class="label label-info" href="/.well-known/admin/ca_certificate/${cert.id}">&gt; ${cert.id}</a></td>
+                    <td><a class="label label-info" href="/.well-known/admin/ca-certificate/${cert.id}">&gt; ${cert.id}</a></td>
                     <td><span class="badge">${cert.count_active_certificates or ''}</span></td>
                     <td>${cert.name or ''}</td>
                     <td><timestamp>${cert.timestamp_first_seen}</timestamp></td>

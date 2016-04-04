@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/certificate_requests">Certificate Requests</a></li>
+        <li><a href="/.well-known/admin/certificate-requests">Certificate Requests</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
@@ -31,7 +31,7 @@
             <%! show_text = False %>
 
             <form
-                action="/.well-known/admin/certificate_request/new-full"
+                action="/.well-known/admin/certificate-request/new-full"
                 method="POST"
                 enctype="multipart/form-data"
             >

@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/ca_certificates">CA Certificates</a></li>
+        <li><a href="/.well-known/admin/ca-certificates">CA Certificates</a></li>
         <li class="active">New Bundle</li>
     </ol>
 </%block>
@@ -25,7 +25,7 @@
             <%! show_text = False %>
 
             <form
-                action="/.well-known/admin/ca_certificate/upload_bundle"
+                action="/.well-known/admin/ca-certificate/upload-bundle"
                 method="POST"
                 enctype="multipart/form-data"
             >
@@ -54,7 +54,7 @@
             <h3>This form accepts JSON</h3>
             
             <p>
-                <code>curl http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload.json</code>
+                <code>curl http://127.0.0.1:6543/.well-known/admin/ca-certificate/upload.json</code>
             </p>
 
 <p>
@@ -66,7 +66,7 @@
 % for xi in CA_AUTH_X:
     &nbsp;--form 'le_${xi}_auth_file=@letsencryptauthority${xi}.pem'\<br/>
 % endfor 
-&nbsp;http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload_bundle.json
+&nbsp;http://127.0.0.1:6543/.well-known/admin/ca-certificate/upload-bundle.json
 </code>
 </p>
 
