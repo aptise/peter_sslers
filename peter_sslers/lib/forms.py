@@ -8,6 +8,7 @@ from formencode.validators import (
     UnicodeString,
 )
 
+from . import letsencrypt_info
 
 class OnlyOneOf(FormValidator):
     # Field that only one of is allowed
@@ -126,10 +127,19 @@ class Form_CACertificateUpload__file(_Form_Schema_Base):
 
 class Form_CACertificateUploadBundle__file(_Form_Schema_Base):
     isrgrootx1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    le_x1_cross_signed_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    le_x2_cross_signed_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    le_x1_auth_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    le_x2_auth_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    foo = UnicodeString(not_empty=False, if_missing=None)
+
+for xi in letsencrypt_info.CA_CROSS_SIGNED_X:
+    Form_CACertificateUploadBundle__file.add_field(
+        "le_%s_cross_signed_file" % xi,
+        FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    )
+
+for xi in letsencrypt_info.CA_AUTH_X:
+    Form_CACertificateUploadBundle__file.add_field(
+        "le_%s_auth_file" % xi,
+        FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    )
 
 
 class Form_CertificateRenewal_Custom(_Form_Schema_Base):

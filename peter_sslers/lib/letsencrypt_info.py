@@ -40,6 +40,8 @@ LIMITS = {'names/certificate': {'limit': 100, },
 # https://letsencrypt.org/certificates/
 
 # last checked 2016.04.02
+CA_CROSS_SIGNED_X = ('x1', 'x2', 'x3', 'x4', )
+CA_AUTH_X = ('x1', 'x2', )
 CA_CERTS_DATA = [{'name': "ISRG Root X1",
                   'url_pem': "https://letsencrypt.org/certs/isrgrootx1.pem",
                   'is_ca_certificate': True,

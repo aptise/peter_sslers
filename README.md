@@ -656,6 +656,8 @@ the redis datastore might look something like this:
 
 # TODO
 
+## finish rate limit calendars
+
 ## search expiring soon
 
 ## api hooks

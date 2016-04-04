@@ -21,6 +21,7 @@ from ..lib.forms import (Form_CACertificateUpload__file,
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
 from ..lib import db as lib_db
+from ..lib import letsencrypt_info as lib_letsencrypt_info
 from ..lib.handler import Handler, items_per_page
 
 
@@ -174,15 +175,25 @@ class ViewAdmin(Handler):
 
     def _ca_certificate_upload_bundle__print(self):
         if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle:json':
-            return {'instructions': """curl --form 'isrgrootx1_file=@isrgrootx1.pem' --form 'le_x1_cross_signed_file=@lets-encrypt-x1-cross-signed.pem' --form 'le_x2_cross_signed_file=@lets-encrypt-x2-cross-signed.pem' --form 'le_x1_auth_file=@letsencryptauthorityx2.pem' --form 'le_x2_auth_file=@letsencryptauthorityx2.pem' --form http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload_bundle.json""",
-                    'form_fields': {'isrgrootx1_file': 'optional',
-                                    'le_x1_cross_signed_file': 'optional',
-                                    'le_x2_cross_signed_file': 'optional',
-                                    'le_x1_auth_file': 'optional',
-                                    'le_x2_auth_file': 'optional',
-                                    },
+            _instructions = ["curl --form 'isrgrootx1_file=@isrgrootx1.pem'", ]
+            _form_fields = {'isrgrootx1_file': 'optional'}
+            for xi in lib_letsencrypt_info.CA_CROSS_SIGNED_X:
+                _instructions.append("""--form 'le_%s_cross_signed_file=@lets-encrypt-%s-cross-signed.pem'""" % (xi, xi))
+                _form_fields['le_%s_cross_signed_file' % xi] = 'optional'
+            for xi in lib_letsencrypt_info.CA_AUTH_X:
+                _instructions.append("""--form 'le_%s_auth_file=@letsencryptauthority%s'""" % (xi, xi))
+                _form_fields['le_%s_auth_file' % xi] = 'optional'
+            # and the post
+            _instructions.append("""http://127.0.0.1:6543/.well-known/admin/ca_certificate/upload_bundle.json""")
+        
+            return {'instructions': ' '.join(_instructions),
+                    'form_fields': _form_fields
                     }
-        return render_to_response("/admin/ca_certificate-new_bundle.mako", {}, self.request)
+        return render_to_response("/admin/ca_certificate-new_bundle.mako",
+                                  {'CA_CROSS_SIGNED_X': lib_letsencrypt_info.CA_CROSS_SIGNED_X,
+                                   'CA_AUTH_X': lib_letsencrypt_info.CA_AUTH_X,
+                                   },
+                                  self.request)
 
     def _ca_certificate_upload_bundle__submit(self):
         try:
@@ -200,25 +211,19 @@ class ViewAdmin(Handler):
                                     )
 
             bundle_data = {'isrgrootx1_pem': None,
-                           'le_x1_cross_signed_pem': None,
-                           'le_x2_cross_signed_pem': None,
-                           'le_x1_auth_pem': None,
-                           'le_x2_auth_pem': None,
                            }
             if formStash.results['isrgrootx1_file'] is not None:
                 bundle_data['isrgrootx1_pem'] = formStash.results['isrgrootx1_file'].file.read()
 
-            if formStash.results['le_x1_cross_signed_file'] is not None:
-                bundle_data['le_x1_cross_signed_pem'] = formStash.results['le_x1_cross_signed_file'].file.read()
+            for xi in lib_letsencrypt_info.CA_CROSS_SIGNED_X:
+                bundle_data['le_%s_cross_signed_pem' % xi] = None
+                if formStash.results['le_%s_cross_signed_file' % xi] is not None:
+                    bundle_data['le_%s_cross_signed_pem' % xi] = formStash.results['le_%s_cross_signed_file' % xi].file.read()
 
-            if formStash.results['le_x2_cross_signed_file'] is not None:
-                bundle_data['le_x2_cross_signed_pem'] = formStash.results['le_x2_cross_signed_file'].file.read()
-
-            if formStash.results['le_x1_auth_file'] is not None:
-                bundle_data['le_x1_auth_pem'] = formStash.results['le_x1_auth_file'].file.read()
-
-            if formStash.results['le_x2_auth_file'] is not None:
-                bundle_data['le_x2_auth_pem'] = formStash.results['le_x2_auth_file'].file.read()
+            for xi in lib_letsencrypt_info.CA_AUTH_X:
+                bundle_data['le_%s_auth_pem' % xi] = None
+                if formStash.results['le_%s_auth_file' % xi] is not None:
+                    bundle_data['le_%s_auth_pem' % xi] = formStash.results['le_%s_auth_file' % xi].file.read()
 
             bundle_data = dict([i for i in bundle_data.items() if i[1]])
 
@@ -234,7 +239,7 @@ class ViewAdmin(Handler):
                                        'id': cert_result[0].id,
                                        }
                 return rval
-            return HTTPFound('/.well-known/admin/ca_certificates')
+            return HTTPFound('/.well-known/admin/ca_certificates?uploaded=True')
 
         except formhandling.FormInvalid:
             formStash.set_error(field="Error_Main",
