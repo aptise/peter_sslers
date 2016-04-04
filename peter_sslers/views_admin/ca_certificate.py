@@ -239,7 +239,7 @@ class ViewAdmin(Handler):
                                        'id': cert_result[0].id,
                                        }
                 return rval
-            return HTTPFound('/.well-known/admin/ca_certificates?uploaded=True')
+            return HTTPFound('/.well-known/admin/ca_certificates?uploaded=1')
 
         except formhandling.FormInvalid:
             formStash.set_error(field="Error_Main",
