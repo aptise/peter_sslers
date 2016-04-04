@@ -47,7 +47,7 @@
                                 </td>
                                 <td>
                                     % if 'total_primed' in event.event_payload_json:
-                                        ${event.event_payload_json['total_primed']}
+                                        <code class="payload">${event.event_payload_json['total_primed']}</code>
                                     % endif
                                 </td>
                             </tr>
@@ -72,16 +72,16 @@
             </div>
             <p>
                 <a  href="/.well-known/admin/operations/redis/prime"
-                    class="btn btn-primary"
+                    class="label label-primary"
                 >
-                    Prime Redis Cache
+                    &lt;do&gt; Prime Redis Cache
                 </a>
             </p>
             <p>
                 <a  href="/.well-known/admin/operations/log"
-                    class="btn btn-info"
+                    class="label label-info"
                 >
-                    Full Operations Log
+                    &gt; Full Operations Log
                 </a>
             </p>
         </div>

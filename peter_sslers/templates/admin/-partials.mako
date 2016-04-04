@@ -370,8 +370,10 @@
 
 
 <%def name="info_AccountKey()">
-    <h3>Need a Private Key?</h3>
-        <p>Use an Existing LetsEncrypt key from their client.  This is the easiest way to register with LetsEncrypt.</p>
+    <h3>Need an Account Key?</h3>
+        <p>Use an Existing LetsEncrypt key from their client.
+           This is the easiest way to register with LetsEncrypt and opt into their TOS.
+        </p>
         <p>
             You have to convert the key from <code>jwk</code> to <code>pem</code> format.  
             The easiest way is outlined on this github page: <a href="https://github.com/diafygi/acme-tiny">https://github.com/diafygi/acme-tiny</a>
@@ -560,35 +562,49 @@
 </%def>
 
 
-<%def name="operations_options(enable_redis=False, enable_nginx=False)">
+<%def name="operations_options(enable_redis=False, enable_nginx=False, as_list=False)">
+    <%
+        wrapper = 'li' if as_list else 'p'
+    %>
+    <h4>Log</h4>
+    ${'<ul>' if as_list else ''|n}
+    <${wrapper}>
+        <a  href="/.well-known/admin/operations"
+            class="label label-info"
+        >&gt; Full Operations Log</a><br/>
+    </${wrapper}>
     % if enable_redis:
-        <p>
+        <${wrapper}>
             <a  href="/.well-known/admin/operations/redis"
-                class="btn btn-info"
-            >Redis Operations</a><br/>
-        </p>
+                class="label label-info"
+            >&gt; Redis Operations</a><br/>
+        </${wrapper}>
     % endif
     % if enable_nginx:
-        <p>
+        <${wrapper}>
             <a  href="/.well-known/admin/operations/nginx"
-                class="btn btn-info"
-            >nginx Operations</a><br/>
-        </p>
+                class="label label-info"
+            >&gt; nginx Operations</a><br/>
+        </${wrapper}>
     % endif
-    <p>
+    <${wrapper}>
         <a  href="/.well-known/admin/operations/ca-certificate-probes"
-            class="btn btn-info"
-        >CA Certificate Probes</a><br/>
-        <em>${request.text_library.info_CACertificateProbes[0]}</em>
-    </p>
-    <p>
+            class="label label-info"
+        >&gt; CA Certificate Probes</a><br/>
+    </${wrapper}>
+    ${'</ul>' if as_list else ''|n}
+
+    <h4>Actions</h4>
+    ${'<ul>' if as_list else ''|n}
+    <${wrapper}>
         <a  href="/.well-known/admin/operations/deactivate-expired"
-            class="btn btn-primary"
-        >Deactivate Expired Certificates</a><br/>
-    </p>
-    <p>
+            class="label label-primary"
+        >&lt;do&gt; Deactivate Expired Certificates</a><br/>
+    </${wrapper}>
+    <${wrapper}>
         <a  href="/.well-known/admin/operations/update-recents"
-            class="btn btn-primary"
-        >Update Recents</a><br/>
-    </p>
+            class="label label-primary"
+        >&lt;do&gt; Update Recents</a><br/>
+    </${wrapper}>
+    ${'</ul>' if as_list else ''|n}
 </%def>

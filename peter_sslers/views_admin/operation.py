@@ -206,7 +206,7 @@ class ViewAdminOperations(Handler):
                 if not active_certs:
                     # no certs
                     break
-                for dbCACertificate in active_keys:
+                for dbCACertificate in active_certs:
                     total_primed['cacert'] += 1
                     is_primed = lib_utils.redis_prime_logic__style_1_CACertificate(redis_client, dbCACertificate, redis_timeouts)
                 if len(active_certs) < limit:

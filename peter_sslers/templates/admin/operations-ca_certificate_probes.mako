@@ -65,20 +65,24 @@
         </div>
         <div class="col-sm-3">
 
-            <p>
-                <form action="/.well-known/admin/operations/ca-certificate-probes/probe" method="POST">
-                    <input type="submit" class="btn btn-primary" value="Probe for new certificates"/>
+            <ul>
+                <li>
+                    <a  href="/.well-known/admin/operations/ca-certificate-probes/probe"
+                        class="label label-primary"
+                    >
+                        &lt;do&gt; Probe for new certificates
+                    </a>
                     <br/>
                     <em>Checks for new certs on the public internet</em>
-                </form>
-            </p>
-            <p>
-                <a  href="/.well-known/admin/operations/log"
-                    class="btn btn-info"
-                >
-                    Full Operations Log
-                </a>
-            </p>
+                </li>
+                <li>
+                    <a  href="/.well-known/admin/operations/log"
+                        class="label label-info"
+                    >
+                        &gt; Full Operations Log
+                    </a>
+                </li>
+            </ul>
 
         </div>
     </div>

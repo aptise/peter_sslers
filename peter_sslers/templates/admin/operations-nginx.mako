@@ -18,7 +18,7 @@
 
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-8">
+        <div class="col-sm-6">
             % if LetsencryptOperationsEvents:
                 ${admin_partials.nav_pagination(pager)}
                 <%
@@ -43,7 +43,7 @@
                                 <td><span class="label label-default">${event.event_type_text}</span></td>
                                 <td>
                                     % if event.event_type_text == 'nginx_cache_expire':
-                                        <payload>${event.event_payload_json}</payload>
+                                        <code class="payload">${event.event_payload_json}</code>
                                     % endif
                                 </td>
                             </tr>
@@ -57,7 +57,7 @@
             % endif
     </div>
     <div class="row">
-        <div class="col-sm-4">
+        <div class="col-sm-6">
             <div class="alert alert-info">
                 <p>
                     Nginx is enabled for this server.
@@ -66,11 +66,18 @@
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>nginx.reset_servers</th>
-                    <td>${request.registry.settings['nginx.reset_servers']}</td>
+                    <td>
+                        % if request.registry.settings['nginx.reset_servers']:
+                            <ul>
+                                % for i in request.registry.settings['nginx.reset_servers']:
+                                    <li>${i}</li>
+                                % endfor
+                            </ul>
+                        % endif
                 </tr>
                 <tr>
                     <th>nginx.reset_path</th>
-                    <td>${request.registry.settings['nginx.reset_path']}</td>
+                    <td><code>${request.registry.settings['nginx.reset_path']}</code></td>
                 </tr>
                 <tr>
                     <th>redis enabled?</th>
@@ -85,22 +92,26 @@
                     </td>
                 </tr>
             </table>
+            <hr/>
+
             <p>
                 <a  href="/.well-known/admin/operations/nginx/cache-flush"
-                    class="btn btn-primary"
+                    class="label label-primary"
                 >
-                    Flush nginx Cache
+                    &gt; Flush nginx Cache
                 </a>
                 <br/>
                 <em>
                 This will clear the entire cache.  if you just want to clear a single domain, use the link off the domain interface.
                 </em>
             </p>
+            <hr/>
+
             <p>
                 <a  href="/.well-known/admin/operations/log"
-                    class="btn btn-info"
+                    class="label label-info"
                 >
-                    Full Operations Log
+                    &gt; Full Operations Log
                 </a>
             </p>
         </div>
