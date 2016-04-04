@@ -161,11 +161,11 @@ class LetsencryptCACertificate(Base):
 
 
 class LetsencryptCertificateRequestType(object):
-  """
-  This package tracks two types of CSRs
-  - Flow = handling the challenges from another client
-  - Full = acting as the full LE Client
-  """
+    """
+    This package tracks two types of CSRs
+    - Flow = handling the challenges from another client
+    - Full = acting as the full LE Client
+    """
     FLOW = 1
     FULL = 2
 
@@ -174,7 +174,7 @@ class LetsencryptCertificateRequest(Base):
     """
     A CertificateRequest is submitted to the LE signing authority.
     In goes your hope, out comes your dreams.
-    
+
     The domains will be stored in 2 places:
     * LetsencryptCertificateRequest2LetsencryptDomain - an association table to store validation data
     * LetsencryptUniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
@@ -590,14 +590,14 @@ class LetsencryptUniqueFQDNSet(Base):
                                      )
 
     certificates = sa.orm.relationship("LetsencryptServerCertificate",
-                                        primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id",
-                                        back_populates='unique_fqdn_set',
-                                        )
+                                       primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id",
+                                       back_populates='unique_fqdn_set',
+                                       )
 
     certificate_requests = sa.orm.relationship("LetsencryptCertificateRequest",
-                                        primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id",
-                                        back_populates='unique_fqdn_set',
-                                        )
+                                               primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id",
+                                               back_populates='unique_fqdn_set',
+                                               )
 
 
 class LetsencryptUniqueFQDNSet2LetsencryptDomain(Base):
@@ -721,26 +721,23 @@ LetsencryptDomain.domain_to_certificate_requests_5 = sa.orm.relationship(
 # returns an object with a `certificate` on it
 LetsencryptDomain.certificates_5 = sa.orm.relationship(
     LetsencryptServerCertificate,
-    primaryjoin=\
-    (
-        sa.and_(LetsencryptDomain.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id,
-                LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id,
-                LetsencryptUniqueFQDNSet.id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id,
-                LetsencryptServerCertificate.id.in_(
-                    sa.select([LetsencryptServerCertificate.id])
-                    .where(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id)
-                    .where(LetsencryptUniqueFQDNSet.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id)
-                    .where(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id)
-                    .order_by(LetsencryptServerCertificate.id.desc())
-                    .limit(5)
-                    .correlate()
-                )
-        )
-    ),
-    secondaryjoin=(\
-        sa.and_(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id,
-        )  
-    ),
+    primaryjoin=(sa.and_(LetsencryptDomain.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id,
+                         LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id,
+                         LetsencryptUniqueFQDNSet.id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id,
+                         LetsencryptServerCertificate.id.in_(
+                             sa.select([LetsencryptServerCertificate.id])
+                             .where(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id)
+                             .where(LetsencryptUniqueFQDNSet.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id)
+                             .where(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id)
+                             .order_by(LetsencryptServerCertificate.id.desc())
+                             .limit(5)
+                             .correlate()
+                         )
+                         )
+                 ),
+    secondaryjoin=(sa.and_(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id,
+                           )
+                   ),
     secondary=("join(LetsencryptUniqueFQDNSet2LetsencryptDomain, LetsencryptUniqueFQDNSet, LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id)"),
     order_by=LetsencryptServerCertificate.id.desc(),
     viewonly=True
