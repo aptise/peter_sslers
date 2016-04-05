@@ -151,6 +151,13 @@ def includeme(config):
         config.add_route_7('admin:private_key:new', '/.well-known/admin/private-key/new')
 
         # Unique FQDN Sets are tied to Certs and Ratelimits
+        config.add_route_7('admin:renewal_queue', '/.well-known/admin/renewal-queue')
+        config.add_route_7('admin:renewal_queue_paginated', '/.well-known/admin/renewal-queue/{@page}')
+        config.add_route_7('admin:renewal_queue:all', '/.well-known/admin/renewal-queue/all')
+        config.add_route_7('admin:renewal_queue:all_paginated', '/.well-known/admin/renewal-queue/all/{@page}')
+        config.add_route_7('admin:renewal_queue:focus', '/.well-known/admin/renewal-queue/item/{@id}')
+
+        # Unique FQDN Sets are tied to Certs and Ratelimits
         config.add_route_7('admin:unique_fqdn_sets', '/.well-known/admin/unique-fqdn-sets')
         config.add_route_7('admin:unique_fqdn_sets_paginated', '/.well-known/admin/unique-fqdn-sets/{@page}')
         config.add_route_7('admin:unique_fqdn_set:focus', '/.well-known/admin/unique-fqdn-set/{@id}')

@@ -422,6 +422,31 @@ class LetsencryptPrivateKey(Base):
         return "type=modulus&modulus=%s&source=private_key&private_key.id=%s" % (self.key_pem_modulus_md5, self.id, )
 
 
+class LetsencryptRenewalQueue(Base):
+    """
+    An item to be renewed.
+    If something is expired, it will be placed here for renewal
+    """
+    __tablename__ = 'letsencrypt_renewal_queue'
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_entered = sa.Column(sa.DateTime, nullable=False, )
+    letsencrypt_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=False)
+    letsencrypt_operations_event_id_child_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_sync_event.id"), nullable=True)
+    timestamp_processed = sa.Column(sa.DateTime, nullable=True, )
+    process_result = sa.Column(sa.Boolean, nullable=True, default=None)
+
+    certificate = sa.orm.relationship(
+        "LetsencryptServerCertificate",
+        primaryjoin="LetsencryptRenewalQueue.letsencrypt_server_certificate_id==LetsencryptServerCertificate.id",
+        uselist=False,
+    )
+    operations_event = sa.orm.relationship(
+        "LetsencryptOperationsEvent",
+        primaryjoin="LetsencryptRenewalQueue.letsencrypt_operations_event_id_child_of==LetsencryptOperationsEvent.id",
+        uselist=False,
+    )
+
+
 class LetsencryptServerCertificate(Base):
     """
     A signed ServerCertificate.

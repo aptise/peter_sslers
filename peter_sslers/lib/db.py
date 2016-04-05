@@ -162,6 +162,43 @@ def get__LetsencryptDomain__by_name(dbSession, domain_name, preload=False, eager
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__LetsencryptRenewalQueue__count(dbSession, show_all=False):
+    q = dbSession.query(LetsencryptRenewalQueue)
+    if not show_all:
+        q = q.filter(LetsencryptRenewalQueue.timestamp_processed.op('IS')(None),  # noqa
+                     )
+    counted = q.count()
+    return counted
+
+
+def get__LetsencryptRenewalQueue__paginated(dbSession, show_all=False, eagerload_web=False, limit=None, offset=0):
+    q = dbSession.query(LetsencryptRenewalQueue)
+    if not show_all:
+        q = q.filter(LetsencryptRenewalQueue.timestamp_processed.op('IS')(None),  # noqa
+                     )
+    if eagerload_web:
+        q = q.options(sqlalchemy.orm.joinedload('certificate').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
+                      )
+    else:
+        q = q.order_by(LetsencryptRenewalQueue.id.desc())
+    q = q.limit(limit)\
+        .offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__LetsencryptRenewalQueue__by_id(dbSession, set_id):
+    item = dbSession.query(LetsencryptRenewalQueue)\
+        .filter(LetsencryptRenewalQueue.id == set_id)\
+        .options(sqlalchemy.orm.subqueryload('certificate').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
+                 )\
+        .first()
+    return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__LetsencryptUniqueFQDNSet__count(dbSession):
     q = dbSession.query(LetsencryptUniqueFQDNSet)
     counted = q.count()
@@ -1644,3 +1681,15 @@ def create__LetsencryptOperationsEvent(dbSession, event_type_id, event_payload_d
     dbSession.add(dbEvent)
     dbSession.flush()
     return dbEvent
+
+
+def create__LetsencryptRenewalQueue(dbSession, letsencrypt_server_certificate_id, letsencrypt_operations_event_id_child_of=None):
+    # bookkeeping
+    dbQueue = LetsencryptRenewalQueue()
+    dbQueue.timestamp_entered = datetime.datetime.utcnow()
+    dbQueue.timestamp_processed = None
+    dbQueue.letsencrypt_server_certificate_id = letsencrypt_server_certificate_id
+    dbQueue.letsencrypt_operations_event_id_child_of = letsencrypt_operations_event_id_child_of
+    dbSession.add(dbQueue)
+    dbSession.flush()
+    return dbQueue

@@ -26,6 +26,7 @@
                 <li><a class="label label-info" href="/.well-known/admin/unique-fqdn-sets">&gt; unique_fqdn_sets</a> (${request.text_library.info_UniqueFQDNs[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/account-keys">&gt; account_keys</a> (${request.text_library.info_AccountKeys[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/ca-certificates">&gt; ca_certificates</a> (${request.text_library.info_CACertificates[0]})</li>
+                <li><a class="label label-info" href="/.well-known/admin/renewal-queue">&gt; renewal_queue</a></li>
             </ul>
 
             <h2>Operations</h2>
