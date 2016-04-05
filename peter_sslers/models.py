@@ -307,6 +307,8 @@ class LetsencryptDomain(Base):
     __tablename__ = 'letsencrypt_domain'
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False, )
 
     letsencrypt_server_certificate_id__latest_single = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=True)
     letsencrypt_server_certificate_id__latest_multi = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=True)
@@ -333,6 +335,16 @@ class LetsencryptDomain(Base):
                                    )
 
 
+class LetsencryptDomainQueue(Base):
+    """
+    Domains that are included in CertificateRequests or Certificates
+    The DomainQueue will allow you to queue-up domain names for management
+    """
+    __tablename__ = 'letsencrypt_domain_queue'
+    id = sa.Column(sa.Integer, primary_key=True)
+    domain_name = sa.Column(sa.Unicode(255), nullable=False)
+
+
 class LetsencryptOperationsEventType(object):
     """
     This client tracks different types of events:
@@ -346,6 +358,8 @@ class LetsencryptOperationsEventType(object):
     nginx_cache_flush = 7
     certificate_mark_deactivate = 8
     certificate_mark_revoked = 9
+    domain_mark_inactive = 10
+    domain_mark_active = 11
 
 
 class LetsencryptOperationsEvent(Base):
@@ -386,6 +400,10 @@ class LetsencryptOperationsEvent(Base):
             return 'certificate_mark_deactivate'
         elif self.letsencrypt_operations_event_type_id == 9:
             return 'certificate_mark_revoked'
+        elif self.letsencrypt_operations_event_type_id == 10:
+            return 'domain_mark_inactive'
+        elif self.letsencrypt_operations_event_type_id == 11:
+            return 'domain_mark_active'
         return 'unknown'
 
 
@@ -753,7 +771,8 @@ LetsencryptPrivateKey.signed_certificates_5 = sa.orm.relationship(
 LetsencryptDomain.domain_to_certificate_requests_5 = sa.orm.relationship(
     LetsencryptCertificateRequest2LetsencryptDomain,
     primaryjoin=(
-        sa.and_(LetsencryptDomain.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id,
+        sa.and_(
+            LetsencryptDomain.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id,
                 LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.in_(
                     sa.select([LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id])
                     .where(LetsencryptDomain.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id)
@@ -761,7 +780,7 @@ LetsencryptDomain.domain_to_certificate_requests_5 = sa.orm.relationship(
                     .limit(5)
                     .correlate()
                 )
-                )
+        )
     ),
     order_by=LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.desc(),
     viewonly=True
@@ -775,21 +794,20 @@ LetsencryptDomain.certificates_5 = sa.orm.relationship(
                          LetsencryptServerCertificate,
                          LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id
                   )"""),
-    primaryjoin=(sa.and_(LetsencryptDomain.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id,
-                         )
-                 ),
-    secondaryjoin=(sa.and_(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == sa.orm.foreign(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id),
-                           LetsencryptServerCertificate.id.in_(
-                               sa.select([LetsencryptServerCertificate.id])
-                               .where(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet.id)
-                               .where(LetsencryptUniqueFQDNSet.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id)
-                               .where(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id)
-                               .order_by(LetsencryptServerCertificate.id.desc())
-                               .limit(5)
-                               .correlate()
-                           )
-                           )
-                   ),
+    primaryjoin="LetsencryptDomain.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id",
+    secondaryjoin=(
+        sa.and_(
+            LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == sa.orm.foreign(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id),
+            LetsencryptServerCertificate.id.in_(
+                sa.select([LetsencryptServerCertificate.id])
+                .where(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id)
+                .where(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id)
+                .order_by(LetsencryptServerCertificate.id.desc())
+                .limit(5)
+                .correlate()
+            )
+        )
+    ),
     order_by=LetsencryptServerCertificate.id.desc(),
     viewonly=True
 )

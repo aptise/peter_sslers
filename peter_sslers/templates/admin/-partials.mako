@@ -211,7 +211,7 @@
         <tbody>
         % for renewal_queue in renewal_items:
             <tr>
-                <td><a href="/.well-known/admin/renewal-queue/item/${renewal_queue.id}" class="label label-info">
+                <td><a href="/.well-known/admin/queue-renewal/${renewal_queue.id}" class="label label-info">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     ${renewal_queue.id}</a>
                 </td>

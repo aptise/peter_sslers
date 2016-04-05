@@ -22,10 +22,10 @@
                     certificates</a> (${request.text_library.info_Certificates[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/certificate-requests">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate_requests</a> (${request.text_library.info_CertificateRequests[0]})</li>
+                    certificate-requests</a> (${request.text_library.info_CertificateRequests[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/private-keys">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                private_keys</a> (${request.text_library.info_PrivateKeys[0]})</li>
+                private-keys</a> (${request.text_library.info_PrivateKeys[0]})</li>
             </ul>
 
 
@@ -33,16 +33,16 @@
             <ul>
                 <li><a class="label label-info" href="/.well-known/admin/unique-fqdn-sets">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    unique_fqdn_sets</a> (${request.text_library.info_UniqueFQDNs[0]})</li>
+                    unique-fqdn-sets</a> (${request.text_library.info_UniqueFQDNs[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/account-keys">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    account_keys</a> (${request.text_library.info_AccountKeys[0]})</li>
+                    account-keys</a> (${request.text_library.info_AccountKeys[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/ca-certificates">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    ca_certificates</a> (${request.text_library.info_CACertificates[0]})</li>
-                <li><a class="label label-info" href="/.well-known/admin/renewal-queue">
+                    ca-certificates</a> (${request.text_library.info_CACertificates[0]})</li>
+                <li><a class="label label-info" href="/.well-known/admin/queue-renewals">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    renewal_queue</a></li>
+                    queue-renewals</a></li>
             </ul>
 
             <h2>Operations</h2>

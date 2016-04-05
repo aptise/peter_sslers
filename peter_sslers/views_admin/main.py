@@ -19,16 +19,6 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_CertificateRequest_new_flow,
-                         # Form_CertificateRequest_new_full,
-                         Form_CertificateRequest_new_full__file,
-                         Form_CertificateRequest_process_domain,
-                         Form_CertificateUpload__file,
-                         Form_CACertificateUpload__file,
-                         Form_CACertificateUploadBundle__file,
-                         Form_PrivateKey_new__file,
-                         Form_AccountKey_new__file,
-                         )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page

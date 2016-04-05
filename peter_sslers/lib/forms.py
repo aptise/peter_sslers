@@ -64,6 +64,56 @@ class _Form_Schema_Base(_FormSchema):
     filter_extra_fields = True
 
 
+class Form_AccountKey_new__full(_Form_Schema_Base):
+    account_key = UnicodeString(not_empty=False, if_missing=None)
+    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    chained_validators = [OnlyOneOf(('account_key', 'account_key_file', ), not_empty=True),
+                          ]
+
+
+class Form_AccountKey_new__file(_Form_Schema_Base):
+    account_key_file = FieldStorageUploadConverter(not_empty=True)
+
+
+class Form_CACertificate_Upload__file(_Form_Schema_Base):
+    chain_file = FieldStorageUploadConverter(not_empty=True)
+    chain_file_name = UnicodeString(not_empty=False, if_missing=None)
+
+
+class Form_CACertificate_UploadBundle__file(_Form_Schema_Base):
+    isrgrootx1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    foo = UnicodeString(not_empty=False, if_missing=None)
+
+for xi in letsencrypt_info.CA_CROSS_SIGNED_X:
+    Form_CACertificate_UploadBundle__file.add_field(
+        "le_%s_cross_signed_file" % xi,
+        FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    )
+
+for xi in letsencrypt_info.CA_AUTH_X:
+    Form_CACertificate_UploadBundle__file.add_field(
+        "le_%s_auth_file" % xi,
+        FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    )
+
+
+class Form_Certificate_Upload__file(_Form_Schema_Base):
+    private_key_file = FieldStorageUploadConverter(not_empty=True)
+    certificate_file = FieldStorageUploadConverter(not_empty=True)
+    chain_file = FieldStorageUploadConverter(not_empty=True)
+
+
+class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
+    private_key_option = OneOf(('existing', 'upload', ))
+    account_key_option = OneOf(('existing', 'upload', ))
+    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+
+
+class Form_Certificate_Mark(_Form_Schema_Base):
+    action = OneOf(('deactivate', 'revoked', ))
+
+
 class Form_CertificateRequest_new_flow(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
 
@@ -93,15 +143,8 @@ class Form_CertificateRequest_process_domain(_Form_Schema_Base):
     challenge_text = UnicodeString(not_empty=True)
 
 
-class Form_AccountKey_new__full(_Form_Schema_Base):
-    account_key = UnicodeString(not_empty=False, if_missing=None)
-    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    chained_validators = [OnlyOneOf(('account_key', 'account_key_file', ), not_empty=True),
-                          ]
-
-
-class Form_AccountKey_new__file(_Form_Schema_Base):
-    account_key_file = FieldStorageUploadConverter(not_empty=True)
+class Form_Domain_Mark(_Form_Schema_Base):
+    action = OneOf(('active', 'inactive', ))
 
 
 class Form_PrivateKey_new__full(_Form_Schema_Base):
@@ -113,42 +156,3 @@ class Form_PrivateKey_new__full(_Form_Schema_Base):
 
 class Form_PrivateKey_new__file(_Form_Schema_Base):
     private_key_file = FieldStorageUploadConverter(not_empty=True)
-
-
-class Form_CertificateUpload__file(_Form_Schema_Base):
-    private_key_file = FieldStorageUploadConverter(not_empty=True)
-    certificate_file = FieldStorageUploadConverter(not_empty=True)
-    chain_file = FieldStorageUploadConverter(not_empty=True)
-
-
-class Form_CACertificateUpload__file(_Form_Schema_Base):
-    chain_file = FieldStorageUploadConverter(not_empty=True)
-    chain_file_name = UnicodeString(not_empty=False, if_missing=None)
-
-
-class Form_CACertificateUploadBundle__file(_Form_Schema_Base):
-    isrgrootx1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    foo = UnicodeString(not_empty=False, if_missing=None)
-
-for xi in letsencrypt_info.CA_CROSS_SIGNED_X:
-    Form_CACertificateUploadBundle__file.add_field(
-        "le_%s_cross_signed_file" % xi,
-        FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    )
-
-for xi in letsencrypt_info.CA_AUTH_X:
-    Form_CACertificateUploadBundle__file.add_field(
-        "le_%s_auth_file" % xi,
-        FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    )
-
-
-class Form_CertificateRenewal_Custom(_Form_Schema_Base):
-    private_key_option = OneOf(('existing', 'upload', ))
-    account_key_option = OneOf(('existing', 'upload', ))
-    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-
-
-class Form_Certificate_Mark(_Form_Schema_Base):
-    action = OneOf(('deactivate', 'revoked', ))

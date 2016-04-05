@@ -29,10 +29,12 @@
                     <tr>
                         <th>id</th>
                         <th>domain name</th>
+                        <th>is active</th>
                         <th>latest_certificate_multi</th>
                         <th>latest_certificate_single</th>
                     </tr>
                     <tr>
+                        <th></th>
                         <th></th>
                         <th></th>
                         <th>id, expiring, days</th>
@@ -47,7 +49,12 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${d.id}</a>
                         </td>
-                        <td>${d.domain_name}</td>
+                        <td><code>${d.domain_name}</code></td>
+                        <td>
+                            <span class="label label-${'success' if d.is_active else 'warning'}">
+                                ${'Active' if d.is_active else 'inactive'}
+                            </span>
+                        </td>
                         <td>
                             % if d.letsencrypt_server_certificate_id__latest_multi:
                                 <a  class="label label-info"

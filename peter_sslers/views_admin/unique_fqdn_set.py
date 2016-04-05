@@ -15,9 +15,6 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_CertificateUpload__file,
-                         Form_CertificateRenewal_Custom,
-                         )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page

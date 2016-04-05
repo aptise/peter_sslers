@@ -110,6 +110,8 @@ def includeme(config):
         config.add_route_7('admin:domain:focus:calendar', '/.well-known/admin/domain/{domain_identifier}/calendar')
         config.add_route_7('admin:domain:focus:unique_fqdn_sets', '/.well-known/admin/domain/{domain_identifier}/unique-fqdn-sets')
         config.add_route_7('admin:domain:focus:unique_fqdn_sets_paginated', '/.well-known/admin/domain/{domain_identifier}/unique-fqdn-sets/{@page}')
+        config.add_route_7('admin:domain:focus:mark', '/.well-known/admin/domain/{domain_identifier}/mark')
+        config.add_route_7('admin:domain:focus:mark:json', '/.well-known/admin/domain/{domain_identifier}/mark.json')
 
         # Operations & sync events
         config.add_route_7('admin:operations', '/.well-known/admin/operations')
@@ -151,11 +153,11 @@ def includeme(config):
         config.add_route_7('admin:private_key:new', '/.well-known/admin/private-key/new')
 
         # Unique FQDN Sets are tied to Certs and Ratelimits
-        config.add_route_7('admin:renewal_queue', '/.well-known/admin/renewal-queue')
-        config.add_route_7('admin:renewal_queue_paginated', '/.well-known/admin/renewal-queue/{@page}')
-        config.add_route_7('admin:renewal_queue:all', '/.well-known/admin/renewal-queue/all')
-        config.add_route_7('admin:renewal_queue:all_paginated', '/.well-known/admin/renewal-queue/all/{@page}')
-        config.add_route_7('admin:renewal_queue:focus', '/.well-known/admin/renewal-queue/item/{@id}')
+        config.add_route_7('admin:queue_renewals', '/.well-known/admin/queue-renewals')
+        config.add_route_7('admin:queue_renewals_paginated', '/.well-known/admin/queue-renewals/{@page}')
+        config.add_route_7('admin:queue_renewal:all', '/.well-known/admin/queue-renewals/all')
+        config.add_route_7('admin:queue_renewal:all_paginated', '/.well-known/admin/queue-renewals/all/{@page}')
+        config.add_route_7('admin:queue_renewal:focus', '/.well-known/admin/queue-renewal/{@id}')
 
         # Unique FQDN Sets are tied to Certs and Ratelimits
         config.add_route_7('admin:unique_fqdn_sets', '/.well-known/admin/unique-fqdn-sets')

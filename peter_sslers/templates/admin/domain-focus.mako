@@ -31,7 +31,38 @@
         </tr>
         <tr>
             <th>domain_name</th>
-            <td>${LetsencryptDomain.domain_name}</td>
+            <td><code>${LetsencryptDomain.domain_name}</code></td>
+        </tr>
+        <tr>
+            <th>timestamp_first_seen</th>
+            <td><timestamp>${LetsencryptDomain.timestamp_first_seen}</timestamp></td>
+        </tr>
+        <tr>
+            <th>is_active</th>
+            <td>
+                <span class="label label-${'success' if LetsencryptDomain.is_active else 'warning'}">
+                    ${'Active' if LetsencryptDomain.is_active else 'inactive'}
+                </span>
+
+                % if LetsencryptDomain.is_active:
+                    &nbsp;
+                    <a  class="label label-warning"
+                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/mark?action=inactive"
+                    >
+                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                        inactive
+                    </a>
+                % else:
+                    &nbsp;
+                    <a  class="label label-success"
+                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/mark?action=active"
+                    >
+                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                        active
+                    </a>
+                % endif
+
+            </td>
         </tr>
         <tr>
             <th>json_config</th>

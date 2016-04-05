@@ -15,8 +15,8 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_CACertificateUpload__file,
-                         Form_CACertificateUploadBundle__file,
+from ..lib.forms import (Form_CACertificate_Upload__file,
+                         Form_CACertificate_UploadBundle__file,
                          )
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
@@ -126,7 +126,7 @@ class ViewAdmin(Handler):
     def _ca_certificate_upload__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CACertificateUpload__file,
+                                                             schema=Form_CACertificate_Upload__file,
                                                              validate_get=False
                                                              )
             if not result:
@@ -198,7 +198,7 @@ class ViewAdmin(Handler):
     def _ca_certificate_upload_bundle__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CACertificateUploadBundle__file,
+                                                             schema=Form_CACertificate_UploadBundle__file,
                                                              validate_get=False
                                                              )
             if not result:

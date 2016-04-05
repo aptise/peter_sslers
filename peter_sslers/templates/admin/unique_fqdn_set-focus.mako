@@ -59,6 +59,11 @@
                                                 ${to_domain.domain.id}
                                             </a>
                                         </td>
+                                        <td>
+                                            <span class="label label-${'success' if to_domain.domain.is_active else 'warning'}">
+                                                ${'Active' if to_domain.domain.is_active else 'inactive'}
+                                            </span>
+                                        </td>
                                         <td>${to_domain.domain.domain_name}</td>
                                     </tr>
                                 % endfor

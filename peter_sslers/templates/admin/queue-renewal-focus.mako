@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/renewal-queue">Renewal Queue</a></li>
+        <li><a href="/.well-known/admin/queue-renewal">Renewal Queue</a></li>
         <li class="active">Focus [${RenewalQueueItem.id}]</li>
     </ol>
 </%block>

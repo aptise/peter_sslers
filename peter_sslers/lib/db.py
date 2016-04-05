@@ -197,6 +197,15 @@ def get__LetsencryptRenewalQueue__by_id(dbSession, set_id):
     return item
 
 
+def get__LetsencryptRenewalQueue__by_LetsencryptUniqueFQDNSetId__active(dbSession, set_id):
+    q = dbSession.query(LetsencryptRenewalQueue)\
+        .filter(LetsencryptRenewalQueue.letsencrypt_unique_fqdn_set_id == set_id,
+                LetsencryptRenewalQueue.timestamp_processed.op('IS')(None),
+                )
+    items_paged = q.all()
+    return items_paged
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -654,6 +663,7 @@ def getcreate__LetsencryptDomain__by_domainName(dbSession, domain_name):
     if not dbDomain:
         dbDomain = LetsencryptDomain()
         dbDomain.domain_name = domain_name
+        dbDomain.timestamp_first_seen = datetime.datetime.utcnow()
         dbSession.add(dbDomain)
         dbSession.flush()
     return dbDomain

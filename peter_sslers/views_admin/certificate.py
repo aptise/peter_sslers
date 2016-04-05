@@ -15,8 +15,8 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_CertificateUpload__file,
-                         Form_CertificateRenewal_Custom,
+from ..lib.forms import (Form_Certificate_Upload__file,
+                         Form_Certificate_Renewal_Custom,
                          Form_Certificate_Mark,
                          )
 from ..lib.handler import Handler, items_per_page
@@ -83,7 +83,7 @@ class ViewAdmin(Handler):
     def _certificate_upload__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CertificateUpload__file,
+                                                             schema=Form_Certificate_Upload__file,
                                                              validate_get=False
                                                              )
             if not result:
@@ -294,7 +294,7 @@ class ViewAdmin(Handler):
         dbLetsencryptServerCertificate = self.dbLetsencryptServerCertificate
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CertificateRenewal_Custom,
+                                                             schema=Form_Certificate_Renewal_Custom,
                                                              validate_get=False
                                                              )
             if not result:

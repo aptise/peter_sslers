@@ -15,9 +15,6 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_CACertificateUpload__file,
-                         Form_CACertificateUploadBundle__file,
-                         )
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
 from ..lib import db as lib_db

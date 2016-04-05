@@ -33,7 +33,7 @@
                     </thead>
                     % for q in LetsencryptRenewalQueues:
                         <tr>
-                            <td><a class="label label-info" href="/.well-known/admin/renewal-queue/item/${q.id}">
+                            <td><a class="label label-info" href="/.well-known/admin/queue-renewal/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.id}</a></td>
                             <td><a class="label label-info" href="/.well-known/admin/certificate/${q.letsencrypt_server_certificate_id}">
@@ -56,8 +56,8 @@
         </div>
         <div class="col-sm-3">
             <ul class="nav nav-pills nav-stacked">
-              <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="/.well-known/admin/renewal-queue">Unprocessed Items</a></li>
-              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="/.well-known/admin/renewal-queue/all">All Items</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="/.well-known/admin/queue-renewals">Unprocessed Items</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="/.well-known/admin/queue-renewals/all">All Items</a></li>
             </ul>
         </div>
     </div>

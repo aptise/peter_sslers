@@ -15,15 +15,7 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_CertificateRequest_new_flow,
-                         # Form_CertificateRequest_new_full,
-                         Form_CertificateRequest_new_full__file,
-                         Form_CertificateRequest_process_domain,
-                         Form_CertificateUpload__file,
-                         Form_CACertificateUpload__file,
-                         Form_CACertificateUploadBundle__file,
-                         Form_PrivateKey_new__file,
-                         Form_AccountKey_new__file,
+from ..lib.forms import (Form_Domain_Mark,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
@@ -104,6 +96,7 @@ class ViewAdmin(Handler):
         dbLetsencryptDomain = self._domain_focus()
         rval = {'domain': {'id': str(dbLetsencryptDomain.id),
                            'domain_name': dbLetsencryptDomain.domain_name,
+                           'is_active': dbLetsencryptDomain.is_active,
                            },
                 'latest_certificate_single': None,
                 'latest_certificate_multi': None,
@@ -193,3 +186,62 @@ class ViewAdmin(Handler):
                 'LetsencryptUniqueFQDNSets': items_paged,
                 'pager': pager,
                 }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:domain:focus:mark', renderer=None)
+    @view_config(route_name='admin:domain:focus:mark:json', renderer='json')
+    def domain_focus_mark(self):
+        dbLetsencryptDomain = self._domain_focus()
+        try:
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_Domain_Mark,
+                                                             validate_get=True
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            action = formStash.results['action']
+            event_type = None
+            event_payload = {'domain_id': dbLetsencryptDomain.id,
+                             'v': 1,
+                             }
+            if action == 'active':
+                if dbLetsencryptDomain.is_active:
+                    raise formhandling.FormInvalid('Already active')
+                dbLetsencryptDomain.is_active = True
+                event_type = LetsencryptOperationsEventType.domain_mark_active
+            elif action == 'inactive':
+                if not dbLetsencryptDomain.is_active:
+                    raise formhandling.FormInvalid('Already inactive')
+                dbLetsencryptDomain.is_active = False
+                event_type = LetsencryptOperationsEventType.domain_mark_inactive
+            else:
+                raise formhandling.FormInvalid('invalid `action`')
+                
+            DBSession.flush()
+
+            # bookkeeping
+            operationsEvent = lib_db.create__LetsencryptOperationsEvent(
+                DBSession,
+                event_type,
+                event_payload,
+            )
+            url_success = '/.well-known/admin/domain/%s?operation=mark&action=%s&result=sucess' % (
+                dbLetsencryptDomain.id,
+                action,
+            )
+            return HTTPFound(url_success)
+            
+        except formhandling.FormInvalid:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            url_failure = '/.well-known/admin/domain/%s?operation=mark&action=%s&result=error&error=%s' % (
+                dbLetsencryptDomain.id,
+                action,
+                e.message,
+            )
+            raise HTTPFound(url_failure)
