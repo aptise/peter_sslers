@@ -14,7 +14,7 @@
     <h2>Domains</h2>
     These domains are known to the system.
 </%block>
-    
+
 
 <%block name="content_main">
     <div class="col-sm-9">
@@ -80,7 +80,7 @@
                     </tr>
                 % endfor
             </table>
-        
+
         % else:
             <em>
                 No Domains

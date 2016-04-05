@@ -74,7 +74,7 @@
                 </td>
                 <td>
                     <span class="label label-defaul">${to_cr.certificate_request.certificate_request_type}</span>
-                </td>                
+                </td>
                 <td><timestamp>${to_cr.timestamp_verified or ''}</timestamp></td>
                 <td><code>${to_cr.challenge_key or ''}</code></td>
                 <td><code>${to_cr.challenge_text or ''}</code></td>
@@ -160,7 +160,7 @@
                 </td>
                 <td>
                     <span class="label label-default">${certificate_request.certificate_request_type}</span>
-                </td>                
+                </td>
                 <td>
                     <span class="label label-${'success' if certificate_request.is_active else 'warning'}">
                         ${'Active' if certificate_request.is_active else 'inactive'}
@@ -181,7 +181,7 @@
                         % else:
                             &nbsp;
                         % endif
-                    </td>                
+                    </td>
                 % endif
                 <td><timestamp>${certificate_request.timestamp_started}</timestamp></td>
                 <td><timestamp>${certificate_request.timestamp_finished or ''}</timestamp></td>
@@ -307,7 +307,7 @@
                     <td>
                         % if active_domain_id == to_d.letsencrypt_domain_id:
                             % if to_d.is_configured:
-                                <span 
+                                <span
                                     class="label label-success">configured</span>
                             % else:
                                 <span
@@ -315,7 +315,7 @@
                             % endif
                         % else:
                             % if to_d.is_configured:
-                                <a 
+                                <a
                                     href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
                                     class="label label-success">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -336,7 +336,7 @@
                     </td>
                     <td>
                         % if to_d.timestamp_verified:
-                            <span class="label label-success">verified</span>                            
+                            <span class="label label-success">verified</span>
                         % else:
                             &nbsp;
                         % endif
@@ -441,7 +441,7 @@
            This is the easiest way to register with LetsEncrypt and opt into their TOS.
         </p>
         <p>
-            You have to convert the key from <code>jwk</code> to <code>pem</code> format.  
+            You have to convert the key from <code>jwk</code> to <code>pem</code> format.
             The easiest way is outlined on this github page: <a href="https://github.com/diafygi/acme-tiny">https://github.com/diafygi/acme-tiny</a>
         </p>
 </%def>
@@ -550,7 +550,7 @@
         </p>
     </div>
     <hr/>
-    
+
     % for xi in CA_AUTH_X:
         <div class="form-group clearfix">
             <label for="f1-le_${xi}_auth_file">Let’s Encrypt Authority ${xi}</label>
@@ -572,7 +572,7 @@
         </div>
         <hr/>
     % endfor
-    
+
 </%def>
 
 
@@ -619,7 +619,7 @@
     <nav>
       <ul class="pager">
         <li>
-            <a 
+            <a
                 href="${see_all_url}"
             >${see_all_text}</a>
         </li>

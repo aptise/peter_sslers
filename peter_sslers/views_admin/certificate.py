@@ -372,8 +372,9 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results['action']
-            event_type = None
+            event_type = LetsencryptOperationsEventType.certificate_mark
             event_payload = {'certificate_id': dbLetsencryptServerCertificate.id,
+                             'action': action,
                              'v': 1,
                              }
             update_recents = False
@@ -383,7 +384,6 @@ class ViewAdmin(Handler):
                     raise formhandling.FormInvalid('Already deactivated')
                 dbLetsencryptServerCertificate.is_deactivated = True
                 dbLetsencryptServerCertificate.is_active = False
-                event_type = LetsencryptOperationsEventType.certificate_mark_deactivate
                 update_recents = True
                 deactivated = True
             elif action == 'revoked':
@@ -391,12 +391,11 @@ class ViewAdmin(Handler):
                     raise formhandling.FormInvalid('Already revoked')
                 dbLetsencryptServerCertificate.is_revoked = True
                 dbLetsencryptServerCertificate.is_active = False
-                event_type = LetsencryptOperationsEventType.certificate_mark_revoked
                 update_recents = True
                 deactivated = True
             else:
                 raise formhandling.FormInvalid('invalid `action`')
-                
+
             DBSession.flush()
 
             # bookkeeping
@@ -422,7 +421,7 @@ class ViewAdmin(Handler):
                 action,
             )
             return HTTPFound(url_success)
-            
+
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",

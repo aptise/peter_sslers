@@ -14,7 +14,7 @@
 <%block name="page_header">
     <h2>Unique FQDN Set: Focus</h2>
 </%block>
-    
+
 
 <%block name="content_main">
     <div class="row">
@@ -125,7 +125,7 @@
                     </tbody>
                 </table>
                         </td>
-                    </tr>    
+                    </tr>
                     <tr>
                         <th>certificates history</th>
                         <td>

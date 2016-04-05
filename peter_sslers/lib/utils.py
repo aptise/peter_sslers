@@ -1,6 +1,7 @@
 # stdlib
 import hashlib
 import json
+import re
 
 # pypi
 try:
@@ -13,6 +14,30 @@ from .. import lib
 from .. import models
 
 # ==============================================================================
+
+
+RE_domain = re.compile('^(?:[\w\-]+\.)+[\w]{2,5}$')
+
+
+# ==============================================================================
+
+
+def validate_domains(domain_names):
+    for d in domain_names:
+        if not RE_domain.match(d):
+            raise ValueError("invalid name: `%s`", d)
+    return True
+
+
+def domains_from_string(text):
+    # generate list
+    domain_names = [d.strip().lower() for d in text.split(',')]
+    # make the list unique
+    domain_names = list(set(domain_names))
+    # validate the list
+    validate_domains(domain_names)
+    return domain_names
+    
 
 
 def md5_text(text):

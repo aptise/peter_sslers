@@ -15,7 +15,7 @@
     <h2>CA Certificate - Focus</h2>
     <p>${request.text_library.info_CACertificates[1]}</p>
 </%block>
-    
+
 
 <%block name="content_main">
 
@@ -132,12 +132,12 @@
                     ${admin_partials.nav_pager("/.well-known/admin/ca-certificate/%s/signed_certificates" % LetsencryptCACertificate.id)}
                 % else:
                     No known certificates.
-                % endif 
+                % endif
             </td>
         </tr>
-        
+
     </table>
 
 
-    
+
 </%block>

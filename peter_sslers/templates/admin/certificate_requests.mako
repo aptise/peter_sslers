@@ -14,7 +14,7 @@
     <h2>Certificate Requests</h2>
 </%block>
 
-    
+
 <%block name="content_main">
 
     % if request.params.get('error'):

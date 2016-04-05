@@ -18,7 +18,7 @@
 <%block name="page_header">
     <h2>Certificate - Focus - RENEW</h2>
 </%block>
-    
+
 
 <%block name="content_main">
 
@@ -30,9 +30,9 @@
                   enctype="multipart/form-data"
             >
                 <h3>Custom Renewal</h3>
-        
+
                 <p>We will generate a new CSR through letsencypt</p>
-        
+
                 <table class="table table-striped table-condensed">
                     <tr>
                         <th>renewal of: id</th>
@@ -69,7 +69,7 @@
                                 <div class="radio">
                                     <label>
                                         <input type="radio" name="account_key_option" id="account_key_option-existing" value="existing" checked="checked">
-                                        Use existing Account Key 
+                                        Use existing Account Key
                                     </label>
                                     <a  class="btn btn-xs btn-info"
                                         href="/.well-known/admin/account-keys/${LetsencryptServerCertificate.letsencrypt_account_key_id}"
@@ -89,7 +89,7 @@
                             % endif
 
                             ${admin_partials.formgroup__account_key_file(show_text=False)}
-                
+
                         </td>
                     </tr>
                     <tr>
@@ -113,9 +113,9 @@
                         </td>
                     </tr>
                 </table>
-        
+
                 <input type="submit" value="submit" />
-        
+
             </form>
         </div>
     </div>

@@ -158,7 +158,7 @@ class ViewAdmin(Handler):
                                        )\
             .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
                   LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id,
-            )\
+                  )\
             .filter(LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == dbLetsencryptDomain.id,
                     )\
             .group_by('week_num')\
@@ -202,23 +202,22 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results['action']
-            event_type = None
+            event_type = LetsencryptOperationsEventType.domain_mark
             event_payload = {'domain_id': dbLetsencryptDomain.id,
+                             'action': action,
                              'v': 1,
                              }
             if action == 'active':
                 if dbLetsencryptDomain.is_active:
                     raise formhandling.FormInvalid('Already active')
                 dbLetsencryptDomain.is_active = True
-                event_type = LetsencryptOperationsEventType.domain_mark_active
             elif action == 'inactive':
                 if not dbLetsencryptDomain.is_active:
                     raise formhandling.FormInvalid('Already inactive')
                 dbLetsencryptDomain.is_active = False
-                event_type = LetsencryptOperationsEventType.domain_mark_inactive
             else:
                 raise formhandling.FormInvalid('invalid `action`')
-                
+
             DBSession.flush()
 
             # bookkeeping
@@ -232,7 +231,7 @@ class ViewAdmin(Handler):
                 action,
             )
             return HTTPFound(url_success)
-            
+
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",

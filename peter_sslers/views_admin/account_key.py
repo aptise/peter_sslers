@@ -200,7 +200,7 @@ class ViewAdmin(Handler):
                 dbLetsencryptAccountKey.is_default = True
             else:
                 raise formhandling.FormInvalid('invalid `action`')
-                
+
             DBSession.flush()
 
             # bookkeeping
@@ -214,7 +214,7 @@ class ViewAdmin(Handler):
                 action,
             )
             return HTTPFound(url_success)
-            
+
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",

@@ -15,7 +15,7 @@
 <%block name="page_header">
     <h2>CA Certificate - Focus - Signed Certificates</h2>
 </%block>
-    
+
 
 <%block name="content_main">
 
@@ -24,6 +24,6 @@
         ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
     % else:
         No known certificates.
-    % endif 
-    
+    % endif
+
 </%block>

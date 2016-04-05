@@ -13,7 +13,7 @@
 <%block name="page_header">
     <h2>Renewal Queue</h2>
 </%block>
-    
+
 
 <%block name="content_main">
     <div class="row">

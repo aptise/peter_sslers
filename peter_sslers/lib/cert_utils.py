@@ -178,7 +178,7 @@ def validate_key__pem(key_pem):
     finally:
         if tmpfile_pem:
             tmpfile_pem.close()
-    
+
 
 def validate_key__pem_filepath(pem_filepath):
     # openssl rsa -in {KEY} -check
@@ -335,7 +335,7 @@ def verify_partial_chain__paths(pem_filepath_chain=None, pem_filepath_cert=None)
     openssl verify -partial_chain -CAfile example.com.chain.pem -CApath - example.com.cert.pem
     note the '-' between "-CApath - example.com.cert.pem"
     openssl will hang without it
-    
+
     #TODO This may not be working correctly.  Needs more testing.
     """
     raise NotImplementedError()

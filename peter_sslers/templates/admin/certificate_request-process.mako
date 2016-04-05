@@ -14,10 +14,10 @@
 <%block name="page_header">
     <h2>Certificate Request - Process</h2>
 </%block>
-    
+
 <%block name="content_main">
 
-    <p>Workspace for 
+    <p>Workspace for
         <a  class="label label-default"
             href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}"
         >Certificate ${LetsencryptCertificateRequest.id} | ${LetsencryptCertificateRequest.timestamp_started}</a>
@@ -25,17 +25,17 @@
     </p>
 
     <p>The `process` tool lets you enter the challenge info for a certification request.</p>
-    
+
     <p>The <code>key</code> is the name of the file letsencrypt expects at a url.
         The <code>value</code> are the files contents.
     </p>
 
     <p>If letsencrypt says the url should be <code>example.com/acme-challenge/foo-bar-biz</code> , then the key is <code>foo-bar-biz</code></p>
-    
+
     <% request_inactive = True if not LetsencryptCertificateRequest.is_active else False %>
-    
+
     <p>This certificate request is <span class="label label-${'warning' if request_inactive else 'success'}">${"inactive" if request_inactive else "Active"}</span>.</p>
-    
+
     <div class="row">
         <div class="col-sm-6">
             <h5>Domains in Certificate Request</h5>
@@ -54,9 +54,9 @@
                     Domain: <code>${LetsencryptCertificateRequest2LetsencryptDomain.domain.domain_name}</code>
                 </p>
                 <em>if this has not been verified and the request is still active, you can still change the params</em>
-                
-                <% 
-                    form = None 
+
+                <%
+                    form = None
                     updates_allowed = True
                     if LetsencryptCertificateRequest2LetsencryptDomain.timestamp_verified:
                         updates_allowed = False

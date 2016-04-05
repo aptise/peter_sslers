@@ -16,7 +16,7 @@
     <p><em>${request.text_library.info_CertificateRequest_new_flow[1]}</em></p>
 </%block>
 
-    
+
 <%block name="content_main">
 
     <form action="/.well-known/admin/certificate-request/new-flow" method="POST">
@@ -30,7 +30,7 @@
         </div>
 
         <button type="submit" class="btn btn-default">Submit</button>
-        
+
     </form>
 
 </%block>

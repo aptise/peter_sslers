@@ -89,7 +89,7 @@ class utcnow(expression.FunctionElement):
     type = sqlalchemy.types.DateTime()
 
 
-@compiles(year_week)
+@compiles(utcnow)
 def utcnow__default(element, compiler, **kw):
     # sqlite uses UTC by default
     return 'CURRENT_TIMESTAMP'
@@ -364,10 +364,8 @@ class LetsencryptOperationsEventType(object):
     redis_prime = 5
     nginx_cache_expire = 6
     nginx_cache_flush = 7
-    certificate_mark_deactivate = 8
-    certificate_mark_revoked = 9
-    domain_mark_inactive = 10
-    domain_mark_active = 11
+    certificate_mark = 8
+    domain_mark = 9
     batch_queued_domains = 12
     account_key_mark = 13
 
@@ -407,13 +405,9 @@ class LetsencryptOperationsEvent(Base):
         elif self.letsencrypt_operations_event_type_id == 7:
             return 'nginx_cache_flush'
         elif self.letsencrypt_operations_event_type_id == 8:
-            return 'certificate_mark_deactivate'
+            return 'certificate_mark'
         elif self.letsencrypt_operations_event_type_id == 9:
-            return 'certificate_mark_revoked'
-        elif self.letsencrypt_operations_event_type_id == 10:
-            return 'domain_mark_inactive'
-        elif self.letsencrypt_operations_event_type_id == 11:
-            return 'domain_mark_active'
+            return 'domain_mark'
         elif self.letsencrypt_operations_event_type_id == 12:
             return 'batch_queued_domains'
         return 'unknown'
@@ -913,6 +907,3 @@ LetsencryptUniqueFQDNSet.latest_active_certificate = sa.orm.relationship(
 )
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-

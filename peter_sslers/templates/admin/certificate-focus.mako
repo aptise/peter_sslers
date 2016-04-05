@@ -16,7 +16,7 @@
 
 <%block name="page_header">
     <h2>Certificate - Focus</h2>
-    
+
     % if request.params.get('error'):
         <div class="alert alert-danger">
             <b>Error</b>
@@ -24,9 +24,9 @@
             ${request.params.get('error')}
         </div>
     % endif
-    
+
 </%block>
-    
+
 
 <%block name="content_main">
 
@@ -437,5 +437,5 @@
             </td>
         </tr>
     </table>
-    
+
 </%block>

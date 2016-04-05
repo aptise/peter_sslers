@@ -22,12 +22,12 @@
     </div>
 </%block>
 
-    
+
 <%block name="content_main">
 
     <div class="row">
         <div class="col-sm-6">
-        
+
             <%! show_text = False %>
 
             <form
@@ -46,7 +46,7 @@
                 <hr/>
 
                 <button type="submit" class="btn btn-default">Submit</button>
-        
+
             </form>
         </div>
         <div class="col-sm-6">

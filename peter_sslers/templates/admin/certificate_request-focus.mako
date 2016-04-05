@@ -14,7 +14,7 @@
 <%block name="page_header">
     <h2>Certificate Request - Focus</h2>
 </%block>
-    
+
 
 <%block name="content_main">
 
@@ -149,16 +149,16 @@
             </td>
         </tr>
     </table>
-    
+
     % if LetsencryptCertificateRequest.is_active and LetsencryptCertificateRequest.certificate_request_type_is('flow'):
-        <a 
+        <a
             href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process"
             class="btn btn-info"
         >
             <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
             Edit Codes
         </a>
-        <a 
+        <a
             href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/deactivate"
             class="btn btn-primary"
         >

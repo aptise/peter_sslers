@@ -16,12 +16,12 @@
     <p><em>${request.text_library.info_CACertificates[1]}</em></p>
 </%block>
 
-    
+
 <%block name="content_main">
 
     <div class="row">
         <div class="col-sm-6">
-        
+
             <%! show_text = False %>
 
             <form
@@ -36,14 +36,14 @@
                 <hr/>
 
                 <button type="submit" class="btn btn-default">Submit</button>
-        
+
             </form>
         </div>
         <div class="col-sm-6">
             ${admin_partials.info_CACertificate()}
 
             <h3>This form accepts JSON</h3>
-            
+
             <p>
                 <code>curl http://127.0.0.1:6543/.well-known/admin/ca-certificate/upload.json</code>
             </p>
@@ -65,7 +65,7 @@
                 <a  class="btn btn-primary"
                     href="/.well-known/admin/ca-certificate/upload-bundle"
                 >Upload CaCert Bundle</a>
-                    
+
             </p>
         </div>
     </div>

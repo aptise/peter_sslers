@@ -15,7 +15,7 @@
     <h2>Domain Focus</h2>
 </%block>
 
-    
+
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
@@ -139,7 +139,7 @@
             </td>
         </tr>
     </table>
-    
+
         </div>
         <div class="col-sm-3">
             <a  class="btn btn-info"

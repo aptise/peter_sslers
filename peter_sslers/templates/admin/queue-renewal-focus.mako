@@ -14,7 +14,7 @@
 <%block name="page_header">
     <h2>Renewal Queue | Focus</h2>
 </%block>
-    
+
 
 <%block name="content_main">
     <table class="table">

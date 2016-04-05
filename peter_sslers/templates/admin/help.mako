@@ -18,7 +18,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-6">
-        
+
             <h3>What must be installed on my webserver?</h3>
             <p>
                 Your webserver must have the following 3 items installed:
@@ -29,14 +29,14 @@
                 </ul>
                 Some webservers require the ServerCertificate and CACertificate be joined in PEM format as a "fullchain" certificate.
             </p>
-            
-        
-            
+
+
+
         </div>
         <div class="col-sm-6">
-            
+
             <p>Most pages have documentation on them</p>
-            
+
             <h4>Core Objects</h4>
             <table class="table table-striped table-condensed">
                 <tr>
@@ -59,7 +59,7 @@
                 </tr>
                 <tr>
                     <th>ServerCertificate</th>
-                    <td>Your <em>ServerCertificate</em> is an OpenSSL certificate that has been signed by a trusted <em>CACertificate</em>. 
+                    <td>Your <em>ServerCertificate</em> is an OpenSSL certificate that has been signed by a trusted <em>CACertificate</em>.
                         The <em>ServerCertificate</em> must be installed on your webserver with the <em>PrivateKey</em> that signed the corresponding <em>CertificateRequest</em> to serve https content.
                     </td>
                 </tr>
@@ -69,9 +69,9 @@
                         It must be installed on your webserver in order to serve https content.
                     </td>
                 </tr>
-                
+
             </table>
-            
+
         </div>
     </div>
 </%block>

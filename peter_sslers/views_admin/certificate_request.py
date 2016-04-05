@@ -23,6 +23,7 @@ from ..lib.forms import (Form_CertificateRequest_new_flow,
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
 from ..lib import errors as lib_errors
+from ..lib import utils as lib_utils
 from ..lib.handler import Handler, items_per_page
 
 
@@ -195,8 +196,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = [i.lower() for i in [d.strip() for d in formStash.results['domain_names'].split(',')] if i]
-            domain_names = set(domain_names)
+            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 raise ValueError("missing valid domain names")
             dbLetsencryptCertificateRequest = lib_db.create__CertificateRequest__by_domainNamesList_FLOW(DBSession, domain_names)
@@ -238,8 +238,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = [i.lower() for i in [d.strip() for d in formStash.results['domain_names'].split(',')] if i]
-            domain_names = set(domain_names)
+            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 raise ValueError("missing valid domain names")
 

@@ -2,8 +2,6 @@
 import datetime
 import logging
 
-
-
 from ..models import *
 from .. import lib
 

@@ -16,12 +16,12 @@
     <p><em>${request.text_library.info_CACertificates[1]}</em></p>
 </%block>
 
-    
+
 <%block name="content_main">
 
     <div class="row">
         <div class="col-sm-6">
-        
+
             <%! show_text = False %>
 
             <form
@@ -39,7 +39,7 @@
                 <hr/>
 
                 <button type="submit" class="btn btn-default">Submit</button>
-        
+
             </form>
         </div>
         <div class="col-sm-6">
@@ -52,7 +52,7 @@
 
 
             <h3>This form accepts JSON</h3>
-            
+
             <p>
                 <code>curl http://127.0.0.1:6543/.well-known/admin/ca-certificate/upload.json</code>
             </p>
@@ -62,10 +62,10 @@
 &nbsp;--form 'isrgrootx1_file=@isrgrootx1.pem'\<br/>
 % for xi in CA_CROSS_SIGNED_X:
     &nbsp;--form 'le_${xi}_cross_signed_file=@lets-encrypt-${xi}-cross-signed.pem'\<br/>
-% endfor 
+% endfor
 % for xi in CA_AUTH_X:
     &nbsp;--form 'le_${xi}_auth_file=@letsencryptauthority${xi}.pem'\<br/>
-% endfor 
+% endfor
 &nbsp;http://127.0.0.1:6543/.well-known/admin/ca-certificate/upload-bundle.json
 </code>
 </p>

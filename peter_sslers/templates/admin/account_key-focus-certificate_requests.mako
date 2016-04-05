@@ -16,7 +16,7 @@
     <h2>Account Key - Focus | Certificate Requests</h2>
 </%block>
 
-    
+
 <%block name="content_main">
 
     % if LetsencryptCertificateRequests:
@@ -24,6 +24,6 @@
         ${admin_partials.table_certificate_requests__list(LetsencryptCertificateRequests, show_domains=True)}
     % else:
         No known certificate requests.
-    % endif 
+    % endif
 
 </%block>

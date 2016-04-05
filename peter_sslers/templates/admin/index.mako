@@ -11,7 +11,7 @@
     <div class="row">
         <div class="col-sm-6">
             <h2>Records Archive</h2>
-            
+
             <h4>Core Objects</h4>
             <ul>
                 <li><a class="label label-info" href="/.well-known/admin/domains">

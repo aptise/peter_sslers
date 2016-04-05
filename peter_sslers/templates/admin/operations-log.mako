@@ -13,7 +13,7 @@
 <%block name="page_header">
     <h2>Operations Log</h2>
 </%block>
-    
+
 
 <%block name="content_main">
     <div class="row">

@@ -24,6 +24,7 @@ from ..lib import cert_utils as lib_cert_utils
 from ..lib import db as lib_db
 from ..lib import errors as lib_errors
 from ..lib import letsencrypt_info as lib_letsencrypt_info
+from ..lib import utils as lib_utils
 from ..lib.handler import Handler, items_per_page
 
 
@@ -98,8 +99,9 @@ class ViewAdmin(Handler):
                                                              )
             if not result:
                 raise formhandling.FormInvalid()
-                
-            domain_names = list(set([d.strip().lower() for d in formStash.results['domain_names'].split(',')]))
+
+
+            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 formStash.set_error(field="domain_names",
                                     message="Found no domain names",
@@ -138,6 +140,9 @@ class ViewAdmin(Handler):
     def queue_domain_process(self):
         try:
             queue_results = lib_db.queue_domains__process(DBSession)
+            if self.request.matched_route.name == 'admin:queue_domains:process.json':
+                return {'result': 'success',
+                        }
             return HTTPFound("/.well-known/admin/queue-domains?processed=1")
         except lib_errors.DisplayableError, e:
             # return, don't raise
@@ -147,3 +152,11 @@ class ViewAdmin(Handler):
                         'error': e.message,
                         }
             return HTTPFound("/.well-known/admin/queue-domains?processed=0&error=%s" % e.message)
+        except Exception as e:
+            transaction.abort()
+            if self.request.matched_route.name == 'admin:queue_domains:process.json':
+                return {'result': 'error',
+                        'error': e.message,
+                        }
+        
+            raise        

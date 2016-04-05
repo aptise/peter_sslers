@@ -14,7 +14,7 @@
 <%block name="page_header">
     <h2>Domains Queue | Add</h2>
 </%block>
-    
+
 
 <%block name="content_main">
     <div class="row">

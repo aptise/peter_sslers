@@ -16,7 +16,7 @@
     <h2>Domain Focus - Unique FQDN Set</h2>
 </%block>
 
-    
+
 <%block name="content_main">
 
     % if LetsencryptUniqueFQDNSets:
@@ -24,6 +24,6 @@
         ${admin_partials.table_LetsencryptUniqueFQDNSets(LetsencryptUniqueFQDNSets)}
     % else:
         No known fqdn sets.
-    % endif 
+    % endif
 
 </%block>

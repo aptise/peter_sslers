@@ -16,7 +16,7 @@
     <h2>Account Key - Focus | Certificates</h2>
 </%block>
 
-    
+
 <%block name="content_main">
 
     % if LetsencryptServerCertificates:
@@ -24,6 +24,6 @@
         ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True, show_expiring_days=True)}
     % else:
         No known certificates.
-    % endif 
+    % endif
 
 </%block>

@@ -13,7 +13,7 @@
 <%block name="page_header">
     <h2>Certificates</h2>
 </%block>
-    
+
 
 <%block name="content_main">
     <div class="row">
@@ -22,7 +22,7 @@
                 <p>Certificates that will be expiring within `${expiring_days}` days.
                 </p>
             % endif
-        
+
             % if LetsencryptServerCertificates:
                 ${admin_partials.nav_pagination(pager)}
                 ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True, show_expiring_days=True)}
