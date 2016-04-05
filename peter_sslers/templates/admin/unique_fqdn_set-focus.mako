@@ -139,6 +139,12 @@
                             % endif
                         </td>
                     </tr>
+                    <tr>
+                        <th>renewal queue</th>
+                        <td>
+                            ${admin_partials.table_renewal_queue__list(LetsencryptUniqueFQDNSet.renewal_queue, show_certificate=True)}
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>

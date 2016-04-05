@@ -32,7 +32,7 @@
                 % if show_expiring_days:
                     <td>
                         <span class="label label-${to_cert.certificate.expiring_days_label}">
-                            ${to_cert.certificate.expiring_days}
+                            ${to_cert.certificate.expiring_days} days
                         </span>
                     </td>
                 % endif
@@ -117,7 +117,7 @@
                 % if show_expiring_days:
                     <td>
                         <span class="label label-${cert.expiring_days_label}">
-                            ${cert.expiring_days}
+                            ${cert.expiring_days} days
                         </span>
                     </td>
                 % endif
@@ -188,6 +188,42 @@
                 % if show_domains:
                     <td>${certificate_request.domains_as_string}</td>
                 % endif
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+<%def name="table_renewal_queue__list(renewal_items, show_certificate=False)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                % if show_certificate:
+                    <th>certificate</th>
+                % endif
+                <th>timestamp_entered</th>
+                <th>letsencrypt_operations_event_id__child_of</th>
+                <th>timestamp_processed</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for renewal_queue in renewal_items:
+            <tr>
+                <td><a href="/.well-known/admin/renewal-queue/item/${renewal_queue.id}" class="label label-info">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    ${renewal_queue.id}</a>
+                </td>
+                % if show_certificate:
+                    <td><a href="/.well-known/admin/certificate/${renewal_queue.letsencrypt_server_certificate_id}" class="label label-info">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        ${renewal_queue.letsencrypt_server_certificate_id}</a>
+                    </td>
+                % endif
+                <td><timestamp>${renewal_queue.timestamp_entered or ''}</timestamp></td>
+                <td><span class="label label-info">${renewal_queue.letsencrypt_operations_event_id__child_of}</span></td>
+                <td><timestamp>${renewal_queue.timestamp_processed or ''}</timestamp></td>
             </tr>
         % endfor
         </tbody>

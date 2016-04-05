@@ -620,19 +620,28 @@ def get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(dbS
 
 def get__LetsencryptServerCertificate__by_LetsencryptUniqueFQDNSetId__count(dbSession, unique_fqdn_set_id):
     counted = dbSession.query(LetsencryptServerCertificate)\
-        .filter(LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id == unique_fqdn_set_id)\
+        .filter(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == unique_fqdn_set_id)\
         .count()
     return counted
 
 
 def get__LetsencryptServerCertificate__by_LetsencryptUniqueFQDNSetId__paginated(dbSession, unique_fqdn_set_id, limit=None, offset=0):
     items_paged = dbSession.query(LetsencryptServerCertificate)\
-        .filter(LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id == unique_fqdn_set_id)\
+        .filter(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == unique_fqdn_set_id)\
         .order_by(LetsencryptServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
     return items_paged
+
+
+def get__LetsencryptServerCertificate__by_LetsencryptUniqueFQDNSetId__latest_active(dbSession, unique_fqdn_set_id):
+    item = dbSession.query(LetsencryptServerCertificate)\
+        .filter(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == unique_fqdn_set_id)\
+        .filter(LetsencryptServerCertificate.is_active.op('IS')(True))\
+        .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
+        .first()
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1684,12 +1693,13 @@ def create__LetsencryptOperationsEvent(dbSession, event_type_id, event_payload_d
     return dbEvent
 
 
-def create__LetsencryptRenewalQueue(dbSession, letsencrypt_server_certificate_id, letsencrypt_operations_event_id__child_of=None):
+def create__LetsencryptRenewalQueue(dbSession, serverCertificate, letsencrypt_operations_event_id__child_of=None):
     # bookkeeping
     dbQueue = LetsencryptRenewalQueue()
     dbQueue.timestamp_entered = datetime.datetime.utcnow()
     dbQueue.timestamp_processed = None
-    dbQueue.letsencrypt_server_certificate_id = letsencrypt_server_certificate_id
+    dbQueue.letsencrypt_server_certificate_id = serverCertificate.id
+    dbQueue.letsencrypt_unique_fqdn_set_id = serverCertificate.letsencrypt_unique_fqdn_set_id
     dbQueue.letsencrypt_operations_event_id__child_of = letsencrypt_operations_event_id__child_of
     dbSession.add(dbQueue)
     dbSession.flush()

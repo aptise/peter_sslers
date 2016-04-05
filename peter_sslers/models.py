@@ -527,6 +527,11 @@ class LetsencryptServerCertificate(Base):
                                           back_populates='certificates',
                                           )
 
+    renewal_queue = sa.orm.relationship("LetsencryptRenewalQueue",
+                                         primaryjoin="LetsencryptServerCertificate.id==LetsencryptRenewalQueue.letsencrypt_server_certificate_id",
+                                         back_populates='certificate',
+                                         )
+
     @property
     def cert_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=certificate&certificate.id=%s" % (self.cert_pem_modulus_md5, self.id, )

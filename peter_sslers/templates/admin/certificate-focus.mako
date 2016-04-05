@@ -102,7 +102,7 @@
             <th>expires in days</th>
             <td>
                 <span class="label label-${LetsencryptServerCertificate.expiring_days_label}">
-                    ${LetsencryptServerCertificate.expiring_days}
+                    ${LetsencryptServerCertificate.expiring_days} days
                 </span>
                 &nbsp;
                 <a  href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
@@ -186,7 +186,7 @@
                                 </td>
                                 <td>
                                     <span class="label label-${latest_certificate.expiring_days_label}">
-                                        ${latest_certificate.expiring_days}
+                                        ${latest_certificate.expiring_days} days
                                     </span>
                                 </td>
                             % endif
@@ -213,7 +213,7 @@
                                 </td>
                                 <td>
                                     <span class="label label-${latest_active_certificate.expiring_days_label}">
-                                        ${latest_active_certificate.expiring_days}
+                                        ${latest_active_certificate.expiring_days} days
                                     </span>
                                 </td>
                             % endif
@@ -428,6 +428,12 @@
             <th>renewal requests</th>
             <td>
                 ${admin_partials.table_certificate_requests__list(LetsencryptServerCertificate.renewal_requests, show_domains=False, show_certificate=True)}
+            </td>
+        </tr>
+        <tr>
+            <th>renewal queue</th>
+            <td>
+                ${admin_partials.table_renewal_queue__list(LetsencryptServerCertificate.renewal_queue, )}
             </td>
         </tr>
     </table>

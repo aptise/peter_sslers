@@ -19,11 +19,12 @@ from ..lib.forms import (Form_CertificateUpload__file,
                          Form_CertificateRenewal_Custom,
                          Form_Certificate_Mark,
                          )
+from ..lib.handler import Handler, items_per_page
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
-from ..lib.handler import Handler, items_per_page
-from ..lib import utils as lib_utils
 from ..lib import errors as lib_errors
+from ..lib import events as lib_events
+from ..lib import utils as lib_utils
 
 
 # ==============================================================================
@@ -376,7 +377,7 @@ class ViewAdmin(Handler):
                              'v': 1,
                              }
             update_recents = False
-            requeue = False
+            deactivated = False
             if action == 'deactivate':
                 if dbLetsencryptServerCertificate.is_deactivated:
                     raise formhandling.FormInvalid('Already deactivated')
@@ -384,7 +385,7 @@ class ViewAdmin(Handler):
                 dbLetsencryptServerCertificate.is_active = False
                 event_type = LetsencryptOperationsEventType.certificate_mark_deactivate
                 update_recents = True
-                requeue = True
+                deactivated = True
             elif action == 'revoked':
                 if dbLetsencryptServerCertificate.is_revoked:
                     raise formhandling.FormInvalid('Already revoked')
@@ -392,24 +393,29 @@ class ViewAdmin(Handler):
                 dbLetsencryptServerCertificate.is_active = False
                 event_type = LetsencryptOperationsEventType.certificate_mark_revoked
                 update_recents = True
-                requeue = True
+                deactivated = True
             else:
                 raise formhandling.FormInvalid('invalid `action`')
+                
+            DBSession.flush()
 
             # bookkeeping
-            dbEvent = lib_db.create__LetsencryptOperationsEvent(DBSession,
-                                                                event_type,
-                                                                event_payload,
-                                                                )
+            operationsEvent = lib_db.create__LetsencryptOperationsEvent(
+                DBSession,
+                event_type,
+                event_payload,
+            )
             if update_recents:
                 event_update = lib_db.operations_update_recents(DBSession)
-                event_update.letsencrypt_operations_event_id__child_of = dbEvent.id
-            if requeue:
-                dbQuque = lib_db.create__LetsencryptRenewalQueue(
-                    DBSession,
-                    dbLetsencryptServerCertificate.id,
-                    letsencrypt_operations_event_id__child_of = dbEvent.id,
-                )
+                event_update.letsencrypt_operations_event_id__child_of = operationsEvent.id
+                DBSession.flush()
+
+            if deactivated:
+                # this will handle requeuing
+                lib_events.Certificate_deactivated(DBSession,
+                                                   dbLetsencryptServerCertificate,
+                                                   operationsEvent=operationsEvent,
+                                                   )
 
             url_success = '/.well-known/admin/certificate/%s?operation=mark&action=%s&result=sucess' % (
                 dbLetsencryptServerCertificate.id,

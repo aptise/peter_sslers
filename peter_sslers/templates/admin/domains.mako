@@ -56,7 +56,7 @@
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${d.letsencrypt_server_certificate_id__latest_multi}</a>
                                 <timestamp>${d.latest_certificate_multi.timestamp_expires}</timestamp>
-                                <span class="label label-${d.latest_certificate_multi.expiring_days_label}">${d.latest_certificate_multi.expiring_days}</span>
+                                <span class="label label-${d.latest_certificate_multi.expiring_days_label}">${d.latest_certificate_multi.expiring_days} days</span>
                             % endif
                         </td>
                         <td>
@@ -67,7 +67,7 @@
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${d.letsencrypt_server_certificate_id__latest_single}</a>
                                 <timestamp>${d.latest_certificate_single.timestamp_expires}</timestamp>
-                                <span class="label label-${d.latest_certificate_single.expiring_days_label}">${d.latest_certificate_single.expiring_days}</span>
+                                <span class="label label-${d.latest_certificate_single.expiring_days_label}">${d.latest_certificate_single.expiring_days} days</span>
                             % endif
                         </td>
                     </tr>
