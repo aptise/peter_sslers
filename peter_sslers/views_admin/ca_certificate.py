@@ -109,14 +109,14 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:ca_certificate:upload')
-    @view_config(route_name='admin:ca_certificate:upload:json', renderer='json')
+    @view_config(route_name='admin:ca_certificate:upload.json', renderer='json')
     def ca_certificate_upload(self):
         if self.request.POST:
             return self._ca_certificate_upload__submit()
         return self._ca_certificate_upload__print()
 
     def _ca_certificate_upload__print(self):
-        if self.request.matched_route.name == 'admin:ca_certificate:upload:json':
+        if self.request.matched_route.name == 'admin:ca_certificate:upload.json':
             return {'instructions': """curl --form 'chain_file=@chain1.pem' --form http://127.0.0.1:6543/.well-known/admin/ca-certificate/upload.json""",
                     'form_fields': {'chain_file': 'required',
                                     },
@@ -140,7 +140,7 @@ class ViewAdmin(Handler):
                 chain_file_name
             )
 
-            if self.request.matched_route.name == 'admin:ca_certificate:upload:json':
+            if self.request.matched_route.name == 'admin:ca_certificate:upload.json':
                 return {'result': 'success',
                         'ca_certificate': {'created': cacert_is_created,
                                            'id': dbLetsencryptCACertificate.id,
@@ -148,13 +148,13 @@ class ViewAdmin(Handler):
                         }
             return HTTPFound('/.well-known/admin/ca-certificate/%s?is_created=%s' % (dbLetsencryptCACertificate.id, (1 if cacert_is_created else 0)))
 
-        except formhandling.FormInvalid:
+        except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            if self.request.matched_route.name == 'admin:ca_certificate:upload:json':
+            if self.request.matched_route.name == 'admin:ca_certificate:upload.json':
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
@@ -167,14 +167,14 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:ca_certificate:upload_bundle')
-    @view_config(route_name='admin:ca_certificate:upload_bundle:json', renderer='json')
+    @view_config(route_name='admin:ca_certificate:upload_bundle.json', renderer='json')
     def ca_certificate_upload_bundle(self):
         if self.request.POST:
             return self._ca_certificate_upload_bundle__submit()
         return self._ca_certificate_upload_bundle__print()
 
     def _ca_certificate_upload_bundle__print(self):
-        if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle:json':
+        if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle.json':
             _instructions = ["curl --form 'isrgrootx1_file=@isrgrootx1.pem'", ]
             _form_fields = {'isrgrootx1_file': 'optional'}
             for xi in lib_letsencrypt_info.CA_CROSS_SIGNED_X:
@@ -232,7 +232,7 @@ class ViewAdmin(Handler):
                 bundle_data
             )
 
-            if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle:json':
+            if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle.json':
                 rval = {'result': 'success'}
                 for (cert_type, cert_result) in dbResults.items():
                     rval[cert_type] = {'created': cert_result[1],
@@ -241,13 +241,13 @@ class ViewAdmin(Handler):
                 return rval
             return HTTPFound('/.well-known/admin/ca-certificates?uploaded=1')
 
-        except formhandling.FormInvalid:
+        except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle:json':
+            if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle.json':
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }

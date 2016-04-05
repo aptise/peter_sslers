@@ -76,14 +76,14 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:queue_domains:add')
-    @view_config(route_name='admin:queue_domains:add:json', renderer='json')
+    @view_config(route_name='admin:queue_domains:add.json', renderer='json')
     def queue_domains_add(self):
         if self.request.POST:
             return self._queue_domains_add__submit()
         return self._queue_domains_add__print()
 
     def _queue_domains_add__print(self):
-        if self.request.matched_route.name == 'admin:queue_domains:add:json':
+        if self.request.matched_route.name == 'admin:queue_domains:add.json':
             return {'instructions': """POST `domain_names""",
                     'form_fields': {'domain_names': 'required',
                                     },
@@ -108,20 +108,20 @@ class ViewAdmin(Handler):
                                     )
             queue_results = lib_db.queue_domains__add(DBSession, domain_names)
 
-            if self.request.matched_route.name == 'admin:queue_domains:add:json':
+            if self.request.matched_route.name == 'admin:queue_domains:add.json':
                 return {'result': 'success',
                         'domains': queue_results,
                         }
             results_json = json.dumps(queue_results)
             return HTTPFound('/.well-known/admin/queue-domains?is_created=1&results=%s' % results_json)
 
-        except formhandling.FormInvalid:
+        except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            if self.request.matched_route.name == 'admin:queue_domains:add:json':
+            if self.request.matched_route.name == 'admin:queue_domains:add.json':
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
@@ -134,7 +134,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:queue_domains:process', renderer=None)
-    @view_config(route_name='admin:queue_domains:process:json', renderer='json')
+    @view_config(route_name='admin:queue_domains:process.json', renderer='json')
     def queue_domain_process(self):
         try:
             queue_results = lib_db.queue_domains__process(DBSession)
@@ -142,7 +142,7 @@ class ViewAdmin(Handler):
         except lib_errors.DisplayableError, e:
             # return, don't raise
             # we still commit the bookkeeping
-            if self.request.matched_route.name == 'admin:queue_domains:process:json':
+            if self.request.matched_route.name == 'admin:queue_domains:process.json':
                 return {'result': 'error',
                         'error': e.message,
                         }

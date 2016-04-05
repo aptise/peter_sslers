@@ -23,6 +23,8 @@
             <thead>
                 <tr>
                     <th>id</th>
+                    <th>active?</th>
+                    <th>default?</th>
                     <th>timestamp first seen</th>
                     <th>key_pem_md5</th>
                     <th>count certificate requests</th>
@@ -35,6 +37,16 @@
                     <td><a class="label label-info" href="/.well-known/admin/account-key/${key.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${key.id}</a></td>
+                    <td>
+                        % if key.is_active:
+                            <span class="label label-success">active</span>
+                        % endif
+                    </td>
+                    <td>
+                        % if key.is_default:
+                            <span class="label label-success">default</span>
+                        % endif
+                    </td>
                     <td><timestamp>${key.timestamp_first_seen}<timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>
                     <td><span class="badge">${key.count_certificate_requests or ''}</span></td>

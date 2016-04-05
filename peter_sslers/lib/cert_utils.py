@@ -29,6 +29,15 @@ openssl_path_conf = "/etc/ssl/openssl.cnf"
 # ==============================================================================
 
 
+def new_pem_tempfile(pem_data):
+    """this is just a convenience wrapper to create a tempfile and seek(0)
+    """
+    tmpfile_pem = tempfile.NamedTemporaryFile()
+    tmpfile_pem.write(pem_data)
+    tmpfile_pem.seek(0)
+    return tmpfile_pem
+
+
 def new_csr_for_domain_names(
     domain_names,
     private_key_path,
@@ -157,6 +166,19 @@ def cleanup_pem_text(pem_text):
     pem_text = pem_text.strip() + "\n"
     return pem_text
 
+
+def validate_key__pem(key_pem):
+    tmpfile_pem = None
+    try:
+        tmpfile_pem = new_pem_tempfile(key_pem)
+        pem_filepath = tmpfile_pem.name
+        return validate_key__pem_filepath(pem_filepath)
+    except:
+        raise
+    finally:
+        if tmpfile_pem:
+            tmpfile_pem.close()
+    
 
 def validate_key__pem_filepath(pem_filepath):
     # openssl rsa -in {KEY} -check
@@ -308,6 +330,23 @@ def parse_startdate_cert__pem_filepath(pem_filepath):
     return date
 
 
+def verify_partial_chain__paths(pem_filepath_chain=None, pem_filepath_cert=None):
+    """
+    openssl verify -partial_chain -CAfile example.com.chain.pem -CApath - example.com.cert.pem
+    note the '-' between "-CApath - example.com.cert.pem"
+    openssl will hang without it
+    
+    #TODO This may not be working correctly.  Needs more testing.
+    """
+    raise NotImplementedError()
+    proc = subprocess.Popen([openssl_path, "verify", "-partial_chain", "-CAfile", pem_filepath_chain, "-CApath", '-', pem_filepath_cert],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    data, err = proc.communicate()
+    if not data:
+        return False
+    return True
+
+
 def convert_der_to_pem(der_data=None):
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     as_pem = """-----BEGIN CERTIFICATE-----\n{0}\n-----END CERTIFICATE-----\n""".format(
@@ -349,9 +388,7 @@ def parse_key(key_pem=None, pem_filepath=None):
         if pem_filepath:
             raise NotImplemented
         else:
-            tmpfile_pem = tempfile.NamedTemporaryFile()
-            tmpfile_pem.write(key_pem)
-            tmpfile_pem.seek(0)
+            tmpfile_pem = new_pem_tempfile(key_pem)
             pem_filepath = tmpfile_pem.name
 
         rval = {}
@@ -375,9 +412,7 @@ def parse_cert(cert_pem=None, pem_filepath=None):
         if pem_filepath:
             raise NotImplemented
         else:
-            tmpfile_pem = tempfile.NamedTemporaryFile()
-            tmpfile_pem.write(cert_pem)
-            tmpfile_pem.seek(0)
+            tmpfile_pem = new_pem_tempfile(cert_pem)
             pem_filepath = tmpfile_pem.name
 
         rval = {}
@@ -396,3 +431,17 @@ def parse_cert(cert_pem=None, pem_filepath=None):
     finally:
         if tmpfile_pem:
             tmpfile_pem.close()
+
+
+def new_private_key():
+    # openssl genrsa 4096 > domain.key
+    proc = subprocess.Popen([openssl_path, "genrsa", "4096"],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    data, err = proc.communicate()
+    if not data:
+        raise errors.OpenSslError_InvalidKey(err)
+    key_pem = data
+    key_pem = cleanup_pem_text(key_pem)
+    # this will raise an error
+    validate_key__pem(key_pem)
+    return key_pem

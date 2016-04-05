@@ -64,14 +64,14 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:upload')
-    @view_config(route_name='admin:certificate:upload:json', renderer='json')
+    @view_config(route_name='admin:certificate:upload.json', renderer='json')
     def certificate_upload(self):
         if self.request.POST:
             return self._certificate_upload__submit()
         return self._certificate_upload__print()
 
     def _certificate_upload__print(self):
-        if self.request.matched_route.name == 'admin:certificate:upload:json':
+        if self.request.matched_route.name == 'admin:certificate:upload.json':
             return {'instructions': """curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' http://127.0.0.1:6543/.well-known/admin/certificate/upload.json""",
                     'form_fields': {'private_key_file': 'required',
                                     'chain_file': 'required',
@@ -110,7 +110,7 @@ class ViewAdmin(Handler):
                 dbAccountKey=None,
             )
 
-            if self.request.matched_route.name == 'admin:certificate:upload:json':
+            if self.request.matched_route.name == 'admin:certificate:upload.json':
                 return {'result': 'success',
                         'certificate': {'created': cert_is_created,
                                         'id': dbLetsencryptServerCertificate.id,
@@ -125,13 +125,13 @@ class ViewAdmin(Handler):
                         }
             return HTTPFound('/.well-known/admin/certificate/%s' % dbLetsencryptServerCertificate.id)
 
-        except formhandling.FormInvalid:
+        except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            if self.request.matched_route.name == 'admin:certificate:upload:json':
+            if self.request.matched_route.name == 'admin:certificate:upload.json':
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
@@ -238,14 +238,14 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:nginx_cache_expire', renderer=None)
-    @view_config(route_name='admin:certificate:focus:nginx_cache_expire:json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:nginx_cache_expire.json', renderer='json')
     def certificate_focus_nginx_expire(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
         if not self.request.registry.settings['enable_nginx']:
             raise HTTPFound('/.well-known/admin/certificate/%s?error=no_nginx' % dbLetsencryptServerCertificate.id)
         dbDomains = [c2d.domain for c2d in dbLetsencryptServerCertificate.unique_fqdn_set.to_domains]
         success, dbEvent = lib_utils.nginx_expire_cache(self.request, DBSession, dbDomains=dbDomains)
-        if self.request.matched_route.name == 'admin:certificate:focus:nginx_cache_expire:json':
+        if self.request.matched_route.name == 'admin:certificate:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
@@ -255,7 +255,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:renew:quick', renderer=None)
-    @view_config(route_name='admin:certificate:focus:renew:quick:json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:renew:quick.json', renderer='json')
     def certificate_focus_renew_quick(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
         try:
@@ -276,7 +276,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:renew:custom', renderer=None)
-    @view_config(route_name='admin:certificate:focus:renew:custom:json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:renew:custom.json', renderer='json')
     def certificate_focus_renew_custom(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
         self.dbLetsencryptServerCertificate = dbLetsencryptServerCertificate
@@ -345,7 +345,7 @@ class ViewAdmin(Handler):
 
             return HTTPFound('/.well-known/admin/certificate/%s?is_renewal=True' % newLetsencryptCertificate.id)
 
-        except formhandling.FormInvalid:
+        except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -360,7 +360,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:mark', renderer=None)
-    @view_config(route_name='admin:certificate:focus:mark:json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:mark.json', renderer='json')
     def certificate_focus_mark(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
         try:
@@ -423,7 +423,7 @@ class ViewAdmin(Handler):
             )
             return HTTPFound(url_success)
             
-        except formhandling.FormInvalid:
+        except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,

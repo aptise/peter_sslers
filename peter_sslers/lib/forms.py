@@ -75,6 +75,10 @@ class Form_AccountKey_new__file(_Form_Schema_Base):
     account_key_file = FieldStorageUploadConverter(not_empty=True)
 
 
+class Form_AccountKey_Mark(_Form_Schema_Base):
+    action = OneOf(('default', 'activate', 'deactivate', ))
+
+
 class Form_CACertificate_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
     chain_file_name = UnicodeString(not_empty=False, if_missing=None)

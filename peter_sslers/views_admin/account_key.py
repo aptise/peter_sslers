@@ -15,7 +15,8 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_AccountKey_new__file
+from ..lib.forms import (Form_AccountKey_new__file,
+                         Form_AccountKey_Mark,
                          )
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
@@ -145,7 +146,7 @@ class ViewAdmin(Handler):
 
             return HTTPFound('/.well-known/admin/account-key/%s%s' % (dbLetsencryptAccountKey.id, ('?is_created=1' if _is_created else '')))
 
-        except formhandling.FormInvalid:
+        except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -158,3 +159,71 @@ class ViewAdmin(Handler):
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:account_key:focus:mark', renderer=None)
+    @view_config(route_name='admin:account_key:focus:mark.json', renderer='json')
+    def certificate_focus_mark(self):
+        dbLetsencryptAccountKey = self._account_key_focus()
+        try:
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_AccountKey_Mark,
+                                                             validate_get=True
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            action = formStash.results['action']
+            event_type = LetsencryptOperationsEventType.account_key_mark
+            event_payload = {'account_key_id': dbLetsencryptAccountKey.id,
+                             'action': formStash.results['action'],
+                             'v': 1,
+                             }
+            if action == 'deactivate':
+                if dbLetsencryptAccountKey.is_default:
+                    raise formhandling.FormInvalid('You can not deactivate the default. Make another key default first.')
+                if not dbLetsencryptAccountKey.is_active:
+                    raise formhandling.FormInvalid('Already deactivated')
+                dbLetsencryptAccountKey.is_active = False
+            elif action == 'activate':
+                if dbLetsencryptAccountKey.is_active:
+                    raise formhandling.FormInvalid('Already activated')
+                dbLetsencryptAccountKey.is_active = True
+            elif action == 'default':
+                if dbLetsencryptAccountKey.is_default:
+                    raise formhandling.FormInvalid('Already default')
+                formerDefaultKey = lib_db.get__LetsencryptAccountKey__default(DBSession)
+                if formerDefaultKey:
+                    formerDefaultKey.is_default = False
+                    event_payload['account_key_id.former_default'] = formerDefaultKey.id
+                dbLetsencryptAccountKey.is_default = True
+            else:
+                raise formhandling.FormInvalid('invalid `action`')
+                
+            DBSession.flush()
+
+            # bookkeeping
+            operationsEvent = lib_db.create__LetsencryptOperationsEvent(
+                DBSession,
+                event_type,
+                event_payload,
+            )
+            url_success = '/.well-known/admin/account-key/%s?operation=mark&action=%s&result=sucess' % (
+                dbLetsencryptAccountKey.id,
+                action,
+            )
+            return HTTPFound(url_success)
+            
+        except formhandling.FormInvalid, e:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            url_failure = '/.well-known/admin/account-key/%s?operation=mark&action=%s&result=error&error=%s' % (
+                dbLetsencryptAccountKey.id,
+                action,
+                e.message,
+            )
+            raise HTTPFound(url_failure)

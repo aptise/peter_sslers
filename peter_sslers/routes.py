@@ -43,6 +43,8 @@ def includeme(config):
         config.add_route_7('admin:account_key:focus:certificates', '/.well-known/admin/account-key/{@id}/certificates')
         config.add_route_7('admin:account_key:focus:certificates_paginated', '/.well-known/admin/account-key/{@id}/certificates/{@page}')
         config.add_route_7('admin:account_key:focus:authenticate', '/.well-known/admin/account-key/{@id}/authenticate')
+        config.add_route_7('admin:account_key:focus:mark', '/.well-known/admin/account-key/{@id}/mark')
+        config.add_route_7('admin:account_key:focus:mark.json', '/.well-known/admin/account-key/{@id}/mark.json')
         config.add_route_7('admin:account_key:new', '/.well-known/admin/account-key/new')
 
         # CertificateAuthority Certificates
@@ -54,9 +56,9 @@ def includeme(config):
         config.add_route_7('admin:ca_certificate:focus:signed_certificates', '/.well-known/admin/ca-certificate/{@id}/signed_certificates')
         config.add_route_7('admin:ca_certificate:focus:signed_certificates_paginated', '/.well-known/admin/ca-certificate/{@id}/signed_certificates/{@page}')
         config.add_route_7('admin:ca_certificate:upload', '/.well-known/admin/ca-certificate/upload')
-        config.add_route_7('admin:ca_certificate:upload:json', '/.well-known/admin/ca-certificate/upload.json')
+        config.add_route_7('admin:ca_certificate:upload.json', '/.well-known/admin/ca-certificate/upload.json')
         config.add_route_7('admin:ca_certificate:upload_bundle', '/.well-known/admin/ca-certificate/upload-bundle')
-        config.add_route_7('admin:ca_certificate:upload_bundle:json', '/.well-known/admin/ca-certificate/upload-bundle.json')
+        config.add_route_7('admin:ca_certificate:upload_bundle.json', '/.well-known/admin/ca-certificate/upload-bundle.json')
 
         # Certificates
         config.add_route_7('admin:certificates', '/.well-known/admin/certificates')
@@ -70,16 +72,16 @@ def includeme(config):
         config.add_route_7('admin:certificate:focus:privatekey:raw', '/.well-known/admin/certificate/{@id}/privkey.{format:(key|pem|pem.txt)}')
         config.add_route_7('admin:certificate:focus:cert:raw', '/.well-known/admin/certificate/{@id}/cert.{format:(crt|pem|pem.txt)}')
         config.add_route_7('admin:certificate:focus:nginx_cache_expire', '/.well-known/admin/certificate/{id:\d}/nginx-cache-expire')
-        config.add_route_7('admin:certificate:focus:nginx_cache_expire:json', '/.well-known/admin/certificate/{id:\d}/nginx-cache-expire.json')
+        config.add_route_7('admin:certificate:focus:nginx_cache_expire.json', '/.well-known/admin/certificate/{id:\d}/nginx-cache-expire.json')
         config.add_route_7('admin:certificate:focus:parse.json', '/.well-known/admin/certificate/{@id}/parse.json')
         config.add_route_7('admin:certificate:focus:renew:quick', '/.well-known/admin/certificate/{@id}/renew/quick')
-        config.add_route_7('admin:certificate:focus:renew:quick:json', '/.well-known/admin/certificate/{@id}/renew/quick.json')
+        config.add_route_7('admin:certificate:focus:renew:quick.json', '/.well-known/admin/certificate/{@id}/renew/quick.json')
         config.add_route_7('admin:certificate:focus:renew:custom', '/.well-known/admin/certificate/{@id}/renew/custom')
-        config.add_route_7('admin:certificate:focus:renew:custom:json', '/.well-known/admin/certificate/{@id}/renew/custom.json')
+        config.add_route_7('admin:certificate:focus:renew:custom.json', '/.well-known/admin/certificate/{@id}/renew/custom.json')
         config.add_route_7('admin:certificate:upload', '/.well-known/admin/certificate/upload')
-        config.add_route_7('admin:certificate:upload:json', '/.well-known/admin/certificate/upload.json')
+        config.add_route_7('admin:certificate:upload.json', '/.well-known/admin/certificate/upload.json')
         config.add_route_7('admin:certificate:focus:mark', '/.well-known/admin/certificate/{@id}/mark')
-        config.add_route_7('admin:certificate:focus:mark:json', '/.well-known/admin/certificate/{@id}/mark.json')
+        config.add_route_7('admin:certificate:focus:mark.json', '/.well-known/admin/certificate/{@id}/mark.json')
 
         # Certificate Requests
         config.add_route_7('admin:certificate_requests', '/.well-known/admin/certificate-requests')
@@ -102,7 +104,7 @@ def includeme(config):
         config.add_route_7('admin:domain:focus_name', '/.well-known/admin/domain/{domain_identifier}')
         config.add_route_7('admin:domain:focus:config_json', '/.well-known/admin/domain/{domain_identifier}/config.json')
         config.add_route_7('admin:domain:focus:nginx_cache_expire', '/.well-known/admin/domain/{domain_identifier}/nginx-cache-expire')
-        config.add_route_7('admin:domain:focus:nginx_cache_expire:json', '/.well-known/admin/domain/{domain_identifier}/nginx-cache-expire.json')
+        config.add_route_7('admin:domain:focus:nginx_cache_expire.json', '/.well-known/admin/domain/{domain_identifier}/nginx-cache-expire.json')
         config.add_route_7('admin:domain:focus:certificates', '/.well-known/admin/domain/{domain_identifier}/certificates')
         config.add_route_7('admin:domain:focus:certificates_paginated', '/.well-known/admin/domain/{domain_identifier}/certificates/{@page}')
         config.add_route_7('admin:domain:focus:certificate_requests', '/.well-known/admin/domain/{domain_identifier}/certificate-requests')
@@ -111,7 +113,7 @@ def includeme(config):
         config.add_route_7('admin:domain:focus:unique_fqdn_sets', '/.well-known/admin/domain/{domain_identifier}/unique-fqdn-sets')
         config.add_route_7('admin:domain:focus:unique_fqdn_sets_paginated', '/.well-known/admin/domain/{domain_identifier}/unique-fqdn-sets/{@page}')
         config.add_route_7('admin:domain:focus:mark', '/.well-known/admin/domain/{domain_identifier}/mark')
-        config.add_route_7('admin:domain:focus:mark:json', '/.well-known/admin/domain/{domain_identifier}/mark.json')
+        config.add_route_7('admin:domain:focus:mark.json', '/.well-known/admin/domain/{domain_identifier}/mark.json')
 
         # Operations & sync events
         config.add_route_7('admin:operations', '/.well-known/admin/operations')
@@ -119,10 +121,10 @@ def includeme(config):
         config.add_route_7('admin:operations:ca_certificate_probes', '/.well-known/admin/operations/ca-certificate-probes')
         config.add_route_7('admin:operations:ca_certificate_probes_paginated', '/.well-admin/operations/ca-certificate-probes/{@page}')
         config.add_route_7('admin:operations:ca_certificate_probes:probe', '/.well-known/admin/operations/ca-certificate-probes/probe')
-        config.add_route_7('admin:operations:ca_certificate_probes:probe:json', '/.well-known/admin/operations/ca-certificate-probes/probe.json')
+        config.add_route_7('admin:operations:ca_certificate_probes:probe.json', '/.well-known/admin/operations/ca-certificate-probes/probe.json')
         # -
         config.add_route_7('admin:operations:deactivate_expired', '/.well-known/admin/operations/deactivate-expired')
-        config.add_route_7('admin:operations:deactivate_expired:json', '/.well-known/admin/operations/deactivate-expired.json')
+        config.add_route_7('admin:operations:deactivate_expired.json', '/.well-known/admin/operations/deactivate-expired.json')
         # -
         config.add_route_7('admin:operations:log', '/.well-known/admin/operations/log')
         config.add_route_7('admin:operations:log_paginated', '/.well-known/admin/operations/log/{@page}')
@@ -131,15 +133,15 @@ def includeme(config):
         config.add_route_7('admin:operations:nginx', '/.well-known/admin/operations/nginx')
         config.add_route_7('admin:operations:nginx_paginated', '/.well-known/admin/operations/nginx/{@page}')
         config.add_route_7('admin:operations:nginx:cache_flush', '/.well-known/admin/operations/nginx/cache-flush')
-        config.add_route_7('admin:operations:nginx:cache_flush:json', '/.well-known/admin/operations/nginx/cache-flush.json')
+        config.add_route_7('admin:operations:nginx:cache_flush.json', '/.well-known/admin/operations/nginx/cache-flush.json')
         # -
         config.add_route_7('admin:operations:redis', '/.well-known/admin/operations/redis')
         config.add_route_7('admin:operations:redis_paginated', '/.well-known/admin/operations/redis/{@page}')
         config.add_route_7('admin:operations:redis:prime', '/.well-known/admin/operations/redis/prime')
-        config.add_route_7('admin:operations:redis:prime:json', '/.well-known/admin/operations/redis/prime.json')
+        config.add_route_7('admin:operations:redis:prime.json', '/.well-known/admin/operations/redis/prime.json')
         # -
         config.add_route_7('admin:operations:update_recents', '/.well-known/admin/operations/update-recents')
-        config.add_route_7('admin:operations:update_recents:json', '/.well-known/admin/operations/update-recents.json')
+        config.add_route_7('admin:operations:update_recents.json', '/.well-known/admin/operations/update-recents.json')
 
         # Private Keys sign Certificates
         config.add_route_7('admin:private_keys', '/.well-known/admin/private-keys')
@@ -159,9 +161,9 @@ def includeme(config):
         config.add_route_7('admin:queue_domains:all', '/.well-known/admin/queue-domains/all')
         config.add_route_7('admin:queue_domains:all_paginated', '/.well-known/admin/queue-domains/all/{@page}')
         config.add_route_7('admin:queue_domains:add', '/.well-known/admin/queue-domains/add')
-        config.add_route_7('admin:queue_domains:add:json', '/.well-known/admin/queue-domains/add.json')
+        config.add_route_7('admin:queue_domains:add.json', '/.well-known/admin/queue-domains/add.json')
         config.add_route_7('admin:queue_domains:process', '/.well-known/admin/queue-domains/process')
-        config.add_route_7('admin:queue_domains:process:json', '/.well-known/admin/queue-domains/process.json')
+        config.add_route_7('admin:queue_domains:process.json', '/.well-known/admin/queue-domains/process.json')
         config.add_route_7('admin:queue_domain:focus', '/.well-known/admin/queue-domain/{@id}')
 
         # Unique FQDN Sets are tied to Certs and Ratelimits

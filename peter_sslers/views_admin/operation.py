@@ -77,11 +77,11 @@ class ViewAdminOperations(Handler):
                 }
 
     @view_config(route_name='admin:operations:ca_certificate_probes:probe', renderer=None)
-    @view_config(route_name='admin:operations:ca_certificate_probes:probe:json', renderer='json')
+    @view_config(route_name='admin:operations:ca_certificate_probes:probe.json', renderer='json')
     def ca_certificate_probes__probe(self):
         operations_event = lib_db.ca_certificate_probe(DBSession)
 
-        if self.request.matched_route.name == 'admin:operations:ca_certificate_probes:probe:json':
+        if self.request.matched_route.name == 'admin:operations:ca_certificate_probes:probe.json':
             return {'result': 'success',
                     'operations_event': {'id': operations_event.id,
                                          'is_certificates_discovered': operations_event.event_payload_json['is_certificates_discovered'],
@@ -94,11 +94,11 @@ class ViewAdminOperations(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:operations:update_recents', renderer=None)
-    @view_config(route_name='admin:operations:update_recents:json', renderer='json')
+    @view_config(route_name='admin:operations:update_recents.json', renderer='json')
     def operations_update_recents(self):
         operations_event = lib_db.operations_update_recents(DBSession)
 
-        if self.request.matched_route.name == 'admin:operations:update_recents:json':
+        if self.request.matched_route.name == 'admin:operations:update_recents.json':
             return {'result': 'success',
                     'operations_event': operations_event.id,
                     }
@@ -108,7 +108,7 @@ class ViewAdminOperations(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:operations:deactivate_expired', renderer=None)
-    @view_config(route_name='admin:operations:deactivate_expired:json', renderer='json')
+    @view_config(route_name='admin:operations:deactivate_expired.json', renderer='json')
     def operations_deactivate_expired(self):
         rval = {}
 
@@ -125,7 +125,7 @@ class ViewAdminOperations(Handler):
         rval['result'] = 'success'
         rval['operations_event'] = operations_event2.id
 
-        if self.request.matched_route.name == 'admin:operations:deactivate_expired:json':
+        if self.request.matched_route.name == 'admin:operations:deactivate_expired.json':
             return rval
 
         return HTTPFound('/.well-known/admin/operations/log?result=success&event.id=%s' % operations_event2.id)
@@ -154,7 +154,7 @@ class ViewAdminOperations(Handler):
                 }
 
     @view_config(route_name='admin:operations:redis:prime', renderer=None)
-    @view_config(route_name='admin:operations:redis:prime:json', renderer='json')
+    @view_config(route_name='admin:operations:redis:prime.json', renderer='json')
     def admin_redis_prime(self):
         self._ensure_redis()
 
@@ -303,7 +303,7 @@ class ViewAdminOperations(Handler):
                                                              'total_primed': total_primed,
                                                              }
                                                             )
-        if self.request.matched_route.name == 'admin:operations:redis:prime:json':
+        if self.request.matched_route.name == 'admin:operations:redis:prime.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          'total_primed': dbEvent.event_payload_json['total_primed'],
@@ -337,11 +337,11 @@ class ViewAdminOperations(Handler):
                 }
 
     @view_config(route_name='admin:operations:nginx:cache_flush', renderer=None)
-    @view_config(route_name='admin:operations:nginx:cache_flush:json', renderer='json')
+    @view_config(route_name='admin:operations:nginx:cache_flush.json', renderer='json')
     def admin_nginx_cache_flush(self):
         self._ensure_nginx()
         success, dbEvent = lib_utils.nginx_flush_cache(self.request, DBSession)
-        if self.request.matched_route.name == 'admin:operations:nginx:cache_flush:json':
+        if self.request.matched_route.name == 'admin:operations:nginx:cache_flush.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },

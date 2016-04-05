@@ -18,7 +18,13 @@
     
 
 <%block name="content_main">
-
+    % if request.params.get('error'):
+        <div class="alert alert-danger">
+            ## operation=mark&action=deactivate&result=error&error=Can%20not%20deactivate%20the%20default
+            <p>${request.params.get('error')}
+            </p>
+        </div>
+    % endif
     <table class="table">
         <tr>
             <th>id</th>
@@ -36,6 +42,62 @@
                         class="btn btn-xs btn-primary"
                     >
                         authenticate against LetsEncrypt
+                    </a>
+                % endif
+            </td>
+        </tr>
+        <tr>
+            <th>is_active</th>
+            <td>
+                <span class="label label-${'success' if LetsencryptAccountKey.is_active else 'warning'}">
+                    ${'active' if LetsencryptAccountKey.is_active else 'inactive'}
+                </span>
+                &nbsp;
+                % if not LetsencryptAccountKey.is_active:
+                    <a  href="/.well-known/admin/account-key/${LetsencryptAccountKey.id}/mark?action=activate"
+                        class="label label-info"
+                    >
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        activate
+                    </a>
+                % else:
+                    % if not LetsencryptAccountKey.is_default:
+                        <a  href="/.well-known/admin/account-key/${LetsencryptAccountKey.id}/mark?action=deactivate"
+                            class="label label-danger disabled"
+                        >
+                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                            deactivate
+                        </a>
+                    % else:
+                        <span
+                            class="label label-warning"
+                        >
+                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                            select another default key to deactivate this one
+                        </span>
+                    % endif
+                % endif
+            </td>
+        </tr>
+        <tr>
+            <th>is_default</th>
+            <td>
+                % if LetsencryptAccountKey.is_default:
+                    <span class="label label-success">
+                        default
+                    </span>
+                % else:
+                    <span class="label label-default">
+                        no
+                    </span>
+                % endif
+                &nbsp;
+                % if not LetsencryptAccountKey.is_default:
+                    <a  href="/.well-known/admin/account-key/${LetsencryptAccountKey.id}/mark?action=default"
+                        class="label label-info"
+                    >
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        make default
                     </a>
                 % endif
             </td>

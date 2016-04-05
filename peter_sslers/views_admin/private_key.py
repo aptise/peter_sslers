@@ -133,7 +133,7 @@ class ViewAdmin(Handler):
 
             return HTTPFound('/.well-known/admin/private_key/%s%s' % (dbLetsencryptPrivateKey.id, ('?is_created=1' if _is_created else '')))
 
-        except formhandling.FormInvalid:
+        except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,

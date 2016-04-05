@@ -78,13 +78,13 @@ class ViewAdmin(Handler):
                 }
 
     @view_config(route_name='admin:domain:focus:nginx_cache_expire', renderer=None)
-    @view_config(route_name='admin:domain:focus:nginx_cache_expire:json', renderer='json')
+    @view_config(route_name='admin:domain:focus:nginx_cache_expire.json', renderer='json')
     def domain_focus_nginx_expire(self):
         dbLetsencryptDomain = self._domain_focus(eagerload_web=True)
         if not self.request.registry.settings['enable_nginx']:
             raise HTTPFound('/.well-known/admin/domain/%s?error=no_nginx' % dbLetsencryptDomain.id)
         success, dbEvent = lib_utils.nginx_expire_cache(self.request, DBSession, dbDomains=[dbLetsencryptDomain, ])
-        if self.request.matched_route.name == 'admin:domain:focus:nginx_cache_expire:json':
+        if self.request.matched_route.name == 'admin:domain:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
@@ -190,7 +190,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:domain:focus:mark', renderer=None)
-    @view_config(route_name='admin:domain:focus:mark:json', renderer='json')
+    @view_config(route_name='admin:domain:focus:mark.json', renderer='json')
     def domain_focus_mark(self):
         dbLetsencryptDomain = self._domain_focus()
         try:
@@ -233,7 +233,7 @@ class ViewAdmin(Handler):
             )
             return HTTPFound(url_success)
             
-        except formhandling.FormInvalid:
+        except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
