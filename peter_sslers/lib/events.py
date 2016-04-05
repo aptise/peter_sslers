@@ -30,7 +30,7 @@ def _handle_certificate_deactivated(dbSession, serverCertificate, operationsEven
     if not dbLatestActiveCert:
         requeue = True
     if requeue:
-        dbQuque = lib.db.create__LetsencryptRenewalQueue(
+        dbQuque = lib.db.create__LetsencryptQueueRenewal(
             DBSession,
             serverCertificate,
             letsencrypt_operations_event_id__child_of = operationsEvent.id,
@@ -40,7 +40,7 @@ def _handle_certificate_deactivated(dbSession, serverCertificate, operationsEven
 
 
 def _handle_certificate_activated(dbSession, serverCertificate, operationsEvent=None):
-    dbActiveQueues = lib.db.get__LetsencryptRenewalQueue__by_LetsencryptUniqueFQDNSetId__active(
+    dbActiveQueues = lib.db.get__LetsencryptQueueRenewal__by_LetsencryptUniqueFQDNSetId__active(
         dbSession,
         serverCertificate.letsencrypt_unique_fqdn_set_id,
     )

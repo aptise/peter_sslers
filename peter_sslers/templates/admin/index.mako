@@ -16,16 +16,20 @@
             <ul>
                 <li><a class="label label-info" href="/.well-known/admin/domains">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    domains</a> (${request.text_library.info_Domains[0]})</li>
+                    domains
+                    </a> (${request.text_library.info_Domains[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/certificates">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificates</a> (${request.text_library.info_Certificates[0]})</li>
+                    certificates
+                    </a> (${request.text_library.info_Certificates[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/certificate-requests">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-requests</a> (${request.text_library.info_CertificateRequests[0]})</li>
+                    certificate-requests
+                    </a> (${request.text_library.info_CertificateRequests[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/private-keys">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                private-keys</a> (${request.text_library.info_PrivateKeys[0]})</li>
+                    private-keys
+                    </a> (${request.text_library.info_PrivateKeys[0]})</li>
             </ul>
 
 
@@ -33,16 +37,24 @@
             <ul>
                 <li><a class="label label-info" href="/.well-known/admin/unique-fqdn-sets">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    unique-fqdn-sets</a> (${request.text_library.info_UniqueFQDNs[0]})</li>
+                    unique-fqdn-sets
+                    </a> (${request.text_library.info_UniqueFQDNs[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/account-keys">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    account-keys</a> (${request.text_library.info_AccountKeys[0]})</li>
+                    account-keys
+                    </a> (${request.text_library.info_AccountKeys[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/ca-certificates">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    ca-certificates</a> (${request.text_library.info_CACertificates[0]})</li>
+                    ca-certificates
+                    </a> (${request.text_library.info_CACertificates[0]})</li>
                 <li><a class="label label-info" href="/.well-known/admin/queue-renewals">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    queue-renewals</a></li>
+                    queue-renewals
+                    </a></li>
+                <li><a class="label label-info" href="/.well-known/admin/queue-domains">
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    queue-domains
+                    </a></li>
             </ul>
 
             <h2>Operations</h2>

@@ -156,3 +156,6 @@ class Form_PrivateKey_new__full(_Form_Schema_Base):
 
 class Form_PrivateKey_new__file(_Form_Schema_Base):
     private_key_file = FieldStorageUploadConverter(not_empty=True)
+
+class Form_QueueDomains_add(_Form_Schema_Base):
+    domain_names = UnicodeString(not_empty=True)

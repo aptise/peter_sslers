@@ -308,6 +308,7 @@ class LetsencryptDomain(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_from_domain_queue = sa.Column(sa.Boolean, nullable=False, default=None)
     timestamp_first_seen = sa.Column(sa.DateTime, nullable=False, )
 
     letsencrypt_server_certificate_id__latest_single = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=True)
@@ -335,16 +336,6 @@ class LetsencryptDomain(Base):
                                    )
 
 
-class LetsencryptDomainQueue(Base):
-    """
-    Domains that are included in CertificateRequests or Certificates
-    The DomainQueue will allow you to queue-up domain names for management
-    """
-    __tablename__ = 'letsencrypt_domain_queue'
-    id = sa.Column(sa.Integer, primary_key=True)
-    domain_name = sa.Column(sa.Unicode(255), nullable=False)
-
-
 class LetsencryptOperationsEventType(object):
     """
     This client tracks different types of events:
@@ -360,6 +351,7 @@ class LetsencryptOperationsEventType(object):
     certificate_mark_revoked = 9
     domain_mark_inactive = 10
     domain_mark_active = 11
+    batch_queued_domains = 12
 
 
 class LetsencryptOperationsEvent(Base):
@@ -404,6 +396,8 @@ class LetsencryptOperationsEvent(Base):
             return 'domain_mark_inactive'
         elif self.letsencrypt_operations_event_type_id == 11:
             return 'domain_mark_active'
+        elif self.letsencrypt_operations_event_type_id == 12:
+            return 'batch_queued_domains'
         return 'unknown'
 
 
@@ -440,12 +434,33 @@ class LetsencryptPrivateKey(Base):
         return "type=modulus&modulus=%s&source=private_key&private_key.id=%s" % (self.key_pem_modulus_md5, self.id, )
 
 
-class LetsencryptRenewalQueue(Base):
+class LetsencryptQueueDomain(Base):
+    """
+    A list of domains to be queued into certificates.
+    This is only used for batch processing consumer domains
+    Domains that are included in CertificateRequests or Certificates
+    The DomainQueue will allow you to queue-up domain names for management
+    """
+    __tablename__ = 'letsencrypt_queue_domain'
+    id = sa.Column(sa.Integer, primary_key=True)
+    domain_name = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_entered = sa.Column(sa.DateTime, nullable=False, )
+    timestamp_processed = sa.Column(sa.DateTime, nullable=True, )
+    letsencrypt_domain_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_domain.id"), nullable=True)
+
+    domain = sa.orm.relationship(
+        "LetsencryptDomain",
+        primaryjoin="LetsencryptQueueDomain.letsencrypt_domain_id==LetsencryptDomain.id",
+        uselist=False,
+    )
+
+
+class LetsencryptQueueRenewal(Base):
     """
     An item to be renewed.
     If something is expired, it will be placed here for renewal
     """
-    __tablename__ = 'letsencrypt_renewal_queue'
+    __tablename__ = 'letsencrypt_queue_renewal'
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_entered = sa.Column(sa.DateTime, nullable=False, )
     letsencrypt_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=False)
@@ -456,16 +471,16 @@ class LetsencryptRenewalQueue(Base):
 
     certificate = sa.orm.relationship(
         "LetsencryptServerCertificate",
-        primaryjoin="LetsencryptRenewalQueue.letsencrypt_server_certificate_id==LetsencryptServerCertificate.id",
+        primaryjoin="LetsencryptQueueRenewal.letsencrypt_server_certificate_id==LetsencryptServerCertificate.id",
         uselist=False,
     )
     operations_event = sa.orm.relationship(
         "LetsencryptOperationsEvent",
-        primaryjoin="LetsencryptRenewalQueue.letsencrypt_operations_event_id__child_of==LetsencryptOperationsEvent.id",
+        primaryjoin="LetsencryptQueueRenewal.letsencrypt_operations_event_id__child_of==LetsencryptOperationsEvent.id",
         uselist=False,
     )
     unique_fqdn_set = sa.orm.relationship("LetsencryptUniqueFQDNSet",
-                                          primaryjoin="LetsencryptRenewalQueue.letsencrypt_unique_fqdn_set_id==LetsencryptUniqueFQDNSet.id",
+                                          primaryjoin="LetsencryptQueueRenewal.letsencrypt_unique_fqdn_set_id==LetsencryptUniqueFQDNSet.id",
                                           uselist=False,
                                           back_populates='renewal_queue',
                                           )
@@ -545,8 +560,8 @@ class LetsencryptServerCertificate(Base):
                                           back_populates='certificates',
                                           )
 
-    renewal_queue = sa.orm.relationship("LetsencryptRenewalQueue",
-                                         primaryjoin="LetsencryptServerCertificate.id==LetsencryptRenewalQueue.letsencrypt_server_certificate_id",
+    renewal_queue = sa.orm.relationship("LetsencryptQueueRenewal",
+                                         primaryjoin="LetsencryptServerCertificate.id==LetsencryptQueueRenewal.letsencrypt_server_certificate_id",
                                          back_populates='certificate',
                                          )
 
@@ -661,8 +676,8 @@ class LetsencryptUniqueFQDNSet(Base):
                                                back_populates='unique_fqdn_set',
                                                )
 
-    renewal_queue = sa.orm.relationship("LetsencryptRenewalQueue",
-                                          primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptRenewalQueue.letsencrypt_unique_fqdn_set_id",
+    renewal_queue = sa.orm.relationship("LetsencryptQueueRenewal",
+                                          primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptQueueRenewal.letsencrypt_unique_fqdn_set_id",
                                           back_populates='unique_fqdn_set',
                                           )
 

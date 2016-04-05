@@ -32,7 +32,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_keys_paginated', renderer='/admin/private_keys.mako')
     def private_keys(self):
         items_count = lib_db.get__LetsencryptPrivateKey__count(DBSession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private_keys/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private-keys/{0}')
         items_paged = lib_db.get__LetsencryptPrivateKey__paginated(DBSession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptPrivateKeys_count': items_count,
@@ -82,7 +82,7 @@ class ViewAdmin(Handler):
         dbLetsencryptPrivateKey = self._private_key_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__count(
             DBSession, dbLetsencryptPrivateKey.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private_key/%s/certificates/{0}' % dbLetsencryptPrivateKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private-key/%s/certificates/{0}' % dbLetsencryptPrivateKey.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(
             DBSession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -98,7 +98,7 @@ class ViewAdmin(Handler):
         dbLetsencryptPrivateKey = self._private_key_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__count(
             DBSession, dbLetsencryptPrivateKey.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private_key/%s/certificate-requests/{0}' % dbLetsencryptPrivateKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private-key/%s/certificate-requests/{0}' % dbLetsencryptPrivateKey.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__paginated(
             DBSession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',

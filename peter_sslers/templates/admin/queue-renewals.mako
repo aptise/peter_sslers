@@ -18,7 +18,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
-            % if LetsencryptRenewalQueues:
+            % if LetsencryptQueueRenewals:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -31,7 +31,7 @@
                             <th>process_result</th>
                         </tr>
                     </thead>
-                    % for q in LetsencryptRenewalQueues:
+                    % for q in LetsencryptQueueRenewals:
                         <tr>
                             <td><a class="label label-info" href="/.well-known/admin/queue-renewal/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
