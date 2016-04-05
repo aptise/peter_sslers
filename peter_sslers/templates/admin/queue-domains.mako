@@ -50,8 +50,16 @@
             <ul class="nav nav-pills nav-stacked">
               <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="/.well-known/admin/queue-domains">Unprocessed Items</a></li>
               <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="/.well-known/admin/queue-domains/all">All Items</a></li>
-              <li role="presentation" class=""><a href="/.well-known/admin/queue-domains/add">Add Domain</a></li>
-              <li role="presentation" class=""><a href="/.well-known/admin/queue-domains/process">Process Queue</a></li>
+              <li role="presentation" class="">
+                <a href="/.well-known/admin/queue-domains/add">
+                <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>
+                Add Domain</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="/.well-known/admin/queue-domains/process">
+                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                Process Queue</a>
+              </li>
             </ul>
         </div>
     </div>
