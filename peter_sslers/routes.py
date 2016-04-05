@@ -78,6 +78,8 @@ def includeme(config):
         config.add_route_7('admin:certificate:focus:renew:custom:json', '/.well-known/admin/certificate/{@id}/renew/custom.json')
         config.add_route_7('admin:certificate:upload', '/.well-known/admin/certificate/upload')
         config.add_route_7('admin:certificate:upload:json', '/.well-known/admin/certificate/upload.json')
+        config.add_route_7('admin:certificate:focus:mark', '/.well-known/admin/certificate/{@id}/mark')
+        config.add_route_7('admin:certificate:focus:mark:json', '/.well-known/admin/certificate/{@id}/mark.json')
 
         # Certificate Requests
         config.add_route_7('admin:certificate_requests', '/.well-known/admin/certificate-requests')

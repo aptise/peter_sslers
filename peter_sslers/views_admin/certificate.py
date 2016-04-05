@@ -17,6 +17,7 @@ import sqlalchemy
 from ..models import *
 from ..lib.forms import (Form_CertificateUpload__file,
                          Form_CertificateRenewal_Custom,
+                         Form_Certificate_Mark,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
@@ -269,7 +270,7 @@ class ViewAdmin(Handler):
                 dbLetsencryptServerCertificate.id,
                 e.message,
             )
-            return HTTPFound("%s&error=POST-ONLY" % url_failure)
+            raise HTTPFound("%s&error=POST-ONLY" % url_failure)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -354,3 +355,68 @@ class ViewAdmin(Handler):
                 self._certificate_focus_renew_custom__print,
                 auto_error_formatter=formhandling.formatter_none,
             )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:certificate:focus:mark', renderer=None)
+    @view_config(route_name='admin:certificate:focus:mark:json', renderer='json')
+    def certificate_focus_mark(self):
+        dbLetsencryptServerCertificate = self._certificate_focus()
+        try:
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_Certificate_Mark,
+                                                             validate_get=True
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            action = formStash.results['action']
+            event_type = None
+            event_payload = {'certificate_id': dbLetsencryptServerCertificate.id,
+                             'v': 1,
+                             }
+            update_recents = False
+            if action == 'deactivate':
+                if dbLetsencryptServerCertificate.is_deactivated:
+                    raise formhandling.FormInvalid('Already deactivated')
+                dbLetsencryptServerCertificate.is_deactivated = True
+                dbLetsencryptServerCertificate.is_active = False
+                event_type = LetsencryptOperationsEventType.certificate_mark_deactivate
+                update_recents = True
+            elif action == 'revoked':
+                if dbLetsencryptServerCertificate.is_revoked:
+                    raise formhandling.FormInvalid('Already revoked')
+                dbLetsencryptServerCertificate.is_revoked = True
+                dbLetsencryptServerCertificate.is_active = False
+                event_type = LetsencryptOperationsEventType.certificate_mark_revoked
+                update_recents = True
+            else: 
+                raise formhandling.FormInvalid('invalid `action`')
+
+            # bookkeeping
+            dbEvent = lib_db.create__LetsencryptOperationsEvent(DBSession,
+                                                                event_type,
+                                                                event_payload,
+                                                                )
+            if update_recents:
+                event_update = lib_db.operations_update_recents(DBSession)
+                event_update.letsencrypt_sync_event_id_child_of = dbEvent.id
+
+            url_success = '/.well-known/admin/certificate/%s?operation=mark&action=%s&result=sucess' % (
+                dbLetsencryptServerCertificate.id,
+                action,
+            )
+            return HTTPFound(url_success)
+            
+        except formhandling.FormInvalid:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            url_failure = '/.well-known/admin/certificate/%s?operation=mark&action=%s&result=error&error=%s' % (
+                dbLetsencryptServerCertificate.id,
+                action,
+                e.message,
+            )
+            raise HTTPFound(url_failure)

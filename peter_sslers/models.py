@@ -344,6 +344,8 @@ class LetsencryptOperationsEventType(object):
     redis_prime = 5
     nginx_cache_expire = 6
     nginx_cache_flush = 7
+    certificate_mark_deactivate = 8
+    certificate_mark_revoked = 9
 
 
 class LetsencryptOperationsEvent(Base):
@@ -380,6 +382,10 @@ class LetsencryptOperationsEvent(Base):
             return 'nginx_cache_expire'
         elif self.letsencrypt_operations_event_type_id == 7:
             return 'nginx_cache_flush'
+        elif self.letsencrypt_operations_event_type_id == 8:
+            return 'certificate_mark_deactivate'
+        elif self.letsencrypt_operations_event_type_id == 9:
+            return 'certificate_mark_revoked'
         return 'unknown'
 
 
@@ -438,6 +444,8 @@ class LetsencryptServerCertificate(Base):
     cert_issuer = sa.Column(sa.Text, nullable=True, )
     cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
+    is_deactivated = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_revoked = sa.Column(sa.Boolean, nullable=True, default=None)
 
     letsencrypt_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_unique_fqdn_set.id"), nullable=False)
 

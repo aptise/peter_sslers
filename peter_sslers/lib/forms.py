@@ -148,3 +148,7 @@ class Form_CertificateRenewal_Custom(_Form_Schema_Base):
     account_key_option = OneOf(('existing', 'upload', ))
     account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+
+
+class Form_Certificate_Mark(_Form_Schema_Base):
+    action = OneOf(('deactivate', 'revoked', ))

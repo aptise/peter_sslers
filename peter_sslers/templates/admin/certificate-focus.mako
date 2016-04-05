@@ -45,6 +45,29 @@
                 <span class="label label-${'success' if LetsencryptServerCertificate.is_active else 'warning'}">
                     ${'Active' if LetsencryptServerCertificate.is_active else 'inactive'}
                 </span>
+                % if LetsencryptServerCertificate.is_active:
+                    <a  class="label label-warning"
+                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/mark?action=deactivate"
+                    >
+                        &lt;do&gt; deactivate
+                    </a>
+                    <a  class="label label-warning"
+                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/mark?action=revoked"
+                    >
+                        &lt;do&gt; mark revoked
+                    </a>
+                % else:
+                    % if LetsencryptServerCertificate.is_deactivated or LetsencryptServerCertificate.is_revoked:
+                        &nbsp;
+                        reason:
+                        % if LetsencryptServerCertificate.is_deactivated:
+                            <span class="label label-warning">deactivated</span>
+                        % endif
+                        % if LetsencryptServerCertificate.is_revoked:
+                            <span class="label label-warning">revoked</span>
+                        % endif
+                    % endif
+                % endif
             </td>
         </tr>
         <tr>
@@ -77,9 +100,9 @@
                 </span>
                 &nbsp;
                 <a  href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
-                    span class="btn btn-xs btn-primary"
+                    span class="label label-primary"
                 >
-                    Custom Renewal
+                    &gt; Custom Renewal
                 </form>
             </td>
         </tr>
