@@ -50,6 +50,17 @@ class ViewAdminOperations(Handler):
                 'enable_nginx': self.request.registry.settings['enable_nginx'],
                 }
 
+    @view_config(route_name='admin:operations:log:focus', renderer='/admin/operations-log-focus.mako')
+    def operations_log_focus(self):
+        _items_per_page = 25
+        item = lib_db.get__LetsencryptOperationsEvent__by_id(DBSession, self.request.matchdict['id'])
+        if not item:
+            raise ValueError("no item")
+        return {'project': 'peter_sslers',
+                'LetsencryptOperationsEvent': item,
+                'enable_redis': self.request.registry.settings['enable_redis'],
+                'enable_nginx': self.request.registry.settings['enable_nginx'],
+                }
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

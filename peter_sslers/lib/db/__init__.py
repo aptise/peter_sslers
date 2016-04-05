@@ -1138,7 +1138,7 @@ def do__LetsencryptAccountKey_authenticate(dbSession, dbLetsencryptAccountKey, a
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_domains(dbSession, domain_names):
+def queue_domains__add(dbSession, domain_names):
     results = {d: None for d in domain_names}
     for domain_name in domain_names:
         _exists = get__LetsencryptDomain__by_name(dbSession, domain_name, preload=False)
@@ -1156,4 +1156,27 @@ def queue_domains(dbSession, domain_names):
                 dbSession.flush()
                 results[domain_name] = 'queued'
     return results
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def queue_domains__process(dbSession):
+    items_paged = get__LetsencryptQueueDomain__paginated(
+        dbSession,
+        show_processed=False,
+        limit=100,
+        offset=0
+    )
+    dbEvent = create__LetsencryptOperationsEvent(dbSession,
+                                                 LetsencryptOperationsEventType.batch_queued_domains,
+                                                 {'batch_size': len(items_paged),
+                                                  'v': 1,
+                                                  }
+                                                 )
+    if not items_paged:
+        raise errors.DisplayableError("No items in queue")
+
+
+    return True
 

@@ -9,6 +9,7 @@ from pyramid.httpexceptions import HTTPNotFound
 import datetime
 import json
 import pdb
+import transaction
 
 # pypi
 import pyramid_formencode_classic as formhandling
@@ -21,6 +22,7 @@ from ..lib.forms import (Form_QueueDomains_add
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
 from ..lib import db as lib_db
+from ..lib import errors as lib_errors
 from ..lib import letsencrypt_info as lib_letsencrypt_info
 from ..lib.handler import Handler, items_per_page
 
@@ -33,9 +35,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_domains', renderer='/admin/queue-domains.mako')
     @view_config(route_name='admin:queue_domains_paginated', renderer='/admin/queue-domains.mako')
     def queue_domains(self):
-        items_count = lib_db.get__LetsencryptQueueDomain__count(DBSession, show_all=False)
+        items_count = lib_db.get__LetsencryptQueueDomain__count(DBSession, show_processed=False)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/queue-domains/{0}')
-        items_paged = lib_db.get__LetsencryptQueueDomain__paginated(DBSession, show_all=False, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptQueueDomain__paginated(DBSession, show_processed=False, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptQueueDomains_count': items_count,
                 'LetsencryptQueueDomains': items_paged,
@@ -46,9 +48,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_domains:all', renderer='/admin/queue-domains.mako')
     @view_config(route_name='admin:queue_domains:all_paginated', renderer='/admin/queue-domains.mako')
     def queue_domains_all(self):
-        items_count = lib_db.get__LetsencryptQueueDomain__count(DBSession, show_all=True)
+        items_count = lib_db.get__LetsencryptQueueDomain__count(DBSession, show_processed=True)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/queue-domains/all/{0}')
-        items_paged = lib_db.get__LetsencryptQueueDomain__paginated(DBSession, show_all=True, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptQueueDomain__paginated(DBSession, show_processed=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptQueueDomains_count': items_count,
                 'LetsencryptQueueDomains': items_paged,
@@ -104,7 +106,7 @@ class ViewAdmin(Handler):
                                     raise_FormInvalid=True,
                                     message_prepend=True
                                     )
-            queue_results = lib_db.queue_domains(DBSession, domain_names)
+            queue_results = lib_db.queue_domains__add(DBSession, domain_names)
 
             if self.request.matched_route.name == 'admin:queue_domains:add:json':
                 return {'result': 'success',
@@ -128,3 +130,20 @@ class ViewAdmin(Handler):
                 self._queue_domains_add__print,
                 auto_error_formatter=formhandling.formatter_none,
             )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:queue_domains:process', renderer=None)
+    @view_config(route_name='admin:queue_domains:process:json', renderer='json')
+    def queue_domain_process(self):
+        try:
+            queue_results = lib_db.queue_domains__process(DBSession)
+            return HTTPFound("/.well-known/admin/queue-domains?processed=1")
+        except lib_errors.DisplayableError, e:
+            # return, don't raise
+            # we still commit the bookkeeping
+            if self.request.matched_route.name == 'admin:queue_domains:process:json':
+                return {'result': 'error',
+                        'error': e.message,
+                        }
+            return HTTPFound("/.well-known/admin/queue-domains?processed=0&error=%s" % e.message)

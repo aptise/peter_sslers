@@ -413,7 +413,14 @@
         <tbody>
             % for event in LetsencryptOperationsEvents:
                 <tr class="${'success' if event_id == str(event.id) else ''}">
-                    <td><span class="label label-default">${event.id}</span></td>
+                    <td>
+                        <a  href="/.well-known/admin/operations/log/item/${event.id}"
+                            class="label label-info"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            ${event.id}
+                        </a>
+                    </td>
                     <td>
                         % if event.letsencrypt_operations_event_id__child_of:
                             <span class="label label-default">${event.letsencrypt_operations_event_id__child_of}</span>

@@ -349,6 +349,13 @@ def get__LetsencryptOperationsEvent__paginated(dbSession, event_type_ids=None, l
     return items_paged
 
 
+def get__LetsencryptOperationsEvent__by_id(dbSession, event_id):
+    item = dbSession.query(LetsencryptOperationsEvent)\
+       .filter(LetsencryptOperationsEvent.id == event_id)\
+       .first()
+    return item
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -404,18 +411,18 @@ def get__LetsencryptPrivateKey__by_id(dbSession, cert_id, eagerload_web=False):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__LetsencryptQueueDomain__count(dbSession, show_all=False):
+def get__LetsencryptQueueDomain__count(dbSession, show_processed=False):
     q = dbSession.query(LetsencryptQueueDomain)
-    if not show_all:
+    if not show_processed:
         q = q.filter(LetsencryptQueueDomain.timestamp_processed.op('IS')(None),  # noqa
                      )
     counted = q.count()
     return counted
 
 
-def get__LetsencryptQueueDomain__paginated(dbSession, show_all=False, eagerload_web=False, limit=None, offset=0):
+def get__LetsencryptQueueDomain__paginated(dbSession, show_processed=False, eagerload_web=False, limit=None, offset=0):
     q = dbSession.query(LetsencryptQueueDomain)
-    if not show_all:
+    if not show_processed:
         q = q.filter(LetsencryptQueueDomain.timestamp_processed.op('IS')(None),  # noqa
                      )
     else:

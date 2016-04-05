@@ -126,6 +126,7 @@ def includeme(config):
         # -
         config.add_route_7('admin:operations:log', '/.well-known/admin/operations/log')
         config.add_route_7('admin:operations:log_paginated', '/.well-known/admin/operations/log/{@page}')
+        config.add_route_7('admin:operations:log:focus', '/.well-known/admin/operations/log/item/{@id}')
         # -
         config.add_route_7('admin:operations:nginx', '/.well-known/admin/operations/nginx')
         config.add_route_7('admin:operations:nginx_paginated', '/.well-known/admin/operations/nginx/{@page}')
@@ -159,6 +160,8 @@ def includeme(config):
         config.add_route_7('admin:queue_domains:all_paginated', '/.well-known/admin/queue-domains/all/{@page}')
         config.add_route_7('admin:queue_domains:add', '/.well-known/admin/queue-domains/add')
         config.add_route_7('admin:queue_domains:add:json', '/.well-known/admin/queue-domains/add.json')
+        config.add_route_7('admin:queue_domains:process', '/.well-known/admin/queue-domains/process')
+        config.add_route_7('admin:queue_domains:process:json', '/.well-known/admin/queue-domains/process.json')
         config.add_route_7('admin:queue_domain:focus', '/.well-known/admin/queue-domain/{@id}')
 
         # Unique FQDN Sets are tied to Certs and Ratelimits
