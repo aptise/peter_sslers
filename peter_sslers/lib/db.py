@@ -1413,6 +1413,7 @@ def operations_update_recents(dbSession):
                 LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
                 )\
         .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
+        .limit(1)\
         .subquery()\
         .as_scalar()
     dbSession.execute(LetsencryptDomain.__table__
@@ -1431,6 +1432,7 @@ def operations_update_recents(dbSession):
                 LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == LetsencryptDomain.id,
                 )\
         .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
+        .limit(1)\
         .subquery()\
         .as_scalar()
     dbSession.execute(LetsencryptDomain.__table__
