@@ -1595,6 +1595,16 @@ def operations_update_recents(dbSession):
 
 
 def operations_deactivate_expired(dbSession):
+
+    # create an event first
+    event_payload_dict = {'count_deactivated': 0,
+                          'v': 1,
+                          }
+    operationsEvent = create__LetsencryptOperationsEvent(dbSession,
+                                                         LetsencryptOperationsEventType.deactivate_expired,
+                                                         event_payload_dict
+                                                         )
+
     # deactivate expired certificates
     expired_certs = dbSession.query(LetsencryptServerCertificate)\
         .filter(LetsencryptServerCertificate.is_active is True,  # noqa
@@ -1603,16 +1613,15 @@ def operations_deactivate_expired(dbSession):
         .all()
     for c in expired_certs:
         c.is_active = False
-    dbSession.flush()
+        dbSession.flush()
+        events.Certificate_expired(dbSession, c, operationsEvent=operationsEvent)
 
-    # bookkeeping
-    dbEvent = create__LetsencryptOperationsEvent(dbSession,
-                                                 LetsencryptOperationsEventType.deactivate_expired,
-                                                 {'count_deactivated': len(expired_certs),
-                                                  'v': 1,
-                                                  }
-                                                 )
-    return dbEvent
+    # update the event
+    if len(expired_certs):
+        event_payload['count_deactivated'] = len(expired_certs)
+        operationsEvent.event_payload = json.dumps(event_payload_dict)
+        dbSession.flush()
+    return operationsEvent
 
 
 def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=None):
@@ -1625,8 +1634,19 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
     2. find domains that have multiple active certs
     3. don't turn off any certs that are a latest_single or latest_multi
     """
+    raise ValueError("Don't run this. It's not needed anymore")
     if ran_operations_update_recents is not True:
         raise ValueError("MUST run `operations_update_recents` first")
+
+    # bookkeeping
+    event_payload_dict = {'count_deactivated': 0,
+                          'v': 1,
+                          }
+    operationsEvent = create__LetsencryptOperationsEvent(dbSession,
+                                                 LetsencryptOperationsEventType.deactivate_duplicate,
+                                                 event_payload_dict,
+                                                 )
+
     _q_ids__latest_single = dbSession.query(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single)\
         .distinct()\
         .filter(LetsencryptDomain.letsencrypt_server_certificate_id__latest_single != None,  # noqa
@@ -1654,32 +1674,32 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
     result = q_domains.all()
     domain_ids_with_multiple_active_certs = [i.letsencrypt_domain_id for i in result]
 
-    _turned_off = []
-    for _domain_id in domain_ids_with_multiple_active_certs:
-        domain_certs = dbSession.query(LetsencryptServerCertificate)\
-            .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
-                  LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id,
-                  )\
-            .filter(LetsencryptServerCertificate.is_active == True,  # noqa
-                    LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == _domain_id,
-                    LetsencryptServerCertificate.id.notin_(_q_ids__latest_single),
-                    LetsencryptServerCertificate.id.notin_(_q_ids__latest_multi),
-                    )\
-            .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
-            .all()
-        if len(domain_certs) > 1:
-            for cert in domain_certs[1:]:
-                cert.is_active = False
-                _turned_off.append(cert)
+    if False:
+        _turned_off = []
+        for _domain_id in domain_ids_with_multiple_active_certs:
+            domain_certs = dbSession.query(LetsencryptServerCertificate)\
+                .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
+                      LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id,
+                      )\
+                .filter(LetsencryptServerCertificate.is_active == True,  # noqa
+                        LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id == _domain_id,
+                        LetsencryptServerCertificate.id.notin_(_q_ids__latest_single),
+                        LetsencryptServerCertificate.id.notin_(_q_ids__latest_multi),
+                        )\
+                .order_by(LetsencryptServerCertificate.timestamp_expires.desc())\
+                .all()
+            if len(domain_certs) > 1:
+                for cert in domain_certs[1:]:
+                    cert.is_active = False
+                    _turned_off.append(cert)
+                    events.Certificate_deactivated(dbSession, c, operationsEvent=operationsEvent)
 
-    # bookkeeping
-    dbEvent = create__LetsencryptOperationsEvent(dbSession,
-                                                 LetsencryptOperationsEventType.deactivate_duplicate,
-                                                 {'count_deactivated': len(_turned_off),
-                                                  'v': 1,
-                                                  }
-                                                 )
-    return dbEvent
+    # update the event
+    if len(_turned_off):
+        event_payload['count_deactivated'] = len(_turned_off)
+        operationsEvent.event_payload = json.dumps(event_payload_dict)
+        dbSession.flush()
+    return operationsEvent
 
 
 def create__LetsencryptOperationsEvent(dbSession, event_type_id, event_payload_dict):

@@ -109,26 +109,15 @@ class ViewAdminOperations(Handler):
         count_deactivated_expired = operations_event2.event_payload_json['count_deactivated']
         rval['LetsencryptServerCertificate'] = {'expired': count_deactivated_expired, }
 
-        # FINALLY
-        # deactivate duplicate certificates
-        operations_event3 = lib_db.operations_deactivate_duplicates(DBSession,
-                                                                    ran_operations_update_recents=True,
-                                                                    )
-        count_deactivated_duplicated = operations_event3.event_payload_json['count_deactivated']
-        rval['LetsencryptServerCertificate']['duplicates.deactivated'] = count_deactivated_duplicated
-
-        DBSession.flush()
-
-        operations_event1.letsencrypt_operations_event_id__child_of = operations_event3.id
-        operations_event2.letsencrypt_operations_event_id__child_of = operations_event3.id
+        operations_event1.letsencrypt_operations_event_id__child_of = operations_event2.id
 
         rval['result'] = 'success'
-        rval['operations_event'] = operations_event3.id
+        rval['operations_event'] = operations_event2.id
 
         if self.request.matched_route.name == 'admin:operations:deactivate_expired:json':
             return rval
 
-        return HTTPFound('/.well-known/admin/operations/log?result=success&event.id=%s' % operations_event3.id)
+        return HTTPFound('/.well-known/admin/operations/log?result=success&event.id=%s' % operations_event2.id)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
