@@ -74,7 +74,8 @@
                                     <a  class="btn btn-xs btn-info"
                                         href="/.well-known/admin/account-keys/${LetsencryptServerCertificate.letsencrypt_account_key_id}"
                                     >
-                                        &gt; ${LetsencryptServerCertificate.letsencrypt_account_key_id}
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        ${LetsencryptServerCertificate.letsencrypt_account_key_id}
                                     </a>
                                 </div>
                                 <div class="radio">

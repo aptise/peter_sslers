@@ -16,6 +16,7 @@ from . import acme
 from . import cert_utils
 from . import letsencrypt_info
 from . import errors
+from . import events
 from . import utils
 
 # setup logging
@@ -350,7 +351,7 @@ def get__LetsencryptCertificateRequest__by_LetsencryptDomainId__count(dbSession,
     return counted
 
 
-def get__LetsencryptCertificateRequest__by_LetsencryptDomainId_paginated(dbSession, domain_id, limit=None, offset=0):
+def get__LetsencryptCertificateRequest__by_LetsencryptDomainId__paginated(dbSession, domain_id, limit=None, offset=0):
     items_paged = dbSession.query(LetsencryptCertificateRequest)\
         .join(LetsencryptCertificateRequest2LetsencryptDomain,
               LetsencryptCertificateRequest.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id,
@@ -388,8 +389,8 @@ def get__LetsencryptCertificateRequest__by_LetsencryptUniqueFQDNSetId__count(dbS
         .count()
     return counted
 
-
-def get__LetsencryptCertificateRequest__by_LetsencryptUniqueFQDNSetId_paginated(dbSession, unique_fqdn_set_id, limit=None, offset=0):
+    
+def get__LetsencryptCertificateRequest__by_LetsencryptUniqueFQDNSetId__paginated(dbSession, unique_fqdn_set_id, limit=None, offset=0):
     items_paged = dbSession.query(LetsencryptCertificateRequest)\
         .filter(LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id == unique_fqdn_set_id)\
         .order_by(LetsencryptCertificateRequest.id.desc())\

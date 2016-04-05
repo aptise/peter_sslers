@@ -31,7 +31,19 @@
             <td>
                 <a class="label label-info"
                     href="/.well-known/admin/certificate/${RenewalQueueItem.letsencrypt_server_certificate_id}"
-                >&gt; ${RenewalQueueItem.letsencrypt_server_certificate_id}</a>
+                >
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    ${RenewalQueueItem.letsencrypt_server_certificate_id}</a>
+            </td>
+        </tr>
+        <tr>
+            <th>letsencrypt_unique_fqdn_set_id</th>
+            <td>
+                <a class="label label-info"
+                    href="/.well-known/admin/unique-fqdn-set/${RenewalQueueItem.letsencrypt_unique_fqdn_set_id}"
+                >
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    ${RenewalQueueItem.letsencrypt_unique_fqdn_set_id}</a>
             </td>
         </tr>
         <tr>

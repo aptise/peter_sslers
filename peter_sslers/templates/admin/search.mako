@@ -40,7 +40,9 @@
                                 <td>
                                     <a  class="btn btn-xs btn-info"
                                         href="/.well-known/admin/account-key/${key.id}"
-                                    >&gt; ${key.id}</a>
+                                    >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        ${key.id}</a>
                                 </td>
                                 <td><code>${key.key_pem_modulus_md5}</code></td>
                                 <td><timestamp>${key.timestamp_last_certificate_request}</timestamp></td>
@@ -77,7 +79,9 @@
                                 <td>
                                     <a  class="btn btn-xs btn-info"
                                         href="/.well-known/admin/private-key/${key.id}"
-                                    >&gt; ${key.id}</a>
+                                    >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        ${key.id}</a>
                                 </td>
                                 <td><code>${key.key_pem_modulus_md5}</code></td>
                                 <td><timestamp>${key.timestamp_last_certificate_request}</timestamp></td>
@@ -117,7 +121,9 @@
                                 <td>
                                     <a  class="btn btn-xs btn-info"
                                         href="/.well-known/admin/certificate/${cert.id}"
-                                    >&gt; ${cert.id}</a>
+                                    >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        ${cert.id}</a>
                                 </td>
                                 <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                 <td><span class="label label-${'success' if cert.is_active else 'danger'}">${'Y' if cert.is_active else ''}</label></td>
@@ -159,7 +165,9 @@
                                 <td>
                                     <a  class="btn btn-xs btn-info"
                                         href="/.well-known/admin/ca-certificate/${cert.id}"
-                                    >&gt; ${cert.id}</a>
+                                    >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        ${cert.id}</a>
                                 </td>
                                 <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                 <td><timestamp>${cert.timestamp_signed}</timestamp></td>
@@ -189,7 +197,9 @@
                                 <td>
                                     <a  class="btn btn-xs btn-info"
                                         href="/.well-known/admin/certificate-request/${csr.id}"
-                                    >&gt; ${csr.id}</a>
+                                    >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        ${csr.id}</a>
                                 </td>
                             </tr>
                         % endfor

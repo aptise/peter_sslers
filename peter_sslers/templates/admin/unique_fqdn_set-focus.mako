@@ -55,7 +55,7 @@
                                             <a  class="btn btn-xs btn-info"
                                                 href="/.well-known/admin/domain/${to_domain.domain.id}"
                                             >
-                                                &gt;
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                                 ${to_domain.domain.id}
                                             </a>
                                         </td>
@@ -65,6 +65,62 @@
                             </table>
                         </td>
                     </tr>
+                    <tr>
+                        <td>Latest Certificates</td>
+                        <td>
+                <%
+                    latest_certificate = LetsencryptUniqueFQDNSet.latest_certificate
+                    latest_active_certificate = LetsencryptUniqueFQDNSet.latest_active_certificate
+                %>
+                <table class="table table-striped table-condensed">
+                    <thead>
+                        <tr>
+                            <th>Cert</th>
+                            <th>id</th>
+                            <th>is active?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>Latest Certificate</th>
+                            % if latest_certificate:
+                                <td>
+                                    <a  class="label label-info"
+                                        href="/.well-known/admin/certificate/${latest_certificate.id}"
+                                        >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        ${latest_certificate.id}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="label label-${'success' if latest_certificate.is_active else 'warning'}">
+                                        ${'Active' if latest_certificate.is_active else 'inactive'}
+                                    </span>
+                                </td>
+                            % endif
+                        </tr>
+                        <tr>
+                            <th>Latest Active Certificate</th>
+                            % if latest_active_certificate:
+                                <td>
+                                    <a  class="label label-info"
+                                        href="/.well-known/admin/certificate/${latest_active_certificate.id}"
+                                        >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        ${latest_active_certificate.id}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="label label-${'success' if latest_active_certificate.is_active else 'warning'}">
+                                        ${'Active' if latest_active_certificate.is_active else 'inactive'}
+                                    </span>
+                                </td>
+                            % endif
+                        </tr>
+                    </tbody>
+                </table>
+                        </td>
+                    </tr>    
                     <tr>
                         <th>certificates history</th>
                         <td>

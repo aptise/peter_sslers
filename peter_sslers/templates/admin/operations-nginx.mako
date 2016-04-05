@@ -98,7 +98,8 @@
                 <a  href="/.well-known/admin/operations/nginx/cache-flush"
                     class="label label-primary"
                 >
-                    &gt; Flush nginx Cache
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Flush nginx Cache
                 </a>
                 <br/>
                 <em>
@@ -111,7 +112,8 @@
                 <a  href="/.well-known/admin/operations/log"
                     class="label label-info"
                 >
-                    &gt; Full Operations Log
+                    <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
+                    Full Operations Log
                 </a>
             </p>
         </div>

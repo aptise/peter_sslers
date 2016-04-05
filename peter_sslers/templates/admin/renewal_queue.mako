@@ -25,6 +25,7 @@
                         <tr>
                             <th>id</th>
                             <th>certificate_id</th>
+                            <th>unique fqdn</th>
                             <th>timestamp_entered</th>
                             <th>timestamp_processed</th>
                             <th>process_result</th>
@@ -32,8 +33,15 @@
                     </thead>
                     % for q in LetsencryptRenewalQueues:
                         <tr>
-                            <td><a class="label label-info" href="/.well-known/admin/renewal-queue/item/${q.id}">&gt; ${q.id}</a></td>
-                            <td><a class="label label-info" href="/.well-known/admin/certificate/${q.letsencrypt_server_certificate_id}">&gt; ${q.letsencrypt_server_certificate_id}</a></td>
+                            <td><a class="label label-info" href="/.well-known/admin/renewal-queue/item/${q.id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                ${q.id}</a></td>
+                            <td><a class="label label-info" href="/.well-known/admin/certificate/${q.letsencrypt_server_certificate_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                ${q.letsencrypt_server_certificate_id}</a></td>
+                            <td><a class="label label-info" href="/.well-known/admin/unique-fqdn-set/${q.letsencrypt_unique_fqdn_set_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                ${q.letsencrypt_unique_fqdn_set_id}</a></td>
                             <td><timestamp>${q.timestamp_entered}</timestamp></td>
                             <td><timestamp>${q.timestamp_processed}</timestamp></td>
                             <td>${q.process_result or ''}</td>

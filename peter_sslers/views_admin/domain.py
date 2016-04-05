@@ -142,10 +142,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificate_requests_paginated', renderer='/admin/domain-focus-certificate_requests.mako')
     def domain_focus__certificate_requests(self):
         dbLetsencryptDomain = self._domain_focus()
-        items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId_count(
+        items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId__count(
             DBSession, LetsencryptDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificate-requests/{0}' % LetsencryptDomain.id)
-        items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId_paginated(
+        items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId__paginated(
             DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptDomain': dbLetsencryptDomain,

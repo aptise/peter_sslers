@@ -54,7 +54,9 @@
             <td>
                 % if LetsencryptCertificateRequest.signed_certificate:
                     <span class="label label-success">Yes</span>&nbsp;
-                    <a class="label label-info" href="/.well-known/admin/certificate/${LetsencryptCertificateRequest.signed_certificate.id}">&gt; ${LetsencryptCertificateRequest.signed_certificate.id}</a>
+                    <a class="label label-info" href="/.well-known/admin/certificate/${LetsencryptCertificateRequest.signed_certificate.id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        ${LetsencryptCertificateRequest.signed_certificate.id}</a>
                 % else:
                     <span class="label label-default">No</span>
                 % endif
@@ -65,7 +67,9 @@
             <td>
                 % if LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of:
                     <span class="label label-success">Yes</span>&nbsp;
-                    <a class="label label-info" href="/.well-known/admin/certificate/${LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of}">&gt; ${LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of}</a>
+                    <a class="label label-info" href="/.well-known/admin/certificate/${LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        ${LetsencryptCertificateRequest.letsencrypt_server_certificate_id__renewal_of}</a>
                 % else:
                     <span class="label label-default">No</span>
                 % endif
@@ -75,7 +79,9 @@
             <th>letsencrypt_account_key_id</th>
             <td>
                 % if LetsencryptCertificateRequest.letsencrypt_account_key_id:
-                    <a class="label label-info" href="/.well-known/admin/account-key/${LetsencryptCertificateRequest.letsencrypt_account_key_id}">&gt; ${LetsencryptCertificateRequest.letsencrypt_account_key_id}</a>
+                    <a class="label label-info" href="/.well-known/admin/account-key/${LetsencryptCertificateRequest.letsencrypt_account_key_id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        ${LetsencryptCertificateRequest.letsencrypt_account_key_id}</a>
                 % endif
             </td>
         </tr>
@@ -83,14 +89,18 @@
             <th>letsencrypt_private_key_id__signed_by</th>
             <td>
                 % if LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by:
-                    <a class="label label-info" href="/.well-known/admin/private-key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">&gt; ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
+                    <a class="label label-info" href="/.well-known/admin/private-key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
                 % endif
             </td>
         </tr>
         <tr>
             <th>unique fqdn set</th>
             <td>
-                <a class="label label-info" href="/.well-known/admin/unique-fqdn-set/${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}">&gt; ${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}</a>
+                <a class="label label-info" href="/.well-known/admin/unique-fqdn-set/${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    ${LetsencryptCertificateRequest.letsencrypt_unique_fqdn_set_id}</a>
             </td>
         </tr>
         <tr>
@@ -113,7 +123,7 @@
                     class="btn btn-xs btn-info"
                     href="/.well-known/admin/search?${LetsencryptCertificateRequest.csr_pem_modulus_search}"
                 >
-                    <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                 </a>
             </td>
         </tr>
@@ -145,12 +155,14 @@
             href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process"
             class="btn btn-info"
         >
+            <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
             Edit Codes
         </a>
         <a 
             href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/deactivate"
             class="btn btn-primary"
         >
+            <span class="glyphicon glyphicon-play-circle" aria-hidden="true"></span>
             deactivate
         </a>
     % endif

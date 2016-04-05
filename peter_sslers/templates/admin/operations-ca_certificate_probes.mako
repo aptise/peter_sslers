@@ -70,7 +70,8 @@
                     <a  href="/.well-known/admin/operations/ca-certificate-probes/probe"
                         class="label label-primary"
                     >
-                        &lt;do&gt; Probe for new certificates
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Probe for new certificates
                     </a>
                     <br/>
                     <em>Checks for new certs on the public internet</em>
@@ -79,7 +80,8 @@
                     <a  href="/.well-known/admin/operations/log"
                         class="label label-info"
                     >
-                        &gt; Full Operations Log
+                        <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                        Full Operations Log
                     </a>
                 </li>
             </ul>

@@ -102,7 +102,7 @@ class ViewAdmin(Handler):
         dbLetsencryptUniqueFQDNSet = self._unique_fqdn_set_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptUniqueFQDNSetId__count(
             DBSession, LetsencryptDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/unique-fqdn-set/%s/certificate-requests/{0}' % LetsencryptDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/unique-fqdn-set/%s/certificate-requests/{0}' % dbLetsencryptUniqueFQDNSet.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptUniqueFQDNSetId__paginated(
             DBSession, dbLetsencryptUniqueFQDNSet.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',

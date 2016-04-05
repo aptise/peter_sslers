@@ -38,7 +38,9 @@
             <td>
                 <a  class="btn btn-xs btn-info"
                     href="/.well-known/admin/domain/${LetsencryptDomain.id}/config.json"
-                >config.json</a>
+                >
+                    <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                    config.json</a>
             </td>
         </tr>
         % if request.registry.settings['enable_nginx']:
@@ -47,10 +49,14 @@
                 <td>
                     <a  class="btn btn-xs btn-primary"
                         href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx-cache-expire"
-                    >nginx-cache-expire</a>
+                    >
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        nginx-cache-expire</a>
                     <a  class="btn btn-xs btn-primary"
                         href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx-cache-expire.json"
-                    >nginx-cache-expire.json</a>
+                    >
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        nginx-cache-expire.json</a>
                 </td>
             </tr>
         % endif

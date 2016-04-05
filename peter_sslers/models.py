@@ -434,6 +434,7 @@ class LetsencryptRenewalQueue(Base):
     letsencrypt_operations_event_id__child_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_operations_event.id"), nullable=True)
     timestamp_processed = sa.Column(sa.DateTime, nullable=True, )
     process_result = sa.Column(sa.Boolean, nullable=True, default=None)
+    letsencrypt_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_unique_fqdn_set.id"), nullable=False)
 
     certificate = sa.orm.relationship(
         "LetsencryptServerCertificate",
@@ -445,6 +446,11 @@ class LetsencryptRenewalQueue(Base):
         primaryjoin="LetsencryptRenewalQueue.letsencrypt_operations_event_id__child_of==LetsencryptOperationsEvent.id",
         uselist=False,
     )
+    unique_fqdn_set = sa.orm.relationship("LetsencryptUniqueFQDNSet",
+                                          primaryjoin="LetsencryptRenewalQueue.letsencrypt_unique_fqdn_set_id==LetsencryptUniqueFQDNSet.id",
+                                          uselist=False,
+                                          back_populates='renewal_queue',
+                                          )
 
 
 class LetsencryptServerCertificate(Base):
@@ -632,6 +638,11 @@ class LetsencryptUniqueFQDNSet(Base):
                                                back_populates='unique_fqdn_set',
                                                )
 
+    renewal_queue = sa.orm.relationship("LetsencryptRenewalQueue",
+                                          primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptRenewalQueue.letsencrypt_unique_fqdn_set_id",
+                                          back_populates='unique_fqdn_set',
+                                          )
+
 
 class LetsencryptUniqueFQDNSet2LetsencryptDomain(Base):
     """
@@ -816,4 +827,35 @@ LetsencryptUniqueFQDNSet.signed_certificates_5 = sa.orm.relationship(
 )
 
 
+LetsencryptUniqueFQDNSet.latest_certificate = sa.orm.relationship(
+    LetsencryptServerCertificate,
+    primaryjoin=(
+        sa.and_(LetsencryptUniqueFQDNSet.id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id,
+                LetsencryptServerCertificate.id.in_(sa.select([sa.func.max(LetsencryptServerCertificate.id)])
+                                                    .where(LetsencryptUniqueFQDNSet.id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id)
+                                                    .correlate()
+                                                    )
+                )
+    ),
+    viewonly=True,
+    uselist=False,
+)
+LetsencryptUniqueFQDNSet.latest_active_certificate = sa.orm.relationship(
+    LetsencryptServerCertificate,
+    primaryjoin=(
+        sa.and_(LetsencryptUniqueFQDNSet.id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id,
+                LetsencryptServerCertificate.id.in_(sa.select([sa.func.max(LetsencryptServerCertificate.id)])
+                                                    .where(LetsencryptUniqueFQDNSet.id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id)
+                                                    .where(LetsencryptServerCertificate.is_active.op('IS')(True))
+                                                    .correlate()
+                                                    )
+                )
+    ),
+    viewonly=True,
+    uselist=False,
+)
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+

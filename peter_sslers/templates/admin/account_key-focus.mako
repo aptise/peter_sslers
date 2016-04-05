@@ -72,7 +72,7 @@
                     class="btn btn-xs btn-info"
                     href="/.well-known/admin/search?${LetsencryptAccountKey.key_pem_modulus_search}"
                 >
-                    <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                 </a>
             </td>
         </tr>

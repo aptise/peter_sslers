@@ -74,14 +74,16 @@
                 <a  href="/.well-known/admin/operations/redis/prime"
                     class="label label-primary"
                 >
-                    &lt;do&gt; Prime Redis Cache
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Prime Redis Cache
                 </a>
             </p>
             <p>
                 <a  href="/.well-known/admin/operations/log"
                     class="label label-info"
                 >
-                    &gt; Full Operations Log
+                    <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
+                    Full Operations Log
                 </a>
             </p>
         </div>

@@ -19,11 +19,11 @@
     
 <%block name="content_main">
 
-    % if LetsencryptServerCertificates:
+    % if LetsencryptCertificateRequests:
         ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_certificates__list(LetsencryptCertificateRequests, show_domains=True)}
+        ${admin_partials.table_certificate_requests__list(LetsencryptCertificateRequests, show_domains=True)}
     % else:
-        No known certificates.
+        No known certificates requests.
     % endif 
 
 </%block>
