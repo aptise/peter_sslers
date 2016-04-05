@@ -131,14 +131,14 @@ def _get__LetsencryptDomain__core(q, preload=False, eagerload_web=False):
     if eagerload_web:
         # need to join back the domains to show alternate domains.
         q = q.options(
-            sqlalchemy.orm.subqueryload('domain_to_certificate_requests_5')\
-                .joinedload('certificate_request')
-                .joinedload('certificate_request_to_domains')\
-                .joinedload('domain'),
-            sqlalchemy.orm.subqueryload('certificates_5')\
-                .joinedload('unique_fqdn_set')\
-                .joinedload('to_domains')\
-                .joinedload('domain'),
+            sqlalchemy.orm.subqueryload('domain_to_certificate_requests_5')
+            .joinedload('certificate_request')
+            .joinedload('certificate_request_to_domains')
+            .joinedload('domain'),
+            sqlalchemy.orm.subqueryload('certificates_5')
+            .joinedload('unique_fqdn_set')
+            .joinedload('to_domains')
+            .joinedload('domain'),
         )
     return q
 
@@ -761,7 +761,7 @@ def getcreate__LetsencryptUniqueFQDNSet__by_domainObjects(
 ):
     is_created = False
 
-    for dbDomain in domainObjects: 
+    for dbDomain in domainObjects:
         if dbDomain not in dbSession:
             dbDomain = dbSession.merge(dbDomain)
 

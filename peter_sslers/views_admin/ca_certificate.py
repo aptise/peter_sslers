@@ -185,7 +185,7 @@ class ViewAdmin(Handler):
                 _form_fields['le_%s_auth_file' % xi] = 'optional'
             # and the post
             _instructions.append("""http://127.0.0.1:6543/.well-known/admin/ca-certificate/upload-bundle.json""")
-        
+
             return {'instructions': ' '.join(_instructions),
                     'form_fields': _form_fields
                     }

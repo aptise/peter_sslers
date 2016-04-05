@@ -10,6 +10,7 @@ from formencode.validators import (
 
 from . import letsencrypt_info
 
+
 class OnlyOneOf(FormValidator):
     # Field that only one of is allowed
     only_one_ofs = None
