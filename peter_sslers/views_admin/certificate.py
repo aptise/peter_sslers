@@ -403,12 +403,12 @@ class ViewAdmin(Handler):
                                                                 )
             if update_recents:
                 event_update = lib_db.operations_update_recents(DBSession)
-                event_update.letsencrypt_sync_event_id_child_of = dbEvent.id
+                event_update.letsencrypt_operations_event_id__child_of = dbEvent.id
             if requeue:
                 dbQuque = lib_db.create__LetsencryptRenewalQueue(
                     DBSession,
                     dbLetsencryptServerCertificate.id,
-                    letsencrypt_operations_event_id_child_of = dbEvent.id,
+                    letsencrypt_operations_event_id__child_of = dbEvent.id,
                 )
 
             url_success = '/.well-known/admin/certificate/%s?operation=mark&action=%s&result=sucess' % (

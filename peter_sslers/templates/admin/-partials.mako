@@ -356,8 +356,8 @@
                 <tr class="${'success' if event_id == str(event.id) else ''}">
                     <td><span class="label label-default">${event.id}</span></td>
                     <td>
-                        % if event.letsencrypt_sync_event_id_child_of:
-                            <span class="label label-default">${event.letsencrypt_sync_event_id_child_of}</span>
+                        % if event.letsencrypt_operations_event_id__child_of:
+                            <span class="label label-default">${event.letsencrypt_operations_event_id__child_of}</span>
                         % endif
                     </td>
                     <td><span class="label label-default">${event.event_type_text}</span></td>

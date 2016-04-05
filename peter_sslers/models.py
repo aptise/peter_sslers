@@ -352,12 +352,12 @@ class LetsencryptOperationsEvent(Base):
     """
     Certain events are tracked for bookkeeping
     """
-    __tablename__ = 'letsencrypt_sync_event'
+    __tablename__ = 'letsencrypt_operations_event'
     id = sa.Column(sa.Integer, primary_key=True)
     letsencrypt_operations_event_type_id = sa.Column(sa.Integer, nullable=False)
     timestamp_operation = sa.Column(sa.DateTime, nullable=True, )
     event_payload = sa.Column(sa.Text, nullable=False, )
-    letsencrypt_sync_event_id_child_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_sync_event.id"), nullable=True)
+    letsencrypt_operations_event_id__child_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_operations_event.id"), nullable=True)
 
     @property
     def event_payload_json(self):
@@ -431,7 +431,7 @@ class LetsencryptRenewalQueue(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_entered = sa.Column(sa.DateTime, nullable=False, )
     letsencrypt_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_server_certificate.id"), nullable=False)
-    letsencrypt_operations_event_id_child_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_sync_event.id"), nullable=True)
+    letsencrypt_operations_event_id__child_of = sa.Column(sa.Integer, sa.ForeignKey("letsencrypt_operations_event.id"), nullable=True)
     timestamp_processed = sa.Column(sa.DateTime, nullable=True, )
     process_result = sa.Column(sa.Boolean, nullable=True, default=None)
 
@@ -442,7 +442,7 @@ class LetsencryptRenewalQueue(Base):
     )
     operations_event = sa.orm.relationship(
         "LetsencryptOperationsEvent",
-        primaryjoin="LetsencryptRenewalQueue.letsencrypt_operations_event_id_child_of==LetsencryptOperationsEvent.id",
+        primaryjoin="LetsencryptRenewalQueue.letsencrypt_operations_event_id__child_of==LetsencryptOperationsEvent.id",
         uselist=False,
     )
 

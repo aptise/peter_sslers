@@ -48,7 +48,7 @@ class ViewAdmin(Handler):
     def renewal_queue_all(self):
         items_count = lib_db.get__LetsencryptRenewalQueue__count(DBSession, show_all=True)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/items_per_page/all/{0}')
-        items_paged = lib_db.get__LetsencryptRenewalQueue__count(DBSession, show_all=True, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptRenewalQueue__paginated(DBSession, show_all=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptRenewalQueues_count': items_count,
                 'LetsencryptRenewalQueues': items_paged,

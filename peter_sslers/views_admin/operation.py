@@ -119,8 +119,8 @@ class ViewAdminOperations(Handler):
 
         DBSession.flush()
 
-        operations_event1.letsencrypt_sync_event_id_child_of = operations_event3.id
-        operations_event2.letsencrypt_sync_event_id_child_of = operations_event3.id
+        operations_event1.letsencrypt_operations_event_id__child_of = operations_event3.id
+        operations_event2.letsencrypt_operations_event_id__child_of = operations_event3.id
 
         rval['result'] = 'success'
         rval['operations_event'] = operations_event3.id

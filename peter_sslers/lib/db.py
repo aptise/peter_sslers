@@ -1683,13 +1683,13 @@ def create__LetsencryptOperationsEvent(dbSession, event_type_id, event_payload_d
     return dbEvent
 
 
-def create__LetsencryptRenewalQueue(dbSession, letsencrypt_server_certificate_id, letsencrypt_operations_event_id_child_of=None):
+def create__LetsencryptRenewalQueue(dbSession, letsencrypt_server_certificate_id, letsencrypt_operations_event_id__child_of=None):
     # bookkeeping
     dbQueue = LetsencryptRenewalQueue()
     dbQueue.timestamp_entered = datetime.datetime.utcnow()
     dbQueue.timestamp_processed = None
     dbQueue.letsencrypt_server_certificate_id = letsencrypt_server_certificate_id
-    dbQueue.letsencrypt_operations_event_id_child_of = letsencrypt_operations_event_id_child_of
+    dbQueue.letsencrypt_operations_event_id__child_of = letsencrypt_operations_event_id__child_of
     dbSession.add(dbQueue)
     dbSession.flush()
     return dbQueue
