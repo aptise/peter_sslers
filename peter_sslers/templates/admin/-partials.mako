@@ -686,3 +686,24 @@
     </${wrapper}>
     ${'</ul>' if as_list else ''|n}
 </%def>
+
+
+<%def name="standard_error_display(has_message=None)">
+    <%
+        error = request.params.get('error', None)
+        message = request.params.get('message', None)
+    %>
+    % if error:
+        <div class="alert alert-danger">
+            ## operation=mark&action=deactivate&result=error&error=Can%20not%20deactivate%20the%20default
+            <b>Error</b>
+            <p>
+                % if has_message:
+                    ${message}
+                % else:
+                    ${error}
+                % endif
+            </p>
+        </div>
+    % endif
+</%def>

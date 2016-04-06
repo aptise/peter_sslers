@@ -14,17 +14,12 @@
 <%block name="page_header">
     <h2>Account Keys - Focus</h2>
     <p>${request.text_library.info_AccountKeys[1]}</p>
+
+    ${admin_partials.standard_error_display()}
 </%block>
 
 
 <%block name="content_main">
-    % if request.params.get('error'):
-        <div class="alert alert-danger">
-            ## operation=mark&action=deactivate&result=error&error=Can%20not%20deactivate%20the%20default
-            <p>${request.params.get('error')}
-            </p>
-        </div>
-    % endif
     <table class="table">
         <tr>
             <th>id</th>

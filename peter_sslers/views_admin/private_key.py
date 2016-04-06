@@ -16,9 +16,11 @@ import sqlalchemy
 # localapp
 from ..models import *
 from ..lib.forms import (Form_PrivateKey_new__file,
+                         Form_PrivateKey_Mark,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
+from ..lib import events as lib_events
 from ..lib import cert_utils as lib_cert_utils
 from ..lib.handler import Handler, items_per_page
 
@@ -144,3 +146,77 @@ class ViewAdmin(Handler):
                 self._private_key_new__print,
                 auto_error_formatter=formhandling.formatter_none,
             )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:private_key:focus:mark', renderer=None)
+    @view_config(route_name='admin:private_key:focus:mark.json', renderer='json')
+    def certificate_focus_mark(self):
+        dbLetsencryptPrivateKey = self._private_key_focus()
+        try:
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_PrivateKey_Mark,
+                                                             validate_get=True
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            action = formStash.results['action']
+            event_type = LetsencryptOperationsEventType.private_key_mark
+            event_payload = {'private_key_id': dbLetsencryptPrivateKey.id,
+                             'action': formStash.results['action'],
+                             'v': 1,
+                             }
+            marked_comprimised = False
+            if action == 'deactivate':
+                if not dbLetsencryptPrivateKey.is_active:
+                    raise formhandling.FormInvalid('Already deactivated')
+                dbLetsencryptPrivateKey.is_active = False
+            elif action == 'activate':
+                if dbLetsencryptPrivateKey.is_active:
+                    raise formhandling.FormInvalid('Already activated')
+                if dbLetsencryptPrivateKey.is_compromised:
+                    raise formhandling.FormInvalid('Can not activate a compromised key')
+                dbLetsencryptPrivateKey.is_active = True
+            elif action == 'compromised':
+                if dbLetsencryptPrivateKey.is_compromised:
+                    raise formhandling.FormInvalid('Already compromised')
+                dbLetsencryptPrivateKey.is_active = False
+                dbLetsencryptPrivateKey.is_compromised = True
+                event_type = LetsencryptOperationsEventType.private_key_revoke
+                marked_comprimised = True
+            else:
+                raise formhandling.FormInvalid('invalid `action`')
+
+            DBSession.flush()
+
+            # bookkeeping
+            operationsEvent = lib_db.create__LetsencryptOperationsEvent(
+                DBSession,
+                event_type,
+                event_payload,
+            )
+            if marked_comprimised:
+                lib_events.PrivateKey_compromised(
+                    DBSession,
+                    dbLetsencryptPrivateKey,
+                    operationsEvent
+                )
+            url_success = '/.well-known/admin/private-key/%s?operation=mark&action=%s&result=sucess' % (
+                dbLetsencryptPrivateKey.id,
+                action,
+            )
+            return HTTPFound(url_success)
+
+        except formhandling.FormInvalid, e:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            url_failure = '/.well-known/admin/private-key/%s?operation=mark&action=%s&result=error&error=%s' % (
+                dbLetsencryptPrivateKey.id,
+                action,
+                e.message,
+            )
+            raise HTTPFound(url_failure)

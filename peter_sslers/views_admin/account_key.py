@@ -160,8 +160,6 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(route_name='admin:account_key:focus:mark', renderer=None)
     @view_config(route_name='admin:account_key:focus:mark.json', renderer='json')
     def certificate_focus_mark(self):

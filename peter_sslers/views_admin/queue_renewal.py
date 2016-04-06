@@ -12,6 +12,7 @@ import pdb
 # pypi
 import pyramid_formencode_classic as formhandling
 import sqlalchemy
+import transaction
 
 # localapp
 from ..models import *
@@ -69,3 +70,21 @@ class ViewAdmin(Handler):
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:queue_renewals:process', renderer=None)
+    @view_config(route_name='admin:queue_renewals:process.json', renderer='json')
+    def queue_renewal_process(self):
+        try:
+            queue_results = lib_db.queue_renewals__process(DBSession)
+            if self.request.matched_route.name == 'admin:queue_renewals:process.json':
+                return {'result': 'success',
+                        }
+            return HTTPFound("/.well-known/admin/queue-renewals?processed=1")
+        except Exception as e:
+            transaction.abort()
+            if self.request.matched_route.name == 'admin:queue_renewals:process.json':
+                return {'result': 'error',
+                        'error': e.message,
+                        }
+            raise        
+            

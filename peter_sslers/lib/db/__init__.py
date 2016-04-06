@@ -1,6 +1,5 @@
 # stdlib
 import datetime
-import json
 import logging
 import pdb
 import tempfile
@@ -299,10 +298,6 @@ def getcreate__LetsencryptUniqueFQDNSet__by_domainObjects(
 ):
     is_created = False
 
-    for dbDomain in domainObjects:
-        if dbDomain not in dbSession:
-            dbDomain = dbSession.merge(dbDomain)
-
     domain_ids = [dbDomain.id for dbDomain in domainObjects]
     domain_ids.sort()
     domain_ids_string = ','.join([str(id) for id in domain_ids])
@@ -504,8 +499,6 @@ def create__CertificateRequest__FULL(
             log.info("-process_keyauth_challenge %s", domain)
             with transaction.manager as tx:
                 (dbDomain, dbLetsencryptCertificateRequest2D) = dbDomainObjects[domain]
-                dbDomain = dbSession.merge(dbDomain, )
-                dbLetsencryptCertificateRequest2D = dbSession.merge(dbLetsencryptCertificateRequest2D, )
                 dbLetsencryptCertificateRequest2D.challenge_key = token
                 dbLetsencryptCertificateRequest2D.challenge_text = keyauthorization
                 dbSession.flush()
@@ -556,12 +549,6 @@ def create__CertificateRequest__FULL(
 
         # these MUST commit
         with transaction.manager as tx:
-            if dbAccountKey not in dbSession:
-                dbAccountKey = dbSession.merge(dbAccountKey)
-            if dbPrivateKey not in dbSession:
-                dbPrivateKey = dbSession.merge(dbPrivateKey)
-            if dbLetsencryptCertificateRequest not in dbSession:
-                dbLetsencryptCertificateRequest = dbSession.merge(dbLetsencryptCertificateRequest)
             dbLetsencryptServerCertificate = create__LetsencryptServerCertificate(
                 dbSession,
                 timestamp_signed = datetime_signed,
@@ -577,19 +564,13 @@ def create__CertificateRequest__FULL(
                 letsencrypt_server_certificate_id__renewal_of = letsencrypt_server_certificate_id__renewal_of,
             )
 
-        # merge this back in
-        if dbLetsencryptServerCertificate:
-            if dbLetsencryptServerCertificate not in dbSession:
-                dbLetsencryptServerCertificate = dbSession.merge(dbLetsencryptServerCertificate)
         return dbLetsencryptServerCertificate
 
     except:
         if dbLetsencryptCertificateRequest:
-            if dbLetsencryptCertificateRequest not in dbSession:
-                dbLetsencryptCertificateRequest = dbSession.merge(dbLetsencryptCertificateRequest)
-                dbLetsencryptCertificateRequest.is_active = False
-                dbLetsencryptCertificateRequest.is_error = True
-                transaction.manager.commit()
+            dbLetsencryptCertificateRequest.is_active = False
+            dbLetsencryptCertificateRequest.is_error = True
+            transaction.manager.commit()
         raise
 
     finally:
@@ -650,8 +631,6 @@ def create__LetsencryptServerCertificate(
         dbLetsencryptServerCertificate.cert_pem = cert_pem
         dbLetsencryptServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
         if dbLetsencryptCertificateRequest:
-            if dbLetsencryptCertificateRequest not in dbSession:
-                dbLetsencryptCertificateRequest = dbSession.merge(dbLetsencryptCertificateRequest)
             dbLetsencryptCertificateRequest.is_active = False
             dbLetsencryptServerCertificate.letsencrypt_certificate_request_id = dbLetsencryptCertificateRequest.id
         dbLetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain = letsencrypt_ca_certificate_id__upchain
@@ -952,7 +931,7 @@ def operations_deactivate_expired(dbSession):
     # update the event
     if len(expired_certs):
         event_payload['count_deactivated'] = len(expired_certs)
-        operationsEvent.event_payload = json.dumps(event_payload_dict)
+        operationsEvent.set_event_payload(event_payload_dict)
         dbSession.flush()
     return operationsEvent
 
@@ -1034,7 +1013,7 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
     # update the event
     if len(_turned_off):
         event_payload['count_deactivated'] = len(_turned_off)
-        operationsEvent.event_payload = json.dumps(event_payload_dict)
+        operationsEvent.set_event_payload(event_payload_dict)
         dbSession.flush()
     return operationsEvent
 
@@ -1042,12 +1021,18 @@ def operations_deactivate_duplicates(dbSession, ran_operations_update_recents=No
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def create__LetsencryptOperationsEvent(dbSession, event_type_id, event_payload_dict):
+def create__LetsencryptOperationsEvent(
+    dbSession,
+    event_type_id,
+    event_payload_dict,
+    letsencrypt_operations_event_id__child_of=None,
+):
     # bookkeeping
     dbEvent = LetsencryptOperationsEvent()
     dbEvent.letsencrypt_operations_event_type_id = event_type_id
     dbEvent.timestamp_operation = datetime.datetime.utcnow()
-    dbEvent.event_payload = json.dumps(event_payload_dict)
+    dbEvent.set_event_payload(event_payload_dict)
+    dbEvent.letsencrypt_operations_event_id__child_of = letsencrypt_operations_event_id__child_of
     dbSession.add(dbEvent)
     dbSession.flush()
     return dbEvent
@@ -1160,64 +1145,148 @@ def queue_domains__process(
     dbAccountKey=None,
     dbPrivateKey=None,
 ):
-    items_paged = get__LetsencryptQueueDomain__paginated(
-        dbSession,
-        show_processed=False,
-        limit=100,
-        offset=0
-    )
-    event_payload = {'batch_size': len(items_paged),
-                     'v': 1,
-                     }
-    operationsEvent = create__LetsencryptOperationsEvent(dbSession,
-                                                         LetsencryptOperationsEventType.batch_queued_domains,
-                                                         event_payload,
-                                                         )
-    if not items_paged:
-        raise errors.DisplayableError("No items in queue")
-    timestamp_transaction = datetime.datetime.now()
-    domainObjects = []
-    for qdomain in items_paged:
-        domainObject, _is_created = getcreate__LetsencryptDomain__by_domainName(
-            dbSession,
-            qdomain.domain_name,
-            is_from_domain_queue=True
-        )
-        domainObjects.append(domainObject)
-        qdomain.letsencrypt_domain_id = domainObject.id
-        dbSession.flush()
-    dbFQDNset, is_created = getcreate__LetsencryptUniqueFQDNSet__by_domainObjects(dbSession, domainObjects)
-    event_payload['letsencrypt_unique_fqdn_set_id'] = dbFQDNset.id
-    operationsEvent.event_payload = json.dumps(event_payload)
-
-    if dbAccountKey is None:
-        dbAccountKey = get__LetsencryptAccountKey__default(dbSession)
-        if not dbAccountKey:
-            raise ValueError("Coult not grab a AccountKey")
-
-
-    if dbPrivateKey is None:
-        dbPrivateKey = get__LetsencryptPrivateKey__current_week(dbSession)
-        if not dbPrivateKey:
-            dbPrivateKey = create__LetsencryptPrivateKey__new(dbSession, is_autogenerated_key=True)
-        if not dbPrivateKey:
-            raise ValueError("Coult not grab a PrivateKey")
-
-    dbLetsencryptServerCertificate = None
     try:
-        domain_names = [d.domain_name for d in domainObjects]
-        dbLetsencryptServerCertificate = create__CertificateRequest__FULL(
-            DBSession,
-            domain_names,
-            dbAccountKey=dbAccountKey,
-            dbPrivateKey=dbPrivateKey,
+        items_paged = get__LetsencryptQueueDomain__paginated(
+            dbSession,
+            show_processed=False,
+            limit=100,
+            offset=0
         )
+        event_payload = {'batch_size': len(items_paged),
+                         'status': 'attempt',
+                         'queue_domain_ids': ','.join([str(d.id) for d in items_paged]),
+                         'v': 1,
+                         }
+        operationsEvent = create__LetsencryptOperationsEvent(dbSession,
+                                                             LetsencryptOperationsEventType.batch_queued_domains,
+                                                             event_payload,
+                                                             )
+        # commit this so we have the attempt recorded.
+        transaction.commit()
+
+        # exit out
+        if not items_paged:
+            raise errors.DisplayableError("No items in queue")
+
+        # cache the timestamp
+        timestamp_transaction = datetime.datetime.now()
+
+        # generate domains
+        domainObjects = []
         for qdomain in items_paged:
-            # this may have committed
-            qdomain = dbSession.merge(qdomain)
-            qdomain.timestamp_processed = timestamp_transaction
+            domainObject, _is_created = getcreate__LetsencryptDomain__by_domainName(
+                dbSession,
+                qdomain.domain_name,
+                is_from_domain_queue=True
+            )
+            domainObjects.append(domainObject)
+            qdomain.letsencrypt_domain_id = domainObject.id
+            dbSession.flush()
+
+        # create a dbFQDNset for this.
+        # TODO - should we delete this if we fail? or keep for the CSR record
+        #      - rationale is that on another pass, we would have a different fqdn set
+        dbFQDNset, is_created = getcreate__LetsencryptUniqueFQDNSet__by_domainObjects(dbSession, domainObjects)
+
+
+        # update the event
+        event_payload['letsencrypt_unique_fqdn_set_id'] = dbFQDNset.id
+        operationsEvent.set_event_payload(event_payload)
         dbSession.flush()
+        transaction.commit()
+
+        if dbAccountKey is None:
+            dbAccountKey = get__LetsencryptAccountKey__default(dbSession)
+            if not dbAccountKey:
+                raise ValueError("Could not grab a AccountKey")
+
+        if dbPrivateKey is None:
+            dbPrivateKey = get__LetsencryptPrivateKey__current_week(dbSession)
+            if not dbPrivateKey:
+                dbPrivateKey = create__LetsencryptPrivateKey__new(dbSession, is_autogenerated_key=True)
+            if not dbPrivateKey:
+                raise ValueError("Could not grab a PrivateKey")
+
+        # do commit, just because we may have created a private key
+        transaction.commit()
+
+        dbLetsencryptServerCertificate = None
+        try:
+            domain_names = [d.domain_name for d in domainObjects]
+            dbLetsencryptServerCertificate = create__CertificateRequest__FULL(
+                DBSession,
+                domain_names,
+                dbAccountKey=dbAccountKey,
+                dbPrivateKey=dbPrivateKey,
+            )
+            for qdomain in items_paged:
+                # this may have committed
+                qdomain.timestamp_processed = timestamp_transaction
+            dbSession.flush()
+
+            event_payload['status'] = 'success'
+            event_payload['certificate.id'] = dbLetsencryptServerCertificate.id
+            operationsEvent.set_event_payload(event_payload)
+            dbSession.flush()
+
+        except errors.DomainVerificationError, e:
+            event_payload['status'] = 'error - DomainVerificationError'
+            event_payload['error'] = e.message
+            operationsEvent.set_event_payload(event_payload)
+            dbSession.flush()
+            raise
+
+        return True
+
     except:
         raise
 
-    return True
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def queue_renewals__process(
+    dbSession,
+    letsencrypt_operations_event_id__child_of = None,
+    fqdns_ids_only = None
+):
+    try:
+        event_type = LetsencryptOperationsEventType.queue_renewals
+        event_payload = {'status': 'attempt',
+                         'v': 1,
+                         }
+        operationsEvent = create__LetsencryptOperationsEvent(dbSession,
+                                                             event_type,
+                                                             event_payload,
+                                                             letsencrypt_operations_event_id__child_of = letsencrypt_operations_event_id__child_of,
+                                                             )
+
+        _expiring_days = 28
+        _until = datetime.datetime.utcnow() + datetime.timedelta(days=_expiring_days)
+        _core_query = dbSession.query(LetsencryptServerCertificate)\
+            .filter(LetsencryptServerCertificate.is_active.op('IS')(True),
+                    LetsencryptServerCertificate.timestamp_expires <= _until
+                    )
+        if fqdns_ids_only:
+            _core_query = _core_query\
+                .filter(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id.in_(fqdns_ids_only),
+                        )
+        _core_query = _core_query\
+                .join(LetsencryptQueueRenewal,
+                      LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptQueueRenewal.letsencrypt_unique_fqdn_set_id,
+                      )\
+                .filter(LetsencryptQueueRenewal.timestamp_processed.op('IS')(None),
+                        )
+        results = _core_query.all()
+        for cert in results:
+            renewal = create__LetsencryptQueueRenewal(
+                dbSession,
+                cert,
+                letsencrypt_operations_event_id__child_of = letsencrypt_operations_event_id__child_of or operationsEvent.id
+            )
+        event_payload['queued_certificate_ids'] = ','.join([str(c.id) for c in results])
+        operationsEvent.set_event_payload(event_payload)
+        dbSession.flush()
+        return True
+
+    except:
+        raise

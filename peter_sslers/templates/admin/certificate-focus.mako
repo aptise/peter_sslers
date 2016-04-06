@@ -17,13 +17,7 @@
 <%block name="page_header">
     <h2>Certificate - Focus</h2>
 
-    % if request.params.get('error'):
-        <div class="alert alert-danger">
-            <b>Error</b>
-            <br/>
-            ${request.params.get('error')}
-        </div>
-    % endif
+    ${admin_partials.standard_error_display()}
 
 </%block>
 
@@ -124,9 +118,15 @@
         <tr>
             <th>letsencrypt_private_key_id__signed_by</th>
             <td>
-                <a class="label label-info" href="/.well-known/admin/private-key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}</a>
+                % if not LetsencryptServerCertificate.private_key.is_compromised:
+                    <a class="label label-info" href="/.well-known/admin/private-key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        ${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}</a>
+                % else:
+                    <a class="label label-danger" href="/.well-known/admin/private-key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">
+                        <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                        ${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}</a>
+                % endif
             </td>
         </tr>
         <tr>

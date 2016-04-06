@@ -58,6 +58,11 @@
             <ul class="nav nav-pills nav-stacked">
               <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="/.well-known/admin/queue-renewals">Unprocessed Items</a></li>
               <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="/.well-known/admin/queue-renewals/all">All Items</a></li>
+              <li role="presentation" class="">
+                <a href="/.well-known/admin/queue-renewals/process">
+                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                Queue Renewals (30 days or less)</a>
+              </li>
             </ul>
         </div>
     </div>

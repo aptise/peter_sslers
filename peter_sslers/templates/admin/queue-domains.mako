@@ -12,6 +12,8 @@
 
 <%block name="page_header">
     <h2>Domains Queue</h2>
+
+    ${admin_partials.standard_error_display()}
 </%block>
 
 

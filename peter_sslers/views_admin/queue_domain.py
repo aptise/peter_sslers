@@ -9,11 +9,11 @@ from pyramid.httpexceptions import HTTPNotFound
 import datetime
 import json
 import pdb
-import transaction
 
 # pypi
 import pyramid_formencode_classic as formhandling
 import sqlalchemy
+import transaction
 
 # localapp
 from ..models import *
@@ -144,7 +144,7 @@ class ViewAdmin(Handler):
                 return {'result': 'success',
                         }
             return HTTPFound("/.well-known/admin/queue-domains?processed=1")
-        except lib_errors.DisplayableError, e:
+        except (lib_errors.DisplayableError, lib_errors.DomainVerificationError), e:
             # return, don't raise
             # we still commit the bookkeeping
             if self.request.matched_route.name == 'admin:queue_domains:process.json':
@@ -158,5 +158,8 @@ class ViewAdmin(Handler):
                 return {'result': 'error',
                         'error': e.message,
                         }
-        
             raise        
+            
+            
+            
+            

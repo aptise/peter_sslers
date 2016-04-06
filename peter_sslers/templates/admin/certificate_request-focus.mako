@@ -89,9 +89,15 @@
             <th>letsencrypt_private_key_id__signed_by</th>
             <td>
                 % if LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by:
-                    <a class="label label-info" href="/.well-known/admin/private-key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
+                    % if LetsencryptCertificateRequest.private_key__signed_by.is_compromised:
+                        <a class="label label-danger" href="/.well-known/admin/private-key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">
+                            <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                            ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
+                    % else:
+                        <a class="label label-info" href="/.well-known/admin/private-key/${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            ${LetsencryptCertificateRequest.letsencrypt_private_key_id__signed_by}</a>
+                    % endif
                 % endif
             </td>
         </tr>

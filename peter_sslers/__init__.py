@@ -1,4 +1,5 @@
 from pyramid.config import Configurator
+from pyramid.tweens import EXCVIEW
 from sqlalchemy import engine_from_config
 
 from .models import (DBSession,
@@ -9,8 +10,19 @@ from .lib import acme
 from .lib import cert_utils
 from .lib.config_utils import *
 
+from pyramid import request
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def db_cleanup__tween_factory(handler, registry):
+    def db_cleanup__tween(request):
+        try:
+            response = handler(request)
+            return response
+        finally:
+            DBSession.close()
+    return db_cleanup__tween
 
 
 def main(global_config, **settings):
@@ -67,5 +79,8 @@ def main(global_config, **settings):
 
     # don't scan 'everything', only what is enabled
     # config.scan()
+    
+    config.add_tween('peter_sslers.db_cleanup__tween_factory', over=EXCVIEW)
+    
 
     return config.make_wsgi_app()

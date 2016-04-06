@@ -153,6 +153,8 @@ def includeme(config):
         config.add_route_7('admin:private_key:focus:certificates_paginated', '/.well-known/admin/private-key/{@id}/certificates/{@page}')
         config.add_route_7('admin:private_key:focus:certificate_requests', '/.well-known/admin/private-key/{@id}/certificate-requests')
         config.add_route_7('admin:private_key:focus:certificate_requests_paginated', '/.well-known/admin/private-key/{@id}/certificate-requests/{@page}')
+        config.add_route_7('admin:private_key:focus:mark', '/.well-known/admin/private-key/{@id}/mark')
+        config.add_route_7('admin:private_key:focus:mark.json', '/.well-known/admin/private-key/{@id}/mark.json')
         config.add_route_7('admin:private_key:new', '/.well-known/admin/private-key/new')
 
         # Domains can be queued in for batch processing
@@ -171,6 +173,8 @@ def includeme(config):
         config.add_route_7('admin:queue_renewals_paginated', '/.well-known/admin/queue-renewals/{@page}')
         config.add_route_7('admin:queue_renewals:all', '/.well-known/admin/queue-renewals/all')
         config.add_route_7('admin:queue_renewals:all_paginated', '/.well-known/admin/queue-renewals/all/{@page}')
+        config.add_route_7('admin:queue_renewals:process', '/.well-known/admin/queue-renewals/process')
+        config.add_route_7('admin:queue_renewals:process.json', '/.well-known/admin/queue-renewals/process.json')
         config.add_route_7('admin:queue_renewal:focus', '/.well-known/admin/queue-renewal/{@id}')
 
         # Unique FQDN Sets are tied to Certs and Ratelimits
