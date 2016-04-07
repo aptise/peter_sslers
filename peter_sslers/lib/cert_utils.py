@@ -358,9 +358,9 @@ def convert_pem_to_der(pem_data=None):
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     lines = [l.strip() for l in pem_data.strip().split('\n')]
     # remove the BEGIN CERT
-    if 'BEGIN CERTIFICATE' in lines[0]:
+    if ('BEGIN CERTIFICATE' in lines[0]) or ('BEGIN RSA PRIVATE KEY' in lines[0]):
         lines = lines[1:]
-    if 'END CERTIFICATE' in lines[-1]:
+    if ('END CERTIFICATE' in lines[-1]) or ('END RSA PRIVATE KEY' in lines[-1]):
         lines = lines[:-1]
     lines = ''.join(lines)
     result = base64.b64decode(lines)
