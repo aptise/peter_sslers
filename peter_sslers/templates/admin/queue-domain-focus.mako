@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/queue-domains">Domains Queue</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/queue-domains">Domains Queue</a></li>
         <li class="active">Focus [${QueueDomainItem.id}]</li>
     </ol>
 </%block>
@@ -50,7 +50,7 @@
             <th>domain?</th>
             <td>
                 % if QueueDomainItem.letsencrypt_domain_id:
-                    <a class="label label-info" href="/.well-known/admin/domain/${QueueDomainItem.letsencrypt_domain_id}">
+                    <a class="label label-info" href="${admin_prefix}/domain/${QueueDomainItem.letsencrypt_domain_id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${QueueDomainItem.letsencrypt_domain_id}
                     </a>

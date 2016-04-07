@@ -71,7 +71,7 @@ def Certificate_deactivated(dbSession, serverCertificate, operationsEvent=None):
 
 def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
     # mark every certificate signed by this key compromised
-    
+
     # create a dict of cert_id:fqdn_set_id
     revoked_certificates = {'inactive': {},
                             'active': {},
@@ -83,7 +83,7 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
     )
     if items_count:
         batch_size = 20
-        batches = int(math.ceil(items_count/float(batch_size)))
+        batches = int(math.ceil(items_count / float(batch_size)))
         for i in range(0, batches):
             offset = i * batch_size
             items_paginated = lib.db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(
@@ -118,15 +118,15 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
             max_cert_id = max(cert_ids_off)
             serverCertificate = lib.db.get__LetsencryptServerCertificate__by_id(dbSession, max_cert_id)
             dbQueue = lib.db.create__LetsencryptQueueRenewal(
-                dbSession, 
+                dbSession,
                 serverCertificate,
                 letsencrypt_operations_event_id__child_of = operationsEvent.id
             )
         dbSession.flush()
-    
+
     # okay, now try to requeue items
     revoked_fqdns_ids = revoked_fqdn_ids_2_certs.keys()
-    result =  lib.db.queue_renewals__process(
+    result = lib.db.queue_renewals__process(
         dbSession,
         letsencrypt_operations_event_id__child_of = operationsEvent.id,
         fqdns_ids_only = revoked_fqdns_ids,
@@ -141,4 +141,3 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
     dbSession.flush()
 
     return True
-

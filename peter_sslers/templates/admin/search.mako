@@ -4,7 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
         <li class="active">Search</li>
     </ol>
 </%block>
@@ -39,7 +39,7 @@
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/account-key/${key.id}"
+                                        href="${admin_prefix}/account-key/${key.id}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${key.id}</a>
@@ -78,7 +78,7 @@
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/private-key/${key.id}"
+                                        href="${admin_prefix}/private-key/${key.id}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${key.id}</a>
@@ -120,7 +120,7 @@
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/certificate/${cert.id}"
+                                        href="${admin_prefix}/certificate/${cert.id}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${cert.id}</a>
@@ -164,7 +164,7 @@
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/ca-certificate/${cert.id}"
+                                        href="${admin_prefix}/ca-certificate/${cert.id}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${cert.id}</a>
@@ -196,7 +196,7 @@
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/certificate-request/${csr.id}"
+                                        href="${admin_prefix}/certificate-request/${csr.id}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${csr.id}</a>

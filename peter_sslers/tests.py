@@ -4,17 +4,21 @@ import transaction
 from pyramid import testing
 
 
-
-# queue tests:
-# - add existing active domain to queue
-# - add existing inactive domain to queue
-# - add non-existing domain to queue
-# - turn off existing, active domain
-# - turn off existing, inactive domain
-# - turn off non-existing, inactive domain
+# ==============================================================================
 
 
+"""
+queue tests:
+- add existing active domain to queue
+- add existing inactive domain to queue
+- add non-existing domain to queue
+- turn off existing, active domain
+- turn off existing, inactive domain
+- turn off non-existing, inactive domain
+"""
 
+
+# ==============================================================================
 
 
 def dummy_request(dbsession):
@@ -33,7 +37,7 @@ class BaseTest(unittest.TestCase):
             get_engine,
             get_session_factory,
             get_tm_session,
-            )
+        )
 
         self.engine = get_engine(settings)
         session_factory = get_session_factory(self.engine)

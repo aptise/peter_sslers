@@ -14,19 +14,19 @@
 
             <h4>Core Objects</h4>
             <ul>
-                <li><a class="label label-info" href="/.well-known/admin/domains">
+                <li><a class="label label-info" href="${admin_prefix}/domains">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domains
                     </a> (${request.text_library.info_Domains[0]})</li>
-                <li><a class="label label-info" href="/.well-known/admin/certificates">
+                <li><a class="label label-info" href="${admin_prefix}/certificates">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificates
                     </a> (${request.text_library.info_Certificates[0]})</li>
-                <li><a class="label label-info" href="/.well-known/admin/certificate-requests">
+                <li><a class="label label-info" href="${admin_prefix}/certificate-requests">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-requests
                     </a> (${request.text_library.info_CertificateRequests[0]})</li>
-                <li><a class="label label-info" href="/.well-known/admin/private-keys">
+                <li><a class="label label-info" href="${admin_prefix}/private-keys">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys
                     </a> (${request.text_library.info_PrivateKeys[0]})</li>
@@ -35,23 +35,23 @@
 
             <h4>Recordkeeping</h4>
             <ul>
-                <li><a class="label label-info" href="/.well-known/admin/unique-fqdn-sets">
+                <li><a class="label label-info" href="${admin_prefix}/unique-fqdn-sets">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     unique-fqdn-sets
                     </a> (${request.text_library.info_UniqueFQDNs[0]})</li>
-                <li><a class="label label-info" href="/.well-known/admin/account-keys">
+                <li><a class="label label-info" href="${admin_prefix}/account-keys">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     account-keys
                     </a> (${request.text_library.info_AccountKeys[0]})</li>
-                <li><a class="label label-info" href="/.well-known/admin/ca-certificates">
+                <li><a class="label label-info" href="${admin_prefix}/ca-certificates">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     ca-certificates
                     </a> (${request.text_library.info_CACertificates[0]})</li>
-                <li><a class="label label-info" href="/.well-known/admin/queue-renewals">
+                <li><a class="label label-info" href="${admin_prefix}/queue-renewals">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     queue-renewals
                     </a></li>
-                <li><a class="label label-info" href="/.well-known/admin/queue-domains">
+                <li><a class="label label-info" href="${admin_prefix}/queue-domains">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     queue-domains
                     </a></li>
@@ -59,12 +59,12 @@
 
             <h2>Operations</h2>
             <ul>
-                <li><a class="label label-info" href="/.well-known/admin/api">
+                <li><a class="label label-info" href="${admin_prefix}/api">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     programmatic api
                     </a></li>
             </ul>
-            
+
             ${admin_partials.operations_options(enable_redis=enable_redis,
                                                 enable_nginx=enable_nginx,
                                                 as_list=True,
@@ -73,7 +73,7 @@
         </div>
         <div class="col-sm-6">
             <p>
-                <a  href="/.well-known/admin/help"
+                <a  href="${admin_prefix}/help"
                     class="btn btn-warning"
                 >
                     <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
@@ -82,7 +82,7 @@
 
             <h2>Create New</h2>
             <p>
-                <a  href="/.well-known/admin/certificate-request/new-flow"
+                <a  href="${admin_prefix}/certificate-request/new-flow"
                     class="btn btn-xs btn-primary"
                 >
                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
@@ -90,7 +90,7 @@
                 <em>${request.text_library.info_CertificateRequest_new_flow[0]}</em>
             </p>
             <p>
-                <a  href="/.well-known/admin/certificate-request/new-full"
+                <a  href="${admin_prefix}/certificate-request/new-full"
                     class="btn btn-xs btn-primary"
                 >
                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
@@ -100,7 +100,7 @@
 
             <h2>Upload Existing</h2>
             <p>
-                <a  href="/.well-known/admin/certificate/upload"
+                <a  href="${admin_prefix}/certificate/upload"
                     class="btn btn-xs btn-primary"
                 >
                 <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
@@ -108,7 +108,7 @@
                 <em>${request.text_library.info_UploadExistingCertificate[0]}</em>
             </p>
             <p>
-                <a  href="/.well-known/admin/private-key/new"
+                <a  href="${admin_prefix}/private-key/new"
                     class="btn btn-xs btn-primary"
                 >
                 <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
@@ -116,7 +116,7 @@
                 <em>${request.text_library.info_UploadPrivateKey[0]}</em>
             </p>
             <p>
-                <a  href="/.well-known/admin/account-key/new"
+                <a  href="${admin_prefix}/account-key/new"
                     class="btn btn-xs btn-primary"
                 >
                 <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
@@ -124,7 +124,7 @@
                 <em>${request.text_library.info_UploadAccountKey[0]}</em>
             </p>
             <p>
-                <a  href="/.well-known/admin/ca-certificate/upload"
+                <a  href="${admin_prefix}/ca-certificate/upload"
                     class="btn btn-xs btn-primary"
                 >
                 <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

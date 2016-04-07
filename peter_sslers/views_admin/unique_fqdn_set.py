@@ -33,7 +33,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:unique_fqdn_sets_paginated', renderer='/admin/unique_fqdn_sets.mako')
     def unique_fqdn_sets(self):
         items_count = lib_db.get__LetsencryptUniqueFQDNSet__count(self.request.dbsession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/unique-fqdn-sets/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-sets/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptUniqueFQDNSet__paginated(self.request.dbsession, limit=items_per_page, offset=offset, eagerload_web=True)
         return {'project': 'peter_sslers',
                 'LetsencryptUniqueFQDNSets_count': items_count,
@@ -63,8 +63,8 @@ class ViewAdmin(Handler):
         rval = {}
         dbLetsencryptUniqueFQDNSet = self._unique_fqdn_set_focus()
         weekly_certs = self.request.dbsession.query(year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
-                                       sqlalchemy.func.count(LetsencryptServerCertificate.id)
-                                       )\
+                                                    sqlalchemy.func.count(LetsencryptServerCertificate.id)
+                                                    )\
             .filter(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == dbLetsencryptUniqueFQDNSet.id,
                     )\
             .group_by('week_num')\
@@ -83,7 +83,7 @@ class ViewAdmin(Handler):
         dbLetsencryptUniqueFQDNSet = self._unique_fqdn_set_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptUniqueFQDNSetId__count(
             self.request.dbsession, dbLetsencryptUniqueFQDNSet.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/unique-fqdn-set/%s/certificates/{0}' % dbLetsencryptUniqueFQDNSet.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-set/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbLetsencryptUniqueFQDNSet.id))
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptUniqueFQDNSetId__paginated(
             self.request.dbsession, dbLetsencryptUniqueFQDNSet.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -99,7 +99,7 @@ class ViewAdmin(Handler):
         dbLetsencryptUniqueFQDNSet = self._unique_fqdn_set_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptUniqueFQDNSetId__count(
             self.request.dbsession, LetsencryptDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/unique-fqdn-set/%s/certificate-requests/{0}' % dbLetsencryptUniqueFQDNSet.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-set/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbLetsencryptUniqueFQDNSet.id))
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptUniqueFQDNSetId__paginated(
             self.request.dbsession, dbLetsencryptUniqueFQDNSet.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',

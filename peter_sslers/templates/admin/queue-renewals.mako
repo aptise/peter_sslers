@@ -4,7 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
         <li class="active">Renewal Queue</li>
     </ol>
 </%block>
@@ -33,13 +33,13 @@
                     </thead>
                     % for q in LetsencryptQueueRenewals:
                         <tr>
-                            <td><a class="label label-info" href="/.well-known/admin/queue-renewal/${q.id}">
+                            <td><a class="label label-info" href="${admin_prefix}/queue-renewal/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.id}</a></td>
-                            <td><a class="label label-info" href="/.well-known/admin/certificate/${q.letsencrypt_server_certificate_id}">
+                            <td><a class="label label-info" href="${admin_prefix}/certificate/${q.letsencrypt_server_certificate_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.letsencrypt_server_certificate_id}</a></td>
-                            <td><a class="label label-info" href="/.well-known/admin/unique-fqdn-set/${q.letsencrypt_unique_fqdn_set_id}">
+                            <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.letsencrypt_unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.letsencrypt_unique_fqdn_set_id}</a></td>
                             <td><timestamp>${q.timestamp_entered}</timestamp></td>
@@ -56,10 +56,10 @@
         </div>
         <div class="col-sm-3">
             <ul class="nav nav-pills nav-stacked">
-              <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="/.well-known/admin/queue-renewals">Unprocessed Items</a></li>
-              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="/.well-known/admin/queue-renewals/all">All Items</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-renewals">Unprocessed Items</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-renewals/all">All Items</a></li>
               <li role="presentation" class="">
-                <a href="/.well-known/admin/queue-renewals/process">
+                <a href="${admin_prefix}/queue-renewals/process">
                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                 Queue Renewals (30 days or less)</a>
               </li>

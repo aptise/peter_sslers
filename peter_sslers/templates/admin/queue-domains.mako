@@ -4,7 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
         <li class="active">Domains Queue</li>
     </ol>
 </%block>
@@ -33,7 +33,7 @@
                     </thead>
                     % for q in LetsencryptQueueDomains:
                         <tr>
-                            <td><a class="label label-info" href="/.well-known/admin/queue-domain/${q.id}">
+                            <td><a class="label label-info" href="${admin_prefix}/queue-domain/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.id}</a></td>
                             <td><code>${q.domain_name}</code></td>
@@ -50,15 +50,15 @@
         </div>
         <div class="col-sm-3">
             <ul class="nav nav-pills nav-stacked">
-              <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="/.well-known/admin/queue-domains">Unprocessed Items</a></li>
-              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="/.well-known/admin/queue-domains/all">All Items</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-domains">Unprocessed Items</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-domains/all">All Items</a></li>
               <li role="presentation" class="">
-                <a href="/.well-known/admin/queue-domains/add">
+                <a href="${admin_prefix}/queue-domains/add">
                 <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>
                 Add Domain</a>
               </li>
               <li role="presentation" class="">
-                <a href="/.well-known/admin/queue-domains/process">
+                <a href="${admin_prefix}/queue-domains/process">
                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                 Process Queue</a>
               </li>

@@ -30,7 +30,7 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations', renderer=None)
     def operations(self):
 
-        return HTTPFound('/.well-known/admin/operations/log')
+        return HTTPFound('%s/operations/log' % self.request.registry.settings['admin_prefix'])
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -40,7 +40,7 @@ class ViewAdminOperations(Handler):
     def operations_log(self):
         _items_per_page = 25
         items_count = lib_db.get__LetsencryptOperationsEvent__count(self.request.dbsession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/log/{0}', items_per_page=_items_per_page)
+        (pager, offset) = self._paginate(items_count, url_template='%s/operations/log/{0}' % self.request.registry.settings['admin_prefix'], items_per_page=_items_per_page)
         items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(self.request.dbsession, limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents__count': items_count,
@@ -68,7 +68,7 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:ca_certificate_probes_paginated', renderer='/admin/operations-ca_certificate_probes.mako')
     def ca_certificate_probes(self):
         items_count = lib_db.get__LetsencryptOperationsEvent__certificate_probe__count(self.request.dbsession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/ca-certificate-probes/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/operations/ca-certificate-probes/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptOperationsEvent__certificate_probe__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents_count': items_count,
@@ -88,7 +88,7 @@ class ViewAdminOperations(Handler):
                                          'is_certificates_updated': operations_event.event_payload_json['is_certificates_updated'],
                                          },
                     }
-        return HTTPFound("/.well-known/admin/operations/ca-certificate-probes?success=True&event.id=%s" % operations_event.id)
+        return HTTPFound("%s/operations/ca-certificate-probes?success=True&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -103,7 +103,7 @@ class ViewAdminOperations(Handler):
                     'operations_event': operations_event.id,
                     }
 
-        return HTTPFound("/.well-known/admin/operations/log?success=True&event.id=%s" % operations_event.id)
+        return HTTPFound("%s/operations/log?success=True&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -128,14 +128,14 @@ class ViewAdminOperations(Handler):
         if self.request.matched_route.name == 'admin:operations:deactivate_expired.json':
             return rval
 
-        return HTTPFound('/.well-known/admin/operations/log?result=success&event.id=%s' % operations_event2.id)
+        return HTTPFound('%s/operations/log?result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], operations_event2.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _ensure_redis(self):
         if not self.request.registry.settings['enable_redis']:
-            raise HTTPFound('/.well-known/admin?error=no_redis')
+            raise HTTPFound('%s?error=no_redis' % self.request.registry.settings['admin_prefix'])
 
     @view_config(route_name='admin:operations:redis', renderer='/admin/operations-redis.mako')
     @view_config(route_name='admin:operations:redis_paginated', renderer='/admin/operations-redis.mako')
@@ -144,7 +144,7 @@ class ViewAdminOperations(Handler):
 
         _items_per_page = 25
         items_count = lib_db.get__LetsencryptOperationsEvent__count(self.request.dbsession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ))
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/redis/log/{0}', items_per_page=_items_per_page)
+        (pager, offset) = self._paginate(items_count, url_template='%s/operations/redis/log/{0}' % self.request.registry.settings['admin_prefix'], items_per_page=_items_per_page)
         items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(self.request.dbsession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ), limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents__count': items_count,
@@ -309,14 +309,14 @@ class ViewAdminOperations(Handler):
                                          'total_primed': dbEvent.event_payload_json['total_primed'],
                                          },
                     }
-        return HTTPFound('/.well-known/admin/operations/redis?operation=redis_prime&result=success&event.id=%s' % dbEvent.id)
+        return HTTPFound('%s/operations/redis?operation=redis_prime&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbEvent.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _ensure_nginx(self):
         if not self.request.registry.settings['enable_nginx']:
-            raise HTTPFound('/.well-known/admin?error=no_nginx')
+            raise HTTPFound('%s?error=no_nginx' % self.request.registry.settings['admin_prefix'])
 
     @view_config(route_name='admin:operations:nginx', renderer='/admin/operations-nginx.mako')
     @view_config(route_name='admin:operations:nginx_paginated', renderer='/admin/operations-nginx.mako')
@@ -326,7 +326,7 @@ class ViewAdminOperations(Handler):
         _items_per_page = 25
         _event_type_ids = (LetsencryptOperationsEventType.nginx_cache_expire, LetsencryptOperationsEventType.nginx_cache_flush)
         items_count = lib_db.get__LetsencryptOperationsEvent__count(self.request.dbsession, event_type_ids=_event_type_ids)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/nginx/log/{0}', items_per_page=_items_per_page)
+        (pager, offset) = self._paginate(items_count, url_template='%s/operations/nginx/log/{0}' % self.request.registry.settings['admin_prefix'], items_per_page=_items_per_page)
         items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(self.request.dbsession, event_type_ids=_event_type_ids,
                                                                         limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -346,4 +346,4 @@ class ViewAdminOperations(Handler):
                     'operations_event': {'id': dbEvent.id,
                                          },
                     }
-        return HTTPFound('/.well-known/admin/operations/nginx?operation=nginx_cache_flush&result=success&event.id=%s' % dbEvent.id)
+        return HTTPFound('%s/operations/nginx?operation=nginx_cache_flush&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbEvent.id))

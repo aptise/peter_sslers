@@ -36,7 +36,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
     def certificate_requests(self):
         items_count = lib_db.get__LetsencryptCertificateRequest__count(self.request.dbsession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificate-requests/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/certificate-requests/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptCertificateRequest__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
 
         return {'project': 'peter_sslers',
@@ -99,7 +99,7 @@ class ViewAdmin(Handler):
             raise HTTPNotFound('Only availble for FLOW')
         dbLetsencryptCertificateRequest.is_active = False
         self.request.dbsession.flush()
-        return HTTPFound('/.well-known/admin/certificate-request/%s' % dbLetsencryptCertificateRequest.id)
+        return HTTPFound('%s/certificate-request/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificateRequest.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -158,8 +158,9 @@ class ViewAdmin(Handler):
 
             self.request.dbsession.flush()
 
-            return HTTPFound('/.well-known/admin/certificate-request/%s/process/domain/%s' %
-                             (self.db_LetsencryptCertificateRequest.id,
+            return HTTPFound('%s/certificate-request/%s/process/domain/%s' %
+                             (self.request.registry.settings['admin_prefix'],
+                              self.db_LetsencryptCertificateRequest.id,
                               self.db_LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id
                               )
                              )
@@ -201,7 +202,7 @@ class ViewAdmin(Handler):
                 raise ValueError("missing valid domain names")
             dbLetsencryptCertificateRequest = lib_db.create__CertificateRequest__by_domainNamesList_FLOW(self.request.dbsession, domain_names)
 
-            return HTTPFound('/.well-known/admin/certificate-request/%s/process' % dbLetsencryptCertificateRequest.id)
+            return HTTPFound('%s/certificate-request/%s/process' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificateRequest.id))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
@@ -253,13 +254,13 @@ class ViewAdmin(Handler):
                     private_key_pem=private_key_pem,
                 )
             except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
-                return HTTPFound('/.well-known/admin/certificate-requests?error=new-full&message=%s' % e.message)
+                return HTTPFound('%s/certificate-requests?error=new-full&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except:
                 if self.request.registry.settings['exception_redirect']:
-                    return HTTPFound('/.well-known/admin/certificate-requests?error=new-full')
+                    return HTTPFound('%s/certificate-requests?error=new-full' % self.request.registry.settings['admin_prefix'])
                 raise
 
-            return HTTPFound('/.well-known/admin/certificate/%s' % dbLetsencryptCertificate.id)
+            return HTTPFound('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificate.id))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",

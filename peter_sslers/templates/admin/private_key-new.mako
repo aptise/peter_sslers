@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/private-keys">Private Keys</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/private-keys">Private Keys</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
@@ -25,7 +25,7 @@
             <%! show_text = False %>
 
             <form
-                action="/.well-known/admin/private-key/new"
+                action="${admin_prefix}/private-key/new"
                 method="POST"
                 enctype="multipart/form-data"
             >

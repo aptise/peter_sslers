@@ -37,7 +37,6 @@ def domains_from_string(text):
     # validate the list
     validate_domains(domain_names)
     return domain_names
-    
 
 
 def md5_text(text):

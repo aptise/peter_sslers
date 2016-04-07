@@ -34,7 +34,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
     def domains(self):
         items_count = lib_db.get__LetsencryptDomain__count(self.request.dbsession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domains/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/domains/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptDomain__paginated(self.request.dbsession, eagerload_web=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptDomains_count': items_count,
@@ -48,7 +48,7 @@ class ViewAdmin(Handler):
     def domains_expiring_only(self):
         expiring_days = self.request.registry.settings['expiring_days']
         items_count = lib_db.get__LetsencryptDomain__count(self.request.dbsession, expiring_days=expiring_days)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domains/expiring/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/domains/expiring/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptDomain__paginated(self.request.dbsession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptDomains_count': items_count,
@@ -82,14 +82,14 @@ class ViewAdmin(Handler):
     def domain_focus_nginx_expire(self):
         dbLetsencryptDomain = self._domain_focus(eagerload_web=True)
         if not self.request.registry.settings['enable_nginx']:
-            raise HTTPFound('/.well-known/admin/domain/%s?error=no_nginx' % dbLetsencryptDomain.id)
+            raise HTTPFound('%s/domain/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbLetsencryptDomain.id))
         success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.dbsession, dbDomains=[dbLetsencryptDomain, ])
         if self.request.matched_route.name == 'admin:domain:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
                     }
-        return HTTPFound('/.well-known/admin/domain/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (dbLetsencryptDomain.id, dbEvent.id))
+        return HTTPFound('%s/domain/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptDomain.id, dbEvent.id))
 
     @view_config(route_name='admin:domain:focus:config_json', renderer='json')
     def domain_focus_config_json(self):
@@ -121,7 +121,7 @@ class ViewAdmin(Handler):
         dbLetsencryptDomain = self._domain_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomainId__count(
             self.request.dbsession, dbLetsencryptDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificates/{0}' % dbLetsencryptDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbLetsencryptDomain.id))
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomainId__paginated(
             self.request.dbsession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -137,7 +137,7 @@ class ViewAdmin(Handler):
         dbLetsencryptDomain = self._domain_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId__count(
             self.request.dbsession, LetsencryptDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificate-requests/{0}' % LetsencryptDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], LetsencryptDomain.id))
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId__paginated(
             self.request.dbsession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -154,8 +154,8 @@ class ViewAdmin(Handler):
         rval = {}
         dbLetsencryptDomain = self._domain_focus()
         weekly_certs = self.request.dbsession.query(year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
-                                       sqlalchemy.func.count(LetsencryptServerCertificate.id)
-                                       )\
+                                                    sqlalchemy.func.count(LetsencryptServerCertificate.id)
+                                                    )\
             .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
                   LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id,
                   )\
@@ -177,7 +177,7 @@ class ViewAdmin(Handler):
         dbLetsencryptDomain = self._domain_focus()
         items_count = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__count(
             self.request.dbsession, LetsencryptDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/unique-fqdn-sets/{0}' % LetsencryptDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/unique-fqdn-sets/{0}' % LetsencryptDomain.id)
         items_paged = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__paginated(
             self.request.dbsession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -226,7 +226,8 @@ class ViewAdmin(Handler):
                 event_type,
                 event_payload,
             )
-            url_success = '/.well-known/admin/domain/%s?operation=mark&action=%s&result=sucess' % (
+            url_success = '%s/domain/%s?operation=mark&action=%s&result=sucess' % (
+                self.request.registry.settings['admin_prefix'],
                 dbLetsencryptDomain.id,
                 action,
             )
@@ -238,7 +239,8 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            url_failure = '/.well-known/admin/domain/%s?operation=mark&action=%s&result=error&error=%s' % (
+            url_failure = '%s/domain/%s?operation=mark&action=%s&result=error&error=%s' % (
+                self.request.registry.settings['admin_prefix'],
                 dbLetsencryptDomain.id,
                 action,
                 e.message,

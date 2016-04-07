@@ -4,7 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
         <li class="active">Programmatic API</li>
     </ol>
 </%block>
@@ -21,10 +21,10 @@
             <p>
                 Many endpoints handle JSON requests, however some endpoints offer deeper logic:
             </p>
-    
-            <p>Enpoints assume the prefix: <em>/.well-known/admin</em>
+
+            <p>Enpoints assume the prefix: <em>${admin_prefix}</em>
             </p>
-    
+
             <table class="table table-striped table-condensed">
                 <thead>
                     <tr>

@@ -4,7 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
         <li class="active">Private Keys</li>
     </ol>
 </%block>
@@ -34,7 +34,7 @@
             </thead>
             % for key in LetsencryptPrivateKeys:
                 <tr>
-                    <td><a class="label label-info" href="/.well-known/admin/private-key/${key.id}">
+                    <td><a class="label label-info" href="${admin_prefix}/private-key/${key.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${key.id}</a></td>
                     <td>
@@ -55,8 +55,8 @@
                             </span>
                         % endif
                     </td>
-                    
-                    
+
+
                     <td><timestamp>${key.timestamp_first_seen}</timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>
                     <td><span class="badge">${key.count_active_certificates or ''}</span></td>

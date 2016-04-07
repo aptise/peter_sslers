@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/certificate-requests">Certificate Requests</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
@@ -19,7 +19,7 @@
 
 <%block name="content_main">
 
-    <form action="/.well-known/admin/certificate-request/new-flow" method="POST">
+    <form action="${admin_prefix}/certificate-request/new-flow" method="POST">
         <% form = request.formhandling.get_form(request) %>
         ${form.html_error_main('Error_Main')|n}
 

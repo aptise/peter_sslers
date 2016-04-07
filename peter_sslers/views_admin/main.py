@@ -188,7 +188,7 @@ class ViewAdminMain(Handler):
         for k in results.keys():
             if results[k]['count'] and results[k]['items']:
                 if (len(results[k]['items']) + offset) < results[k]['count']:
-                    results[k]['next'] = '/.well-known/admin/search?show_only=%s&%s' % (k, query_args)
+                    results[k]['next'] = '%s/search?show_only=%s&%s' % (self.request.registry.settings['admin_prefix'], k, query_args)
 
         return render_to_response("/admin/search.mako", {'search_type': search_type,
                                                          'ResultsPage': True,

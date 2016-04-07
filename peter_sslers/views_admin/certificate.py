@@ -37,7 +37,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
     def certificates(self):
         items_count = lib_db.get__LetsencryptServerCertificate__count(self.request.dbsession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificates/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/certificates/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptServerCertificate__paginated(self.request.dbsession, limit=items_per_page, offset=offset, eagerload_web=True)
         return {'project': 'peter_sslers',
                 'LetsencryptServerCertificates_count': items_count,
@@ -51,7 +51,7 @@ class ViewAdmin(Handler):
     def certificates_expiring_only(self):
         expiring_days = self.request.registry.settings['expiring_days']
         items_count = lib_db.get__LetsencryptServerCertificate__count(self.request.dbsession, expiring_days=expiring_days)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificates/expiring/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/certificates/expiring/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptServerCertificate__paginated(self.request.dbsession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptServerCertificates_count': items_count,
@@ -72,7 +72,7 @@ class ViewAdmin(Handler):
 
     def _certificate_upload__print(self):
         if self.request.matched_route.name == 'admin:certificate:upload.json':
-            return {'instructions': """curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' http://127.0.0.1:6543/.well-known/admin/certificate/upload.json""",
+            return {'instructions': """curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' http://127.0.0.1:6543%s/certificate/upload.json""" % self.request.registry.settings['admin_prefix'],
                     'form_fields': {'private_key_file': 'required',
                                     'chain_file': 'required',
                                     'certificate_file': 'required',
@@ -114,7 +114,7 @@ class ViewAdmin(Handler):
                 return {'result': 'success',
                         'certificate': {'created': cert_is_created,
                                         'id': dbLetsencryptServerCertificate.id,
-                                        'url': '/.well-known/admin/certificate/%s' % dbLetsencryptServerCertificate.id,
+                                        'url': '%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptServerCertificate.id),
                                         },
                         'ca_certificate': {'created': cacert_is_created,
                                            'id': dbLetsencryptCACertificate.id,
@@ -123,7 +123,7 @@ class ViewAdmin(Handler):
                                         'id': dbLetsencryptPrivateKey.id,
                                         },
                         }
-            return HTTPFound('/.well-known/admin/certificate/%s' % dbLetsencryptServerCertificate.id)
+            return HTTPFound('%S/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptServerCertificate.id))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
@@ -242,7 +242,7 @@ class ViewAdmin(Handler):
     def certificate_focus_nginx_expire(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
         if not self.request.registry.settings['enable_nginx']:
-            raise HTTPFound('/.well-known/admin/certificate/%s?error=no_nginx' % dbLetsencryptServerCertificate.id)
+            raise HTTPFound('%s/certificate/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbLetsencryptServerCertificate.id))
         dbDomains = [c2d.domain for c2d in dbLetsencryptServerCertificate.unique_fqdn_set.to_domains]
         success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.dbsession, dbDomains=dbDomains)
         if self.request.matched_route.name == 'admin:certificate:focus:nginx_cache_expire.json':
@@ -250,7 +250,7 @@ class ViewAdmin(Handler):
                     'operations_event': {'id': dbEvent.id,
                                          },
                     }
-        return HTTPFound('/.well-known/admin/certificate/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (dbLetsencryptServerCertificate.id, dbEvent.id))
+        return HTTPFound('%s/certificate/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptServerCertificate.id, dbEvent.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -267,7 +267,8 @@ class ViewAdmin(Handler):
             raise NotImplementedError()
 
         except lib_errors.DisplayableError, e:
-            url_failure = '/.well-known/admin/certificate/%s?operation=renewal&renewal_type=quick&error=%s' % (
+            url_failure = '%s/certificate/%s?operation=renewal&renewal_type=quick&error=%s' % (
+                self.request.registry.settings['admin_prefix'],
                 dbLetsencryptServerCertificate.id,
                 e.message,
             )
@@ -337,13 +338,13 @@ class ViewAdmin(Handler):
                     letsencrypt_server_certificate_id__renewal_of=dbLetsencryptServerCertificate.id,
                 )
             except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
-                return HTTPFound('/.well-known/admin/certificate-requests?error=new-full&message=%s' % e.message)
+                return HTTPFound('%s/certificate-requests?error=new-full&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except:
                 if self.request.registry.settings['exception_redirect']:
-                    return HTTPFound('/.well-known/admin/certificate-requests?error=new-full')
+                    return HTTPFound('%s/certificate-requests?error=new-full' % self.request.registry.settings['admin_prefix'])
                 raise
 
-            return HTTPFound('/.well-known/admin/certificate/%s?is_renewal=True' % newLetsencryptCertificate.id)
+            return HTTPFound('%s/certificate/%s?is_renewal=True' % (self.request.registry.settings['admin_prefix'], newLetsencryptCertificate.id))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
@@ -416,7 +417,8 @@ class ViewAdmin(Handler):
                                                    operationsEvent=operationsEvent,
                                                    )
 
-            url_success = '/.well-known/admin/certificate/%s?operation=mark&action=%s&result=sucess' % (
+            url_success = '%s/certificate/%s?operation=mark&action=%s&result=sucess' % (
+                self.request.registry.settings['admin_prefix'],
                 dbLetsencryptServerCertificate.id,
                 action,
             )
@@ -428,7 +430,8 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            url_failure = '/.well-known/admin/certificate/%s?operation=mark&action=%s&result=error&error=%s' % (
+            url_failure = '%s/certificate/%s?operation=mark&action=%s&result=error&error=%s' % (
+                self.request.registry.settings['admin_prefix'],
                 dbLetsencryptServerCertificate.id,
                 action,
                 e.message,

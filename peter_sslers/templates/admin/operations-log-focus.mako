@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/operations/log">Operations log</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/operations/log">Operations log</a></li>
         <li class="active">Focus</li>
     </ol>
 </%block>

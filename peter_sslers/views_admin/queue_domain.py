@@ -37,7 +37,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_domains_paginated', renderer='/admin/queue-domains.mako')
     def queue_domains(self):
         items_count = lib_db.get__LetsencryptQueueDomain__count(self.request.dbsession, show_processed=False)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/queue-domains/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/queue-domains/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptQueueDomain__paginated(self.request.dbsession, show_processed=False, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptQueueDomains_count': items_count,
@@ -50,7 +50,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_domains:all_paginated', renderer='/admin/queue-domains.mako')
     def queue_domains_all(self):
         items_count = lib_db.get__LetsencryptQueueDomain__count(self.request.dbsession, show_processed=True)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/queue-domains/all/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/queue-domains/all/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptQueueDomain__paginated(self.request.dbsession, show_processed=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptQueueDomains_count': items_count,
@@ -100,7 +100,6 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-
             domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 formStash.set_error(field="domain_names",
@@ -115,7 +114,7 @@ class ViewAdmin(Handler):
                         'domains': queue_results,
                         }
             results_json = json.dumps(queue_results)
-            return HTTPFound('/.well-known/admin/queue-domains?is_created=1&results=%s' % results_json)
+            return HTTPFound('%s/queue-domains?is_created=1&results=%s' % (self.request.registry.settings['admin_prefix'], results_json))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
@@ -143,7 +142,7 @@ class ViewAdmin(Handler):
             if self.request.matched_route.name == 'admin:queue_domains:process.json':
                 return {'result': 'success',
                         }
-            return HTTPFound("/.well-known/admin/queue-domains?processed=1")
+            return HTTPFound("%s/queue-domains?processed=1" % self.request.registry.settings['admin_prefix'])
         except (lib_errors.DisplayableError, lib_errors.DomainVerificationError), e:
             # return, don't raise
             # we still commit the bookkeeping
@@ -151,15 +150,11 @@ class ViewAdmin(Handler):
                 return {'result': 'error',
                         'error': e.message,
                         }
-            return HTTPFound("/.well-known/admin/queue-domains?processed=0&error=%s" % e.message)
+            return HTTPFound("%s/queue-domains?processed=0&error=%s" % (self.request.registry.settings['admin_prefix'], e.message))
         except Exception as e:
             transaction.abort()
             if self.request.matched_route.name == 'admin:queue_domains:process.json':
                 return {'result': 'error',
                         'error': e.message,
                         }
-            raise        
-            
-            
-            
-            
+            raise

@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/queue-domains">Domains Queue</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/queue-domains">Domains Queue</a></li>
         <li class="active">Add</li>
     </ol>
 </%block>
@@ -20,7 +20,7 @@
     <div class="row">
         <div class="col-sm-6">
             <form
-                action="/.well-known/admin/queue-domains/add"
+                action="${admin_prefix}/queue-domains/add"
                 method="POST"
             >
                 <% form = request.formhandling.get_form(request) %>
@@ -48,7 +48,7 @@
                  If an existing, inactive, domain name is queued: it will be activated and queued.
             </p>
             <p>
-                You can also post to <code>/.well-known/admin/queue-domains/add.json</code>
+                You can also post to <code>${admin_prefix}/queue-domains/add.json</code>
             </p>
         </div>
     </div>

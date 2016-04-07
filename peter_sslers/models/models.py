@@ -2,14 +2,15 @@
 import datetime
 import json
 
-
-# sqlalchemy
+from sqlalchemy.sql import expression
+from sqlalchemy.ext.compiler import compiles
+import sqlalchemy.types
 import sqlalchemy as sa
-# from sqlalchemy.ext.declarative import declarative_base
-#from sqlalchemy.orm import (scoped_session,
-#                            sessionmaker,
-#                            )
-#from zope.sqlalchemy import ZopeTransactionExtension
+
+from .meta import Base
+
+
+# ==============================================================================
 
 
 """
@@ -24,17 +25,6 @@ Coding Style:
 
 
 # ==============================================================================
-
-
-from .meta import Base
-
-
-# ==============================================================================
-
-
-from sqlalchemy.sql import expression
-from sqlalchemy.ext.compiler import compiles
-import sqlalchemy.types
 
 
 class year_week(expression.FunctionElement):
@@ -389,7 +379,7 @@ class LetsencryptOperationsEvent(Base):
             self._event_payload_json = json.loads(self.event_payload)
         return self._event_payload_json
     _event_payload_json = None
-    
+
     def set_event_payload(self, payload_dict):
         self.event_payload = json.dumps(payload_dict)
 
@@ -595,9 +585,9 @@ class LetsencryptServerCertificate(Base):
                                           )
 
     renewal_queue = sa.orm.relationship("LetsencryptQueueRenewal",
-                                         primaryjoin="LetsencryptServerCertificate.id==LetsencryptQueueRenewal.letsencrypt_server_certificate_id",
-                                         back_populates='certificate',
-                                         )
+                                        primaryjoin="LetsencryptServerCertificate.id==LetsencryptQueueRenewal.letsencrypt_server_certificate_id",
+                                        back_populates='certificate',
+                                        )
 
     @property
     def cert_pem_modulus_search(self):
@@ -713,9 +703,9 @@ class LetsencryptUniqueFQDNSet(Base):
                                                )
 
     renewal_queue = sa.orm.relationship("LetsencryptQueueRenewal",
-                                          primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptQueueRenewal.letsencrypt_unique_fqdn_set_id",
-                                          back_populates='unique_fqdn_set',
-                                          )
+                                        primaryjoin="LetsencryptUniqueFQDNSet.id==LetsencryptQueueRenewal.letsencrypt_unique_fqdn_set_id",
+                                        back_populates='unique_fqdn_set',
+                                        )
 
 
 class LetsencryptUniqueFQDNSet2LetsencryptDomain(Base):
@@ -824,13 +814,13 @@ LetsencryptDomain.domain_to_certificate_requests_5 = sa.orm.relationship(
     primaryjoin=(
         sa.and_(
             LetsencryptDomain.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id,
-                LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.in_(
-                    sa.select([LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id])
-                    .where(LetsencryptDomain.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id)
-                    .order_by(LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.desc())
-                    .limit(5)
-                    .correlate()
-                )
+            LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.in_(
+                sa.select([LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id])
+                .where(LetsencryptDomain.id == LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id)
+                .order_by(LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.desc())
+                .limit(5)
+                .correlate()
+            )
         )
     ),
     order_by=LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_certificate_request_id.desc(),
@@ -841,10 +831,10 @@ LetsencryptDomain.domain_to_certificate_requests_5 = sa.orm.relationship(
 # returns an object with a `certificate` on it
 LetsencryptDomain.certificates_5 = sa.orm.relationship(
     "LetsencryptServerCertificate",
-    secondary=(  """join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
-                         LetsencryptServerCertificate,
-                         LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id
-                  )"""),
+    secondary=("""join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
+                       LetsencryptServerCertificate,
+                       LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_unique_fqdn_set_id == LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id
+                )"""),
     primaryjoin="LetsencryptDomain.id == LetsencryptUniqueFQDNSet2LetsencryptDomain.letsencrypt_domain_id",
     secondaryjoin=(
         sa.and_(

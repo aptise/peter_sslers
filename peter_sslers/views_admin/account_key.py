@@ -35,7 +35,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_keys_paginated', renderer='/admin/account_keys.mako')
     def account_keys(self):
         items_count = lib_db.get__LetsencryptAccountKey__count(self.request.dbsession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account-keys/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/account-keys/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptAccountKey__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptAccountKeys_count': items_count,
@@ -85,7 +85,7 @@ class ViewAdmin(Handler):
     def account_key_focus__authenticate(self):
         dbLetsencryptAccountKey = self._account_key_focus()
         is_authenticated = lib_db.do__LetsencryptAccountKey_authenticate(self.request.dbsession, dbLetsencryptAccountKey)
-        return HTTPFound('/.well-known/admin/account-key/%s?is_authenticated=%s' % (dbLetsencryptAccountKey.id, ('1' if is_authenticated else '0')))
+        return HTTPFound('%s/account-key/%s?is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptAccountKey.id, ('1' if is_authenticated else '0')))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -95,7 +95,7 @@ class ViewAdmin(Handler):
         dbLetsencryptAccountKey = self._account_key_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__count(
             self.request.dbsession, dbLetsencryptAccountKey.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account-key/%s/certificates/{0}' % dbLetsencryptAccountKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/account-key/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbLetsencryptAccountKey.id))
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__paginated(
             self.request.dbsession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -111,7 +111,7 @@ class ViewAdmin(Handler):
         dbLetsencryptAccountKey = self._account_key_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__count(
             self.request.dbsession, dbLetsencryptAccountKey.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account-key/%s/certificate-requests/{0}' % dbLetsencryptAccountKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/account-key/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbLetsencryptAccountKey.id))
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__paginated(
             self.request.dbsession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -144,7 +144,7 @@ class ViewAdmin(Handler):
             account_key_pem = formStash.results['account_key_file'].file.read()
             dbLetsencryptAccountKey, _is_created = lib_db.getcreate__LetsencryptAccountKey__by_pem_text(self.request.dbsession, account_key_pem)
 
-            return HTTPFound('/.well-known/admin/account-key/%s%s' % (dbLetsencryptAccountKey.id, ('?is_created=1' if _is_created else '')))
+            return HTTPFound('%s/account-key/%s%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptAccountKey.id, ('?is_created=1' if _is_created else '')))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
@@ -207,7 +207,8 @@ class ViewAdmin(Handler):
                 event_type,
                 event_payload,
             )
-            url_success = '/.well-known/admin/account-key/%s?operation=mark&action=%s&result=sucess' % (
+            url_success = '%s/account-key/%s?operation=mark&action=%s&result=sucess' % (
+                self.request.registry.settings['admin_prefix'],
                 dbLetsencryptAccountKey.id,
                 action,
             )
@@ -219,7 +220,8 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            url_failure = '/.well-known/admin/account-key/%s?operation=mark&action=%s&result=error&error=%s' % (
+            url_failure = '%s/account-key/%s?operation=mark&action=%s&result=error&error=%s' % (
+                self.request.registry.settings['admin_prefix'],
                 dbLetsencryptAccountKey.id,
                 action,
                 e.message,

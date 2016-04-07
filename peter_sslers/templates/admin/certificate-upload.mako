@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/certificates">Certificates</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/certificates">Certificates</a></li>
         <li class="active">Upload</li>
     </ol>
 </%block>
@@ -26,7 +26,7 @@
 
             <%! show_text = False %>
             <form
-                action="/.well-known/admin/certificate/upload"
+                action="${admin_prefix}/certificate/upload"
                 method="POST"
                 enctype="multipart/form-data"
             >
@@ -57,18 +57,18 @@
 
             <p>running locally from a directory that includes letencrypt issued files, you could do the following:</p>
 
-            <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload</code></p>
+            <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543${admin_prefix}/certificate/upload</code></p>
 
             <p>But instead of that, post to <code>upload.json</code>, which will give you a json parcel in return</p>
 
-            <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload.json</code></p>
+            <p><code>curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543${admin_prefix}/certificate/upload.json</code></p>
 
             <p>The JSON response will have a <code>result</code> attribute that is "success" or "error"; if there is an error, you will see the info in <code>form_errors</code></p>
 
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>valid form</th>
-                    <td><code>{"private_key": {"id": 2, "created": false}, "ca_certificate": {"id": 1, "created": false}, "result": "success", "certificate": {"url": "/.well-known/admin/certificate/2", "id": 2, "created": false}}</code></td>
+                    <td><code>{"private_key": {"id": 2, "created": false}, "ca_certificate": {"id": 1, "created": false}, "result": "success", "certificate": {"url": "${admin_prefix}/certificate/2", "id": 2, "created": false}}</code></td>
                 </tr>
                 <tr>
                     <th>valid form</th>

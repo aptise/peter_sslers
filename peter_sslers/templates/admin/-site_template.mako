@@ -2,10 +2,10 @@
 <head>
 
 <!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="/.well-known/admin/static/bootstrap-3.3.6/bootstrap.min.css" >
+<link rel="stylesheet" href="${admin_prefix}/static/bootstrap-3.3.6/bootstrap.min.css" >
 
 <!-- Optional theme -->
-<link rel="stylesheet" href="/.well-known/admin/static/bootstrap-3.3.6/bootstrap-theme.min.css" >
+<link rel="stylesheet" href="${admin_prefix}/static/bootstrap-3.3.6/bootstrap-theme.min.css" >
 
 <style type="text/css">
     timestamp {font-size: .8em;

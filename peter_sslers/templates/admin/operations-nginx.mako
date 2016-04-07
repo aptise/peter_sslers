@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/operations">Operations</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/operations">Operations</a></li>
         <li class="active">Nginx</li>
     </ol>
 </%block>
@@ -95,7 +95,7 @@
             <hr/>
 
             <p>
-                <a  href="/.well-known/admin/operations/nginx/cache-flush"
+                <a  href="${admin_prefix}/operations/nginx/cache-flush"
                     class="label label-primary"
                 >
                     <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -109,7 +109,7 @@
             <hr/>
 
             <p>
-                <a  href="/.well-known/admin/operations/log"
+                <a  href="${admin_prefix}/operations/log"
                     class="label label-info"
                 >
                     <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>

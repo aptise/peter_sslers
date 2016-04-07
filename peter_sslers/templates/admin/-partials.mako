@@ -18,7 +18,7 @@
         <tbody>
         % for to_cert in to_certificates:
             <tr>
-                <td><a class="label label-info" href="/.well-known/admin/certificate/${to_cert.certificate.id}">
+                <td><a class="label label-info" href="${admin_prefix}/certificate/${to_cert.certificate.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     ${to_cert.certificate.id}</a>
                 </td>
@@ -63,7 +63,7 @@
             <tr>
                 <td>
                     <a  class="label label-info"
-                        href="/.well-known/admin/certificate-request/${to_cr.certificate_request.id}">
+                        href="${admin_prefix}/certificate-request/${to_cr.certificate_request.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${to_cr.certificate_request.id}</a>
                 </td>
@@ -104,7 +104,7 @@
         <tbody>
         % for cert in certificates:
             <tr>
-                <td><a class="label label-info" href="/.well-known/admin/certificate/${cert.id}">
+                <td><a class="label label-info" href="${admin_prefix}/certificate/${cert.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     ${cert.id}</a></td>
                 <td>
@@ -154,7 +154,7 @@
             <tr>
                 <td>
                     <a  class="label label-info"
-                        href="/.well-known/admin/certificate-request/${certificate_request.id}">
+                        href="${admin_prefix}/certificate-request/${certificate_request.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${certificate_request.id}</a>
                 </td>
@@ -175,7 +175,7 @@
                     <td>
                         % if certificate_request.signed_certificate:
                             <a  class="label label-info"
-                                href="/.well-known/admin/certificate/${certificate_request.signed_certificate.id}">
+                                href="${admin_prefix}/certificate/${certificate_request.signed_certificate.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${certificate_request.signed_certificate.id}</a>
                         % else:
@@ -211,12 +211,12 @@
         <tbody>
         % for renewal_queue in renewal_items:
             <tr>
-                <td><a href="/.well-known/admin/queue-renewal/${renewal_queue.id}" class="label label-info">
+                <td><a href="${admin_prefix}/queue-renewal/${renewal_queue.id}" class="label label-info">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     ${renewal_queue.id}</a>
                 </td>
                 % if show_certificate:
-                    <td><a href="/.well-known/admin/certificate/${renewal_queue.letsencrypt_server_certificate_id}" class="label label-info">
+                    <td><a href="${admin_prefix}/certificate/${renewal_queue.letsencrypt_server_certificate_id}" class="label label-info">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${renewal_queue.letsencrypt_server_certificate_id}</a>
                     </td>
@@ -246,7 +246,7 @@
             <tbody>
                 % for to_d in lcr2mds:
                     <tr>
-                        <td><a href="/.well-known/admin/domain/${to_d.domain.id}" class="label label-info">
+                        <td><a href="${admin_prefix}/domain/${to_d.domain.id}" class="label label-info">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             ${to_d.domain.id}</a> ${to_d.domain.domain_name}</td>
                         <td><timestamp>${to_d.timestamp_verified or ''}</timestamp></td>
@@ -258,7 +258,7 @@
                                     <span class="label label-success">configured</span>
                                 % else:
                                     <a  class="label label-success"
-                                        href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
+                                        href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
                                         >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         configured</a>
@@ -268,7 +268,7 @@
                                     <span class="label label-warning">not configured</span>
                                 % else:
                                     <a  class="label label-warning"
-                                        href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
+                                        href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
                                         >
                                         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                         configure!</a>
@@ -316,12 +316,12 @@
                         % else:
                             % if to_d.is_configured:
                                 <a
-                                    href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
+                                    href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
                                     class="label label-success">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     configured</a>
                             % else:
-                                <a href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
+                                <a href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
                                     class="label label-warning">
                                     % if request_inactive:
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -377,7 +377,7 @@
             <tr>
                 <td>
                     <a  class="btn btn-xs btn-info"
-                        href="/.well-known/admin/unique-fqdn-set/${i.id}"
+                        href="${admin_prefix}/unique-fqdn-set/${i.id}"
                     >
                      <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                      ${i.id}
@@ -414,7 +414,7 @@
             % for event in LetsencryptOperationsEvents:
                 <tr class="${'success' if event_id == str(event.id) else ''}">
                     <td>
-                        <a  href="/.well-known/admin/operations/log/item/${event.id}"
+                        <a  href="${admin_prefix}/operations/log/item/${event.id}"
                             class="label label-info"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -635,7 +635,7 @@
     <h4>Log</h4>
     ${'<ul>' if as_list else ''|n}
     <${wrapper}>
-        <a  href="/.well-known/admin/operations"
+        <a  href="${admin_prefix}/operations"
             class="label label-info"
         >
         <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
@@ -643,7 +643,7 @@
     </${wrapper}>
     % if enable_redis:
         <${wrapper}>
-            <a  href="/.well-known/admin/operations/redis"
+            <a  href="${admin_prefix}/operations/redis"
                 class="label label-info"
             >
             <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
@@ -652,7 +652,7 @@
     % endif
     % if enable_nginx:
         <${wrapper}>
-            <a  href="/.well-known/admin/operations/nginx"
+            <a  href="${admin_prefix}/operations/nginx"
                 class="label label-info"
             >
             <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
@@ -660,7 +660,7 @@
         </${wrapper}>
     % endif
     <${wrapper}>
-        <a  href="/.well-known/admin/operations/ca-certificate-probes"
+        <a  href="${admin_prefix}/operations/ca-certificate-probes"
             class="label label-info"
         >
         <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
@@ -671,14 +671,14 @@
     <h4>Actions</h4>
     ${'<ul>' if as_list else ''|n}
     <${wrapper}>
-        <a  href="/.well-known/admin/operations/deactivate-expired"
+        <a  href="${admin_prefix}/operations/deactivate-expired"
             class="label label-primary"
         >
          <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
          Deactivate Expired Certificates</a><br/>
     </${wrapper}>
     <${wrapper}>
-        <a  href="/.well-known/admin/operations/update-recents"
+        <a  href="${admin_prefix}/operations/update-recents"
             class="label label-primary"
         >
          <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>

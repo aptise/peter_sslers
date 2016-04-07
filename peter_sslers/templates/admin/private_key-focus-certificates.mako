@@ -4,9 +4,9 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/private-keys">Private Keys</a></li>
-        <li><a href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}">Focus [${LetsencryptPrivateKey.id}]</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/private-keys">Private Keys</a></li>
+        <li><a href="${admin_prefix}/private-key/${LetsencryptPrivateKey.id}">Focus [${LetsencryptPrivateKey.id}]</a></li>
         <li class="active">Certificates</li>
     </ol>
 </%block>

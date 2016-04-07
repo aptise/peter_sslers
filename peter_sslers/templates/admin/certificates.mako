@@ -4,7 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
         <li class="active">Certificates</li>
     </ol>
 </%block>
@@ -34,8 +34,8 @@
         </div>
         <div class="col-sm-3">
             <ul class="nav nav-pills nav-stacked">
-              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="/.well-known/admin/certificates">All Certificates</a></li>
-              <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="/.well-known/admin/certificates/expiring">Expiring Certificates</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/certificates">All Certificates</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/certificates/expiring">Expiring Certificates</a></li>
             </ul>
         </div>
     </div>

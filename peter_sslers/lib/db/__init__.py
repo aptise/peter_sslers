@@ -1188,7 +1188,6 @@ def queue_domains__process(
         #      - rationale is that on another pass, we would have a different fqdn set
         dbFQDNset, is_created = getcreate__LetsencryptUniqueFQDNSet__by_domainObjects(dbSession, domainObjects)
 
-
         # update the event
         event_payload['letsencrypt_unique_fqdn_set_id'] = dbFQDNset.id
         operationsEvent.set_event_payload(event_payload)
@@ -1271,11 +1270,11 @@ def queue_renewals__process(
                 .filter(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id.in_(fqdns_ids_only),
                         )
         _core_query = _core_query\
-                .join(LetsencryptQueueRenewal,
-                      LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptQueueRenewal.letsencrypt_unique_fqdn_set_id,
-                      )\
-                .filter(LetsencryptQueueRenewal.timestamp_processed.op('IS')(None),
-                        )
+            .join(LetsencryptQueueRenewal,
+                  LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == LetsencryptQueueRenewal.letsencrypt_unique_fqdn_set_id,
+                  )\
+            .filter(LetsencryptQueueRenewal.timestamp_processed.op('IS')(None),
+                    )
         results = _core_query.all()
         for cert in results:
             renewal = create__LetsencryptQueueRenewal(

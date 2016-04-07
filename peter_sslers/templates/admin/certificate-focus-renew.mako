@@ -7,9 +7,9 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/certificates">Certificates</a></li>
-        <li><a href="/.well-known/admin/certificates/${LetsencryptServerCertificate.id}">Focus [${LetsencryptServerCertificate.id}]</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/certificates">Certificates</a></li>
+        <li><a href="${admin_prefix}/certificates/${LetsencryptServerCertificate.id}">Focus [${LetsencryptServerCertificate.id}]</a></li>
         <li class="active">Renew</li>
     </ol>
 </%block>
@@ -26,7 +26,7 @@
         <div class="col-sm-6">
 
             <form method="POST"
-                  action="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
+                  action="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/renew/custom"
                   enctype="multipart/form-data"
             >
                 <h3>Custom Renewal</h3>
@@ -72,7 +72,7 @@
                                         Use existing Account Key
                                     </label>
                                     <a  class="btn btn-xs btn-info"
-                                        href="/.well-known/admin/account-keys/${LetsencryptServerCertificate.letsencrypt_account_key_id}"
+                                        href="${admin_prefix}/account-keys/${LetsencryptServerCertificate.letsencrypt_account_key_id}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${LetsencryptServerCertificate.letsencrypt_account_key_id}

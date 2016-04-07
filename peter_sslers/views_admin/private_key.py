@@ -34,7 +34,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_keys_paginated', renderer='/admin/private_keys.mako')
     def private_keys(self):
         items_count = lib_db.get__LetsencryptPrivateKey__count(self.request.dbsession)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private-keys/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/private-keys/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptPrivateKey__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptPrivateKeys_count': items_count,
@@ -84,7 +84,7 @@ class ViewAdmin(Handler):
         dbLetsencryptPrivateKey = self._private_key_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__count(
             self.request.dbsession, dbLetsencryptPrivateKey.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private-key/%s/certificates/{0}' % dbLetsencryptPrivateKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/private-key/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbLetsencryptPrivateKey.id))
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(
             self.request.dbsession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -100,7 +100,7 @@ class ViewAdmin(Handler):
         dbLetsencryptPrivateKey = self._private_key_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__count(
             self.request.dbsession, dbLetsencryptPrivateKey.id)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private-key/%s/certificate-requests/{0}' % dbLetsencryptPrivateKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/private-key/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbLetsencryptPrivateKey.id))
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__paginated(
             self.request.dbsession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -133,7 +133,7 @@ class ViewAdmin(Handler):
             private_key_pem = formStash.results['private_key_file'].file.read()
             dbLetsencryptPrivateKey, _is_created = lib_db.getcreate__LetsencryptPrivateKey__by_pem_text(self.request.dbsession, private_key_pem)
 
-            return HTTPFound('/.well-known/admin/private_key/%s%s' % (dbLetsencryptPrivateKey.id, ('?is_created=1' if _is_created else '')))
+            return HTTPFound('%s/private_key/%s%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptPrivateKey.id, ('?is_created=1' if _is_created else '')))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
@@ -202,7 +202,8 @@ class ViewAdmin(Handler):
                     dbLetsencryptPrivateKey,
                     operationsEvent
                 )
-            url_success = '/.well-known/admin/private-key/%s?operation=mark&action=%s&result=sucess' % (
+            url_success = '%s/private-key/%s?operation=mark&action=%s&result=sucess' % (
+                self.request.registry.settings['admin_prefix'],
                 dbLetsencryptPrivateKey.id,
                 action,
             )
@@ -214,7 +215,8 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            url_failure = '/.well-known/admin/private-key/%s?operation=mark&action=%s&result=error&error=%s' % (
+            url_failure = '%s/private-key/%s?operation=mark&action=%s&result=error&error=%s' % (
+                self.request.registry.settings['admin_prefix'],
                 dbLetsencryptPrivateKey.id,
                 action,
                 e.message,

@@ -32,7 +32,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_renewals_paginated', renderer='/admin/queue-renewals.mako')
     def rewnewal_queue(self):
         items_count = lib_db.get__LetsencryptQueueRenewal__count(self.request.dbsession, show_all=False)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/queue-renewals/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptQueueRenewal__paginated(self.request.dbsession, show_all=False, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptQueueRenewals_count': items_count,
@@ -45,7 +45,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_renewals:all_paginated', renderer='/admin/queue-renewals.mako')
     def queue_renewal_all(self):
         items_count = lib_db.get__LetsencryptQueueRenewal__count(self.request.dbsession, show_all=True)
-        (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/queue-renewals/all/{0}')
+        (pager, offset) = self._paginate(items_count, url_template='%s/queue-renewals/all/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get__LetsencryptQueueRenewal__paginated(self.request.dbsession, show_all=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptQueueRenewals_count': items_count,
@@ -79,12 +79,11 @@ class ViewAdmin(Handler):
             if self.request.matched_route.name == 'admin:queue_renewals:process.json':
                 return {'result': 'success',
                         }
-            return HTTPFound("/.well-known/admin/queue-renewals?processed=1")
+            return HTTPFound("%s/queue-renewals?processed=1" % self.request.registry.settings['admin_prefix'])
         except Exception as e:
             transaction.abort()
             if self.request.matched_route.name == 'admin:queue_renewals:process.json':
                 return {'result': 'error',
                         'error': e.message,
                         }
-            raise        
-            
+            raise

@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/private-keys">Private Keys</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/private-keys">Private Keys</a></li>
         <li class="active">Focus [${LetsencryptPrivateKey.id}]</li>
     </ol>
 </%block>
@@ -45,7 +45,7 @@
                 % endif
                 % if not LetsencryptPrivateKey.is_active and not LetsencryptPrivateKey.is_compromised:
                     &nbsp;
-                    <a  href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}/mark?action=activate"
+                    <a  href="${admin_prefix}/private-key/${LetsencryptPrivateKey.id}/mark?action=activate"
                         class="label label-info"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -53,14 +53,14 @@
                     </a>
                 % elif LetsencryptPrivateKey.is_active and not LetsencryptPrivateKey.is_compromised:
                     &nbsp;
-                    <a  href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}/mark?action=deactivate"
+                    <a  href="${admin_prefix}/private-key/${LetsencryptPrivateKey.id}/mark?action=deactivate"
                         class="label label-danger"
                     >
                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         deactivate
                     </a>
                     &nbsp;
-                    <a  href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}/mark?action=compromised"
+                    <a  href="${admin_prefix}/private-key/${LetsencryptPrivateKey.id}/mark?action=compromised"
                         class="label label-danger"
                     >
                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -89,11 +89,11 @@
                 % if LetsencryptPrivateKey.is_compromised:
                     <span class="label label-dander">
                         COMPROMISED
-                    </span>        
+                    </span>
                 % endif
             </td>
         </tr>
-        
+
         <tr>
             <th>timestamp_first_seen</th>
             <td><timestamp>${LetsencryptPrivateKey.timestamp_first_seen  or ''}</timestamp></td>
@@ -128,7 +128,7 @@
                 <code>${LetsencryptPrivateKey.key_pem_modulus_md5}</code>
                 <a
                     class="btn btn-xs btn-info"
-                    href="/.well-known/admin/search?${LetsencryptPrivateKey.key_pem_modulus_search}"
+                    href="${admin_prefix}/search?${LetsencryptPrivateKey.key_pem_modulus_search}"
                 >
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                 </a>
@@ -139,9 +139,9 @@
             <td>
                 ## ${'tracked' if LetsencryptPrivateKey.key_pem else 'untracked'}
                 ## <textarea class="form-control">${LetsencryptPrivateKey.key_pem}</textarea>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}/key.pem">key.pem</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}/key.pem.txt">key.pem.txt</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/private-key/${LetsencryptPrivateKey.id}/key.key">key.key (der)</a>
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${LetsencryptPrivateKey.id}/key.pem">key.pem</a>
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${LetsencryptPrivateKey.id}/key.pem.txt">key.pem.txt</a>
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${LetsencryptPrivateKey.id}/key.key">key.key (der)</a>
             </td>
         </tr>
         <tr>
@@ -149,7 +149,7 @@
             <td>
                 ${admin_partials.table_certificates__list(LetsencryptPrivateKey.signed_certificates_5, show_domains=True, show_expiring_days=True)}
                 % if LetsencryptPrivateKey.signed_certificates_5:
-                    ${admin_partials.nav_pager("/.well-known/admin/private-key/%s/certificates" % LetsencryptPrivateKey.id)}
+                    ${admin_partials.nav_pager("%s/private-key/%s/certificates" % (admin_prefix, LetsencryptPrivateKey.id))}
                 % endif
             </td>
         </tr>
@@ -158,7 +158,7 @@
             <td>
                 ${admin_partials.table_certificate_requests__list(LetsencryptPrivateKey.certificate_requests_5, show_domains=True)}
                 % if LetsencryptPrivateKey.certificate_requests_5:
-                    ${admin_partials.nav_pager("/.well-known/admin/private-key/%s/certificate-requests" % LetsencryptPrivateKey.id)}
+                    ${admin_partials.nav_pager("%s/private-key/%s/certificate-requests" % (admin_prefix, LetsencryptPrivateKey.id))}
                 % endif
             </td>
         </tr>

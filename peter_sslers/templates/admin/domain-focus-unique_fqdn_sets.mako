@@ -4,9 +4,9 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/domains">Domains</a></li>
-        <li><a href="/.well-known/admin/domain/${LetsencryptDomain.id}">Focus [${LetsencryptDomain.id}]</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/domains">Domains</a></li>
+        <li><a href="${admin_prefix}/domain/${LetsencryptDomain.id}">Focus [${LetsencryptDomain.id}]</a></li>
         <li class="active">Unique FQDN Set</li>
     </ol>
 </%block>

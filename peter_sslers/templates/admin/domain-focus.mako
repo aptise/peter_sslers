@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/domains">Domains</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/domains">Domains</a></li>
         <li class="active">Focus [${LetsencryptDomain.id}]</li>
     </ol>
 </%block>
@@ -47,7 +47,7 @@
                 % if LetsencryptDomain.is_active:
                     &nbsp;
                     <a  class="label label-warning"
-                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/mark?action=inactive"
+                        href="${admin_prefix}/domain/${LetsencryptDomain.id}/mark?action=inactive"
                     >
                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         inactive
@@ -55,7 +55,7 @@
                 % else:
                     &nbsp;
                     <a  class="label label-success"
-                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/mark?action=active"
+                        href="${admin_prefix}/domain/${LetsencryptDomain.id}/mark?action=active"
                     >
                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                         active
@@ -68,7 +68,7 @@
             <th>json_config</th>
             <td>
                 <a  class="btn btn-xs btn-info"
-                    href="/.well-known/admin/domain/${LetsencryptDomain.id}/config.json"
+                    href="${admin_prefix}/domain/${LetsencryptDomain.id}/config.json"
                 >
                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                     config.json</a>
@@ -79,12 +79,12 @@
                 <th>nginx cache</th>
                 <td>
                     <a  class="btn btn-xs btn-primary"
-                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx-cache-expire"
+                        href="${admin_prefix}/domain/${LetsencryptDomain.id}/nginx-cache-expire"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                         nginx-cache-expire</a>
                     <a  class="btn btn-xs btn-primary"
-                        href="/.well-known/admin/domain/${LetsencryptDomain.id}/nginx-cache-expire.json"
+                        href="${admin_prefix}/domain/${LetsencryptDomain.id}/nginx-cache-expire.json"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                         nginx-cache-expire.json</a>
@@ -119,7 +119,7 @@
             <td>
                 ${admin_partials.table_certificates__list(LetsencryptDomain.certificates_5, show_domains=True, show_expiring_days=True)}
                 % if LetsencryptDomain.certificates_5:
-                    ${admin_partials.nav_pager("/.well-known/admin/domain/%s/certificates" % LetsencryptDomain.id)}
+                    ${admin_partials.nav_pager("%s/domain/%s/certificates" % (admin_prefix, LetsencryptDomain.id))}
                 % endif
             </td>
         </tr>
@@ -128,14 +128,14 @@
             <td>
                 ${admin_partials.table_to_certificate_requests(LetsencryptDomain.domain_to_certificate_requests_5)}
                 % if LetsencryptDomain.domain_to_certificate_requests_5:
-                    ${admin_partials.nav_pager("/.well-known/admin/domain/%s/certificate-requests" % LetsencryptDomain.id)}
+                    ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, LetsencryptDomain.id))}
                 % endif
             </td>
         </tr>
         <tr>
             <th>unique FQDN Sets</th>
             <td>
-                ${admin_partials.nav_pager("/.well-known/admin/domain/%s/unique-fqdn-sets" % LetsencryptDomain.id)}
+                ${admin_partials.nav_pager("%s/domain/%s/unique-fqdn-sets" % (admin_prefix, LetsencryptDomain.id))}
             </td>
         </tr>
     </table>
@@ -143,7 +143,7 @@
         </div>
         <div class="col-sm-3">
             <a  class="btn btn-info"
-                href="/.well-known/admin/domain/${LetsencryptDomain.id}/calendar"
+                href="${admin_prefix}/domain/${LetsencryptDomain.id}/calendar"
             >
                 Calendar
             </a>

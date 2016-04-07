@@ -7,8 +7,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/certificates">Certificates</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/certificates">Certificates</a></li>
         <li class="active">Focus [${LetsencryptServerCertificate.id}]</li>
     </ol>
 </%block>
@@ -42,14 +42,14 @@
                 % if LetsencryptServerCertificate.is_active:
                     &nbsp;
                     <a  class="label label-warning"
-                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/mark?action=deactivate"
+                        href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/mark?action=deactivate"
                     >
                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         deactivate
                     </a>
                     &nbsp;
                     <a  class="label label-warning"
-                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/mark?action=revoked"
+                        href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/mark?action=revoked"
                     >
                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         mark revoked
@@ -99,7 +99,7 @@
                     ${LetsencryptServerCertificate.expiring_days} days
                 </span>
                 &nbsp;
-                <a  href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/renew/custom"
+                <a  href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/renew/custom"
                     span class="label label-primary"
                 >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
@@ -110,7 +110,7 @@
         <tr>
             <th>letsencrypt_ca_certificate_id__upchain</th>
             <td>
-                <a class="label label-info" href="/.well-known/admin/ca-certificate/${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}">
+                <a class="label label-info" href="${admin_prefix}/ca-certificate/${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     ${LetsencryptServerCertificate.letsencrypt_ca_certificate_id__upchain}</a>
             </td>
@@ -119,11 +119,11 @@
             <th>letsencrypt_private_key_id__signed_by</th>
             <td>
                 % if not LetsencryptServerCertificate.private_key.is_compromised:
-                    <a class="label label-info" href="/.well-known/admin/private-key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">
+                    <a class="label label-info" href="${admin_prefix}/private-key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}</a>
                 % else:
-                    <a class="label label-danger" href="/.well-known/admin/private-key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">
+                    <a class="label label-danger" href="${admin_prefix}/private-key/${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}">
                         <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
                         ${LetsencryptServerCertificate.letsencrypt_private_key_id__signed_by}</a>
                 % endif
@@ -133,7 +133,7 @@
             <th>letsencrypt_certificate_request_id</th>
             <td>
                 % if LetsencryptServerCertificate.letsencrypt_certificate_request_id:
-                    <a class="label label-info" href="/.well-known/admin/certificate-request/${LetsencryptServerCertificate.letsencrypt_certificate_request_id}">
+                    <a class="label label-info" href="${admin_prefix}/certificate-request/${LetsencryptServerCertificate.letsencrypt_certificate_request_id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${LetsencryptServerCertificate.letsencrypt_certificate_request_id}</a>
                 % endif
@@ -143,7 +143,7 @@
             <th>unique fqdn set</th>
             <td>
                 <a  class="label label-info"
-                    href="/.well-known/admin/unique-fqdn-set/${LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id}"
+                    href="${admin_prefix}/unique-fqdn-set/${LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id}"
                     >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     ${LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id}
@@ -172,7 +172,7 @@
                                         <span class="label label-default">${latest_certificate.id}</span>
                                     % else:
                                         <a  class="label label-info"
-                                            href="/.well-known/admin/certificate/${latest_certificate.id}"
+                                            href="${admin_prefix}/certificate/${latest_certificate.id}"
                                             >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             ${latest_certificate.id}
@@ -199,7 +199,7 @@
                                         <span class="label label-default">${latest_active_certificate.id}</span>
                                     % else:
                                         <a  class="label label-info"
-                                            href="/.well-known/admin/certificate/${latest_active_certificate.id}"
+                                            href="${admin_prefix}/certificate/${latest_active_certificate.id}"
                                             >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             ${latest_active_certificate.id}
@@ -227,7 +227,7 @@
             <td>
                 % if LetsencryptServerCertificate.letsencrypt_server_certificate_id__renewal_of:
                     <span class="label label-success">Yes</span>&nbsp;
-                    <a class="label label-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.letsencrypt_server_certificate_id__renewal_of}">
+                    <a class="label label-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.letsencrypt_server_certificate_id__renewal_of}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${LetsencryptServerCertificate.letsencrypt_server_certificate_id__renewal_of}</a>
                 % else:
@@ -245,7 +245,7 @@
                 <code>${LetsencryptServerCertificate.cert_pem_modulus_md5}</code>
                 <a
                     class="btn btn-xs btn-info"
-                    href="/.well-known/admin/search?${LetsencryptServerCertificate.cert_pem_modulus_search}"
+                    href="${admin_prefix}/search?${LetsencryptServerCertificate.cert_pem_modulus_search}"
                 >
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                 </a>
@@ -255,13 +255,13 @@
             <th>cert_pem</th>
             <td>
                 ## <textarea class="form-control">${LetsencryptServerCertificate.key_pem}</textarea>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/cert.pem">
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/cert.pem">
                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                     cert.pem</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/cert.pem.txt">
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/cert.pem.txt">
                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                     cert.pem.txt</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/cert.crt">
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/cert.crt">
                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                     cert.crt (der)</a>
             </td>
@@ -269,7 +269,7 @@
         <tr>
             <th>json payload</th>
             <td>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/config.json">
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/config.json">
                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                     config.json</a><br/>
                 <em>designed for downstream http config</em>
@@ -280,12 +280,12 @@
                 <th>nginx cache</th>
                 <td>
                     <a  class="btn btn-xs btn-primary"
-                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/nginx-cache-expire"
+                        href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/nginx-cache-expire"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                         nginx-cache-expire</a>
                     <a  class="btn btn-xs btn-primary"
-                        href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/nginx-cache-expire.json"
+                        href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/nginx-cache-expire.json"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                         nginx-cache-expire.json</a>
@@ -306,19 +306,19 @@
                         <tr>
                             <td>chain (upstream)</td>
                             <td>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.pem.txt">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/chain.pem.txt">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     chain.pem.txt</a>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.pem">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/chain.pem">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     chain.pem</a>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.cer">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/chain.cer">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     chain.cer (der)</a>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.crt">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/chain.crt">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     chain.crt (der)</a>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/chain.der">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/chain.der">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     chain.der (der)</a>
                             </td>
@@ -326,10 +326,10 @@
                         <tr>
                             <td>fullchain (cert+upstream chain)</td>
                             <td>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/fullchain.pem.txt">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/fullchain.pem.txt">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     fullchain.pem.txt</a>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/fullchain.pem">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/fullchain.pem">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     fullchain.pem</a>
                             </td>
@@ -337,13 +337,13 @@
                         <tr>
                             <td>privatekey</td>
                             <td>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/privkey.pem.txt">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/privkey.pem.txt">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     privkey.pem.txt</a>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/privkey.pem">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/privkey.pem">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     privkey.pem</a>
-                                <a class="btn btn-xs btn-info" href="/.well-known/admin/certificate/${LetsencryptServerCertificate.id}/privkey.key">
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/privkey.key">
                                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                     privkey.key (der)</a>
                             </td>
@@ -358,7 +358,7 @@
                 <code>${LetsencryptServerCertificate.cert_subject_hash}</code>
                 <a
                     class="btn btn-xs btn-info"
-                    href="/.well-known/admin/search?${LetsencryptServerCertificate.cert_subject_hash_search}"
+                    href="${admin_prefix}/search?${LetsencryptServerCertificate.cert_subject_hash_search}"
                 >
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                 </a>
@@ -372,7 +372,7 @@
                 <code>${LetsencryptServerCertificate.cert_issuer_hash}</code>
                 <a
                     class="btn btn-xs btn-info"
-                    href="/.well-known/admin/search?${LetsencryptServerCertificate.cert_issuer_hash_search}"
+                    href="${admin_prefix}/search?${LetsencryptServerCertificate.cert_issuer_hash_search}"
                 >
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                 </a>
@@ -396,7 +396,7 @@
                         % for to_d in LetsencryptServerCertificate.unique_fqdn_set.to_domains:
                             <tr>
                                 <td>
-                                    <a class="label label-info" href="/.well-known/admin/domain/${to_d.domain.id}">
+                                    <a class="label label-info" href="${admin_prefix}/domain/${to_d.domain.id}">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${to_d.domain.id}</a>
                                 </td>

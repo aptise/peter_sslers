@@ -1,14 +1,19 @@
 from pyramid.config import Configurator
 from pyramid.tweens import EXCVIEW
+from pyramid.events import BeforeRender
 from sqlalchemy import engine_from_config
 
 from .lib import acme
 from .lib import cert_utils
 from .lib.config_utils import *
 
-from pyramid import request
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def add_renderer_globals(event):
+    """sticks the admin_prefix into the renderer's topline namespace"""
+    event['admin_prefix'] = event['request'].registry.settings["admin_prefix"]
 
 
 def db_cleanup__tween_factory(handler, registry):
@@ -28,13 +33,13 @@ def main(global_config, **settings):
     config.include('pyramid_mako')
     # config.add_static_view('static', 'static', cache_max_age=3600)
 
-    # handle this before including the routes
-    enable_views_admin = set_bool_setting(config.registry.settings, 'enable_views_admin')
-    enable_views_public = set_bool_setting(config.registry.settings, 'enable_views_public')
-    config.include(".routes")
-    config.include(".models")
-
     # Parse settings
+
+    # do this before setting routes!
+    admin_prefix = settings.get("admin_prefix", None)
+    if admin_prefix is None:
+        admin_prefix = settings.get("admin_prefix", None)
+        config.registry.settings["admin_prefix"] = "/.well-known/admin"
 
     # update the module data based on settings
     if 'openssl_path' in settings:
@@ -73,8 +78,14 @@ def main(global_config, **settings):
 
     # don't scan 'everything', only what is enabled
     # config.scan()
-    
+
     config.add_tween('.db_cleanup__tween_factory', over=EXCVIEW)
-    
+    config.add_subscriber(add_renderer_globals, BeforeRender)
+
+    # handle this before including the routes
+    enable_views_admin = set_bool_setting(config.registry.settings, 'enable_views_admin')
+    enable_views_public = set_bool_setting(config.registry.settings, 'enable_views_public')
+    config.include(".routes")
+    config.include(".models")
 
     return config.make_wsgi_app()

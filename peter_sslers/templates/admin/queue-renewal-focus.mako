@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/queue-renewal">Renewal Queue</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/queue-renewal">Renewal Queue</a></li>
         <li class="active">Focus [${RenewalQueueItem.id}]</li>
     </ol>
 </%block>
@@ -30,7 +30,7 @@
             <th>certificate_id</th>
             <td>
                 <a class="label label-info"
-                    href="/.well-known/admin/certificate/${RenewalQueueItem.letsencrypt_server_certificate_id}"
+                    href="${admin_prefix}/certificate/${RenewalQueueItem.letsencrypt_server_certificate_id}"
                 >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     ${RenewalQueueItem.letsencrypt_server_certificate_id}</a>
@@ -40,7 +40,7 @@
             <th>letsencrypt_unique_fqdn_set_id</th>
             <td>
                 <a class="label label-info"
-                    href="/.well-known/admin/unique-fqdn-set/${RenewalQueueItem.letsencrypt_unique_fqdn_set_id}"
+                    href="${admin_prefix}/unique-fqdn-set/${RenewalQueueItem.letsencrypt_unique_fqdn_set_id}"
                 >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     ${RenewalQueueItem.letsencrypt_unique_fqdn_set_id}</a>

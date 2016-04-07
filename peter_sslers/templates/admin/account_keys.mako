@@ -4,7 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
         <li class="active">Account Keys</li>
     </ol>
 </%block>
@@ -34,7 +34,7 @@
             <tbody>
             % for key in LetsencryptAccountKeys:
                 <tr>
-                    <td><a class="label label-info" href="/.well-known/admin/account-key/${key.id}">
+                    <td><a class="label label-info" href="${admin_prefix}/account-key/${key.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${key.id}</a></td>
                     <td>

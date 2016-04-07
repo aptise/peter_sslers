@@ -4,7 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
         <li class="active">Domains</li>
     </ol>
 </%block>
@@ -45,7 +45,7 @@
                     <tr>
                         <td>
                             <a  class="label label-info"
-                                href="/.well-known/admin/domain/${d.id}">
+                                href="${admin_prefix}/domain/${d.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${d.id}</a>
                         </td>
@@ -58,7 +58,7 @@
                         <td>
                             % if d.letsencrypt_server_certificate_id__latest_multi:
                                 <a  class="label label-info"
-                                    href="/.well-known/admin/certificate/${d.letsencrypt_server_certificate_id__latest_multi}"
+                                    href="${admin_prefix}/certificate/${d.letsencrypt_server_certificate_id__latest_multi}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${d.letsencrypt_server_certificate_id__latest_multi}</a>
@@ -69,7 +69,7 @@
                         <td>
                             % if d.letsencrypt_server_certificate_id__latest_single:
                                 <a  class="label label-info"
-                                    href="/.well-known/admin/certificate/${d.letsencrypt_server_certificate_id__latest_single}"
+                                    href="${admin_prefix}/certificate/${d.letsencrypt_server_certificate_id__latest_single}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${d.letsencrypt_server_certificate_id__latest_single}</a>
@@ -89,8 +89,8 @@
         </div>
         <div class="col-sm-3">
             <ul class="nav nav-pills nav-stacked">
-              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="/.well-known/admin/domains">All Domains</a></li>
-              <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="/.well-known/admin/domains/expiring">Expiring Domains</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/domains">All Domains</a></li>
+              <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/domains/expiring">Expiring Domains</a></li>
             </ul>
         </div>
     </div>

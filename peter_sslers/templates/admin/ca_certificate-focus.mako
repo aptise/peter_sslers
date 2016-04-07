@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/ca-certificates">CA Certificates</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/ca-certificates">CA Certificates</a></li>
         <li class="active">Focus [${LetsencryptCACertificate.id}]</li>
     </ol>
 </%block>
@@ -90,7 +90,7 @@
                 <code>${LetsencryptCACertificate.cert_pem_modulus_md5}</code>
                 <a
                     class="btn btn-xs btn-info"
-                    href="/.well-known/admin/search?${LetsencryptCACertificate.cert_pem_modulus_search}"
+                    href="${admin_prefix}/search?${LetsencryptCACertificate.cert_pem_modulus_search}"
                 >
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                 </a>
@@ -103,12 +103,12 @@
         <tr>
             <th>download</th>
             <td>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.pem.txt">chain.pem.txt</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.pem">chain.pem</a>
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${LetsencryptCACertificate.id}/chain.pem.txt">chain.pem.txt</a>
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${LetsencryptCACertificate.id}/chain.pem">chain.pem</a>
 
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.cer">chain.cer (der)</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.crt">chain.crt (der)</a>
-                <a class="btn btn-xs btn-info" href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}/chain.der">chain.der (der)</a>
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${LetsencryptCACertificate.id}/chain.cer">chain.cer (der)</a>
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${LetsencryptCACertificate.id}/chain.crt">chain.crt (der)</a>
+                <a class="btn btn-xs btn-info" href="${admin_prefix}/ca-certificate/${LetsencryptCACertificate.id}/chain.der">chain.der (der)</a>
 
             </td>
         </tr>
@@ -129,7 +129,7 @@
             <td>
                 % if LetsencryptServerCertificates:
                     ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
-                    ${admin_partials.nav_pager("/.well-known/admin/ca-certificate/%s/signed_certificates" % LetsencryptCACertificate.id)}
+                    ${admin_partials.nav_pager("%s/ca-certificate/%s/signed_certificates" % (admin_prefix, LetsencryptCACertificate.id))}
                 % else:
                     No known certificates.
                 % endif

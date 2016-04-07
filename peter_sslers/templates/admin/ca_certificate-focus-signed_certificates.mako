@@ -4,9 +4,9 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/ca-certificates">CA Certificates</a></li>
-        <li><a href="/.well-known/admin/ca-certificate/${LetsencryptCACertificate.id}">Focus [${LetsencryptCACertificate.id}]</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/ca-certificates">CA Certificates</a></li>
+        <li><a href="${admin_prefix}/ca-certificate/${LetsencryptCACertificate.id}">Focus [${LetsencryptCACertificate.id}]</a></li>
         <li class="active">CA Certificates</li>
     </ol>
 </%block>

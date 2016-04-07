@@ -4,8 +4,8 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/operations/log">Operations</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/operations/log">Operations</a></li>
         <li class="active">Certificate Probes</li>
     </ol>
 </%block>
@@ -67,7 +67,7 @@
 
             <ul>
                 <li>
-                    <a  href="/.well-known/admin/operations/ca-certificate-probes/probe"
+                    <a  href="${admin_prefix}/operations/ca-certificate-probes/probe"
                         class="label label-primary"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -77,7 +77,7 @@
                     <em>Checks for new certs on the public internet</em>
                 </li>
                 <li>
-                    <a  href="/.well-known/admin/operations/log"
+                    <a  href="${admin_prefix}/operations/log"
                         class="label label-info"
                     >
                         <span class="glyphicon glyphicon-list" aria-hidden="true"></span>

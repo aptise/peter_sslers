@@ -4,9 +4,9 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
-        <li><a href="/.well-known/admin/certificate-requests">Certificate Requests</a></li>
-        <li><a href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}">Focus [${LetsencryptCertificateRequest.id}]</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
+        <li><a href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}">Focus [${LetsencryptCertificateRequest.id}]</a></li>
         <li class="active">Process</li>
     </ol>
 </%block>
@@ -19,7 +19,7 @@
 
     <p>Workspace for
         <a  class="label label-default"
-            href="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}"
+            href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}"
         >Certificate ${LetsencryptCertificateRequest.id} | ${LetsencryptCertificateRequest.timestamp_started}</a>
         <span class="label label-info">${LetsencryptCertificateRequest.certificate_request_type}</span>
     </p>
@@ -64,7 +64,7 @@
                         updates_allowed = False
                 %>
                 % if updates_allowed:
-                    <form action="/.well-known/admin/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id}" method="POST">
+                    <form action="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id}" method="POST">
                         <% form = request.formhandling.get_form(request) %>
                         ${form.html_error_main('Error_Main')|n}
                 % endif

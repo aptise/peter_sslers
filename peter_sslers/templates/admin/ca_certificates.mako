@@ -4,7 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
-        <li><a href="/.well-known/admin">Admin</a></li>
+        <li><a href="${admin_prefix}">Admin</a></li>
         <li class="active">CA Certificates</li>
     </ol>
 </%block>
@@ -31,7 +31,7 @@
             </thead>
             % for cert in LetsencryptCACertificates:
                 <tr>
-                    <td><a class="label label-info" href="/.well-known/admin/ca-certificate/${cert.id}">
+                    <td><a class="label label-info" href="${admin_prefix}/ca-certificate/${cert.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${cert.id}</a></td>
                     <td><span class="badge">${cert.count_active_certificates or ''}</span></td>
