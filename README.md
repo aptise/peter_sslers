@@ -33,7 +33,7 @@ Peter offers several commandline tools, so spinning up a tool "webserver" mode m
 
 SqlAlchemy is the backing database library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). `sqlite` is the default, but this has been tested on postgres.  sqlite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
 
-## personal note:
+## Why?  And a personal note:
 
 I hate having to spend time on DevOps tasks; I would rather spend time on the Product or consumer sides.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just a test-suite.
 
