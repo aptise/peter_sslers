@@ -81,6 +81,16 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name='admin:account_key:focus:config_json', renderer='json')
+    def account_key_focus_config_json(self):
+        dbLetsencryptAccountKey = self._account_key_focus(eagerload_web=True)
+        return {'id': dbLetsencryptAccountKey.id,
+                'is_active': dbLetsencryptAccountKey.is_active,
+                'is_default': dbLetsencryptAccountKey.is_default,
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name='admin:account_key:focus:authenticate', renderer=None)
     def account_key_focus__authenticate(self):
         dbLetsencryptAccountKey = self._account_key_focus()
@@ -162,8 +172,9 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:account_key:focus:mark', renderer=None)
     @view_config(route_name='admin:account_key:focus:mark.json', renderer='json')
-    def certificate_focus_mark(self):
+    def account_key_focus_mark(self):
         dbLetsencryptAccountKey = self._account_key_focus()
+        action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_AccountKey_Mark,

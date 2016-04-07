@@ -177,7 +177,7 @@ class ViewAdmin(Handler):
         dbLetsencryptDomain = self._domain_focus()
         items_count = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__count(
             self.request.dbsession, LetsencryptDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/unique-fqdn-sets/{0}' % LetsencryptDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/unique-fqdn-sets/{0}' % (self.request.registry.settings['admin_prefix'], LetsencryptDomain.id))
         items_paged = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__paginated(
             self.request.dbsession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -193,6 +193,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:mark.json', renderer='json')
     def domain_focus_mark(self):
         dbLetsencryptDomain = self._domain_focus()
+        action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_Domain_Mark,

@@ -892,7 +892,7 @@ def operations_update_recents(dbSession):
 
     # mark the session changed, but we need to mark the session not scoped session.  ugh.
     # we don't need this if we add the bookkeeping object, but let's just keep this to be safe
-    mark_changed(dbSession())
+    mark_changed(dbSession)
 
     # bookkeeping
     dbEvent = create__LetsencryptOperationsEvent(dbSession,

@@ -153,6 +153,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_key:focus:mark.json', renderer='json')
     def certificate_focus_mark(self):
         dbLetsencryptPrivateKey = self._private_key_focus()
+        action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_PrivateKey_Mark,

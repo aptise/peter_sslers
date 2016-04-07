@@ -42,7 +42,7 @@
                 % if LetsencryptServerCertificate.is_active:
                     &nbsp;
                     <a  class="label label-warning"
-                        href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/mark?action=deactivate"
+                        href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/mark?action=deactivated"
                     >
                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         deactivate
@@ -66,6 +66,16 @@
                             &nbsp;
                             <span class="label label-warning">revoked</span>
                         % endif
+
+                        % if not LetsencryptServerCertificate.is_revoked:
+                            <a  class="label label-success"
+                                href="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/mark?action=active"
+                            >
+                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                activate
+                            </a>
+                        % endif
+
                     % endif
                 % endif
             </td>

@@ -47,21 +47,22 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def _certificate_request_focus(self):
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, self.request.matchdict['id'])
+        if not dbLetsencryptCertificateRequest:
+            raise HTTPNotFound('the certificate was not found')
+        return dbLetsencryptCertificateRequest
+
     @view_config(route_name='admin:certificate_request:focus', renderer='/admin/certificate_request-focus.mako')
     def certificate_request_focus(self):
-        certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
-        if not dbLetsencryptCertificateRequest:
-            raise HTTPNotFound('the certificate_request was not found')
+        dbLetsencryptCertificateRequest = self._certificate_request_focus()
         return {'project': 'peter_sslers',
                 'LetsencryptCertificateRequest': dbLetsencryptCertificateRequest
                 }
 
     @view_config(route_name='admin:certificate_request:focus:raw', renderer='string')
     def certificate_request_focus_raw(self):
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
-        if not dbLetsencryptCertificateRequest:
-            raise HTTPNotFound('the certificate_request was not found')
+        dbLetsencryptCertificateRequest = self._certificate_request_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
             return dbLetsencryptCertificateRequest.csr_pem
@@ -76,10 +77,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:process', renderer='/admin/certificate_request-process.mako')
     def certificate_request_process(self):
-        certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
-        if not dbLetsencryptCertificateRequest:
-            raise HTTPNotFound('the certificate_request was not found')
+        dbLetsencryptCertificateRequest = self._certificate_request_focus()
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
             raise HTTPNotFound('Only availble for FLOW')
         return {'project': 'peter_sslers',
@@ -91,10 +89,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:deactivate')
     def certificate_request_deactivate(self):
-        certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
-        if not dbLetsencryptCertificateRequest:
-            raise HTTPNotFound('the certificate_request was not found')
+        dbLetsencryptCertificateRequest = self._certificate_request_focus()
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
             raise HTTPNotFound('Only availble for FLOW')
         dbLetsencryptCertificateRequest.is_active = False
@@ -105,10 +100,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:process:domain', )
     def certificate_request_process_domain(self):
-        certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
-        if not dbLetsencryptCertificateRequest:
-            raise HTTPNotFound('the certificate_request was not found')
+        dbLetsencryptCertificateRequest = self._certificate_request_focus()
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
             raise HTTPNotFound('Only availble for FLOW')
         dbLetsencryptCertificateRequest2LetsencryptDomain = None

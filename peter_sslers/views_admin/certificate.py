@@ -21,6 +21,7 @@ from ..lib.forms import (Form_Certificate_Upload__file,
                          )
 from ..lib.handler import Handler, items_per_page
 from ..lib import acme as lib_acme
+from ..lib import cert_utils as lib_cert_utils
 from ..lib import db as lib_db
 from ..lib import errors as lib_errors
 from ..lib import events as lib_events
@@ -227,7 +228,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:config_json', renderer='json')
-    def certificate_focus_json(self):
+    def certificate_focus_config_json(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
         if self.request.params.get('idonly', None):
             rval = dbLetsencryptServerCertificate.config_payload_idonly
@@ -364,6 +365,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:mark.json', renderer='json')
     def certificate_focus_mark(self):
         dbLetsencryptServerCertificate = self._certificate_focus()
+        action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_Certificate_Mark,
@@ -380,7 +382,18 @@ class ViewAdmin(Handler):
                              }
             update_recents = False
             deactivated = False
-            if action == 'deactivate':
+            activated = False
+            if action == 'active':
+                if dbLetsencryptServerCertificate.is_active:
+                    raise formhandling.FormInvalid('already active!')
+                if dbLetsencryptServerCertificate.is_revoked:
+                    raise formhandling.FormInvalid('Certificate is revoked revoked')
+                dbLetsencryptServerCertificate.is_active = True
+                if dbLetsencryptServerCertificate.is_deactivated:
+                    dbLetsencryptServerCertificate.is_deactivated = False
+                update_recents = True
+                activated = True
+            elif action == 'deactivated':
                 if dbLetsencryptServerCertificate.is_deactivated:
                     raise formhandling.FormInvalid('Already deactivated')
                 dbLetsencryptServerCertificate.is_deactivated = True
@@ -416,6 +429,10 @@ class ViewAdmin(Handler):
                                                    dbLetsencryptServerCertificate,
                                                    operationsEvent=operationsEvent,
                                                    )
+
+            if activated:
+                # nothing to do?
+                pass
 
             url_success = '%s/certificate/%s?operation=mark&action=%s&result=sucess' % (
                 self.request.registry.settings['admin_prefix'],
