@@ -33,9 +33,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains', renderer='/admin/domains.mako')
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
     def domains(self):
-        items_count = lib_db.get__LetsencryptDomain__count(DBSession)
+        items_count = lib_db.get__LetsencryptDomain__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domains/{0}')
-        items_paged = lib_db.get__LetsencryptDomain__paginated(DBSession, eagerload_web=True, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptDomain__paginated(self.request.dbsession, eagerload_web=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptDomains_count': items_count,
                 'LetsencryptDomains': items_paged,
@@ -47,9 +47,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains:expiring_paginated', renderer='/admin/domains.mako')
     def domains_expiring_only(self):
         expiring_days = self.request.registry.settings['expiring_days']
-        items_count = lib_db.get__LetsencryptDomain__count(DBSession, expiring_days=expiring_days)
+        items_count = lib_db.get__LetsencryptDomain__count(self.request.dbsession, expiring_days=expiring_days)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domains/expiring/{0}')
-        items_paged = lib_db.get__LetsencryptDomain__paginated(DBSession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptDomain__paginated(self.request.dbsession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptDomains_count': items_count,
                 'LetsencryptDomains': items_paged,
@@ -63,9 +63,9 @@ class ViewAdmin(Handler):
     def _domain_focus(self, eagerload_web=False):
         domain_identifier = self.request.matchdict['domain_identifier'].strip()
         if domain_identifier.isdigit():
-            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_id(DBSession, domain_identifier, preload=True, eagerload_web=eagerload_web)
+            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_id(self.request.dbsession, domain_identifier, preload=True, eagerload_web=eagerload_web)
         else:
-            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_name(DBSession, domain_identifier, preload=True, eagerload_web=eagerload_web)
+            dbLetsencryptDomain = lib_db.get__LetsencryptDomain__by_name(self.request.dbsession, domain_identifier, preload=True, eagerload_web=eagerload_web)
         if not dbLetsencryptDomain:
             raise HTTPNotFound('the domain was not found')
         return dbLetsencryptDomain
@@ -83,7 +83,7 @@ class ViewAdmin(Handler):
         dbLetsencryptDomain = self._domain_focus(eagerload_web=True)
         if not self.request.registry.settings['enable_nginx']:
             raise HTTPFound('/.well-known/admin/domain/%s?error=no_nginx' % dbLetsencryptDomain.id)
-        success, dbEvent = lib_utils.nginx_expire_cache(self.request, DBSession, dbDomains=[dbLetsencryptDomain, ])
+        success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.dbsession, dbDomains=[dbLetsencryptDomain, ])
         if self.request.matched_route.name == 'admin:domain:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
@@ -120,10 +120,10 @@ class ViewAdmin(Handler):
     def domain_focus__certificates(self):
         dbLetsencryptDomain = self._domain_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomainId__count(
-            DBSession, dbLetsencryptDomain.id)
+            self.request.dbsession, dbLetsencryptDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificates/{0}' % dbLetsencryptDomain.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptDomainId__paginated(
-            DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptDomain': dbLetsencryptDomain,
                 'LetsencryptServerCertificates_count': items_count,
@@ -136,10 +136,10 @@ class ViewAdmin(Handler):
     def domain_focus__certificate_requests(self):
         dbLetsencryptDomain = self._domain_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId__count(
-            DBSession, LetsencryptDomain.id)
+            self.request.dbsession, LetsencryptDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/certificate-requests/{0}' % LetsencryptDomain.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptDomainId__paginated(
-            DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptDomain': dbLetsencryptDomain,
                 'LetsencryptCertificateRequests_count': items_count,
@@ -153,7 +153,7 @@ class ViewAdmin(Handler):
     def domain_focus__calendar(self):
         rval = {}
         dbLetsencryptDomain = self._domain_focus()
-        weekly_certs = DBSession.query(year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
+        weekly_certs = self.request.dbsession.query(year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
                                        sqlalchemy.func.count(LetsencryptServerCertificate.id)
                                        )\
             .join(LetsencryptUniqueFQDNSet2LetsencryptDomain,
@@ -176,10 +176,10 @@ class ViewAdmin(Handler):
     def domain_focus__unique_fqdns(self):
         dbLetsencryptDomain = self._domain_focus()
         items_count = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__count(
-            DBSession, LetsencryptDomain.id)
+            self.request.dbsession, LetsencryptDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/domain/%s/unique-fqdn-sets/{0}' % LetsencryptDomain.id)
         items_paged = lib_db.get__LetsencryptUniqueFQDNSet__by_LetsencryptDomainId__paginated(
-            DBSession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptDomain': dbLetsencryptDomain,
                 'LetsencryptUniqueFQDNSets_count': items_count,
@@ -218,11 +218,11 @@ class ViewAdmin(Handler):
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
-            DBSession.flush()
+            self.request.dbsession.flush()
 
             # bookkeeping
             operationsEvent = lib_db.create__LetsencryptOperationsEvent(
-                DBSession,
+                self.request.dbsession,
                 event_type,
                 event_payload,
             )

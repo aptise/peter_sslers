@@ -39,9 +39,9 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:log_paginated', renderer='/admin/operations-log.mako')
     def operations_log(self):
         _items_per_page = 25
-        items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession)
+        items_count = lib_db.get__LetsencryptOperationsEvent__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/log/{0}', items_per_page=_items_per_page)
-        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, limit=_items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(self.request.dbsession, limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents__count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
@@ -53,7 +53,7 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:log:focus', renderer='/admin/operations-log-focus.mako')
     def operations_log_focus(self):
         _items_per_page = 25
-        item = lib_db.get__LetsencryptOperationsEvent__by_id(DBSession, self.request.matchdict['id'])
+        item = lib_db.get__LetsencryptOperationsEvent__by_id(self.request.dbsession, self.request.matchdict['id'])
         if not item:
             raise ValueError("no item")
         return {'project': 'peter_sslers',
@@ -67,9 +67,9 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:ca_certificate_probes', renderer='/admin/operations-ca_certificate_probes.mako')
     @view_config(route_name='admin:operations:ca_certificate_probes_paginated', renderer='/admin/operations-ca_certificate_probes.mako')
     def ca_certificate_probes(self):
-        items_count = lib_db.get__LetsencryptOperationsEvent__certificate_probe__count(DBSession)
+        items_count = lib_db.get__LetsencryptOperationsEvent__certificate_probe__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/ca-certificate-probes/{0}')
-        items_paged = lib_db.get__LetsencryptOperationsEvent__certificate_probe__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptOperationsEvent__certificate_probe__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents_count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
@@ -79,7 +79,7 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:ca_certificate_probes:probe', renderer=None)
     @view_config(route_name='admin:operations:ca_certificate_probes:probe.json', renderer='json')
     def ca_certificate_probes__probe(self):
-        operations_event = lib_db.ca_certificate_probe(DBSession)
+        operations_event = lib_db.ca_certificate_probe(self.request.dbsession)
 
         if self.request.matched_route.name == 'admin:operations:ca_certificate_probes:probe.json':
             return {'result': 'success',
@@ -96,7 +96,7 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:update_recents', renderer=None)
     @view_config(route_name='admin:operations:update_recents.json', renderer='json')
     def operations_update_recents(self):
-        operations_event = lib_db.operations_update_recents(DBSession)
+        operations_event = lib_db.operations_update_recents(self.request.dbsession)
 
         if self.request.matched_route.name == 'admin:operations:update_recents.json':
             return {'result': 'success',
@@ -113,10 +113,10 @@ class ViewAdminOperations(Handler):
         rval = {}
 
         # MUST run this first
-        operations_event1 = lib_db.operations_update_recents(DBSession)
+        operations_event1 = lib_db.operations_update_recents(self.request.dbsession)
 
         # then this
-        operations_event2 = lib_db.operations_deactivate_expired(DBSession)
+        operations_event2 = lib_db.operations_deactivate_expired(self.request.dbsession)
         count_deactivated_expired = operations_event2.event_payload_json['count_deactivated']
         rval['LetsencryptServerCertificate'] = {'expired': count_deactivated_expired, }
 
@@ -143,9 +143,9 @@ class ViewAdminOperations(Handler):
         self._ensure_redis()
 
         _items_per_page = 25
-        items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ))
+        items_count = lib_db.get__LetsencryptOperationsEvent__count(self.request.dbsession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ))
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/redis/log/{0}', items_per_page=_items_per_page)
-        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ), limit=_items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(self.request.dbsession, event_type_ids=(LetsencryptOperationsEventType.redis_prime, ), limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents__count': items_count,
                 'LetsencryptOperationsEvents': items_paged,
@@ -198,7 +198,7 @@ class ViewAdminOperations(Handler):
             limit = 100
             while True:
                 active_certs = lib_db.get__LetsencryptCACertificate__paginated(
-                    DBSession,
+                    self.request.dbsession,
                     offset=offset,
                     limit=limit,
                     active_only=True
@@ -219,7 +219,7 @@ class ViewAdminOperations(Handler):
             limit = 100
             while True:
                 active_keys = lib_db.get__LetsencryptPrivateKey__paginated(
-                    DBSession,
+                    self.request.dbsession,
                     offset=offset,
                     limit=limit,
                     active_only=True
@@ -241,7 +241,7 @@ class ViewAdminOperations(Handler):
             limit = 100
             while True:
                 active_domains = lib_db.get__LetsencryptDomain__paginated(
-                    DBSession,
+                    self.request.dbsession,
                     offset=offset,
                     limit=limit,
                     active_only=True
@@ -278,7 +278,7 @@ class ViewAdminOperations(Handler):
             limit = 100
             while True:
                 active_domains = lib_db.get__LetsencryptDomain__paginated(
-                    DBSession,
+                    self.request.dbsession,
                     offset=offset,
                     limit=limit,
                     active_only=True
@@ -296,7 +296,7 @@ class ViewAdminOperations(Handler):
                     break
                 offset += limit
 
-        dbEvent = lib_db.create__LetsencryptOperationsEvent(DBSession,
+        dbEvent = lib_db.create__LetsencryptOperationsEvent(self.request.dbsession,
                                                             LetsencryptOperationsEventType.redis_prime,
                                                             {'v': 1,
                                                              'prime_style': prime_style,
@@ -325,9 +325,9 @@ class ViewAdminOperations(Handler):
 
         _items_per_page = 25
         _event_type_ids = (LetsencryptOperationsEventType.nginx_cache_expire, LetsencryptOperationsEventType.nginx_cache_flush)
-        items_count = lib_db.get__LetsencryptOperationsEvent__count(DBSession, event_type_ids=_event_type_ids)
+        items_count = lib_db.get__LetsencryptOperationsEvent__count(self.request.dbsession, event_type_ids=_event_type_ids)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/operations/nginx/log/{0}', items_per_page=_items_per_page)
-        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(DBSession, event_type_ids=_event_type_ids,
+        items_paged = lib_db.get__LetsencryptOperationsEvent__paginated(self.request.dbsession, event_type_ids=_event_type_ids,
                                                                         limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptOperationsEvents__count': items_count,
@@ -340,7 +340,7 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:nginx:cache_flush.json', renderer='json')
     def admin_nginx_cache_flush(self):
         self._ensure_nginx()
-        success, dbEvent = lib_utils.nginx_flush_cache(self.request, DBSession)
+        success, dbEvent = lib_utils.nginx_flush_cache(self.request, self.request.dbsession)
         if self.request.matched_route.name == 'admin:operations:nginx:cache_flush.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,

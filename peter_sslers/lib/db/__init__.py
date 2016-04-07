@@ -1214,7 +1214,7 @@ def queue_domains__process(
         try:
             domain_names = [d.domain_name for d in domainObjects]
             dbLetsencryptServerCertificate = create__CertificateRequest__FULL(
-                DBSession,
+                dbSession,
                 domain_names,
                 dbAccountKey=dbAccountKey,
                 dbPrivateKey=dbPrivateKey,

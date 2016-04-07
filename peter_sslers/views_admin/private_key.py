@@ -33,9 +33,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_keys', renderer='/admin/private_keys.mako')
     @view_config(route_name='admin:private_keys_paginated', renderer='/admin/private_keys.mako')
     def private_keys(self):
-        items_count = lib_db.get__LetsencryptPrivateKey__count(DBSession)
+        items_count = lib_db.get__LetsencryptPrivateKey__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private-keys/{0}')
-        items_paged = lib_db.get__LetsencryptPrivateKey__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptPrivateKey__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptPrivateKeys_count': items_count,
                 'LetsencryptPrivateKeys': items_paged,
@@ -45,7 +45,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _private_key_focus(self, eagerload_web=False):
-        dbLetsencryptPrivateKey = lib_db.get__LetsencryptPrivateKey__by_id(DBSession, self.request.matchdict['id'], eagerload_web=eagerload_web, )
+        dbLetsencryptPrivateKey = lib_db.get__LetsencryptPrivateKey__by_id(self.request.dbsession, self.request.matchdict['id'], eagerload_web=eagerload_web, )
         if not dbLetsencryptPrivateKey:
             raise HTTPNotFound('the key was not found')
         return dbLetsencryptPrivateKey
@@ -83,10 +83,10 @@ class ViewAdmin(Handler):
     def private_key_focus__certificates(self):
         dbLetsencryptPrivateKey = self._private_key_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__count(
-            DBSession, dbLetsencryptPrivateKey.id)
+            self.request.dbsession, dbLetsencryptPrivateKey.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private-key/%s/certificates/{0}' % dbLetsencryptPrivateKey.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(
-            DBSession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptPrivateKey': dbLetsencryptPrivateKey,
                 'LetsencryptServerCertificates_count': items_count,
@@ -99,10 +99,10 @@ class ViewAdmin(Handler):
     def private_key_focus__certificate_requests(self):
         dbLetsencryptPrivateKey = self._private_key_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__count(
-            DBSession, dbLetsencryptPrivateKey.id)
+            self.request.dbsession, dbLetsencryptPrivateKey.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/private-key/%s/certificate-requests/{0}' % dbLetsencryptPrivateKey.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptPrivateKeyId__paginated(
-            DBSession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptPrivateKey': dbLetsencryptPrivateKey,
                 'LetsencryptCertificateRequests_count': items_count,
@@ -131,7 +131,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formStash.results['private_key_file'].file.read()
-            dbLetsencryptPrivateKey, _is_created = lib_db.getcreate__LetsencryptPrivateKey__by_pem_text(DBSession, private_key_pem)
+            dbLetsencryptPrivateKey, _is_created = lib_db.getcreate__LetsencryptPrivateKey__by_pem_text(self.request.dbsession, private_key_pem)
 
             return HTTPFound('/.well-known/admin/private_key/%s%s' % (dbLetsencryptPrivateKey.id, ('?is_created=1' if _is_created else '')))
 
@@ -188,17 +188,17 @@ class ViewAdmin(Handler):
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
-            DBSession.flush()
+            self.request.dbsession.flush()
 
             # bookkeeping
             operationsEvent = lib_db.create__LetsencryptOperationsEvent(
-                DBSession,
+                self.request.dbsession,
                 event_type,
                 event_payload,
             )
             if marked_comprimised:
                 lib_events.PrivateKey_compromised(
-                    DBSession,
+                    self.request.dbsession,
                     dbLetsencryptPrivateKey,
                     operationsEvent
                 )

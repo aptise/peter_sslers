@@ -36,9 +36,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
     def certificates(self):
-        items_count = lib_db.get__LetsencryptServerCertificate__count(DBSession)
+        items_count = lib_db.get__LetsencryptServerCertificate__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificates/{0}')
-        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, limit=items_per_page, offset=offset, eagerload_web=True)
+        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(self.request.dbsession, limit=items_per_page, offset=offset, eagerload_web=True)
         return {'project': 'peter_sslers',
                 'LetsencryptServerCertificates_count': items_count,
                 'LetsencryptServerCertificates': items_paged,
@@ -50,9 +50,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates:expiring_paginated', renderer='/admin/certificates.mako')
     def certificates_expiring_only(self):
         expiring_days = self.request.registry.settings['expiring_days']
-        items_count = lib_db.get__LetsencryptServerCertificate__count(DBSession, expiring_days=expiring_days)
+        items_count = lib_db.get__LetsencryptServerCertificate__count(self.request.dbsession, expiring_days=expiring_days)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificates/expiring/{0}')
-        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(DBSession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(self.request.dbsession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptServerCertificates_count': items_count,
                 'LetsencryptServerCertificates': items_paged,
@@ -91,20 +91,20 @@ class ViewAdmin(Handler):
 
             private_key_pem = formStash.results['private_key_file'].file.read()
             dbLetsencryptPrivateKey, pkey_is_created = lib_db.getcreate__LetsencryptPrivateKey__by_pem_text(
-                DBSession,
+                self.request.dbsession,
                 private_key_pem
             )
 
             chain_pem = formStash.results['chain_file'].file.read()
             dbLetsencryptCACertificate, cacert_is_created = lib_db.getcreate__LetsencryptCACertificate__by_pem_text(
-                DBSession,
+                self.request.dbsession,
                 chain_pem,
                 'manual upload'
             )
 
             certificate_pem = formStash.results['certificate_file'].file.read()
             dbLetsencryptServerCertificate, cert_is_created = lib_db.getcreate__LetsencryptServerCertificate__by_pem_text(
-                DBSession, certificate_pem,
+                self.request.dbsession, certificate_pem,
                 dbCACertificate=dbLetsencryptCACertificate,
                 dbPrivateKey=dbLetsencryptPrivateKey,
                 dbAccountKey=None,
@@ -144,7 +144,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _certificate_focus(self):
-        dbLetsencryptServerCertificate = lib_db.get__LetsencryptServerCertificate__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptServerCertificate = lib_db.get__LetsencryptServerCertificate__by_id(self.request.dbsession, self.request.matchdict['id'])
         if not dbLetsencryptServerCertificate:
             raise HTTPNotFound('the certificate was not found')
         return dbLetsencryptServerCertificate
@@ -244,7 +244,7 @@ class ViewAdmin(Handler):
         if not self.request.registry.settings['enable_nginx']:
             raise HTTPFound('/.well-known/admin/certificate/%s?error=no_nginx' % dbLetsencryptServerCertificate.id)
         dbDomains = [c2d.domain for c2d in dbLetsencryptServerCertificate.unique_fqdn_set.to_domains]
-        success, dbEvent = lib_utils.nginx_expire_cache(self.request, DBSession, dbDomains=dbDomains)
+        success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.dbsession, dbDomains=dbDomains)
         if self.request.matched_route.name == 'admin:certificate:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
@@ -328,7 +328,7 @@ class ViewAdmin(Handler):
 
             try:
                 newLetsencryptCertificate = lib_db.create__CertificateRequest__FULL(
-                    DBSession,
+                    self.request.dbsession,
                     domain_names=dbLetsencryptServerCertificate.domains_as_list,
                     account_key_pem=account_key_pem,
                     dbAccountKey=dbAccountKey,
@@ -396,22 +396,22 @@ class ViewAdmin(Handler):
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
-            DBSession.flush()
+            self.request.dbsession.flush()
 
             # bookkeeping
             operationsEvent = lib_db.create__LetsencryptOperationsEvent(
-                DBSession,
+                self.request.dbsession,
                 event_type,
                 event_payload,
             )
             if update_recents:
-                event_update = lib_db.operations_update_recents(DBSession)
+                event_update = lib_db.operations_update_recents(self.request.dbsession)
                 event_update.letsencrypt_operations_event_id__child_of = operationsEvent.id
-                DBSession.flush()
+                self.request.dbsession.flush()
 
             if deactivated:
                 # this will handle requeuing
-                lib_events.Certificate_deactivated(DBSession,
+                lib_events.Certificate_deactivated(self.request.dbsession,
                                                    dbLetsencryptServerCertificate,
                                                    operationsEvent=operationsEvent,
                                                    )

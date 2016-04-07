@@ -2,10 +2,6 @@ from pyramid.config import Configurator
 from pyramid.tweens import EXCVIEW
 from sqlalchemy import engine_from_config
 
-from .models import (DBSession,
-                     Base,
-                     )
-
 from .lib import acme
 from .lib import cert_utils
 from .lib.config_utils import *
@@ -21,16 +17,13 @@ def db_cleanup__tween_factory(handler, registry):
             response = handler(request)
             return response
         finally:
-            DBSession.close()
+            request.dbsession.close()
     return db_cleanup__tween
 
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
-    engine = engine_from_config(settings, 'sqlalchemy.')
-    DBSession.configure(bind=engine)
-    Base.metadata.bind = engine
     config = Configurator(settings=settings)
     config.include('pyramid_mako')
     # config.add_static_view('static', 'static', cache_max_age=3600)

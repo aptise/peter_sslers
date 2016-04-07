@@ -5,11 +5,11 @@ import json
 
 # sqlalchemy
 import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import (scoped_session,
-                            sessionmaker,
-                            )
-from zope.sqlalchemy import ZopeTransactionExtension
+# from sqlalchemy.ext.declarative import declarative_base
+#from sqlalchemy.orm import (scoped_session,
+#                            sessionmaker,
+#                            )
+#from zope.sqlalchemy import ZopeTransactionExtension
 
 
 """
@@ -26,8 +26,7 @@ Coding Style:
 # ==============================================================================
 
 
-DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension(keep_session=True),))
-Base = declarative_base()
+from .meta import Base
 
 
 # ==============================================================================

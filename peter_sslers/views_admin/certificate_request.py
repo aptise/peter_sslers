@@ -35,9 +35,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_requests', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
     def certificate_requests(self):
-        items_count = lib_db.get__LetsencryptCertificateRequest__count(DBSession)
+        items_count = lib_db.get__LetsencryptCertificateRequest__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/certificate-requests/{0}')
-        items_paged = lib_db.get__LetsencryptCertificateRequest__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptCertificateRequest__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
 
         return {'project': 'peter_sslers',
                 'LetsencryptCertificateRequests_count': items_count,
@@ -50,7 +50,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:focus', renderer='/admin/certificate_request-focus.mako')
     def certificate_request_focus(self):
         certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         return {'project': 'peter_sslers',
@@ -59,7 +59,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:focus:raw', renderer='string')
     def certificate_request_focus_raw(self):
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         if self.request.matchdict['format'] == 'pem':
@@ -77,7 +77,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:process', renderer='/admin/certificate_request-process.mako')
     def certificate_request_process(self):
         certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
@@ -92,13 +92,13 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:deactivate')
     def certificate_request_deactivate(self):
         certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
             raise HTTPNotFound('Only availble for FLOW')
         dbLetsencryptCertificateRequest.is_active = False
-        DBSession.flush()
+        self.request.dbsession.flush()
         return HTTPFound('/.well-known/admin/certificate-request/%s' % dbLetsencryptCertificateRequest.id)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -106,7 +106,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:process:domain', )
     def certificate_request_process_domain(self):
         certificate_request_id = int(self.request.matchdict['id'])
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession, certificate_request_id)
+        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, certificate_request_id)
         if not dbLetsencryptCertificateRequest:
             raise HTTPNotFound('the certificate_request was not found')
         if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
@@ -156,7 +156,7 @@ class ViewAdmin(Handler):
             if not changed:
                 raise ValueError("No changes!")
 
-            DBSession.flush()
+            self.request.dbsession.flush()
 
             return HTTPFound('/.well-known/admin/certificate-request/%s/process/domain/%s' %
                              (self.db_LetsencryptCertificateRequest.id,
@@ -199,7 +199,7 @@ class ViewAdmin(Handler):
             domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 raise ValueError("missing valid domain names")
-            dbLetsencryptCertificateRequest = lib_db.create__CertificateRequest__by_domainNamesList_FLOW(DBSession, domain_names)
+            dbLetsencryptCertificateRequest = lib_db.create__CertificateRequest__by_domainNamesList_FLOW(self.request.dbsession, domain_names)
 
             return HTTPFound('/.well-known/admin/certificate-request/%s/process' % dbLetsencryptCertificateRequest.id)
 
@@ -247,7 +247,7 @@ class ViewAdmin(Handler):
 
             try:
                 dbLetsencryptCertificate = lib_db.create__CertificateRequest__FULL(
-                    DBSession,
+                    self.request.dbsession,
                     domain_names,
                     account_key_pem=account_key_pem,
                     private_key_pem=private_key_pem,

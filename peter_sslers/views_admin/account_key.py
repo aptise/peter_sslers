@@ -34,9 +34,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_keys', renderer='/admin/account_keys.mako')
     @view_config(route_name='admin:account_keys_paginated', renderer='/admin/account_keys.mako')
     def account_keys(self):
-        items_count = lib_db.get__LetsencryptAccountKey__count(DBSession)
+        items_count = lib_db.get__LetsencryptAccountKey__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account-keys/{0}')
-        items_paged = lib_db.get__LetsencryptAccountKey__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptAccountKey__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptAccountKeys_count': items_count,
                 'LetsencryptAccountKeys': items_paged,
@@ -46,7 +46,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _account_key_focus(self, eagerload_web=False):
-        dbLetsencryptAccountKey = lib_db.get__LetsencryptAccountKey__by_id(DBSession, self.request.matchdict['id'], eagerload_web=eagerload_web, )
+        dbLetsencryptAccountKey = lib_db.get__LetsencryptAccountKey__by_id(self.request.dbsession, self.request.matchdict['id'], eagerload_web=eagerload_web, )
         if not dbLetsencryptAccountKey:
             raise HTTPNotFound('the key was not found')
         return dbLetsencryptAccountKey
@@ -84,7 +84,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_key:focus:authenticate', renderer=None)
     def account_key_focus__authenticate(self):
         dbLetsencryptAccountKey = self._account_key_focus()
-        is_authenticated = lib_db.do__LetsencryptAccountKey_authenticate(DBSession, dbLetsencryptAccountKey)
+        is_authenticated = lib_db.do__LetsencryptAccountKey_authenticate(self.request.dbsession, dbLetsencryptAccountKey)
         return HTTPFound('/.well-known/admin/account-key/%s?is_authenticated=%s' % (dbLetsencryptAccountKey.id, ('1' if is_authenticated else '0')))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -94,10 +94,10 @@ class ViewAdmin(Handler):
     def account_key_focus__certificates(self):
         dbLetsencryptAccountKey = self._account_key_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__count(
-            DBSession, dbLetsencryptAccountKey.id)
+            self.request.dbsession, dbLetsencryptAccountKey.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account-key/%s/certificates/{0}' % dbLetsencryptAccountKey.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptAccountKeyId__paginated(
-            DBSession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptAccountKey': dbLetsencryptAccountKey,
                 'LetsencryptServerCertificates_count': items_count,
@@ -110,10 +110,10 @@ class ViewAdmin(Handler):
     def account_key_focus__certificate_requests(self):
         dbLetsencryptAccountKey = self._account_key_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__count(
-            DBSession, dbLetsencryptAccountKey.id)
+            self.request.dbsession, dbLetsencryptAccountKey.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/account-key/%s/certificate-requests/{0}' % dbLetsencryptAccountKey.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptAccountKeyId__paginated(
-            DBSession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptAccountKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptAccountKey': dbLetsencryptAccountKey,
                 'LetsencryptCertificateRequests_count': items_count,
@@ -142,7 +142,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             account_key_pem = formStash.results['account_key_file'].file.read()
-            dbLetsencryptAccountKey, _is_created = lib_db.getcreate__LetsencryptAccountKey__by_pem_text(DBSession, account_key_pem)
+            dbLetsencryptAccountKey, _is_created = lib_db.getcreate__LetsencryptAccountKey__by_pem_text(self.request.dbsession, account_key_pem)
 
             return HTTPFound('/.well-known/admin/account-key/%s%s' % (dbLetsencryptAccountKey.id, ('?is_created=1' if _is_created else '')))
 
@@ -191,7 +191,7 @@ class ViewAdmin(Handler):
             elif action == 'default':
                 if dbLetsencryptAccountKey.is_default:
                     raise formhandling.FormInvalid('Already default')
-                formerDefaultKey = lib_db.get__LetsencryptAccountKey__default(DBSession)
+                formerDefaultKey = lib_db.get__LetsencryptAccountKey__default(self.request.dbsession)
                 if formerDefaultKey:
                     formerDefaultKey.is_default = False
                     event_payload['account_key_id.former_default'] = formerDefaultKey.id
@@ -199,11 +199,11 @@ class ViewAdmin(Handler):
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
-            DBSession.flush()
+            self.request.dbsession.flush()
 
             # bookkeeping
             operationsEvent = lib_db.create__LetsencryptOperationsEvent(
-                DBSession,
+                self.request.dbsession,
                 event_type,
                 event_payload,
             )

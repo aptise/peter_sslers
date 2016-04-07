@@ -33,9 +33,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificates', renderer='/admin/ca_certificates.mako')
     @view_config(route_name='admin:ca_certificates_paginated', renderer='/admin/ca_certificates.mako')
     def ca_certificates(self):
-        items_count = lib_db.get__LetsencryptCACertificate__count(DBSession)
+        items_count = lib_db.get__LetsencryptCACertificate__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca-certificates/{0}')
-        items_paged = lib_db.get__LetsencryptCACertificate__paginated(DBSession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__LetsencryptCACertificate__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptCACertificates_count': items_count,
                 'LetsencryptCACertificates': items_paged,
@@ -45,7 +45,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _ca_certificate_focus(self):
-        dbLetsencryptCACertificate = lib_db.get__LetsencryptCACertificate__by_id(DBSession, self.request.matchdict['id'])
+        dbLetsencryptCACertificate = lib_db.get__LetsencryptCACertificate__by_id(self.request.dbsession, self.request.matchdict['id'])
         if not dbLetsencryptCACertificate:
             raise HTTPNotFound('the cert was not found')
         return dbLetsencryptCACertificate
@@ -54,9 +54,9 @@ class ViewAdmin(Handler):
     def ca_certificate_focus(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
-            DBSession, dbLetsencryptCACertificate.id)
+            self.request.dbsession, dbLetsencryptCACertificate.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
-            DBSession, dbLetsencryptCACertificate.id, limit=10, offset=0)
+            self.request.dbsession, dbLetsencryptCACertificate.id, limit=10, offset=0)
         return {'project': 'peter_sslers',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
                 'LetsencryptServerCertificates_count': items_count,
@@ -95,10 +95,10 @@ class ViewAdmin(Handler):
     def ca_certificate_focus__signed_certificates(self):
         dbLetsencryptCACertificate = self._ca_certificate_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
-            DBSession, dbLetsencryptCACertificate.id)
+            self.request.dbsession, dbLetsencryptCACertificate.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/ca-certificate/%s/signed_certificates/{0}' % dbLetsencryptCACertificate.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
-            DBSession, dbLetsencryptCACertificate.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptCACertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptCACertificate': dbLetsencryptCACertificate,
                 'LetsencryptServerCertificates_count': items_count,
@@ -135,7 +135,7 @@ class ViewAdmin(Handler):
             chain_pem = formStash.results['chain_file'].file.read()
             chain_file_name = formStash.results['chain_file_name'] or 'manual upload'
             dbLetsencryptCACertificate, cacert_is_created = lib_db.getcreate__LetsencryptCACertificate__by_pem_text(
-                DBSession,
+                self.request.dbsession,
                 chain_pem,
                 chain_file_name
             )
@@ -228,7 +228,7 @@ class ViewAdmin(Handler):
             bundle_data = dict([i for i in bundle_data.items() if i[1]])
 
             dbResults = lib_db.upload__LetsencryptCACertificateBundle__by_pem_text(
-                DBSession,
+                self.request.dbsession,
                 bundle_data
             )
 

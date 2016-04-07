@@ -30,7 +30,7 @@ def _handle_certificate_deactivated(dbSession, serverCertificate, operationsEven
         requeue = True
     if requeue:
         dbQuque = lib.db.create__LetsencryptQueueRenewal(
-            DBSession,
+            dbSession,
             serverCertificate,
             letsencrypt_operations_event_id__child_of = operationsEvent.id,
         )

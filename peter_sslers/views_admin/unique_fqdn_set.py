@@ -32,9 +32,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:unique_fqdn_sets', renderer='/admin/unique_fqdn_sets.mako')
     @view_config(route_name='admin:unique_fqdn_sets_paginated', renderer='/admin/unique_fqdn_sets.mako')
     def unique_fqdn_sets(self):
-        items_count = lib_db.get__LetsencryptUniqueFQDNSet__count(DBSession)
+        items_count = lib_db.get__LetsencryptUniqueFQDNSet__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/unique-fqdn-sets/{0}')
-        items_paged = lib_db.get__LetsencryptUniqueFQDNSet__paginated(DBSession, limit=items_per_page, offset=offset, eagerload_web=True)
+        items_paged = lib_db.get__LetsencryptUniqueFQDNSet__paginated(self.request.dbsession, limit=items_per_page, offset=offset, eagerload_web=True)
         return {'project': 'peter_sslers',
                 'LetsencryptUniqueFQDNSets_count': items_count,
                 'LetsencryptUniqueFQDNSets': items_paged,
@@ -44,7 +44,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _unique_fqdn_set_focus(self):
-        dbItem = lib_db.get__LetsencryptUniqueFQDNSet__by_id(DBSession, self.request.matchdict['id'])
+        dbItem = lib_db.get__LetsencryptUniqueFQDNSet__by_id(self.request.dbsession, self.request.matchdict['id'])
         if not dbItem:
             raise HTTPNotFound('the fqdn set was not found')
         return dbItem
@@ -62,7 +62,7 @@ class ViewAdmin(Handler):
     def unique_fqdn_set_focus__calendar(self):
         rval = {}
         dbLetsencryptUniqueFQDNSet = self._unique_fqdn_set_focus()
-        weekly_certs = DBSession.query(year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
+        weekly_certs = self.request.dbsession.query(year_week(LetsencryptServerCertificate.timestamp_signed).label('week_num'),
                                        sqlalchemy.func.count(LetsencryptServerCertificate.id)
                                        )\
             .filter(LetsencryptServerCertificate.letsencrypt_unique_fqdn_set_id == dbLetsencryptUniqueFQDNSet.id,
@@ -82,10 +82,10 @@ class ViewAdmin(Handler):
     def unique_fqdn_set_focus__certificates(self):
         dbLetsencryptUniqueFQDNSet = self._unique_fqdn_set_focus()
         items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptUniqueFQDNSetId__count(
-            DBSession, dbLetsencryptUniqueFQDNSet.id)
+            self.request.dbsession, dbLetsencryptUniqueFQDNSet.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/unique-fqdn-set/%s/certificates/{0}' % dbLetsencryptUniqueFQDNSet.id)
         items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptUniqueFQDNSetId__paginated(
-            DBSession, dbLetsencryptUniqueFQDNSet.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptUniqueFQDNSet.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptUniqueFQDNSet': dbLetsencryptUniqueFQDNSet,
                 'LetsencryptServerCertificates_count': items_count,
@@ -98,10 +98,10 @@ class ViewAdmin(Handler):
     def unique_fqdn_set_focus__certificate_requests(self):
         dbLetsencryptUniqueFQDNSet = self._unique_fqdn_set_focus()
         items_count = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptUniqueFQDNSetId__count(
-            DBSession, LetsencryptDomain.id)
+            self.request.dbsession, LetsencryptDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='/.well-known/admin/unique-fqdn-set/%s/certificate-requests/{0}' % dbLetsencryptUniqueFQDNSet.id)
         items_paged = lib_db.get__LetsencryptCertificateRequest__by_LetsencryptUniqueFQDNSetId__paginated(
-            DBSession, dbLetsencryptUniqueFQDNSet.id, limit=items_per_page, offset=offset)
+            self.request.dbsession, dbLetsencryptUniqueFQDNSet.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'LetsencryptUniqueFQDNSet': dbLetsencryptUniqueFQDNSet,
                 'LetsencryptCertificateRequests_count': items_count,

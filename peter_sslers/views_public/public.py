@@ -8,7 +8,6 @@ import datetime
 import pdb
 
 # localapp
-from ..models import DBSession
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
 
@@ -26,7 +25,7 @@ class ViewPublic(Handler):
     @view_config(route_name='public_challenge', renderer='string')
     def public_challenge(self):
         challenge = self.request.matchdict['challenge']
-        active_request = lib_db.get__LetsencryptCertificateRequest2LetsencryptDomain__challenged(DBSession,
+        active_request = lib_db.get__LetsencryptCertificateRequest2LetsencryptDomain__challenged(self.request.dbsession,
                                                                                                  challenge,
                                                                                                  self.request.active_domain_name,
                                                                                                  )
@@ -43,9 +42,9 @@ class ViewPublic(Handler):
             if log_verification:
                 active_request.timestamp_verified = datetime.datetime.now()
                 active_request.ip_verified = self.request.environ['REMOTE_ADDR']
-                DBSession.flush()
+                self.request.dbsession.flush()
                 # quick cleanup
-                dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(DBSession,
+                dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession,
                                                                                                    active_request.letsencrypt_certificate_request_id,
                                                                                                    )
                 has_unverified = False
@@ -55,6 +54,6 @@ class ViewPublic(Handler):
                         break
                 if not has_unverified and not dbLetsencryptCertificateRequest.timestamp_finished:
                     dbLetsencryptCertificateRequest.timestamp_finished = datetime.datetime.now()
-                    DBSession.flush()
+                    self.request.dbsession.flush()
             return active_request.challenge_text
         return 'ERROR'

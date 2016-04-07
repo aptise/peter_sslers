@@ -107,7 +107,7 @@ class ViewAdminMain(Handler):
 
             # LetsencryptAccountKey
             if show_only['LetsencryptAccountKey']:
-                _base = DBSession.query(LetsencryptAccountKey)\
+                _base = self.request.dbsession.query(LetsencryptAccountKey)\
                     .filter(LetsencryptAccountKey.key_pem_modulus_md5 == search_modulus)
                 results['LetsencryptAccountKey']['count'] = _base.count()
                 if results['LetsencryptAccountKey']['count']:
@@ -115,7 +115,7 @@ class ViewAdminMain(Handler):
 
             # LetsencryptCACertificate
             if show_only['LetsencryptCACertificate']:
-                _base = DBSession.query(LetsencryptCACertificate)\
+                _base = self.request.dbsession.query(LetsencryptCACertificate)\
                     .filter(LetsencryptCACertificate.cert_pem_modulus_md5 == search_modulus)
                 results['LetsencryptCACertificate']['count'] = _base.count()
                 if results['LetsencryptCACertificate']['count']:
@@ -123,7 +123,7 @@ class ViewAdminMain(Handler):
 
             # LetsencryptCertificateRequest
             if show_only['LetsencryptCertificateRequest']:
-                _base = DBSession.query(LetsencryptCertificateRequest)\
+                _base = self.request.dbsession.query(LetsencryptCertificateRequest)\
                     .filter(LetsencryptCertificateRequest.csr_pem_modulus_md5 == search_modulus)
                 results['LetsencryptCertificateRequest']['count'] = _base.count()
                 if results['LetsencryptCertificateRequest']['count']:
@@ -131,7 +131,7 @@ class ViewAdminMain(Handler):
 
             # LetsencryptPrivateKey
             if show_only['LetsencryptPrivateKey']:
-                _base = DBSession.query(LetsencryptPrivateKey)\
+                _base = self.request.dbsession.query(LetsencryptPrivateKey)\
                     .filter(LetsencryptPrivateKey.key_pem_modulus_md5 == search_modulus)
                 results['LetsencryptPrivateKey']['count'] = _base.count()
                 if results['LetsencryptPrivateKey']['count']:
@@ -139,7 +139,7 @@ class ViewAdminMain(Handler):
 
             # LetsencryptServerCertificate
             if show_only['LetsencryptServerCertificate']:
-                _base = DBSession.query(LetsencryptServerCertificate)\
+                _base = self.request.dbsession.query(LetsencryptServerCertificate)\
                     .filter(LetsencryptServerCertificate.cert_pem_modulus_md5 == search_modulus)
                 results['LetsencryptServerCertificate']['count'] = _base.count()
                 if results['LetsencryptServerCertificate']['count']:
@@ -164,7 +164,7 @@ class ViewAdminMain(Handler):
 
             # LetsencryptCACertificate
             if show_only['LetsencryptCACertificate']:
-                _base = DBSession.query(LetsencryptCACertificate)\
+                _base = self.request.dbsession.query(LetsencryptCACertificate)\
                     .filter(sqlalchemy.or_(LetsencryptCACertificate.cert_subject_hash == search_hash,
                                            LetsencryptCACertificate.cert_issuer_hash == search_hash,
                                            )
@@ -175,7 +175,7 @@ class ViewAdminMain(Handler):
 
             # LetsencryptServerCertificate
             if show_only['LetsencryptServerCertificate']:
-                _base = DBSession.query(LetsencryptServerCertificate)\
+                _base = self.request.dbsession.query(LetsencryptServerCertificate)\
                     .filter(sqlalchemy.or_(LetsencryptServerCertificate.cert_subject_hash == search_hash,
                                            LetsencryptServerCertificate.cert_issuer_hash == search_hash,
                                            )
