@@ -9,7 +9,11 @@ from pyramid import testing
 # - add existing active domain to queue
 # - add existing inactive domain to queue
 # - add non-existing domain to queue
-# - add existing inactive domain to 
+# - turn off existing, active domain
+# - turn off existing, inactive domain
+# - turn off non-existing, inactive domain
+
+
 
 
 

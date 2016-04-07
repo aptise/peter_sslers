@@ -58,6 +58,13 @@
             </ul>
 
             <h2>Operations</h2>
+            <ul>
+                <li><a class="label label-info" href="/.well-known/admin/api">
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    programmatic api
+                    </a></li>
+            </ul>
+            
             ${admin_partials.operations_options(enable_redis=enable_redis,
                                                 enable_nginx=enable_nginx,
                                                 as_list=True,

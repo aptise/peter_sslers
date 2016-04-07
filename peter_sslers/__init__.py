@@ -31,7 +31,8 @@ def main(global_config, **settings):
     # handle this before including the routes
     enable_views_admin = set_bool_setting(config.registry.settings, 'enable_views_admin')
     enable_views_public = set_bool_setting(config.registry.settings, 'enable_views_public')
-    config.include("peter_sslers.routes")
+    config.include(".routes")
+    config.include(".models")
 
     # Parse settings
 
@@ -73,7 +74,7 @@ def main(global_config, **settings):
     # don't scan 'everything', only what is enabled
     # config.scan()
     
-    config.add_tween('peter_sslers.db_cleanup__tween_factory', over=EXCVIEW)
+    config.add_tween('.db_cleanup__tween_factory', over=EXCVIEW)
     
 
     return config.make_wsgi_app()

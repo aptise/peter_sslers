@@ -47,6 +47,11 @@ def includeme(config):
         config.add_route_7('admin:account_key:focus:mark.json', '/.well-known/admin/account-key/{@id}/mark.json')
         config.add_route_7('admin:account_key:new', '/.well-known/admin/account-key/new')
 
+        # AccountKeys are the LetsEncrypt accounts
+        config.add_route_7('admin:api', '/.well-known/admin/api')
+        config.add_route_7('admin:api:domain:enable', '/.well-known/admin/api/domain/enable')
+        config.add_route_7('admin:api:domain:disable', '/.well-known/admin/api/domain/disable')
+
         # CertificateAuthority Certificates
         config.add_route_7('admin:ca_certificates', '/.well-known/admin/ca-certificates')
         config.add_route_7('admin:ca_certificates_paginated', '/.well-known/admin/ca-certificates/{@page}')
