@@ -521,6 +521,7 @@ class FunctionalTests_Operations(AppTest):
 
         focus_item = self.session.query(models.LetsencryptOperationsEvent)\
             .order_by(models.LetsencryptOperationsEvent.id.asc())\
+            .limit(1)\
             .one()
         res = self.testapp.get('/.well-known/admin/operations/log/item/%s' % focus_item.id, status=200)
 
