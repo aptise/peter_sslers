@@ -21,7 +21,7 @@
     <div class="row">
         <div class="col-sm-9">
 
-            % if LetsencryptOperationsEvents:
+            % if SslOperationsEvents:
                 ${admin_partials.nav_pagination(pager)}
                 <%
                     event_id = None
@@ -38,7 +38,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        % for event in LetsencryptOperationsEvents:
+                        % for event in SslOperationsEvents:
                             <tr class="${'success' if event_id == str(event.id) else ''}">
                                 <td><span class="label label-default">${event.id}</span></td>
                                 <td><timestamp>${event.timestamp_operation}</timestamp></td>

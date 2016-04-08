@@ -22,27 +22,27 @@
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>id</th>
-                    <td><span class="label label-default">${LetsencryptOperationsEvent.id}</span></td>
+                    <td><span class="label label-default">${SslOperationsEvent.id}</span></td>
                 </tr>
                 <tr>
                     <th>event type</th>
-                    <td><span class="label label-default">${LetsencryptOperationsEvent.event_type_text}</span></td>
+                    <td><span class="label label-default">${SslOperationsEvent.event_type_text}</span></td>
                 </tr>
                 <tr>
                     <th>timestamp</th>
-                    <td><timestamp>${LetsencryptOperationsEvent.timestamp_operation}</timestamp></td>
+                    <td><timestamp>${SslOperationsEvent.timestamp_operation}</timestamp></td>
                 </tr>
                 <tr>
                     <th>child of</th>
                     <td>
-                        % if LetsencryptOperationsEvent.letsencrypt_operations_event_id__child_of:
-                            <span class="label label-default">${LetsencryptOperationsEvent.letsencrypt_operations_event_id__child_of}</span>
+                        % if SslOperationsEvent.ssl_operations_event_id__child_of:
+                            <span class="label label-default">${SslOperationsEvent.ssl_operations_event_id__child_of}</span>
                         % endif
                     </td>
                 </tr>
                 <tr>
                     <th>payload</th>
-                    <td><code type="payload">${LetsencryptOperationsEvent.event_payload_json}</code></td>
+                    <td><code type="payload">${SslOperationsEvent.event_payload_json}</code></td>
                 </tr>
             </table>
         </div>

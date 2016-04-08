@@ -49,10 +49,10 @@
         <tr>
             <th>domain?</th>
             <td>
-                % if QueueDomainItem.letsencrypt_domain_id:
-                    <a class="label label-info" href="${admin_prefix}/domain/${QueueDomainItem.letsencrypt_domain_id}">
+                % if QueueDomainItem.ssl_domain_id:
+                    <a class="label label-info" href="${admin_prefix}/domain/${QueueDomainItem.ssl_domain_id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        ${QueueDomainItem.letsencrypt_domain_id}
+                        ${QueueDomainItem.ssl_domain_id}
                     </a>
                 % endif
             </td>

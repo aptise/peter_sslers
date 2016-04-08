@@ -113,11 +113,11 @@ def nginx_flush_cache(request, dbSession):
                 raise ValueError("could not flush cache: `%s`" % reset_url)
         else:
             raise ValueError("could not flush cache: `%s`" % reset_url)
-    dbEvent = lib.db.create__LetsencryptOperationsEvent(dbSession,
-                                                        models.LetsencryptOperationsEventType.nginx_cache_flush,
-                                                        {'v': 1,
-                                                         }
-                                                        )
+    dbEvent = lib.db.create__SslOperationsEvent(dbSession,
+                                                models.SslOperationsEventType.nginx_cache_flush,
+                                                {'v': 1,
+                                                 }
+                                                )
     return True, dbEvent
 
 
@@ -143,14 +143,14 @@ def nginx_expire_cache(request, dbSession, dbDomains=None):
                 # log the url?
                 domain_ids['failure'].add(domain.id)
 
-    dbEvent = lib.db.create__LetsencryptOperationsEvent(dbSession,
-                                                        models.LetsencryptOperationsEventType.nginx_cache_expire,
-                                                        {'v': 1,
-                                                         'domain_ids': {'success': list(domain_ids['success']),
-                                                                        'failure': list(domain_ids['failure']),
-                                                                        }
-                                                         }
-                                                        )
+    dbEvent = lib.db.create__SslOperationsEvent(dbSession,
+                                                models.SslOperationsEventType.nginx_cache_expire,
+                                                {'v': 1,
+                                                 'domain_ids': {'success': list(domain_ids['success']),
+                                                                'failure': list(domain_ids['failure']),
+                                                                }
+                                                 }
+                                                )
     return True, dbEvent
 
 
@@ -220,9 +220,9 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     r['c2'] = CERT.PEM
     """
     dbServerCertificate = None
-    if dbDomain.letsencrypt_server_certificate_id__latest_multi:
+    if dbDomain.ssl_server_certificate_id__latest_multi:
         dbServerCertificate = dbDomain.latest_certificate_multi
-    elif dbDomain.letsencrypt_server_certificate_id__latest_single:
+    elif dbDomain.ssl_server_certificate_id__latest_single:
         dbServerCertificate = dbDomain.latest_certificate_single
     else:
         raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
@@ -230,8 +230,8 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     # first do the domain
     key_redis = "d:%s" % dbDomain.domain_name
     value_redis = {'c': '%s' % dbServerCertificate.id,
-                   'p': '%s' % dbServerCertificate.letsencrypt_private_key_id__signed_by,
-                   'i': '%s' % dbServerCertificate.letsencrypt_ca_certificate_id__upchain,
+                   'p': '%s' % dbServerCertificate.ssl_private_key_id__signed_by,
+                   'i': '%s' % dbServerCertificate.ssl_ca_certificate_id__upchain,
                    }
     redis_client.hmset(key_redis, value_redis)
 
@@ -267,9 +267,9 @@ def redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts):
     """returns the certificate
     """
     dbServerCertificate = None
-    if dbDomain.letsencrypt_server_certificate_id__latest_multi:
+    if dbDomain.ssl_server_certificate_id__latest_multi:
         dbServerCertificate = dbDomain.latest_certificate_multi
-    elif dbDomain.letsencrypt_server_certificate_id__latest_single:
+    elif dbDomain.ssl_server_certificate_id__latest_single:
         dbServerCertificate = dbDomain.latest_certificate_single
     else:
         raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)

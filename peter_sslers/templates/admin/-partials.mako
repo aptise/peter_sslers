@@ -204,7 +204,7 @@
                     <th>certificate</th>
                 % endif
                 <th>timestamp_entered</th>
-                <th>letsencrypt_operations_event_id__child_of</th>
+                <th>ssl_operations_event_id__child_of</th>
                 <th>timestamp_processed</th>
             </tr>
         </thead>
@@ -216,13 +216,13 @@
                     ${renewal_queue.id}</a>
                 </td>
                 % if show_certificate:
-                    <td><a href="${admin_prefix}/certificate/${renewal_queue.letsencrypt_server_certificate_id}" class="label label-info">
+                    <td><a href="${admin_prefix}/certificate/${renewal_queue.ssl_server_certificate_id}" class="label label-info">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        ${renewal_queue.letsencrypt_server_certificate_id}</a>
+                        ${renewal_queue.ssl_server_certificate_id}</a>
                     </td>
                 % endif
                 <td><timestamp>${renewal_queue.timestamp_entered or ''}</timestamp></td>
-                <td><span class="label label-info">${renewal_queue.letsencrypt_operations_event_id__child_of}</span></td>
+                <td><span class="label label-info">${renewal_queue.ssl_operations_event_id__child_of}</span></td>
                 <td><timestamp>${renewal_queue.timestamp_processed or ''}</timestamp></td>
             </tr>
         % endfor
@@ -231,7 +231,7 @@
 </%def>
 
 
-<%def name="table_LetsencryptCertificateRequest2LetsencryptDomain(lcr2mds, request_inactive=None, active_domain_id=None, perspective=None)">
+<%def name="table_SslCertificateRequest2SslDomain(lcr2mds, request_inactive=None, active_domain_id=None, perspective=None)">
     % if perspective == 'certificate_request':
         <table class="table table-striped table-condensed">
             <thead>
@@ -258,7 +258,7 @@
                                     <span class="label label-success">configured</span>
                                 % else:
                                     <a  class="label label-success"
-                                        href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
+                                        href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process/domain/${to_d.domain.id}"
                                         >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         configured</a>
@@ -268,7 +268,7 @@
                                     <span class="label label-warning">not configured</span>
                                 % else:
                                     <a  class="label label-warning"
-                                        href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.domain.id}"
+                                        href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process/domain/${to_d.domain.id}"
                                         >
                                         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                         configure!</a>
@@ -291,10 +291,10 @@
                 </tr>
             </thead>
             <tbody>
-            % for to_d in LetsencryptCertificateRequest.certificate_request_to_domains:
+            % for to_d in SslCertificateRequest.certificate_request_to_domains:
                 <tr>
                     <td>
-                        % if active_domain_id == to_d.letsencrypt_domain_id:
+                        % if active_domain_id == to_d.ssl_domain_id:
                             <span class="label label-success">active</span>
                         % endif
                     </td>
@@ -305,7 +305,7 @@
                         </span>
                     </td>
                     <td>
-                        % if active_domain_id == to_d.letsencrypt_domain_id:
+                        % if active_domain_id == to_d.ssl_domain_id:
                             % if to_d.is_configured:
                                 <span
                                     class="label label-success">configured</span>
@@ -316,12 +316,12 @@
                         % else:
                             % if to_d.is_configured:
                                 <a
-                                    href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
+                                    href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process/domain/${to_d.ssl_domain_id}"
                                     class="label label-success">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     configured</a>
                             % else:
-                                <a href="${admin_prefix}/certificate-request/${LetsencryptCertificateRequest.id}/process/domain/${to_d.letsencrypt_domain_id}"
+                                <a href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process/domain/${to_d.ssl_domain_id}"
                                     class="label label-warning">
                                     % if request_inactive:
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -358,12 +358,12 @@
         </table>
 
     % else:
-        <!-- table_LetsencryptCertificateRequest2LetsencryptDomain missing perspective -->
+        <!-- table_SslCertificateRequest2SslDomain missing perspective -->
     % endif
 </%def>
 
 
-<%def name="table_LetsencryptUniqueFQDNSets(LetsencryptUniqueFQDNSets)">
+<%def name="table_SslUniqueFQDNSets(SslUniqueFQDNSets)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -373,7 +373,7 @@
             </tr>
         </thead>
         <tbody>
-        % for i in LetsencryptUniqueFQDNSets:
+        % for i in SslUniqueFQDNSets:
             <tr>
                 <td>
                     <a  class="btn btn-xs btn-info"
@@ -395,7 +395,7 @@
 </%def>
 
 
-<%def name="table_LetsencryptOperationsEvents(LetsencryptOperationsEvents, show_event=None)">
+<%def name="table_SslOperationsEvents(SslOperationsEvents, show_event=None)">
     <%
         event_id = None
         if show_event is not None:
@@ -411,7 +411,7 @@
             </tr>
         </thead>
         <tbody>
-            % for event in LetsencryptOperationsEvents:
+            % for event in SslOperationsEvents:
                 <tr class="${'success' if event_id == str(event.id) else ''}">
                     <td>
                         <a  href="${admin_prefix}/operations/log/item/${event.id}"
@@ -422,8 +422,8 @@
                         </a>
                     </td>
                     <td>
-                        % if event.letsencrypt_operations_event_id__child_of:
-                            <span class="label label-default">${event.letsencrypt_operations_event_id__child_of}</span>
+                        % if event.ssl_operations_event_id__child_of:
+                            <span class="label label-default">${event.ssl_operations_event_id__child_of}</span>
                         % endif
                     </td>
                     <td><span class="label label-default">${event.event_type_text}</span></td>

@@ -17,7 +17,7 @@
 
 
 <%block name="content_main">
-    % if LetsencryptPrivateKeys:
+    % if SslPrivateKeys:
         ${admin_partials.nav_pagination(pager)}
         <table class="table table-striped">
             <thead>
@@ -32,7 +32,7 @@
                     <th>count certificates issued</th>
                 </tr>
             </thead>
-            % for key in LetsencryptPrivateKeys:
+            % for key in SslPrivateKeys:
                 <tr>
                     <td><a class="label label-info" href="${admin_prefix}/private-key/${key.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

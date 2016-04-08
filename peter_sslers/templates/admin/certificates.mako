@@ -23,9 +23,9 @@
                 </p>
             % endif
 
-            % if LetsencryptServerCertificates:
+            % if SslServerCertificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_certificates__list(SslServerCertificates, show_domains=True, show_expiring_days=True)}
             % else:
                 <em>
                     No Server Certificates

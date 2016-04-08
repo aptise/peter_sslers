@@ -22,26 +22,26 @@ log.setLevel(logging.INFO)
 def _handle_certificate_deactivated(dbSession, serverCertificate, operationsEvent=None):
     # ok. so let's find out the fqdn...
     requeue = False
-    dbLatestActiveCert = lib.db.get__LetsencryptServerCertificate__by_LetsencryptUniqueFQDNSetId__latest_active(
+    dbLatestActiveCert = lib.db.get__SslServerCertificate__by_SslUniqueFQDNSetId__latest_active(
         dbSession,
-        serverCertificate.letsencrypt_unique_fqdn_set_id,
+        serverCertificate.ssl_unique_fqdn_set_id,
     )
     if not dbLatestActiveCert:
         requeue = True
     if requeue:
-        dbQuque = lib.db.create__LetsencryptQueueRenewal(
+        dbQuque = lib.db.create__SslQueueRenewal(
             dbSession,
             serverCertificate,
-            letsencrypt_operations_event_id__child_of = operationsEvent.id,
+            ssl_operations_event_id__child_of = operationsEvent.id,
         )
         return True
     return False
 
 
 def _handle_certificate_activated(dbSession, serverCertificate, operationsEvent=None):
-    dbActiveQueues = lib.db.get__LetsencryptQueueRenewal__by_LetsencryptUniqueFQDNSetId__active(
+    dbActiveQueues = lib.db.get__SslQueueRenewal__by_SslUniqueFQDNSetId__active(
         dbSession,
-        serverCertificate.letsencrypt_unique_fqdn_set_id,
+        serverCertificate.ssl_unique_fqdn_set_id,
     )
     if dbActiveQueues:
         tnow = datetime.datetime.utcnow()
@@ -77,7 +77,7 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
                             'active': {},
                             }
     revoked_fqdn_ids_2_certs = {}
-    items_count = lib.db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__count(
+    items_count = lib.db.get__SslServerCertificate__by_SslPrivateKeyId__count(
         dbSession,
         privateKey.id
     )
@@ -86,7 +86,7 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
         batches = int(math.ceil(items_count / float(batch_size)))
         for i in range(0, batches):
             offset = i * batch_size
-            items_paginated = lib.db.get__LetsencryptServerCertificate__by_LetsencryptPrivateKeyId__paginated(
+            items_paginated = lib.db.get__SslServerCertificate__by_SslPrivateKeyId__paginated(
                 dbSession,
                 privateKey.id,
                 limit = batch_size,
@@ -94,13 +94,13 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
             )
             for cert in items_paginated:
                 if cert.is_active:
-                    revoked_certificates['active'][cert.id] = cert.letsencrypt_unique_fqdn_set_id
+                    revoked_certificates['active'][cert.id] = cert.ssl_unique_fqdn_set_id
                     cert.is_active = False
-                    if cert.letsencrypt_unique_fqdn_set_id not in revoked_fqdn_ids_2_certs:
-                        revoked_fqdn_ids_2_certs[cert.letsencrypt_unique_fqdn_set_id] = []
-                    revoked_fqdn_ids_2_certs[cert.letsencrypt_unique_fqdn_set_id].append(cert.id)
+                    if cert.ssl_unique_fqdn_set_id not in revoked_fqdn_ids_2_certs:
+                        revoked_fqdn_ids_2_certs[cert.ssl_unique_fqdn_set_id] = []
+                    revoked_fqdn_ids_2_certs[cert.ssl_unique_fqdn_set_id].append(cert.id)
                 else:
-                    revoked_certificates['inactive'][cert.id] = cert.letsencrypt_unique_fqdn_set_id
+                    revoked_certificates['inactive'][cert.id] = cert.ssl_unique_fqdn_set_id
                 cert.is_revoked = True
                 dbSession.flush()
 
@@ -109,18 +109,18 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
     # then, we'll pickup any soon-expiring certs by automatic crons
     # TODO there is a SMALL chance that something could deactivate a cert before we renew
     for (fqdn_id, cert_ids_off) in revoked_fqdn_ids_2_certs.items():
-        latest_cert = lib.db.get__LetsencryptServerCertificate__by_LetsencryptUniqueFQDNSetId__latest_active(
+        latest_cert = lib.db.get__SslServerCertificate__by_SslUniqueFQDNSetId__latest_active(
             dbSession,
             fqdn_id
         )
         if not latest_cert:
             # use the MAX cert as the renewal item
             max_cert_id = max(cert_ids_off)
-            serverCertificate = lib.db.get__LetsencryptServerCertificate__by_id(dbSession, max_cert_id)
-            dbQueue = lib.db.create__LetsencryptQueueRenewal(
+            serverCertificate = lib.db.get__SslServerCertificate__by_id(dbSession, max_cert_id)
+            dbQueue = lib.db.create__SslQueueRenewal(
                 dbSession,
                 serverCertificate,
-                letsencrypt_operations_event_id__child_of = operationsEvent.id
+                ssl_operations_event_id__child_of = operationsEvent.id
             )
         dbSession.flush()
 
@@ -128,7 +128,7 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
     revoked_fqdns_ids = revoked_fqdn_ids_2_certs.keys()
     result = lib.db.queue_renewals__process(
         dbSession,
-        letsencrypt_operations_event_id__child_of = operationsEvent.id,
+        ssl_operations_event_id__child_of = operationsEvent.id,
         fqdns_ids_only = revoked_fqdns_ids,
     )
 

@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/ca-certificates">CA Certificates</a></li>
-        <li><a href="${admin_prefix}/ca-certificate/${LetsencryptCACertificate.id}">Focus [${LetsencryptCACertificate.id}]</a></li>
+        <li><a href="${admin_prefix}/ca-certificate/${SslCaCertificate.id}">Focus [${SslCaCertificate.id}]</a></li>
         <li class="active">CA Certificates</li>
     </ol>
 </%block>
@@ -19,9 +19,9 @@
 
 <%block name="content_main">
 
-    % if LetsencryptServerCertificates:
+    % if SslServerCertificates:
         ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_certificates__list(LetsencryptServerCertificates, show_domains=True)}
+        ${admin_partials.table_certificates__list(SslServerCertificates, show_domains=True)}
     % else:
         No known certificates.
     % endif

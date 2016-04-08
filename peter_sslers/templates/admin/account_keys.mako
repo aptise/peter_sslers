@@ -17,7 +17,7 @@
 
 
 <%block name="content_main">
-    % if LetsencryptAccountKeys:
+    % if SslLetsEncryptAccountKeys:
         ${admin_partials.nav_pagination(pager)}
         <table class="table table-striped">
             <thead>
@@ -32,7 +32,7 @@
                 </tr>
             </thead>
             <tbody>
-            % for key in LetsencryptAccountKeys:
+            % for key in SslLetsEncryptAccountKeys:
                 <tr>
                     <td><a class="label label-info" href="${admin_prefix}/account-key/${key.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

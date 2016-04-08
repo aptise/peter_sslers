@@ -19,9 +19,9 @@
 
 <%block name="content_main">
 
-    % if LetsencryptCertificateRequests:
+    % if SslCertificateRequests:
         ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_certificate_requests__list(LetsencryptCertificateRequests, show_domains=True, show_certificate=True)}
+        ${admin_partials.table_certificate_requests__list(SslCertificateRequests, show_domains=True, show_certificate=True)}
     % else:
         <em>
             No Certificate Requests

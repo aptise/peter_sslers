@@ -9,7 +9,7 @@
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/certificates">Certificates</a></li>
-        <li><a href="${admin_prefix}/certificates/${LetsencryptServerCertificate.id}">Focus [${LetsencryptServerCertificate.id}]</a></li>
+        <li><a href="${admin_prefix}/certificates/${SslServerCertificate.id}">Focus [${SslServerCertificate.id}]</a></li>
         <li class="active">Renew</li>
     </ol>
 </%block>
@@ -26,7 +26,7 @@
         <div class="col-sm-6">
 
             <form method="POST"
-                  action="${admin_prefix}/certificate/${LetsencryptServerCertificate.id}/renew/custom"
+                  action="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/custom"
                   enctype="multipart/form-data"
             >
                 <h3>Custom Renewal</h3>
@@ -37,45 +37,45 @@
                     <tr>
                         <th>renewal of: id</th>
                         <td>
-                            <span class="label label-default">${LetsencryptServerCertificate.id}</span>
+                            <span class="label label-default">${SslServerCertificate.id}</span>
                         </td>
                     </tr>
                     <tr>
                         <th>renewal of: issued</th>
                         <td>
-                            <timestamp>${LetsencryptServerCertificate.timestamp_signed}</timestamp>
+                            <timestamp>${SslServerCertificate.timestamp_signed}</timestamp>
                         </td>
                     </tr>
                     <tr>
                         <th>renewal of: expires</th>
                         <td>
-                            <timestamp>${LetsencryptServerCertificate.timestamp_expires}</timestamp>
+                            <timestamp>${SslServerCertificate.timestamp_expires}</timestamp>
                         </td>
                     </tr>
                     <tr>
                         <th>renewal of: expires</th>
                         <td>
-                            <timestamp>${LetsencryptServerCertificate.timestamp_expires}</timestamp>
+                            <timestamp>${SslServerCertificate.timestamp_expires}</timestamp>
                         </td>
                     </tr>
                     <tr>
                         <th>domains</th>
-                        <td>${LetsencryptServerCertificate.domains_as_string}</td>
+                        <td>${SslServerCertificate.domains_as_string}</td>
                     </tr>
                     <tr>
                         <th>Lets Encrypt Account</th>
                         <td>
-                            % if LetsencryptServerCertificate.letsencrypt_account_key_id:
+                            % if SslServerCertificate.ssl_letsencrypt_account_key_id:
                                 <div class="radio">
                                     <label>
                                         <input type="radio" name="account_key_option" id="account_key_option-existing" value="existing" checked="checked">
                                         Use existing Account Key
                                     </label>
                                     <a  class="btn btn-xs btn-info"
-                                        href="${admin_prefix}/account-keys/${LetsencryptServerCertificate.letsencrypt_account_key_id}"
+                                        href="${admin_prefix}/account-keys/${SslServerCertificate.ssl_letsencrypt_account_key_id}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ${LetsencryptServerCertificate.letsencrypt_account_key_id}
+                                        ${SslServerCertificate.ssl_letsencrypt_account_key_id}
                                     </a>
                                 </div>
                                 <div class="radio">

@@ -33,46 +33,46 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificates', renderer='/admin/ca_certificates.mako')
     @view_config(route_name='admin:ca_certificates_paginated', renderer='/admin/ca_certificates.mako')
     def ca_certificates(self):
-        items_count = lib_db.get__LetsencryptCACertificate__count(self.request.dbsession)
+        items_count = lib_db.get__SslCaCertificate__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificates/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__LetsencryptCACertificate__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslCaCertificate__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'LetsencryptCACertificates_count': items_count,
-                'LetsencryptCACertificates': items_paged,
+                'SslCaCertificates_count': items_count,
+                'SslCaCertificates': items_paged,
                 'pager': pager,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _ca_certificate_focus(self):
-        dbLetsencryptCACertificate = lib_db.get__LetsencryptCACertificate__by_id(self.request.dbsession, self.request.matchdict['id'])
-        if not dbLetsencryptCACertificate:
+        dbSslCaCertificate = lib_db.get__SslCaCertificate__by_id(self.request.dbsession, self.request.matchdict['id'])
+        if not dbSslCaCertificate:
             raise HTTPNotFound('the cert was not found')
-        return dbLetsencryptCACertificate
+        return dbSslCaCertificate
 
     @view_config(route_name='admin:ca_certificate:focus', renderer='/admin/ca_certificate-focus.mako')
     def ca_certificate_focus(self):
-        dbLetsencryptCACertificate = self._ca_certificate_focus()
-        items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
-            self.request.dbsession, dbLetsencryptCACertificate.id)
-        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
-            self.request.dbsession, dbLetsencryptCACertificate.id, limit=10, offset=0)
+        dbSslCaCertificate = self._ca_certificate_focus()
+        items_count = lib_db.get__SslServerCertificate__by_SslCaCertificateId__count(
+            self.request.dbsession, dbSslCaCertificate.id)
+        items_paged = lib_db.get__SslServerCertificate__by_SslCaCertificateId__paginated(
+            self.request.dbsession, dbSslCaCertificate.id, limit=10, offset=0)
         return {'project': 'peter_sslers',
-                'LetsencryptCACertificate': dbLetsencryptCACertificate,
-                'LetsencryptServerCertificates_count': items_count,
-                'LetsencryptServerCertificates': items_paged,
+                'SslCaCertificate': dbSslCaCertificate,
+                'SslServerCertificates_count': items_count,
+                'SslServerCertificates': items_paged,
                 }
 
     @view_config(route_name='admin:ca_certificate:focus:raw', renderer='string')
     def ca_certificate_focus_raw(self):
-        dbLetsencryptCACertificate = self._ca_certificate_focus()
+        dbSslCaCertificate = self._ca_certificate_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
-            return dbLetsencryptCACertificate.cert_pem
+            return dbSslCaCertificate.cert_pem
         elif self.request.matchdict['format'] == 'pem.txt':
-            return dbLetsencryptCACertificate.cert_pem
+            return dbSslCaCertificate.cert_pem
         elif self.request.matchdict['format'] in ('cer', 'crt', 'der'):
-            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbLetsencryptCACertificate.cert_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbSslCaCertificate.cert_pem)
             response = Response()
             if self.request.matchdict['format'] in ('crt', 'der'):
                 response.content_type = 'application/x-x509-ca-cert'
@@ -84,8 +84,8 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:ca_certificate:focus:parse.json', renderer='json')
     def ca_certificate_focus_parse_json(self):
-        dbLetsencryptCACertificate = self._ca_certificate_focus()
-        return {"%s" % dbLetsencryptCACertificate.id: lib_cert_utils.parse_cert(cert_pem=dbLetsencryptCACertificate.cert_pem),
+        dbSslCaCertificate = self._ca_certificate_focus()
+        return {"%s" % dbSslCaCertificate.id: lib_cert_utils.parse_cert(cert_pem=dbSslCaCertificate.cert_pem),
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -93,16 +93,16 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates_paginated', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     def ca_certificate_focus__signed_certificates(self):
-        dbLetsencryptCACertificate = self._ca_certificate_focus()
-        items_count = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__count(
-            self.request.dbsession, dbLetsencryptCACertificate.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificate/%s/signed_certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCACertificate.id))
-        items_paged = lib_db.get__LetsencryptServerCertificate__by_LetsencryptCACertificateId__paginated(
-            self.request.dbsession, dbLetsencryptCACertificate.id, limit=items_per_page, offset=offset)
+        dbSslCaCertificate = self._ca_certificate_focus()
+        items_count = lib_db.get__SslServerCertificate__by_SslCaCertificateId__count(
+            self.request.dbsession, dbSslCaCertificate.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificate/%s/signed_certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbSslCaCertificate.id))
+        items_paged = lib_db.get__SslServerCertificate__by_SslCaCertificateId__paginated(
+            self.request.dbsession, dbSslCaCertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'LetsencryptCACertificate': dbLetsencryptCACertificate,
-                'LetsencryptServerCertificates_count': items_count,
-                'LetsencryptServerCertificates': items_paged,
+                'SslCaCertificate': dbSslCaCertificate,
+                'SslServerCertificates_count': items_count,
+                'SslServerCertificates': items_paged,
                 'pager': pager,
                 }
 
@@ -134,7 +134,7 @@ class ViewAdmin(Handler):
 
             chain_pem = formStash.results['chain_file'].file.read()
             chain_file_name = formStash.results['chain_file_name'] or 'manual upload'
-            dbLetsencryptCACertificate, cacert_is_created = lib_db.getcreate__LetsencryptCACertificate__by_pem_text(
+            dbSslCaCertificate, cacert_is_created = lib_db.getcreate__SslCaCertificate__by_pem_text(
                 self.request.dbsession,
                 chain_pem,
                 chain_file_name
@@ -143,10 +143,10 @@ class ViewAdmin(Handler):
             if self.request.matched_route.name == 'admin:ca_certificate:upload.json':
                 return {'result': 'success',
                         'ca_certificate': {'created': cacert_is_created,
-                                           'id': dbLetsencryptCACertificate.id,
+                                           'id': dbSslCaCertificate.id,
                                            },
                         }
-            return HTTPFound('%s/ca-certificate/%s?is_created=%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCACertificate.id, (1 if cacert_is_created else 0)))
+            return HTTPFound('%s/ca-certificate/%s?is_created=%s' % (self.request.registry.settings['admin_prefix'], dbSslCaCertificate.id, (1 if cacert_is_created else 0)))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
@@ -227,7 +227,7 @@ class ViewAdmin(Handler):
 
             bundle_data = dict([i for i in bundle_data.items() if i[1]])
 
-            dbResults = lib_db.upload__LetsencryptCACertificateBundle__by_pem_text(
+            dbResults = lib_db.upload__SslCaCertificateBundle__by_pem_text(
                 self.request.dbsession,
                 bundle_data
             )

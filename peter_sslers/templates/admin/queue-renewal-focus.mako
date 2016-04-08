@@ -30,20 +30,20 @@
             <th>certificate_id</th>
             <td>
                 <a class="label label-info"
-                    href="${admin_prefix}/certificate/${RenewalQueueItem.letsencrypt_server_certificate_id}"
+                    href="${admin_prefix}/certificate/${RenewalQueueItem.ssl_server_certificate_id}"
                 >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${RenewalQueueItem.letsencrypt_server_certificate_id}</a>
+                    ${RenewalQueueItem.ssl_server_certificate_id}</a>
             </td>
         </tr>
         <tr>
-            <th>letsencrypt_unique_fqdn_set_id</th>
+            <th>ssl_unique_fqdn_set_id</th>
             <td>
                 <a class="label label-info"
-                    href="${admin_prefix}/unique-fqdn-set/${RenewalQueueItem.letsencrypt_unique_fqdn_set_id}"
+                    href="${admin_prefix}/unique-fqdn-set/${RenewalQueueItem.ssl_unique_fqdn_set_id}"
                 >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${RenewalQueueItem.letsencrypt_unique_fqdn_set_id}</a>
+                    ${RenewalQueueItem.ssl_unique_fqdn_set_id}</a>
             </td>
         </tr>
         <tr>

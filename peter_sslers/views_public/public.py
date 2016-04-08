@@ -25,10 +25,10 @@ class ViewPublic(Handler):
     @view_config(route_name='public_challenge', renderer='string')
     def public_challenge(self):
         challenge = self.request.matchdict['challenge']
-        active_request = lib_db.get__LetsencryptCertificateRequest2LetsencryptDomain__challenged(self.request.dbsession,
-                                                                                                 challenge,
-                                                                                                 self.request.active_domain_name,
-                                                                                                 )
+        active_request = lib_db.get__SslCertificateRequest2SslDomain__challenged(self.request.dbsession,
+                                                                                 challenge,
+                                                                                 self.request.active_domain_name,
+                                                                                 )
         if False:
             print "----------------------"
             print self.request.active_domain_name
@@ -44,16 +44,16 @@ class ViewPublic(Handler):
                 active_request.ip_verified = self.request.environ['REMOTE_ADDR']
                 self.request.dbsession.flush()
                 # quick cleanup
-                dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession,
-                                                                                                   active_request.letsencrypt_certificate_request_id,
-                                                                                                   )
+                dbSslCertificateRequest = lib_db.get__SslCertificateRequest__by_id(self.request.dbsession,
+                                                                                   active_request.ssl_certificate_request_id,
+                                                                                   )
                 has_unverified = False
-                for d in dbLetsencryptCertificateRequest.certificate_request_to_domains:
+                for d in dbSslCertificateRequest.certificate_request_to_domains:
                     if not d.timestamp_verified:
                         has_unverified = True
                         break
-                if not has_unverified and not dbLetsencryptCertificateRequest.timestamp_finished:
-                    dbLetsencryptCertificateRequest.timestamp_finished = datetime.datetime.now()
+                if not has_unverified and not dbSslCertificateRequest.timestamp_finished:
+                    dbSslCertificateRequest.timestamp_finished = datetime.datetime.now()
                     self.request.dbsession.flush()
             return active_request.challenge_text
         return 'ERROR'

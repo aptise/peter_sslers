@@ -25,7 +25,7 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${LetsencryptUniqueFQDNSet.id}
+                                ${SslUniqueFQDNSet.id}
                             </span>
                         </td>
                     </tr>
@@ -33,7 +33,7 @@
                         <th>first seen</th>
                         <td>
                             <timestamp>
-                                ${LetsencryptUniqueFQDNSet.timestamp_first_seen}
+                                ${SslUniqueFQDNSet.timestamp_first_seen}
                             </timestamp>
                         </td>
                     </tr>
@@ -41,7 +41,7 @@
                         <th>domain_ids_string</th>
                         <td>
                             <code>
-                                ${LetsencryptUniqueFQDNSet.domain_ids_string}
+                                ${SslUniqueFQDNSet.domain_ids_string}
                             </code>
                         </td>
                     </tr>
@@ -49,7 +49,7 @@
                         <th>domains</th>
                         <td>
                             <table class="table table-striped table-condensed">
-                                % for to_domain in LetsencryptUniqueFQDNSet.to_domains:
+                                % for to_domain in SslUniqueFQDNSet.to_domains:
                                     <tr>
                                         <td>
                                             <a  class="btn btn-xs btn-info"
@@ -74,8 +74,8 @@
                         <td>Latest Certificates</td>
                         <td>
                 <%
-                    latest_certificate = LetsencryptUniqueFQDNSet.latest_certificate
-                    latest_active_certificate = LetsencryptUniqueFQDNSet.latest_active_certificate
+                    latest_certificate = SslUniqueFQDNSet.latest_certificate
+                    latest_active_certificate = SslUniqueFQDNSet.latest_active_certificate
                 %>
                 <table class="table table-striped table-condensed">
                     <thead>
@@ -129,25 +129,25 @@
                     <tr>
                         <th>certificates history</th>
                         <td>
-                            ${admin_partials.table_certificates__list(LetsencryptUniqueFQDNSet.signed_certificates_5, show_domains=True, show_expiring_days=True)}
-                            % if LetsencryptUniqueFQDNSet.signed_certificates_5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificates" % (admin_prefix, LetsencryptUniqueFQDNSet.id))}
+                            ${admin_partials.table_certificates__list(SslUniqueFQDNSet.signed_certificates_5, show_domains=True, show_expiring_days=True)}
+                            % if SslUniqueFQDNSet.signed_certificates_5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificates" % (admin_prefix, SslUniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>certificate requests</th>
                         <td>
-                            ${admin_partials.table_certificate_requests__list(LetsencryptUniqueFQDNSet.certificate_requests_5)}
-                            % if LetsencryptUniqueFQDNSet.certificate_requests_5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-requests" % (admin_prefix, LetsencryptUniqueFQDNSet.id))}
+                            ${admin_partials.table_certificate_requests__list(SslUniqueFQDNSet.certificate_requests_5)}
+                            % if SslUniqueFQDNSet.certificate_requests_5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-requests" % (admin_prefix, SslUniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>renewal queue</th>
                         <td>
-                            ${admin_partials.table_renewal_queue__list(LetsencryptUniqueFQDNSet.renewal_queue, show_certificate=True)}
+                            ${admin_partials.table_renewal_queue__list(SslUniqueFQDNSet.renewal_queue, show_certificate=True)}
                         </td>
                     </tr>
                 </tbody>
@@ -155,7 +155,7 @@
         </div>
         <div class="col-sm-3">
             <a  class="btn btn-info"
-                href="${admin_prefix}/unique-fqdn-set/${LetsencryptUniqueFQDNSet.id}/calendar"
+                href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}/calendar"
             >
                 Calendar
             </a>

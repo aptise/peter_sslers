@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/account-keys">Account Keys</a></li>
-        <li><a href="${admin_prefix}/account-key/${LetsencryptAccountKey.id}">Focus [${LetsencryptAccountKey.id}]</a></li>
+        <li><a href="${admin_prefix}/account-key/${SslLetsEncryptAccountKey.id}">Focus [${SslLetsEncryptAccountKey.id}]</a></li>
         <li class="active">Certificate Requests</li>
     </ol>
 </%block>
@@ -19,9 +19,9 @@
 
 <%block name="content_main">
 
-    % if LetsencryptCertificateRequests:
+    % if SslCertificateRequests:
         ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_certificate_requests__list(LetsencryptCertificateRequests, show_domains=True)}
+        ${admin_partials.table_certificate_requests__list(SslCertificateRequests, show_domains=True)}
     % else:
         No known certificate requests.
     % endif

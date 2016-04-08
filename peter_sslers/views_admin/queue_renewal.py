@@ -31,12 +31,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_renewals', renderer='/admin/queue-renewals.mako')
     @view_config(route_name='admin:queue_renewals_paginated', renderer='/admin/queue-renewals.mako')
     def rewnewal_queue(self):
-        items_count = lib_db.get__LetsencryptQueueRenewal__count(self.request.dbsession, show_all=False)
+        items_count = lib_db.get__SslQueueRenewal__count(self.request.dbsession, show_all=False)
         (pager, offset) = self._paginate(items_count, url_template='%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__LetsencryptQueueRenewal__paginated(self.request.dbsession, show_all=False, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslQueueRenewal__paginated(self.request.dbsession, show_all=False, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'LetsencryptQueueRenewals_count': items_count,
-                'LetsencryptQueueRenewals': items_paged,
+                'SslQueueRenewals_count': items_count,
+                'SslQueueRenewals': items_paged,
                 'sidenav_option': 'unprocessed',
                 'pager': pager,
                 }
@@ -44,12 +44,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_renewals:all', renderer='/admin/queue-renewals.mako')
     @view_config(route_name='admin:queue_renewals:all_paginated', renderer='/admin/queue-renewals.mako')
     def queue_renewal_all(self):
-        items_count = lib_db.get__LetsencryptQueueRenewal__count(self.request.dbsession, show_all=True)
+        items_count = lib_db.get__SslQueueRenewal__count(self.request.dbsession, show_all=True)
         (pager, offset) = self._paginate(items_count, url_template='%s/queue-renewals/all/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__LetsencryptQueueRenewal__paginated(self.request.dbsession, show_all=True, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslQueueRenewal__paginated(self.request.dbsession, show_all=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'LetsencryptQueueRenewals_count': items_count,
-                'LetsencryptQueueRenewals': items_paged,
+                'SslQueueRenewals_count': items_count,
+                'SslQueueRenewals': items_paged,
                 'sidenav_option': 'all',
                 'pager': pager,
                 }
@@ -57,7 +57,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _queue_renewal_focus(self):
-        item = lib_db.get__LetsencryptQueueRenewal__by_id(self.request.dbsession, self.request.matchdict['id'])
+        item = lib_db.get__SslQueueRenewal__by_id(self.request.dbsession, self.request.matchdict['id'])
         if not item:
             raise HTTPNotFound('the item was not found')
         return item

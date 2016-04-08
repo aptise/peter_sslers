@@ -13,7 +13,7 @@ import unittest
 
 # local
 from . import main
-from . import models 
+from . import models
 import sqlalchemy
 
 
@@ -73,9 +73,9 @@ class FunctionalTests_AccountKeys(AppTest):
 
     def _get_item(self):
         # grab a Key
-        focus_item = self.session.query(models.LetsencryptAccountKey)\
-            .filter(models.LetsencryptAccountKey.is_active.op('IS')(True))\
-            .order_by(models.LetsencryptAccountKey.id.asc())\
+        focus_item = self.session.query(models.SslLetsEncryptAccountKey)\
+            .filter(models.SslLetsEncryptAccountKey.is_active.op('IS')(True))\
+            .order_by(models.SslLetsEncryptAccountKey.id.asc())\
             .first()
         return focus_item
 
@@ -102,9 +102,6 @@ class FunctionalTests_AccountKeys(AppTest):
         res = self.testapp.get('/.well-known/admin/account-key/%s/config.json' % focus_id, status=200)
 
     def test_manipulate(self):
-        #res = self.testapp.get('/.well-known/admin/account-key/1/config.json', status=200)
-        #key_data = json.loads(res.text)
-        #if not key_data['is_default']:
         focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
@@ -176,9 +173,9 @@ class FunctionalTests_Certificate(AppTest):
 
     def _get_item(self):
         # grab a certificate
-        focus_item = self.session.query(models.LetsencryptServerCertificate)\
-            .filter(models.LetsencryptServerCertificate.is_active.op('IS')(True))\
-            .order_by(models.LetsencryptServerCertificate.id.asc())\
+        focus_item = self.session.query(models.SslServerCertificate)\
+            .filter(models.SslServerCertificate.is_active.op('IS')(True))\
+            .order_by(models.SslServerCertificate.id.asc())\
             .first()
         return focus_item
 
@@ -215,7 +212,6 @@ class FunctionalTests_Certificate(AppTest):
         res = self.testapp.get('/.well-known/admin/certificate/%s/cert.crt' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate/%s/cert.pem' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate/%s/cert.pem.txt' % focus_id, status=200)
-
 
     def test_manipulate(self):
         print "test_manipulate"
@@ -254,9 +250,9 @@ class FunctionalTests_CertificateRequest(AppTest):
 
     def _get_item(self):
         # grab a certificate
-        focus_item = self.session.query(models.LetsencryptCertificateRequest)\
-            .filter(models.LetsencryptCertificateRequest.is_active.op('IS')(True))\
-            .order_by(models.LetsencryptCertificateRequest.id.asc())\
+        focus_item = self.session.query(models.SslCertificateRequest)\
+            .filter(models.SslCertificateRequest.is_active.op('IS')(True))\
+            .order_by(models.SslCertificateRequest.id.asc())\
             .first()
         return focus_item
 
@@ -290,9 +286,9 @@ class FunctionalTests_Domain(AppTest):
 
     def _get_domain(self):
         # grab a certificate
-        focus_item = self.session.query(models.LetsencryptDomain)\
-            .filter(models.LetsencryptDomain.is_active.op('IS')(True))\
-            .order_by(models.LetsencryptDomain.id.asc())\
+        focus_item = self.session.query(models.SslDomain)\
+            .filter(models.SslDomain.is_active.op('IS')(True))\
+            .order_by(models.SslDomain.id.asc())\
             .first()
         return focus_item
 
@@ -324,7 +320,6 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get('/.well-known/admin/domain/%s/unique-fqdn-sets' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/domain/%s/unique-fqdn-sets/1' % focus_id, status=200)
 
-
     def test_manipulate(self):
         focus_item = self._get_domain()
         assert focus_item is not None
@@ -339,7 +334,6 @@ class FunctionalTests_Domain(AppTest):
             res = self.testapp.get('/.well-known/admin/domain/%s/mark' % focus_id, {'action': 'active'}, status=302)
             res = self.testapp.get('/.well-known/admin/domain/%s/mark.json' % focus_id, {'action': 'inactive'}, status=302)
 
-            
     def tests_todo(self):
         # TODO
         return
@@ -352,9 +346,9 @@ class FunctionalTests_PrivateKeys(AppTest):
 
     def _get_item(self):
         # grab a Key
-        focus_item = self.session.query(models.LetsencryptPrivateKey)\
-            .filter(models.LetsencryptPrivateKey.is_active.op('IS')(True))\
-            .order_by(models.LetsencryptPrivateKey.id.asc())\
+        focus_item = self.session.query(models.SslPrivateKey)\
+            .filter(models.SslPrivateKey.is_active.op('IS')(True))\
+            .order_by(models.SslPrivateKey.id.asc())\
             .first()
         return focus_item
 
@@ -402,16 +396,15 @@ class FunctionalTests_PrivateKeys(AppTest):
         return
         # test new?
         res = self.testapp.get('/.well-known/admin/private-key/1/new', status=200)
-        
-        
-        
+
+
 class FunctionalTests_UniqueFQDNSets(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_UniqueFQDNSets"""
 
     def _get_item(self):
         # grab a Key
-        focus_item = self.session.query(models.LetsencryptUniqueFQDNSet)\
-            .order_by(models.LetsencryptUniqueFQDNSet.id.asc())\
+        focus_item = self.session.query(models.SslUniqueFQDNSet)\
+            .order_by(models.SslUniqueFQDNSet.id.asc())\
             .first()
         return focus_item
 
@@ -439,8 +432,8 @@ class FunctionalTests_QueueDomains(AppTest):
 
     def _get_item(self):
         # grab an item
-        focus_item = self.session.query(models.LetsencryptQueueDomain)\
-            .order_by(models.LetsencryptQueueDomain.id.asc())\
+        focus_item = self.session.query(models.SslQueueDomain)\
+            .order_by(models.SslQueueDomain.id.asc())\
             .first()
         return focus_item
 
@@ -474,8 +467,8 @@ class FunctionalTests_QueueRenewal(AppTest):
 
     def _get_item(self):
         # grab an item
-        focus_item = self.session.query(models.LetsencryptQueueRenewal)\
-            .order_by(models.LetsencryptQueueRenewal.id.asc())\
+        focus_item = self.session.query(models.SslQueueRenewal)\
+            .order_by(models.SslQueueRenewal.id.asc())\
             .first()
         return focus_item
 
@@ -509,7 +502,7 @@ class FunctionalTests_Operations(AppTest):
         # this should redirect
         res = self.testapp.get('/.well-known/admin/operations', status=302)
         assert res.location == 'http://localhost/.well-known/admin/operations/log'
-        
+
         res = self.testapp.get('/.well-known/admin/operations/ca-certificate-probes', status=200)
         res = self.testapp.get('/.well-known/admin/operations/ca-certificate-probes/1', status=200)
         res = self.testapp.get('/.well-known/admin/operations/log', status=200)
@@ -519,8 +512,8 @@ class FunctionalTests_Operations(AppTest):
         res = self.testapp.get('/.well-known/admin/operations/redis', status=200)
         res = self.testapp.get('/.well-known/admin/operations/redis/1', status=200)
 
-        focus_item = self.session.query(models.LetsencryptOperationsEvent)\
-            .order_by(models.LetsencryptOperationsEvent.id.asc())\
+        focus_item = self.session.query(models.SslOperationsEvent)\
+            .order_by(models.SslOperationsEvent.id.asc())\
             .limit(1)\
             .one()
         res = self.testapp.get('/.well-known/admin/operations/log/item/%s' % focus_item.id, status=200)

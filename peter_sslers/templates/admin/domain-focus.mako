@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
-        <li class="active">Focus [${LetsencryptDomain.id}]</li>
+        <li class="active">Focus [${SslDomain.id}]</li>
     </ol>
 </%block>
 
@@ -25,29 +25,29 @@
             <th>id</th>
             <td>
                 <span class="label label-default">
-                    ${LetsencryptDomain.id}
+                    ${SslDomain.id}
                 </span>
             </td>
         </tr>
         <tr>
             <th>domain_name</th>
-            <td><code>${LetsencryptDomain.domain_name}</code></td>
+            <td><code>${SslDomain.domain_name}</code></td>
         </tr>
         <tr>
             <th>timestamp_first_seen</th>
-            <td><timestamp>${LetsencryptDomain.timestamp_first_seen}</timestamp></td>
+            <td><timestamp>${SslDomain.timestamp_first_seen}</timestamp></td>
         </tr>
         <tr>
             <th>is_active</th>
             <td>
-                <span class="label label-${'success' if LetsencryptDomain.is_active else 'warning'}">
-                    ${'Active' if LetsencryptDomain.is_active else 'inactive'}
+                <span class="label label-${'success' if SslDomain.is_active else 'warning'}">
+                    ${'Active' if SslDomain.is_active else 'inactive'}
                 </span>
 
-                % if LetsencryptDomain.is_active:
+                % if SslDomain.is_active:
                     &nbsp;
                     <a  class="label label-warning"
-                        href="${admin_prefix}/domain/${LetsencryptDomain.id}/mark?action=inactive"
+                        href="${admin_prefix}/domain/${SslDomain.id}/mark?action=inactive"
                     >
                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         inactive
@@ -55,7 +55,7 @@
                 % else:
                     &nbsp;
                     <a  class="label label-success"
-                        href="${admin_prefix}/domain/${LetsencryptDomain.id}/mark?action=active"
+                        href="${admin_prefix}/domain/${SslDomain.id}/mark?action=active"
                     >
                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                         active
@@ -68,7 +68,7 @@
             <th>json_config</th>
             <td>
                 <a  class="btn btn-xs btn-info"
-                    href="${admin_prefix}/domain/${LetsencryptDomain.id}/config.json"
+                    href="${admin_prefix}/domain/${SslDomain.id}/config.json"
                 >
                     <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                     config.json</a>
@@ -79,12 +79,12 @@
                 <th>nginx cache</th>
                 <td>
                     <a  class="btn btn-xs btn-primary"
-                        href="${admin_prefix}/domain/${LetsencryptDomain.id}/nginx-cache-expire"
+                        href="${admin_prefix}/domain/${SslDomain.id}/nginx-cache-expire"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                         nginx-cache-expire</a>
                     <a  class="btn btn-xs btn-primary"
-                        href="${admin_prefix}/domain/${LetsencryptDomain.id}/nginx-cache-expire.json"
+                        href="${admin_prefix}/domain/${SslDomain.id}/nginx-cache-expire.json"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                         nginx-cache-expire.json</a>
@@ -98,16 +98,16 @@
                     <tr>
                         <th>latest_single</th>
                         <td>
-                            % if LetsencryptDomain.letsencrypt_server_certificate_id__latest_single:
-                                ${admin_partials.table_certificates__list([LetsencryptDomain.latest_certificate_single,], show_domains=True, show_expiring_days=True)}
+                            % if SslDomain.ssl_server_certificate_id__latest_single:
+                                ${admin_partials.table_certificates__list([SslDomain.latest_certificate_single,], show_domains=True, show_expiring_days=True)}
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>latest_multi</th>
                         <td>
-                            % if LetsencryptDomain.letsencrypt_server_certificate_id__latest_multi:
-                                ${admin_partials.table_certificates__list([LetsencryptDomain.latest_certificate_multi,], show_domains=True, show_expiring_days=True)}
+                            % if SslDomain.ssl_server_certificate_id__latest_multi:
+                                ${admin_partials.table_certificates__list([SslDomain.latest_certificate_multi,], show_domains=True, show_expiring_days=True)}
                             % endif
                         </td>
                     </tr>
@@ -117,25 +117,25 @@
         <tr>
             <th>certificates history</th>
             <td>
-                ${admin_partials.table_certificates__list(LetsencryptDomain.certificates_5, show_domains=True, show_expiring_days=True)}
-                % if LetsencryptDomain.certificates_5:
-                    ${admin_partials.nav_pager("%s/domain/%s/certificates" % (admin_prefix, LetsencryptDomain.id))}
+                ${admin_partials.table_certificates__list(SslDomain.certificates_5, show_domains=True, show_expiring_days=True)}
+                % if SslDomain.certificates_5:
+                    ${admin_partials.nav_pager("%s/domain/%s/certificates" % (admin_prefix, SslDomain.id))}
                 % endif
             </td>
         </tr>
         <tr>
             <th>certificate requests</th>
             <td>
-                ${admin_partials.table_to_certificate_requests(LetsencryptDomain.domain_to_certificate_requests_5)}
-                % if LetsencryptDomain.domain_to_certificate_requests_5:
-                    ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, LetsencryptDomain.id))}
+                ${admin_partials.table_to_certificate_requests(SslDomain.domain_to_certificate_requests_5)}
+                % if SslDomain.domain_to_certificate_requests_5:
+                    ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, SslDomain.id))}
                 % endif
             </td>
         </tr>
         <tr>
             <th>unique FQDN Sets</th>
             <td>
-                ${admin_partials.nav_pager("%s/domain/%s/unique-fqdn-sets" % (admin_prefix, LetsencryptDomain.id))}
+                ${admin_partials.nav_pager("%s/domain/%s/unique-fqdn-sets" % (admin_prefix, SslDomain.id))}
             </td>
         </tr>
     </table>
@@ -143,7 +143,7 @@
         </div>
         <div class="col-sm-3">
             <a  class="btn btn-info"
-                href="${admin_prefix}/domain/${LetsencryptDomain.id}/calendar"
+                href="${admin_prefix}/domain/${SslDomain.id}/calendar"
             >
                 Calendar
             </a>

@@ -18,7 +18,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
-            % if LetsencryptQueueRenewals:
+            % if SslQueueRenewals:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -31,17 +31,17 @@
                             <th>process_result</th>
                         </tr>
                     </thead>
-                    % for q in LetsencryptQueueRenewals:
+                    % for q in SslQueueRenewals:
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/queue-renewal/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.id}</a></td>
-                            <td><a class="label label-info" href="${admin_prefix}/certificate/${q.letsencrypt_server_certificate_id}">
+                            <td><a class="label label-info" href="${admin_prefix}/certificate/${q.ssl_server_certificate_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${q.letsencrypt_server_certificate_id}</a></td>
-                            <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.letsencrypt_unique_fqdn_set_id}">
+                                ${q.ssl_server_certificate_id}</a></td>
+                            <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.ssl_unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${q.letsencrypt_unique_fqdn_set_id}</a></td>
+                                ${q.ssl_unique_fqdn_set_id}</a></td>
                             <td><timestamp>${q.timestamp_entered}</timestamp></td>
                             <td><timestamp>${q.timestamp_processed}</timestamp></td>
                             <td>${q.process_result or ''}</td>

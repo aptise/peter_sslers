@@ -37,12 +37,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
     def certificates(self):
-        items_count = lib_db.get__LetsencryptServerCertificate__count(self.request.dbsession)
+        items_count = lib_db.get__SslServerCertificate__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='%s/certificates/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(self.request.dbsession, limit=items_per_page, offset=offset, eagerload_web=True)
+        items_paged = lib_db.get__SslServerCertificate__paginated(self.request.dbsession, limit=items_per_page, offset=offset, eagerload_web=True)
         return {'project': 'peter_sslers',
-                'LetsencryptServerCertificates_count': items_count,
-                'LetsencryptServerCertificates': items_paged,
+                'SslServerCertificates_count': items_count,
+                'SslServerCertificates': items_paged,
                 'sidenav_option': 'all',
                 'pager': pager,
                 }
@@ -51,12 +51,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates:expiring_paginated', renderer='/admin/certificates.mako')
     def certificates_expiring_only(self):
         expiring_days = self.request.registry.settings['expiring_days']
-        items_count = lib_db.get__LetsencryptServerCertificate__count(self.request.dbsession, expiring_days=expiring_days)
+        items_count = lib_db.get__SslServerCertificate__count(self.request.dbsession, expiring_days=expiring_days)
         (pager, offset) = self._paginate(items_count, url_template='%s/certificates/expiring/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__LetsencryptServerCertificate__paginated(self.request.dbsession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslServerCertificate__paginated(self.request.dbsession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'LetsencryptServerCertificates_count': items_count,
-                'LetsencryptServerCertificates': items_paged,
+                'SslServerCertificates_count': items_count,
+                'SslServerCertificates': items_paged,
                 'sidenav_option': 'expiring',
                 'expiring_days': expiring_days,
                 'pager': pager,
@@ -91,40 +91,40 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formStash.results['private_key_file'].file.read()
-            dbLetsencryptPrivateKey, pkey_is_created = lib_db.getcreate__LetsencryptPrivateKey__by_pem_text(
+            dbSslPrivateKey, pkey_is_created = lib_db.getcreate__SslPrivateKey__by_pem_text(
                 self.request.dbsession,
                 private_key_pem
             )
 
             chain_pem = formStash.results['chain_file'].file.read()
-            dbLetsencryptCACertificate, cacert_is_created = lib_db.getcreate__LetsencryptCACertificate__by_pem_text(
+            dbSslCaCertificate, cacert_is_created = lib_db.getcreate__SslCaCertificate__by_pem_text(
                 self.request.dbsession,
                 chain_pem,
                 'manual upload'
             )
 
             certificate_pem = formStash.results['certificate_file'].file.read()
-            dbLetsencryptServerCertificate, cert_is_created = lib_db.getcreate__LetsencryptServerCertificate__by_pem_text(
+            dbSslServerCertificate, cert_is_created = lib_db.getcreate__SslServerCertificate__by_pem_text(
                 self.request.dbsession, certificate_pem,
-                dbCACertificate=dbLetsencryptCACertificate,
-                dbPrivateKey=dbLetsencryptPrivateKey,
+                dbCACertificate=dbSslCaCertificate,
+                dbPrivateKey=dbSslPrivateKey,
                 dbAccountKey=None,
             )
 
             if self.request.matched_route.name == 'admin:certificate:upload.json':
                 return {'result': 'success',
                         'certificate': {'created': cert_is_created,
-                                        'id': dbLetsencryptServerCertificate.id,
-                                        'url': '%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptServerCertificate.id),
+                                        'id': dbSslServerCertificate.id,
+                                        'url': '%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbSslServerCertificate.id),
                                         },
                         'ca_certificate': {'created': cacert_is_created,
-                                           'id': dbLetsencryptCACertificate.id,
+                                           'id': dbSslCaCertificate.id,
                                            },
                         'private_key': {'created': pkey_is_created,
-                                        'id': dbLetsencryptPrivateKey.id,
+                                        'id': dbSslPrivateKey.id,
                                         },
                         }
-            return HTTPFound('%S/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptServerCertificate.id))
+            return HTTPFound('%S/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbSslServerCertificate.id))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
@@ -145,35 +145,35 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _certificate_focus(self):
-        dbLetsencryptServerCertificate = lib_db.get__LetsencryptServerCertificate__by_id(self.request.dbsession, self.request.matchdict['id'])
-        if not dbLetsencryptServerCertificate:
+        dbSslServerCertificate = lib_db.get__SslServerCertificate__by_id(self.request.dbsession, self.request.matchdict['id'])
+        if not dbSslServerCertificate:
             raise HTTPNotFound('the certificate was not found')
-        return dbLetsencryptServerCertificate
+        return dbSslServerCertificate
 
     @view_config(route_name='admin:certificate:focus', renderer='/admin/certificate-focus.mako')
     def certificate_focus(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
+        dbSslServerCertificate = self._certificate_focus()
         # x-x509-server-cert
         return {'project': 'peter_sslers',
-                'LetsencryptServerCertificate': dbLetsencryptServerCertificate
+                'SslServerCertificate': dbSslServerCertificate
                 }
 
     @view_config(route_name='admin:certificate:focus:parse.json', renderer='json')
     def certificate_focus_parse_json(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
-        return {"%s" % dbLetsencryptServerCertificate.id: lib_cert_utils.parse_cert(cert_pem=dbLetsencryptServerCertificate.cert_pem),
+        dbSslServerCertificate = self._certificate_focus()
+        return {"%s" % dbSslServerCertificate.id: lib_cert_utils.parse_cert(cert_pem=dbSslServerCertificate.cert_pem),
                 }
 
     @view_config(route_name='admin:certificate:focus:chain:raw', renderer='string')
     def certificate_focus_chain(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
+        dbSslServerCertificate = self._certificate_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
-            return dbLetsencryptServerCertificate.certificate_upchain.cert_pem
+            return dbSslServerCertificate.certificate_upchain.cert_pem
         elif self.request.matchdict['format'] == 'pem.txt':
-            return dbLetsencryptServerCertificate.certificate_upchain.cert_pem
+            return dbSslServerCertificate.certificate_upchain.cert_pem
         elif self.request.matchdict['format'] in ('cer', 'crt', 'der'):
-            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.certificate_upchain.cert_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbSslServerCertificate.certificate_upchain.cert_pem)
             response = Response()
             if self.request.matchdict['format'] in ('crt', 'der'):
                 response.content_type = 'application/x-x509-ca-cert'
@@ -185,24 +185,24 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate:focus:fullchain:raw', renderer='string')
     def certificate_focus_fullchain(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
+        dbSslServerCertificate = self._certificate_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
-            return dbLetsencryptServerCertificate.cert_fullchain_pem
+            return dbSslServerCertificate.cert_fullchain_pem
         elif self.request.matchdict['format'] == 'pem.txt':
-            return dbLetsencryptServerCertificate.cert_fullchain_pem
+            return dbSslServerCertificate.cert_fullchain_pem
         return 'fullchain.pem'
 
     @view_config(route_name='admin:certificate:focus:privatekey:raw', renderer='string')
     def certificate_focus_privatekey(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
+        dbSslServerCertificate = self._certificate_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
-            return dbLetsencryptServerCertificate.private_key.key_pem
+            return dbSslServerCertificate.private_key.key_pem
         elif self.request.matchdict['format'] == 'pem.txt':
-            return dbLetsencryptServerCertificate.private_key.key_pem
+            return dbSslServerCertificate.private_key.key_pem
         elif self.request.matchdict['format'] == 'key':
-            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.private_key.key_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbSslServerCertificate.private_key.key_pem)
             response = Response()
             response.content_type = 'application/pkcs8'
             response.body = as_der
@@ -211,14 +211,14 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate:focus:cert:raw', renderer='string')
     def certificate_focus_cert(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
+        dbSslServerCertificate = self._certificate_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
-            return dbLetsencryptServerCertificate.cert_pem
+            return dbSslServerCertificate.cert_pem
         elif self.request.matchdict['format'] == 'pem.txt':
-            return dbLetsencryptServerCertificate.cert_pem
+            return dbSslServerCertificate.cert_pem
         elif self.request.matchdict['format'] == 'crt':
-            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbLetsencryptServerCertificate.cert_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbSslServerCertificate.cert_pem)
             response = Response()
             response.content_type = 'application/x-x509-server-cert'
             response.body = as_der
@@ -229,11 +229,11 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate:focus:config_json', renderer='json')
     def certificate_focus_config_json(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
+        dbSslServerCertificate = self._certificate_focus()
         if self.request.params.get('idonly', None):
-            rval = dbLetsencryptServerCertificate.config_payload_idonly
+            rval = dbSslServerCertificate.config_payload_idonly
         else:
-            rval = dbLetsencryptServerCertificate.config_payload
+            rval = dbSslServerCertificate.config_payload
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -241,28 +241,28 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:nginx_cache_expire', renderer=None)
     @view_config(route_name='admin:certificate:focus:nginx_cache_expire.json', renderer='json')
     def certificate_focus_nginx_expire(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
+        dbSslServerCertificate = self._certificate_focus()
         if not self.request.registry.settings['enable_nginx']:
-            raise HTTPFound('%s/certificate/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbLetsencryptServerCertificate.id))
-        dbDomains = [c2d.domain for c2d in dbLetsencryptServerCertificate.unique_fqdn_set.to_domains]
+            raise HTTPFound('%s/certificate/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbSslServerCertificate.id))
+        dbDomains = [c2d.domain for c2d in dbSslServerCertificate.unique_fqdn_set.to_domains]
         success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.dbsession, dbDomains=dbDomains)
         if self.request.matched_route.name == 'admin:certificate:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
                     }
-        return HTTPFound('%s/certificate/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptServerCertificate.id, dbEvent.id))
+        return HTTPFound('%s/certificate/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbSslServerCertificate.id, dbEvent.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:renew:quick', renderer=None)
     @view_config(route_name='admin:certificate:focus:renew:quick.json', renderer='json')
     def certificate_focus_renew_quick(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
+        dbSslServerCertificate = self._certificate_focus()
         try:
             if not self.request.POST:
                 raise lib_errors.DisplayableError('Post Only')
-            if not dbLetsencryptServerCertificate.can_quick_renew:
+            if not dbSslServerCertificate.can_quick_renew:
                 raise lib_errors.DisplayableError('Thie cert is not eligible for `Quick Renew`')
 
             raise NotImplementedError()
@@ -270,7 +270,7 @@ class ViewAdmin(Handler):
         except lib_errors.DisplayableError, e:
             url_failure = '%s/certificate/%s?operation=renewal&renewal_type=quick&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
-                dbLetsencryptServerCertificate.id,
+                dbSslServerCertificate.id,
                 e.message,
             )
             raise HTTPFound("%s&error=POST-ONLY" % url_failure)
@@ -280,20 +280,20 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:renew:custom', renderer=None)
     @view_config(route_name='admin:certificate:focus:renew:custom.json', renderer='json')
     def certificate_focus_renew_custom(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
-        self.dbLetsencryptServerCertificate = dbLetsencryptServerCertificate
+        dbSslServerCertificate = self._certificate_focus()
+        self.dbSslServerCertificate = dbSslServerCertificate
         if self.request.POST:
             return self._certificate_focus_renew_custom__submit()
         return self._certificate_focus_renew_custom__print()
 
     def _certificate_focus_renew_custom__print(self):
         return render_to_response("/admin/certificate-focus-renew.mako",
-                                  {'LetsencryptServerCertificate': self.dbLetsencryptServerCertificate},
+                                  {'SslServerCertificate': self.dbSslServerCertificate},
                                   self.request
                                   )
 
     def _certificate_focus_renew_custom__submit(self):
-        dbLetsencryptServerCertificate = self.dbLetsencryptServerCertificate
+        dbSslServerCertificate = self.dbSslServerCertificate
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_Certificate_Renewal_Custom,
@@ -310,9 +310,9 @@ class ViewAdmin(Handler):
             if formStash.results['account_key_option'] == 'upload':
                 account_key_pem = formStash.results['account_key_file'].file.read()
             elif formStash.results['account_key_option'] == 'existing':
-                if not dbLetsencryptServerCertificate.letsencrypt_account_key_id:
+                if not dbSslServerCertificate.ssl_letsencrypt_account_key_id:
                     raise ValueError("This Certificate does not have an existing Account Key")
-                dbAccountKey = dbLetsencryptServerCertificate.letsencrypt_account_key
+                dbAccountKey = dbSslServerCertificate.ssl_letsencrypt_account_key
             else:
                 raise ValueError("unknown option")
 
@@ -324,19 +324,19 @@ class ViewAdmin(Handler):
             if formStash.results['private_key_option'] == 'upload':
                 private_key_pem = formStash.results['private_key_file'].file.read()
             elif formStash.results['private_key_option'] == 'existing':
-                dbPrivateKey = dbLetsencryptServerCertificate.private_key
+                dbPrivateKey = dbSslServerCertificate.private_key
             else:
                 raise ValueError("unknown option")
 
             try:
                 newLetsencryptCertificate = lib_db.create__CertificateRequest__FULL(
                     self.request.dbsession,
-                    domain_names=dbLetsencryptServerCertificate.domains_as_list,
+                    domain_names=dbSslServerCertificate.domains_as_list,
                     account_key_pem=account_key_pem,
                     dbAccountKey=dbAccountKey,
                     private_key_pem=private_key_pem,
                     dbPrivateKey=dbPrivateKey,
-                    letsencrypt_server_certificate_id__renewal_of=dbLetsencryptServerCertificate.id,
+                    ssl_server_certificate_id__renewal_of=dbSslServerCertificate.id,
                 )
             except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
                 return HTTPFound('%s/certificate-requests?error=new-full&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
@@ -364,7 +364,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:mark', renderer=None)
     @view_config(route_name='admin:certificate:focus:mark.json', renderer='json')
     def certificate_focus_mark(self):
-        dbLetsencryptServerCertificate = self._certificate_focus()
+        dbSslServerCertificate = self._certificate_focus()
         action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
@@ -375,8 +375,8 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results['action']
-            event_type = LetsencryptOperationsEventType.certificate_mark
-            event_payload = {'certificate_id': dbLetsencryptServerCertificate.id,
+            event_type = SslOperationsEventType.certificate_mark
+            event_payload = {'certificate_id': dbSslServerCertificate.id,
                              'action': action,
                              'v': 1,
                              }
@@ -384,27 +384,27 @@ class ViewAdmin(Handler):
             deactivated = False
             activated = False
             if action == 'active':
-                if dbLetsencryptServerCertificate.is_active:
+                if dbSslServerCertificate.is_active:
                     raise formhandling.FormInvalid('already active!')
-                if dbLetsencryptServerCertificate.is_revoked:
+                if dbSslServerCertificate.is_revoked:
                     raise formhandling.FormInvalid('Certificate is revoked revoked')
-                dbLetsencryptServerCertificate.is_active = True
-                if dbLetsencryptServerCertificate.is_deactivated:
-                    dbLetsencryptServerCertificate.is_deactivated = False
+                dbSslServerCertificate.is_active = True
+                if dbSslServerCertificate.is_deactivated:
+                    dbSslServerCertificate.is_deactivated = False
                 update_recents = True
                 activated = True
             elif action == 'deactivated':
-                if dbLetsencryptServerCertificate.is_deactivated:
+                if dbSslServerCertificate.is_deactivated:
                     raise formhandling.FormInvalid('Already deactivated')
-                dbLetsencryptServerCertificate.is_deactivated = True
-                dbLetsencryptServerCertificate.is_active = False
+                dbSslServerCertificate.is_deactivated = True
+                dbSslServerCertificate.is_active = False
                 update_recents = True
                 deactivated = True
             elif action == 'revoked':
-                if dbLetsencryptServerCertificate.is_revoked:
+                if dbSslServerCertificate.is_revoked:
                     raise formhandling.FormInvalid('Already revoked')
-                dbLetsencryptServerCertificate.is_revoked = True
-                dbLetsencryptServerCertificate.is_active = False
+                dbSslServerCertificate.is_revoked = True
+                dbSslServerCertificate.is_active = False
                 update_recents = True
                 deactivated = True
             else:
@@ -413,20 +413,20 @@ class ViewAdmin(Handler):
             self.request.dbsession.flush()
 
             # bookkeeping
-            operationsEvent = lib_db.create__LetsencryptOperationsEvent(
+            operationsEvent = lib_db.create__SslOperationsEvent(
                 self.request.dbsession,
                 event_type,
                 event_payload,
             )
             if update_recents:
                 event_update = lib_db.operations_update_recents(self.request.dbsession)
-                event_update.letsencrypt_operations_event_id__child_of = operationsEvent.id
+                event_update.ssl_operations_event_id__child_of = operationsEvent.id
                 self.request.dbsession.flush()
 
             if deactivated:
                 # this will handle requeuing
                 lib_events.Certificate_deactivated(self.request.dbsession,
-                                                   dbLetsencryptServerCertificate,
+                                                   dbSslServerCertificate,
                                                    operationsEvent=operationsEvent,
                                                    )
 
@@ -436,7 +436,7 @@ class ViewAdmin(Handler):
 
             url_success = '%s/certificate/%s?operation=mark&action=%s&result=sucess' % (
                 self.request.registry.settings['admin_prefix'],
-                dbLetsencryptServerCertificate.id,
+                dbSslServerCertificate.id,
                 action,
             )
             return HTTPFound(url_success)
@@ -449,7 +449,7 @@ class ViewAdmin(Handler):
                                 )
             url_failure = '%s/certificate/%s?operation=mark&action=%s&result=error&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
-                dbLetsencryptServerCertificate.id,
+                dbSslServerCertificate.id,
                 action,
                 e.message,
             )

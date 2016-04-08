@@ -36,12 +36,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_domains', renderer='/admin/queue-domains.mako')
     @view_config(route_name='admin:queue_domains_paginated', renderer='/admin/queue-domains.mako')
     def queue_domains(self):
-        items_count = lib_db.get__LetsencryptQueueDomain__count(self.request.dbsession, show_processed=False)
+        items_count = lib_db.get__SslQueueDomain__count(self.request.dbsession, show_processed=False)
         (pager, offset) = self._paginate(items_count, url_template='%s/queue-domains/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__LetsencryptQueueDomain__paginated(self.request.dbsession, show_processed=False, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslQueueDomain__paginated(self.request.dbsession, show_processed=False, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'LetsencryptQueueDomains_count': items_count,
-                'LetsencryptQueueDomains': items_paged,
+                'SslQueueDomains_count': items_count,
+                'SslQueueDomains': items_paged,
                 'sidenav_option': 'unprocessed',
                 'pager': pager,
                 }
@@ -49,12 +49,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_domains:all', renderer='/admin/queue-domains.mako')
     @view_config(route_name='admin:queue_domains:all_paginated', renderer='/admin/queue-domains.mako')
     def queue_domains_all(self):
-        items_count = lib_db.get__LetsencryptQueueDomain__count(self.request.dbsession, show_processed=True)
+        items_count = lib_db.get__SslQueueDomain__count(self.request.dbsession, show_processed=True)
         (pager, offset) = self._paginate(items_count, url_template='%s/queue-domains/all/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__LetsencryptQueueDomain__paginated(self.request.dbsession, show_processed=True, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslQueueDomain__paginated(self.request.dbsession, show_processed=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'LetsencryptQueueDomains_count': items_count,
-                'LetsencryptQueueDomains': items_paged,
+                'SslQueueDomains_count': items_count,
+                'SslQueueDomains': items_paged,
                 'sidenav_option': 'all',
                 'pager': pager,
                 }
@@ -62,7 +62,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _queue_domain_focus(self):
-        item = lib_db.get__LetsencryptQueueDomain__by_id(self.request.dbsession, self.request.matchdict['id'])
+        item = lib_db.get__SslQueueDomain__by_id(self.request.dbsession, self.request.matchdict['id'])
         if not item:
             raise HTTPNotFound('the item was not found')
         return item

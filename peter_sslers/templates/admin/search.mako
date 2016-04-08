@@ -22,9 +22,9 @@
         <div class="row">
             <div class="col-sm-9">
 
-            % if show_only['LetsencryptAccountKey']:
+            % if show_only['SslLetsEncryptAccountKey']:
                 <h4>Account Keys</h4>
-                % if results['LetsencryptAccountKey']['count']:
+                % if results['SslLetsEncryptAccountKey']['count']:
                     <table class="table table-condensed">
                         <thead>
                             <tr>
@@ -35,7 +35,7 @@
                             </tr>
                         </thead>
                         <body>
-                        % for key in results['LetsencryptAccountKey']['items']:
+                        % for key in results['SslLetsEncryptAccountKey']['items']:
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
@@ -51,8 +51,8 @@
                         % endfor
                         </body>
                     </table>
-                    % if results['LetsencryptAccountKey']['next']:
-                        <a href="${results['LetsencryptAccountKey']['next']}">More</a>
+                    % if results['SslLetsEncryptAccountKey']['next']:
+                        <a href="${results['SslLetsEncryptAccountKey']['next']}">More</a>
                     % endif
                 % else:
                     <em>None</em>
@@ -61,9 +61,9 @@
             % endif
 
 
-            % if show_only['LetsencryptPrivateKey']:
+            % if show_only['SslPrivateKey']:
                 <h4>Private Keys</h4>
-                % if results['LetsencryptPrivateKey']['count']:
+                % if results['SslPrivateKey']['count']:
                     <table class="table table-condensed">
                         <thead>
                             <tr>
@@ -74,7 +74,7 @@
                             </tr>
                         </thead>
                         <body>
-                        % for key in results['LetsencryptPrivateKey']['items']:
+                        % for key in results['SslPrivateKey']['items']:
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
@@ -90,8 +90,8 @@
                         % endfor
                         </body>
                     </table>
-                    % if results['LetsencryptPrivateKey']['next']:
-                        <a href="${results['LetsencryptPrivateKey']['next']}">More</a>
+                    % if results['SslPrivateKey']['next']:
+                        <a href="${results['SslPrivateKey']['next']}">More</a>
                     % endif
                 % else:
                     <em>None</em>
@@ -100,9 +100,9 @@
             % endif
 
 
-            % if show_only['LetsencryptServerCertificate']:
+            % if show_only['SslServerCertificate']:
                 <h4>Certificates</h4>
-                % if results['LetsencryptServerCertificate']['count']:
+                % if results['SslServerCertificate']['count']:
                     <table class="table table-condensed">
                         <thead>
                             <tr>
@@ -116,7 +116,7 @@
                             </tr>
                         </thead>
                         <body>
-                        % for cert in results['LetsencryptServerCertificate']['items']:
+                        % for cert in results['SslServerCertificate']['items']:
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
@@ -135,8 +135,8 @@
                         % endfor
                         </body>
                     </table>
-                    % if results['LetsencryptServerCertificate']['next']:
-                        <a href="${results['LetsencryptServerCertificate']['next']}">More</a>
+                    % if results['SslServerCertificate']['next']:
+                        <a href="${results['SslServerCertificate']['next']}">More</a>
                     % endif
                 % else:
                     <em>None</em>
@@ -145,9 +145,9 @@
             % endif
 
 
-            % if show_only['LetsencryptCACertificate']:
+            % if show_only['SslCaCertificate']:
                 <h4>CA Certificates</h4>
-                % if results['LetsencryptCACertificate']['count']:
+                % if results['SslCaCertificate']['count']:
                     <table class="table table-condensed">
                         <thead>
                             <tr>
@@ -160,7 +160,7 @@
                             </tr>
                         </thead>
                         <body>
-                        % for cert in results['LetsencryptCACertificate']['items']:
+                        % for cert in results['SslCaCertificate']['items']:
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
@@ -178,8 +178,8 @@
                         % endfor
                         </body>
                     </table>
-                    % if results['LetsencryptCACertificate']['next']:
-                        <a href="${results['LetsencryptCACertificate']['next']}">More</a>
+                    % if results['SslCaCertificate']['next']:
+                        <a href="${results['SslCaCertificate']['next']}">More</a>
                     % endif
                 % else:
                     <em>None</em>
@@ -188,11 +188,11 @@
             % endif
 
 
-            % if show_only['LetsencryptCertificateRequest']:
+            % if show_only['SslCertificateRequest']:
                 <h4>Certificate Requests</h4>
-                % if results['LetsencryptCertificateRequest']['count']:
+                % if results['SslCertificateRequest']['count']:
                     <table class="table table-condensed">
-                        % for csr in results['LetsencryptCertificateRequest']['items']:
+                        % for csr in results['SslCertificateRequest']['items']:
                             <tr>
                                 <td>
                                     <a  class="btn btn-xs btn-info"
@@ -204,8 +204,8 @@
                             </tr>
                         % endfor
                     </table>
-                    % if results['LetsencryptCertificateRequest']['next']:
-                        <a href="${results['LetsencryptCertificateRequest']['next']}">More</a>
+                    % if results['SslCertificateRequest']['next']:
+                        <a href="${results['SslCertificateRequest']['next']}">More</a>
                     % endif
                 % else:
                     <em>None</em>

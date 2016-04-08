@@ -70,12 +70,12 @@ class ViewAdminMain(Handler):
                                                          }, self.request)
 
     def _search__submit(self, search_type):
-        results = {'LetsencryptAccountKey': {'count': 0, 'items': [], 'next': False, },
-                   'LetsencryptDomain': {'count': 0, 'items': [], 'next': False, },
-                   'LetsencryptCACertificate': {'count': 0, 'items': [], 'next': False, },
-                   'LetsencryptCertificateRequest': {'count': 0, 'items': [], 'next': False, },
-                   'LetsencryptPrivateKey': {'count': 0, 'items': [], 'next': False, },
-                   'LetsencryptServerCertificate': {'count': 0, 'items': [], 'next': False, },
+        results = {'SslLetsEncryptAccountKey': {'count': 0, 'items': [], 'next': False, },
+                   'SslDomain': {'count': 0, 'items': [], 'next': False, },
+                   'SslCaCertificate': {'count': 0, 'items': [], 'next': False, },
+                   'SslCertificateRequest': {'count': 0, 'items': [], 'next': False, },
+                   'SslPrivateKey': {'count': 0, 'items': [], 'next': False, },
+                   'SslServerCertificate': {'count': 0, 'items': [], 'next': False, },
                    }
 
         # lightweight pagination
@@ -105,45 +105,45 @@ class ViewAdminMain(Handler):
             if not all((search_modulus, source_type, source_id)):
                 raise ValueError("invalid search")
 
-            # LetsencryptAccountKey
-            if show_only['LetsencryptAccountKey']:
-                _base = self.request.dbsession.query(LetsencryptAccountKey)\
-                    .filter(LetsencryptAccountKey.key_pem_modulus_md5 == search_modulus)
-                results['LetsencryptAccountKey']['count'] = _base.count()
-                if results['LetsencryptAccountKey']['count']:
-                    results['LetsencryptAccountKey']['items'] = _base.limit(item_limit).offset(offset).all()
+            # SslLetsEncryptAccountKey
+            if show_only['SslLetsEncryptAccountKey']:
+                _base = self.request.dbsession.query(SslLetsEncryptAccountKey)\
+                    .filter(SslLetsEncryptAccountKey.key_pem_modulus_md5 == search_modulus)
+                results['SslLetsEncryptAccountKey']['count'] = _base.count()
+                if results['SslLetsEncryptAccountKey']['count']:
+                    results['SslLetsEncryptAccountKey']['items'] = _base.limit(item_limit).offset(offset).all()
 
-            # LetsencryptCACertificate
-            if show_only['LetsencryptCACertificate']:
-                _base = self.request.dbsession.query(LetsencryptCACertificate)\
-                    .filter(LetsencryptCACertificate.cert_pem_modulus_md5 == search_modulus)
-                results['LetsencryptCACertificate']['count'] = _base.count()
-                if results['LetsencryptCACertificate']['count']:
-                    results['LetsencryptCACertificate']['items'] = _base.limit(item_limit).offset(offset).all()
+            # SslCaCertificate
+            if show_only['SslCaCertificate']:
+                _base = self.request.dbsession.query(SslCaCertificate)\
+                    .filter(SslCaCertificate.cert_pem_modulus_md5 == search_modulus)
+                results['SslCaCertificate']['count'] = _base.count()
+                if results['SslCaCertificate']['count']:
+                    results['SslCaCertificate']['items'] = _base.limit(item_limit).offset(offset).all()
 
-            # LetsencryptCertificateRequest
-            if show_only['LetsencryptCertificateRequest']:
-                _base = self.request.dbsession.query(LetsencryptCertificateRequest)\
-                    .filter(LetsencryptCertificateRequest.csr_pem_modulus_md5 == search_modulus)
-                results['LetsencryptCertificateRequest']['count'] = _base.count()
-                if results['LetsencryptCertificateRequest']['count']:
-                    results['LetsencryptCertificateRequest']['items'] = _base.limit(item_limit).offset(offset).all()
+            # SslCertificateRequest
+            if show_only['SslCertificateRequest']:
+                _base = self.request.dbsession.query(SslCertificateRequest)\
+                    .filter(SslCertificateRequest.csr_pem_modulus_md5 == search_modulus)
+                results['SslCertificateRequest']['count'] = _base.count()
+                if results['SslCertificateRequest']['count']:
+                    results['SslCertificateRequest']['items'] = _base.limit(item_limit).offset(offset).all()
 
-            # LetsencryptPrivateKey
-            if show_only['LetsencryptPrivateKey']:
-                _base = self.request.dbsession.query(LetsencryptPrivateKey)\
-                    .filter(LetsencryptPrivateKey.key_pem_modulus_md5 == search_modulus)
-                results['LetsencryptPrivateKey']['count'] = _base.count()
-                if results['LetsencryptPrivateKey']['count']:
-                    results['LetsencryptPrivateKey']['items'] = _base.limit(item_limit).offset(offset).all()
+            # SslPrivateKey
+            if show_only['SslPrivateKey']:
+                _base = self.request.dbsession.query(SslPrivateKey)\
+                    .filter(SslPrivateKey.key_pem_modulus_md5 == search_modulus)
+                results['SslPrivateKey']['count'] = _base.count()
+                if results['SslPrivateKey']['count']:
+                    results['SslPrivateKey']['items'] = _base.limit(item_limit).offset(offset).all()
 
-            # LetsencryptServerCertificate
-            if show_only['LetsencryptServerCertificate']:
-                _base = self.request.dbsession.query(LetsencryptServerCertificate)\
-                    .filter(LetsencryptServerCertificate.cert_pem_modulus_md5 == search_modulus)
-                results['LetsencryptServerCertificate']['count'] = _base.count()
-                if results['LetsencryptServerCertificate']['count']:
-                    results['LetsencryptServerCertificate']['items'] = _base.limit(item_limit).offset(offset).all()
+            # SslServerCertificate
+            if show_only['SslServerCertificate']:
+                _base = self.request.dbsession.query(SslServerCertificate)\
+                    .filter(SslServerCertificate.cert_pem_modulus_md5 == search_modulus)
+                results['SslServerCertificate']['count'] = _base.count()
+                if results['SslServerCertificate']['count']:
+                    results['SslServerCertificate']['items'] = _base.limit(item_limit).offset(offset).all()
 
         elif search_type in ('cert_subject_hash', 'cert_issuer_hash'):
             cert_subject_hash = self.request.params.get('cert_subject_hash', None)
@@ -162,27 +162,27 @@ class ViewAdminMain(Handler):
 
             search_hash = cert_subject_hash or cert_issuer_hash
 
-            # LetsencryptCACertificate
-            if show_only['LetsencryptCACertificate']:
-                _base = self.request.dbsession.query(LetsencryptCACertificate)\
-                    .filter(sqlalchemy.or_(LetsencryptCACertificate.cert_subject_hash == search_hash,
-                                           LetsencryptCACertificate.cert_issuer_hash == search_hash,
+            # SslCaCertificate
+            if show_only['SslCaCertificate']:
+                _base = self.request.dbsession.query(SslCaCertificate)\
+                    .filter(sqlalchemy.or_(SslCaCertificate.cert_subject_hash == search_hash,
+                                           SslCaCertificate.cert_issuer_hash == search_hash,
                                            )
                             )
-                results['LetsencryptCACertificate']['count'] = _base.count()
-                if results['LetsencryptCACertificate']['count']:
-                    results['LetsencryptCACertificate']['items'] = _base.limit(item_limit).offset(offset).all()
+                results['SslCaCertificate']['count'] = _base.count()
+                if results['SslCaCertificate']['count']:
+                    results['SslCaCertificate']['items'] = _base.limit(item_limit).offset(offset).all()
 
-            # LetsencryptServerCertificate
-            if show_only['LetsencryptServerCertificate']:
-                _base = self.request.dbsession.query(LetsencryptServerCertificate)\
-                    .filter(sqlalchemy.or_(LetsencryptServerCertificate.cert_subject_hash == search_hash,
-                                           LetsencryptServerCertificate.cert_issuer_hash == search_hash,
+            # SslServerCertificate
+            if show_only['SslServerCertificate']:
+                _base = self.request.dbsession.query(SslServerCertificate)\
+                    .filter(sqlalchemy.or_(SslServerCertificate.cert_subject_hash == search_hash,
+                                           SslServerCertificate.cert_issuer_hash == search_hash,
                                            )
                             )
-                results['LetsencryptServerCertificate']['count'] = _base.count()
-                if results['LetsencryptServerCertificate']['count']:
-                    results['LetsencryptServerCertificate']['items'] = _base.limit(item_limit).offset(offset).all()
+                results['SslServerCertificate']['count'] = _base.count()
+                if results['SslServerCertificate']['count']:
+                    results['SslServerCertificate']['items'] = _base.limit(item_limit).offset(offset).all()
 
         query_args = urlencode(q_query_args)
         for k in results.keys():

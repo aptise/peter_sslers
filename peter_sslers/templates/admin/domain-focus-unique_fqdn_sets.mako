@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
-        <li><a href="${admin_prefix}/domain/${LetsencryptDomain.id}">Focus [${LetsencryptDomain.id}]</a></li>
+        <li><a href="${admin_prefix}/domain/${SslDomain.id}">Focus [${SslDomain.id}]</a></li>
         <li class="active">Unique FQDN Set</li>
     </ol>
 </%block>
@@ -19,9 +19,9 @@
 
 <%block name="content_main">
 
-    % if LetsencryptUniqueFQDNSets:
+    % if SslUniqueFQDNSets:
         ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_LetsencryptUniqueFQDNSets(LetsencryptUniqueFQDNSets)}
+        ${admin_partials.table_SslUniqueFQDNSets(SslUniqueFQDNSets)}
     % else:
         No known fqdn sets.
     % endif

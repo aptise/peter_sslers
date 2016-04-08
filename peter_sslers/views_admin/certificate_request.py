@@ -35,85 +35,85 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_requests', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
     def certificate_requests(self):
-        items_count = lib_db.get__LetsencryptCertificateRequest__count(self.request.dbsession)
+        items_count = lib_db.get__SslCertificateRequest__count(self.request.dbsession)
         (pager, offset) = self._paginate(items_count, url_template='%s/certificate-requests/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__LetsencryptCertificateRequest__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslCertificateRequest__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
 
         return {'project': 'peter_sslers',
-                'LetsencryptCertificateRequests_count': items_count,
-                'LetsencryptCertificateRequests': items_paged,
+                'SslCertificateRequests_count': items_count,
+                'SslCertificateRequests': items_paged,
                 'pager': pager,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _certificate_request_focus(self):
-        dbLetsencryptCertificateRequest = lib_db.get__LetsencryptCertificateRequest__by_id(self.request.dbsession, self.request.matchdict['id'])
-        if not dbLetsencryptCertificateRequest:
+        dbSslCertificateRequest = lib_db.get__SslCertificateRequest__by_id(self.request.dbsession, self.request.matchdict['id'])
+        if not dbSslCertificateRequest:
             raise HTTPNotFound('the certificate was not found')
-        return dbLetsencryptCertificateRequest
+        return dbSslCertificateRequest
 
     @view_config(route_name='admin:certificate_request:focus', renderer='/admin/certificate_request-focus.mako')
     def certificate_request_focus(self):
-        dbLetsencryptCertificateRequest = self._certificate_request_focus()
+        dbSslCertificateRequest = self._certificate_request_focus()
         return {'project': 'peter_sslers',
-                'LetsencryptCertificateRequest': dbLetsencryptCertificateRequest
+                'SslCertificateRequest': dbSslCertificateRequest
                 }
 
     @view_config(route_name='admin:certificate_request:focus:raw', renderer='string')
     def certificate_request_focus_raw(self):
-        dbLetsencryptCertificateRequest = self._certificate_request_focus()
+        dbSslCertificateRequest = self._certificate_request_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
-            return dbLetsencryptCertificateRequest.csr_pem
+            return dbSslCertificateRequest.csr_pem
         if self.request.matchdict['format'] == 'csr':
             self.request.response.content_type = 'application/pkcs10'
-            return dbLetsencryptCertificateRequest.csr_pem
+            return dbSslCertificateRequest.csr_pem
         elif self.request.matchdict['format'] == 'pem.txt':
-            return dbLetsencryptCertificateRequest.csr_pem
+            return dbSslCertificateRequest.csr_pem
         return 'cert.pem'
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate_request:process', renderer='/admin/certificate_request-process.mako')
     def certificate_request_process(self):
-        dbLetsencryptCertificateRequest = self._certificate_request_focus()
-        if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
+        dbSslCertificateRequest = self._certificate_request_focus()
+        if not dbSslCertificateRequest.certificate_request_type_is('flow'):
             raise HTTPNotFound('Only availble for FLOW')
         return {'project': 'peter_sslers',
-                'LetsencryptCertificateRequest': dbLetsencryptCertificateRequest,
-                'LetsencryptCertificateRequest2LetsencryptDomain': None,
+                'SslCertificateRequest': dbSslCertificateRequest,
+                'SslCertificateRequest2SslDomain': None,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate_request:deactivate')
     def certificate_request_deactivate(self):
-        dbLetsencryptCertificateRequest = self._certificate_request_focus()
-        if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
+        dbSslCertificateRequest = self._certificate_request_focus()
+        if not dbSslCertificateRequest.certificate_request_type_is('flow'):
             raise HTTPNotFound('Only availble for FLOW')
-        dbLetsencryptCertificateRequest.is_active = False
+        dbSslCertificateRequest.is_active = False
         self.request.dbsession.flush()
-        return HTTPFound('%s/certificate-request/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificateRequest.id))
+        return HTTPFound('%s/certificate-request/%s' % (self.request.registry.settings['admin_prefix'], dbSslCertificateRequest.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate_request:process:domain', )
     def certificate_request_process_domain(self):
-        dbLetsencryptCertificateRequest = self._certificate_request_focus()
-        if not dbLetsencryptCertificateRequest.certificate_request_type_is('flow'):
+        dbSslCertificateRequest = self._certificate_request_focus()
+        if not dbSslCertificateRequest.certificate_request_type_is('flow'):
             raise HTTPNotFound('Only availble for FLOW')
-        dbLetsencryptCertificateRequest2LetsencryptDomain = None
+        dbSslCertificateRequest2SslDomain = None
         domain_id = int(self.request.matchdict['domain_id'])
-        for to_domain in dbLetsencryptCertificateRequest.certificate_request_to_domains:
-            if to_domain.letsencrypt_domain_id == domain_id:
-                dbLetsencryptCertificateRequest2LetsencryptDomain = to_domain
+        for to_domain in dbSslCertificateRequest.certificate_request_to_domains:
+            if to_domain.ssl_domain_id == domain_id:
+                dbSslCertificateRequest2SslDomain = to_domain
                 break
-        if dbLetsencryptCertificateRequest2LetsencryptDomain is None:
+        if dbSslCertificateRequest2SslDomain is None:
             raise HTTPNotFound('invalid domain for certificate request')
 
-        self.db_LetsencryptCertificateRequest = dbLetsencryptCertificateRequest
-        self.db_LetsencryptCertificateRequest2LetsencryptDomain = dbLetsencryptCertificateRequest2LetsencryptDomain
+        self.db_SslCertificateRequest = dbSslCertificateRequest
+        self.db_SslCertificateRequest2SslDomain = dbSslCertificateRequest2SslDomain
 
         if self.request.POST:
             return self._certificate_request_process_domain__submit()
@@ -121,8 +121,8 @@ class ViewAdmin(Handler):
 
     def _certificate_request_process_domain__print(self):
         return render_to_response("/admin/certificate_request-process.mako",
-                                  {'LetsencryptCertificateRequest': self.db_LetsencryptCertificateRequest,
-                                   'LetsencryptCertificateRequest2LetsencryptDomain': self.db_LetsencryptCertificateRequest2LetsencryptDomain,
+                                  {'SslCertificateRequest': self.db_SslCertificateRequest,
+                                   'SslCertificateRequest2SslDomain': self.db_SslCertificateRequest2SslDomain,
                                    },
                                   self.request)
 
@@ -135,14 +135,14 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            if self.db_LetsencryptCertificateRequest2LetsencryptDomain.timestamp_verified:
+            if self.db_SslCertificateRequest2SslDomain.timestamp_verified:
                 raise ValueError("You can not edit the challenge of a verified item")
 
             changed = False
             for attribute in ('challenge_key', 'challenge_text'):
                 submitted_value = formStash.results[attribute]
-                if submitted_value != getattr(self.db_LetsencryptCertificateRequest2LetsencryptDomain, attribute):
-                    setattr(self.db_LetsencryptCertificateRequest2LetsencryptDomain, attribute, submitted_value)
+                if submitted_value != getattr(self.db_SslCertificateRequest2SslDomain, attribute):
+                    setattr(self.db_SslCertificateRequest2SslDomain, attribute, submitted_value)
                     changed = True
 
             if not changed:
@@ -152,8 +152,8 @@ class ViewAdmin(Handler):
 
             return HTTPFound('%s/certificate-request/%s/process/domain/%s' %
                              (self.request.registry.settings['admin_prefix'],
-                              self.db_LetsencryptCertificateRequest.id,
-                              self.db_LetsencryptCertificateRequest2LetsencryptDomain.letsencrypt_domain_id
+                              self.db_SslCertificateRequest.id,
+                              self.db_SslCertificateRequest2SslDomain.ssl_domain_id
                               )
                              )
 
@@ -192,9 +192,9 @@ class ViewAdmin(Handler):
             domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 raise ValueError("missing valid domain names")
-            dbLetsencryptCertificateRequest = lib_db.create__CertificateRequest__by_domainNamesList_FLOW(self.request.dbsession, domain_names)
+            dbSslCertificateRequest = lib_db.create__CertificateRequest__by_domainNamesList_FLOW(self.request.dbsession, domain_names)
 
-            return HTTPFound('%s/certificate-request/%s/process' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificateRequest.id))
+            return HTTPFound('%s/certificate-request/%s/process' % (self.request.registry.settings['admin_prefix'], dbSslCertificateRequest.id))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
