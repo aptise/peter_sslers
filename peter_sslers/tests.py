@@ -5,15 +5,18 @@ from pyramid.paster import get_appsettings
 # pypi
 import transaction
 from webtest import TestApp
+from webtest import Upload
 
 # stdlib
 import json
 import pdb
+import os
 import unittest
 
 # local
 from . import main
 from . import models
+from . import lib
 import sqlalchemy
 
 
@@ -34,13 +37,201 @@ queue tests:
 # ==============================================================================
 
 
+TEST_FILES = {'AccountKey': {'1': 'account_1.key',
+                             '2': 'account_2.key',
+                             '3': 'account_3.key',
+                             '4': 'account_4.key',
+                             '5': 'account_5.key',
+                             },
+              'CaCertificates': {'order': ('isrgrootx1',
+                                           'le_x1_auth',
+                                           'le_x2_auth',
+                                           'le_x1_cross_signed',
+                                           'le_x2_cross_signed',
+                                           'le_x3_cross_signed',
+                                           'le_x4_cross_signed',
+                                           ),
+                                 'cert': {'isrgrootx1': 'isrgrootx1.pem.txt',
+                                          'le_x1_auth': 'letsencryptauthorityx1.pem.txt',
+                                          'le_x2_auth': 'letsencryptauthorityx2.pem.txt',
+                                          'le_x1_cross_signed': 'lets-encrypt-x1-cross-signed.pem.txt',
+                                          'le_x2_cross_signed': 'lets-encrypt-x2-cross-signed.pem.txt',
+                                          'le_x3_cross_signed': 'lets-encrypt-x3-cross-signed.pem.txt',
+                                          'le_x4_cross_signed': 'lets-encrypt-x4-cross-signed.pem.txt',
+                                          },
+                                 },
+              # the certificates are a tuple of: (CommonName, crt, csr, key)
+              'ServerCertificates': {'SelfSigned': {'1': {'domain': 'selfsigned-1.example.com',
+                                                          'cert': 'selfsigned_1-server.crt',
+                                                          'csr': 'selfsigned_1-server.csr',
+                                                          'pkey': 'selfsigned_1-server.key',
+                                                          },
+                                                    '2': {'domain': 'selfsigned-2.example.com',
+                                                          'cert': 'selfsigned_2-server.crt',
+                                                          'csr': 'selfsigned_2-server.csr',
+                                                          'pkey': 'selfsigned_2-server.key',
+                                                          },
+                                                    '3': {'domain': 'selfsigned-3.example.com',
+                                                          'cert': 'selfsigned_3-server.crt',
+                                                          'csr': 'selfsigned_3-server.csr',
+                                                          'pkey': 'selfsigned_3-server.key',
+                                                          },
+                                                    '4': {'domain': 'selfsigned-4.example.com',
+                                                          'cert': 'selfsigned_4-server.crt',
+                                                          'csr': 'selfsigned_4-server.csr',
+                                                          'pkey': 'selfsigned_4-server.key',
+                                                          },
+                                                    '5': {'domain': 'selfsigned-5.example.com',
+                                                          'cert': 'selfsigned_5-server.crt',
+                                                          'csr': 'selfsigned_5-server.csr',
+                                                          'pkey': 'selfsigned_5-server.key',
+                                                          },
+                                                    },
+                                     'LetsEncrypt': {},
+                                     },
+              }
+
+
 class AppTest(unittest.TestCase):
     _session = None
+    _DB_INTIALIZED = False
+    _data_root = None
+
+    def _filepath_testfile(self, filename):
+        return os.path.join(self._data_root, filename)
+
+    def _filedata_testfile(self, filename):
+        return open(os.path.join(self._data_root, filename), 'r').read()
 
     def setUp(self):
-        settings = get_appsettings('development.ini', name='main')
+        settings = get_appsettings('test.ini', name='main')
+        # sqlalchemy.url = sqlite:///%(here)s/ssl_minnow_test.sqlite
+        if False:
+            settings['sqlalchemy.url'] = "sqlite://"
         app = main(global_config = None, **settings)
         self.testapp = TestApp(app)
+        # DO STUFF HERE
+        self._data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_data')
+
+        if not AppTest._DB_INTIALIZED:
+            print "---------------"
+            print "INITIALIZING DB"
+            engine = app.registry['dbsession_factory']().bind
+
+            models.meta.Base.metadata.drop_all(engine)
+            engine.execute("VACUUM")
+            models.meta.Base.metadata.create_all(engine)
+
+            try:
+                """
+                This setup pre-populates the DB with some objects needed for routes to work:
+
+                    AccountKey:
+                        account_1.key
+                    CaCertificates:
+                        isrgrootx1.pem.txt
+                        selfsigned_1-server.crt
+                    PrivateKey
+                        selfsigned_1-server.key
+                """
+
+                #
+                # insert SslLetsEncryptAccountKey
+                # this should create `/account-key/1`
+                #
+                _key_filename = TEST_FILES['AccountKey']['1']
+                key_pem = self._filedata_testfile(_key_filename)
+                _key_account1, _is_created = lib.db.getcreate__SslLetsEncryptAccountKey__by_pem_text(self.session, key_pem)
+                # print _key_account1, _is_created
+                self.session.commit()
+
+                #
+                # insert SslCaCertificate
+                # this should create `/ca-certificate/1`
+                #
+                _ca_cert_id = 'isrgrootx1'
+                _ca_cert_filename = TEST_FILES['CaCertificates']['cert'][_ca_cert_id]
+                ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
+                _ca_cert_1, _is_created = lib.db.getcreate__SslCaCertificate__by_pem_text(
+                    self.session,
+                    ca_cert_pem,
+                    "ISRG Root",
+                    le_authority_name = "ISRG ROOT",
+                    is_authority_certificate = True,
+                    is_cross_signed_authority_certificate = False,
+                )
+                # print _ca_cert_1, _is_created
+                self.session.commit()
+
+                #
+                # insert SslCaCertificate - self signed
+                # this should create `/ca-certificate/2`
+                #
+                _ca_cert_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['cert']
+                ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
+                _ca_cert_selfsigned1, _is_created = lib.db.getcreate__SslCaCertificate__by_pem_text(
+                    self.session,
+                    ca_cert_pem,
+                    _ca_cert_filename,
+                )
+                # print _ca_cert_selfsigned1, _is_created
+                self.session.commit()
+
+                #
+                # insert SslPrivateKey
+                # this should create `/private-key/1`
+                #
+                _pkey_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['pkey']
+                pkey_pem = self._filedata_testfile(_pkey_filename)
+                _key_private1, _is_created = lib.db.getcreate__SslPrivateKey__by_pem_text(self.session, pkey_pem)
+                # print _key_private1, _is_created
+                self.session.commit()
+
+                #
+                # insert SslServerCertificate
+                # this should create `/certificate/1`
+                #
+                _cert_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['cert']
+                cert_pem = self._filedata_testfile(_cert_filename)
+                _cert_1, _is_created = lib.db.getcreate__SslServerCertificate__by_pem_text(
+                    self.session,
+                    cert_pem,
+                    dbCACertificate = _ca_cert_selfsigned1,
+                    dbAccountKey = _key_account1,
+                    dbPrivateKey = _key_private1,
+                )
+                # print _cert_1, _is_created
+                self.session.commit()
+
+                # ensure we have domains?
+                domains = lib.db.get__SslDomain__paginated(self.session)
+                domain_names = [d.domain_name for d in domains]
+                assert TEST_FILES['ServerCertificates']['SelfSigned']['1']['domain'].lower() in domain_names
+
+                # this shouldn't need to be handled here, because creating a cert would populate this table
+                if False:
+                    # insert a domain name
+                    # one should be extracted from uploading a ServerCertificate though
+                    _domain, _is_created = lib.db.getcreate__SslDomain__by_domainName(self.session, "www.example.com")
+                    self.session.commit()
+
+                    # insert a domain name
+                    # one should be extracted from uploading a ServerCertificate though
+                    # getcreate__SslUniqueFQDNSet__by_domainObjects
+
+            except Exception as e:
+                print ""
+                print ""
+                print ""
+                print "EXCEPTION IN SETUP"
+                print ""
+                print e
+                print ""
+                print ""
+                print ""
+                pdb.set_trace()
+            print "DB INITIALIZED"
+            AppTest._DB_INTIALIZED = True
 
     def tearDown(self):
         if self._session is not None:
@@ -70,6 +261,8 @@ class FunctionalTests_Main(AppTest):
 
 
 class FunctionalTests_AccountKeys(AppTest):
+    """python -m unittest peter_sslers.tests.FunctionalTests_AccountKeys"""
+    """python -m unittest peter_sslers.tests.FunctionalTests_AccountKeys.test_new"""
 
     def _get_item(self):
         # grab a Key
@@ -119,14 +312,24 @@ class FunctionalTests_AccountKeys(AppTest):
             # TODO
             print "MUST TEST non-default"
 
+    def test_new(self):
+        # this should be creating a new key
+        _key_filename = TEST_FILES['AccountKey']['2']
+        key_filepath = self._filepath_testfile(_key_filename)
+
+        res = self.testapp.get('/.well-known/admin/account-key/new', status=200)
+        form = res.form
+        form['account_key_file'] = Upload(key_filepath)
+        res2 = form.submit()
+        assert res2.status_code == 302
+        assert res2.location == """http://localhost/.well-known/admin/account-key/2?is_created=1"""
+        res3 = self.testapp.get(res2.location, status=200)
+
     def tests_todo(self):
         # TODO
         return
         # this hits LE
         res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=200)
-
-        # test new?
-        res = self.testapp.get('/.well-known/admin/account-key/1/new', status=200)
 
 
 class FunctionalTests_API(AppTest):
@@ -139,6 +342,8 @@ class FunctionalTests_API(AppTest):
 
 
 class FunctionalTests_CACertificate(AppTest):
+    """python -m unittest peter_sslers.tests.FunctionalTests_CACertificate"""
+    """python -m unittest peter_sslers.tests.FunctionalTests_CACertificate.test_upload"""
 
     def test_list(self):
         # root
@@ -158,14 +363,67 @@ class FunctionalTests_CACertificate(AppTest):
         res = self.testapp.get('/.well-known/admin/ca-certificate/1/signed_certificates', status=200)
         res = self.testapp.get('/.well-known/admin/ca-certificate/1/signed_certificates/1', status=200)
 
-    def tests_todo(self):
-        # TODO
-        return
+    def test_upload(self):
+        """This should enter in item #3, but the CaCertificates.order is 1; the other cert is a self-signed"""
+        _ca_cert_id = TEST_FILES['CaCertificates']['order'][1]
+        _ca_cert_filename = TEST_FILES['CaCertificates']['cert'][_ca_cert_id]
+        _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
 
         res = self.testapp.get('/.well-known/admin/ca-certificate/upload', status=200)
+        form = res.form
+        form['chain_file'] = Upload(_ca_cert_filepath)
+        res2 = form.submit()
+        assert res2.status_code == 302
+        assert res2.location == """http://localhost/.well-known/admin/ca-certificate/3?is_created=1"""
+        res3 = self.testapp.get(res2.location, status=200)
+
+        """This should enter in item #4"""
+        _ca_cert_id = TEST_FILES['CaCertificates']['order'][2]
+        _ca_cert_filename = TEST_FILES['CaCertificates']['cert'][_ca_cert_id]
+        _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
+
         res = self.testapp.get('/.well-known/admin/ca-certificate/upload.json', status=200)
+        _data = {'chain_file': Upload(_ca_cert_filepath)
+                 }
+        res2 = self.testapp.post('/.well-known/admin/ca-certificate/upload.json', _data)
+        assert res2.status_code == 200
+        res2_json = json.loads(res2.body)
+        assert res2_json['result'] == 'success'
+        assert res2_json['ca_certificate']['id'] == 4
+        assert res2_json['ca_certificate']['created'] is True
+        res3 = self.testapp.get('/.well-known/admin/ca-certificate/4', status=200)
+
+        # try a bundle
         res = self.testapp.get('/.well-known/admin/ca-certificate/upload-bundle', status=200)
+        form = res.form
+        form['isrgrootx1_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['isrgrootx1']))
+        form['le_x1_auth_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x1_auth']))
+        form['le_x2_auth_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x2_auth']))
+        form['le_x1_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x1_cross_signed']))
+        form['le_x2_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x2_cross_signed']))
+        form['le_x3_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x3_cross_signed']))
+        form['le_x4_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x4_cross_signed']))
+        res2 = form.submit()
+        assert res2.status_code == 302
+        assert res2.location == """http://localhost/.well-known/admin/ca-certificates?uploaded=1"""
+        res3 = self.testapp.get(res2.location, status=200)
+
         res = self.testapp.get('/.well-known/admin/ca-certificate/upload-bundle.json', status=200)
+        chain_filepath = self._filepath_testfile('lets-encrypt-x1-cross-signed.pem.txt')
+        form = {}
+        form['isrgrootx1_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['isrgrootx1']))
+        form['le_x1_auth_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x1_auth']))
+        form['le_x2_auth_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x2_auth']))
+        form['le_x1_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x1_cross_signed']))
+        form['le_x2_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x2_cross_signed']))
+        form['le_x3_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x3_cross_signed']))
+        form['le_x4_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x4_cross_signed']))
+        res2 = self.testapp.post('/.well-known/admin/ca-certificate/upload-bundle.json', form)
+        assert res2.status_code == 200
+        res2_json = json.loads(res2.body)
+        assert res2_json['result'] == 'success'
+        # this is going to be too messy to check all the vars
+        # {u'isrgrootx1_pem': {u'id': 5, u'created': False}, u'le_x2_auth_pem': {u'id': 3, u'created': False}, u'le_x4_cross_signed_pem': {u'id': 6, u'created': False}, u'le_x2_cross_signed_pem': {u'id': 7, u'created': False}, u'le_x3_cross_signed_pem': {u'id': 8, u'created': False}, u'result': u'success', u'le_x1_cross_signed_pem': {u'id': 4, u'created': False}, u'le_x1_auth_pem': {u'id': 1, u'created': False}}
 
 
 class FunctionalTests_Certificate(AppTest):
@@ -214,7 +472,6 @@ class FunctionalTests_Certificate(AppTest):
         res = self.testapp.get('/.well-known/admin/certificate/%s/cert.pem.txt' % focus_id, status=200)
 
     def test_manipulate(self):
-        print "test_manipulate"
         focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
@@ -232,6 +489,34 @@ class FunctionalTests_Certificate(AppTest):
             # TODO
             print "MUST TEST revoked"
 
+        #
+        # upload a new cert
+        #
+        res = self.testapp.get('/.well-known/admin/certificate/upload', status=200)
+        _SelfSigned_id = '1'
+        form = res.form
+        form['certificate_file'] = Upload(self._filepath_testfile(TEST_FILES['ServerCertificates']['SelfSigned'][_SelfSigned_id]['cert']))
+        form['chain_file'] = Upload(self._filepath_testfile(TEST_FILES['ServerCertificates']['SelfSigned'][_SelfSigned_id]['cert']))
+        form['private_key_file'] = Upload(self._filepath_testfile(TEST_FILES['ServerCertificates']['SelfSigned'][_SelfSigned_id]['pkey']))
+        res2 = form.submit()
+        assert res2.status_code == 302
+        assert res2.location == """http://localhost/.well-known/admin/certificate/1"""
+
+        res = self.testapp.get('/.well-known/admin/certificate/upload.json', status=200)
+        chain_filepath = self._filepath_testfile('lets-encrypt-x1-cross-signed.pem.txt')
+        _SelfSigned_id = '2'
+        form = {}
+        form['certificate_file'] = Upload(self._filepath_testfile(TEST_FILES['ServerCertificates']['SelfSigned'][_SelfSigned_id]['cert']))
+        form['chain_file'] = Upload(self._filepath_testfile(TEST_FILES['ServerCertificates']['SelfSigned'][_SelfSigned_id]['cert']))
+        form['private_key_file'] = Upload(self._filepath_testfile(TEST_FILES['ServerCertificates']['SelfSigned'][_SelfSigned_id]['pkey']))
+        res2 = self.testapp.post('/.well-known/admin/certificate/upload.json', form)
+        assert res2.status_code == 200
+        res2_json = json.loads(res2.body)
+        assert res2_json['result'] == 'success'
+        assert res2_json['certificate']['id'] == 2
+        assert res2_json['certificate']['created'] is True
+        res3 = self.testapp.get('/.well-known/admin/certificate/2', status=200)
+
     def tests_todo(self):
         # TODO
         return
@@ -241,8 +526,6 @@ class FunctionalTests_Certificate(AppTest):
         config.add_route_7('admin:certificate:focus:renew:quick.json', '/certificate/{@id}/renew/quick.json')
         config.add_route_7('admin:certificate:focus:renew:custom', '/certificate/{@id}/renew/custom')
         config.add_route_7('admin:certificate:focus:renew:custom.json', '/certificate/{@id}/renew/custom.json')
-        config.add_route_7('admin:certificate:upload', '/certificate/upload')
-        config.add_route_7('admin:certificate:upload.json', '/certificate/upload.json')
 
 
 class FunctionalTests_CertificateRequest(AppTest):

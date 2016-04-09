@@ -73,9 +73,9 @@ def getcreate__SslCaCertificate__by_pem_text(
     is_authority_certificate = None,
     is_cross_signed_authority_certificate = None,
 ):
-    dbCertificate = get__SslCaCertificate__by_pem_text(dbSession, cert_pem)
+    dbCACertificate = get__SslCaCertificate__by_pem_text(dbSession, cert_pem)
     is_created = False
-    if not dbCertificate:
+    if not dbCACertificate:
         cert_pem = cert_utils.cleanup_pem_text(cert_pem)
         cert_pem_md5 = utils.md5_text(cert_pem)
         try:
@@ -87,27 +87,27 @@ def getcreate__SslCaCertificate__by_pem_text(
             # grab the modulus
             cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(_tmpfile.name)
 
-            dbCertificate = SslCaCertificate()
-            dbCertificate.name = chain_name or 'unknown'
+            dbCACertificate = SslCaCertificate()
+            dbCACertificate.name = chain_name or 'unknown'
 
-            dbCertificate.le_authority_name = le_authority_name
-            dbCertificate.is_ca_certificate = True
-            dbCertificate.is_authority_certificate = is_authority_certificate
-            dbCertificate.is_cross_signed_authority_certificate = is_cross_signed_authority_certificate
-            dbCertificate.id_cross_signed_of = None
-            dbCertificate.timestamp_first_seen = datetime.datetime.utcnow()
-            dbCertificate.cert_pem = cert_pem
-            dbCertificate.cert_pem_md5 = cert_pem_md5
-            dbCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
+            dbCACertificate.le_authority_name = le_authority_name
+            dbCACertificate.is_ca_certificate = True
+            dbCACertificate.is_authority_certificate = is_authority_certificate
+            dbCACertificate.is_cross_signed_authority_certificate = is_cross_signed_authority_certificate
+            dbCACertificate.id_cross_signed_of = None
+            dbCACertificate.timestamp_first_seen = datetime.datetime.utcnow()
+            dbCACertificate.cert_pem = cert_pem
+            dbCACertificate.cert_pem_md5 = cert_pem_md5
+            dbCACertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
 
-            dbCertificate.timestamp_signed = cert_utils.parse_startdate_cert__pem_filepath(_tmpfile.name)
-            dbCertificate.timestamp_expires = cert_utils.parse_enddate_cert__pem_filepath(_tmpfile.name)
-            dbCertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-subject')
-            dbCertificate.cert_subject_hash = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-subject_hash')
-            dbCertificate.cert_issuer = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-issuer')
-            dbCertificate.cert_issuer_hash = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-issuer_hash')
+            dbCACertificate.timestamp_signed = cert_utils.parse_startdate_cert__pem_filepath(_tmpfile.name)
+            dbCACertificate.timestamp_expires = cert_utils.parse_enddate_cert__pem_filepath(_tmpfile.name)
+            dbCACertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-subject')
+            dbCACertificate.cert_subject_hash = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-subject_hash')
+            dbCACertificate.cert_issuer = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-issuer')
+            dbCACertificate.cert_issuer_hash = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-issuer_hash')
 
-            dbSession.add(dbCertificate)
+            dbSession.add(dbCACertificate)
             dbSession.flush()
             is_created = True
         except:
@@ -115,7 +115,7 @@ def getcreate__SslCaCertificate__by_pem_text(
         finally:
             _tmpfile.close()
 
-    return dbCertificate, is_created
+    return dbCACertificate, is_created
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -698,7 +698,7 @@ def upload__SslCaCertificateBundle__by_pem_text(dbSession, bundle_data):
             is_cross_signed_authority_certificate = None,
         )
         if not is_created:
-            if dbCACertificate.name in ('unknown', 'manual upload'):
+            if dbCACertificate.name in ('unknown', 'manual upload') and cert_name:
                 dbCACertificate.name = cert_name
             if dbCACertificate.le_authority_name is None:
                 dbCACertificate.le_authority_name = le_authority_name

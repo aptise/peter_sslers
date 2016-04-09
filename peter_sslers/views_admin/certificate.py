@@ -124,7 +124,7 @@ class ViewAdmin(Handler):
                                         'id': dbSslPrivateKey.id,
                                         },
                         }
-            return HTTPFound('%S/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbSslServerCertificate.id))
+            return HTTPFound('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbSslServerCertificate.id))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",

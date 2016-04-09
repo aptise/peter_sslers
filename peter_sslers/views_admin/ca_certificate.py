@@ -233,7 +233,8 @@ class ViewAdmin(Handler):
             )
 
             if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle.json':
-                rval = {'result': 'success'}
+                rval = {'result': 'success'
+                        }
                 for (cert_type, cert_result) in dbResults.items():
                     rval[cert_type] = {'created': cert_result[1],
                                        'id': cert_result[0].id,
