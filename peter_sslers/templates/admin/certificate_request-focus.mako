@@ -156,7 +156,7 @@
         </tr>
     </table>
 
-    % if SslCertificateRequest.is_active and SslCertificateRequest.certificate_request_type_is('flow'):
+    % if SslCertificateRequest.is_active and SslCertificateRequest.certificate_request_type_is('acme flow'):
         <a
             href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process"
             class="btn btn-info"

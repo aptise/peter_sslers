@@ -91,6 +91,10 @@ TEST_FILES = {'AccountKey': {'1': 'account_1.key',
                                      },
               }
 
+# TODO - set these by environment variables
+RUN_NGINX_TESTS = False
+RUN_LETSENCRYPT_API_TESTS = False
+
 
 class AppTest(unittest.TestCase):
     _session = None
@@ -219,6 +223,17 @@ class AppTest(unittest.TestCase):
                     # one should be extracted from uploading a ServerCertificate though
                     # getcreate__SslUniqueFQDNSet__by_domainObjects
 
+                # upload a csr
+                _csr_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['csr']
+                csr_pem = self._filedata_testfile(_csr_filename)
+                _csr_1, _is_created = lib.db.getcreate__SslCertificateRequest__by_pem_text(
+                    self.session,
+                    csr_pem,
+                    certificate_request_type_id = models.SslCertificateRequestType.ACME_FLOW,
+                    dbAccountKey = _key_account1,
+                    dbPrivateKey = _key_private1,
+                )
+
             except Exception as e:
                 print ""
                 print ""
@@ -325,9 +340,9 @@ class FunctionalTests_AccountKeys(AppTest):
         assert res2.location == """http://localhost/.well-known/admin/account-key/2?is_created=1"""
         res3 = self.testapp.get(res2.location, status=200)
 
-    def tests_todo(self):
-        # TODO
-        return
+    @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
+    def tests_letsencrypt_api(self):
+        raise NotImplementedError()
         # this hits LE
         res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=200)
 
@@ -517,15 +532,19 @@ class FunctionalTests_Certificate(AppTest):
         assert res2_json['certificate']['created'] is True
         res3 = self.testapp.get('/.well-known/admin/certificate/2', status=200)
 
-    def tests_todo(self):
-        # TODO
-        return
-        config.add_route_7('admin:certificate:focus:nginx_cache_expire', '/certificate/{id:\d}/nginx-cache-expire')
-        config.add_route_7('admin:certificate:focus:nginx_cache_expire.json', '/certificate/{id:\d}/nginx-cache-expire.json')
+    @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
+    def tests_letsencrypt_api(self):
+        raise NotImplementedError()
         config.add_route_7('admin:certificate:focus:renew:quick', '/certificate/{@id}/renew/quick')
         config.add_route_7('admin:certificate:focus:renew:quick.json', '/certificate/{@id}/renew/quick.json')
         config.add_route_7('admin:certificate:focus:renew:custom', '/certificate/{@id}/renew/custom')
         config.add_route_7('admin:certificate:focus:renew:custom.json', '/certificate/{@id}/renew/custom.json')
+
+    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    def tests_nginx(self):
+        raise NotImplementedError()
+        config.add_route_7('admin:certificate:focus:nginx_cache_expire', '/certificate/{id:\d}/nginx-cache-expire')
+        config.add_route_7('admin:certificate:focus:nginx_cache_expire.json', '/certificate/{id:\d}/nginx-cache-expire.json')
 
 
 class FunctionalTests_CertificateRequest(AppTest):
@@ -556,9 +575,9 @@ class FunctionalTests_CertificateRequest(AppTest):
         res = self.testapp.get('/.well-known/admin/certificate-request/%s/csr.pem' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate-request/%s/csr.pem.txt' % focus_id, status=200)
 
-    def tests_todo(self):
-        # TODO
-        return
+    @unittest.skip("these might need better APIs or migration")
+    def tests_advanced(self):
+        raise NotImplementedError()
         config.add_route_7('admin:certificate_request:process', '/certificate-request/{@id}/process')
         config.add_route_7('admin:certificate_request:deactivate', '/certificate-request/{@id}/deactivate')
         config.add_route_7('admin:certificate_request:process:domain', '/certificate-request/{@id}/process/domain/{domain_id:\d+}')
@@ -617,9 +636,9 @@ class FunctionalTests_Domain(AppTest):
             res = self.testapp.get('/.well-known/admin/domain/%s/mark' % focus_id, {'action': 'active'}, status=302)
             res = self.testapp.get('/.well-known/admin/domain/%s/mark.json' % focus_id, {'action': 'inactive'}, status=302)
 
-    def tests_todo(self):
-        # TODO
-        return
+    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    def tests_nginx(self):
+        raise NotImplementedError()
         config.add_route_7('admin:domain:focus:nginx_cache_expire', '/domain/{domain_identifier}/nginx-cache-expire')
         config.add_route_7('admin:domain:focus:nginx_cache_expire.json', '/domain/{domain_identifier}/nginx-cache-expire.json')
 
@@ -674,10 +693,9 @@ class FunctionalTests_PrivateKeys(AppTest):
             # TODO
             print "MUST TEST compromised"
 
+    @unittest.skip("tests not written yet")
     def tests_todo(self):
-        # TODO
-        return
-        # test new?
+        raise NotImplementedError()
         res = self.testapp.get('/.well-known/admin/private-key/1/new', status=200)
 
 
@@ -735,10 +753,9 @@ class FunctionalTests_QueueDomains(AppTest):
 
         res = self.testapp.get('/.well-known/admin/queue-domain/%s' % focus_id, status=200)
 
+    @unittest.skip("tests not written yet")
     def tests_todo(self):
-        # TODO
-        return
-        # test new?
+        raise NotImplementedError()
         res = self.testapp.get('/.well-known/admin/queue-domains/add', status=200)
         res = self.testapp.get('/.well-known/admin/queue-domains/add.json', status=200)
         res = self.testapp.get('/.well-known/admin/queue-domains/process', status=200)
@@ -770,10 +787,9 @@ class FunctionalTests_QueueRenewal(AppTest):
 
         res = self.testapp.get('/.well-known/admin/queue-renewal/%s' % focus_id, status=200)
 
+    @unittest.skip("tests not written yet")
     def tests_todo(self):
-        # TODO
-        return
-        # test new?
+        raise NotImplementedError()
         res = self.testapp.get('/.well-known/admin/queue-renewals/process', status=200)
         res = self.testapp.get('/.well-known/admin/queue-renewals/process.json', status=200)
 
@@ -801,9 +817,10 @@ class FunctionalTests_Operations(AppTest):
             .one()
         res = self.testapp.get('/.well-known/admin/operations/log/item/%s' % focus_item.id, status=200)
 
+    @unittest.skip("tests not written yet")
     def tests_todo(self):
+        raise NotImplementedError()
         # these are active, not passive
-        return
         config.add_route_7('admin:operations:ca_certificate_probes:probe', '/operations/ca-certificate-probes/probe')
         config.add_route_7('admin:operations:ca_certificate_probes:probe.json', '/operations/ca-certificate-probes/probe.json')
         # -

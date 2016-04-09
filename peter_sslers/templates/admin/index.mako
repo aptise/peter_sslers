@@ -82,20 +82,20 @@
 
             <h2>Create New</h2>
             <p>
-                <a  href="${admin_prefix}/certificate-request/new-flow"
+                <a  href="${admin_prefix}/certificate-request/new-acme-flow"
                     class="btn btn-xs btn-primary"
                 >
                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                certificate request FLOW</a><br/>
-                <em>${request.text_library.info_CertificateRequest_new_flow[0]}</em>
+                certificate request Acme Flow</a><br/>
+                <em>${request.text_library.info_CertificateRequest_new_AcmeFlow[0]}</em>
             </p>
             <p>
-                <a  href="${admin_prefix}/certificate-request/new-full"
+                <a  href="${admin_prefix}/certificate-request/new-acme-automated"
                     class="btn btn-xs btn-primary"
                 >
                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                certificate request FULL</a><br/>
-                <em>${request.text_library.info_CertificateRequest_new_full[0]}</em>
+                certificate request Acme Automated</a><br/>
+                <em>${request.text_library.info_CertificateRequest_new_AcmeAutomated[0]}</em>
             </p>
 
             <h2>Upload Existing</h2>

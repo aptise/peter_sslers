@@ -29,12 +29,12 @@ info_CertificateRequests = ['Certificate Requests pending and past.',
                             ]
 
 
-info_CertificateRequest_new_flow = ['FLOW lets you manage the well-known placements only.',
-                                    "FLOW lets you manage the well-known placements only."
-                                    ]
-info_CertificateRequest_new_full = ['FULL automates the entire certifcate request process.',
-                                    "FULL automates the entire certifcate request process.",
-                                    ]
+info_CertificateRequest_new_AcmeFlow = ['ACME-flow lets you manage the well-known placements only.',
+                                        "ACME-flow lets you manage the well-known placements only."
+                                        ]
+info_CertificateRequest_new_AcmeAutomated = ['ACME-Automated automates the entire certifcate request process.',
+                                             "ACME-Automated automates the entire certifcate request process.",
+                                             ]
 
 info_UploadAccountKey = ['If you need to upload a LetEncrypt Account key for issuance.',
                          "",

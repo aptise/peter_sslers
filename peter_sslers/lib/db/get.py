@@ -119,6 +119,17 @@ def get__SslCertificateRequest__by_id(dbSession, certificate_request_id):
     return dbSslCertificateRequest
 
 
+def get__SslCertificateRequest__by_pem_text(dbSession, csr_pem):
+    csr_pem = cert_utils.cleanup_pem_text(csr_pem)
+    csr_pem_md5 = utils.md5_text(csr_pem)
+    dbCertificateRequest = dbSession.query(SslCertificateRequest)\
+        .filter(SslCertificateRequest.csr_pem_md5 == csr_pem_md5,
+                SslCertificateRequest.csr_pem == csr_pem,
+                )\
+        .first()
+    return dbCertificateRequest
+
+
 def get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__count(dbSession, key_id):
     counted = dbSession.query(SslCertificateRequest)\
         .filter(SslCertificateRequest.ssl_letsencrypt_account_key_id == key_id)\

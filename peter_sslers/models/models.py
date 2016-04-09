@@ -169,11 +169,13 @@ class SslCaCertificate(Base):
 class SslCertificateRequestType(object):
     """
     This package tracks two types of CSRs
-    - Flow = handling the challenges from another client
-    - Full = acting as the full LE Client
+    - Record - just records the CSR
+    - ACME_FLOW - Creates a flow
+    - ACME_AUTOMATED = acting as the full LE Client
     """
-    FLOW = 1
-    FULL = 2
+    RECORD = 1
+    ACME_FLOW = 2
+    ACME_AUTOMATED = 3
 
 
 class SslCertificateRequest(Base):
@@ -189,7 +191,7 @@ class SslCertificateRequest(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_error = sa.Column(sa.Boolean, nullable=True, default=None)
-    certificate_request_type_id = sa.Column(sa.Integer, nullable=False)  # 1=FLOW, 2=FULL; see SslCertificateRequest
+    certificate_request_type_id = sa.Column(sa.Integer, nullable=False)  # see SslCertificateRequestType
     timestamp_started = sa.Column(sa.DateTime, nullable=False, )
     timestamp_finished = sa.Column(sa.DateTime, nullable=True, )
 
@@ -197,11 +199,9 @@ class SslCertificateRequest(Base):
     csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=True, )
     csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True, )
 
-    ssl_private_key_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("ssl_private_key.id"), nullable=True)
     ssl_letsencrypt_account_key_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_letsencrypt_account_key.id"), nullable=True)
-
+    ssl_private_key_id__signed_by = sa.Column(sa.Integer, sa.ForeignKey("ssl_private_key.id"), nullable=True)
     ssl_server_certificate_id__renewal_of = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True)
-
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False)
 
     certificate_request_to_domains = sa.orm.relationship("SslCertificateRequest2SslDomain",
@@ -253,16 +253,20 @@ class SslCertificateRequest(Base):
 
     @property
     def certificate_request_type(self):
-        if self.certificate_request_type_id == SslCertificateRequestType.FLOW:
-            return "Flow"
-        elif self.certificate_request_type_id == SslCertificateRequestType.FULL:
-            return "Full"
+        if self.certificate_request_type_id == SslCertificateRequestType.RECORD:
+            return "Record"
+        elif self.certificate_request_type_id == SslCertificateRequestType.ACME_FLOW:
+            return "Acme Flow"
+        elif self.certificate_request_type_id == SslCertificateRequestType.ACME_AUTOMATED:
+            return "Acme Automated"
         raise ValueError("invalid `self.certificate_request_type_id`")
 
     def certificate_request_type_is(self, check):
-        if (check.lower() == 'flow') and (self.certificate_request_type_id == SslCertificateRequestType.FLOW):
+        if (check.lower() == 'record') and (self.certificate_request_type_id == SslCertificateRequestType.RECORD):
             return True
-        elif (check.lower() == 'full') and (self.certificate_request_type_id == SslCertificateRequestType.FULL):
+        elif (check.lower() == 'acme flow') and (self.certificate_request_type_id == SslCertificateRequestType.ACME_FLOW):
+            return True
+        elif (check.lower() == 'acme automated') and (self.certificate_request_type_id == SslCertificateRequestType.ACME_AUTOMATED):
             return True
         return False
 

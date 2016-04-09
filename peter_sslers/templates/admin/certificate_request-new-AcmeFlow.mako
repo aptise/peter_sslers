@@ -12,14 +12,14 @@
 
 
 <%block name="page_header">
-    <h2>Certificate Request - FLOW | New</h2>
-    <p><em>${request.text_library.info_CertificateRequest_new_flow[1]}</em></p>
+    <h2>Certificate Request - Acme Flow | New</h2>
+    <p><em>${request.text_library.info_CertificateRequest_new_AcmeFlow[1]}</em></p>
 </%block>
 
 
 <%block name="content_main">
 
-    <form action="${admin_prefix}/certificate-request/new-flow" method="POST">
+    <form action="${admin_prefix}/certificate-request/new-acme-flow" method="POST">
         <% form = request.formhandling.get_form(request) %>
         ${form.html_error_main('Error_Main')|n}
 

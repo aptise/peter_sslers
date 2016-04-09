@@ -29,14 +29,19 @@ def validate_domains(domain_names):
     return True
 
 
-def domains_from_string(text):
-    # generate list
-    domain_names = [d.strip().lower() for d in text.split(',')]
+def domains_from_list(domain_names):
+    domain_names = [d.strip().lower() for d in domain_names]
     # make the list unique
     domain_names = list(set(domain_names))
     # validate the list
     validate_domains(domain_names)
     return domain_names
+
+
+def domains_from_string(text):
+    # generate list
+    domain_names = text.split(',')
+    return domains_from_list(domain_names)
 
 
 def md5_text(text):

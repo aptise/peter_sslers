@@ -118,11 +118,11 @@ class Form_Certificate_Mark(_Form_Schema_Base):
     action = OneOf(('active', 'deactivated', 'revoked', ))
 
 
-class Form_CertificateRequest_new_flow(_Form_Schema_Base):
+class Form_CertificateRequest_new_AcmeFlow(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
 
 
-class Form_CertificateRequest_new_full(_Form_Schema_Base):
+class Form_CertificateRequest_new_AcmeAutomated(_Form_Schema_Base):
     account_key = UnicodeString(not_empty=False, if_missing=None)
     account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
@@ -136,7 +136,7 @@ class Form_CertificateRequest_new_full(_Form_Schema_Base):
                           ]
 
 
-class Form_CertificateRequest_new_full__file(_Form_Schema_Base):
+class Form_CertificateRequest_new_AcmeAutomated__file(_Form_Schema_Base):
     account_key_file = FieldStorageUploadConverter(not_empty=True)
     private_key_file = FieldStorageUploadConverter(not_empty=True)
     domain_names = UnicodeString(not_empty=True)

@@ -329,7 +329,7 @@ class ViewAdmin(Handler):
                 raise ValueError("unknown option")
 
             try:
-                newLetsencryptCertificate = lib_db.create__CertificateRequest__FULL(
+                newLetsencryptCertificate = lib_db.do__CertificateRequest__FULL(
                     self.request.dbsession,
                     domain_names=dbSslServerCertificate.domains_as_list,
                     account_key_pem=account_key_pem,

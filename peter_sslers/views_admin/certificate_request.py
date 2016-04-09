@@ -15,9 +15,9 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_CertificateRequest_new_flow,
-                         # Form_CertificateRequest_new_full,
-                         Form_CertificateRequest_new_full__file,
+from ..lib.forms import (Form_CertificateRequest_new_AcmeFlow,
+                         # Form_CertificateRequest_new_AcmeAutomated,
+                         Form_CertificateRequest_new_AcmeAutomated__file,
                          Form_CertificateRequest_process_domain,
                          )
 from ..lib import acme as lib_acme
@@ -78,8 +78,8 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:process', renderer='/admin/certificate_request-process.mako')
     def certificate_request_process(self):
         dbSslCertificateRequest = self._certificate_request_focus()
-        if not dbSslCertificateRequest.certificate_request_type_is('flow'):
-            raise HTTPNotFound('Only availble for FLOW')
+        if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
+            raise HTTPNotFound('Only availble for Acme Flow')
         return {'project': 'peter_sslers',
                 'SslCertificateRequest': dbSslCertificateRequest,
                 'SslCertificateRequest2SslDomain': None,
@@ -90,8 +90,8 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:deactivate')
     def certificate_request_deactivate(self):
         dbSslCertificateRequest = self._certificate_request_focus()
-        if not dbSslCertificateRequest.certificate_request_type_is('flow'):
-            raise HTTPNotFound('Only availble for FLOW')
+        if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
+            raise HTTPNotFound('Only availble for Acme Flow')
         dbSslCertificateRequest.is_active = False
         self.request.dbsession.flush()
         return HTTPFound('%s/certificate-request/%s' % (self.request.registry.settings['admin_prefix'], dbSslCertificateRequest.id))
@@ -101,8 +101,8 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_request:process:domain', )
     def certificate_request_process_domain(self):
         dbSslCertificateRequest = self._certificate_request_focus()
-        if not dbSslCertificateRequest.certificate_request_type_is('flow'):
-            raise HTTPNotFound('Only availble for FLOW')
+        if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
+            raise HTTPNotFound('Only availble for Acme Flow')
         dbSslCertificateRequest2SslDomain = None
         domain_id = int(self.request.matchdict['domain_id'])
         for to_domain in dbSslCertificateRequest.certificate_request_to_domains:
@@ -171,19 +171,19 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:certificate_request:new:flow')
-    def certificate_request_new_flow(self):
+    @view_config(route_name='admin:certificate_request:new:acme-flow')
+    def certificate_request_new_AcmeFlow(self):
         if self.request.POST:
-            return self._certificate_request_new_flow__submit()
-        return self._certificate_request_new_flow__print()
+            return self._certificate_request_new_AcmeFlow__submit()
+        return self._certificate_request_new_AcmeFlow__print()
 
-    def _certificate_request_new_flow__print(self):
-        return render_to_response("/admin/certificate_request-new_flow.mako", {}, self.request)
+    def _certificate_request_new_AcmeFlow__print(self):
+        return render_to_response("/admin/certificate_request-new-AcmeFlow.mako", {}, self.request)
 
-    def _certificate_request_new_flow__submit(self):
+    def _certificate_request_new_AcmeFlow__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CertificateRequest_new_flow,
+                                                             schema=Form_CertificateRequest_new_AcmeFlow,
                                                              validate_get=False
                                                              )
             if not result:
@@ -192,7 +192,12 @@ class ViewAdmin(Handler):
             domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 raise ValueError("missing valid domain names")
-            dbSslCertificateRequest = lib_db.create__CertificateRequest__by_domainNamesList_FLOW(self.request.dbsession, domain_names)
+            dbSslCertificateRequest = lib_db.create__SslCertificateRequest(
+                self.request.dbsession,
+                csr_pem = None,
+                certificate_request_type_id = SslCertificateRequestType.ACME_FLOW,
+                domain_names = domain_names,
+            )
 
             return HTTPFound('%s/certificate-request/%s/process' % (self.request.registry.settings['admin_prefix'], dbSslCertificateRequest.id))
 
@@ -204,28 +209,28 @@ class ViewAdmin(Handler):
                                 )
             return formhandling.form_reprint(
                 self.request,
-                self._certificate_request_new_flow__print,
+                self._certificate_request_new_AcmeFlow__print,
                 auto_error_formatter=formhandling.formatter_none,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:certificate_request:new:full')
-    def certificate_request_new_full(self):
+    @view_config(route_name='admin:certificate_request:new:acme-automated')
+    def certificate_request_new_AcmeAutomated(self):
         if self.request.POST:
-            return self._certificate_request_new_full__submit()
-        return self._certificate_request_new_full__print()
+            return self._certificate_request_new_AcmeAutomated__submit()
+        return self._certificate_request_new_AcmeAutomated__print()
 
-    def _certificate_request_new_full__print(self):
+    def _certificate_request_new_AcmeAutomated__print(self):
         active_ca = lib_acme.CERTIFICATE_AUTHORITY
-        return render_to_response("/admin/certificate_request-new_full.mako",
+        return render_to_response("/admin/certificate_request-new-AcmeAutomated.mako",
                                   {'CERTIFICATE_AUTHORITY': active_ca,
                                    }, self.request)
 
-    def _certificate_request_new_full__submit(self):
+    def _certificate_request_new_AcmeAutomated__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CertificateRequest_new_full__file,
+                                                             schema=Form_CertificateRequest_new_AcmeAutomated__file,
                                                              validate_get=False
                                                              )
             if not result:
@@ -239,17 +244,17 @@ class ViewAdmin(Handler):
             private_key_pem = formStash.results['private_key_file'].file.read()
 
             try:
-                dbLetsencryptCertificate = lib_db.create__CertificateRequest__FULL(
+                dbLetsencryptCertificate = lib_db.do__CertificateRequest__AcmeAutomated(
                     self.request.dbsession,
                     domain_names,
                     account_key_pem=account_key_pem,
                     private_key_pem=private_key_pem,
                 )
             except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
-                return HTTPFound('%s/certificate-requests?error=new-full&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
+                return HTTPFound('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except:
                 if self.request.registry.settings['exception_redirect']:
-                    return HTTPFound('%s/certificate-requests?error=new-full' % self.request.registry.settings['admin_prefix'])
+                    return HTTPFound('%s/certificate-requests?error=new-AcmeAutomated' % self.request.registry.settings['admin_prefix'])
                 raise
 
             return HTTPFound('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificate.id))
@@ -262,7 +267,7 @@ class ViewAdmin(Handler):
                                 )
             return formhandling.form_reprint(
                 self.request,
-                self._certificate_request_new_full__print,
+                self._certificate_request_new_AcmeAutomated__print,
                 auto_error_formatter=formhandling.formatter_none,
             )
 

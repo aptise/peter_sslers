@@ -106,8 +106,8 @@ def _admin_views(config):
     config.add_route_7('admin:certificate_request:deactivate', '/certificate-request/{@id}/deactivate')
     config.add_route_7('admin:certificate_request:process:domain', '/certificate-request/{@id}/process/domain/{domain_id:\d+}')
     # two types of CR handling
-    config.add_route_7('admin:certificate_request:new:flow', '/certificate-request/new-flow')
-    config.add_route_7('admin:certificate_request:new:full', '/certificate-request/new-full')
+    config.add_route_7('admin:certificate_request:new:acme-flow', '/certificate-request/new-acme-flow')
+    config.add_route_7('admin:certificate_request:new:acme-automated', '/certificate-request/new-acme-automated')
 
     # Domains
     config.add_route_7('admin:domains', '/domains')
