@@ -1,6 +1,7 @@
 # stdlib
 import hashlib
 import json
+import logging
 import re
 
 # pypi
@@ -20,6 +21,9 @@ RE_domain = re.compile('^(?:[\w\-]+\.)+[\w]{2,5}$')
 
 
 # ==============================================================================
+
+
+# ------------------------------------------------------------------------------
 
 
 def validate_domains(domain_names):

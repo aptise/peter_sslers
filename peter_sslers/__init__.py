@@ -3,10 +3,11 @@ from pyramid.tweens import EXCVIEW
 from pyramid.events import BeforeRender
 from sqlalchemy import engine_from_config
 
+import logging
+
 from .lib import acme
 from .lib import cert_utils
 from .lib.config_utils import *
-
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -19,6 +20,13 @@ def add_renderer_globals(event):
 def db_cleanup__tween_factory(handler, registry):
     def db_cleanup__tween(request):
         try:
+            if request.environ.get('paste.command_request', None):
+                # turn off logging
+                # logging.Logger.manager.loggerDict
+                logging.basicConfig(level=logging.WARNING)
+                for l in [l.strip() for l in "peter_sslers, sqlalchemy, requests, sqlalchemy.engine.base.Engine".split(',')]:
+                    logging.getLogger(l).setLevel(logging.WARNING)
+
             response = handler(request)
             return response
         finally:
