@@ -654,6 +654,36 @@ the redis datastore might look something like this:
 	r['foo2.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
 
 
+# Tests
+
+To keep things simple, tests are run using unittest.
+
+    python setup.py test
+
+There are a few environment variables you can set:
+
+	# run tests that hit nginx for cache clearing
+	export SSL_RUN_NGINX_TESTS=True
+
+	# run tests that hit redis for cache priming
+	export SSL_RUN_REDIS_TESTS=True
+
+	# run tests that hit the LetsEncryptAPI
+	export SSL_RUN_LETSENCRYPT_API_TESTS=True
+
+	# Set TRUE if you expect the LE API verificaiton to fail
+	# this is desired right now, because it's rather complicated to set up a -
+	# - test suite that responds to public requests
+	export SSL_LETSENCRYPT_API_VALIDATES=True
+
+Tests are done on a sqlite database as specified in test.ini
+
+`test_data/` contains the keys and certificates used for testing
+
+You can overwrite the testdb; beware that it CAN NOT run as a memory db.  it must be a disk file due to how some tests are written.
+
+
+
 # TODO
 
 ## finish rate limit calendars
