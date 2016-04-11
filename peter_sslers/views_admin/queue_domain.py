@@ -114,7 +114,7 @@ class ViewAdmin(Handler):
                         'domains': queue_results,
                         }
             results_json = json.dumps(queue_results)
-            return HTTPFound('%s/queue-domains?is_created=1&results=%s' % (self.request.registry.settings['admin_prefix'], results_json))
+            return HTTPFound('%s/queue-domains?result=success&is_created=1&results=%s' % (self.request.registry.settings['admin_prefix'], results_json))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",

@@ -383,8 +383,8 @@ def create__SslCertificateRequest(
             # store the csr_text in a tmpfile
             _tmpfile = cert_utils.new_pem_tempfile(csr_pem)
             _csr_domain_names = cert_utils.parse_csr_domains(csr_path=_tmpfile.name,
-                                                            submitted_domain_names=domain_names,
-                                                            )
+                                                             submitted_domain_names=domain_names,
+                                                             )
             csr_domain_names = utils.domains_from_list(_csr_domain_names)
             if len(csr_domain_names) != len(_csr_domain_names):
                 raise ValueError("One or more of the domain names in the CSR are not allowed (%s)" % _csr_domain_names)
@@ -392,7 +392,6 @@ def create__SslCertificateRequest(
                 raise ValueError("Must submit `csr_pem` that contains `domain_names` (found none)")
         finally:
             _tmpfile.close()
-    
 
     if certificate_request_type_id == SslCertificateRequestType.ACME_FLOW:
         if domain_names is None:
@@ -457,7 +456,7 @@ def create__SslCertificateRequest(
 
         # grab the modulus
         csr_pem_modulus_md5 = cert_utils.modulus_md5_csr__pem_filepath(_tmpfile.name)
-        
+
         # we'll use this tuple in a bit...
         # getcreate__SslDomain__by_domainName returns a tuple of (domainObject, is_created)
         dbDomainObjects = {_domain_name: getcreate__SslDomain__by_domainName(dbSession, _domain_name)[0]
@@ -1414,7 +1413,3 @@ def upload__SslCaCertificateBundle__by_pem_text(dbSession, bundle_data):
         results[cert_pem] = (dbCACertificate, is_created)
 
     return results
-
-
-
-

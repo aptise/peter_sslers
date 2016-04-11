@@ -133,7 +133,7 @@ class ViewAdmin(Handler):
             private_key_pem = formStash.results['private_key_file'].file.read()
             dbSslPrivateKey, _is_created = lib_db.getcreate__SslPrivateKey__by_pem_text(self.request.dbsession, private_key_pem)
 
-            return HTTPFound('%s/private_key/%s%s' % (self.request.registry.settings['admin_prefix'], dbSslPrivateKey.id, ('?is_created=1' if _is_created else '')))
+            return HTTPFound('%s/private-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbSslPrivateKey.id, ('&is_created=1' if _is_created else '')))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",

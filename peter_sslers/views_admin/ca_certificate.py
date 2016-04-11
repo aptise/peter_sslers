@@ -146,7 +146,7 @@ class ViewAdmin(Handler):
                                            'id': dbSslCaCertificate.id,
                                            },
                         }
-            return HTTPFound('%s/ca-certificate/%s?is_created=%s' % (self.request.registry.settings['admin_prefix'], dbSslCaCertificate.id, (1 if cacert_is_created else 0)))
+            return HTTPFound('%s/ca-certificate/%s?result=success&is_created=%s' % (self.request.registry.settings['admin_prefix'], dbSslCaCertificate.id, (1 if cacert_is_created else 0)))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",

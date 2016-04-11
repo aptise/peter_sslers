@@ -88,7 +88,7 @@ class ViewAdminOperations(Handler):
                                          'is_certificates_updated': operations_event.event_payload_json['is_certificates_updated'],
                                          },
                     }
-        return HTTPFound("%s/operations/ca-certificate-probes?success=True&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
+        return HTTPFound("%s/operations/ca-certificate-probes?result=success&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

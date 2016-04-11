@@ -34,7 +34,7 @@ queue tests:
 - turn off non-existing, inactive domain
 """
 
-# set these by environment variables, 
+# set these by environment variables,
 """
 export SSL_RUN_NGINX_TESTS=True
 export SSL_RUN_REDIS_TESTS=True
@@ -49,6 +49,8 @@ RUN_REDIS_TESTS = os.environ.get('SSL_RUN_REDIS_TESTS', False)
 RUN_LETSENCRYPT_API_TESTS = os.environ.get('SSL_RUN_LETSENCRYPT_API_TESTS', False)
 # does the LE validation work?  LE must be able to reach this
 LETSENCRYPT_API_VALIDATES = os.environ.get('SSL_LETSENCRYPT_API_VALIDATES', False)
+
+DISABLE_UNWRITTEN_TESTS = True
 
 
 # ==============================================================================
@@ -115,12 +117,37 @@ TEST_FILES = {'AccountKey': {'1': 'account_1.key',
                                                     },
                                      'LetsEncrypt': {},
                                      },
+              'PrivateKey': {'1': {'file': 'private_1.key',
+                                   'key_pem_md5': '462dc10731254d7f5fa7f0e99cbece73',
+                                   'key_pem_modulus_md5': '5d0f596ace3ea1a9ce40dc9b087759a1',
+                                   },
+                             '2': {'file': 'private_2.key',
+                                   'key_pem_md5': 'cdde9325bdbfe03018e4119549c3a7eb',
+                                   'key_pem_modulus_md5': 'db45c5dce9fffbe21fc82a5e26b0bf8e',
+                                   },
+                             '3': {'file': 'private_3.key',
+                                   'key_pem_md5': '399236401eb91c168762da425669ad06',
+                                   'key_pem_modulus_md5': 'c2b3abfb8fa471977b6df77aafd30bee',
+                                   },
+                             '4': {'file': 'private_4.key',
+                                   'key_pem_md5': '6867998790e09f18432a702251bb0e11',
+                                   'key_pem_modulus_md5': 'e33389025a223c8a36958dc56de08840',
+                                   },
+                             '5': {'file': 'private_5.key',
+                                   'key_pem_md5': '1b13814854d8cee8c64732a2e2f7e73e',
+                                   'key_pem_modulus_md5': 'a2ea95b3aa5f5b337ac981c2024bcb3a',
+                                   },
+                             },
+              'Domains': {'Queue': {'1': {'add': 'qadd1.example.com, qadd2.example.com, qadd3.example.com', 
+                                          'add.json': 'qaddjson1.example.com, qaddjson2.example.com, qaddjson3.example.com',
+                                          },
+                                    }
+                          }
               }
+              
 
 
-class AppTest(unittest.TestCase):
-    _session = None
-    _DB_INTIALIZED = False
+class AppTestCore(unittest.TestCase):
     _data_root = None
 
     def _filepath_testfile(self, filename):
@@ -136,13 +163,36 @@ class AppTest(unittest.TestCase):
             settings['sqlalchemy.url'] = "sqlite://"
         app = main(global_config = None, **settings)
         self.testapp = TestApp(app)
-        # DO STUFF HERE
         self._data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_data')
 
+
+class UnitTestOpenSSL(AppTestCore):
+    """python -m unittest peter_sslers.tests.UnitTestOpenSSL"""
+    
+    def test_modulus_PrivateKey(self):
+        for pkey_set_id, set_data in TEST_FILES['PrivateKey'].items():
+            pem_filepath = self._filepath_testfile(set_data['file'])
+            _computed_modulus_md5 = lib.cert_utils.modulus_md5_key__pem_filepath(pem_filepath)
+            _expected_modulus_md5 = set_data['key_pem_modulus_md5']
+            assert _computed_modulus_md5 == _expected_modulus_md5
+            _computed_md5 = lib.utils.md5_text(self._filedata_testfile(pem_filepath))
+            _expected_md5 = set_data['key_pem_md5']
+            assert _computed_md5 == _expected_md5
+
+
+class AppTest(AppTestCore):
+
+    _session = None
+    _DB_INTIALIZED = False
+
+
+    def setUp(self):
+        AppTestCore.setUp(self)
         if not AppTest._DB_INTIALIZED:
+        
             print "---------------"
             print "INITIALIZING DB"
-            engine = app.registry['dbsession_factory']().bind
+            engine = self.testapp.app.registry['dbsession_factory']().bind
 
             models.meta.Base.metadata.drop_all(engine)
             engine.execute("VACUUM")
@@ -266,7 +316,6 @@ class AppTest(unittest.TestCase):
                 )
                 self.session.commit()
 
-
             except Exception as e:
                 print ""
                 print ""
@@ -316,6 +365,7 @@ class FunctionalTests_Passes(AppTest):
 
     def tests_passes(self):
         return True
+
 
 class FunctionalTests_AccountKeys(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_AccountKeys"""
@@ -379,14 +429,14 @@ class FunctionalTests_AccountKeys(AppTest):
         form['account_key_file'] = Upload(key_filepath)
         res2 = form.submit()
         assert res2.status_code == 302
-        assert res2.location == """http://localhost/.well-known/admin/account-key/2?is_created=1"""
+        assert res2.location == """http://localhost/.well-known/admin/account-key/2?result=success&is_created=1"""
         res3 = self.testapp.get(res2.location, status=200)
 
     @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):
         # this hits LE
         res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=302)
-        assert res.location == """http://localhost/.well-known/admin/account-key/1?is_authenticated=1"""
+        assert res.location == """http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=1"""
 
 
 class FunctionalTests_API(AppTest):
@@ -431,7 +481,7 @@ class FunctionalTests_CACertificate(AppTest):
         form['chain_file'] = Upload(_ca_cert_filepath)
         res2 = form.submit()
         assert res2.status_code == 302
-        assert res2.location == """http://localhost/.well-known/admin/ca-certificate/3?is_created=1"""
+        assert res2.location == """http://localhost/.well-known/admin/ca-certificate/3?result=success&is_created=1"""
         res3 = self.testapp.get(res2.location, status=200)
 
         """This should enter in item #4"""
@@ -576,11 +626,13 @@ class FunctionalTests_Certificate(AppTest):
 
     @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):
+        if DISABLE_UNWRITTEN_TESTS:
+            return True
         raise NotImplementedError()
-        config.add_route_7('admin:certificate:focus:renew:quick', '/certificate/{@id}/renew/quick')
-        config.add_route_7('admin:certificate:focus:renew:quick.json', '/certificate/{@id}/renew/quick.json')
-        config.add_route_7('admin:certificate:focus:renew:custom', '/certificate/{@id}/renew/custom')
-        config.add_route_7('admin:certificate:focus:renew:custom.json', '/certificate/{@id}/renew/custom.json')
+        # config.add_route_7('admin:certificate:focus:renew:quick', '/certificate/{@id}/renew/quick')
+        # config.add_route_7('admin:certificate:focus:renew:quick.json', '/certificate/{@id}/renew/quick.json')
+        # config.add_route_7('admin:certificate:focus:renew:custom', '/certificate/{@id}/renew/custom')
+        # config.add_route_7('admin:certificate:focus:renew:custom.json', '/certificate/{@id}/renew/custom.json')
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     def tests_nginx(self):
@@ -589,7 +641,7 @@ class FunctionalTests_Certificate(AppTest):
         focus_id = focus_item.id
 
         res = self.testapp.get('/.well-known/admin/certificate/%s/nginx-cache-expire' % focus_id, status=302)
-        assert "/.well-known/admin/certificate/5?operation=nginx_cache_expire&result=success&event.id=" % focus_id in res.location
+        assert "/.well-known/admin/certificate/%s?operation=nginx_cache_expire&result=success&event.id=" % focus_id in res.location
 
         res = self.testapp.get('/.well-known/admin/certificate/%s/nginx-cache-expire.json' % focus_id, status=200)
         res_json = json.loads(res.body)
@@ -639,7 +691,6 @@ class FunctionalTests_CertificateRequest(AppTest):
         else:
             raise ValueError("How do we catch this?")
 
-
     def tests_acme_flow(self):
         res = self.testapp.get('/.well-known/admin/certificate-request/new-acme-flow', status=200)
         form = res.form
@@ -658,11 +709,11 @@ class FunctionalTests_CertificateRequest(AppTest):
             form['challenge_text'] = 'foo'
             res2 = form.submit()
             # we're not sure what the domain id is, so just check the location
-            assert '?result=success'  in res2.location
+            assert '?result=success' in res2.location
 
         # deactivate!
         res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/deactivate', status=302)
-        assert '?result=success'  in res.location
+        assert '?result=success' in res.location
 
 
 class FunctionalTests_Domain(AppTest):
@@ -726,7 +777,7 @@ class FunctionalTests_Domain(AppTest):
         focus_name = focus_item.domain_name
 
         res = self.testapp.get('/.well-known/admin/domain/%s/nginx-cache-expire' % focus_id, status=302)
-        assert "/.well-known/admin/domain/5?operation=nginx_cache_expire&result=success&event.id=" % focus_id in res.location
+        assert "/.well-known/admin/domain/%s?operation=nginx_cache_expire&result=success&event.id=" % focus_id in res.location
 
         res = self.testapp.get('/.well-known/admin/domain/%s/nginx-cache-expire.json' % focus_id, status=200)
         res_json = json.loads(res.body)
@@ -783,10 +834,19 @@ class FunctionalTests_PrivateKeys(AppTest):
             # TODO
             print "MUST TEST compromised"
 
-    @unittest.skip("tests not written yet")
-    def tests_todo(self):
-        raise NotImplementedError()
-        res = self.testapp.get('/.well-known/admin/private-key/1/new', status=200)
+    def test_new(self):
+        # this should be creating a new key
+        _key_filename = TEST_FILES['PrivateKey']['2']['file']
+        key_filepath = self._filepath_testfile(_key_filename)
+        res = self.testapp.get('/.well-known/admin/private-key/new', status=200)
+        form = res.form
+        form['private_key_file'] = Upload(key_filepath)
+        res2 = form.submit()
+        assert res2.status_code == 302
+        assert """/.well-known/admin/private-key/""" in res2.location
+        # for some reason, we don't always "create" this.
+        assert """?result=success""" in res2.location
+        res3 = self.testapp.get(res2.location, status=200)
 
 
 class FunctionalTests_UniqueFQDNSets(AppTest):
@@ -843,11 +903,27 @@ class FunctionalTests_QueueDomains(AppTest):
 
         res = self.testapp.get('/.well-known/admin/queue-domain/%s' % focus_id, status=200)
 
+    def tests_add(self):
+        res = self.testapp.get('/.well-known/admin/queue-domains/add', status=200)
+        form = res.form
+        form['domain_names'] = TEST_FILES['Domains']['Queue']['1']['add']
+        res2 = form.submit()
+        assert res2.status_code == 302
+        assert """http://localhost/.well-known/admin/queue-domains?result=success""" in res2.location
+
+        res = self.testapp.get('/.well-known/admin/queue-domains/add.json', status=200)
+        _data = {'domain_names': TEST_FILES['Domains']['Queue']['1']['add.json']
+                 }
+        res2 = self.testapp.post('/.well-known/admin/queue-domains/add.json', _data)
+        assert res2.status_code == 200
+        res2_json = json.loads(res2.body)
+        assert res2_json['result'] == 'success'
+
     @unittest.skip("tests not written yet")
     def tests_todo(self):
-        raise NotImplementedError()
-        res = self.testapp.get('/.well-known/admin/queue-domains/add', status=200)
-        res = self.testapp.get('/.well-known/admin/queue-domains/add.json', status=200)
+        # todo
+        if DISABLE_UNWRITTEN_TESTS:
+            return True
         res = self.testapp.get('/.well-known/admin/queue-domains/process', status=200)
         res = self.testapp.get('/.well-known/admin/queue-domains/process.json', status=200)
 
@@ -879,7 +955,9 @@ class FunctionalTests_QueueRenewal(AppTest):
 
     @unittest.skip("tests not written yet")
     def tests_todo(self):
-        raise NotImplementedError()
+        # todo
+        if DISABLE_UNWRITTEN_TESTS:
+            return True
         res = self.testapp.get('/.well-known/admin/queue-renewals/process', status=200)
         res = self.testapp.get('/.well-known/admin/queue-renewals/process.json', status=200)
 
@@ -909,10 +987,10 @@ class FunctionalTests_Operations(AppTest):
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     def tests_nginx(self):
-        res = self.testapp.get('/.well-known/admin/operations/nginx-cache-flush', status=302)
+        res = self.testapp.get('/.well-known/admin/operations/nginx/cache-flush', status=302)
         assert "/.well-known/admin/operations/nginx?operation=nginx_cache_flush&result=success&event.id=" in res.location
 
-        res = self.testapp.get('/.well-known/admin/operations/nginx-cache-flush.json' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/operations/nginx/cache-flush.json', status=200)
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
 
@@ -921,7 +999,7 @@ class FunctionalTests_Operations(AppTest):
         res = self.testapp.get('/.well-known/admin/operations/redis/prime', status=302)
         assert "/.well-known/admin/operations/redis?operation=redis_prime&result=success&event.id=" in res.location
 
-        res = self.testapp.get('/.well-known/admin/operations/redis/prime.json' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/operations/redis/prime.json', status=200)
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
 
@@ -929,11 +1007,11 @@ class FunctionalTests_Operations(AppTest):
         # deactivate-expired
         res = self.testapp.get('/.well-known/admin/operations/deactivate-expired', status=302)
         assert "/.well-known/admin/operations/log?result=success&event.id=" in res.location
-        
+
         res = self.testapp.get('/.well-known/admin/operations/deactivate-expired.json', status=200)
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
-        
+
         # deactivate-expired
         res = self.testapp.get('/.well-known/admin/operations/update-recents', status=302)
         assert "/.well-known/admin/operations/log?result=success&event.id=" in res.location
@@ -942,8 +1020,10 @@ class FunctionalTests_Operations(AppTest):
         assert res_json['result'] == 'success'
 
     @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
-    def tests_todo(self):
-        raise NotImplementedError()
-        # these are active, not passive
-        config.add_route_7('admin:operations:ca_certificate_probes:probe', '/operations/ca-certificate-probes/probe')
-        config.add_route_7('admin:operations:ca_certificate_probes:probe.json', '/operations/ca-certificate-probes/probe.json')
+    def tests_letsencrypt_api(self):
+        res = self.testapp.get('/.well-known/admin/operations/ca-certificate-probes/probe', status=302)
+        assert '/admin/operations/ca-certificate-probes?result=success&event.id=' in res.location
+
+        res = self.testapp.get('/.well-known/admin/operations/ca-certificate-probes/probe.json', status=200)
+        res_json = json.loads(res.body)
+        assert res_json['result'] == 'success'

@@ -95,7 +95,7 @@ class ViewAdmin(Handler):
     def account_key_focus__authenticate(self):
         dbSslLetsEncryptAccountKey = self._account_key_focus()
         is_authenticated = lib_db.do__SslLetsEncryptAccountKey_authenticate(self.request.dbsession, dbSslLetsEncryptAccountKey)
-        return HTTPFound('%s/account-key/%s?is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbSslLetsEncryptAccountKey.id, ('1' if is_authenticated else '0')))
+        return HTTPFound('%s/account-key/%s?result=success&is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbSslLetsEncryptAccountKey.id, ('1' if is_authenticated else '0')))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -154,7 +154,7 @@ class ViewAdmin(Handler):
             account_key_pem = formStash.results['account_key_file'].file.read()
             dbSslLetsEncryptAccountKey, _is_created = lib_db.getcreate__SslLetsEncryptAccountKey__by_pem_text(self.request.dbsession, account_key_pem)
 
-            return HTTPFound('%s/account-key/%s%s' % (self.request.registry.settings['admin_prefix'], dbSslLetsEncryptAccountKey.id, ('?is_created=1' if _is_created else '')))
+            return HTTPFound('%s/account-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbSslLetsEncryptAccountKey.id, ('&is_created=1' if _is_created else '')))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",

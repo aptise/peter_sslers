@@ -223,35 +223,44 @@ def validate_cert__der_filepath(der_filepath):
 
 def modulus_md5_key__pem_filepath(pem_filepath):
     # openssl rsa -noout -modulus -in {KEY} | openssl md5
-    proc = subprocess.Popen([openssl_path, "rsa", "-noout", "-modulus", "-in", pem_filepath],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    data, err = proc.communicate()
-    if not data:
-        raise errors.OpenSslError(err)
+    proc_modulus = subprocess.Popen([openssl_path, "rsa", "-noout", "-modulus", "-in", pem_filepath],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc_md5 = subprocess.Popen([openssl_path, "md5"],
+                                 stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    data, err = proc_md5.communicate()
     data = data.strip()
-    return utils.md5_text(data)
+    if data[:9] != "(stdin)= " or not data:
+        raise errors.OpenSslError("error reading")
+    data = data[9:]
+    return data
 
 
 def modulus_md5_csr__pem_filepath(pem_filepath):
     # openssl req -noout -modulus -in {CSR} | openssl md5
-    proc = subprocess.Popen([openssl_path, "req", "-noout", "-modulus", "-in", pem_filepath],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    data, err = proc.communicate()
-    if not data:
-        raise errors.OpenSslError_InvalidCSR(err)
+    proc_modulus = subprocess.Popen([openssl_path, "req", "-noout", "-modulus", "-in", pem_filepath],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc_md5 = subprocess.Popen([openssl_path, "md5"],
+                                 stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    data, err = proc_md5.communicate()
     data = data.strip()
-    return utils.md5_text(data)
+    if data[:9] != "(stdin)= " or not data:
+        raise errors.OpenSslError("error reading")
+    data = data[9:]
+    return data
 
 
 def modulus_md5_cert__pem_filepath(pem_filepath):
     # openssl x509 -noout -modulus -in {CERT} | openssl md5
-    proc = subprocess.Popen([openssl_path, "x509", "-noout", "-modulus", "-in", pem_filepath],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    data, err = proc.communicate()
-    if not data:
-        raise errors.OpenSslError_InvalidCertificate(err)
+    proc_modulus = subprocess.Popen([openssl_path, "x509", "-noout", "-modulus", "-in", pem_filepath],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc_md5 = subprocess.Popen([openssl_path, "md5"],
+                                 stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    data, err = proc_md5.communicate()
     data = data.strip()
-    return utils.md5_text(data)
+    if data[:9] != "(stdin)= " or not data:
+        raise errors.OpenSslError("error reading")
+    data = data[9:]
+    return data
 
 
 def cert_single_op__pem_filepath(pem_filepath, single_op):
