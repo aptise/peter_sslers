@@ -158,14 +158,14 @@
 
     % if SslCertificateRequest.is_active and SslCertificateRequest.certificate_request_type_is('acme flow'):
         <a
-            href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process"
+            href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage"
             class="btn btn-info"
         >
             <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
             Edit Codes
         </a>
         <a
-            href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/deactivate"
+            href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/deactivate"
             class="btn btn-primary"
         >
             <span class="glyphicon glyphicon-play-circle" aria-hidden="true"></span>

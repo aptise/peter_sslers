@@ -13,7 +13,7 @@
 
 <%block name="page_header">
     <h2>Certificate Request - FULL | New</h2>
-    <p><em>${request.text_library.info_CertificateRequest_new_full[1]}</em></p>
+    <p><em>${request.text_library.info_CertificateRequest_new_AcmeAutomated[1]}</em></p>
     <div class="alert alert-info">
         <em>
             Requests will be performed against the following Certificate Authority:
@@ -31,7 +31,7 @@
             <%! show_text = False %>
 
             <form
-                action="${admin_prefix}/certificate-request/new-full"
+                action="${admin_prefix}/certificate-request/new-acme-automated"
                 method="POST"
                 enctype="multipart/form-data"
             >

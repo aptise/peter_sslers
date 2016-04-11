@@ -329,20 +329,20 @@ class ViewAdmin(Handler):
                 raise ValueError("unknown option")
 
             try:
-                newLetsencryptCertificate = lib_db.do__CertificateRequest__FULL(
+                newLetsencryptCertificate = lib_db.do__CertificateRequest__AcmeAutomated(
                     self.request.dbsession,
                     domain_names=dbSslServerCertificate.domains_as_list,
                     account_key_pem=account_key_pem,
                     dbAccountKey=dbAccountKey,
                     private_key_pem=private_key_pem,
                     dbPrivateKey=dbPrivateKey,
-                    ssl_server_certificate_id__renewal_of=dbSslServerCertificate.id,
+                    dbSslCertificate__renewal_of=dbSslServerCertificate,
                 )
             except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
-                return HTTPFound('%s/certificate-requests?error=new-full&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
+                return HTTPFound('%s/certificate-requests?result=error&error=renew-acme-automated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except:
                 if self.request.registry.settings['exception_redirect']:
-                    return HTTPFound('%s/certificate-requests?error=new-full' % self.request.registry.settings['admin_prefix'])
+                    return HTTPFound('%s/certificate-requests?result=error&error=renew-acme-automated' % self.request.registry.settings['admin_prefix'])
                 raise
 
             return HTTPFound('%s/certificate/%s?is_renewal=True' % (self.request.registry.settings['admin_prefix'], newLetsencryptCertificate.id))

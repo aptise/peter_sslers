@@ -75,14 +75,14 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:certificate_request:focus:deactivate')
+    @view_config(route_name='admin:certificate_request:focus:acme-flow:deactivate')
     def certificate_request_deactivate(self):
         dbSslCertificateRequest = self._certificate_request_focus()
         if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
             raise HTTPNotFound('Only availble for Acme Flow')
         dbSslCertificateRequest.is_active = False
         self.request.dbsession.flush()
-        return HTTPFound('%s/certificate-request/%s' % (self.request.registry.settings['admin_prefix'], dbSslCertificateRequest.id))
+        return HTTPFound('%s/certificate-request/%s?result=success' % (self.request.registry.settings['admin_prefix'], dbSslCertificateRequest.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -104,9 +104,17 @@ class ViewAdmin(Handler):
         if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
             raise HTTPNotFound('Only availble for Acme Flow')
         dbSslCertificateRequest2SslDomain = None
-        domain_id = int(self.request.matchdict['domain_id'])
+
+        domain_identifier = self.request.matchdict['domain_identifier'].strip()
+        if domain_identifier.isdigit():
+            dbSslDomain = lib_db.get__SslDomain__by_id(self.request.dbsession, domain_identifier, preload=False, eagerload_web=False)
+        else:
+            dbSslDomain = lib_db.get__SslDomain__by_name(self.request.dbsession, domain_identifier, preload=False, eagerload_web=False)
+        if not dbSslDomain:
+            raise HTTPNotFound('invalid domain')
+
         for to_domain in dbSslCertificateRequest.certificate_request_to_domains:
-            if to_domain.ssl_domain_id == domain_id:
+            if to_domain.ssl_domain_id == dbSslDomain.id:
                 dbSslCertificateRequest2SslDomain = to_domain
                 break
         if dbSslCertificateRequest2SslDomain is None:
@@ -150,7 +158,7 @@ class ViewAdmin(Handler):
 
             self.request.dbsession.flush()
 
-            return HTTPFound('%s/certificate-request/%s/acme-flow/manage/domain/%s' %
+            return HTTPFound('%s/certificate-request/%s/acme-flow/manage/domain/%s?result=success' %
                              (self.request.registry.settings['admin_prefix'],
                               self.db_SslCertificateRequest.id,
                               self.db_SslCertificateRequest2SslDomain.ssl_domain_id
@@ -192,7 +200,7 @@ class ViewAdmin(Handler):
             domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 raise ValueError("missing valid domain names")
-            dbSslCertificateRequest = lib_db.create__SslCertificateRequest(
+            dbSslCertificateRequest, dbDomainObjects = lib_db.create__SslCertificateRequest(
                 self.request.dbsession,
                 csr_pem = None,
                 certificate_request_type_id = SslCertificateRequestType.ACME_FLOW,

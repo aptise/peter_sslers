@@ -41,8 +41,8 @@ def new_pem_tempfile(pem_data):
 
 def new_csr_for_domain_names(
     domain_names,
-    private_key_path,
-    tmpfiles_tracker,
+    private_key_path=None,
+    tmpfiles_tracker=None,
 ):
     max_domains_certificate = lib.letsencrypt_info.LIMITS['names/certificate']['limit']
 

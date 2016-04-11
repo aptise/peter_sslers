@@ -35,9 +35,20 @@ queue tests:
 """
 
 # set these by environment variables, 
+"""
+export SSL_RUN_NGINX_TESTS=True
+export SSL_RUN_REDIS_TESTS=True
+export SSL_RUN_LETSENCRYPT_API_TESTS=True
+export SSL_LETSENCRYPT_API_VALIDATES=True
+"""
+# run tests that expire nginx caches
 RUN_NGINX_TESTS = os.environ.get('SSL_RUN_NGINX_TESTS', False)
+# run tests to prime redis
 RUN_REDIS_TESTS = os.environ.get('SSL_RUN_REDIS_TESTS', False)
+# run tests against LE API
 RUN_LETSENCRYPT_API_TESTS = os.environ.get('SSL_RUN_LETSENCRYPT_API_TESTS', False)
+# does the LE validation work?  LE must be able to reach this
+LETSENCRYPT_API_VALIDATES = os.environ.get('SSL_LETSENCRYPT_API_VALIDATES', False)
 
 
 # ==============================================================================
@@ -66,6 +77,15 @@ TEST_FILES = {'AccountKey': {'1': 'account_1.key',
                                           'le_x4_cross_signed': 'lets-encrypt-x4-cross-signed.pem.txt',
                                           },
                                  },
+              'CertificateRequests': {'1': {'domains': 'foo.example.com, bar.example.com',
+                                            'account_key': 'account_1.key',
+                                            'private_key': 'private_1.key',
+                                            },
+                                      '1': {'domains': 'foo.example.com, bar.example.com',
+                                            'account_key': 'account_2.key',
+                                            'private_key': 'private_2.key',
+                                            },
+                                      },
               # the certificates are a tuple of: (CommonName, crt, csr, key)
               'ServerCertificates': {'SelfSigned': {'1': {'domain': 'selfsigned-1.example.com',
                                                           'cert': 'selfsigned_1-server.crt',
@@ -362,7 +382,7 @@ class FunctionalTests_AccountKeys(AppTest):
         assert res2.location == """http://localhost/.well-known/admin/account-key/2?is_created=1"""
         res3 = self.testapp.get(res2.location, status=200)
 
-    #@unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
+    @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):
         # this hits LE
         res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=302)
@@ -604,12 +624,45 @@ class FunctionalTests_CertificateRequest(AppTest):
         res = self.testapp.get('/.well-known/admin/certificate-request/%s/csr.pem' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate-request/%s/csr.pem.txt' % focus_id, status=200)
 
-    @unittest.skip("these might need better APIs or migration")
-    def tests_advanced(self):
-        raise NotImplementedError()
-        config.add_route_7('admin:certificate_request:flow:manage', '/certificate-request/{@id}/acme-flow/manage')
-        config.add_route_7('admin:certificate_request:flow:manage:domain', '/certificate-request/{@id}/acme-flow/manage/domain/{domain_id:\d+}')
-        config.add_route_7('admin:certificate_request:deactivate', '/certificate-request/{@id}/deactivate')
+    @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
+    def tests_letsencrypt_api(self):
+        res = self.testapp.get('/.well-known/admin/certificate-request/new-acme-automated', status=200)
+        form = res.form
+        form['account_key_file'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['1']['account_key']))
+        form['private_key_file'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['1']['private_key']))
+        form['domain_names'] = TEST_FILES['CertificateRequests']['1']['domains']
+        res2 = form.submit()
+        assert res2.status_code == 302
+        if not LETSENCRYPT_API_VALIDATES:
+            if "/.well-known/admin/certificate-requests?error=new-AcmeAutomated&message=Wrote keyauth challenge, but couldn't download" not in res2.location:
+                raise ValueError("Expected an error: failure to validate")
+        else:
+            raise ValueError("How do we catch this?")
+
+
+    def tests_acme_flow(self):
+        res = self.testapp.get('/.well-known/admin/certificate-request/new-acme-flow', status=200)
+        form = res.form
+        form['domain_names'] = TEST_FILES['CertificateRequests']['1']['domains']
+        res2 = form.submit()
+        assert res2.status_code == 302
+        assert res2.location == """http://localhost/.well-known/admin/certificate-request/2/acme-flow/manage"""
+
+        # make sure we can get this
+        res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/manage', status=200)
+        domains = [i.strip().lower() for i in TEST_FILES['CertificateRequests']['1']['domains'].split(',')]
+        for _domain in domains:
+            res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/manage/domain/%s' % _domain, status=200)
+            form = res.form
+            form['challenge_key'] = 'foo'
+            form['challenge_text'] = 'foo'
+            res2 = form.submit()
+            # we're not sure what the domain id is, so just check the location
+            assert '?result=success'  in res2.location
+
+        # deactivate!
+        res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/deactivate', status=302)
+        assert '?result=success'  in res.location
 
 
 class FunctionalTests_Domain(AppTest):

@@ -133,7 +133,7 @@ def getcreate__SslCertificateRequest__by_pem_text(
     dbSslCertificateRequest = get__SslCertificateRequest__by_pem_text(dbSession, csr_pem)
     is_created = False
     if not dbSslCertificateRequest:
-        dbSslCertificateRequest = create__SslCertificateRequest(
+        dbSslCertificateRequest, dbDomainObjects = create__SslCertificateRequest(
             dbSession,
             csr_pem,
             certificate_request_type_id = certificate_request_type_id,
@@ -214,7 +214,7 @@ def getcreate__SslServerCertificate__by_pem_text(
     dbCACertificate=None,
     dbAccountKey=None,
     dbPrivateKey=None,
-    ssl_server_certificate_id__renewal_of=None,
+    dbSslCertificate__renewal_of=None,
 ):
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
@@ -258,7 +258,8 @@ def getcreate__SslServerCertificate__by_pem_text(
             dbCertificate.cert_pem = cert_pem
             dbCertificate.cert_pem_md5 = cert_pem_md5
 
-            dbCertificate.ssl_server_certificate_id__renewal_of = ssl_server_certificate_id__renewal_of
+            if dbSslCertificate__renewal_of:
+                dbCertificate.ssl_server_certificate_id__renewal_of = dbSslCertificate__renewal_of.id
 
             # this is the LetsEncrypt key
             if dbCACertificate is None:
@@ -373,6 +374,9 @@ def create__SslCertificateRequest(
 
     # if there is a csr_pem; extract the domains
     csr_domain_names = None
+    if csr_pem is None:
+        if not domain_names:
+            raise ValueError("Must submit `csr_pem` that contains `domain_names` or explicitly provide `domain_names` (found neither)")
     if csr_pem is not None:
         _tmpfile = None
         try:
@@ -426,7 +430,7 @@ def create__SslCertificateRequest(
             dbSession.add(dbSslCertificateRequest2D)
             dbSession.flush()
 
-        return dbSslCertificateRequest
+        return dbSslCertificateRequest, dbDomainObjects
 
     if dbPrivateKey is None:
         raise ValueError("Must submit `dbPrivateKey` for creation")
@@ -452,8 +456,8 @@ def create__SslCertificateRequest(
         cert_utils.validate_csr__pem_filepath(_tmpfile.name)
 
         # grab the modulus
-        csr_pem_modulus_md5 = cert_utils.modulus_md5_csr__pem_filepath(tmpfile_csr.name)
-
+        csr_pem_modulus_md5 = cert_utils.modulus_md5_csr__pem_filepath(_tmpfile.name)
+        
         # we'll use this tuple in a bit...
         # getcreate__SslDomain__by_domainName returns a tuple of (domainObject, is_created)
         dbDomainObjects = {_domain_name: getcreate__SslDomain__by_domainName(dbSession, _domain_name)[0]
@@ -466,8 +470,8 @@ def create__SslCertificateRequest(
         dbSslCertificateRequest.is_active = True
         dbSslCertificateRequest.certificate_request_type_id = certificate_request_type_id
         dbSslCertificateRequest.timestamp_started = t_now
-        dbSslCertificateRequest.csr_pem = csr_text
-        dbSslCertificateRequest.csr_pem_md5 = utils.md5_text(csr_text)
+        dbSslCertificateRequest.csr_pem = csr_pem
+        dbSslCertificateRequest.csr_pem_md5 = utils.md5_text(csr_pem)
         dbSslCertificateRequest.csr_pem_modulus_md5 = csr_pem_modulus_md5
         dbSslCertificateRequest.ssl_unique_fqdn_set_id = dbFqdnSet.id
 
@@ -475,7 +479,8 @@ def create__SslCertificateRequest(
         if dbAccountKey:
             dbSslCertificateRequest.ssl_letsencrypt_account_key_id = dbAccountKey.id
         dbSslCertificateRequest.ssl_private_key_id__signed_by = dbPrivateKey.id
-        dbSslCertificateRequest.ssl_server_certificate_id__renewal_of = ssl_server_certificate_id__renewal_of
+        if dbSslCertificate__renewal_of:
+            dbSslCertificateRequest.ssl_server_certificate_id__renewal_of = dbSslCertificate__renewal_of.id
 
         dbSession.add(dbSslCertificateRequest)
         dbSession.flush()
@@ -537,7 +542,7 @@ def create__SslServerCertificate(
     dbSslCertificateRequest = None,
     dbSslLetsEncryptAccountKey = None,
     dbSslDomains = None,
-    ssl_server_certificate_id__renewal_of = None,
+    dbSslCertificate__renewal_of = None,
 
     # only one of these 2
     dbSslPrivateKey = None,
@@ -577,7 +582,8 @@ def create__SslServerCertificate(
             dbSslCertificateRequest.is_active = False
             dbSslServerCertificate.ssl_certificate_request_id = dbSslCertificateRequest.id
         dbSslServerCertificate.ssl_ca_certificate_id__upchain = ssl_ca_certificate_id__upchain
-        dbSslServerCertificate.ssl_server_certificate_id__renewal_of = ssl_server_certificate_id__renewal_of
+        if dbSslCertificate__renewal_of:
+            dbSslServerCertificate.ssl_server_certificate_id__renewal_of = dbSslCertificate__renewal_of.id
 
         # note account/private keys
         dbSslServerCertificate.ssl_letsencrypt_account_key_id = dbSslLetsEncryptAccountKey.id
@@ -741,7 +747,7 @@ def do__SslLetsEncryptAccountKey_authenticate(dbSession, dbSslLetsEncryptAccount
             _tmpfile.close()
 
 
-def do__CertificateRequest__ACME_AUTOMATED(
+def do__CertificateRequest__AcmeAutomated(
     dbSession,
     domain_names,
 
@@ -751,7 +757,7 @@ def do__CertificateRequest__ACME_AUTOMATED(
     dbPrivateKey=None,
     private_key_pem=None,
 
-    ssl_server_certificate_id__renewal_of=None,
+    dbSslCertificate__renewal_of=None,
 ):
     """
 
@@ -811,18 +817,24 @@ def do__CertificateRequest__ACME_AUTOMATED(
         tmpfiles.append(tmpfile_pkey)
 
         # make the CSR
-        csr_text = cert_utils.new_csr_for_domain_names(domain_names, tmpfile_pkey.name, tmpfiles)
+        csr_pem = cert_utils.new_csr_for_domain_names(domain_names,
+                                                      private_key_path=tmpfile_pkey.name,
+                                                      tmpfiles_tracker=tmpfiles
+                                                      )
+        tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
+        tmpfiles.append(tmpfile_csr)
 
         # these MUST commit
         with transaction.manager as tx:
-            dbSslCertificateRequest = create__SslCertificateRequest(
+            dbSslCertificateRequest, dbDomainObjects = create__SslCertificateRequest(
                 dbSession,
                 csr_pem,
                 certificate_request_type_id = SslCertificateRequestType.ACME_AUTOMATED,
-                dbAccountKey = None,
-                dbPrivateKey = None,
+                dbAccountKey = dbAccountKey,
+                dbPrivateKey = dbPrivateKey,
                 dbSslCertificate_issued = None,
-                dbSslCertificate__renewal_of = None,
+                dbSslCertificate__renewal_of = dbSslCertificate__renewal_of,
+                domain_names = domain_names,
             )
 
         def process_keyauth_challenge(domain, token, keyauthorization):
@@ -839,13 +851,15 @@ def do__CertificateRequest__ACME_AUTOMATED(
         # ######################################################################
         # THIS BLOCK IS FROM acme-tiny
 
-        # parse account key to get public key
-        header, thumbprint = acme.account_key__header_thumbprint(account_key_path=tmpfile_account.name, )
-
         # pull domains from csr
         csr_domains = cert_utils.parse_csr_domains(csr_path=tmpfile_csr.name,
                                                    submitted_domain_names=domain_names,
                                                    )
+        if set(csr_domains) != set(domain_names):
+            raise ValueError("Did not make a valid set")
+
+        # parse account key to get public key
+        header, thumbprint = acme.account_key__header_thumbprint(account_key_path=tmpfile_account.name, )
 
         # register the account / ensure that it is registered
         if not dbAccountKey.timestamp_last_authenticated:
@@ -891,7 +905,7 @@ def do__CertificateRequest__ACME_AUTOMATED(
                 dbSslLetsEncryptAccountKey = dbAccountKey,
                 dbSslPrivateKey = dbPrivateKey,
                 dbSslDomains = [v[0] for v in dbDomainObjects.values()],
-                ssl_server_certificate_id__renewal_of = ssl_server_certificate_id__renewal_of,
+                dbSslCertificate__renewal_of = dbSslCertificate__renewal_of,
             )
 
         return dbSslServerCertificate
@@ -1274,7 +1288,7 @@ def queue_domains__process(
         dbSslServerCertificate = None
         try:
             domain_names = [d.domain_name for d in domainObjects]
-            dbSslServerCertificate = do__CertificateRequest__ACME_AUTOMATED(
+            dbSslServerCertificate = do__CertificateRequest__AcmeAutomated(
                 dbSession,
                 domain_names,
                 dbAccountKey=dbAccountKey,
