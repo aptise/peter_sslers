@@ -102,9 +102,9 @@ def _admin_views(config):
     config.add_route_7('admin:certificate_requests_paginated', '/certificate-requests/{@page}')
     config.add_route_7('admin:certificate_request:focus', '/certificate-request/{@id}')
     config.add_route_7('admin:certificate_request:focus:raw', '/certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}')
-    config.add_route_7('admin:certificate_request:process', '/certificate-request/{@id}/process')
-    config.add_route_7('admin:certificate_request:deactivate', '/certificate-request/{@id}/deactivate')
-    config.add_route_7('admin:certificate_request:process:domain', '/certificate-request/{@id}/process/domain/{domain_id:\d+}')
+    config.add_route_7('admin:certificate_request:focus:acme-flow:manage', '/certificate-request/{@id}/acme-flow/manage')
+    config.add_route_7('admin:certificate_request:focus:acme-flow:manage:domain', '/certificate-request/{@id}/acme-flow/manage/domain/{domain_id:\d+}')
+    config.add_route_7('admin:certificate_request:focus:deactivate', '/certificate-request/{@id}/deactivate')
     # two types of CR handling
     config.add_route_7('admin:certificate_request:new:acme-flow', '/certificate-request/new-acme-flow')
     config.add_route_7('admin:certificate_request:new:acme-automated', '/certificate-request/new-acme-automated')

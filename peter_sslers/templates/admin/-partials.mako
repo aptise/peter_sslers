@@ -258,7 +258,7 @@
                                     <span class="label label-success">configured</span>
                                 % else:
                                     <a  class="label label-success"
-                                        href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process/domain/${to_d.domain.id}"
+                                        href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${to_d.domain.id}"
                                         >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         configured</a>
@@ -268,7 +268,7 @@
                                     <span class="label label-warning">not configured</span>
                                 % else:
                                     <a  class="label label-warning"
-                                        href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process/domain/${to_d.domain.id}"
+                                        href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${to_d.domain.id}"
                                         >
                                         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                         configure!</a>
@@ -316,12 +316,12 @@
                         % else:
                             % if to_d.is_configured:
                                 <a
-                                    href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process/domain/${to_d.ssl_domain_id}"
+                                    href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${to_d.ssl_domain_id}"
                                     class="label label-success">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     configured</a>
                             % else:
-                                <a href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process/domain/${to_d.ssl_domain_id}"
+                                <a href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${to_d.ssl_domain_id}"
                                     class="label label-warning">
                                     % if request_inactive:
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

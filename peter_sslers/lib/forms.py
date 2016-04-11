@@ -142,7 +142,7 @@ class Form_CertificateRequest_new_AcmeAutomated__file(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
 
 
-class Form_CertificateRequest_process_domain(_Form_Schema_Base):
+class Form_CertificateRequest_AcmeFlow_manage_domain(_Form_Schema_Base):
     challenge_key = UnicodeString(not_empty=True)
     challenge_text = UnicodeString(not_empty=True)
 

@@ -357,7 +357,7 @@ def getcreate__SslUniqueFQDNSet__by_domainObjects(
 
 def create__SslCertificateRequest(
     dbSession,
-    csr_pem,
+    csr_pem = None,
     certificate_request_type_id = None,
     dbAccountKey = None,
     dbPrivateKey = None,
@@ -371,10 +371,37 @@ def create__SslCertificateRequest(
     ):
         raise ValueError("Invalid `certificate_request_type_id`")
 
-    if certificate_request_type_id == SslCertificateRequestType.ACME_FLOW:
-        # if there is a csr_pem; extract the domains
+    # if there is a csr_pem; extract the domains
+    csr_domain_names = None
+    if csr_pem is not None:
+        _tmpfile = None
+        try:
+            # store the csr_text in a tmpfile
+            _tmpfile = cert_utils.new_pem_tempfile(csr_pem)
+            _csr_domain_names = cert_utils.parse_csr_domains(csr_path=_tmpfile.name,
+                                                            submitted_domain_names=domain_names,
+                                                            )
+            csr_domain_names = utils.domains_from_list(_csr_domain_names)
+            if len(csr_domain_names) != len(_csr_domain_names):
+                raise ValueError("One or more of the domain names in the CSR are not allowed (%s)" % _csr_domain_names)
+            if not csr_domain_names:
+                raise ValueError("Must submit `csr_pem` that contains `domain_names` (found none)")
+        finally:
+            _tmpfile.close()
+    
 
-        domain_names = utils.domains_from_list(domain_names)
+    if certificate_request_type_id == SslCertificateRequestType.ACME_FLOW:
+        if domain_names is None:
+            if csr_pem is None:
+                raise ValueError("Must submit `csr_pem` if not submitting `domain_names`")
+            domain_names = csr_domain_names
+        else:
+            if csr_domain_names:
+                if set(domain_names) != set(csr_domain_names):
+                    raise ValueError("Must submit `csr_pem` that matches submitted `domain_names`")
+            else:
+                domain_names = utils.domains_from_list(domain_names)
+
         if not domain_names:
             raise ValueError("We have no domains")
 
@@ -693,7 +720,7 @@ def do__SslLetsEncryptAccountKey_authenticate(dbSession, dbSslLetsEncryptAccount
     _tmpfile = None
     try:
         if account_key_path is None:
-            _tmpfile = cert_utils.new_pem_tempfile(key_pem)
+            _tmpfile = cert_utils.new_pem_tempfile(dbSslLetsEncryptAccountKey.key_pem)
             account_key_path = _tmpfile.name
 
         # parse account key to get public key
@@ -1152,6 +1179,7 @@ def operations_update_recents(dbSession):
 
 
 def queue_domains__add(dbSession, domain_names):
+    domain_names = utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
     for domain_name in domain_names:
         _exists = get__SslDomain__by_name(dbSession, domain_name, preload=False)
@@ -1372,3 +1400,7 @@ def upload__SslCaCertificateBundle__by_pem_text(dbSession, bundle_data):
         results[cert_pem] = (dbCACertificate, is_created)
 
     return results
+
+
+
+

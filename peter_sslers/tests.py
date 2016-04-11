@@ -9,8 +9,9 @@ from webtest import Upload
 
 # stdlib
 import json
-import pdb
 import os
+import pdb
+import sys
 import unittest
 
 # local
@@ -32,6 +33,11 @@ queue tests:
 - turn off existing, inactive domain
 - turn off non-existing, inactive domain
 """
+
+# set these by environment variables, 
+RUN_NGINX_TESTS = os.environ.get('SSL_RUN_NGINX_TESTS', False)
+RUN_REDIS_TESTS = os.environ.get('SSL_RUN_REDIS_TESTS', False)
+RUN_LETSENCRYPT_API_TESTS = os.environ.get('SSL_RUN_LETSENCRYPT_API_TESTS', False)
 
 
 # ==============================================================================
@@ -90,10 +96,6 @@ TEST_FILES = {'AccountKey': {'1': 'account_1.key',
                                      'LetsEncrypt': {},
                                      },
               }
-
-# TODO - set these by environment variables
-RUN_NGINX_TESTS = False
-RUN_LETSENCRYPT_API_TESTS = False
 
 
 class AppTest(unittest.TestCase):
@@ -233,6 +235,17 @@ class AppTest(unittest.TestCase):
                     dbAccountKey = _key_account1,
                     dbPrivateKey = _key_private1,
                 )
+                self.session.commit()
+
+                # queue a domain
+                # this MUST be a new domain to add to the queue
+                # if it is existing, a domain will not be added
+                lib.db.queue_domains__add(
+                    self.session,
+                    ['queue.example.com', ]
+                )
+                self.session.commit()
+
 
             except Exception as e:
                 print ""
@@ -244,7 +257,7 @@ class AppTest(unittest.TestCase):
                 print ""
                 print ""
                 print ""
-                pdb.set_trace()
+                raise
             print "DB INITIALIZED"
             AppTest._DB_INTIALIZED = True
 
@@ -274,6 +287,15 @@ class FunctionalTests_Main(AppTest):
     def test_search(self):
         res = self.testapp.get('/.well-known/admin/search', status=200)
 
+
+class FunctionalTests_Passes(AppTest):
+    """
+    python -m unittest peter_sslers.tests.FunctionalTests_Passes
+    this is only used to test setup
+    """
+
+    def tests_passes(self):
+        return True
 
 class FunctionalTests_AccountKeys(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_AccountKeys"""
@@ -340,11 +362,11 @@ class FunctionalTests_AccountKeys(AppTest):
         assert res2.location == """http://localhost/.well-known/admin/account-key/2?is_created=1"""
         res3 = self.testapp.get(res2.location, status=200)
 
-    @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
+    #@unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):
-        raise NotImplementedError()
         # this hits LE
-        res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=200)
+        res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=302)
+        assert res.location == """http://localhost/.well-known/admin/account-key/1?is_authenticated=1"""
 
 
 class FunctionalTests_API(AppTest):
@@ -542,9 +564,16 @@ class FunctionalTests_Certificate(AppTest):
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     def tests_nginx(self):
-        raise NotImplementedError()
-        config.add_route_7('admin:certificate:focus:nginx_cache_expire', '/certificate/{id:\d}/nginx-cache-expire')
-        config.add_route_7('admin:certificate:focus:nginx_cache_expire.json', '/certificate/{id:\d}/nginx-cache-expire.json')
+        focus_item = self._get_item()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get('/.well-known/admin/certificate/%s/nginx-cache-expire' % focus_id, status=302)
+        assert "/.well-known/admin/certificate/5?operation=nginx_cache_expire&result=success&event.id=" % focus_id in res.location
+
+        res = self.testapp.get('/.well-known/admin/certificate/%s/nginx-cache-expire.json' % focus_id, status=200)
+        res_json = json.loads(res.body)
+        assert res_json['result'] == 'success'
 
 
 class FunctionalTests_CertificateRequest(AppTest):
@@ -578,15 +607,15 @@ class FunctionalTests_CertificateRequest(AppTest):
     @unittest.skip("these might need better APIs or migration")
     def tests_advanced(self):
         raise NotImplementedError()
-        config.add_route_7('admin:certificate_request:process', '/certificate-request/{@id}/process')
+        config.add_route_7('admin:certificate_request:flow:manage', '/certificate-request/{@id}/acme-flow/manage')
+        config.add_route_7('admin:certificate_request:flow:manage:domain', '/certificate-request/{@id}/acme-flow/manage/domain/{domain_id:\d+}')
         config.add_route_7('admin:certificate_request:deactivate', '/certificate-request/{@id}/deactivate')
-        config.add_route_7('admin:certificate_request:process:domain', '/certificate-request/{@id}/process/domain/{domain_id:\d+}')
 
 
 class FunctionalTests_Domain(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_Domain"""
 
-    def _get_domain(self):
+    def _get_item(self):
         # grab a certificate
         focus_item = self.session.query(models.SslDomain)\
             .filter(models.SslDomain.is_active.op('IS')(True))\
@@ -604,7 +633,7 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get('/.well-known/admin/domains/expiring/1', status=200)
 
     def test_focus(self):
-        focus_item = self._get_domain()
+        focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
         focus_name = focus_item.domain_name
@@ -623,7 +652,7 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get('/.well-known/admin/domain/%s/unique-fqdn-sets/1' % focus_id, status=200)
 
     def test_manipulate(self):
-        focus_item = self._get_domain()
+        focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -638,9 +667,17 @@ class FunctionalTests_Domain(AppTest):
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     def tests_nginx(self):
-        raise NotImplementedError()
-        config.add_route_7('admin:domain:focus:nginx_cache_expire', '/domain/{domain_identifier}/nginx-cache-expire')
-        config.add_route_7('admin:domain:focus:nginx_cache_expire.json', '/domain/{domain_identifier}/nginx-cache-expire.json')
+        focus_item = self._get_item()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        focus_name = focus_item.domain_name
+
+        res = self.testapp.get('/.well-known/admin/domain/%s/nginx-cache-expire' % focus_id, status=302)
+        assert "/.well-known/admin/domain/5?operation=nginx_cache_expire&result=success&event.id=" % focus_id in res.location
+
+        res = self.testapp.get('/.well-known/admin/domain/%s/nginx-cache-expire.json' % focus_id, status=200)
+        res_json = json.loads(res.body)
+        assert res_json['result'] == 'success'
 
 
 class FunctionalTests_PrivateKeys(AppTest):
@@ -817,20 +854,43 @@ class FunctionalTests_Operations(AppTest):
             .one()
         res = self.testapp.get('/.well-known/admin/operations/log/item/%s' % focus_item.id, status=200)
 
-    @unittest.skip("tests not written yet")
+    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    def tests_nginx(self):
+        res = self.testapp.get('/.well-known/admin/operations/nginx-cache-flush', status=302)
+        assert "/.well-known/admin/operations/nginx?operation=nginx_cache_flush&result=success&event.id=" in res.location
+
+        res = self.testapp.get('/.well-known/admin/operations/nginx-cache-flush.json' % focus_id, status=200)
+        res_json = json.loads(res.body)
+        assert res_json['result'] == 'success'
+
+    @unittest.skipUnless(RUN_REDIS_TESTS, "not running against nginx")
+    def tests_redis(self):
+        res = self.testapp.get('/.well-known/admin/operations/redis/prime', status=302)
+        assert "/.well-known/admin/operations/redis?operation=redis_prime&result=success&event.id=" in res.location
+
+        res = self.testapp.get('/.well-known/admin/operations/redis/prime.json' % focus_id, status=200)
+        res_json = json.loads(res.body)
+        assert res_json['result'] == 'success'
+
+    def tests_manipulate(self):
+        # deactivate-expired
+        res = self.testapp.get('/.well-known/admin/operations/deactivate-expired', status=302)
+        assert "/.well-known/admin/operations/log?result=success&event.id=" in res.location
+        
+        res = self.testapp.get('/.well-known/admin/operations/deactivate-expired.json', status=200)
+        res_json = json.loads(res.body)
+        assert res_json['result'] == 'success'
+        
+        # deactivate-expired
+        res = self.testapp.get('/.well-known/admin/operations/update-recents', status=302)
+        assert "/.well-known/admin/operations/log?result=success&event.id=" in res.location
+        res = self.testapp.get('/.well-known/admin/operations/update-recents.json', status=200)
+        res_json = json.loads(res.body)
+        assert res_json['result'] == 'success'
+
+    @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_todo(self):
         raise NotImplementedError()
         # these are active, not passive
         config.add_route_7('admin:operations:ca_certificate_probes:probe', '/operations/ca-certificate-probes/probe')
         config.add_route_7('admin:operations:ca_certificate_probes:probe.json', '/operations/ca-certificate-probes/probe.json')
-        # -
-        config.add_route_7('admin:operations:deactivate_expired', '/operations/deactivate-expired')
-        config.add_route_7('admin:operations:deactivate_expired.json', '/operations/deactivate-expired.json')
-        config.add_route_7('admin:operations:nginx:cache_flush', '/operations/nginx/cache-flush')
-        config.add_route_7('admin:operations:nginx:cache_flush.json', '/operations/nginx/cache-flush.json')
-        # -
-        config.add_route_7('admin:operations:redis:prime', '/operations/redis/prime')
-        config.add_route_7('admin:operations:redis:prime.json', '/operations/redis/prime.json')
-        # -
-        config.add_route_7('admin:operations:update_recents', '/operations/update-recents')
-        config.add_route_7('admin:operations:update_recents.json', '/operations/update-recents.json')

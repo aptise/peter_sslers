@@ -103,7 +103,7 @@ class ViewAdminOperations(Handler):
                     'operations_event': operations_event.id,
                     }
 
-        return HTTPFound("%s/operations/log?success=True&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
+        return HTTPFound("%s/operations/log?result=success&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

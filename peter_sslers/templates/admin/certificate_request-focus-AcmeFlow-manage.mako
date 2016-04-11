@@ -7,12 +7,12 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
         <li><a href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}">Focus [${SslCertificateRequest.id}]</a></li>
-        <li class="active">Process</li>
+        <li class="active">ACME Flow Manage</li>
     </ol>
 </%block>
 
 <%block name="page_header">
-    <h2>Certificate Request - Process</h2>
+    <h2>Certificate Request - ACME Flow Manage</h2>
 </%block>
 
 <%block name="content_main">
@@ -64,7 +64,7 @@
                         updates_allowed = False
                 %>
                 % if updates_allowed:
-                    <form action="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/process/domain/${SslCertificateRequest2SslDomain.ssl_domain_id}" method="POST">
+                    <form action="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${SslCertificateRequest2SslDomain.ssl_domain_id}" method="POST">
                         <% form = request.formhandling.get_form(request) %>
                         ${form.html_error_main('Error_Main')|n}
                 % endif

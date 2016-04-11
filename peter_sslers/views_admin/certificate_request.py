@@ -18,7 +18,7 @@ from ..models import *
 from ..lib.forms import (Form_CertificateRequest_new_AcmeFlow,
                          # Form_CertificateRequest_new_AcmeAutomated,
                          Form_CertificateRequest_new_AcmeAutomated__file,
-                         Form_CertificateRequest_process_domain,
+                         Form_CertificateRequest_AcmeFlow_manage_domain,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
@@ -75,19 +75,7 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:certificate_request:process', renderer='/admin/certificate_request-process.mako')
-    def certificate_request_process(self):
-        dbSslCertificateRequest = self._certificate_request_focus()
-        if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
-            raise HTTPNotFound('Only availble for Acme Flow')
-        return {'project': 'peter_sslers',
-                'SslCertificateRequest': dbSslCertificateRequest,
-                'SslCertificateRequest2SslDomain': None,
-                }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:certificate_request:deactivate')
+    @view_config(route_name='admin:certificate_request:focus:deactivate')
     def certificate_request_deactivate(self):
         dbSslCertificateRequest = self._certificate_request_focus()
         if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
@@ -98,8 +86,20 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:certificate_request:process:domain', )
-    def certificate_request_process_domain(self):
+    @view_config(route_name='admin:certificate_request:focus:acme-flow:manage', renderer='/admin/certificate_request-focus-AcmeFlow-manage.mako')
+    def certificate_request_AcmeFlow_manage(self):
+        dbSslCertificateRequest = self._certificate_request_focus()
+        if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
+            raise HTTPNotFound('Only availble for Acme Flow')
+        return {'project': 'peter_sslers',
+                'SslCertificateRequest': dbSslCertificateRequest,
+                'SslCertificateRequest2SslDomain': None,
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:certificate_request:focus:acme-flow:manage:domain', )
+    def certificate_request_AcmeFlow_manage_domain(self):
         dbSslCertificateRequest = self._certificate_request_focus()
         if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
             raise HTTPNotFound('Only availble for Acme Flow')
@@ -116,20 +116,20 @@ class ViewAdmin(Handler):
         self.db_SslCertificateRequest2SslDomain = dbSslCertificateRequest2SslDomain
 
         if self.request.POST:
-            return self._certificate_request_process_domain__submit()
-        return self._certificate_request_process_domain__print()
+            return self._certificate_request_AcmeFlow_manage_domain__submit()
+        return self._certificate_request_AcmeFlow_manage_domain__print()
 
-    def _certificate_request_process_domain__print(self):
-        return render_to_response("/admin/certificate_request-process.mako",
+    def _certificate_request_AcmeFlow_manage_domain__print(self):
+        return render_to_response("/admin/certificate_request-focus-AcmeFlow-manage.mako",
                                   {'SslCertificateRequest': self.db_SslCertificateRequest,
                                    'SslCertificateRequest2SslDomain': self.db_SslCertificateRequest2SslDomain,
                                    },
                                   self.request)
 
-    def _certificate_request_process_domain__submit(self):
+    def _certificate_request_AcmeFlow_manage_domain__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CertificateRequest_process_domain,
+                                                             schema=Form_CertificateRequest_AcmeFlow_manage_domain,
                                                              validate_get=False
                                                              )
             if not result:
@@ -150,7 +150,7 @@ class ViewAdmin(Handler):
 
             self.request.dbsession.flush()
 
-            return HTTPFound('%s/certificate-request/%s/process/domain/%s' %
+            return HTTPFound('%s/certificate-request/%s/acme-flow/manage/domain/%s' %
                              (self.request.registry.settings['admin_prefix'],
                               self.db_SslCertificateRequest.id,
                               self.db_SslCertificateRequest2SslDomain.ssl_domain_id
@@ -165,7 +165,7 @@ class ViewAdmin(Handler):
                                 )
             return formhandling.form_reprint(
                 self.request,
-                self._certificate_request_process_domain__print,
+                self._certificate_request_AcmeFlow_manage_domain__print,
                 auto_error_formatter=formhandling.formatter_none,
             )
 
@@ -199,7 +199,7 @@ class ViewAdmin(Handler):
                 domain_names = domain_names,
             )
 
-            return HTTPFound('%s/certificate-request/%s/process' % (self.request.registry.settings['admin_prefix'], dbSslCertificateRequest.id))
+            return HTTPFound('%s/certificate-request/%s/acme-flow/manage' % (self.request.registry.settings['admin_prefix'], dbSslCertificateRequest.id))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",
