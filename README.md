@@ -241,6 +241,7 @@ Your `environment.ini` exposes a few configuration options:
 
 * `nginx.reset_servers` - comma(,) separated list of servers with an expiry route; see Redis Prime section below
 * `nginx.reset_path` - defaults to `/ngxadmin/shared_cache/expire`
+* `requests.disable_ssl_warning` - will disable the ssl warnings from the requests library
 
 
 If you have a custom openssl install, you probably want these settings

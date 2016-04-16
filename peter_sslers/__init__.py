@@ -26,6 +26,7 @@ def db_cleanup__tween_factory(handler, registry):
                 logging.basicConfig(level=logging.WARNING)
                 for l in [l.strip() for l in "peter_sslers, sqlalchemy, requests, sqlalchemy.engine.base.Engine".split(',')]:
                     logging.getLogger(l).setLevel(logging.WARNING)
+                    logging.getLogger(l).propagate = False
             response = handler(request)
             return response
         finally:
@@ -71,6 +72,12 @@ def main(global_config, **settings):
             raise ValueError("No `redis.prime_style` is configured")
         if settings['redis.prime_style'] not in ('1', '2'):
             raise ValueError("No `redis.prime_style` must be one of: (`1`, `2`)")
+
+    # disable the ssl warning from requests?    
+    _disable_ssl_warning = set_bool_setting(config.registry.settings, 'requests.disable_ssl_warning')
+    if _disable_ssl_warning:
+        import requests.packages.urllib3
+        requests.packages.urllib3.disable_warnings()
 
     _enable_nginx = False
     if 'nginx.reset_servers' in config.registry.settings:
