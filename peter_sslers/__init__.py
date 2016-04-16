@@ -26,7 +26,6 @@ def db_cleanup__tween_factory(handler, registry):
                 logging.basicConfig(level=logging.WARNING)
                 for l in [l.strip() for l in "peter_sslers, sqlalchemy, requests, sqlalchemy.engine.base.Engine".split(',')]:
                     logging.getLogger(l).setLevel(logging.WARNING)
-
             response = handler(request)
             return response
         finally:
