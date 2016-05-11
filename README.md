@@ -62,6 +62,7 @@ The "/tools" directory contains scripts useful for certificate operations.  Curr
 * an `invoke` script for some miscellaneous tasks
 * a `lua` library for integrating with nginx/openresty
 * sample `nginx` configuration files for admin and public routes
+* a sample `fake_server.py` that will spin up a server with routes that you can test against.  this will allow you to setup your integration without running peter_sslers
 
 # General Management Concepts
 
