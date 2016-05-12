@@ -7,6 +7,8 @@ This package is *not* aimed at casual or single-site users.
 
 Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
 
+Peter combines an ACME client designed to operate with the LetsEncrypt service, alongside tools designed to manage and deploy certificates.
+
 One of Peter's tools is a lightweight database backed `Pyramid` application that can:
 
 * act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver,
@@ -174,6 +176,27 @@ To solve this you can:
 In a more advanced implementation (such as what this was originally designed to manage) the certificates need to be loaded into a `Redis` server for use by an `openresty`/`nginx` webserver/gateway that will dynamically handle ssl certificates.
 
 This package does all the annoying openssl work in terms of building chains and converting formats *You just tell it what domains you need certificates for and in which format and THERE YOU GO.*
+
+
+# Deployment Concepts
+
+![Network Map: Simple](https://raw.github.com/aptise/peter_sslers/master/docs/assets/network_map-01.png)
+
+PeterSSlers can run as a standalone service OR proxied behind nginx/apache/etc
+
+The SSLMinnow datastore is entirely separate and standalone.  It is portable.
+
+![Network Map: Configure](https://raw.github.com/aptise/peter_sslers/master/docs/assets/network_map-02.png)
+
+In order to make network configuration more simple, the package includes a "fake server" that includes routes for the major public and admin endpoints. This should support most integration tests. 
+
+![Network Map: Advanced](https://raw.github.com/aptise/peter_sslers/master/docs/assets/network_map-03.png)
+
+In an advanced setting, multiple servers proxy to multiple peter-sslers "public" instances.
+
+The instances share a single SSLMinnow data store.
+
+The "admin" tool runs on the private intranet.
 
 
 # notes
