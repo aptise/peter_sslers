@@ -143,6 +143,7 @@
                 <a class="btn btn-xs btn-info" href="${admin_prefix}/account-key/${SslLetsEncryptAccountKey.id}/key.key">key.key (der)</a>
             </td>
         </tr>
+        ${admin_partials.table_tr_event_created(SslLetsEncryptAccountKey.ssl_operations_event_id__created)}
         <tr>
             <th>certificates</th>
             <td>

@@ -1,4 +1,10 @@
+0.1
+---
+-  Added a request param `request.api_context` and replaced passing around the raw dbSession with the context object
+	At this point the context object merely contains a dbSession, timestamp, and some information about the current api transactions
+	Any object that implements this interface can be used.
+
+
 0.0
 ---
-
 -  Initial version

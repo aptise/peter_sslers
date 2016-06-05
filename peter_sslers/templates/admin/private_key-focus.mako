@@ -134,6 +134,7 @@
                 </a>
             </td>
         </tr>
+        ${admin_partials.table_tr_event_created(SslPrivateKey.ssl_operations_event_id__created)}
         <tr>
             <th>key_pem</th>
             <td>

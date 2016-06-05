@@ -69,9 +69,9 @@
                             </td>
                         </tr>
                         <tr>
-                            <th>timestamp_operation</th>
+                            <th>timestamp_event</th>
                             <td>
-                                <timestamp>${QueueDomainItem.operations_event.timestamp_operation or ''}</timestamp>
+                                <timestamp>${QueueDomainItem.operations_event.timestamp_event or ''}</timestamp>
                             </td>
                         </tr>
                     </table>
@@ -79,4 +79,8 @@
             </td>
         </tr>
     </table>
+    <hr/>
+
+    <h4>Operation Object Events</h4>
+    ${admin_partials.table_SslOperationsObjectEvents(QueueDomainItem.operations_queue_domain_events, table_context='domain')}
 </%block>

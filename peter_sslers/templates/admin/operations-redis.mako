@@ -39,7 +39,7 @@
                         % for event in SslOperationsEvents:
                             <tr class="${'success' if event_id == str(event.id) else ''}">
                                 <td><span class="label label-default">${event.id}</span></td>
-                                <td><timestamp>${event.timestamp_operation}</timestamp></td>
+                                <td><timestamp>${event.timestamp_event}</timestamp></td>
                                 <td>
                                     % if 'prime_style' in event.event_payload_json:
                                         ${event.event_payload_json['prime_style']}

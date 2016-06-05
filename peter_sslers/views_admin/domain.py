@@ -33,9 +33,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains', renderer='/admin/domains.mako')
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
     def domains(self):
-        items_count = lib_db.get__SslDomain__count(self.request.dbsession)
+        items_count = lib_db.get__SslDomain__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/domains/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslDomain__paginated(self.request.dbsession, eagerload_web=True, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslDomain__paginated(self.request.api_context, eagerload_web=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomains_count': items_count,
                 'SslDomains': items_paged,
@@ -47,9 +47,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains:expiring_paginated', renderer='/admin/domains.mako')
     def domains_expiring_only(self):
         expiring_days = self.request.registry.settings['expiring_days']
-        items_count = lib_db.get__SslDomain__count(self.request.dbsession, expiring_days=expiring_days)
+        items_count = lib_db.get__SslDomain__count(self.request.api_context, expiring_days=expiring_days)
         (pager, offset) = self._paginate(items_count, url_template='%s/domains/expiring/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslDomain__paginated(self.request.dbsession, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslDomain__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomains_count': items_count,
                 'SslDomains': items_paged,
@@ -63,9 +63,9 @@ class ViewAdmin(Handler):
     def _domain_focus(self, eagerload_web=False):
         domain_identifier = self.request.matchdict['domain_identifier'].strip()
         if domain_identifier.isdigit():
-            dbSslDomain = lib_db.get__SslDomain__by_id(self.request.dbsession, domain_identifier, preload=True, eagerload_web=eagerload_web)
+            dbSslDomain = lib_db.get__SslDomain__by_id(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
         else:
-            dbSslDomain = lib_db.get__SslDomain__by_name(self.request.dbsession, domain_identifier, preload=True, eagerload_web=eagerload_web)
+            dbSslDomain = lib_db.get__SslDomain__by_name(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
         if not dbSslDomain:
             raise HTTPNotFound('the domain was not found')
         return dbSslDomain
@@ -83,7 +83,7 @@ class ViewAdmin(Handler):
         dbSslDomain = self._domain_focus(eagerload_web=True)
         if not self.request.registry.settings['enable_nginx']:
             raise HTTPFound('%s/domain/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbSslDomain.id))
-        success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.dbsession, dbDomains=[dbSslDomain, ])
+        success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=[dbSslDomain, ])
         if self.request.matched_route.name == 'admin:domain:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
@@ -120,10 +120,10 @@ class ViewAdmin(Handler):
     def domain_focus__certificates(self):
         dbSslDomain = self._domain_focus()
         items_count = lib_db.get__SslServerCertificate__by_SslDomainId__count(
-            self.request.dbsession, dbSslDomain.id)
+            self.request.api_context, dbSslDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbSslDomain.id))
         items_paged = lib_db.get__SslServerCertificate__by_SslDomainId__paginated(
-            self.request.dbsession, dbSslDomain.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbSslDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomain': dbSslDomain,
                 'SslServerCertificates_count': items_count,
@@ -136,10 +136,10 @@ class ViewAdmin(Handler):
     def domain_focus__certificate_requests(self):
         dbSslDomain = self._domain_focus()
         items_count = lib_db.get__SslCertificateRequest__by_SslDomainId__count(
-            self.request.dbsession, SslDomain.id)
+            self.request.api_context, SslDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], SslDomain.id))
         items_paged = lib_db.get__SslCertificateRequest__by_SslDomainId__paginated(
-            self.request.dbsession, dbSslDomain.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbSslDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomain': dbSslDomain,
                 'SslCertificateRequests_count': items_count,
@@ -153,9 +153,9 @@ class ViewAdmin(Handler):
     def domain_focus__calendar(self):
         rval = {}
         dbSslDomain = self._domain_focus()
-        weekly_certs = self.request.dbsession.query(year_week(SslServerCertificate.timestamp_signed).label('week_num'),
-                                                    sqlalchemy.func.count(SslServerCertificate.id)
-                                                    )\
+        weekly_certs = self.request.api_context.dbSession.query(year_week(SslServerCertificate.timestamp_signed).label('week_num'),
+                                                                sqlalchemy.func.count(SslServerCertificate.id)
+                                                                )\
             .join(SslUniqueFQDNSet2SslDomain,
                   SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
                   )\
@@ -176,10 +176,10 @@ class ViewAdmin(Handler):
     def domain_focus__unique_fqdns(self):
         dbSslDomain = self._domain_focus()
         items_count = lib_db.get__SslUniqueFQDNSet__by_SslDomainId__count(
-            self.request.dbsession, SslDomain.id)
+            self.request.api_context, SslDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/unique-fqdn-sets/{0}' % (self.request.registry.settings['admin_prefix'], SslDomain.id))
         items_paged = lib_db.get__SslUniqueFQDNSet__by_SslDomainId__paginated(
-            self.request.dbsession, dbSslDomain.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbSslDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomain': dbSslDomain,
                 'SslUniqueFQDNSets_count': items_count,
@@ -203,7 +203,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results['action']
-            event_type = SslOperationsEventType.domain_mark
+            event_type = SslOperationsEventType.from_string('domain__mark')
             event_payload = {'domain_id': dbSslDomain.id,
                              'action': action,
                              'v': 1,
@@ -219,11 +219,11 @@ class ViewAdmin(Handler):
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
-            self.request.dbsession.flush()
+            self.request.api_context.dbSession.flush()
 
             # bookkeeping
-            operationsEvent = lib_db.create__SslOperationsEvent(
-                self.request.dbsession,
+            operationsEvent = lib_db.log__SslOperationsEvent(
+                self.request.api_context,
                 event_type,
                 event_payload,
             )

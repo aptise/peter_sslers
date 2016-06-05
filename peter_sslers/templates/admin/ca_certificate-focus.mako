@@ -124,6 +124,7 @@
                 <samp>${SslCaCertificate.cert_issuer}</samp>
                 </td>
         </tr>
+        ${admin_partials.table_tr_event_created(SslCaCertificate.ssl_operations_event_id__created)}
         <tr>
             <th>Signed Certificates</th>
             <td>

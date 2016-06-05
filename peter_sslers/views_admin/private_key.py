@@ -22,6 +22,7 @@ from ..lib import acme as lib_acme
 from ..lib import db as lib_db
 from ..lib import events as lib_events
 from ..lib import cert_utils as lib_cert_utils
+from ..lib import utils as lib_utils
 from ..lib.handler import Handler, items_per_page
 
 
@@ -33,9 +34,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_keys', renderer='/admin/private_keys.mako')
     @view_config(route_name='admin:private_keys_paginated', renderer='/admin/private_keys.mako')
     def private_keys(self):
-        items_count = lib_db.get__SslPrivateKey__count(self.request.dbsession)
+        items_count = lib_db.get__SslPrivateKey__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/private-keys/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslPrivateKey__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslPrivateKey__paginated(self.request.api_context, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslPrivateKeys_count': items_count,
                 'SslPrivateKeys': items_paged,
@@ -45,7 +46,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _private_key_focus(self, eagerload_web=False):
-        dbSslPrivateKey = lib_db.get__SslPrivateKey__by_id(self.request.dbsession, self.request.matchdict['id'], eagerload_web=eagerload_web, )
+        dbSslPrivateKey = lib_db.get__SslPrivateKey__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_web=eagerload_web, )
         if not dbSslPrivateKey:
             raise HTTPNotFound('the key was not found')
         return dbSslPrivateKey
@@ -83,10 +84,10 @@ class ViewAdmin(Handler):
     def private_key_focus__certificates(self):
         dbSslPrivateKey = self._private_key_focus()
         items_count = lib_db.get__SslServerCertificate__by_SslPrivateKeyId__count(
-            self.request.dbsession, dbSslPrivateKey.id)
+            self.request.api_context, dbSslPrivateKey.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/private-key/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbSslPrivateKey.id))
         items_paged = lib_db.get__SslServerCertificate__by_SslPrivateKeyId__paginated(
-            self.request.dbsession, dbSslPrivateKey.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbSslPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslPrivateKey': dbSslPrivateKey,
                 'SslServerCertificates_count': items_count,
@@ -99,10 +100,10 @@ class ViewAdmin(Handler):
     def private_key_focus__certificate_requests(self):
         dbSslPrivateKey = self._private_key_focus()
         items_count = lib_db.get__SslCertificateRequest__by_SslPrivateKeyId__count(
-            self.request.dbsession, dbSslPrivateKey.id)
+            self.request.api_context, dbSslPrivateKey.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/private-key/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbSslPrivateKey.id))
         items_paged = lib_db.get__SslCertificateRequest__by_SslPrivateKeyId__paginated(
-            self.request.dbsession, dbSslPrivateKey.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbSslPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslPrivateKey': dbSslPrivateKey,
                 'SslCertificateRequests_count': items_count,
@@ -114,7 +115,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:private_key:new')
     def private_key_new(self):
-        if self.request.POST:
+        if self.request.method == 'POST':
             return self._private_key_new__submit()
         return self._private_key_new__print()
 
@@ -131,7 +132,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formStash.results['private_key_file'].file.read()
-            dbSslPrivateKey, _is_created = lib_db.getcreate__SslPrivateKey__by_pem_text(self.request.dbsession, private_key_pem)
+            dbSslPrivateKey, _is_created = lib_db.getcreate__SslPrivateKey__by_pem_text(self.request.api_context, private_key_pem)
 
             return HTTPFound('%s/private-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbSslPrivateKey.id, ('&is_created=1' if _is_created else '')))
 
@@ -151,7 +152,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:private_key:focus:mark', renderer=None)
     @view_config(route_name='admin:private_key:focus:mark.json', renderer='json')
-    def certificate_focus_mark(self):
+    def private_key_focus_mark(self):
         dbSslPrivateKey = self._private_key_focus()
         action = '!MISSING or !INVALID'
         try:
@@ -163,11 +164,11 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results['action']
-            event_type = SslOperationsEventType.private_key_mark
-            event_payload = {'private_key_id': dbSslPrivateKey.id,
-                             'action': formStash.results['action'],
-                             'v': 1,
-                             }
+            event_type = SslOperationsEventType.from_string('private_key__mark')
+            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict['ssl_private_key.id'] = dbSslPrivateKey.id
+            event_payload_dict['action'] = formStash.results['action']
+
             marked_comprimised = False
             if action == 'deactivate':
                 if not dbSslPrivateKey.is_active:
@@ -184,24 +185,23 @@ class ViewAdmin(Handler):
                     raise formhandling.FormInvalid('Already compromised')
                 dbSslPrivateKey.is_active = False
                 dbSslPrivateKey.is_compromised = True
-                event_type = SslOperationsEventType.private_key_revoke
+                event_type = SslOperationsEventType.from_string('private_key__revoke')
                 marked_comprimised = True
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
-            self.request.dbsession.flush()
+            self.request.api_context.dbSession.flush()
 
             # bookkeeping
-            operationsEvent = lib_db.create__SslOperationsEvent(
-                self.request.dbsession,
+            operationsEvent = lib_db.log__SslOperationsEvent(
+                self.request.api_context,
                 event_type,
-                event_payload,
+                event_payload_dict,
             )
             if marked_comprimised:
                 lib_events.PrivateKey_compromised(
-                    self.request.dbsession,
+                    self.request.api_context,
                     dbSslPrivateKey,
-                    operationsEvent
                 )
             url_success = '%s/private-key/%s?operation=mark&action=%s&result=sucess' % (
                 self.request.registry.settings['admin_prefix'],

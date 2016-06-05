@@ -39,10 +39,10 @@
                         % for event in SslOperationsEvents:
                             <tr class="${'success' if event_id == str(event.id) else ''}">
                                 <td><span class="label label-default">${event.id}</span></td>
-                                <td><timestamp>${event.timestamp_operation}</timestamp></td>
+                                <td><timestamp>${event.timestamp_event}</timestamp></td>
                                 <td><span class="label label-default">${event.event_type_text}</span></td>
                                 <td>
-                                    % if event.event_type_text == 'nginx_cache_expire':
+                                    % if event.event_type_text == 'operations__nginx_cache_expire':
                                         <code class="payload">${event.event_payload_json}</code>
                                     % endif
                                 </td>

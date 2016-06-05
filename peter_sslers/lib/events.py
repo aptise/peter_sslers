@@ -19,28 +19,27 @@ log.setLevel(logging.INFO)
 # certificate should have a "latest fqdn"
 # issuing a cert should remove any similar fqdns from the queue
 
-def _handle_certificate_deactivated(dbSession, serverCertificate, operationsEvent=None):
+def _handle_certificate_deactivated(ctx, serverCertificate):
     # ok. so let's find out the fqdn...
     requeue = False
     dbLatestActiveCert = lib.db.get__SslServerCertificate__by_SslUniqueFQDNSetId__latest_active(
-        dbSession,
+        ctx,
         serverCertificate.ssl_unique_fqdn_set_id,
     )
     if not dbLatestActiveCert:
         requeue = True
     if requeue:
-        dbQuque = lib.db.create__SslQueueRenewal(
-            dbSession,
-            serverCertificate,
-            ssl_operations_event_id__child_of = operationsEvent.id,
+        dbQuque = lib.db._create__SslQueueRenewal(
+            ctx,
+            serverCertificate
         )
         return True
     return False
 
 
-def _handle_certificate_activated(dbSession, serverCertificate, operationsEvent=None):
+def _handle_certificate_activated(ctx, serverCertificate):
     dbActiveQueues = lib.db.get__SslQueueRenewal__by_SslUniqueFQDNSetId__active(
-        dbSession,
+        ctx,
         serverCertificate.ssl_unique_fqdn_set_id,
     )
     if dbActiveQueues:
@@ -48,28 +47,28 @@ def _handle_certificate_activated(dbSession, serverCertificate, operationsEvent=
         for q in dbActiveQueues:
             q.timestamp_processed = tnow
             q.process_result = True
-        dbSession.flush()
+        ctx.dbSession.flush()
         return True
     return False
 
 
-def Certificate_issued(dbSession, serverCertificate, operationsEvent=None):
-    _handle_certificate_activated(dbSession, serverCertificate, operationsEvent=operationsEvent)
+def Certificate_issued(ctx, serverCertificate):
+    _handle_certificate_activated(ctx, serverCertificate)
 
 
-def Certificate_renewed(dbSession, serverCertificate, operationsEvent=None):
-    _handle_certificate_activated(dbSession, serverCertificate, operationsEvent=operationsEvent)
+def Certificate_renewed(ctx, serverCertificate):
+    _handle_certificate_activated(ctx, serverCertificate)
 
 
-def Certificate_expired(dbSession, serverCertificate, operationsEvent=None):
-    _handle_certificate_deactivated(dbSession, serverCertificate, operationsEvent=operationsEvent)
+def Certificate_expired(ctx, serverCertificate):
+    _handle_certificate_deactivated(ctx, serverCertificate)
 
 
-def Certificate_deactivated(dbSession, serverCertificate, operationsEvent=None):
-    _handle_certificate_deactivated(dbSession, serverCertificate, operationsEvent=operationsEvent)
+def Certificate_deactivated(ctx, serverCertificate):
+    _handle_certificate_deactivated(ctx, serverCertificate)
 
 
-def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
+def PrivateKey_compromised(ctx, privateKey):
     # mark every certificate signed by this key compromised
 
     # create a dict of cert_id:fqdn_set_id
@@ -78,7 +77,7 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
                             }
     revoked_fqdn_ids_2_certs = {}
     items_count = lib.db.get__SslServerCertificate__by_SslPrivateKeyId__count(
-        dbSession,
+        ctx,
         privateKey.id
     )
     if items_count:
@@ -87,7 +86,7 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
         for i in range(0, batches):
             offset = i * batch_size
             items_paginated = lib.db.get__SslServerCertificate__by_SslPrivateKeyId__paginated(
-                dbSession,
+                ctx,
                 privateKey.id,
                 limit = batch_size,
                 offset = offset
@@ -102,7 +101,7 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
                 else:
                     revoked_certificates['inactive'][cert.id] = cert.ssl_unique_fqdn_set_id
                 cert.is_revoked = True
-                dbSession.flush()
+                ctx.dbSession.flush()
 
     # handle this in 2 passes
     # first, queue anything that doesn't have an active cert
@@ -110,25 +109,23 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
     # TODO there is a SMALL chance that something could deactivate a cert before we renew
     for (fqdn_id, cert_ids_off) in revoked_fqdn_ids_2_certs.items():
         latest_cert = lib.db.get__SslServerCertificate__by_SslUniqueFQDNSetId__latest_active(
-            dbSession,
+            ctx,
             fqdn_id
         )
         if not latest_cert:
             # use the MAX cert as the renewal item
             max_cert_id = max(cert_ids_off)
-            serverCertificate = lib.db.get__SslServerCertificate__by_id(dbSession, max_cert_id)
-            dbQueue = lib.db.create__SslQueueRenewal(
-                dbSession,
+            serverCertificate = lib.db.get__SslServerCertificate__by_id(ctx, max_cert_id)
+            dbQueue = lib.db._create__SslQueueRenewal(
+                ctx,
                 serverCertificate,
-                ssl_operations_event_id__child_of = operationsEvent.id
             )
-        dbSession.flush()
+        ctx.dbSession.flush()
 
     # okay, now try to requeue items
     revoked_fqdns_ids = revoked_fqdn_ids_2_certs.keys()
     result = lib.db.queue_renewals__process(
-        dbSession,
-        ssl_operations_event_id__child_of = operationsEvent.id,
+        ctx,
         fqdns_ids_only = revoked_fqdns_ids,
     )
 
@@ -138,6 +135,6 @@ def PrivateKey_compromised(dbSession, privateKey, operationsEvent=None):
                                              }
     event_payload['revoked.fqdns_ids'] = revoked_fqdns_ids
     operationsEvent.set_event_payload(event_payload)
-    dbSession.flush()
+    ctx.dbSession.flush()
 
     return True

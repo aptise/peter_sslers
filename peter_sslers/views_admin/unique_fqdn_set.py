@@ -32,9 +32,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:unique_fqdn_sets', renderer='/admin/unique_fqdn_sets.mako')
     @view_config(route_name='admin:unique_fqdn_sets_paginated', renderer='/admin/unique_fqdn_sets.mako')
     def unique_fqdn_sets(self):
-        items_count = lib_db.get__SslUniqueFQDNSet__count(self.request.dbsession)
+        items_count = lib_db.get__SslUniqueFQDNSet__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-sets/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslUniqueFQDNSet__paginated(self.request.dbsession, limit=items_per_page, offset=offset, eagerload_web=True)
+        items_paged = lib_db.get__SslUniqueFQDNSet__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
         return {'project': 'peter_sslers',
                 'SslUniqueFQDNSets_count': items_count,
                 'SslUniqueFQDNSets': items_paged,
@@ -44,7 +44,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _unique_fqdn_set_focus(self):
-        dbItem = lib_db.get__SslUniqueFQDNSet__by_id(self.request.dbsession, self.request.matchdict['id'])
+        dbItem = lib_db.get__SslUniqueFQDNSet__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbItem:
             raise HTTPNotFound('the fqdn set was not found')
         return dbItem
@@ -62,9 +62,9 @@ class ViewAdmin(Handler):
     def unique_fqdn_set_focus__calendar(self):
         rval = {}
         dbSslUniqueFQDNSet = self._unique_fqdn_set_focus()
-        weekly_certs = self.request.dbsession.query(year_week(SslServerCertificate.timestamp_signed).label('week_num'),
-                                                    sqlalchemy.func.count(SslServerCertificate.id)
-                                                    )\
+        weekly_certs = self.request.api_context.dbSession.query(year_week(SslServerCertificate.timestamp_signed).label('week_num'),
+                                                                sqlalchemy.func.count(SslServerCertificate.id)
+                                                                )\
             .filter(SslServerCertificate.ssl_unique_fqdn_set_id == dbSslUniqueFQDNSet.id,
                     )\
             .group_by('week_num')\
@@ -82,10 +82,10 @@ class ViewAdmin(Handler):
     def unique_fqdn_set_focus__certificates(self):
         dbSslUniqueFQDNSet = self._unique_fqdn_set_focus()
         items_count = lib_db.get__SslServerCertificate__by_SslUniqueFQDNSetId__count(
-            self.request.dbsession, dbSslUniqueFQDNSet.id)
+            self.request.api_context, dbSslUniqueFQDNSet.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-set/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbSslUniqueFQDNSet.id))
         items_paged = lib_db.get__SslServerCertificate__by_SslUniqueFQDNSetId__paginated(
-            self.request.dbsession, dbSslUniqueFQDNSet.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbSslUniqueFQDNSet.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslUniqueFQDNSet': dbSslUniqueFQDNSet,
                 'SslServerCertificates_count': items_count,
@@ -98,10 +98,10 @@ class ViewAdmin(Handler):
     def unique_fqdn_set_focus__certificate_requests(self):
         dbSslUniqueFQDNSet = self._unique_fqdn_set_focus()
         items_count = lib_db.get__SslCertificateRequest__by_SslUniqueFQDNSetId__count(
-            self.request.dbsession, SslDomain.id)
+            self.request.api_context, SslDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-set/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbSslUniqueFQDNSet.id))
         items_paged = lib_db.get__SslCertificateRequest__by_SslUniqueFQDNSetId__paginated(
-            self.request.dbsession, dbSslUniqueFQDNSet.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbSslUniqueFQDNSet.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslUniqueFQDNSet': dbSslUniqueFQDNSet,
                 'SslCertificateRequests_count': items_count,

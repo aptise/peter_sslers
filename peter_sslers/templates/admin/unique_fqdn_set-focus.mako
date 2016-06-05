@@ -70,6 +70,7 @@
                             </table>
                         </td>
                     </tr>
+                    ${admin_partials.table_tr_event_created(SslUniqueFQDNSet.ssl_operations_event_id__created)}
                     <tr>
                         <td>Latest Certificates</td>
                         <td>

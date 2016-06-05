@@ -34,9 +34,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_keys', renderer='/admin/account_keys.mako')
     @view_config(route_name='admin:account_keys_paginated', renderer='/admin/account_keys.mako')
     def account_keys(self):
-        items_count = lib_db.get__SslLetsEncryptAccountKey__count(self.request.dbsession)
+        items_count = lib_db.get__SslLetsEncryptAccountKey__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/account-keys/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslLetsEncryptAccountKey__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslLetsEncryptAccountKey__paginated(self.request.api_context, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslLetsEncryptAccountKeys_count': items_count,
                 'SslLetsEncryptAccountKeys': items_paged,
@@ -46,7 +46,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _account_key_focus(self, eagerload_web=False):
-        dbSslLetsEncryptAccountKey = lib_db.get__SslLetsEncryptAccountKey__by_id(self.request.dbsession, self.request.matchdict['id'], eagerload_web=eagerload_web, )
+        dbSslLetsEncryptAccountKey = lib_db.get__SslLetsEncryptAccountKey__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_web=eagerload_web, )
         if not dbSslLetsEncryptAccountKey:
             raise HTTPNotFound('the key was not found')
         return dbSslLetsEncryptAccountKey
@@ -94,7 +94,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_key:focus:authenticate', renderer=None)
     def account_key_focus__authenticate(self):
         dbSslLetsEncryptAccountKey = self._account_key_focus()
-        is_authenticated = lib_db.do__SslLetsEncryptAccountKey_authenticate(self.request.dbsession, dbSslLetsEncryptAccountKey)
+        is_authenticated = lib_db.do__SslLetsEncryptAccountKey_authenticate(self.request.api_context, dbSslLetsEncryptAccountKey)
         return HTTPFound('%s/account-key/%s?result=success&is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbSslLetsEncryptAccountKey.id, ('1' if is_authenticated else '0')))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -104,10 +104,10 @@ class ViewAdmin(Handler):
     def account_key_focus__certificates(self):
         dbSslLetsEncryptAccountKey = self._account_key_focus()
         items_count = lib_db.get__SslServerCertificate__by_SslLetsEncryptAccountKeyId__count(
-            self.request.dbsession, dbSslLetsEncryptAccountKey.id)
+            self.request.api_context, dbSslLetsEncryptAccountKey.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/account-key/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbSslLetsEncryptAccountKey.id))
         items_paged = lib_db.get__SslServerCertificate__by_SslLetsEncryptAccountKeyId__paginated(
-            self.request.dbsession, dbSslLetsEncryptAccountKey.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbSslLetsEncryptAccountKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslLetsEncryptAccountKey': dbSslLetsEncryptAccountKey,
                 'SslServerCertificates_count': items_count,
@@ -120,10 +120,10 @@ class ViewAdmin(Handler):
     def account_key_focus__certificate_requests(self):
         dbSslLetsEncryptAccountKey = self._account_key_focus()
         items_count = lib_db.get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__count(
-            self.request.dbsession, dbSslLetsEncryptAccountKey.id)
+            self.request.api_context, dbSslLetsEncryptAccountKey.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/account-key/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbSslLetsEncryptAccountKey.id))
         items_paged = lib_db.get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__paginated(
-            self.request.dbsession, dbSslLetsEncryptAccountKey.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbSslLetsEncryptAccountKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslLetsEncryptAccountKey': dbSslLetsEncryptAccountKey,
                 'SslCertificateRequests_count': items_count,
@@ -135,7 +135,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:account_key:new')
     def account_key_new(self):
-        if self.request.POST:
+        if self.request.method == 'POST':
             return self._account_key_new__submit()
         return self._account_key_new__print()
 
@@ -152,7 +152,10 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             account_key_pem = formStash.results['account_key_file'].file.read()
-            dbSslLetsEncryptAccountKey, _is_created = lib_db.getcreate__SslLetsEncryptAccountKey__by_pem_text(self.request.dbsession, account_key_pem)
+            dbSslLetsEncryptAccountKey, _is_created = lib_db.getcreate__SslLetsEncryptAccountKey__by_pem_text(
+                self.request.api_context,
+                account_key_pem,
+            )
 
             return HTTPFound('%s/account-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbSslLetsEncryptAccountKey.id, ('&is_created=1' if _is_created else '')))
 
@@ -184,7 +187,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results['action']
-            event_type = SslOperationsEventType.account_key_mark
+            event_type = SslOperationsEventType.from_string('letsencrypt_account_key__mark')
             event_payload = {'account_key_id': dbSslLetsEncryptAccountKey.id,
                              'action': formStash.results['action'],
                              'v': 1,
@@ -202,7 +205,7 @@ class ViewAdmin(Handler):
             elif action == 'default':
                 if dbSslLetsEncryptAccountKey.is_default:
                     raise formhandling.FormInvalid('Already default')
-                formerDefaultKey = lib_db.get__SslLetsEncryptAccountKey__default(self.request.dbsession)
+                formerDefaultKey = lib_db.get__SslLetsEncryptAccountKey__default(self.request.api_context)
                 if formerDefaultKey:
                     formerDefaultKey.is_default = False
                     event_payload['account_key_id.former_default'] = formerDefaultKey.id
@@ -210,11 +213,11 @@ class ViewAdmin(Handler):
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
-            self.request.dbsession.flush()
+            self.request.api_context.dbSession.flush()
 
             # bookkeeping
-            operationsEvent = lib_db.create__SslOperationsEvent(
-                self.request.dbsession,
+            operationsEvent = lib_db.log__SslOperationsEvent(
+                self.request.api_context,
                 event_type,
                 event_payload,
             )

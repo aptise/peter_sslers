@@ -4,10 +4,12 @@ from pyramid.events import BeforeRender
 from sqlalchemy import engine_from_config
 
 import logging
+import datetime
 
 from .lib import acme
 from .lib import cert_utils
 from .lib.config_utils import *
+from .lib import utils
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -15,6 +17,7 @@ from .lib.config_utils import *
 def add_renderer_globals(event):
     """sticks the admin_prefix into the renderer's topline namespace"""
     event['admin_prefix'] = event['request'].registry.settings["admin_prefix"]
+    event['admin_server'] = event['request'].admin_server
 
 
 def db_cleanup__tween_factory(handler, registry):
@@ -46,7 +49,6 @@ def main(global_config, **settings):
     # do this before setting routes!
     admin_prefix = settings.get("admin_prefix", None)
     if admin_prefix is None:
-        admin_prefix = settings.get("admin_prefix", None)
         config.registry.settings["admin_prefix"] = "/.well-known/admin"
 
     # update the module data based on settings
@@ -73,7 +75,7 @@ def main(global_config, **settings):
         if settings['redis.prime_style'] not in ('1', '2'):
             raise ValueError("No `redis.prime_style` must be one of: (`1`, `2`)")
 
-    # disable the ssl warning from requests?    
+    # disable the ssl warning from requests?
     _disable_ssl_warning = set_bool_setting(config.registry.settings, 'requests.disable_ssl_warning')
     if _disable_ssl_warning:
         import requests.packages.urllib3
@@ -89,6 +91,9 @@ def main(global_config, **settings):
 
     # let's extend the request too!
     config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)
+    config.add_request_method(lambda request: request.registry.settings.get('admin_server', None) or request.environ['HTTP_HOST'], 'admin_server', reify=True)
+    config.add_request_method(lambda request: datetime.datetime.utcnow(), 'a_timestamp', reify=True)
+    config.add_request_method(lambda request: lib.utils.ApiContext(timestamp=request.a_timestamp, dbSession=request.dbsession), 'api_context', reify=True)
 
     # don't scan 'everything', only what is enabled
     # config.scan()

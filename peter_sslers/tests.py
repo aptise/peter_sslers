@@ -6,8 +6,10 @@ from pyramid.paster import get_appsettings
 import transaction
 from webtest import TestApp
 from webtest import Upload
+from webtest.http import StopableWSGIServer
 
 # stdlib
+import datetime
 import json
 import os
 import pdb
@@ -18,6 +20,9 @@ import unittest
 from . import main
 from . import models
 from . import lib
+from .lib import acme  # for override
+from .lib import cert_utils  # for override
+from .lib import db  # lib.db doesn't work
 import sqlalchemy
 
 
@@ -40,6 +45,23 @@ export SSL_RUN_NGINX_TESTS=True
 export SSL_RUN_REDIS_TESTS=True
 export SSL_RUN_LETSENCRYPT_API_TESTS=True
 export SSL_LETSENCRYPT_API_VALIDATES=True
+export SSL_TEST_DOMAIN=foo.cliqued.in
+export SSL_TEST_PORT=6543
+
+export OPENSSL_PATH=/usr/bin/openssl
+export OPENSSL_PATH_CONF=/etc/ssl/openssl.cnf
+export ACME_CERTIFICATE_AUTHORITY=http://example.com
+
+export OPENSSL_PATH=/usr/local/Cellar/openssl/1.0.2g/bin/openssl
+export OPENSSL_PATH_CONF=/usr/local/etc/openssl/openssl.cnf
+export ACME_CERTIFICATE_AUTHORITY=http://example.com
+
+
+if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app
+
+see the nginx test config file
+
+
 """
 # run tests that expire nginx caches
 RUN_NGINX_TESTS = os.environ.get('SSL_RUN_NGINX_TESTS', False)
@@ -49,6 +71,22 @@ RUN_REDIS_TESTS = os.environ.get('SSL_RUN_REDIS_TESTS', False)
 RUN_LETSENCRYPT_API_TESTS = os.environ.get('SSL_RUN_LETSENCRYPT_API_TESTS', False)
 # does the LE validation work?  LE must be able to reach this
 LETSENCRYPT_API_VALIDATES = os.environ.get('SSL_LETSENCRYPT_API_VALIDATES', False)
+
+# overrides
+OPENSSL_PATH = os.environ.get('OPENSSL_PATH', None)
+if OPENSSL_PATH:
+    cert_utils.openssl_path = OPENSSL_PATH
+
+OPENSSL_PATH_CONF = os.environ.get('OPENSSL_PATH_CONF', None)
+if OPENSSL_PATH_CONF:
+    cert_utils.openssl_path_conf = OPENSSL_PATH_CONF
+
+ACME_CERTIFICATE_AUTHORITY = os.environ.get('ACME_CERTIFICATE_AUTHORITY', None)
+if ACME_CERTIFICATE_AUTHORITY:
+    acme.CERTIFICATE_AUTHORITY = ACME_CERTIFICATE_AUTHORITY
+
+SSL_TEST_DOMAIN = os.environ.get('SSL_TEST_DOMAIN', 'example.com')
+SSL_TEST_PORT = int(os.environ.get('SSL_TEST_PORT', 6543))
 
 DISABLE_UNWRITTEN_TESTS = True
 
@@ -83,10 +121,10 @@ TEST_FILES = {'AccountKey': {'1': 'account_1.key',
                                             'account_key': 'account_1.key',
                                             'private_key': 'private_1.key',
                                             },
-                                      '1': {'domains': 'foo.example.com, bar.example.com',
-                                            'account_key': 'account_2.key',
-                                            'private_key': 'private_2.key',
-                                            },
+                                      'acme_test': {'domains': SSL_TEST_DOMAIN,
+                                                    'account_key': 'account_2.key',
+                                                    'private_key': 'private_2.key',
+                                                    },
                                       },
               # the certificates are a tuple of: (CommonName, crt, csr, key)
               'ServerCertificates': {'SelfSigned': {'1': {'domain': 'selfsigned-1.example.com',
@@ -138,17 +176,18 @@ TEST_FILES = {'AccountKey': {'1': 'account_1.key',
                                    'key_pem_modulus_md5': 'a2ea95b3aa5f5b337ac981c2024bcb3a',
                                    },
                              },
-              'Domains': {'Queue': {'1': {'add': 'qadd1.example.com, qadd2.example.com, qadd3.example.com', 
+              'Domains': {'Queue': {'1': {'add': 'qadd1.example.com, qadd2.example.com, qadd3.example.com',
                                           'add.json': 'qaddjson1.example.com, qaddjson2.example.com, qaddjson3.example.com',
                                           },
                                     }
                           }
               }
-              
 
 
 class AppTestCore(unittest.TestCase):
     _data_root = None
+    testapp = None
+    testapp_http = None
 
     def _filepath_testfile(self, filename):
         return os.path.join(self._data_root, filename)
@@ -165,10 +204,14 @@ class AppTestCore(unittest.TestCase):
         self.testapp = TestApp(app)
         self._data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_data')
 
+    def tearDown(self):
+        if self.testapp_http is not None:
+            self.testapp_http.shutdown()
+
 
 class UnitTestOpenSSL(AppTestCore):
     """python -m unittest peter_sslers.tests.UnitTestOpenSSL"""
-    
+
     def test_modulus_PrivateKey(self):
         for pkey_set_id, set_data in TEST_FILES['PrivateKey'].items():
             pem_filepath = self._filepath_testfile(set_data['file'])
@@ -182,14 +225,13 @@ class UnitTestOpenSSL(AppTestCore):
 
 class AppTest(AppTestCore):
 
-    _session = None
+    _ctx = None
     _DB_INTIALIZED = False
-
 
     def setUp(self):
         AppTestCore.setUp(self)
         if not AppTest._DB_INTIALIZED:
-        
+
             print "---------------"
             print "INITIALIZING DB"
             engine = self.testapp.app.registry['dbsession_factory']().bind
@@ -217,9 +259,9 @@ class AppTest(AppTestCore):
                 #
                 _key_filename = TEST_FILES['AccountKey']['1']
                 key_pem = self._filedata_testfile(_key_filename)
-                _key_account1, _is_created = lib.db.getcreate__SslLetsEncryptAccountKey__by_pem_text(self.session, key_pem)
+                _key_account1, _is_created = db.getcreate__SslLetsEncryptAccountKey__by_pem_text(self.ctx, key_pem)
                 # print _key_account1, _is_created
-                self.session.commit()
+                self.ctx.dbSession.commit()
 
                 #
                 # insert SslCaCertificate
@@ -228,8 +270,8 @@ class AppTest(AppTestCore):
                 _ca_cert_id = 'isrgrootx1'
                 _ca_cert_filename = TEST_FILES['CaCertificates']['cert'][_ca_cert_id]
                 ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
-                _ca_cert_1, _is_created = lib.db.getcreate__SslCaCertificate__by_pem_text(
-                    self.session,
+                _ca_cert_1, _is_created = db.getcreate__SslCaCertificate__by_pem_text(
+                    self.ctx,
                     ca_cert_pem,
                     "ISRG Root",
                     le_authority_name = "ISRG ROOT",
@@ -237,7 +279,7 @@ class AppTest(AppTestCore):
                     is_cross_signed_authority_certificate = False,
                 )
                 # print _ca_cert_1, _is_created
-                self.session.commit()
+                self.ctx.dbSession.commit()
 
                 #
                 # insert SslCaCertificate - self signed
@@ -245,13 +287,13 @@ class AppTest(AppTestCore):
                 #
                 _ca_cert_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['cert']
                 ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
-                _ca_cert_selfsigned1, _is_created = lib.db.getcreate__SslCaCertificate__by_pem_text(
-                    self.session,
+                _ca_cert_selfsigned1, _is_created = db.getcreate__SslCaCertificate__by_pem_text(
+                    self.ctx,
                     ca_cert_pem,
                     _ca_cert_filename,
                 )
                 # print _ca_cert_selfsigned1, _is_created
-                self.session.commit()
+                self.ctx.dbSession.commit()
 
                 #
                 # insert SslPrivateKey
@@ -259,9 +301,9 @@ class AppTest(AppTestCore):
                 #
                 _pkey_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['pkey']
                 pkey_pem = self._filedata_testfile(_pkey_filename)
-                _key_private1, _is_created = lib.db.getcreate__SslPrivateKey__by_pem_text(self.session, pkey_pem)
+                _key_private1, _is_created = db.getcreate__SslPrivateKey__by_pem_text(self.ctx, pkey_pem)
                 # print _key_private1, _is_created
-                self.session.commit()
+                self.ctx.dbSession.commit()
 
                 #
                 # insert SslServerCertificate
@@ -269,18 +311,18 @@ class AppTest(AppTestCore):
                 #
                 _cert_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['cert']
                 cert_pem = self._filedata_testfile(_cert_filename)
-                _cert_1, _is_created = lib.db.getcreate__SslServerCertificate__by_pem_text(
-                    self.session,
+                _cert_1, _is_created = db.getcreate__SslServerCertificate__by_pem_text(
+                    self.ctx,
                     cert_pem,
                     dbCACertificate = _ca_cert_selfsigned1,
                     dbAccountKey = _key_account1,
                     dbPrivateKey = _key_private1,
                 )
                 # print _cert_1, _is_created
-                self.session.commit()
+                self.ctx.dbSession.commit()
 
                 # ensure we have domains?
-                domains = lib.db.get__SslDomain__paginated(self.session)
+                domains = db.get__SslDomain__paginated(self.ctx)
                 domain_names = [d.domain_name for d in domains]
                 assert TEST_FILES['ServerCertificates']['SelfSigned']['1']['domain'].lower() in domain_names
 
@@ -288,8 +330,8 @@ class AppTest(AppTestCore):
                 if False:
                     # insert a domain name
                     # one should be extracted from uploading a ServerCertificate though
-                    _domain, _is_created = lib.db.getcreate__SslDomain__by_domainName(self.session, "www.example.com")
-                    self.session.commit()
+                    _domain, _is_created = db.getcreate__SslDomain__by_domainName(self.ctx, "www.example.com")
+                    self.ctx.dbSession.commit()
 
                     # insert a domain name
                     # one should be extracted from uploading a ServerCertificate though
@@ -298,23 +340,23 @@ class AppTest(AppTestCore):
                 # upload a csr
                 _csr_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['csr']
                 csr_pem = self._filedata_testfile(_csr_filename)
-                _csr_1, _is_created = lib.db.getcreate__SslCertificateRequest__by_pem_text(
-                    self.session,
+                _csr_1, _is_created = db.getcreate__SslCertificateRequest__by_pem_text(
+                    self.ctx,
                     csr_pem,
                     certificate_request_type_id = models.SslCertificateRequestType.ACME_FLOW,
                     dbAccountKey = _key_account1,
                     dbPrivateKey = _key_private1,
                 )
-                self.session.commit()
+                self.ctx.dbSession.commit()
 
                 # queue a domain
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
-                lib.db.queue_domains__add(
-                    self.session,
-                    ['queue.example.com', ]
+                db.queue_domains__add(
+                    self.ctx,
+                    ['queue.example.com', ],
                 )
-                self.session.commit()
+                self.ctx.dbSession.commit()
 
             except Exception as e:
                 print ""
@@ -331,15 +373,18 @@ class AppTest(AppTestCore):
             AppTest._DB_INTIALIZED = True
 
     def tearDown(self):
-        if self._session is not None:
-            self._session.close()
+        AppTestCore.tearDown(self)
+        if self._ctx is not None:
+            self._ctx.dbSession.close()
 
     @property
-    def session(self):
-        if self._session is None:
+    def ctx(self):
+        if self._ctx is None:
             dbsession_factory = self.testapp.app.registry['dbsession_factory']
-            self._session = dbsession_factory()
-        return self._session
+            self._ctx = lib.utils.ApiContext(dbSession=dbsession_factory(),
+                                             timestamp=datetime.datetime.utcnow(),
+                                             )
+        return self._ctx
 
 
 class FunctionalTests_Main(AppTest):
@@ -373,7 +418,7 @@ class FunctionalTests_AccountKeys(AppTest):
 
     def _get_item(self):
         # grab a Key
-        focus_item = self.session.query(models.SslLetsEncryptAccountKey)\
+        focus_item = self.ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
             .filter(models.SslLetsEncryptAccountKey.is_active.op('IS')(True))\
             .order_by(models.SslLetsEncryptAccountKey.id.asc())\
             .first()
@@ -538,7 +583,7 @@ class FunctionalTests_Certificate(AppTest):
 
     def _get_item(self):
         # grab a certificate
-        focus_item = self.session.query(models.SslServerCertificate)\
+        focus_item = self.ctx.dbSession.query(models.SslServerCertificate)\
             .filter(models.SslServerCertificate.is_active.op('IS')(True))\
             .order_by(models.SslServerCertificate.id.asc())\
             .first()
@@ -653,7 +698,7 @@ class FunctionalTests_CertificateRequest(AppTest):
 
     def _get_item(self):
         # grab a certificate
-        focus_item = self.session.query(models.SslCertificateRequest)\
+        focus_item = self.ctx.dbSession.query(models.SslCertificateRequest)\
             .filter(models.SslCertificateRequest.is_active.op('IS')(True))\
             .order_by(models.SslCertificateRequest.id.asc())\
             .first()
@@ -678,18 +723,23 @@ class FunctionalTests_CertificateRequest(AppTest):
 
     @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):
+        self.testapp_http = StopableWSGIServer.create(self.testapp.app, port=SSL_TEST_PORT)
+        self.testapp_http.wait()
         res = self.testapp.get('/.well-known/admin/certificate-request/new-acme-automated', status=200)
         form = res.form
-        form['account_key_file'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['1']['account_key']))
-        form['private_key_file'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['1']['private_key']))
-        form['domain_names'] = TEST_FILES['CertificateRequests']['1']['domains']
+        form['account_key_file'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['acme_test']['account_key']))
+        form['private_key_file'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['acme_test']['private_key']))
+        form['domain_names'] = TEST_FILES['CertificateRequests']['acme_test']['domains']
         res2 = form.submit()
         assert res2.status_code == 302
         if not LETSENCRYPT_API_VALIDATES:
             if "/.well-known/admin/certificate-requests?error=new-AcmeAutomated&message=Wrote keyauth challenge, but couldn't download" not in res2.location:
                 raise ValueError("Expected an error: failure to validate")
         else:
-            raise ValueError("How do we catch this?")
+            if "/.well-known/admin/certificate-requests?error=new-AcmeAutomated&message=Wrote keyauth challenge, but couldn't download" in res2.location:
+                raise ValueError("Failed to validate domain")
+            if '/.well-known/admin/certificate/2' not in res2.location:
+                raise ValueError("Expected certificate/2")
 
     def tests_acme_flow(self):
         res = self.testapp.get('/.well-known/admin/certificate-request/new-acme-flow', status=200)
@@ -721,7 +771,7 @@ class FunctionalTests_Domain(AppTest):
 
     def _get_item(self):
         # grab a certificate
-        focus_item = self.session.query(models.SslDomain)\
+        focus_item = self.ctx.dbSession.query(models.SslDomain)\
             .filter(models.SslDomain.is_active.op('IS')(True))\
             .order_by(models.SslDomain.id.asc())\
             .first()
@@ -789,7 +839,7 @@ class FunctionalTests_PrivateKeys(AppTest):
 
     def _get_item(self):
         # grab a Key
-        focus_item = self.session.query(models.SslPrivateKey)\
+        focus_item = self.ctx.dbSession.query(models.SslPrivateKey)\
             .filter(models.SslPrivateKey.is_active.op('IS')(True))\
             .order_by(models.SslPrivateKey.id.asc())\
             .first()
@@ -854,7 +904,7 @@ class FunctionalTests_UniqueFQDNSets(AppTest):
 
     def _get_item(self):
         # grab a Key
-        focus_item = self.session.query(models.SslUniqueFQDNSet)\
+        focus_item = self.ctx.dbSession.query(models.SslUniqueFQDNSet)\
             .order_by(models.SslUniqueFQDNSet.id.asc())\
             .first()
         return focus_item
@@ -883,7 +933,7 @@ class FunctionalTests_QueueDomains(AppTest):
 
     def _get_item(self):
         # grab an item
-        focus_item = self.session.query(models.SslQueueDomain)\
+        focus_item = self.ctx.dbSession.query(models.SslQueueDomain)\
             .order_by(models.SslQueueDomain.id.asc())\
             .first()
         return focus_item
@@ -933,7 +983,7 @@ class FunctionalTests_QueueRenewal(AppTest):
 
     def _get_item(self):
         # grab an item
-        focus_item = self.session.query(models.SslQueueRenewal)\
+        focus_item = self.ctx.dbSession.query(models.SslQueueRenewal)\
             .order_by(models.SslQueueRenewal.id.asc())\
             .first()
         return focus_item
@@ -979,7 +1029,7 @@ class FunctionalTests_Operations(AppTest):
         res = self.testapp.get('/.well-known/admin/operations/redis', status=200)
         res = self.testapp.get('/.well-known/admin/operations/redis/1', status=200)
 
-        focus_item = self.session.query(models.SslOperationsEvent)\
+        focus_item = self.ctx.dbSession.query(models.SslOperationsEvent)\
             .order_by(models.SslOperationsEvent.id.asc())\
             .limit(1)\
             .one()
@@ -987,43 +1037,43 @@ class FunctionalTests_Operations(AppTest):
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     def tests_nginx(self):
-        res = self.testapp.get('/.well-known/admin/operations/nginx/cache-flush', status=302)
+        res = self.testapp.get('/.well-known/admin/api/nginx/cache-flush', status=302)
         assert "/.well-known/admin/operations/nginx?operation=nginx_cache_flush&result=success&event.id=" in res.location
 
-        res = self.testapp.get('/.well-known/admin/operations/nginx/cache-flush.json', status=200)
+        res = self.testapp.get('/.well-known/admin/api/nginx/cache-flush.json', status=200)
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
 
     @unittest.skipUnless(RUN_REDIS_TESTS, "not running against nginx")
     def tests_redis(self):
-        res = self.testapp.get('/.well-known/admin/operations/redis/prime', status=302)
+        res = self.testapp.get('/.well-known/admin/api/redis/prime', status=302)
         assert "/.well-known/admin/operations/redis?operation=redis_prime&result=success&event.id=" in res.location
 
-        res = self.testapp.get('/.well-known/admin/operations/redis/prime.json', status=200)
+        res = self.testapp.get('/.well-known/admin/api/redis/prime.json', status=200)
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
 
     def tests_manipulate(self):
         # deactivate-expired
-        res = self.testapp.get('/.well-known/admin/operations/deactivate-expired', status=302)
+        res = self.testapp.get('/.well-known/admin/api/deactivate-expired', status=302)
         assert "/.well-known/admin/operations/log?result=success&event.id=" in res.location
 
-        res = self.testapp.get('/.well-known/admin/operations/deactivate-expired.json', status=200)
+        res = self.testapp.get('/.well-known/admin/api/deactivate-expired.json', status=200)
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
 
         # deactivate-expired
-        res = self.testapp.get('/.well-known/admin/operations/update-recents', status=302)
+        res = self.testapp.get('/.well-known/admin/api/update-recents', status=302)
         assert "/.well-known/admin/operations/log?result=success&event.id=" in res.location
-        res = self.testapp.get('/.well-known/admin/operations/update-recents.json', status=200)
+        res = self.testapp.get('/.well-known/admin/api/update-recents.json', status=200)
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
 
     @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):
-        res = self.testapp.get('/.well-known/admin/operations/ca-certificate-probes/probe', status=302)
+        res = self.testapp.get('/.well-known/admin/api/ca-certificate-probes/probe', status=302)
         assert '/admin/operations/ca-certificate-probes?result=success&event.id=' in res.location
 
-        res = self.testapp.get('/.well-known/admin/operations/ca-certificate-probes/probe.json', status=200)
+        res = self.testapp.get('/.well-known/admin/api/ca-certificate-probes/probe.json', status=200)
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'

@@ -28,3 +28,7 @@ class DomainVerificationError(Exception):
 
 class DisplayableError(Exception):
     pass
+
+
+class OperationsContextError(Exception):
+    pass

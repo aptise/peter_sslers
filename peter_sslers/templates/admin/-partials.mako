@@ -1,3 +1,18 @@
+<%def name="table_tr_event_created(ssl_operations_event_id__created)">
+    % if ssl_operations_event_id__created:
+        <tr>
+            <th>Event Created At</th>
+            <td>
+                <a  href="${admin_prefix}/operations/log/item/${ssl_operations_event_id__created}"
+                    class="label label-info"
+                >
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    ${ssl_operations_event_id__created}
+                </a>
+            </td>
+        </tr>
+    % endif
+</%def>
 
 <%def name="table_to_certificates(to_certificates, show_domains=False, show_domains_title='domains', show_expiring_days=False)">
     <table class="table table-striped">
@@ -427,7 +442,74 @@
                         % endif
                     </td>
                     <td><span class="label label-default">${event.event_type_text}</span></td>
-                    <td><timestamp>${event.timestamp_operation}</timestamp></td>
+                    <td><timestamp>${event.timestamp_event}</timestamp></td>
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+
+<%def name="table_SslOperationsObjectEvents(SslOperationsObjectEvents, table_context=None)">
+    <%
+        show_domain = False
+        show_event = False
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                % if show_domain:
+                    <th>domain</th>
+                % endif
+                <th>event status</th>
+                % if show_event:
+                    <th>event: id</th>
+                    <th>event: type</th>
+                    <th>event: timestamp</th>
+                % endif
+            </tr>
+        </thead>
+        <tbody>
+            % for event in SslOperationsObjectEvents:
+                <tr>
+                    <td>
+                        <span class="label label-default">
+                            ${event.id}
+                        </span>
+                    </td>
+                    % if show_domain:
+                        <td>
+                            % if event.ssl_queue_domain_id:
+                                <code>${event.queue_domain.domain_name}</code>
+                            % elif event.ssl_domain_id:
+                                <code>${event.domain.domain_name}</code>
+                            % endif
+                        </td>
+                    % endif
+                    <td>
+                        <code>
+                            ${event.event_status_text}
+                        </code>
+                    </td>
+                    % if show_event:
+                        <td>
+                            <a class="label label-info" href="${admin_prefix}/operations/log/item/${event.ssl_operations_event_id}">
+                                ${event.id}
+                            </a>
+                        </td>
+                        <td>
+                            <code>
+                                ${event.operations_event.event_type_text}
+                            </code>
+                        </td>
+                        <td>
+                            <timestamp>
+                                ${event.operations_event.timestamp_event}
+                            </timestamp>
+                        </td>
+                    % endif
                 </tr>
             % endfor
         </tbody>
@@ -666,6 +748,16 @@
         <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
         CA Certificate Probes</a><br/>
     </${wrapper}>
+
+
+    <${wrapper}>
+        <a  href="${admin_prefix}/operations/domain-log"
+            class="label label-info"
+        >
+        <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
+        Domain Log</a><br/>
+    </${wrapper}>
+
     ${'</ul>' if as_list else ''|n}
 
     <h4>Actions</h4>

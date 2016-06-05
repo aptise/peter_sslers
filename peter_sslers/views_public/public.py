@@ -25,7 +25,7 @@ class ViewPublic(Handler):
     @view_config(route_name='public_challenge', renderer='string')
     def public_challenge(self):
         challenge = self.request.matchdict['challenge']
-        active_request = lib_db.get__SslCertificateRequest2SslDomain__challenged(self.request.dbsession,
+        active_request = lib_db.get__SslCertificateRequest2SslDomain__challenged(self.request.api_context,
                                                                                  challenge,
                                                                                  self.request.active_domain_name,
                                                                                  )
@@ -42,9 +42,9 @@ class ViewPublic(Handler):
             if log_verification:
                 active_request.timestamp_verified = datetime.datetime.now()
                 active_request.ip_verified = self.request.environ['REMOTE_ADDR']
-                self.request.dbsession.flush()
+                self.request.api_context.dbSession.flush()
                 # quick cleanup
-                dbSslCertificateRequest = lib_db.get__SslCertificateRequest__by_id(self.request.dbsession,
+                dbSslCertificateRequest = lib_db.get__SslCertificateRequest__by_id(self.request.api_context,
                                                                                    active_request.ssl_certificate_request_id,
                                                                                    )
                 has_unverified = False
@@ -54,6 +54,6 @@ class ViewPublic(Handler):
                         break
                 if not has_unverified and not dbSslCertificateRequest.timestamp_finished:
                     dbSslCertificateRequest.timestamp_finished = datetime.datetime.now()
-                    self.request.dbsession.flush()
+                    self.request.api_context.dbSession.flush()
             return active_request.challenge_text
         return 'ERROR'

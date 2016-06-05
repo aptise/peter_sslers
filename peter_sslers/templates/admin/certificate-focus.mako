@@ -232,6 +232,7 @@
                 </table>
             </td>
         </tr>
+        ${admin_partials.table_tr_event_created(SslServerCertificate.ssl_operations_event_id__created)}
         <tr>
             <th>is renewal?</th>
             <td>

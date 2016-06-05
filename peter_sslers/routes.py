@@ -60,6 +60,19 @@ def _admin_views(config):
     config.add_route_7('admin:api', '/api')
     config.add_route_7('admin:api:domain:enable', '/api/domain/enable')
     config.add_route_7('admin:api:domain:disable', '/api/domain/disable')
+    # -
+    config.add_route_7('admin:api:deactivate_expired', '/api/deactivate-expired')
+    config.add_route_7('admin:api:deactivate_expired.json', '/api/deactivate-expired.json')
+    # -
+    config.add_route_7('admin:api:ca_certificate_probes:probe', '/api/ca-certificate-probes/probe')
+    config.add_route_7('admin:api:ca_certificate_probes:probe.json', '/api/ca-certificate-probes/probe.json')
+    config.add_route_7('admin:api:nginx:cache_flush', '/api/nginx/cache-flush')
+    config.add_route_7('admin:api:nginx:cache_flush.json', '/api/nginx/cache-flush.json')
+    config.add_route_7('admin:api:redis:prime', '/api/redis/prime')
+    config.add_route_7('admin:api:redis:prime.json', '/api/redis/prime.json')
+    # -
+    config.add_route_7('admin:api:update_recents', '/api/update-recents')
+    config.add_route_7('admin:api:update_recents.json', '/api/update-recents.json')
 
     # CertificateAuthority Certificates
     config.add_route_7('admin:ca_certificates', '/ca-certificates')
@@ -134,28 +147,20 @@ def _admin_views(config):
     # -
     config.add_route_7('admin:operations:ca_certificate_probes', '/operations/ca-certificate-probes')
     config.add_route_7('admin:operations:ca_certificate_probes_paginated', '/operations/ca-certificate-probes/{@page}')
-    config.add_route_7('admin:operations:ca_certificate_probes:probe', '/operations/ca-certificate-probes/probe')
-    config.add_route_7('admin:operations:ca_certificate_probes:probe.json', '/operations/ca-certificate-probes/probe.json')
-    # -
-    config.add_route_7('admin:operations:deactivate_expired', '/operations/deactivate-expired')
-    config.add_route_7('admin:operations:deactivate_expired.json', '/operations/deactivate-expired.json')
     # -
     config.add_route_7('admin:operations:log', '/operations/log')
     config.add_route_7('admin:operations:log_paginated', '/operations/log/{@page}')
     config.add_route_7('admin:operations:log:focus', '/operations/log/item/{@id}')
     # -
+    config.add_route_7('admin:operations:object_log', '/operations/object-log')
+    config.add_route_7('admin:operations:object_log_paginated', '/operations/object-log/{@page}')
+    config.add_route_7('admin:operations:object_log:focus', '/operations/object-log/item/{@id}')
+    # -
     config.add_route_7('admin:operations:nginx', '/operations/nginx')
     config.add_route_7('admin:operations:nginx_paginated', '/operations/nginx/{@page}')
-    config.add_route_7('admin:operations:nginx:cache_flush', '/operations/nginx/cache-flush')
-    config.add_route_7('admin:operations:nginx:cache_flush.json', '/operations/nginx/cache-flush.json')
     # -
     config.add_route_7('admin:operations:redis', '/operations/redis')
     config.add_route_7('admin:operations:redis_paginated', '/operations/redis/{@page}')
-    config.add_route_7('admin:operations:redis:prime', '/operations/redis/prime')
-    config.add_route_7('admin:operations:redis:prime.json', '/operations/redis/prime.json')
-    # -
-    config.add_route_7('admin:operations:update_recents', '/operations/update-recents')
-    config.add_route_7('admin:operations:update_recents.json', '/operations/update-recents.json')
 
     # Private Keys sign Certificates
     config.add_route_7('admin:private_keys', '/private-keys')

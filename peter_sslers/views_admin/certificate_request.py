@@ -35,9 +35,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_requests', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
     def certificate_requests(self):
-        items_count = lib_db.get__SslCertificateRequest__count(self.request.dbsession)
+        items_count = lib_db.get__SslCertificateRequest__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/certificate-requests/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslCertificateRequest__paginated(self.request.dbsession, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get__SslCertificateRequest__paginated(self.request.api_context, limit=items_per_page, offset=offset)
 
         return {'project': 'peter_sslers',
                 'SslCertificateRequests_count': items_count,
@@ -48,7 +48,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _certificate_request_focus(self):
-        dbSslCertificateRequest = lib_db.get__SslCertificateRequest__by_id(self.request.dbsession, self.request.matchdict['id'])
+        dbSslCertificateRequest = lib_db.get__SslCertificateRequest__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbSslCertificateRequest:
             raise HTTPNotFound('the certificate was not found')
         return dbSslCertificateRequest
@@ -81,7 +81,7 @@ class ViewAdmin(Handler):
         if not dbSslCertificateRequest.certificate_request_type_is('acme flow'):
             raise HTTPNotFound('Only availble for Acme Flow')
         dbSslCertificateRequest.is_active = False
-        self.request.dbsession.flush()
+        self.request.api_context.dbSession.flush()
         return HTTPFound('%s/certificate-request/%s?result=success' % (self.request.registry.settings['admin_prefix'], dbSslCertificateRequest.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -107,9 +107,9 @@ class ViewAdmin(Handler):
 
         domain_identifier = self.request.matchdict['domain_identifier'].strip()
         if domain_identifier.isdigit():
-            dbSslDomain = lib_db.get__SslDomain__by_id(self.request.dbsession, domain_identifier, preload=False, eagerload_web=False)
+            dbSslDomain = lib_db.get__SslDomain__by_id(self.request.api_context, domain_identifier, preload=False, eagerload_web=False)
         else:
-            dbSslDomain = lib_db.get__SslDomain__by_name(self.request.dbsession, domain_identifier, preload=False, eagerload_web=False)
+            dbSslDomain = lib_db.get__SslDomain__by_name(self.request.api_context, domain_identifier, preload=False, eagerload_web=False)
         if not dbSslDomain:
             raise HTTPNotFound('invalid domain')
 
@@ -123,7 +123,7 @@ class ViewAdmin(Handler):
         self.db_SslCertificateRequest = dbSslCertificateRequest
         self.db_SslCertificateRequest2SslDomain = dbSslCertificateRequest2SslDomain
 
-        if self.request.POST:
+        if self.request.method == 'POST':
             return self._certificate_request_AcmeFlow_manage_domain__submit()
         return self._certificate_request_AcmeFlow_manage_domain__print()
 
@@ -156,7 +156,7 @@ class ViewAdmin(Handler):
             if not changed:
                 raise ValueError("No changes!")
 
-            self.request.dbsession.flush()
+            self.request.api_context.dbSession.flush()
 
             return HTTPFound('%s/certificate-request/%s/acme-flow/manage/domain/%s?result=success' %
                              (self.request.registry.settings['admin_prefix'],
@@ -181,7 +181,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:new:acme-flow')
     def certificate_request_new_AcmeFlow(self):
-        if self.request.POST:
+        if self.request.method == 'POST':
             return self._certificate_request_new_AcmeFlow__submit()
         return self._certificate_request_new_AcmeFlow__print()
 
@@ -201,7 +201,7 @@ class ViewAdmin(Handler):
             if not domain_names:
                 raise ValueError("missing valid domain names")
             dbSslCertificateRequest, dbDomainObjects = lib_db.create__SslCertificateRequest(
-                self.request.dbsession,
+                self.request.api_context,
                 csr_pem = None,
                 certificate_request_type_id = SslCertificateRequestType.ACME_FLOW,
                 domain_names = domain_names,
@@ -225,7 +225,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:new:acme-automated')
     def certificate_request_new_AcmeAutomated(self):
-        if self.request.POST:
+        if self.request.method == 'POST':
             return self._certificate_request_new_AcmeAutomated__submit()
         return self._certificate_request_new_AcmeAutomated__print()
 
@@ -253,7 +253,7 @@ class ViewAdmin(Handler):
 
             try:
                 dbLetsencryptCertificate = lib_db.do__CertificateRequest__AcmeAutomated(
-                    self.request.dbsession,
+                    self.request.api_context,
                     domain_names,
                     account_key_pem=account_key_pem,
                     private_key_pem=private_key_pem,

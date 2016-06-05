@@ -46,3 +46,13 @@ class Handler(object):
                 raise HTTPFound(pager.template.format(pager.page_num))
         # return pager, offset
         return pager, ((page_requested - 1) * items_per_page)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def _ensure_nginx(self):
+        if not self.request.registry.settings['enable_nginx']:
+            raise HTTPFound('%s?error=no_nginx' % self.request.registry.settings['admin_prefix'])
+
+    def _ensure_redis(self):
+        if not self.request.registry.settings['enable_redis']:
+            raise HTTPFound('%s?error=no_redis' % self.request.registry.settings['admin_prefix'])

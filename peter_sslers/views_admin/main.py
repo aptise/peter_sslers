@@ -107,7 +107,7 @@ class ViewAdminMain(Handler):
 
             # SslLetsEncryptAccountKey
             if show_only['SslLetsEncryptAccountKey']:
-                _base = self.request.dbsession.query(SslLetsEncryptAccountKey)\
+                _base = self.request.api_context.dbSession.query(SslLetsEncryptAccountKey)\
                     .filter(SslLetsEncryptAccountKey.key_pem_modulus_md5 == search_modulus)
                 results['SslLetsEncryptAccountKey']['count'] = _base.count()
                 if results['SslLetsEncryptAccountKey']['count']:
@@ -115,7 +115,7 @@ class ViewAdminMain(Handler):
 
             # SslCaCertificate
             if show_only['SslCaCertificate']:
-                _base = self.request.dbsession.query(SslCaCertificate)\
+                _base = self.request.api_context.dbSession.query(SslCaCertificate)\
                     .filter(SslCaCertificate.cert_pem_modulus_md5 == search_modulus)
                 results['SslCaCertificate']['count'] = _base.count()
                 if results['SslCaCertificate']['count']:
@@ -123,7 +123,7 @@ class ViewAdminMain(Handler):
 
             # SslCertificateRequest
             if show_only['SslCertificateRequest']:
-                _base = self.request.dbsession.query(SslCertificateRequest)\
+                _base = self.request.api_context.dbSession.query(SslCertificateRequest)\
                     .filter(SslCertificateRequest.csr_pem_modulus_md5 == search_modulus)
                 results['SslCertificateRequest']['count'] = _base.count()
                 if results['SslCertificateRequest']['count']:
@@ -131,7 +131,7 @@ class ViewAdminMain(Handler):
 
             # SslPrivateKey
             if show_only['SslPrivateKey']:
-                _base = self.request.dbsession.query(SslPrivateKey)\
+                _base = self.request.api_context.dbSession.query(SslPrivateKey)\
                     .filter(SslPrivateKey.key_pem_modulus_md5 == search_modulus)
                 results['SslPrivateKey']['count'] = _base.count()
                 if results['SslPrivateKey']['count']:
@@ -139,7 +139,7 @@ class ViewAdminMain(Handler):
 
             # SslServerCertificate
             if show_only['SslServerCertificate']:
-                _base = self.request.dbsession.query(SslServerCertificate)\
+                _base = self.request.api_context.dbSession.query(SslServerCertificate)\
                     .filter(SslServerCertificate.cert_pem_modulus_md5 == search_modulus)
                 results['SslServerCertificate']['count'] = _base.count()
                 if results['SslServerCertificate']['count']:
@@ -164,7 +164,7 @@ class ViewAdminMain(Handler):
 
             # SslCaCertificate
             if show_only['SslCaCertificate']:
-                _base = self.request.dbsession.query(SslCaCertificate)\
+                _base = self.request.api_context.dbSession.query(SslCaCertificate)\
                     .filter(sqlalchemy.or_(SslCaCertificate.cert_subject_hash == search_hash,
                                            SslCaCertificate.cert_issuer_hash == search_hash,
                                            )
@@ -175,7 +175,7 @@ class ViewAdminMain(Handler):
 
             # SslServerCertificate
             if show_only['SslServerCertificate']:
-                _base = self.request.dbsession.query(SslServerCertificate)\
+                _base = self.request.api_context.dbSession.query(SslServerCertificate)\
                     .filter(sqlalchemy.or_(SslServerCertificate.cert_subject_hash == search_hash,
                                            SslServerCertificate.cert_issuer_hash == search_hash,
                                            )

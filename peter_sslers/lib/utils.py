@@ -23,6 +23,36 @@ RE_domain = re.compile('^(?:[\w\-]+\.)+[\w]{2,5}$')
 # ==============================================================================
 
 
+class ApiContext(object):
+    """
+    A context object
+    API Calls can rely on this object to assist in logging.
+
+    This implements an interface that guarantees several properties.  Substitutes may be used-
+
+    :timestamp: `datetime.datetime.utcnow()`
+    :dbSession: - sqlalchemy `session` object
+    :dbOperationsEvent: - a topline SslOperationsEvent object for this request, if any
+    """
+
+    dbOperationsEvent = None
+    dbSession = None
+    timestamp = None
+
+    def __init__(self, dbOperationsEvent=None, dbSession=None, timestamp=None, ):
+        self.dbOperationsEvent = dbOperationsEvent
+        self.dbSession = dbSession
+        self.timestamp = timestamp
+
+
+# ------------------------------------------------------------------------------
+
+
+def new_event_payload_dict():
+    return {'v': 1,
+            }
+
+
 # ------------------------------------------------------------------------------
 
 
@@ -111,7 +141,7 @@ def redis_default_connection(request,
     return redis
 
 
-def nginx_flush_cache(request, dbSession):
+def nginx_flush_cache(request, ctx):
     _reset_path = request.registry.settings['nginx.reset_path']
     for _server in request.registry.settings['nginx.reset_servers']:
         reset_url = _server + _reset_path + '/all'
@@ -122,15 +152,13 @@ def nginx_flush_cache(request, dbSession):
                 raise ValueError("could not flush cache: `%s`" % reset_url)
         else:
             raise ValueError("could not flush cache: `%s`" % reset_url)
-    dbEvent = lib.db.create__SslOperationsEvent(dbSession,
-                                                models.SslOperationsEventType.nginx_cache_flush,
-                                                {'v': 1,
-                                                 }
-                                                )
+    dbEvent = lib.db.log__SslOperationsEvent(ctx,
+                                             models.SslOperationsEventType.from_string('operations__nginx_cache_flush'),
+                                             )
     return True, dbEvent
 
 
-def nginx_expire_cache(request, dbSession, dbDomains=None):
+def nginx_expire_cache(request, ctx, dbDomains=None):
     if not dbDomains:
         raise ValueError("no domains submitted")
     domain_ids = {'success': set([]),
@@ -152,14 +180,14 @@ def nginx_expire_cache(request, dbSession, dbDomains=None):
                 # log the url?
                 domain_ids['failure'].add(domain.id)
 
-    dbEvent = lib.db.create__SslOperationsEvent(dbSession,
-                                                models.SslOperationsEventType.nginx_cache_expire,
-                                                {'v': 1,
-                                                 'domain_ids': {'success': list(domain_ids['success']),
-                                                                'failure': list(domain_ids['failure']),
-                                                                }
-                                                 }
-                                                )
+    event_payload_dict = new_event_payload_dict()
+    event_payload_dict['ssl_domain_ids'] = {'success': list(domain_ids['success']),
+                                            'failure': list(domain_ids['failure']),
+                                            }
+    dbEvent = lib.db.log__SslOperationsEvent(ctx,
+                                             models.SslOperationsEventType.from_string('operations__nginx_cache_expire'),
+                                             event_payload_dict,
+                                             )
     return True, dbEvent
 
 

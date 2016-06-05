@@ -226,7 +226,7 @@ def modulus_md5_key__pem_filepath(pem_filepath):
     proc_modulus = subprocess.Popen([openssl_path, "rsa", "-noout", "-modulus", "-in", pem_filepath],
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     proc_md5 = subprocess.Popen([openssl_path, "md5"],
-                                 stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     data, err = proc_md5.communicate()
     data = data.strip()
     if data[:9] != "(stdin)= " or not data:
@@ -240,7 +240,7 @@ def modulus_md5_csr__pem_filepath(pem_filepath):
     proc_modulus = subprocess.Popen([openssl_path, "req", "-noout", "-modulus", "-in", pem_filepath],
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     proc_md5 = subprocess.Popen([openssl_path, "md5"],
-                                 stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     data, err = proc_md5.communicate()
     data = data.strip()
     if data[:9] != "(stdin)= " or not data:
@@ -254,7 +254,7 @@ def modulus_md5_cert__pem_filepath(pem_filepath):
     proc_modulus = subprocess.Popen([openssl_path, "x509", "-noout", "-modulus", "-in", pem_filepath],
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     proc_md5 = subprocess.Popen([openssl_path, "md5"],
-                                 stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     data, err = proc_md5.communicate()
     data = data.strip()
     if data[:9] != "(stdin)= " or not data:

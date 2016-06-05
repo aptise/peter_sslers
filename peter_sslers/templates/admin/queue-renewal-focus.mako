@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/queue-renewal">Renewal Queue</a></li>
+        <li><a href="${admin_prefix}/queue-renewals">Renewal Queue</a></li>
         <li class="active">Focus [${RenewalQueueItem.id}]</li>
     </ol>
 </%block>
@@ -64,6 +64,7 @@
                 ${RenewalQueueItem.process_result or ''}
             </td>
         </tr>
+        ${admin_partials.table_tr_event_created(RenewalQueueItem.ssl_operations_event_id__child_of)}
         <tr>
             <th>operations event?</th>
             <td>
@@ -76,9 +77,9 @@
                             </td>
                         </tr>
                         <tr>
-                            <th>timestamp_operation</th>
+                            <th>timestamp_event</th>
                             <td>
-                                <timestamp>${RenewalQueueItem.operations_event.timestamp_operation or ''}</timestamp>
+                                <timestamp>${RenewalQueueItem.operations_event.timestamp_event or ''}</timestamp>
                             </td>
                         </tr>
                     </table>

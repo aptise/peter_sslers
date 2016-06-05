@@ -168,3 +168,11 @@ class Form_PrivateKey_Mark(_Form_Schema_Base):
 
 class Form_QueueDomains_add(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
+
+
+class Form_API_Domain_enable(_Form_Schema_Base):
+    domain_names = UnicodeString(not_empty=True)
+
+
+class Form_API_Domain_disable(_Form_Schema_Base):
+    domain_names = UnicodeString(not_empty=True)

@@ -116,7 +116,7 @@ Here we go...
 	cd peter_sslers
 	python setup.py develop
 	initialize_peter_sslers_db development.ini	
-	prequest development.ini /.well-known/admin/operations/ca-certificate-probes/probe.json
+	prequest development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
 	pserve --reload development.ini
 	
 Then you can visit `http://127.0.0.1:6543`
@@ -132,7 +132,7 @@ It is recommended to open up a new terminal and do the following commands
 	cd certificate_admin
 	source peter_sslers-venv/bin/activate
 	cd peter_sslers
-	prequest development.ini /.well-known/admin/operations/ca-certificate-probes/probe.json
+	prequest development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
 	cd tools
 	invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
 
@@ -431,8 +431,8 @@ The logic in pseudocode:
 
 you can use the prequest syntax to spin up a URL and get or post data
 
-`$VENV/bin/prequest development.ini /.well-known/admin/operations/ca-certificate-probes/probe.json`
-`$VENV/bin/prequest development.ini /.well-known/admin/operations/redis/prime.json`
+`$VENV/bin/prequest development.ini /.well-known/admin/api/ca-certificate-probes/probe.json`
+`$VENV/bin/prequest development.ini /.well-known/admin/api/redis/prime.json`
 
 a bit of warning  -- prequest will log to the commandline unless you update the logging settings.
 
@@ -440,21 +440,21 @@ a bit of warning  -- prequest will log to the commandline unless you update the 
 ## Routes Designed for JSON Automation
 
 
-### `/.well-known/admin/operations/ca-certificate-probes/probe.json`
+### `/.well-known/admin/api/ca-certificate-probes/probe.json`
 
 Probes known URLs of LetsEncrypt keys and saves them with the correct role information.
 
 If the keys were previously discovered during a signing process, it will decorate the existing records with the role data.
 
-### `/.well-known/admin/operations/deactivate-expired.json`
+### `/.well-known/admin/api/deactivate-expired.json`
 
 Deactivates expired certs
 
-### `/.well-known/admin/operations/redis/prime.json`
+### `/.well-known/admin/api/redis/prime.json`
 
 Primes a redis cache with domain data.
 
-### `/.well-known/admin/operations/update-recents.json`
+### `/.well-known/admin/api/update-recents.json`
 
 Updates domain records to list the most recent certificate for the domain
 
@@ -624,7 +624,7 @@ For testing certificates, these 2 commands can be useful:
 
 reprime Redis cache
 
-	$ prequest development.ini /.well-known/admin/operations/redis/prime.json
+	$ prequest development.ini /.well-known/admin/api/redis/prime.json
 
 clear out nginx cache
 
@@ -719,6 +719,12 @@ You can overwrite the testdb; beware that it CAN NOT run as a memory db.  it mus
 
 in the meantime, `curl` can be used to trigger normal requests
 
+document 
+	/queue-domains
+	/queue-renewals
+	/api/domain/enable
+	/api/domain/disable
+
 ## upload CERT/Chains for 'flow' CSR
 
 ## associate all objects to one another when imported
@@ -739,6 +745,8 @@ If using postgresql...
 	create database ssl_minnow with owner ssl_minnow ;
 	
 	change the config settings
+	
+	curl --form "domain_names=example.com" http://127.0.0.1:6543/.well-known/admin/api/domain/enable
 
 
 Getting Started
@@ -762,7 +770,7 @@ after running the server, in another window...
 
 - cd tools
 
-- $VENV/bin/invoke import_letsencrypt_certs_archive --archive-path='//etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
+- $VENV/bin/invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
 
 
 There is also a button under "operations" to probe LetsEncrypt's public website and update your certs with data.
