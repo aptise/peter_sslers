@@ -164,7 +164,8 @@ class SslOperationsEventType(_mixin_mapping):
         820: 'queue_domain__mark',
 
         901: 'queue_renewal__insert',
-        902: 'queue_renewals__process',
+        902: 'queue_renewals__update',
+        903: 'queue_renewal__mark',
 
         2001: 'api_domains__enable',
         2002: 'api_domains__disable',
@@ -175,6 +176,20 @@ class SslOperationsEventType(_mixin_mapping):
 class SslOperationsObjectEventStatus(_mixin_mapping):
     """
     This object used to store constants
+    
+    heres how we handle the numbers:
+    
+        SslOperationsEventType contains the section; and a code on the 1
+        SslOperationsObjectEventStatus contains the status/type; and a code on the 10
+        
+    note the 2
+        SslOperationsEventType.domain__mark = 402
+                                                _
+
+    that corresponds to the 20 namespace on SslOperationsObjectEventStatus:
+        421: 'domain__mark__active',
+        422: 'domain__mark__inactive',
+        
     """
     _mapping = {
         101: 'letsencrypt_account_key__insert',
@@ -196,6 +211,8 @@ class SslOperationsObjectEventStatus(_mixin_mapping):
         721: 'certificate__mark__active',
         722: 'certificate__mark__inactive',
         723: 'certificate__mark__revoked',
+        724: 'certificate__mark__renew_auto',
+        725: 'certificate__mark__renew_manual',
         802: 'queue_domain__add__success',
         803: 'queue_domain__add__already_queued',
         804: 'queue_domain__add__already_exists',
@@ -204,6 +221,7 @@ class SslOperationsObjectEventStatus(_mixin_mapping):
         821: 'queue_domain__mark__cancelled',
 
         901: 'queue_renewal__insert',
+        931: 'queue_renewal__mark__cancelled',
     }
 
 
@@ -734,6 +752,7 @@ class SslQueueRenewal(Base):
     process_result = sa.Column(sa.Boolean, nullable=True, default=None)
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False)
     ssl_operations_event_id__created = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
 
     server_certificate = sa.orm.relationship("SslServerCertificate",
                                              primaryjoin="SslQueueRenewal.ssl_server_certificate_id==SslServerCertificate.id",
@@ -780,6 +799,7 @@ class SslServerCertificate(Base):
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
     is_deactivated = sa.Column(sa.Boolean, nullable=True, default=None)
     is_revoked = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_auto_renew = sa.Column(sa.Boolean, nullable=False, default=True)
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False)
 
     # this is the LetsEncrypt key

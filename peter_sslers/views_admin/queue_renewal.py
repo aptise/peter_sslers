@@ -19,7 +19,10 @@ from ..models import *
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
 from ..lib import db as lib_db
+from ..lib import utils as lib_utils
 from ..lib import letsencrypt_info as lib_letsencrypt_info
+from ..lib.forms import (Form_QueueRenewal_mark,
+                         )
 from ..lib.handler import Handler, items_per_page
 
 
@@ -56,6 +59,25 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name='admin:queue_renewals:update', renderer=None)
+    @view_config(route_name='admin:queue_renewals:update.json', renderer='json')
+    def queue_renewal_update(self):
+        try:
+            queue_results = lib_db.queue_renewals__update(self.request.api_context)
+            if self.request.matched_route.name == 'admin:queue_renewals:update.json':
+                return {'result': 'success',
+                        }
+            return HTTPFound("%s/queue-renewals?update=1" % self.request.registry.settings['admin_prefix'])
+        except Exception as e:
+            transaction.abort()
+            if self.request.matched_route.name == 'admin:queue_renewals:update.json':
+                return {'result': 'error',
+                        'error': e.message,
+                        }
+            raise
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     def _queue_renewal_focus(self):
         item = lib_db.get__SslQueueRenewal__by_id(self.request.api_context, self.request.matchdict['id'])
         if not item:
@@ -71,19 +93,67 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:queue_renewals:process', renderer=None)
-    @view_config(route_name='admin:queue_renewals:process.json', renderer='json')
-    def queue_renewal_process(self):
+    @view_config(route_name='admin:queue_renewal:focus:mark', renderer=None)
+    @view_config(route_name='admin:queue_renewal:focus:mark.json', renderer='json')
+    def queue_renewal_focus_mark(self):
+        dbQueueRenewal = self._queue_renewal_focus()
+        action = '!MISSING or !INVALID'
         try:
-            queue_results = lib_db.queue_renewals__process(self.request.api_context)
-            if self.request.matched_route.name == 'admin:queue_renewals:process.json':
-                return {'result': 'success',
-                        }
-            return HTTPFound("%s/queue-renewals?processed=1" % self.request.registry.settings['admin_prefix'])
-        except Exception as e:
-            transaction.abort()
-            if self.request.matched_route.name == 'admin:queue_renewals:process.json':
-                return {'result': 'error',
-                        'error': e.message,
-                        }
-            raise
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_QueueRenewal_mark,
+                                                             validate_get=True
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            action = formStash.results['action']
+            event_type = SslOperationsEventType.from_string('queue_renewal__mark')
+            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict['ssl_queue_renewal.id'] = dbQueueRenewal.id
+            event_payload_dict['action'] = formStash.results['action']
+
+            event_status = False
+            if action == 'cancelled':
+                if not dbQueueRenewal.is_active:
+                    raise formhandling.FormInvalid('Already cancelled')
+                dbQueueRenewal.is_active = False
+                dbQueueRenewal.timestamp_processed = self.request.api_context.timestamp
+                event_status = 'queue_renewal__mark__cancelled'
+            else:
+                raise formhandling.FormInvalid('invalid `action`')
+
+            self.request.api_context.dbSession.flush()
+
+            # bookkeeping
+            dbOperationsEvent = lib_db.log__SslOperationsEvent(
+                self.request.api_context,
+                event_type,
+                event_payload_dict,
+            )
+            lib_db._log_object_event(self.request.api_context,
+                                     dbOperationsEvent=dbOperationsEvent,
+                                     event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
+                                     dbQueueRenewal=dbQueueRenewal,
+                                     )
+
+
+            url_success = '%s/queue-renewal/%s?operation=mark&action=%s&result=success' % (
+                self.request.registry.settings['admin_prefix'],
+                dbQueueRenewal.id,
+                action,
+            )
+            return HTTPFound(url_success)
+
+        except formhandling.FormInvalid, e:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            url_failure = '%s/queue-renewal/%s?operation=mark&action=%s&result=error&error=%s' % (
+                self.request.registry.settings['admin_prefix'],
+                dbQueueRenewal.id,
+                action,
+                e.message,
+            )
+            raise HTTPFound(url_failure)

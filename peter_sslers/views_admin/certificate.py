@@ -411,6 +411,7 @@ class ViewAdmin(Handler):
                     raise formhandling.FormInvalid('Already deactivated')
                 dbServerCertificate.is_deactivated = True
                 dbServerCertificate.is_active = False
+                dbServerCertificate.is_auto_renew = False
                 update_recents = True
                 deactivated = True
                 event_status = 'certificate__mark__inactive'
@@ -420,10 +421,27 @@ class ViewAdmin(Handler):
                     raise formhandling.FormInvalid('Already revoked')
                 dbServerCertificate.is_revoked = True
                 dbServerCertificate.is_active = False
+                dbServerCertificate.is_auto_renew = False
                 update_recents = True
                 deactivated = True
                 event_type = 'certificate__revoke'
                 event_status = 'certificate__mark__revoked'
+
+            elif action == 'renew_auto':
+                if not dbServerCertificate.is_active:
+                    raise formhandling.FormInvalid('certificate must be `active`')
+                if dbServerCertificate.is_auto_renew:
+                    raise formhandling.FormInvalid('Already renew_auto')
+                dbServerCertificate.is_auto_renew = True
+                event_status = 'certificate__mark__renew_auto'
+
+            elif action == 'renew_manual':
+                if not dbServerCertificate.is_active:
+                    raise formhandling.FormInvalid('certificate must be `active`')
+                if not dbServerCertificate.is_auto_renew:
+                    raise formhandling.FormInvalid('Already renew_manual')
+                dbServerCertificate.is_auto_renew = False
+                event_status = 'certificate__mark__renew_manual'
 
             else:
                 raise formhandling.FormInvalid('invalid `action`')

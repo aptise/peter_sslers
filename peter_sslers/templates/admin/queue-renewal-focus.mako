@@ -27,6 +27,26 @@
             </td>
         </tr>
         <tr>
+            <th>is_active</th>
+            <td>
+                <span class="label label-${'success' if RenewalQueueItem.is_active else 'warning'}">
+                    ${'Active' if RenewalQueueItem.is_active else 'inactive'}
+                </span>
+
+                % if RenewalQueueItem.is_active:
+                    &nbsp;
+                    <a  class="label label-warning"
+                        href="${admin_prefix}/queue-renewal/${RenewalQueueItem.id}/mark?action=cancelled"
+                    >
+                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                        cancel
+                    </a>
+                % else:
+                    <span class="label label-default">cancelled</span>
+                % endif
+            </td>
+        </tr>
+        <tr>
             <th>certificate_id</th>
             <td>
                 <a class="label label-info"

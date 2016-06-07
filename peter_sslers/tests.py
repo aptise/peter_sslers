@@ -976,6 +976,8 @@ class FunctionalTests_QueueRenewal(AppTest):
         # todo
         if DISABLE_UNWRITTEN_TESTS:
             return True
+        res = self.testapp.get('/.well-known/admin/queue-renewals/update', status=200)
+        res = self.testapp.get('/.well-known/admin/queue-renewals/update.json', status=200)
         res = self.testapp.get('/.well-known/admin/queue-renewals/process', status=200)
         res = self.testapp.get('/.well-known/admin/queue-renewals/process.json', status=200)
 

@@ -1742,14 +1742,13 @@ def queue_domains__process(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_renewals__process(
+def queue_renewals__update(
     ctx,
     fqdns_ids_only = None,
 ):
     try:
-        event_type = SslOperationsEventType.from_string('queue_renewals__process')
+        event_type = SslOperationsEventType.from_string('queue_renewals__update')
         event_payload_dict = utils.new_event_payload_dict()
-        event_payload_dict['status'] = 'attempt'
         dbOperationsEvent = log__SslOperationsEvent(ctx,
                                                     event_type,
                                                     event_payload_dict,
@@ -1757,36 +1756,28 @@ def queue_renewals__process(
 
         _expiring_days = 28
         _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
+        
+        _subquery_already_queued = ctx.dbSession.query(SslQueueRenewal.ssl_server_certificate_id)\
+            .filter(SslQueueRenewal.timestamp_processed.op('IS')(None),
+                    )\
+            .subquery()
+                    
         _core_query = ctx.dbSession.query(SslServerCertificate)\
             .filter(SslServerCertificate.is_active.op('IS')(True),
-                    SslServerCertificate.timestamp_expires <= _until
-                    )
-        if fqdns_ids_only:
-            _core_query = _core_query\
-                .filter(SslServerCertificate.ssl_unique_fqdn_set_id.in_(fqdns_ids_only),
-                        )
-        _core_query = _core_query\
-            .join(SslQueueRenewal,
-                  SslServerCertificate.ssl_unique_fqdn_set_id == SslQueueRenewal.ssl_unique_fqdn_set_id,
-                  )\
-            .filter(SslQueueRenewal.timestamp_processed.op('IS')(None),
+                    SslServerCertificate.is_auto_renew.op('IS')(True),
+                    SslServerCertificate.timestamp_expires <= _until,
+                    SslServerCertificate.id.notin_(_subquery_already_queued),
                     )
         results = _core_query.all()
-        for cert in results:
-            renewal = _create__SslQueueRenewal(
-                ctx,
-                cert,
-            )
-        event_payload_dict['queued_certificate_ids'] = ','.join([str(c.id) for c in results])
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
 
-        raise ValueError("what to log?")
-        _log_object_event(ctx,
-                          dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=SslOperationsObjectEventStatus.from_string('queue_renewal__process'),
-                          dbQueueRewnwal=dbQueue,
-                          )
+        renewals = []
+        for cert in results:
+            # this will call `_log_object_event` as needed
+            dbQueueRenewal = _create__SslQueueRenewal(ctx, cert, )
+            renewals.append(dbQueueRenewal)
+        event_payload_dict['ssl_certificate-queued.ids'] = ','.join([str(c.id) for c in results])
+        event_payload_dict['sql_queue_renewals.ids'] = ','.join([str(c.id) for c in renewals])
+        dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush()
 
         return True

@@ -75,7 +75,31 @@
                                 activate
                             </a>
                         % endif
-
+                    % endif
+                % endif
+            </td>
+        </tr>
+        <tr>
+            <th>is_auto_renew</th>
+            <td>
+                <span class="label label-${'success' if SslServerCertificate.is_auto_renew else 'warning'}">
+                    ${'AutoRenew' if SslServerCertificate.is_auto_renew else 'manual'}
+                </span>
+                % if SslServerCertificate.is_active:
+                    % if SslServerCertificate.is_auto_renew:
+                        <a  class="label label-warning"
+                            href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=renew_manual"
+                        >
+                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                            deactivate auto-renew
+                        </a>
+                    % else:
+                        <a  class="label label-success"
+                            href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=renew_auto"
+                        >
+                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                            enable auto-renew
+                        </a>
                     % endif
                 % endif
             </td>

@@ -106,6 +106,7 @@
             <tr>
                 <th>id</th>
                 <th>active?</th>
+                <th>auto-renew?</th>
                 <th>timestamp_signed</th>
                 <th>timestamp_expires</th>
                 % if show_expiring_days:
@@ -121,10 +122,16 @@
             <tr>
                 <td><a class="label label-info" href="${admin_prefix}/certificate/${cert.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${cert.id}</a></td>
+                    ${cert.id}</a>
+                </td>
                 <td>
                     <span class="label label-${'success' if cert.is_active else 'warning'}">
                         ${'Active' if cert.is_active else 'inactive'}
+                    </span>
+                </td>
+                <td>
+                    <span class="label label-${'success' if cert.is_auto_renew else 'warning'}">
+                        ${'AutoRenew' if cert.is_auto_renew else 'manual'}
                     </span>
                 </td>
                 <td><timestamp>${cert.timestamp_signed}</timestamp></td>
@@ -799,14 +806,14 @@
     <h4>Actions</h4>
     ${'<ul>' if as_list else ''|n}
     <${wrapper}>
-        <a  href="${admin_prefix}/operations/deactivate-expired"
+        <a  href="${admin_prefix}/api/deactivate-expired"
             class="label label-primary"
         >
          <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
          Deactivate Expired Certificates</a><br/>
     </${wrapper}>
     <${wrapper}>
-        <a  href="${admin_prefix}/operations/update-recents"
+        <a  href="${admin_prefix}/api/update-recents"
             class="label label-primary"
         >
          <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>

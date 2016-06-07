@@ -124,7 +124,7 @@ def PrivateKey_compromised(ctx, privateKey):
 
     # okay, now try to requeue items
     revoked_fqdns_ids = revoked_fqdn_ids_2_certs.keys()
-    result = lib.db.queue_renewals__process(
+    result = lib.db.queue_renewals__update(
         ctx,
         fqdns_ids_only = revoked_fqdns_ids,
     )

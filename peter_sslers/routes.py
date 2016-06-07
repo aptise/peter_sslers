@@ -194,9 +194,13 @@ def _admin_views(config):
     config.add_route_7('admin:queue_renewals_paginated', '/queue-renewals/{@page}')
     config.add_route_7('admin:queue_renewals:all', '/queue-renewals/all')
     config.add_route_7('admin:queue_renewals:all_paginated', '/queue-renewals/all/{@page}')
+    config.add_route_7('admin:queue_renewal:focus', '/queue-renewal/{@id}')
+    config.add_route_7('admin:queue_renewal:focus:mark', '/queue-renewal/{@id}/mark')
+    config.add_route_7('admin:queue_renewal:focus:mark.json', '/queue-renewal/{@id}/mark.json')
+    config.add_route_7('admin:queue_renewals:update', '/queue-renewals/update')
+    config.add_route_7('admin:queue_renewals:update.json', '/queue-renewals/update.json')
     config.add_route_7('admin:queue_renewals:process', '/queue-renewals/process')
     config.add_route_7('admin:queue_renewals:process.json', '/queue-renewals/process.json')
-    config.add_route_7('admin:queue_renewal:focus', '/queue-renewal/{@id}')
 
     # Unique FQDN Sets are tied to Certs and Ratelimits
     config.add_route_7('admin:unique_fqdn_sets', '/unique-fqdn-sets')

@@ -59,9 +59,9 @@
               <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-renewals">Unprocessed Items</a></li>
               <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-renewals/all">All Items</a></li>
               <li role="presentation" class="">
-                <a href="${admin_prefix}/queue-renewals/process">
+                <a href="${admin_prefix}/queue-renewals/update">
                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                Queue Renewals (30 days or less)</a>
+                Update Queue (30 days or less)</a>
               </li>
             </ul>
         </div>

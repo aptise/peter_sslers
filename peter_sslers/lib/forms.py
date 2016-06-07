@@ -115,7 +115,7 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
 
 
 class Form_Certificate_mark(_Form_Schema_Base):
-    action = OneOf(('active', 'inactive', 'revoked', ))
+    action = OneOf(('active', 'inactive', 'revoked', 'renew_manual', 'renew_auto', ))
 
 
 class Form_CertificateRequest_new_AcmeFlow(_Form_Schema_Base):
@@ -168,7 +168,11 @@ class Form_PrivateKey_mark(_Form_Schema_Base):
 
 class Form_QueueDomain_mark(_Form_Schema_Base):
     action = OneOf(('cancelled', ))
-
+    
+    
+class Form_QueueRenewal_mark(_Form_Schema_Base):
+    action = OneOf(('cancelled', ))
+    
 
 class Form_QueueDomains_add(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
