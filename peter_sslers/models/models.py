@@ -155,16 +155,16 @@ class SslOperationsEventType(_mixin_mapping):
         701: 'certificate__insert',
         702: 'certificate__mark',
         703: 'certificate__renew',
+        704: 'certificate__revoke',
         710: 'certificate__deactivate_expired',
         711: 'certificate__deactivate_duplicate',
 
-        800: 'domain_queue__add',
-        810: 'domain_queue__process',
+        801: 'queue_domain__add',
+        810: 'queue_domain__process',
+        820: 'queue_domain__mark',
 
-        901: 'queue_domains__add',
-
-        1001: 'queue_renewal__insert',
-        1002: 'queue_renewals__process',
+        901: 'queue_renewal__insert',
+        902: 'queue_renewals__process',
 
         2001: 'api_domains__enable',
         2002: 'api_domains__disable',
@@ -178,20 +178,32 @@ class SslOperationsObjectEventStatus(_mixin_mapping):
     """
     _mapping = {
         101: 'letsencrypt_account_key__insert',
+        131: 'letsencrypt_account_key__mark__active',
+        132: 'letsencrypt_account_key__mark__inactive',
+        133: 'letsencrypt_account_key__mark__default',
+        134: 'letsencrypt_account_key__mark__notdefault',
         201: 'ca_certificate__insert',
         301: 'private_key__insert',
+        321: 'private_key__mark__active',
+        322: 'private_key__mark__inactive',
+        323: 'private_key__mark__compromised',
         401: 'domain__insert',
+        421: 'domain__mark__active',
+        422: 'domain__mark__inactive',
         501: 'unqiue_fqdn__insert',
         601: 'certificate_request__insert',
         701: 'certificate__insert',
+        721: 'certificate__mark__active',
+        722: 'certificate__mark__inactive',
+        723: 'certificate__mark__revoked',
+        802: 'queue_domain__add__success',
+        803: 'queue_domain__add__already_queued',
+        804: 'queue_domain__add__already_exists',
+        811: 'queue_domain__process__success',
+        812: 'queue_domain__process__fail',
+        821: 'queue_domain__mark__cancelled',
 
-        802: 'domain_queue__add__success',
-        803: 'domain_queue__add__already_queued',
-        804: 'domain_queue__add__already_exists',
-        811: 'domain_queue__process__success',
-        812: 'domain_queue__process__fail',
-
-        1001: 'queue_renewal__insert',
+        901: 'queue_renewal__insert',
     }
 
 
@@ -450,7 +462,7 @@ class SslDomain(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    is_from_domain_queue = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_from_queue_domain = sa.Column(sa.Boolean, nullable=True, default=None)
     timestamp_first_seen = sa.Column(sa.DateTime, nullable=False, )
 
     ssl_operations_event_id__created = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False)

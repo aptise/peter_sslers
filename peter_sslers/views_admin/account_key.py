@@ -16,7 +16,7 @@ import sqlalchemy
 # localapp
 from ..models import *
 from ..lib.forms import (Form_AccountKey_new__file,
-                         Form_AccountKey_Mark,
+                         Form_AccountKey_mark,
                          )
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
@@ -181,7 +181,7 @@ class ViewAdmin(Handler):
         action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_AccountKey_Mark,
+                                                             schema=Form_AccountKey_mark,
                                                              validate_get=True
                                                              )
             if not result:
@@ -192,16 +192,24 @@ class ViewAdmin(Handler):
             event_payload_dict = lib_utils.new_event_payload_dict()
             event_payload_dict['account_key_id'] = dbLetsEncryptAccountKey.id
             event_payload_dict['action'] = formStash.results['action']
-            if action == 'deactivate':
+
+            event_status = False
+            event_alt = None
+
+            if action == 'active':
+                if dbLetsEncryptAccountKey.is_active:
+                    raise formhandling.FormInvalid('Already activated')
+                dbLetsEncryptAccountKey.is_active = True
+                event_status = 'letsencrypt_account_key__mark__active'
+
+            elif action == 'inactive':
                 if dbLetsEncryptAccountKey.is_default:
                     raise formhandling.FormInvalid('You can not deactivate the default. Make another key default first.')
                 if not dbLetsEncryptAccountKey.is_active:
                     raise formhandling.FormInvalid('Already deactivated')
                 dbLetsEncryptAccountKey.is_active = False
-            elif action == 'activate':
-                if dbLetsEncryptAccountKey.is_active:
-                    raise formhandling.FormInvalid('Already activated')
-                dbLetsEncryptAccountKey.is_active = True
+                event_status = 'letsencrypt_account_key__mark__inactive'
+
             elif action == 'default':
                 if dbLetsEncryptAccountKey.is_default:
                     raise formhandling.FormInvalid('Already default')
@@ -209,18 +217,32 @@ class ViewAdmin(Handler):
                 if formerDefaultKey:
                     formerDefaultKey.is_default = False
                     event_payload_dict['account_key_id.former_default'] = formerDefaultKey.id
+                    event_alt = ('letsencrypt_account_key__mark__notdefault', formerDefaultKey)
                 dbLetsEncryptAccountKey.is_default = True
+                event_status = 'letsencrypt_account_key__mark__default'
+
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
             self.request.api_context.dbSession.flush()
 
             # bookkeeping
-            operationsEvent = lib_db.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
                 event_payload_dict,
             )
+            lib_db._log_object_event(self.request.api_context,
+                                     dbOperationsEvent=dbOperationsEvent,
+                                     event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
+                                     dbLetsEncryptAccountKey=dbLetsEncryptAccountKey,
+                                     )
+            if event_alt:
+                lib_db._log_object_event(self.request.api_context,
+                                         dbOperationsEvent=dbOperationsEvent,
+                                         event_status_id=SslOperationsObjectEventStatus.from_string(event_alt[0]),
+                                         dbLetsEncryptAccountKey=event_alt[1],
+                                         )
             url_success = '%s/account-key/%s?operation=mark&action=%s&result=sucess' % (
                 self.request.registry.settings['admin_prefix'],
                 dbLetsEncryptAccountKey.id,

@@ -17,7 +17,8 @@ import transaction
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_QueueDomains_add
+from ..lib.forms import (Form_QueueDomains_add,
+                         Form_QueueDomain_mark,
                          )
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
@@ -57,21 +58,6 @@ class ViewAdmin(Handler):
                 'SslQueueDomains': items_paged,
                 'sidenav_option': 'all',
                 'pager': pager,
-                }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    def _queue_domain_focus(self):
-        item = lib_db.get__SslQueueDomain__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
-        if not item:
-            raise HTTPNotFound('the item was not found')
-        return item
-
-    @view_config(route_name='admin:queue_domain:focus', renderer='/admin/queue-domain-focus.mako')
-    def queue_domain_focus(self):
-        dbQueueDomainItem = self._queue_domain_focus()
-        return {'project': 'peter_sslers',
-                'QueueDomainItem': dbQueueDomainItem,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -161,3 +147,85 @@ class ViewAdmin(Handler):
                         'error': e.message,
                         }
             raise
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def _queue_domain_focus(self):
+        item = lib_db.get__SslQueueDomain__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
+        if not item:
+            raise HTTPNotFound('the item was not found')
+        return item
+
+    @view_config(route_name='admin:queue_domain:focus', renderer='/admin/queue-domain-focus.mako')
+    def queue_domain_focus(self):
+        dbQueueDomain = self._queue_domain_focus()
+        return {'project': 'peter_sslers',
+                'QueueDomainItem': dbQueueDomain,
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:queue_domain:focus:mark', renderer=None)
+    @view_config(route_name='admin:queue_domain:focus:mark.json', renderer='json')
+    def queue_domain_focus_mark(self):
+        dbQueueDomain = self._queue_domain_focus()
+        action = '!MISSING or !INVALID'
+        try:
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_QueueDomain_mark,
+                                                             validate_get=True
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            action = formStash.results['action']
+            event_type = SslOperationsEventType.from_string('queue_domain__mark')
+            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict['ssl_queue_domain.id'] = dbQueueDomain.id
+            event_payload_dict['action'] = formStash.results['action']
+
+            event_status = False
+            if action == 'cancelled':
+                if not dbQueueDomain.is_active:
+                    raise formhandling.FormInvalid('Already cancelled')
+                dbQueueDomain.is_active = False
+                dbQueueDomain.timestamp_processed = self.request.api_context.timestamp
+                event_status = 'queue_domain__mark__cancelled'
+            else:
+                raise formhandling.FormInvalid('invalid `action`')
+
+            self.request.api_context.dbSession.flush()
+
+            # bookkeeping
+            dbOperationsEvent = lib_db.log__SslOperationsEvent(
+                self.request.api_context,
+                event_type,
+                event_payload_dict,
+            )
+            lib_db._log_object_event(self.request.api_context,
+                                     dbOperationsEvent=dbOperationsEvent,
+                                     event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
+                                     dbQueueDomain=dbQueueDomain,
+                                     )
+
+
+            url_success = '%s/queue-domain/%s?operation=mark&action=%s&result=sucess' % (
+                self.request.registry.settings['admin_prefix'],
+                dbQueueDomain.id,
+                action,
+            )
+            return HTTPFound(url_success)
+
+        except formhandling.FormInvalid, e:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            url_failure = '%s/queue-domain/%s?operation=mark&action=%s&result=error&error=%s' % (
+                self.request.registry.settings['admin_prefix'],
+                dbQueueDomain.id,
+                action,
+                e.message,
+            )
+            raise HTTPFound(url_failure)

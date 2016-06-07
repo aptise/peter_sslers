@@ -75,8 +75,8 @@ class Form_AccountKey_new__file(_Form_Schema_Base):
     account_key_file = FieldStorageUploadConverter(not_empty=True)
 
 
-class Form_AccountKey_Mark(_Form_Schema_Base):
-    action = OneOf(('default', 'activate', 'deactivate', ))
+class Form_AccountKey_mark(_Form_Schema_Base):
+    action = OneOf(('default', 'active', 'inactive', ))
 
 
 class Form_CACertificate_Upload__file(_Form_Schema_Base):
@@ -114,8 +114,8 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
     private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
 
-class Form_Certificate_Mark(_Form_Schema_Base):
-    action = OneOf(('active', 'deactivated', 'revoked', ))
+class Form_Certificate_mark(_Form_Schema_Base):
+    action = OneOf(('active', 'inactive', 'revoked', ))
 
 
 class Form_CertificateRequest_new_AcmeFlow(_Form_Schema_Base):
@@ -147,7 +147,7 @@ class Form_CertificateRequest_AcmeFlow_manage_domain(_Form_Schema_Base):
     challenge_text = UnicodeString(not_empty=True)
 
 
-class Form_Domain_Mark(_Form_Schema_Base):
+class Form_Domain_mark(_Form_Schema_Base):
     action = OneOf(('active', 'inactive', ))
 
 
@@ -162,8 +162,12 @@ class Form_PrivateKey_new__file(_Form_Schema_Base):
     private_key_file = FieldStorageUploadConverter(not_empty=True)
 
 
-class Form_PrivateKey_Mark(_Form_Schema_Base):
-    action = OneOf(('compromised', 'activate', 'deactivate', ))
+class Form_PrivateKey_mark(_Form_Schema_Base):
+    action = OneOf(('compromised', 'active', 'inactive', ))
+
+
+class Form_QueueDomain_mark(_Form_Schema_Base):
+    action = OneOf(('cancelled', ))
 
 
 class Form_QueueDomains_add(_Form_Schema_Base):

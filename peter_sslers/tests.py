@@ -432,11 +432,11 @@ class FunctionalTests_AccountKeys(AppTest):
             # make sure to roundtrip!
             # note we expect a 302 on success!
             if focus_item.is_active:
-                res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'deactivate'}, status=302)
-                res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'activate'}, status=302)
+                res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
+                res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'active'}, status=302)
             else:
-                res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'activate'}, status=302)
-                res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'deactivate'}, status=302)
+                res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'active'}, status=302)
+                res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'inactive'}, status=302)
         else:
             # TODO
             print "MUST TEST non-default"
@@ -600,11 +600,11 @@ class FunctionalTests_Certificate(AppTest):
             # make sure to roundtrip!
             # note we expect a 302 on success!
             if focus_item.is_active:
-                res = self.testapp.get('/.well-known/admin/certificate/%s/mark' % focus_id, {'action': 'deactivated'}, status=302)
+                res = self.testapp.get('/.well-known/admin/certificate/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
                 res = self.testapp.get('/.well-known/admin/certificate/%s/mark.json' % focus_id, {'action': 'active'}, status=302)
             else:
                 res = self.testapp.get('/.well-known/admin/certificate/%s/mark' % focus_id, {'action': 'active'}, status=302)
-                res = self.testapp.get('/.well-known/admin/certificate/%s/mark.json' % focus_id, {'action': 'deactivated'}, status=302)
+                res = self.testapp.get('/.well-known/admin/certificate/%s/mark.json' % focus_id, {'action': 'inactive'}, status=302)
         else:
             # TODO
             print "MUST TEST revoked"
@@ -843,11 +843,11 @@ class FunctionalTests_PrivateKeys(AppTest):
             # make sure to roundtrip!
             # note we expect a 302 on success!
             if focus_item.is_active:
-                res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'deactivate'}, status=302)
-                res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'activate'}, status=302)
+                res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
+                res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'active'}, status=302)
             else:
-                res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'activate'}, status=302)
-                res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'deactivate'}, status=302)
+                res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'active'}, status=302)
+                res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'inactive'}, status=302)
         else:
             # TODO
             print "MUST TEST compromised"
@@ -1019,9 +1019,21 @@ class FunctionalTests_API(AppTest):
         res = self.testapp.get('/.well-known/admin/api', status=200)
 
     def tests_domains(self):
-        if False:
-            res = self.testapp.get('/.well-known/admin/api/domain/enable', status=200)
-            res = self.testapp.get('/.well-known/admin/api/domain/disable', status=200)
+        # enable
+        _data = {'domain_names': 'example.com,foo.example.com, bar.example.com',
+                 }
+        res = self.testapp.post('/.well-known/admin/api/domain/enable', _data)
+        assert res.status_code == 200
+        res_json = json.loads(res.body)
+        assert res_json['result'] == 'success'
+
+        # disable
+        _data = {'domain_names': 'example.com,biz.example.com',
+                 }
+        res = self.testapp.post('/.well-known/admin/api/domain/disable', _data)
+        assert res.status_code == 200
+        res_json = json.loads(res.body)
+        assert res_json['result'] == 'success'
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     def tests_nginx(self):

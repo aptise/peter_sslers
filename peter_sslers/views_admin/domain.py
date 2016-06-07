@@ -15,7 +15,7 @@ import sqlalchemy
 
 # localapp
 from ..models import *
-from ..lib.forms import (Form_Domain_Mark,
+from ..lib.forms import (Form_Domain_mark,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
@@ -196,7 +196,7 @@ class ViewAdmin(Handler):
         action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_Domain_Mark,
+                                                             schema=Form_Domain_mark,
                                                              validate_get=True
                                                              )
             if not result:
@@ -207,25 +207,37 @@ class ViewAdmin(Handler):
             event_payload_dict = lib_utils.new_event_payload_dict()
             event_payload_dict['domain_id'] = dbDomain.id
             event_payload_dict['action'] = action
+            event_status = False
+
             if action == 'active':
                 if dbDomain.is_active:
                     raise formhandling.FormInvalid('Already active')
                 dbDomain.is_active = True
+                event_status = 'domain__mark__active'
+
             elif action == 'inactive':
                 if not dbDomain.is_active:
                     raise formhandling.FormInvalid('Already inactive')
                 dbDomain.is_active = False
+                event_status = 'domain__mark__inactive'
+
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
             self.request.api_context.dbSession.flush()
 
             # bookkeeping
-            operationsEvent = lib_db.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
                 event_payload_dict,
             )
+            lib_db._log_object_event(self.request.api_context,
+                                     dbOperationsEvent=dbOperationsEvent,
+                                     event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
+                                     dbDomain=dbDomain,
+                                     )
+
             url_success = '%s/domain/%s?operation=mark&action=%s&result=sucess' % (
                 self.request.registry.settings['admin_prefix'],
                 dbDomain.id,

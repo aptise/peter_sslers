@@ -49,19 +49,19 @@
                 </span>
                 &nbsp;
                 % if not SslLetsEncryptAccountKey.is_active:
-                    <a  href="${admin_prefix}/account-key/${SslLetsEncryptAccountKey.id}/mark?action=activate"
+                    <a  href="${admin_prefix}/account-key/${SslLetsEncryptAccountKey.id}/mark?action=active"
                         class="label label-info"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                        activate
+                        active
                     </a>
                 % else:
                     % if not SslLetsEncryptAccountKey.is_default:
-                        <a  href="${admin_prefix}/account-key/${SslLetsEncryptAccountKey.id}/mark?action=deactivate"
+                        <a  href="${admin_prefix}/account-key/${SslLetsEncryptAccountKey.id}/mark?action=inactive"
                             class="label label-danger disabled"
                         >
                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                            deactivate
+                            inactive
                         </a>
                     % else:
                         <span

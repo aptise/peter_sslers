@@ -186,6 +186,8 @@ def _admin_views(config):
     config.add_route_7('admin:queue_domains:process', '/queue-domains/process')
     config.add_route_7('admin:queue_domains:process.json', '/queue-domains/process.json')
     config.add_route_7('admin:queue_domain:focus', '/queue-domain/{@id}')
+    config.add_route_7('admin:queue_domain:focus:mark', '/queue-domain/{@id}/mark')
+    config.add_route_7('admin:queue_domain:focus:mark.json', '/queue-domain/{@id}/mark.json')
 
     # Unique FQDN Sets are tied to Certs and Ratelimits
     config.add_route_7('admin:queue_renewals', '/queue-renewals')

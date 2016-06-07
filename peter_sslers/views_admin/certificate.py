@@ -17,7 +17,7 @@ import sqlalchemy
 from ..models import *
 from ..lib.forms import (Form_Certificate_Upload__file,
                          Form_Certificate_Renewal_Custom,
-                         Form_Certificate_Mark,
+                         Form_Certificate_mark,
                          )
 from ..lib.handler import Handler, items_per_page
 from ..lib import acme as lib_acme
@@ -377,7 +377,7 @@ class ViewAdmin(Handler):
         action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_Certificate_Mark,
+                                                             schema=Form_Certificate_mark,
                                                              validate_get=True
                                                              )
             if not result:
@@ -392,6 +392,8 @@ class ViewAdmin(Handler):
             update_recents = False
             deactivated = False
             activated = False
+            event_status = False
+
             if action == 'active':
                 if dbServerCertificate.is_active:
                     raise formhandling.FormInvalid('already active!')
@@ -402,13 +404,17 @@ class ViewAdmin(Handler):
                     dbServerCertificate.is_deactivated = False
                 update_recents = True
                 activated = True
-            elif action == 'deactivated':
+                event_status = 'certificate__mark__active'
+
+            elif action == 'inactive':
                 if dbServerCertificate.is_deactivated:
                     raise formhandling.FormInvalid('Already deactivated')
                 dbServerCertificate.is_deactivated = True
                 dbServerCertificate.is_active = False
                 update_recents = True
                 deactivated = True
+                event_status = 'certificate__mark__inactive'
+
             elif action == 'revoked':
                 if dbServerCertificate.is_revoked:
                     raise formhandling.FormInvalid('Already revoked')
@@ -416,20 +422,29 @@ class ViewAdmin(Handler):
                 dbServerCertificate.is_active = False
                 update_recents = True
                 deactivated = True
+                event_type = 'certificate__revoke'
+                event_status = 'certificate__mark__revoked'
+
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
             self.request.api_context.dbSession.flush()
 
             # bookkeeping
-            operationsEvent = lib_db.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
                 event_payload_dict,
             )
+            lib_db._log_object_event(self.request.api_context,
+                                     dbOperationsEvent=dbOperationsEvent,
+                                     event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
+                                     dbServerCertificate=dbServerCertificate,
+                                     )
+
             if update_recents:
                 event_update = lib_db.operations_update_recents(self.request.api_context)
-                event_update.ssl_operations_event_id__child_of = operationsEvent.id
+                event_update.ssl_operations_event_id__child_of = dbOperationsEvent.id
                 self.request.api_context.dbSession.flush()
 
             if deactivated:

@@ -42,7 +42,7 @@
                 % if SslServerCertificate.is_active:
                     &nbsp;
                     <a  class="label label-warning"
-                        href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=deactivated"
+                        href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=inactive"
                     >
                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         deactivate
@@ -60,7 +60,7 @@
                         reason:
                         % if SslServerCertificate.is_deactivated:
                             &nbsp;
-                            <span class="label label-warning">deactivated</span>
+                            <span class="label label-warning">inactive</span>
                         % endif
                         % if SslServerCertificate.is_revoked:
                             &nbsp;

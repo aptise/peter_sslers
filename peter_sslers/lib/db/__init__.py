@@ -203,7 +203,7 @@ def getcreate__SslCertificateRequest__by_pem_text(
 def getcreate__SslDomain__by_domainName(
     ctx,
     domain_name,
-    is_from_domain_queue=None,
+    is_from_queue_domain=None,
 ):
     """
     getcreate wrapping a domain
@@ -219,7 +219,7 @@ def getcreate__SslDomain__by_domainName(
         dbDomain = SslDomain()
         dbDomain.domain_name = domain_name
         dbDomain.timestamp_first_seen = ctx.timestamp
-        dbDomain.is_from_domain_queue = is_from_domain_queue
+        dbDomain.is_from_queue_domain = is_from_queue_domain
         dbDomain.ssl_operations_event_id__created = dbOperationsEvent.id
         ctx.dbSession.add(dbDomain)
         ctx.dbSession.flush()
@@ -1518,8 +1518,9 @@ def operations_update_recents(ctx):
 
 
 def api_domains__enable(ctx, domain_names):
+    """this is just a proxy around queue_domains__add"""
     results = queue_domains__add(ctx, domain_names,
-                                 alternate_event_type=SslOperationsEventType.from_string('api_domains__enable'),
+                                 alternate_event_type_id=SslOperationsEventType.from_string('api_domains__enable'),
                                  )
     return results
 
@@ -1547,15 +1548,17 @@ def api_domains__disable(ctx, domain_names):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_domains__add(ctx, domain_names, alternate_event_type=None):
+def queue_domains__add(ctx, domain_names, alternate_event_type_id=None):
     """
     Adds domains to the queue if needed
     2016.06.04 - dbOperationsEvent compliant
+    
+    `alternate_event_type_id` can be specified if this should be logged differently
     """
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                alternate_event_type or SslOperationsEventType.from_string('queue_domains__add'),
+                                                alternate_event_type_id or SslOperationsEventType.from_string('queue_domain__add'),
                                                 event_payload_dict,
                                                 )
 
@@ -1568,7 +1571,7 @@ def queue_domains__add(ctx, domain_names, alternate_event_type=None):
             # log request
             _log_object_event(ctx,
                               dbOperationsEvent=dbOperationsEvent,
-                              event_status_id=SslOperationsObjectEventStatus.from_string('domain_queue__add__already_exists'),
+                              event_status_id=SslOperationsObjectEventStatus.from_string('queue_domain__add__already_exists'),
                               dbDomain=_exists,
                               )
             # note result
@@ -1580,7 +1583,7 @@ def queue_domains__add(ctx, domain_names, alternate_event_type=None):
                 # log request
                 _log_object_event(ctx,
                                   dbOperationsEvent=dbOperationsEvent,
-                                  event_status_id=SslOperationsObjectEventStatus.from_string('domain_queue__add__already_queued'),
+                                  event_status_id=SslOperationsObjectEventStatus.from_string('queue_domain__add__already_queued'),
                                   dbQueueDomain=_existing_queue,
                                   )
                 # note result
@@ -1596,7 +1599,7 @@ def queue_domains__add(ctx, domain_names, alternate_event_type=None):
                 # log request
                 _log_object_event(ctx,
                                   dbOperationsEvent=dbOperationsEvent,
-                                  event_status_id=SslOperationsObjectEventStatus.from_string('domain_queue__add__success'),
+                                  event_status_id=SslOperationsObjectEventStatus.from_string('queue_domain__add__success'),
                                   dbQueueDomain=dbQueue,
                                   )
 
@@ -1627,7 +1630,7 @@ def queue_domains__process(
         event_payload_dict['status'] = 'attempt'
         event_payload_dict['queue_domain_ids'] = ','.join([str(d.id) for d in items_paged])
         dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    SslOperationsEventType.from_string('domain_queue__process'),
+                                                    SslOperationsEventType.from_string('queue_domain__process'),
                                                     event_payload_dict,
                                                     )
 
@@ -1635,7 +1638,7 @@ def queue_domains__process(
         for qDomain in items_paged:
             _log_object_event(ctx,
                               dbOperationsEvent=dbOperationsEvent,
-                              event_status_id=SslOperationsEventType.from_string('domain_queue__process'),
+                              event_status_id=SslOperationsEventType.from_string('queue_domain__process'),
                               dbQueueDomain=qDomain,
                               )
 
@@ -1655,7 +1658,7 @@ def queue_domains__process(
             domainObject, _is_created = getcreate__SslDomain__by_domainName(
                 ctx,
                 qDomain.domain_name,
-                is_from_domain_queue=True,
+                is_from_queue_domain=True,
             )
             domainObjects.append(domainObject)
             qDomain.ssl_domain_id = domainObject.id
@@ -1716,7 +1719,7 @@ def queue_domains__process(
             for qd in items_paged:
                 _log_object_event(ctx,
                                   dbOperationsEvent=dbOperationsEvent,
-                                  event_status_id=SslOperationsEventType.from_string('domain_queue__process__fail'),
+                                  event_status_id=SslOperationsEventType.from_string('queue_domain__process__fail'),
                                   dbQueueDomain=qd,
                                   )
             raise
@@ -1725,7 +1728,7 @@ def queue_domains__process(
         for qd in items_paged:
             _log_object_event(ctx,
                               dbOperationsEvent=dbOperationsEvent,
-                              event_status_id=SslOperationsEventType.from_string('domain_queue__process__success'),
+                              event_status_id=SslOperationsEventType.from_string('queue_domain__process__success'),
                               dbQueueDomain=qd,
                               )
 

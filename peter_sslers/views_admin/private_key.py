@@ -16,7 +16,7 @@ import sqlalchemy
 # localapp
 from ..models import *
 from ..lib.forms import (Form_PrivateKey_new__file,
-                         Form_PrivateKey_Mark,
+                         Form_PrivateKey_mark,
                          )
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
@@ -157,7 +157,7 @@ class ViewAdmin(Handler):
         action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_PrivateKey_Mark,
+                                                             schema=Form_PrivateKey_mark,
                                                              validate_get=True
                                                              )
             if not result:
@@ -170,16 +170,22 @@ class ViewAdmin(Handler):
             event_payload_dict['action'] = formStash.results['action']
 
             marked_comprimised = False
-            if action == 'deactivate':
-                if not dbPrivateKey.is_active:
-                    raise formhandling.FormInvalid('Already deactivated')
-                dbPrivateKey.is_active = False
-            elif action == 'activate':
+            event_status = None
+
+            if action == 'active':
                 if dbPrivateKey.is_active:
                     raise formhandling.FormInvalid('Already activated')
                 if dbPrivateKey.is_compromised:
                     raise formhandling.FormInvalid('Can not activate a compromised key')
                 dbPrivateKey.is_active = True
+                event_status = 'private_key__mark__active'
+
+            elif action == 'inactive':
+                if not dbPrivateKey.is_active:
+                    raise formhandling.FormInvalid('Already deactivated')
+                dbPrivateKey.is_active = False
+                event_status = 'private_key__mark__inactive'
+
             elif action == 'compromised':
                 if dbPrivateKey.is_compromised:
                     raise formhandling.FormInvalid('Already compromised')
@@ -187,22 +193,29 @@ class ViewAdmin(Handler):
                 dbPrivateKey.is_compromised = True
                 event_type = SslOperationsEventType.from_string('private_key__revoke')
                 marked_comprimised = True
+                event_status = 'private_key__mark__compromised'
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
             self.request.api_context.dbSession.flush()
 
             # bookkeeping
-            operationsEvent = lib_db.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
                 event_payload_dict,
             )
+            lib_db._log_object_event(self.request.api_context,
+                                     dbOperationsEvent=dbOperationsEvent,
+                                     event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
+                                     dbPrivateKey=dbPrivateKey,
+                                     )
             if marked_comprimised:
                 lib_events.PrivateKey_compromised(
                     self.request.api_context,
                     dbPrivateKey,
                 )
+
             url_success = '%s/private-key/%s?operation=mark&action=%s&result=sucess' % (
                 self.request.registry.settings['admin_prefix'],
                 dbPrivateKey.id,

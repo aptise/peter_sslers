@@ -45,7 +45,7 @@
                 % endif
                 % if not SslPrivateKey.is_active and not SslPrivateKey.is_compromised:
                     &nbsp;
-                    <a  href="${admin_prefix}/private-key/${SslPrivateKey.id}/mark?action=activate"
+                    <a  href="${admin_prefix}/private-key/${SslPrivateKey.id}/mark?action=active"
                         class="label label-info"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -53,7 +53,7 @@
                     </a>
                 % elif SslPrivateKey.is_active and not SslPrivateKey.is_compromised:
                     &nbsp;
-                    <a  href="${admin_prefix}/private-key/${SslPrivateKey.id}/mark?action=deactivate"
+                    <a  href="${admin_prefix}/private-key/${SslPrivateKey.id}/mark?action=inactive"
                         class="label label-danger"
                     >
                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
