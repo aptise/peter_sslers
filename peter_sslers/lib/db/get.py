@@ -38,8 +38,8 @@ def get__SslLetsEncryptAccountKey__by_id(ctx, key_id, eagerload_web=False):
     q = ctx.dbSession.query(SslLetsEncryptAccountKey)\
         .filter(SslLetsEncryptAccountKey.id == key_id)
     if eagerload_web:
-        q = q.options(sqlalchemy.orm.subqueryload('certificate_requests_5').joinedload('certificate_request_to_domains').joinedload('domain'),
-                      sqlalchemy.orm.subqueryload('issued_certificates_5').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
+        q = q.options(sqlalchemy.orm.subqueryload('certificate_requests__5').joinedload('to_domains').joinedload('domain'),
+                      sqlalchemy.orm.subqueryload('server_certificates__5').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                       )
     item = q.first()
     return item
@@ -99,8 +99,8 @@ def get__SslCertificateRequest__count(ctx):
 
 def get__SslCertificateRequest__paginated(ctx, limit=None, offset=0):
     items_paged = ctx.dbSession.query(SslCertificateRequest)\
-        .options(sqlalchemy.orm.joinedload('signed_certificate'),
-                 sqlalchemy.orm.subqueryload('certificate_request_to_domains').joinedload('domain'),
+        .options(sqlalchemy.orm.joinedload('server_certificate'),
+                 sqlalchemy.orm.subqueryload('to_domains').joinedload('domain'),
                  )\
         .order_by(SslCertificateRequest.id.desc())\
         .limit(limit)\
@@ -112,8 +112,8 @@ def get__SslCertificateRequest__paginated(ctx, limit=None, offset=0):
 def get__SslCertificateRequest__by_id(ctx, certificate_request_id):
     dbCertificateRequest = ctx.dbSession.query(SslCertificateRequest)\
         .filter(SslCertificateRequest.id == certificate_request_id)\
-        .options(sqlalchemy.orm.joinedload('signed_certificate'),
-                 sqlalchemy.orm.subqueryload('certificate_request_to_domains').joinedload('domain'),
+        .options(sqlalchemy.orm.joinedload('server_certificate'),
+                 sqlalchemy.orm.subqueryload('to_domains').joinedload('domain'),
                  )\
         .one()
     return dbCertificateRequest
@@ -140,7 +140,7 @@ def get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__count(ctx, key_id
 def get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__paginated(ctx, key_id, limit=None, offset=0):
     items_paged = ctx.dbSession.query(SslCertificateRequest)\
         .filter(SslCertificateRequest.ssl_letsencrypt_account_key_id == key_id)\
-        .options(sqlalchemy.orm.joinedload('certificate_request_to_domains').joinedload('domain'),
+        .options(sqlalchemy.orm.joinedload('to_domains').joinedload('domain'),
                  )\
         .order_by(SslCertificateRequest.id.desc())\
         .limit(limit)\
@@ -182,7 +182,7 @@ def get__SslCertificateRequest__by_SslPrivateKeyId__count(ctx, key_id):
 def get__SslCertificateRequest__by_SslPrivateKeyId__paginated(ctx, key_id, limit=None, offset=0):
     items_paged = ctx.dbSession.query(SslCertificateRequest)\
         .filter(SslCertificateRequest.ssl_private_key_id__signed_by == key_id)\
-        .options(sqlalchemy.orm.joinedload('certificate_request_to_domains').joinedload('domain'),
+        .options(sqlalchemy.orm.joinedload('to_domains').joinedload('domain'),
                  )\
         .order_by(SslCertificateRequest.id.desc())\
         .limit(limit)\
@@ -281,8 +281,8 @@ def get__SslDomain__paginated(ctx, expiring_days=None, eagerload_web=False, limi
                                     ),
                      )
     if eagerload_web:
-        q = q.options(sqlalchemy.orm.joinedload('latest_certificate_single'),
-                      sqlalchemy.orm.joinedload('latest_certificate_multi'),
+        q = q.options(sqlalchemy.orm.joinedload('server_certificate__latest_single'),
+                      sqlalchemy.orm.joinedload('server_certificate__latest_multi'),
                       )
     if expiring_days:
         q = _SslDomain_inject_exipring_days(ctx, q, expiring_days, order=True)
@@ -298,28 +298,28 @@ def get__SslDomain__paginated(ctx, expiring_days=None, eagerload_web=False, limi
 
 
 def _get__SslDomain__core(q, preload=False, eagerload_web=False):
-    q = q.options(sqlalchemy.orm.subqueryload('latest_certificate_single'),
-                  sqlalchemy.orm.joinedload('latest_certificate_single.private_key'),
-                  sqlalchemy.orm.joinedload('latest_certificate_single.certificate_upchain'),
-                  sqlalchemy.orm.joinedload('latest_certificate_single.unique_fqdn_set'),
-                  sqlalchemy.orm.joinedload('latest_certificate_single.unique_fqdn_set.to_domains'),
-                  sqlalchemy.orm.joinedload('latest_certificate_single.unique_fqdn_set.to_domains.domain'),
+    q = q.options(sqlalchemy.orm.subqueryload('server_certificate__latest_single'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_single.private_key'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_single.certificate_upchain'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_single.unique_fqdn_set'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_single.unique_fqdn_set.to_domains'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_single.unique_fqdn_set.to_domains.domain'),
 
-                  sqlalchemy.orm.subqueryload('latest_certificate_multi'),
-                  sqlalchemy.orm.joinedload('latest_certificate_multi.private_key'),
-                  sqlalchemy.orm.joinedload('latest_certificate_multi.certificate_upchain'),
-                  sqlalchemy.orm.joinedload('latest_certificate_multi.unique_fqdn_set'),
-                  sqlalchemy.orm.joinedload('latest_certificate_multi.unique_fqdn_set.to_domains'),
-                  sqlalchemy.orm.joinedload('latest_certificate_multi.unique_fqdn_set.to_domains.domain'),
+                  sqlalchemy.orm.subqueryload('server_certificate__latest_multi'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_multi.private_key'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_multi.certificate_upchain'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_multi.unique_fqdn_set'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_multi.unique_fqdn_set.to_domains'),
+                  sqlalchemy.orm.joinedload('server_certificate__latest_multi.unique_fqdn_set.to_domains.domain'),
                   )
     if eagerload_web:
         # need to join back the domains to show alternate domains.
         q = q.options(
-            sqlalchemy.orm.subqueryload('domain_to_certificate_requests_5')
+            sqlalchemy.orm.subqueryload('to_certificate_requests__5')
             .joinedload('certificate_request')
-            .joinedload('certificate_request_to_domains')
+            .joinedload('to_domains')
             .joinedload('domain'),
-            sqlalchemy.orm.subqueryload('certificates_5')
+            sqlalchemy.orm.subqueryload('server_certificates__5')
             .joinedload('unique_fqdn_set')
             .joinedload('to_domains')
             .joinedload('domain'),
@@ -363,6 +363,17 @@ def get__SslOperationsObjectEvent__paginated(ctx, limit=None, offset=0):
     return items_paged
 
 
+def get__SslOperationsObjectEvent__by_id(ctx, event_id, eagerload_log=False):
+    q = ctx.dbSession.query(SslOperationsObjectEvent)\
+        .filter(SslOperationsObjectEvent.id == event_id)
+    if eagerload_log:
+        q = q.options(sqlalchemy.orm.subqueryload('operations_event'),
+                      sqlalchemy.orm.joinedload('operations_event.children'),
+                      sqlalchemy.orm.joinedload('operations_event.parent'),
+                      )
+    item = q.first()
+    return item
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -389,9 +400,9 @@ def get__SslOperationsEvent__by_id(ctx, event_id, eagerload_log=False):
     q = ctx.dbSession.query(SslOperationsEvent)\
         .filter(SslOperationsEvent.id == event_id)
     if eagerload_log:
-        q = q.options(sqlalchemy.orm.subqueryload('domain_events'),
-                      sqlalchemy.orm.joinedload('domain_events.domain'),
-                      sqlalchemy.orm.joinedload('domain_events.queue_domain'),
+        q = q.options(sqlalchemy.orm.subqueryload('object_events'),
+                      sqlalchemy.orm.joinedload('object_events.domain'),
+                      sqlalchemy.orm.joinedload('object_events.queue_domain'),
                       sqlalchemy.orm.subqueryload('children'),
                       sqlalchemy.orm.subqueryload('parent'),
                       )
@@ -444,8 +455,8 @@ def get__SslPrivateKey__by_id(ctx, cert_id, eagerload_web=False):
     q = ctx.dbSession.query(SslPrivateKey)\
         .filter(SslPrivateKey.id == cert_id)
     if eagerload_web:
-        q = q.options(sqlalchemy.orm.subqueryload('certificate_requests_5').joinedload('certificate_request_to_domains').joinedload('domain'),
-                      sqlalchemy.orm.subqueryload('signed_certificates_5').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
+        q = q.options(sqlalchemy.orm.subqueryload('certificate_requests__5').joinedload('to_domains').joinedload('domain'),
+                      sqlalchemy.orm.subqueryload('server_certificates__5').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                       )
     item = q.first()
     return item
@@ -489,7 +500,7 @@ def get__SslQueueDomain__by_id(ctx, set_id, eagerload_log=False):
     q = ctx.dbSession.query(SslQueueDomain)\
         .filter(SslQueueDomain.id == set_id)
     if eagerload_log:
-        q = q.options(sqlalchemy.orm.subqueryload('operations_queue_domain_events').joinedload('operations_event'))
+        q = q.options(sqlalchemy.orm.subqueryload('operations_object_events').joinedload('operations_event'))
     item = q.first()
     return item
 
@@ -553,7 +564,7 @@ def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, li
 def get__SslQueueRenewal__by_id(ctx, set_id):
     item = ctx.dbSession.query(SslQueueRenewal)\
         .filter(SslQueueRenewal.id == set_id)\
-        .options(sqlalchemy.orm.subqueryload('certificate').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
+        .options(sqlalchemy.orm.subqueryload('server_certificate').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                  )\
         .first()
     return item

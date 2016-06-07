@@ -130,7 +130,7 @@
             <td>
                 % if SslServerCertificates:
                     ${admin_partials.table_certificates__list(SslServerCertificates, show_domains=True)}
-                    ${admin_partials.nav_pager("%s/ca-certificate/%s/signed_certificates" % (admin_prefix, SslCaCertificate.id))}
+                    ${admin_partials.nav_pager("%s/ca-certificate/%s/server_certificates" % (admin_prefix, SslCaCertificate.id))}
                 % else:
                     No known certificates.
                 % endif

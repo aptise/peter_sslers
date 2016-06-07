@@ -98,19 +98,19 @@ class ViewAdmin(Handler):
                            'domain_name': dbDomain.domain_name,
                            'is_active': dbDomain.is_active,
                            },
-                'latest_certificate_single': None,
-                'latest_certificate_multi': None,
+                'server_certificate__latest_single': None,
+                'server_certificate__latest_multi': None,
                 }
         if dbDomain.ssl_server_certificate_id__latest_single:
             if self.request.params.get('idonly', None):
-                rval['latest_certificate_single'] = dbDomain.latest_certificate_single.config_payload_idonly
+                rval['server_certificate__latest_single'] = dbDomain.server_certificate__latest_single.config_payload_idonly
             else:
-                rval['latest_certificate_single'] = dbDomain.latest_certificate_single.config_payload
+                rval['server_certificate__latest_single'] = dbDomain.server_certificate__latest_single.config_payload
         if dbDomain.ssl_server_certificate_id__latest_multi:
             if self.request.params.get('idonly', None):
-                rval['latest_certificate_multi'] = dbDomain.latest_certificate_multi.config_payload_idonly
+                rval['server_certificate__latest_multi'] = dbDomain.server_certificate__latest_multi.config_payload_idonly
             else:
-                rval['latest_certificate_multi'] = dbDomain.latest_certificate_multi.config_payload
+                rval['server_certificate__latest_multi'] = dbDomain.server_certificate__latest_multi.config_payload
         if self.request.params.get('openresty', None):
             lib_utils.prime_redis_domain(self.request, dbDomain)
         return rval

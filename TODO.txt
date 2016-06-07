@@ -21,3 +21,5 @@ Test coverage needed for
 		create database ssl_minnow with owner ssl_minnow ;
 
 	change the config settings
+
+* longterm - decouple from openssl and use pure-python methods

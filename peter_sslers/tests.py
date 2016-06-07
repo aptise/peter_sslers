@@ -461,15 +461,6 @@ class FunctionalTests_AccountKeys(AppTest):
         assert res.location == """http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=1"""
 
 
-class FunctionalTests_API(AppTest):
-
-    def test_simple(self):
-        # root
-        res = self.testapp.get('/.well-known/admin/api', status=200)
-        res = self.testapp.get('/.well-known/admin/api/domain/enable', status=200)
-        res = self.testapp.get('/.well-known/admin/api/domain/disable', status=200)
-
-
 class FunctionalTests_CACertificate(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_CACertificate"""
     """python -m unittest peter_sslers.tests.FunctionalTests_CACertificate.test_upload"""
@@ -1005,12 +996,32 @@ class FunctionalTests_Operations(AppTest):
         res = self.testapp.get('/.well-known/admin/operations/nginx/1', status=200)
         res = self.testapp.get('/.well-known/admin/operations/redis', status=200)
         res = self.testapp.get('/.well-known/admin/operations/redis/1', status=200)
+        res = self.testapp.get('/.well-known/admin/operations/object-log', status=200)
+        res = self.testapp.get('/.well-known/admin/operations/object-log/1', status=200)
 
         focus_item = self.ctx.dbSession.query(models.SslOperationsEvent)\
             .order_by(models.SslOperationsEvent.id.asc())\
             .limit(1)\
             .one()
         res = self.testapp.get('/.well-known/admin/operations/log/item/%s' % focus_item.id, status=200)
+
+        focus_item_event = self.ctx.dbSession.query(models.SslOperationsObjectEvent)\
+            .order_by(models.SslOperationsObjectEvent.id.asc())\
+            .limit(1)\
+            .one()
+        res = self.testapp.get('/.well-known/admin/operations/object-log/item/%s' % focus_item_event.id, status=200)
+
+
+class FunctionalTests_API(AppTest):
+    """python -m unittest peter_sslers.tests.FunctionalTests_API"""
+
+    def tests_passive(self):
+        res = self.testapp.get('/.well-known/admin/api', status=200)
+
+    def tests_domains(self):
+        if False:
+            res = self.testapp.get('/.well-known/admin/api/domain/enable', status=200)
+            res = self.testapp.get('/.well-known/admin/api/domain/disable', status=200)
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     def tests_nginx(self):
@@ -1039,7 +1050,7 @@ class FunctionalTests_Operations(AppTest):
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
 
-        # deactivate-expired
+        # update-recents
         res = self.testapp.get('/.well-known/admin/api/update-recents', status=302)
         assert "/.well-known/admin/operations/log?result=success&event.id=" in res.location
         res = self.testapp.get('/.well-known/admin/api/update-recents.json', status=200)

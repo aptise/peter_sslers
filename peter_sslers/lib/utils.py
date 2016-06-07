@@ -258,9 +258,9 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     """
     dbServerCertificate = None
     if dbDomain.ssl_server_certificate_id__latest_multi:
-        dbServerCertificate = dbDomain.latest_certificate_multi
+        dbServerCertificate = dbDomain.server_certificate__latest_multi
     elif dbDomain.ssl_server_certificate_id__latest_single:
-        dbServerCertificate = dbDomain.latest_certificate_single
+        dbServerCertificate = dbDomain.server_certificate__latest_single
     else:
         raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
 
@@ -305,9 +305,9 @@ def redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts):
     """
     dbServerCertificate = None
     if dbDomain.ssl_server_certificate_id__latest_multi:
-        dbServerCertificate = dbDomain.latest_certificate_multi
+        dbServerCertificate = dbDomain.server_certificate__latest_multi
     elif dbDomain.ssl_server_certificate_id__latest_single:
-        dbServerCertificate = dbDomain.latest_certificate_single
+        dbServerCertificate = dbDomain.server_certificate__latest_single
     else:
         raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
 

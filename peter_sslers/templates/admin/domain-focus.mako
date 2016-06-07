@@ -99,7 +99,7 @@
                         <th>latest_single</th>
                         <td>
                             % if SslDomain.ssl_server_certificate_id__latest_single:
-                                ${admin_partials.table_certificates__list([SslDomain.latest_certificate_single,], show_domains=True, show_expiring_days=True)}
+                                ${admin_partials.table_certificates__list([SslDomain.server_certificate__latest_single,], show_domains=True, show_expiring_days=True)}
                             % endif
                         </td>
                     </tr>
@@ -107,7 +107,7 @@
                         <th>latest_multi</th>
                         <td>
                             % if SslDomain.ssl_server_certificate_id__latest_multi:
-                                ${admin_partials.table_certificates__list([SslDomain.latest_certificate_multi,], show_domains=True, show_expiring_days=True)}
+                                ${admin_partials.table_certificates__list([SslDomain.server_certificate__latest_multi,], show_domains=True, show_expiring_days=True)}
                             % endif
                         </td>
                     </tr>
@@ -117,8 +117,8 @@
         <tr>
             <th>certificates history</th>
             <td>
-                ${admin_partials.table_certificates__list(SslDomain.certificates_5, show_domains=True, show_expiring_days=True)}
-                % if SslDomain.certificates_5:
+                ${admin_partials.table_certificates__list(SslDomain.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                % if SslDomain.server_certificates__5:
                     ${admin_partials.nav_pager("%s/domain/%s/certificates" % (admin_prefix, SslDomain.id))}
                 % endif
             </td>
@@ -126,8 +126,8 @@
         <tr>
             <th>certificate requests</th>
             <td>
-                ${admin_partials.table_to_certificate_requests(SslDomain.domain_to_certificate_requests_5)}
-                % if SslDomain.domain_to_certificate_requests_5:
+                ${admin_partials.table_to_certificate_requests(SslDomain.to_certificate_requests__5)}
+                % if SslDomain.to_certificate_requests__5:
                     ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, SslDomain.id))}
                 % endif
             </td>

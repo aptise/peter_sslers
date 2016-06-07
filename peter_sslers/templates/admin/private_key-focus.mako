@@ -148,8 +148,8 @@
         <tr>
             <th>certificates</th>
             <td>
-                ${admin_partials.table_certificates__list(SslPrivateKey.signed_certificates_5, show_domains=True, show_expiring_days=True)}
-                % if SslPrivateKey.signed_certificates_5:
+                ${admin_partials.table_certificates__list(SslPrivateKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                % if SslPrivateKey.server_certificates__5:
                     ${admin_partials.nav_pager("%s/private-key/%s/certificates" % (admin_prefix, SslPrivateKey.id))}
                 % endif
             </td>
@@ -157,8 +157,8 @@
         <tr>
             <th>certificate_requests</th>
             <td>
-                ${admin_partials.table_certificate_requests__list(SslPrivateKey.certificate_requests_5, show_domains=True)}
-                % if SslPrivateKey.certificate_requests_5:
+                ${admin_partials.table_certificate_requests__list(SslPrivateKey.certificate_requests__5, show_domains=True)}
+                % if SslPrivateKey.certificate_requests__5:
                     ${admin_partials.nav_pager("%s/private-key/%s/certificate-requests" % (admin_prefix, SslPrivateKey.id))}
                 % endif
             </td>

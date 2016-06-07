@@ -314,7 +314,7 @@ class ViewAdmin(Handler):
             elif formStash.results['account_key_option'] == 'existing':
                 if not dbServerCertificate.ssl_letsencrypt_account_key_id:
                     raise ValueError("This Certificate does not have an existing Account Key")
-                dbAccountKey = dbServerCertificate.ssl_letsencrypt_account_key
+                dbAccountKey = dbServerCertificate.letsencrypt_account_key
             else:
                 raise ValueError("unknown option")
 

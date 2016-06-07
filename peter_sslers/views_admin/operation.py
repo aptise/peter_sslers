@@ -52,7 +52,6 @@ class ViewAdminOperations(Handler):
 
     @view_config(route_name='admin:operations:log:focus', renderer='/admin/operations-log-focus.mako')
     def operations_log_focus(self):
-        _items_per_page = 25
         item = lib_db.get__SslOperationsEvent__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
         if not item:
             raise ValueError("no item")
@@ -61,6 +60,7 @@ class ViewAdminOperations(Handler):
                 'enable_redis': self.request.registry.settings['enable_redis'],
                 'enable_nginx': self.request.registry.settings['enable_nginx'],
                 }
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -130,6 +130,17 @@ class ViewAdminOperations(Handler):
                 'SslOperationsObjectEvent__count': items_count,
                 'SslOperationsObjectEvents': items_paged,
                 'pager': pager,
+                'enable_redis': self.request.registry.settings['enable_redis'],
+                'enable_nginx': self.request.registry.settings['enable_nginx'],
+                }
+
+    @view_config(route_name='admin:operations:object_log:focus', renderer='/admin/operations-object_log-focus.mako')
+    def operations_object_log_focus(self):
+        item = lib_db.get__SslOperationsObjectEvent__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
+        if not item:
+            raise ValueError("no item")
+        return {'project': 'peter_sslers',
+                'SslOperationsObjectEvent': item,
                 'enable_redis': self.request.registry.settings['enable_redis'],
                 'enable_nginx': self.request.registry.settings['enable_nginx'],
                 }

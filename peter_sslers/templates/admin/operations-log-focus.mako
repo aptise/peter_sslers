@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/operations/log">Operations log</a></li>
+        <li><a href="${admin_prefix}/operations/log">Operations Events</a></li>
         <li class="active">Focus</li>
     </ol>
 </%block>
@@ -55,7 +55,7 @@
             ${admin_partials.table_SslOperationsEvents(SslOperationsEvent.children, show_event='event.id')}
 
             <h4>Operation Object Events?</h4>
-            ${admin_partials.table_SslOperationsObjectEvents(SslOperationsEvent.domain_events, table_context='log-focus')}
+            ${admin_partials.table_SslOperationsObjectEvents(SslOperationsEvent.object_events, table_context='log-focus')}
         </div>
         <div class="col-sm-3">
             ${admin_partials.operations_options(enable_redis=enable_redis,

@@ -438,13 +438,13 @@
         <tr>
             <th>renewal requests</th>
             <td>
-                ${admin_partials.table_certificate_requests__list(SslServerCertificate.renewal_requests, show_domains=False, show_certificate=True)}
+                ${admin_partials.table_certificate_requests__list(SslServerCertificate.certificate_request__renewals, show_domains=False, show_certificate=True)}
             </td>
         </tr>
         <tr>
             <th>renewal queue</th>
             <td>
-                ${admin_partials.table_renewal_queue__list(SslServerCertificate.renewal_queue, )}
+                ${admin_partials.table_queue_renewal__list(SslServerCertificate.queue_renewal, )}
             </td>
         </tr>
     </table>

@@ -147,8 +147,8 @@
         <tr>
             <th>certificates</th>
             <td>
-                ${admin_partials.table_certificates__list(SslLetsEncryptAccountKey.issued_certificates_5, show_domains=True, show_expiring_days=True)}
-                % if SslLetsEncryptAccountKey.issued_certificates_5:
+                ${admin_partials.table_certificates__list(SslLetsEncryptAccountKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                % if SslLetsEncryptAccountKey.server_certificates__5:
                     ${admin_partials.nav_pager("%s/account-key/%s/certificates" % (admin_prefix, SslLetsEncryptAccountKey.id))}
                 % endif
             </td>
@@ -156,8 +156,8 @@
         <tr>
             <th>certificate_requests</th>
             <td>
-                ${admin_partials.table_certificate_requests__list(SslLetsEncryptAccountKey.certificate_requests_5, show_domains=True)}
-                % if SslLetsEncryptAccountKey.certificate_requests_5:
+                ${admin_partials.table_certificate_requests__list(SslLetsEncryptAccountKey.certificate_requests__5, show_domains=True)}
+                % if SslLetsEncryptAccountKey.certificate_requests__5:
                     ${admin_partials.nav_pager("%s/account-key/%s/certificate-requests" % (admin_prefix, SslLetsEncryptAccountKey.id))}
                 % endif
             </td>

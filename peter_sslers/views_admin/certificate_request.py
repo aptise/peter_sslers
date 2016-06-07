@@ -113,7 +113,7 @@ class ViewAdmin(Handler):
         if not dbDomain:
             raise HTTPNotFound('invalid domain')
 
-        for to_domain in dbCertificateRequest.certificate_request_to_domains:
+        for to_domain in dbCertificateRequest.to_domains:
             if to_domain.ssl_domain_id == dbDomain.id:
                 dbCertificateRequest2SslDomain = to_domain
                 break

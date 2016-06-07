@@ -48,7 +48,7 @@ class ViewPublic(Handler):
                                                                                 active_request.ssl_certificate_request_id,
                                                                                 )
                 has_unverified = False
-                for d in dbCertificateRequest.certificate_request_to_domains:
+                for d in dbCertificateRequest.to_domains:
                     if not d.timestamp_verified:
                         has_unverified = True
                         break

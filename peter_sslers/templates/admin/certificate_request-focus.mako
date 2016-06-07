@@ -52,11 +52,11 @@
         <tr>
             <th>is issued?</th>
             <td>
-                % if SslCertificateRequest.signed_certificate:
+                % if SslCertificateRequest.server_certificate:
                     <span class="label label-success">Yes</span>&nbsp;
-                    <a class="label label-info" href="${admin_prefix}/certificate/${SslCertificateRequest.signed_certificate.id}">
+                    <a class="label label-info" href="${admin_prefix}/certificate/${SslCertificateRequest.server_certificate.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        ${SslCertificateRequest.signed_certificate.id}</a>
+                        ${SslCertificateRequest.server_certificate.id}</a>
                 % else:
                     <span class="label label-default">No</span>
                 % endif
@@ -149,9 +149,9 @@
         <tr>
             <th>domains</th>
             <td>
-                ${admin_partials.table_SslCertificateRequest2SslDomain(SslCertificateRequest.certificate_request_to_domains,
-                                                                                     request_inactive = (False if SslCertificateRequest.is_active else True),
-                                                                                     perspective='certificate_request')}
+                ${admin_partials.table_SslCertificateRequest2SslDomain(SslCertificateRequest.to_domains,
+                                                                       request_inactive = (False if SslCertificateRequest.is_active else True),
+                                                                       perspective='certificate_request')}
             </td>
         </tr>
     </table>

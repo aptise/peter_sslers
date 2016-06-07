@@ -39,10 +39,10 @@
     <div class="row">
         <div class="col-sm-6">
             <h5>Domains in Certificate Request</h5>
-            ${admin_partials.table_SslCertificateRequest2SslDomain(SslCertificateRequest.certificate_request_to_domains,
-                                                                                 request_inactive = request_inactive,
-                                                                                 active_domain_id = (SslCertificateRequest2SslDomain.ssl_domain_id if SslCertificateRequest2SslDomain else None),
-                                                                                 perspective='certificate_request_sidebar')}
+            ${admin_partials.table_SslCertificateRequest2SslDomain(SslCertificateRequest.to_domains,
+                                                                   request_inactive = request_inactive,
+                                                                   active_domain_id = (SslCertificateRequest2SslDomain.ssl_domain_id if SslCertificateRequest2SslDomain else None),
+                                                                   perspective='certificate_request_sidebar')}
 
         </div>
         <div class="col-sm-6">

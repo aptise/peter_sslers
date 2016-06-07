@@ -130,8 +130,8 @@
                     <tr>
                         <th>certificates history</th>
                         <td>
-                            ${admin_partials.table_certificates__list(SslUniqueFQDNSet.signed_certificates_5, show_domains=True, show_expiring_days=True)}
-                            % if SslUniqueFQDNSet.signed_certificates_5:
+                            ${admin_partials.table_certificates__list(SslUniqueFQDNSet.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                            % if SslUniqueFQDNSet.server_certificates__5:
                                 ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificates" % (admin_prefix, SslUniqueFQDNSet.id))}
                             % endif
                         </td>
@@ -139,8 +139,8 @@
                     <tr>
                         <th>certificate requests</th>
                         <td>
-                            ${admin_partials.table_certificate_requests__list(SslUniqueFQDNSet.certificate_requests_5)}
-                            % if SslUniqueFQDNSet.certificate_requests_5:
+                            ${admin_partials.table_certificate_requests__list(SslUniqueFQDNSet.certificate_requests__5)}
+                            % if SslUniqueFQDNSet.certificate_requests__5:
                                 ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-requests" % (admin_prefix, SslUniqueFQDNSet.id))}
                             % endif
                         </td>
@@ -148,7 +148,7 @@
                     <tr>
                         <th>renewal queue</th>
                         <td>
-                            ${admin_partials.table_renewal_queue__list(SslUniqueFQDNSet.renewal_queue, show_certificate=True)}
+                            ${admin_partials.table_queue_renewal__list(SslUniqueFQDNSet.queue_renewal, show_certificate=True)}
                         </td>
                     </tr>
                 </tbody>

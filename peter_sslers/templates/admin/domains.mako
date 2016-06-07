@@ -30,8 +30,8 @@
                         <th>id</th>
                         <th>domain name</th>
                         <th>is active</th>
-                        <th>latest_certificate_multi</th>
-                        <th>latest_certificate_single</th>
+                        <th>server_certificate__latest_multi</th>
+                        <th>server_certificate__latest_single</th>
                     </tr>
                     <tr>
                         <th></th>
@@ -62,8 +62,8 @@
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${d.ssl_server_certificate_id__latest_multi}</a>
-                                <timestamp>${d.latest_certificate_multi.timestamp_expires}</timestamp>
-                                <span class="label label-${d.latest_certificate_multi.expiring_days_label}">${d.latest_certificate_multi.expiring_days} days</span>
+                                <timestamp>${d.server_certificate__latest_multi.timestamp_expires}</timestamp>
+                                <span class="label label-${d.server_certificate__latest_multi.expiring_days_label}">${d.server_certificate__latest_multi.expiring_days} days</span>
                             % endif
                         </td>
                         <td>
@@ -73,8 +73,8 @@
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ${d.ssl_server_certificate_id__latest_single}</a>
-                                <timestamp>${d.latest_certificate_single.timestamp_expires}</timestamp>
-                                <span class="label label-${d.latest_certificate_single.expiring_days_label}">${d.latest_certificate_single.expiring_days} days</span>
+                                <timestamp>${d.server_certificate__latest_single.timestamp_expires}</timestamp>
+                                <span class="label label-${d.server_certificate__latest_single.expiring_days_label}">${d.server_certificate__latest_single.expiring_days} days</span>
                             % endif
                         </td>
                     </tr>

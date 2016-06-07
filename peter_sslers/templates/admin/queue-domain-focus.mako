@@ -82,5 +82,5 @@
     <hr/>
 
     <h4>Operation Object Events</h4>
-    ${admin_partials.table_SslOperationsObjectEvents(QueueDomainItem.operations_queue_domain_events, table_context='domain')}
+    ${admin_partials.table_SslOperationsObjectEvents(QueueDomainItem.operations_object_events, table_context='domain')}
 </%block>

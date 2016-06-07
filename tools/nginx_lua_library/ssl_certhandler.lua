@@ -138,12 +138,12 @@ function query_api_upstream(fallback_server, server_name)
 		if status == 200 then
 			local body_value = cjson.decode(response.body)
 			-- prefer the multi
-			if body_value['latest_certificate_multi'] ~= cjson.null then
-				cert = body_value['latest_certificate_multi']['fullchain']['pem']
-				key = body_value['latest_certificate_multi']['private_key']['pem']
-			elseif body_value['latest_certificate_single'] ~= cjson.null then
-				cert = body_value['latest_certificate_single']['fullchain']['pem']
-				key = body_value['latest_certificate_single']['private_key']['pem']
+			if body_value['server_certificate__latest_multi'] ~= cjson.null then
+				cert = body_value['server_certificate__latest_multi']['fullchain']['pem']
+				key = body_value['server_certificate__latest_multi']['private_key']['pem']
+			elseif body_value['server_certificate__latest_single'] ~= cjson.null then
+				cert = body_value['server_certificate__latest_single']['fullchain']['pem']
+				key = body_value['server_certificate__latest_single']['private_key']['pem']
 			end
 		else
 			ngx.log(ngx.ERR, 'API upstream - bad response: ', status)
