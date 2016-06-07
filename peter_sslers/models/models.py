@@ -515,31 +515,28 @@ class SslOperationsObjectEvent(Base):
     ssl_operations_event_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=True)
     ssl_operations_object_event_status_id = sa.Column(sa.Integer, nullable=False)  # references SslOperationsObjectEventStatus
 
-    ssl_domain_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_domain.id"), nullable=True)
-    ssl_queue_domain_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_queue_domain.id"), nullable=True)
-    ssl_letsencrypt_account_key_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_letsencrypt_account_key.id"), nullable=True)
     ssl_ca_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_ca_certificate.id"), nullable=True)
+    ssl_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_certificate_request.id"), nullable=True)
+    ssl_domain_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_domain.id"), nullable=True)
+    ssl_letsencrypt_account_key_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_letsencrypt_account_key.id"), nullable=True)
     ssl_private_key_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_private_key.id"), nullable=True)
+    ssl_queue_domain_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_queue_domain.id"), nullable=True)
+    ssl_queue_renewal_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_queue_renewal.id"), nullable=True)
     ssl_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True)
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=True)
-    ssl_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_certificate_request.id"), nullable=True)
-    ssl_queue_renewal_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_queue_renewal.id"), nullable=True)
-    ssl_queue_domain_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_queue_domain.id"), nullable=True)
 
     check1 = sa.CheckConstraint("""(
-        CASE WHEN ssl_domain_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN ssl_queue_domain_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN ssl_letsencrypt_account_key_id IS NOT NULL THEN 1 ELSE 0 END
-        +
         CASE WHEN ssl_ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END
         +
         CASE WHEN ssl_certificate_request_id IS NOT NULL THEN 1 ELSE 0 END
         +
-        CASE WHEN ssl_queue_domain_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN ssl_domain_id IS NOT NULL THEN 1 ELSE 0 END
+        +
+        CASE WHEN ssl_letsencrypt_account_key_id IS NOT NULL THEN 1 ELSE 0 END
         +
         CASE WHEN ssl_private_key_id IS NOT NULL THEN 1 ELSE 0 END
+        +
+        CASE WHEN ssl_queue_domain_id IS NOT NULL THEN 1 ELSE 0 END
         +
         CASE WHEN ssl_queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END
         +

@@ -26,12 +26,12 @@ def get__SslLetsEncryptAccountKey__count(ctx):
 
 
 def get__SslLetsEncryptAccountKey__paginated(ctx, limit=None, offset=0):
-    dbSslLetsEncryptAccountKeys = ctx.dbSession.query(SslLetsEncryptAccountKey)\
+    dbLetsEncryptAccountKeys = ctx.dbSession.query(SslLetsEncryptAccountKey)\
         .order_by(SslLetsEncryptAccountKey.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
-    return dbSslLetsEncryptAccountKeys
+    return dbLetsEncryptAccountKeys
 
 
 def get__SslLetsEncryptAccountKey__by_id(ctx, key_id, eagerload_web=False):
@@ -72,10 +72,10 @@ def get__SslCaCertificate__paginated(ctx, limit=None, offset=0, active_only=Fals
 
 
 def get__SslCaCertificate__by_id(ctx, cert_id):
-    dbSslCaCertificate = ctx.dbSession.query(SslCaCertificate)\
+    dbCaCertificate = ctx.dbSession.query(SslCaCertificate)\
         .filter(SslCaCertificate.id == cert_id)\
         .first()
-    return dbSslCaCertificate
+    return dbCaCertificate
 
 
 def get__SslCaCertificate__by_pem_text(ctx, cert_pem):
@@ -110,13 +110,13 @@ def get__SslCertificateRequest__paginated(ctx, limit=None, offset=0):
 
 
 def get__SslCertificateRequest__by_id(ctx, certificate_request_id):
-    dbSslCertificateRequest = ctx.dbSession.query(SslCertificateRequest)\
+    dbCertificateRequest = ctx.dbSession.query(SslCertificateRequest)\
         .filter(SslCertificateRequest.id == certificate_request_id)\
         .options(sqlalchemy.orm.joinedload('signed_certificate'),
                  sqlalchemy.orm.subqueryload('certificate_request_to_domains').joinedload('domain'),
                  )\
         .one()
-    return dbSslCertificateRequest
+    return dbCertificateRequest
 
 
 def get__SslCertificateRequest__by_pem_text(ctx, csr_pem):
@@ -601,12 +601,12 @@ def get__SslServerCertificate__paginated(ctx, expiring_days=None, eagerload_web=
 
 
 def get__SslServerCertificate__by_id(ctx, cert_id):
-    dbSslServerCertificate = ctx.dbSession.query(SslServerCertificate)\
+    dbServerCertificate = ctx.dbSession.query(SslServerCertificate)\
         .filter(SslServerCertificate.id == cert_id)\
         .options(sqlalchemy.orm.subqueryload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                  )\
         .first()
-    return dbSslServerCertificate
+    return dbServerCertificate
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

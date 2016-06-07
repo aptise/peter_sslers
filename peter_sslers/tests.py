@@ -45,22 +45,12 @@ export SSL_RUN_NGINX_TESTS=True
 export SSL_RUN_REDIS_TESTS=True
 export SSL_RUN_LETSENCRYPT_API_TESTS=True
 export SSL_LETSENCRYPT_API_VALIDATES=True
-export SSL_TEST_DOMAIN=foo.cliqued.in
+export SSL_TEST_DOMAINS=foo.cliqued.in  # can be a comma-separated string
 export SSL_TEST_PORT=6543
-
-export OPENSSL_PATH=/usr/bin/openssl
-export OPENSSL_PATH_CONF=/etc/ssl/openssl.cnf
-export ACME_CERTIFICATE_AUTHORITY=http://example.com
-
-export OPENSSL_PATH=/usr/local/Cellar/openssl/1.0.2g/bin/openssl
-export OPENSSL_PATH_CONF=/usr/local/etc/openssl/openssl.cnf
-export ACME_CERTIFICATE_AUTHORITY=http://example.com
-
 
 if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app
 
-see the nginx test config file
-
+see the nginx test config file `test.ini`
 
 """
 # run tests that expire nginx caches
@@ -72,20 +62,7 @@ RUN_LETSENCRYPT_API_TESTS = os.environ.get('SSL_RUN_LETSENCRYPT_API_TESTS', Fals
 # does the LE validation work?  LE must be able to reach this
 LETSENCRYPT_API_VALIDATES = os.environ.get('SSL_LETSENCRYPT_API_VALIDATES', False)
 
-# overrides
-OPENSSL_PATH = os.environ.get('OPENSSL_PATH', None)
-if OPENSSL_PATH:
-    cert_utils.openssl_path = OPENSSL_PATH
-
-OPENSSL_PATH_CONF = os.environ.get('OPENSSL_PATH_CONF', None)
-if OPENSSL_PATH_CONF:
-    cert_utils.openssl_path_conf = OPENSSL_PATH_CONF
-
-ACME_CERTIFICATE_AUTHORITY = os.environ.get('ACME_CERTIFICATE_AUTHORITY', None)
-if ACME_CERTIFICATE_AUTHORITY:
-    acme.CERTIFICATE_AUTHORITY = ACME_CERTIFICATE_AUTHORITY
-
-SSL_TEST_DOMAIN = os.environ.get('SSL_TEST_DOMAIN', 'example.com')
+SSL_TEST_DOMAINS = os.environ.get('SSL_TEST_DOMAINS', 'example.com')
 SSL_TEST_PORT = int(os.environ.get('SSL_TEST_PORT', 6543))
 
 DISABLE_UNWRITTEN_TESTS = True
@@ -121,7 +98,7 @@ TEST_FILES = {'AccountKey': {'1': 'account_1.key',
                                             'account_key': 'account_1.key',
                                             'private_key': 'private_1.key',
                                             },
-                                      'acme_test': {'domains': SSL_TEST_DOMAIN,
+                                      'acme_test': {'domains': SSL_TEST_DOMAINS,
                                                     'account_key': 'account_2.key',
                                                     'private_key': 'private_2.key',
                                                     },

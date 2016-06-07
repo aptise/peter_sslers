@@ -124,7 +124,7 @@ class ViewAdminOperations(Handler):
     def object_log(self):
         _items_per_page = 25
         items_count = lib_db.get__SslOperationsObjectEvent__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template='%s/operations/domain-log/{0}' % self.request.registry.settings['admin_prefix'], items_per_page=_items_per_page)
+        (pager, offset) = self._paginate(items_count, url_template='%s/operations/object-log/{0}' % self.request.registry.settings['admin_prefix'], items_per_page=_items_per_page)
         items_paged = lib_db.get__SslOperationsObjectEvent__paginated(self.request.api_context, limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslOperationsObjectEvent__count': items_count,

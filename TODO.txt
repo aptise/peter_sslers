@@ -1,0 +1,4 @@
+* CSR should have domain[0] as subject if there are multiple domains
+
+Test coverage needed for
+* /.well-known/admin/certificate/5/renew/custom

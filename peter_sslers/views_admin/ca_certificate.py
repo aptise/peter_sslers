@@ -45,34 +45,34 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _ca_certificate_focus(self):
-        dbSslCaCertificate = lib_db.get__SslCaCertificate__by_id(self.request.api_context, self.request.matchdict['id'])
-        if not dbSslCaCertificate:
+        dbCaCertificate = lib_db.get__SslCaCertificate__by_id(self.request.api_context, self.request.matchdict['id'])
+        if not dbCaCertificate:
             raise HTTPNotFound('the cert was not found')
-        return dbSslCaCertificate
+        return dbCaCertificate
 
     @view_config(route_name='admin:ca_certificate:focus', renderer='/admin/ca_certificate-focus.mako')
     def ca_certificate_focus(self):
-        dbSslCaCertificate = self._ca_certificate_focus()
+        dbCaCertificate = self._ca_certificate_focus()
         items_count = lib_db.get__SslServerCertificate__by_SslCaCertificateId__count(
-            self.request.api_context, dbSslCaCertificate.id)
+            self.request.api_context, dbCaCertificate.id)
         items_paged = lib_db.get__SslServerCertificate__by_SslCaCertificateId__paginated(
-            self.request.api_context, dbSslCaCertificate.id, limit=10, offset=0)
+            self.request.api_context, dbCaCertificate.id, limit=10, offset=0)
         return {'project': 'peter_sslers',
-                'SslCaCertificate': dbSslCaCertificate,
+                'SslCaCertificate': dbCaCertificate,
                 'SslServerCertificates_count': items_count,
                 'SslServerCertificates': items_paged,
                 }
 
     @view_config(route_name='admin:ca_certificate:focus:raw', renderer='string')
     def ca_certificate_focus_raw(self):
-        dbSslCaCertificate = self._ca_certificate_focus()
+        dbCaCertificate = self._ca_certificate_focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
-            return dbSslCaCertificate.cert_pem
+            return dbCaCertificate.cert_pem
         elif self.request.matchdict['format'] == 'pem.txt':
-            return dbSslCaCertificate.cert_pem
+            return dbCaCertificate.cert_pem
         elif self.request.matchdict['format'] in ('cer', 'crt', 'der'):
-            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbSslCaCertificate.cert_pem)
+            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbCaCertificate.cert_pem)
             response = Response()
             if self.request.matchdict['format'] in ('crt', 'der'):
                 response.content_type = 'application/x-x509-ca-cert'
@@ -84,8 +84,8 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:ca_certificate:focus:parse.json', renderer='json')
     def ca_certificate_focus_parse_json(self):
-        dbSslCaCertificate = self._ca_certificate_focus()
-        return {"%s" % dbSslCaCertificate.id: lib_cert_utils.parse_cert(cert_pem=dbSslCaCertificate.cert_pem),
+        dbCaCertificate = self._ca_certificate_focus()
+        return {"%s" % dbCaCertificate.id: lib_cert_utils.parse_cert(cert_pem=dbCaCertificate.cert_pem),
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -93,14 +93,14 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     @view_config(route_name='admin:ca_certificate:focus:signed_certificates_paginated', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
     def ca_certificate_focus__signed_certificates(self):
-        dbSslCaCertificate = self._ca_certificate_focus()
+        dbCaCertificate = self._ca_certificate_focus()
         items_count = lib_db.get__SslServerCertificate__by_SslCaCertificateId__count(
-            self.request.api_context, dbSslCaCertificate.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificate/%s/signed_certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbSslCaCertificate.id))
+            self.request.api_context, dbCaCertificate.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificate/%s/signed_certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id))
         items_paged = lib_db.get__SslServerCertificate__by_SslCaCertificateId__paginated(
-            self.request.api_context, dbSslCaCertificate.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbCaCertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'SslCaCertificate': dbSslCaCertificate,
+                'SslCaCertificate': dbCaCertificate,
                 'SslServerCertificates_count': items_count,
                 'SslServerCertificates': items_paged,
                 'pager': pager,
@@ -134,7 +134,7 @@ class ViewAdmin(Handler):
 
             chain_pem = formStash.results['chain_file'].file.read()
             chain_file_name = formStash.results['chain_file_name'] or 'manual upload'
-            dbSslCaCertificate, cacert_is_created = lib_db.getcreate__SslCaCertificate__by_pem_text(
+            dbCaCertificate, cacert_is_created = lib_db.getcreate__SslCaCertificate__by_pem_text(
                 self.request.api_context,
                 chain_pem,
                 chain_file_name
@@ -143,10 +143,10 @@ class ViewAdmin(Handler):
             if self.request.matched_route.name == 'admin:ca_certificate:upload.json':
                 return {'result': 'success',
                         'ca_certificate': {'created': cacert_is_created,
-                                           'id': dbSslCaCertificate.id,
+                                           'id': dbCaCertificate.id,
                                            },
                         }
-            return HTTPFound('%s/ca-certificate/%s?result=success&is_created=%s' % (self.request.registry.settings['admin_prefix'], dbSslCaCertificate.id, (1 if cacert_is_created else 0)))
+            return HTTPFound('%s/ca-certificate/%s?result=success&is_created=%s' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id, (1 if cacert_is_created else 0)))
 
         except formhandling.FormInvalid, e:
             formStash.set_error(field="Error_Main",

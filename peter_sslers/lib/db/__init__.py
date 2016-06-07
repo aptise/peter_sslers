@@ -173,8 +173,8 @@ def getcreate__SslCertificateRequest__by_pem_text(
     certificate_request_type_id = None,
     dbAccountKey = None,
     dbPrivateKey = None,
-    dbCertificate_issued = None,
-    dbCertificate__renewal_of = None,
+    dbServerCertificate__issued = None,
+    dbServerCertificate__renewal_of = None,
 ):
     """
     getcreate for a CSR
@@ -190,8 +190,8 @@ def getcreate__SslCertificateRequest__by_pem_text(
             certificate_request_type_id = certificate_request_type_id,
             dbAccountKey = dbAccountKey,
             dbPrivateKey = dbPrivateKey,
-            dbCertificate_issued = dbCertificate_issued,
-            dbCertificate__renewal_of = dbCertificate__renewal_of,
+            dbServerCertificate__issued = dbServerCertificate__issued,
+            dbServerCertificate__renewal_of = dbServerCertificate__renewal_of,
         )
         is_created = True
 
@@ -315,7 +315,7 @@ def getcreate__SslServerCertificate__by_pem_text(
     dbCACertificate=None,
     dbAccountKey=None,
     dbPrivateKey=None,
-    dbCertificate__renewal_of=None,
+    dbServerCertificate__renewal_of=None,
 ):
     """
     getcreate wrapping issued certs
@@ -369,8 +369,8 @@ def getcreate__SslServerCertificate__by_pem_text(
             dbServerCertificate.cert_pem = cert_pem
             dbServerCertificate.cert_pem_md5 = cert_pem_md5
 
-            if dbCertificate__renewal_of:
-                dbServerCertificate.ssl_server_certificate_id__renewal_of = dbCertificate__renewal_of.id
+            if dbServerCertificate__renewal_of:
+                dbServerCertificate.ssl_server_certificate_id__renewal_of = dbServerCertificate__renewal_of.id
 
             # this is the LetsEncrypt key
             if dbCACertificate is None:
@@ -506,8 +506,8 @@ def create__SslCertificateRequest(
     certificate_request_type_id = None,
     dbAccountKey = None,
     dbPrivateKey = None,
-    dbCertificate_issued = None,
-    dbCertificate__renewal_of = None,
+    dbServerCertificate__issued = None,
+    dbServerCertificate__renewal_of = None,
     domain_names = None,
 ):
     """
@@ -649,8 +649,8 @@ def create__SslCertificateRequest(
         if dbAccountKey:
             dbCertificateRequest.ssl_letsencrypt_account_key_id = dbAccountKey.id
         dbCertificateRequest.ssl_private_key_id__signed_by = dbPrivateKey.id
-        if dbCertificate__renewal_of:
-            dbCertificateRequest.ssl_server_certificate_id__renewal_of = dbCertificate__renewal_of.id
+        if dbServerCertificate__renewal_of:
+            dbCertificateRequest.ssl_server_certificate_id__renewal_of = dbServerCertificate__renewal_of.id
 
         ctx.dbSession.add(dbCertificateRequest)
         ctx.dbSession.flush()
@@ -722,7 +722,7 @@ def create__SslServerCertificate(
     dbCertificateRequest = None,
     dbLetsEncryptAccountKey = None,
     dbDomains = None,
-    dbCertificate__renewal_of = None,
+    dbServerCertificate__renewal_of = None,
 
     # only one of these 2
     dbPrivateKey = None,
@@ -768,8 +768,8 @@ def create__SslServerCertificate(
             dbCertificateRequest.is_active = False
             dbServerCertificate.ssl_certificate_request_id = dbCertificateRequest.id
         dbServerCertificate.ssl_ca_certificate_id__upchain = ssl_ca_certificate_id__upchain
-        if dbCertificate__renewal_of:
-            dbServerCertificate.ssl_server_certificate_id__renewal_of = dbCertificate__renewal_of.id
+        if dbServerCertificate__renewal_of:
+            dbServerCertificate.ssl_server_certificate_id__renewal_of = dbServerCertificate__renewal_of.id
 
         # note account/private keys
         dbServerCertificate.ssl_letsencrypt_account_key_id = dbLetsEncryptAccountKey.id
@@ -1066,7 +1066,7 @@ def do__CertificateRequest__AcmeAutomated(
     dbPrivateKey=None,
     private_key_pem=None,
 
-    dbCertificate__renewal_of=None,
+    dbServerCertificate__renewal_of=None,
 ):
     """
     2016.06.04 - dbOperationsEvent compliant
@@ -1148,8 +1148,8 @@ def do__CertificateRequest__AcmeAutomated(
                 certificate_request_type_id = SslCertificateRequestType.ACME_AUTOMATED,
                 dbAccountKey = dbAccountKey,
                 dbPrivateKey = dbPrivateKey,
-                dbCertificate_issued = None,
-                dbCertificate__renewal_of = dbCertificate__renewal_of,
+                dbServerCertificate__issued = None,
+                dbServerCertificate__renewal_of = dbServerCertificate__renewal_of,
                 domain_names = domain_names,
             )
 
@@ -1221,7 +1221,7 @@ def do__CertificateRequest__AcmeAutomated(
                 dbLetsEncryptAccountKey = dbAccountKey,
                 dbPrivateKey = dbPrivateKey,
                 dbDomains = [v[0] for v in dbDomainObjects.values()],
-                dbCertificate__renewal_of = dbCertificate__renewal_of,
+                dbServerCertificate__renewal_of = dbServerCertificate__renewal_of,
             )
 
         return dbServerCertificate

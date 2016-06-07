@@ -11,13 +11,13 @@
 
 
 <%block name="page_header">
-    <h2>Programmatic API</h2>
+    <h2>API</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-9">
+        <div class="col-sm-12">
             <p>
                 Many endpoints handle JSON requests, however the `/api` endpoints offer some deeper logic and ONLY respond to JSON requests
             </p>
@@ -26,8 +26,68 @@
             <hr/>
             
             <h4>Refresher</h4>
+            <p>If not using scripts to access the API, you can use `curl`</p>
             <code>curl --form "domain_names=example.com" ${admin_server}${admin_prefix}/api/domain/enable</code>
             <hr/>
+            
+<%
+    api_docs = [
+        {'endpoint': '/api/domain/enable',
+         'about': """Enables domain(s) for management. Currently this proxies calls to `/admin/queue-domains`""",
+         'POST': True,
+         'GET': False,
+         'args': """<ul>
+                        <li>
+                            <code>domain_names</code>
+                            <em>A comma (,) separated list of domain names
+                            </em>
+                        </li>
+                    </ul>""",
+         },
+        {'endpoint': '/api/domain/disable',
+         'about': """Disables domain(s) for management""",
+         'POST': True,
+         'GET': False,
+         'args': """<ul>
+                        <li>
+                            <code>domain_names</code>
+                            <em>A comma (,) separated list of domain names
+                            </em>
+                        </li>
+                    </ul>""",
+         },
+        {'endpoint': '/api/ca-certificate-probes/probe.json',
+         'about': """Probes the LetsEncrypt website for certificates""",
+         'POST': True,
+         'GET': False,
+         'args': None,
+         },
+        {'endpoint': '/api/redis/prime.json',
+         'about': """Primes the redis cache""",
+         'POST': True,
+         'GET': False,
+         'args': None,
+         },
+        {'endpoint': '/api/deactivate-expired.json',
+         'about': """Primes the redis cache""",
+         'POST': True,
+         'GET': False,
+         'args': None,
+         },
+        {'endpoint': '/api/update-recents.json',
+         'about': """Primes the redis cache""",
+         'POST': True,
+         'GET': False,
+         'args': None,
+         },
+        {'endpoint': '/api/nginx/cache-flush.json',
+         'about': """Flushes the nginx cache. This will make background requests to configured nginx servers, instructing them to flush their cache. """,
+         'POST': True,
+         'GET': False,
+         'args': None,
+         },
+    ]
+%>
             
             <h4>Endpoints</h4>
             <table class="table table-striped table-condensed">
@@ -41,39 +101,23 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td><code>/api/domain/enable</code></td>
-                        <td>Enables domain(s) for management.
-                            Currently this proxies calls to `/admin/queue-domains`
+                    % for ep in api_docs:
+                        <tr>
+                            <td><code>${ep['endpoint']}</code></td>
+                            <td>${ep['about']}</td>
+                            <td>
+                                % if ep['POST']:
+                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                % endif
                             </td>
-                        <td><span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span></td>
-                        <td></td>
-                        <td>
-                            <ul>
-                                <li>
-                                    <code>domain_names</code>
-                                    <em>A comma (,) separated list of domain names
-                                    </em>
-                                </li>
-                            </ul>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><code>/api/domain/disable</code></td>
-                        <td>Disables domain(s) for management
+                            <td>
+                                % if ep['GET']:
+                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                % endif
                             </td>
-                        <td><span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span></td>
-                        <td></td>
-                        <td>
-                            <ul>
-                                <li>
-                                    <code>domain_names</code>
-                                    <em>A comma (,) separated list of domain names
-                                    </em>
-                                </li>
-                            </ul>
-                        </td>
-                    </tr>
+                            <td>${ep['args'] or """<em>None</em>"""|n}</td>
+                        </tr>
+                    % endfor
                 </tbody>
             </table>
         </div>

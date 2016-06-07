@@ -453,50 +453,30 @@
 
 <%def name="table_SslOperationsObjectEvents(SslOperationsObjectEvents, table_context=None)">
     <%
-        show_domain = False
-        show_event = False
+        show_event = True
+        if table_context == "log_list":
+            pass
     %>
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
-                <th>id</th>
-                % if show_domain:
-                    <th>domain</th>
-                % endif
-                <th>event status</th>
                 % if show_event:
                     <th>event: id</th>
                     <th>event: type</th>
                     <th>event: timestamp</th>
                 % endif
+                <th>id</th>
+                <th>event status</th>
+                <th>object</th>
             </tr>
         </thead>
         <tbody>
             % for event in SslOperationsObjectEvents:
                 <tr>
-                    <td>
-                        <span class="label label-default">
-                            ${event.id}
-                        </span>
-                    </td>
-                    % if show_domain:
-                        <td>
-                            % if event.ssl_queue_domain_id:
-                                <code>${event.queue_domain.domain_name}</code>
-                            % elif event.ssl_domain_id:
-                                <code>${event.domain.domain_name}</code>
-                            % endif
-                        </td>
-                    % endif
-                    <td>
-                        <code>
-                            ${event.event_status_text}
-                        </code>
-                    </td>
                     % if show_event:
                         <td>
                             <a class="label label-info" href="${admin_prefix}/operations/log/item/${event.ssl_operations_event_id}">
-                                ${event.id}
+                                ${event.ssl_operations_event_id}
                             </a>
                         </td>
                         <td>
@@ -510,6 +490,57 @@
                             </timestamp>
                         </td>
                     % endif
+                    <td>
+                        <a class="label label-info" href="${admin_prefix}/operations/log/item/${event.id}">
+                            ${event.id}
+                        </a>
+                    </td>
+                    <td>
+                        <code>
+                            ${event.event_status_text}
+                        </code>
+                    </td>
+                    <td>
+                        % if event.ssl_ca_certificate_id:
+                            <a class="label label-info" href="${admin_prefix}/ca-certificate/${event.ssl_ca_certificate_id}">
+                                ${event.ssl_ca_certificate_id}
+                            </a>
+                        % elif event.ssl_certificate_request_id:
+                            <a class="label label-info" href="${admin_prefix}/certificate-request/${event.ssl_certificate_request_id}">
+                                ${event.ssl_certificate_request_id}
+                            </a>
+                        % elif event.ssl_domain_id:
+                            <a class="label label-info" href="${admin_prefix}/domain/${event.ssl_domain_id}">
+                                ${event.ssl_domain_id}
+                            </a>
+                            <code>${event.domain.domain_name}</code>
+                        % elif event.ssl_letsencrypt_account_key_id:
+                            <a class="label label-info" href="${admin_prefix}/account-key/${event.ssl_letsencrypt_account_key_id}">
+                                ${event.ssl_letsencrypt_account_key_id}
+                            </a>
+                        % elif event.ssl_private_key_id:
+                            <a class="label label-info" href="${admin_prefix}/private-key/${event.ssl_private_key_id}">
+                                ${event.ssl_private_key_id}
+                            </a>
+                        % elif event.ssl_queue_domain_id:
+                            <a class="label label-info" href="${admin_prefix}/queue-domain/${event.ssl_queue_domain_id}">
+                                ${event.ssl_queue_domain_id}
+                            </a>
+                            <code>${event.queue_domain.domain_name}</code>
+                        % elif event.ssl_queue_renewal_id:
+                            <a class="label label-info" href="${admin_prefix}/queue-renewal/${event.ssl_queue_renewal_id}">
+                                ${event.ssl_queue_renewal_id}
+                            </a>
+                        % elif event.ssl_server_certificate_id:
+                            <a class="label label-info" href="${admin_prefix}/certificate/${event.ssl_server_certificate_id}">
+                                ${event.ssl_server_certificate_id}
+                            </a>
+                        % elif event.ssl_unique_fqdn_set_id:
+                            <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${event.ssl_unique_fqdn_set_id}">
+                                ${event.ssl_unique_fqdn_set_id}
+                            </a>
+                        % endif
+                    </td>
                 </tr>
             % endfor
         </tbody>
@@ -751,11 +782,11 @@
 
 
     <${wrapper}>
-        <a  href="${admin_prefix}/operations/domain-log"
+        <a  href="${admin_prefix}/operations/object-log"
             class="label label-info"
         >
         <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
-        Domain Log</a><br/>
+        Object Log</a><br/>
     </${wrapper}>
 
     ${'</ul>' if as_list else ''|n}

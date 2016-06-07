@@ -63,69 +63,69 @@ class ViewAdmin(Handler):
     def _domain_focus(self, eagerload_web=False):
         domain_identifier = self.request.matchdict['domain_identifier'].strip()
         if domain_identifier.isdigit():
-            dbSslDomain = lib_db.get__SslDomain__by_id(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
+            dbDomain = lib_db.get__SslDomain__by_id(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
         else:
-            dbSslDomain = lib_db.get__SslDomain__by_name(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
-        if not dbSslDomain:
+            dbDomain = lib_db.get__SslDomain__by_name(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
+        if not dbDomain:
             raise HTTPNotFound('the domain was not found')
-        return dbSslDomain
+        return dbDomain
 
     @view_config(route_name='admin:domain:focus', renderer='/admin/domain-focus.mako')
     def domain_focus(self):
-        dbSslDomain = self._domain_focus(eagerload_web=True)
+        dbDomain = self._domain_focus(eagerload_web=True)
         return {'project': 'peter_sslers',
-                'SslDomain': dbSslDomain
+                'SslDomain': dbDomain
                 }
 
     @view_config(route_name='admin:domain:focus:nginx_cache_expire', renderer=None)
     @view_config(route_name='admin:domain:focus:nginx_cache_expire.json', renderer='json')
     def domain_focus_nginx_expire(self):
-        dbSslDomain = self._domain_focus(eagerload_web=True)
+        dbDomain = self._domain_focus(eagerload_web=True)
         if not self.request.registry.settings['enable_nginx']:
-            raise HTTPFound('%s/domain/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbSslDomain.id))
-        success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=[dbSslDomain, ])
+            raise HTTPFound('%s/domain/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
+        success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=[dbDomain, ])
         if self.request.matched_route.name == 'admin:domain:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
                     }
-        return HTTPFound('%s/domain/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbSslDomain.id, dbEvent.id))
+        return HTTPFound('%s/domain/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbDomain.id, dbEvent.id))
 
     @view_config(route_name='admin:domain:focus:config_json', renderer='json')
     def domain_focus_config_json(self):
-        dbSslDomain = self._domain_focus()
-        rval = {'domain': {'id': str(dbSslDomain.id),
-                           'domain_name': dbSslDomain.domain_name,
-                           'is_active': dbSslDomain.is_active,
+        dbDomain = self._domain_focus()
+        rval = {'domain': {'id': str(dbDomain.id),
+                           'domain_name': dbDomain.domain_name,
+                           'is_active': dbDomain.is_active,
                            },
                 'latest_certificate_single': None,
                 'latest_certificate_multi': None,
                 }
-        if dbSslDomain.ssl_server_certificate_id__latest_single:
+        if dbDomain.ssl_server_certificate_id__latest_single:
             if self.request.params.get('idonly', None):
-                rval['latest_certificate_single'] = dbSslDomain.latest_certificate_single.config_payload_idonly
+                rval['latest_certificate_single'] = dbDomain.latest_certificate_single.config_payload_idonly
             else:
-                rval['latest_certificate_single'] = dbSslDomain.latest_certificate_single.config_payload
-        if dbSslDomain.ssl_server_certificate_id__latest_multi:
+                rval['latest_certificate_single'] = dbDomain.latest_certificate_single.config_payload
+        if dbDomain.ssl_server_certificate_id__latest_multi:
             if self.request.params.get('idonly', None):
-                rval['latest_certificate_multi'] = dbSslDomain.latest_certificate_multi.config_payload_idonly
+                rval['latest_certificate_multi'] = dbDomain.latest_certificate_multi.config_payload_idonly
             else:
-                rval['latest_certificate_multi'] = dbSslDomain.latest_certificate_multi.config_payload
+                rval['latest_certificate_multi'] = dbDomain.latest_certificate_multi.config_payload
         if self.request.params.get('openresty', None):
-            lib_utils.prime_redis_domain(self.request, dbSslDomain)
+            lib_utils.prime_redis_domain(self.request, dbDomain)
         return rval
 
     @view_config(route_name='admin:domain:focus:certificates', renderer='/admin/domain-focus-certificates.mako')
     @view_config(route_name='admin:domain:focus:certificates_paginated', renderer='/admin/domain-focus-certificates.mako')
     def domain_focus__certificates(self):
-        dbSslDomain = self._domain_focus()
+        dbDomain = self._domain_focus()
         items_count = lib_db.get__SslServerCertificate__by_SslDomainId__count(
-            self.request.api_context, dbSslDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbSslDomain.id))
+            self.request.api_context, dbDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
         items_paged = lib_db.get__SslServerCertificate__by_SslDomainId__paginated(
-            self.request.api_context, dbSslDomain.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'SslDomain': dbSslDomain,
+                'SslDomain': dbDomain,
                 'SslServerCertificates_count': items_count,
                 'SslServerCertificates': items_paged,
                 'pager': pager,
@@ -134,14 +134,14 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificate_requests', renderer='/admin/domain-focus-certificate_requests.mako')
     @view_config(route_name='admin:domain:focus:certificate_requests_paginated', renderer='/admin/domain-focus-certificate_requests.mako')
     def domain_focus__certificate_requests(self):
-        dbSslDomain = self._domain_focus()
+        dbDomain = self._domain_focus()
         items_count = lib_db.get__SslCertificateRequest__by_SslDomainId__count(
             self.request.api_context, SslDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], SslDomain.id))
         items_paged = lib_db.get__SslCertificateRequest__by_SslDomainId__paginated(
-            self.request.api_context, dbSslDomain.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'SslDomain': dbSslDomain,
+                'SslDomain': dbDomain,
                 'SslCertificateRequests_count': items_count,
                 'SslCertificateRequests': items_paged,
                 'pager': pager,
@@ -152,14 +152,14 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:calendar', renderer='json')
     def domain_focus__calendar(self):
         rval = {}
-        dbSslDomain = self._domain_focus()
+        dbDomain = self._domain_focus()
         weekly_certs = self.request.api_context.dbSession.query(year_week(SslServerCertificate.timestamp_signed).label('week_num'),
                                                                 sqlalchemy.func.count(SslServerCertificate.id)
                                                                 )\
             .join(SslUniqueFQDNSet2SslDomain,
                   SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
                   )\
-            .filter(SslUniqueFQDNSet2SslDomain.ssl_domain_id == dbSslDomain.id,
+            .filter(SslUniqueFQDNSet2SslDomain.ssl_domain_id == dbDomain.id,
                     )\
             .group_by('week_num')\
             .order_by(sqlalchemy.asc('week_num'))\
@@ -174,14 +174,14 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:unique_fqdn_sets', renderer='/admin/domain-focus-unique_fqdn_sets.mako')
     @view_config(route_name='admin:domain:focus:unique_fqdn_sets_paginated', renderer='/admin/domain-focus-unique_fqdn_sets.mako')
     def domain_focus__unique_fqdns(self):
-        dbSslDomain = self._domain_focus()
+        dbDomain = self._domain_focus()
         items_count = lib_db.get__SslUniqueFQDNSet__by_SslDomainId__count(
             self.request.api_context, SslDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/unique-fqdn-sets/{0}' % (self.request.registry.settings['admin_prefix'], SslDomain.id))
         items_paged = lib_db.get__SslUniqueFQDNSet__by_SslDomainId__paginated(
-            self.request.api_context, dbSslDomain.id, limit=items_per_page, offset=offset)
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
-                'SslDomain': dbSslDomain,
+                'SslDomain': dbDomain,
                 'SslUniqueFQDNSets_count': items_count,
                 'SslUniqueFQDNSets': items_paged,
                 'pager': pager,
@@ -192,7 +192,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:mark', renderer=None)
     @view_config(route_name='admin:domain:focus:mark.json', renderer='json')
     def domain_focus_mark(self):
-        dbSslDomain = self._domain_focus()
+        dbDomain = self._domain_focus()
         action = '!MISSING or !INVALID'
         try:
             (result, formStash) = formhandling.form_validate(self.request,
@@ -204,18 +204,18 @@ class ViewAdmin(Handler):
 
             action = formStash.results['action']
             event_type = SslOperationsEventType.from_string('domain__mark')
-            event_payload = {'domain_id': dbSslDomain.id,
+            event_payload = {'domain_id': dbDomain.id,
                              'action': action,
                              'v': 1,
                              }
             if action == 'active':
-                if dbSslDomain.is_active:
+                if dbDomain.is_active:
                     raise formhandling.FormInvalid('Already active')
-                dbSslDomain.is_active = True
+                dbDomain.is_active = True
             elif action == 'inactive':
-                if not dbSslDomain.is_active:
+                if not dbDomain.is_active:
                     raise formhandling.FormInvalid('Already inactive')
-                dbSslDomain.is_active = False
+                dbDomain.is_active = False
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
@@ -229,7 +229,7 @@ class ViewAdmin(Handler):
             )
             url_success = '%s/domain/%s?operation=mark&action=%s&result=sucess' % (
                 self.request.registry.settings['admin_prefix'],
-                dbSslDomain.id,
+                dbDomain.id,
                 action,
             )
             return HTTPFound(url_success)
@@ -242,7 +242,7 @@ class ViewAdmin(Handler):
                                 )
             url_failure = '%s/domain/%s?operation=mark&action=%s&result=error&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
-                dbSslDomain.id,
+                dbDomain.id,
                 action,
                 e.message,
             )
