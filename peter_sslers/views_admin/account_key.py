@@ -21,6 +21,7 @@ from ..lib.forms import (Form_AccountKey_new__file,
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
 from ..lib import db as lib_db
+from ..lib import utils as lib_utils
 from ..lib.handler import Handler, items_per_page
 
 
@@ -188,10 +189,9 @@ class ViewAdmin(Handler):
 
             action = formStash.results['action']
             event_type = SslOperationsEventType.from_string('letsencrypt_account_key__mark')
-            event_payload = {'account_key_id': dbLetsEncryptAccountKey.id,
-                             'action': formStash.results['action'],
-                             'v': 1,
-                             }
+            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict['account_key_id'] = dbLetsEncryptAccountKey.id
+            event_payload_dict['action'] = formStash.results['action']
             if action == 'deactivate':
                 if dbLetsEncryptAccountKey.is_default:
                     raise formhandling.FormInvalid('You can not deactivate the default. Make another key default first.')
@@ -208,7 +208,7 @@ class ViewAdmin(Handler):
                 formerDefaultKey = lib_db.get__SslLetsEncryptAccountKey__default(self.request.api_context)
                 if formerDefaultKey:
                     formerDefaultKey.is_default = False
-                    event_payload['account_key_id.former_default'] = formerDefaultKey.id
+                    event_payload_dict['account_key_id.former_default'] = formerDefaultKey.id
                 dbLetsEncryptAccountKey.is_default = True
             else:
                 raise formhandling.FormInvalid('invalid `action`')
@@ -219,7 +219,7 @@ class ViewAdmin(Handler):
             operationsEvent = lib_db.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
-                event_payload,
+                event_payload_dict,
             )
             url_success = '%s/account-key/%s?operation=mark&action=%s&result=sucess' % (
                 self.request.registry.settings['admin_prefix'],

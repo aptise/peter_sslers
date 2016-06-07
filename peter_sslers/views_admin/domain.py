@@ -204,10 +204,9 @@ class ViewAdmin(Handler):
 
             action = formStash.results['action']
             event_type = SslOperationsEventType.from_string('domain__mark')
-            event_payload = {'domain_id': dbDomain.id,
-                             'action': action,
-                             'v': 1,
-                             }
+            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict['domain_id'] = dbDomain.id
+            event_payload_dict['action'] = action
             if action == 'active':
                 if dbDomain.is_active:
                     raise formhandling.FormInvalid('Already active')
@@ -225,7 +224,7 @@ class ViewAdmin(Handler):
             operationsEvent = lib_db.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
-                event_payload,
+                event_payload_dict,
             )
             url_success = '%s/domain/%s?operation=mark&action=%s&result=sucess' % (
                 self.request.registry.settings['admin_prefix'],
