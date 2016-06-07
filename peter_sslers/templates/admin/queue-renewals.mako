@@ -5,13 +5,13 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">Renewal Queue</li>
+        <li class="active">Queue: Renewals</li>
     </ol>
 </%block>
 
 
 <%block name="page_header">
-    <h2>Renewal Queue</h2>
+    <h2>Queue: Renewals</h2>
 </%block>
 
 

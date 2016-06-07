@@ -442,7 +442,7 @@
             </td>
         </tr>
         <tr>
-            <th>renewal queue</th>
+            <th>Queue: Renewals</th>
             <td>
                 ${admin_partials.table_queue_renewal__list(SslServerCertificate.queue_renewal, )}
             </td>

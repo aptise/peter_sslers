@@ -1590,17 +1590,18 @@ def queue_domains__add(ctx, domain_names, alternate_event_type_id=None):
                 results[domain_name] = 'already_queued'
 
             elif not _existing_queue:
-                dbQueue = SslQueueDomain()
-                dbQueue.domain_name = domain_name
-                dbQueue.timestamp_entered = _timestamp
-                ctx.dbSession.add(dbQueue)
+                dbQueueDomain = SslQueueDomain()
+                dbQueueDomain.domain_name = domain_name
+                dbQueueDomain.timestamp_entered = _timestamp
+                dbQueueDomain.ssl_operations_event_id__created = dbOperationsEvent.id
+                ctx.dbSession.add(dbQueueDomain)
                 ctx.dbSession.flush()
 
                 # log request
                 _log_object_event(ctx,
                                   dbOperationsEvent=dbOperationsEvent,
                                   event_status_id=SslOperationsObjectEventStatus.from_string('queue_domain__add__success'),
-                                  dbQueueDomain=dbQueue,
+                                  dbQueueDomain=dbQueueDomain,
                                   )
 
                 # note result

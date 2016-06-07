@@ -5,13 +5,13 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">Domains Queue</li>
+        <li class="active">Queue: Domains</li>
     </ol>
 </%block>
 
 
 <%block name="page_header">
-    <h2>Domains Queue</h2>
+    <h2>Queue: Domains</h2>
 
     ${admin_partials.standard_error_display()}
 </%block>
@@ -29,6 +29,8 @@
                             <th>domain_name</th>
                             <th>timestamp_entered</th>
                             <th>timestamp_processed</th>
+                            <th>active?</th>
+                            <th>domain</th>
                         </tr>
                     </thead>
                     % for q in SslQueueDomains:
@@ -39,6 +41,21 @@
                             <td><code>${q.domain_name}</code></td>
                             <td><timestamp>${q.timestamp_entered}</timestamp></td>
                             <td><timestamp>${q.timestamp_processed or ''}</timestamp></td>
+                            <td>
+                                % if q.is_active:
+                                    <span class="label label-success">y</span>
+                                % else:
+                                    <span class="label label-default">x</span>
+                                % endif
+                            </td>
+                            <td>
+                                % if q.ssl_domain_id:
+                                    <a class="label label-info" href="${admin_prefix}/domain/${q.ssl_domain_id}">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        ${q.ssl_domain_id}
+                                    </a>
+                                % endif
+                            </td>
                         </tr>
                     % endfor
                 </table>

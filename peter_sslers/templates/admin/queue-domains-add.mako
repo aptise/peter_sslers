@@ -5,14 +5,14 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/queue-domains">Domains Queue</a></li>
+        <li><a href="${admin_prefix}/queue-domains">Queue: Domains</a></li>
         <li class="active">Add</li>
     </ol>
 </%block>
 
 
 <%block name="page_header">
-    <h2>Domains Queue | Add</h2>
+    <h2>Queue: Domains | Add</h2>
 </%block>
 
 

@@ -505,9 +505,11 @@ def get__SslQueueDomain__by_id(ctx, set_id, eagerload_log=False):
     return item
 
 
-def get__SslQueueDomain__by_name(ctx, domain_name):
+def get__SslQueueDomain__by_name(ctx, domain_name, active_only=True):
     q = ctx.dbSession.query(SslQueueDomain)\
         .filter(sa.func.lower(SslQueueDomain.domain_name) == sa.func.lower(domain_name))
+    if active_only:
+        q = q.filter(SslQueueDomain.is_active.op('IS')(True))
     item = q.first()
     return item
 
