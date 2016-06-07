@@ -1,6 +1,8 @@
 peter_sslers README
 ================================
 
+*or how i stopped worrying and learned to love the ssl certificate*
+
 `peter_sslers` is a package designed to help *experienced* devops and admins to manage SSL Certificates and their deployment on larger systems.
 
 This package is *not* aimed at casual or single-site users.
