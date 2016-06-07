@@ -45,8 +45,8 @@ class ViewPublic(Handler):
                 self.request.api_context.dbSession.flush()
                 # quick cleanup
                 dbCertificateRequest = lib_db.get__SslCertificateRequest__by_id(self.request.api_context,
-                                                                                   active_request.ssl_certificate_request_id,
-                                                                                   )
+                                                                                active_request.ssl_certificate_request_id,
+                                                                                )
                 has_unverified = False
                 for d in dbCertificateRequest.certificate_request_to_domains:
                     if not d.timestamp_verified:

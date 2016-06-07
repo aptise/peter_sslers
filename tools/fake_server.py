@@ -22,17 +22,23 @@ from pyramid.config import Configurator
 from pyramid.response import Response
 
 
+# ==============================================================================
+
+
 def hello_world(request):
     print('Incoming request')
     return Response('<body><h1>Hello World!</h1></body>')
+
 
 def public_challenge(request):
     print('Incoming request')
     return Response('<body><h1>public_challenge</h1>%s</body>' % request.matchdict['challenge'])
 
+
 def public_whoami(request):
     print('Incoming request - public_whoami')
     return Response('<body><h1>public_whoami</h1>%s</body>' % request.active_domain_name)
+
 
 def admin(request):
     print('Incoming request - admin')
