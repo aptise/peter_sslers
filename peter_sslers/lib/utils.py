@@ -64,7 +64,7 @@ def validate_domains(domain_names):
 
 
 def domains_from_list(domain_names):
-    domain_names = [d.strip().lower() for d in domain_names]
+    domain_names = [d for d in [d.strip().lower() for d in domain_names] if d]
     # make the list unique
     domain_names = list(set(domain_names))
     # validate the list
