@@ -243,7 +243,7 @@ class ViewAdmin(Handler):
                                          event_status_id=SslOperationsObjectEventStatus.from_string(event_alt[0]),
                                          dbLetsEncryptAccountKey=event_alt[1],
                                          )
-            url_success = '%s/account-key/%s?operation=mark&action=%s&result=sucess' % (
+            url_success = '%s/account-key/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
                 dbLetsEncryptAccountKey.id,
                 action,

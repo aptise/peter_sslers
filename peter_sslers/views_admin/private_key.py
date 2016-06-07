@@ -216,7 +216,7 @@ class ViewAdmin(Handler):
                     dbPrivateKey,
                 )
 
-            url_success = '%s/private-key/%s?operation=mark&action=%s&result=sucess' % (
+            url_success = '%s/private-key/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
                 dbPrivateKey.id,
                 action,

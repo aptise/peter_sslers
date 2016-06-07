@@ -457,7 +457,7 @@ class ViewAdmin(Handler):
                 # nothing to do?
                 pass
 
-            url_success = '%s/certificate/%s?operation=mark&action=%s&result=sucess' % (
+            url_success = '%s/certificate/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
                 dbServerCertificate.id,
                 action,

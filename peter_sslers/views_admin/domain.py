@@ -238,7 +238,7 @@ class ViewAdmin(Handler):
                                      dbDomain=dbDomain,
                                      )
 
-            url_success = '%s/domain/%s?operation=mark&action=%s&result=sucess' % (
+            url_success = '%s/domain/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
                 dbDomain.id,
                 action,
