@@ -730,7 +730,6 @@ class SslQueueRenewal(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_entered = sa.Column(sa.DateTime, nullable=False, )
     ssl_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=False)
-    ssl_operations_event_id__child_of = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=True)
     timestamp_processed = sa.Column(sa.DateTime, nullable=True, )
     process_result = sa.Column(sa.Boolean, nullable=True, default=None)
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False)
@@ -747,8 +746,8 @@ class SslQueueRenewal(Base):
                                           back_populates='queue_renewal',
                                           )
 
-    operations_event = sa.orm.relationship("SslOperationsEvent",
-                                           primaryjoin="SslQueueRenewal.ssl_operations_event_id__child_of==SslOperationsEvent.id",
+    operations_event__created = sa.orm.relationship("SslOperationsEvent",
+                                           primaryjoin="SslQueueRenewal.ssl_operations_event_id__created==SslOperationsEvent.id",
                                            uselist=False,
                                            )
 

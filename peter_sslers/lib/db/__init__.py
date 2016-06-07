@@ -815,7 +815,7 @@ def log__SslOperationsEvent(
     ctx,
     event_type_id,
     event_payload_dict = None,
-    operationsEvent_child_of=None,
+    dbOperationsEvent_child_of=None,
     timestamp_event=None,
 ):
     """
@@ -825,8 +825,8 @@ def log__SslOperationsEvent(
     # defaults
     # timestamp overwrite?
     timestamp_event = timestamp_event or ctx.timestamp
-    # if we didn't pass in an explicit operationsEvent_child_of, use the global
-    operationsEvent_child_of = operationsEvent_child_of or ctx.dbOperationsEvent
+    # if we didn't pass in an explicit dbOperationsEvent_child_of, use the global
+    dbOperationsEvent_child_of = dbOperationsEvent_child_of or ctx.dbOperationsEvent
 
     if event_payload_dict is None:
         event_payload_dict = utils.new_event_payload_dict()
@@ -836,8 +836,8 @@ def log__SslOperationsEvent(
     dbOperationsEvent.ssl_operations_event_type_id = event_type_id
     dbOperationsEvent.timestamp_event = timestamp_event
     dbOperationsEvent.set_event_payload(event_payload_dict)
-    if operationsEvent_child_of:
-        dbOperationsEvent.ssl_operations_event_id__child_of = operationsEvent_child_of.id
+    if dbOperationsEvent_child_of:
+        dbOperationsEvent.ssl_operations_event_id__child_of = dbOperationsEvent_child_of.id
     ctx.dbSession.add(dbOperationsEvent)
     ctx.dbSession.flush()
 
@@ -927,7 +927,7 @@ def _create__SslQueueRenewal(ctx, serverCertificate):
     dbQueueRenewal.timestamp_processed = None
     dbQueueRenewal.ssl_server_certificate_id = serverCertificate.id
     dbQueueRenewal.ssl_unique_fqdn_set_id = serverCertificate.ssl_unique_fqdn_set_id
-    dbQueueRenewal.ssl_operations_event_id__child_of = ctx.dbOperationsEvent.id
+    dbQueueRenewal.ssl_operations_event_id__created = ctx.dbOperationsEvent.id
     ctx.dbSession.add(dbQueueRenewal)
     ctx.dbSession.flush()
 

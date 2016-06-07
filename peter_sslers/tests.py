@@ -965,10 +965,10 @@ class FunctionalTests_QueueRenewal(AppTest):
         res = self.testapp.get('/.well-known/admin/queue-renewals/all/1', status=200)
 
     def test_focus(self):
+        """this doesn't work on solo tests"""
         focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
-
         res = self.testapp.get('/.well-known/admin/queue-renewal/%s' % focus_id, status=200)
 
     @unittest.skip("tests not written yet")

@@ -64,22 +64,22 @@
                 ${RenewalQueueItem.process_result or ''}
             </td>
         </tr>
-        ${admin_partials.table_tr_event_created(RenewalQueueItem.ssl_operations_event_id__child_of)}
+        ${admin_partials.table_tr_event_created(RenewalQueueItem.ssl_operations_event_id__created)}
         <tr>
             <th>operations event?</th>
             <td>
-               % if RenewalQueueItem.operations_event:
+               % if RenewalQueueItem.operations_event__created:
                     <table class="table table-striped table-condensed">
                         <tr>
                             <th>event type</th>
                             <td>
-                                <span class="label label-info">${RenewalQueueItem.operations_event.event_type_text}</span>
+                                <span class="label label-info">${RenewalQueueItem.operations_event__created.event_type_text}</span>
                             </td>
                         </tr>
                         <tr>
                             <th>timestamp_event</th>
                             <td>
-                                <timestamp>${RenewalQueueItem.operations_event.timestamp_event or ''}</timestamp>
+                                <timestamp>${RenewalQueueItem.operations_event__created.timestamp_event or ''}</timestamp>
                             </td>
                         </tr>
                     </table>

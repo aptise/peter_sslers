@@ -219,7 +219,7 @@
                     <th>certificate</th>
                 % endif
                 <th>timestamp_entered</th>
-                <th>ssl_operations_event_id__child_of</th>
+                <th>ssl_operations_event_id__created</th>
                 <th>timestamp_processed</th>
             </tr>
         </thead>
@@ -237,7 +237,7 @@
                     </td>
                 % endif
                 <td><timestamp>${queue_renewal.timestamp_entered or ''}</timestamp></td>
-                <td><span class="label label-info">${queue_renewal.ssl_operations_event_id__child_of}</span></td>
+                <td><span class="label label-info">${queue_renewal.ssl_operations_event_id__created}</span></td>
                 <td><timestamp>${queue_renewal.timestamp_processed or ''}</timestamp></td>
             </tr>
         % endfor
