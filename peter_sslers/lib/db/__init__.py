@@ -1223,18 +1223,21 @@ def do__CertificateRequest__AcmeAutomated(
                 dbDomains = [v[0] for v in dbDomainObjects.values()],
                 dbServerCertificate__renewal_of = dbServerCertificate__renewal_of,
             )
+            if dbServerCertificate__renewal_of:
+                dbServerCertificate__renewal_of.is_auto_renew = False
 
+        mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
         return dbServerCertificate
 
-    except:
+    except Exception as e:
         if dbCertificateRequest:
             dbCertificateRequest.is_active = False
             dbCertificateRequest.is_error = True
+            mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
             transaction.manager.commit()
         raise
 
     finally:
-
         # cleanup tmpfiles
         for tf in tmpfiles:
             tf.close()
