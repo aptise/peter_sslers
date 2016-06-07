@@ -305,12 +305,12 @@ class ViewAdmin(Handler):
                     break
                 offset += limit
 
+        event_payload_dict = utils.new_event_payload_dict()
+        event_payload_dict['prime_style'] = prime_style
+        event_payload_dict['total_primed'] = total_primed
         dbEvent = lib_db.log__SslOperationsEvent(self.request.api_context,
                                                  SslOperationsEventType.from_string('api__redis_prime'),
-                                                 {'v': 1,
-                                                  'prime_style': prime_style,
-                                                  'total_primed': total_primed,
-                                                  },
+                                                 event_payload_dict,
                                                  )
         if self.request.matched_route.name == 'admin:api:redis:prime.json':
             return {'result': 'success',
