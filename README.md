@@ -1,23 +1,23 @@
 peter_sslers README
 ================================
 
-*or how i stopped worrying and learned to love the ssl certificate*
+Peter SSLers *or how i stopped worrying and learned to love the ssl certificate*.
 
-`peter_sslers` is a package designed to help *experienced* devops and admins to manage SSL Certificates and their deployment on larger systems.
+`peter_sslers` is a package designed to help *experienced* admins and devops people manage SSL Certificates and deploy them on larger systems.
 
-This package is *not* aimed at casual or single-site users.
+This package is *not* aimed at casual or single-site users.  This package is *not* aimed at novice users.
 
 Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
 
-Peter combines an ACME client designed to operate with the LetsEncrypt service, alongside tools designed to manage and deploy certificates.
+Peter combines an ACME client designed to operate against the LetsEncrypt service, alongside tools designed to manage & deploy certificates.
 
-One of Peter's tools is a lightweight database backed `Pyramid` application that can:
+Peter's core tool is a lightweight database-backed `Pyramid` application that can:
 
-* act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver,
-* import any existing ssl certificates,
-* ease provisioning certificates onto various servers,
+* act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver
+* import existing ssl certificates
+* ease provisioning certificates onto various servers
 * browse certificate data and easily see what needs to be renewed
-* communicate with a properly configured `nginx` web server (see next)
+* communicate with a properly configured openresty enabled `nginx` web server (see next)
 
 Peter ships with a `lua` module for the `openresty` framework on the `nginx` server which will:
 
@@ -33,13 +33,13 @@ Do you like cross-referencing?  Your certs are broken down into fields that are 
 
 Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool).  Peter is a honeybadger, he don't care.  He just takes what he wants.
 
-Peter offers several commandline tools, so spinning up a tool "webserver" mode may not be necessary at all, or might only be needed for brief periods of time.
+Peter offers several commandline tools -- so spinning up a tool "webserver" mode may not be necessary at all -- or might only be needed for brief periods of time.
 
-SqlAlchemy is the backing database library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). `sqlite` is the default, but this has been tested on postgres.  sqlite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
+SqlAlchemy is the backing database library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). `sqlite` is the default, but the package has been tested against postgres.  sqlite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
 
-## Why?  And a personal note:
+## Why?
 
-I hate having to spend time on DevOps tasks; I would rather spend time on the Product or consumer sides.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just a test-suite.
+Most of us hate having to spend time on DevOps tasks.  Personally, I would rather spend time working on the Product or consumer sides.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
 
 # An important WARNING:
@@ -65,7 +65,7 @@ The "/tools" directory contains scripts useful for certificate operations.  Curr
 
 * an `invoke` script for some miscellaneous tasks
 * a `lua` library for integrating with nginx/openresty
-* sample `nginx` configuration files for admin and public routes
+* sample `nginx` configuration files for admin, public and testing routes
 * a sample `fake_server.py` that will spin up a server with routes that you can test against.  this will allow you to setup your integration without running peter_sslers
 
 # General Management Concepts
@@ -98,7 +98,7 @@ The "/tools" directory contains scripts useful for certificate operations.  Curr
 
 # Installation
 
-This is pretty much ready to go for development use.  Python should install everything for you.  If it doesn't, either I screwed up or you screwed up.
+This is pretty much ready to go for development use.  Python should install everything for you.  If it doesn't, someone screwed up.
 
 You should create a virtualenv for this project. In this example, we will create the following directory structure:
 
@@ -148,20 +148,20 @@ The webserver exposes the following routes/directories:
 
 * `/.well-known/acme-challenge` - directory
 * `/.well-known/public/whoami` - URL prints host
-* `/.well-known/admin` - admin tool THIS EXPLORES PRIVATE KEYS ON PURPOSE
+* `/.well-known/admin` - admin tool IMPORTANT - THIS EXPOSES PRIVATE KEYS ON PURPOSE
 
 
 # Just a friendly reminder:
 
-THE ADMIN TOOL SHOULD NOT BE PUBLICLY ACCESSIBLE.
-YOU SHOULD ONLY RUN IT ON YOUR PRIVATE NETWORK
+THE ADMIN TOOL SHOULD NEVER BE PUBLICLY ACCESSIBLE.
+YOU SHOULD ONLY RUN IT ON A PRIVATE NETWORK
 
-By default, the production.ini file won't even run the admin tools.  that is how serious I am about telling you to be careful!
+By default, the production.ini file won't even run the admin tools.  that is how serious we are about telling you to be careful!
 
 
 # why/how?
 
-The purpose of this package is to enable certificate management in systems where one or more of the following apply:
+Again, the purpose of this package is to enable certificate management in systems where one or more of the following apply:
 
 * you have a lot of domains
 * you have a lot of machines
@@ -198,7 +198,7 @@ In an advanced setting, multiple servers proxy to multiple peter-sslers "public"
 
 The instances share a single SSLMinnow data store.
 
-The "admin" tool runs on the private intranet.
+The "Admin" tool runs on the private intranet.
 
 
 # notes
@@ -269,12 +269,12 @@ Your `environment.ini` exposes a few configuration options:
 * `nginx.reset_path` - defaults to `/ngxadmin/shared_cache/expire`
 * `requests.disable_ssl_warning` - will disable the ssl warnings from the requests library
 
-
 If you have a custom openssl install, you probably want these settings
 
 	openssl_path = /opt/openssl/bin/openssl
 	openssl_path_conf = /usr/local/ssl/openssl.cnf
 
+These options are used by the server AND by the test suite.
 
 # tools
 
@@ -319,6 +319,15 @@ Redis is NOT required, but recommended.  Instead you can failover to directly qu
 To use the Peter fallback, you must install this lua-resty library:
 
 * lua-resty-http https://github.com/pintsized/lua-resty-http
+
+The demo expects this to be installed into tools/lua-lib
+
+example:
+
+	cd tools
+	mkdir lua-lib
+	cd lua-lib
+	git checkout https://github.com/pintsized/lua-resty-http.git
 
 Hits and misses from the fallback API will be cached in the shared cache dict.  If you need to remove values, you will need to restart the server OR use one of the nginx/lua examples for cache clearing.  Fallback API requests will notify the Pyramid app that the request should have write-through cache behavior.
 
@@ -435,8 +444,6 @@ you can use the prequest syntax to spin up a URL and get or post data
 
 `$VENV/bin/prequest development.ini /.well-known/admin/api/ca-certificate-probes/probe.json`
 `$VENV/bin/prequest development.ini /.well-known/admin/api/redis/prime.json`
-
-a bit of warning  -- prequest will log to the commandline unless you update the logging settings.
 
 
 ## Routes Designed for JSON Automation
@@ -580,7 +587,7 @@ Yes. PEM certs are reformatted to have a single trailing newline (via stripping 
 
 ## Is there a fast way to import existing certs?
 
-Yes. Use `curl` on the commandline. see the TOOLS section for an `invoke` script that can automate many.
+Yes. Use `curl` on the commandline. see the TOOLS section for an `invoke` script that can automate many certificates from the Letsencrypt Store.
 
 
 ## What happens if multiple certs are available for a domain ?
@@ -589,7 +596,7 @@ Multiple Domains on a cert make this part of management epically & especially an
 
 The current solution:
 
-* there is a an "operation" hook to caches the most-recent "multi" and "single" cert for every domain onto the domain's record
+* there is a an API endpoint to cache the most-recent "multi" and "single" cert for every domain onto the domain's record (update-recents)
 * certificates *will not* be deactivated if they are the most-recent "multi" or "single" cert for any one domain.
 
 This means that a cert will stay active so long as any one domain has not yet-replaced it.
@@ -602,7 +609,7 @@ It was much easier to peg this to `openssl` in a linux environment for now; whic
 
 In the future this could all be done with Python's crypto library. However openssl is fast and this was primarily designed for dealing with linux environments. sorry.
 
-If someone wants to make a PR to make this fully python based: ok!
+If someone wants to make a PR to make this fully python based... ok!
 
 
 ## Where does the various data come from?
@@ -705,50 +712,18 @@ There are a few environment variables you can set:
 
 Tests are done on a sqlite database as specified in test.ini
 
+The test.ini should also reflect the openssl for your distribution
+
 `test_data/` contains the keys and certificates used for testing
 
 You can overwrite the testdb; beware that it CAN NOT run as a memory db.  it must be a disk file due to how some tests are written.
 
 
+Gotchas
+-------
 
-# TODO
+This requires a relatively new version of openssl to handle multiple-domain certificates.
 
-## finish rate limit calendars
-
-## search expiring soon
-
-## api hooks
-
-in the meantime, `curl` can be used to trigger normal requests
-
-document 
-	/queue-domains
-	/queue-renewals
-	/api/domain/enable
-	/api/domain/disable
-
-## upload CERT/Chains for 'flow' CSR
-
-## associate all objects to one another when imported
-
-only some objects are currently associated
-
-## full unit tests
-
-This is still sketching out the idea.
-this is not ready for production yet.
-i'm personally using it, but the API is not stable and tests are not integrated.
-
-## Database Docs
-
-If using postgresql...
-
-	create user ssl_minnow with password '{PASSWORD}';
-	create database ssl_minnow with owner ssl_minnow ;
-	
-	change the config settings
-	
-	curl --form "domain_names=example.com" http://127.0.0.1:6543/.well-known/admin/api/domain/enable
 
 
 Getting Started

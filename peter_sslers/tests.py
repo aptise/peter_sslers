@@ -48,9 +48,9 @@ export SSL_LETSENCRYPT_API_VALIDATES=True
 export SSL_TEST_DOMAINS=foo.cliqued.in  # can be a comma-separated string
 export SSL_TEST_PORT=6543
 
-if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app
+if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app so letsencrypt can access it
 
-see the nginx test config file `test.ini`
+see the nginx test config file `testing.conf`
 
 """
 # run tests that expire nginx caches

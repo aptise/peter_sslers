@@ -1,5 +1,23 @@
 * CSR should have domain[0] as subject if there are multiple domains
-* add a flag to nginx
 
 Test coverage needed for
 * /.well-known/admin/certificate/5/renew/custom
+
+* finish rate limit calendars
+* search expiring soon
+* api hooks : document
+ * /queue-domains
+ * /queue-renewals
+ * /api/domain/enable
+ * /api/domain/disable
+
+* upload CERT/Chains for 'flow' CSR
+* associate all objects to one another when imported; only some objects are currently associated
+* Database Documentation
+
+	If using postgresql...
+
+		create user ssl_minnow with password '{PASSWORD}';
+		create database ssl_minnow with owner ssl_minnow ;
+
+	change the config settings
