@@ -1067,6 +1067,7 @@ def do__CertificateRequest__AcmeAutomated(
     private_key_pem=None,
 
     dbServerCertificate__renewal_of=None,
+    dbQueueRenewal__of=None,
 ):
     """
     2016.06.04 - dbOperationsEvent compliant
@@ -1225,8 +1226,13 @@ def do__CertificateRequest__AcmeAutomated(
             )
             if dbServerCertificate__renewal_of:
                 dbServerCertificate__renewal_of.is_auto_renew = False
+            if dbQueueRenewal__of:
+                dbQueueRenewal__of.timestamp_processed = ctx.timestamp
+                dbQueueRenewal__of.process_result = True
+                dbQueueRenewal__of.is_active = False
 
         mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
+        transaction.manager.commit()
         return dbServerCertificate
 
     except Exception as e:
@@ -1555,7 +1561,7 @@ def queue_domains__add(ctx, domain_names, alternate_event_type_id=None):
     """
     Adds domains to the queue if needed
     2016.06.04 - dbOperationsEvent compliant
-    
+
     `alternate_event_type_id` can be specified if this should be logged differently
     """
     # bookkeeping
@@ -1750,7 +1756,10 @@ def queue_renewals__update(
     fqdns_ids_only = None,
 ):
     try:
-        event_type = SslOperationsEventType.from_string('queue_renewals__update')
+        if fqdns_ids_only:
+            raise NotImplemented()
+
+        event_type = SslOperationsEventType.from_string('queue_renewal__update')
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__SslOperationsEvent(ctx,
                                                     event_type,
@@ -1759,12 +1768,12 @@ def queue_renewals__update(
 
         _expiring_days = 28
         _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
-        
+
         _subquery_already_queued = ctx.dbSession.query(SslQueueRenewal.ssl_server_certificate_id)\
             .filter(SslQueueRenewal.timestamp_processed.op('IS')(None),
                     )\
             .subquery()
-                    
+
         _core_query = ctx.dbSession.query(SslServerCertificate)\
             .filter(SslServerCertificate.is_active.op('IS')(True),
                     SslServerCertificate.is_auto_renew.op('IS')(True),
@@ -1787,6 +1796,52 @@ def queue_renewals__update(
 
     except:
         raise
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def queue_renewals__process(ctx):
+    rval = {'count_total': None,
+            'count_success': 0,
+            'count_fail': 0,
+            }
+    event_type = SslOperationsEventType.from_string('queue_renewal__process')
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__SslOperationsEvent(ctx,
+                                                event_type,
+                                                event_payload_dict,
+                                                )
+    items_count = get__SslQueueRenewal__count(xtc, show_all=False)
+    rval['count_total'] = items_count
+    if items_count:
+        items_paged = get__SslQueueRenewal__paginated(ctx, show_all=False, limit=10, offset=0, eagerload_renewal=True)
+        for dbQueueRenewal in items_paged:
+            try:
+                dbServerCertificate = do__CertificateRequest__AcmeAutomated(
+                    ctx,
+                    domain_names,
+                    dbAccountKey=dbQueueRenewal.server_certificate.account_key,
+                    dbPrivateKey=dbQueueRenewal.server_certificate.private_key,
+                    dbServerCertificate__renewal_of=dbQueueRenewal.server_certificate,
+                    dbQueueRenewal__of=dbQueueRenewal
+                )
+            except:
+                pass
+            if dbServerCertificate:
+                _log_object_event(ctx,
+                                  dbOperationsEvent=dbOperationsEvent,
+                                  event_status_id=SslOperationsEventType.from_string('queue_renewal__process__success'),
+                                  dbQueueRenewal=dbQueueRenewal,
+                                  )
+                rval['count_success'] += 1
+            else:
+                _log_object_event(ctx,
+                                  dbOperationsEvent=dbOperationsEvent,
+                                  event_status_id=SslOperationsEventType.from_string('queue_renewal__process__fail'),
+                                  dbQueueRenewal=dbQueueRenewal,
+                                  )
+                rval['count_fail'] += 1
+    return rval
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -547,7 +547,7 @@ def get__SslQueueRenewal__count(ctx, show_all=False):
     return counted
 
 
-def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, limit=None, offset=0):
+def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, eagerload_renewal=False, limit=None, offset=0):
     q = ctx.dbSession.query(SslQueueRenewal)
     if not show_all:
         q = q.filter(SslQueueRenewal.timestamp_processed.op('IS')(None),  # noqa
@@ -555,8 +555,12 @@ def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, li
     if eagerload_web:
         q = q.options(sqlalchemy.orm.joinedload('certificate').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                       )
-    else:
-        q = q.order_by(SslQueueRenewal.id.desc())
+    elif eagerload_renewal:
+        q = q.options(sqlalchemy.orm.subqueryload('account_key'),
+                      sqlalchemy.orm.subqueryload('private_key'),
+                      sqlalchemy.orm.subqueryload('server_certificate'),
+                      )
+    q = q.order_by(SslQueueRenewal.id.desc())
     q = q.limit(limit)\
         .offset(offset)
     items_paged = q.all()

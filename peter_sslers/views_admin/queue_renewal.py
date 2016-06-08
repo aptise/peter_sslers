@@ -78,6 +78,25 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name='admin:queue_renewals:process', renderer=None)
+    @view_config(route_name='admin:queue_renewals:process.json', renderer='json')
+    def queue_renewal_process(self):
+        try:
+            queue_results = lib_db.queue_renewals__process(self.request.api_context)
+            if self.request.matched_route.name == 'admin:queue_renewals:process.json':
+                return {'result': 'success',
+                        }
+            return HTTPFound("%s/queue-renewals?process=1" % self.request.registry.settings['admin_prefix'])
+        except Exception as e:
+            transaction.abort()
+            if self.request.matched_route.name == 'admin:queue_renewals:process.json':
+                return {'result': 'error',
+                        'error': e.message,
+                        }
+            raise
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     def _queue_renewal_focus(self):
         item = lib_db.get__SslQueueRenewal__by_id(self.request.api_context, self.request.matchdict['id'])
         if not item:
@@ -135,7 +154,6 @@ class ViewAdmin(Handler):
                                      event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
                                      dbQueueRenewal=dbQueueRenewal,
                                      )
-
 
             url_success = '%s/queue-renewal/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],

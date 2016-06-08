@@ -23,3 +23,4 @@ Test coverage needed for
 	change the config settings
 
 * longterm - decouple from openssl and use pure-python methods
+* the queue-renewals update script could work on fqdns, not just certificates

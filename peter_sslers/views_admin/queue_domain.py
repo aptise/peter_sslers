@@ -208,7 +208,6 @@ class ViewAdmin(Handler):
                                      dbQueueDomain=dbQueueDomain,
                                      )
 
-
             url_success = '%s/queue-domain/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
                 dbQueueDomain.id,
