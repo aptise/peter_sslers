@@ -683,6 +683,11 @@ class SslPrivateKey(Base):
                                                    back_populates="private_key",
                                                    )
 
+    operations_event__created = sa.orm.relationship("SslOperationsEvent",
+                                                    primaryjoin="SslPrivateKey.ssl_operations_event_id__created==SslOperationsEvent.id",
+                                                    uselist=False,
+                                                    )
+
     @property
     def key_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=private_key&private_key.id=%s" % (self.key_pem_modulus_md5, self.id, )
