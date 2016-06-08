@@ -45,7 +45,7 @@
             <h5>Domains in Certificate Request</h5>
             ${admin_partials.table_SslCertificateRequest2SslDomain(SslCertificateRequest.to_domains,
                                                                    request_inactive = request_inactive,
-                                                                   active_domain_id = (SslCertificateRequest2SslDomain.ssl_domain_id if SslCertificateRequest2SslDomain else None),
+                                                                   current_domain_id = (SslCertificateRequest2SslDomain.ssl_domain_id if SslCertificateRequest2SslDomain else None),
                                                                    perspective='certificate_request_sidebar')}
 
         </div>

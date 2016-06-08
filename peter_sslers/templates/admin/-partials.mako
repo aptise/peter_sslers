@@ -261,7 +261,7 @@
 </%def>
 
 
-<%def name="table_SslCertificateRequest2SslDomain(lcr2mds, request_inactive=None, active_domain_id=None, perspective=None)">
+<%def name="table_SslCertificateRequest2SslDomain(lcr2mds, request_inactive=None, current_domain_id=None, perspective=None)">
     % if perspective == 'certificate_request':
         <table class="table table-striped table-condensed">
             <thead>
@@ -313,7 +313,7 @@
         <table class="table table-striped table-condensed">
             <thead>
                 <tr>
-                    <th>active?</th>
+                    <th>current?</th>
                     <th>domain</th>
                     <th>configured?</th>
                     <th>verified?</th>
@@ -324,8 +324,8 @@
             % for to_d in SslCertificateRequest.to_domains:
                 <tr>
                     <td>
-                        % if active_domain_id == to_d.ssl_domain_id:
-                            <span class="label label-success">active</span>
+                        % if current_domain_id == to_d.ssl_domain_id:
+                            <span class="label label-success">current</span>
                         % endif
                     </td>
                     <td>
@@ -335,7 +335,7 @@
                         </span>
                     </td>
                     <td>
-                        % if active_domain_id == to_d.ssl_domain_id:
+                        % if current_domain_id == to_d.ssl_domain_id:
                             % if to_d.is_configured:
                                 <span
                                     class="label label-success">configured</span>
