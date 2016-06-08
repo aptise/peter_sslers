@@ -59,46 +59,8 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:queue_renewals:update', renderer=None)
-    @view_config(route_name='admin:queue_renewals:update.json', renderer='json')
-    def queue_renewal_update(self):
-        try:
-            queue_results = lib_db.queue_renewals__update(self.request.api_context)
-            if self.request.matched_route.name == 'admin:queue_renewals:update.json':
-                return {'result': 'success',
-                        }
-            return HTTPFound("%s/queue-renewals?update=1" % self.request.registry.settings['admin_prefix'])
-        except Exception as e:
-            transaction.abort()
-            if self.request.matched_route.name == 'admin:queue_renewals:update.json':
-                return {'result': 'error',
-                        'error': e.message,
-                        }
-            raise
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:queue_renewals:process', renderer=None)
-    @view_config(route_name='admin:queue_renewals:process.json', renderer='json')
-    def queue_renewal_process(self):
-        try:
-            queue_results = lib_db.queue_renewals__process(self.request.api_context)
-            if self.request.matched_route.name == 'admin:queue_renewals:process.json':
-                return {'result': 'success',
-                        }
-            return HTTPFound("%s/queue-renewals?process=1" % self.request.registry.settings['admin_prefix'])
-        except Exception as e:
-            transaction.abort()
-            if self.request.matched_route.name == 'admin:queue_renewals:process.json':
-                return {'result': 'error',
-                        'error': e.message,
-                        }
-            raise
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     def _queue_renewal_focus(self):
-        item = lib_db.get__SslQueueRenewal__by_id(self.request.api_context, self.request.matchdict['id'])
+        item = lib_db.get__SslQueueRenewal__by_id(self.request.api_context, self.request.matchdict['id'], load_events=True)
         if not item:
             raise HTTPNotFound('the item was not found')
         return item

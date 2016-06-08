@@ -578,6 +578,51 @@ Need to get the cert data directly? NO SWEAT. Peter transforms this for you on t
 * /.well-known/admin/certificate/{ID}/privkey.pem.txt
 
 
+# Workflow Concepts
+
+## Object Attributes
+
+### Domain
+
+#### `is_active`
+
+If a domain is "active", then it is actively managed and should be included in certificate renewals or generating nginx configuration.
+
+### Certificate
+
+#### `is_auto_renew`
+
+Set to `True` by default.  If `True`, this certificate will be auto-renewed by the renewal queue.  If `False`, renewals must be manual.
+
+#### `is_active`
+
+If a certificate is "active" (`True` by default) then it is actively managed and should be included in generating nginx configuration.
+
+#### `is_deactivated` and `is_revoked`
+
+If a certificate is not "active", only one of these will be `True`.  If an inactive certificate was deactivated, then it can be activated and this flag will reverse.  If the certificate was revoked, it is permanent and can not be re-activated.
+
+## Domain Queue
+
+The domain queue, `/admin/queue-domains`, is designed to allow for domains to be "queued in" for later batch processing.
+
+If a domain is added to the queue, the following logic takes place:
+
+* if the domain is already managed, but is not `active`, activate it.
+* if the domain is not managed and not in the queue, add it to the queue.
+* in all other cases, ignore the request.  the domain is either actively managed or queued to be so.
+
+
+## Renewal Queue
+
+* `update` will calculate which certificates need to be renewed
+* `process` will do the actual renewal
+
+Certificates end up in the renewal queue through the `update` command or being individually queued.
+
+Certificates can also have a "custom renewal".
+
+
 # FAQ
 
 ## Does this reformat certs?

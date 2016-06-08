@@ -61,7 +61,7 @@
             <ul>
                 <li><a class="label label-info" href="${admin_prefix}/api">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    programmatic api
+                    api
                     </a></li>
             </ul>
 

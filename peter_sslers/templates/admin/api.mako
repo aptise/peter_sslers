@@ -5,7 +5,7 @@
 <%block name="breadcrumb">
     <ol class="breadcrumb">
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">Programmatic API</li>
+        <li class="active">API</li>
     </ol>
 </%block>
 
@@ -86,10 +86,16 @@
          'GET': False,
          'args': None,
          },
+        {'endpoint': '/api/queue-renewals/update.json',
+         'about': """Updates the renewal queue.""",
+         'POST': True,
+         'GET': False,
+         'args': None,
+         },
     ]
 %>
             
-            <h4>Endpoints</h4>
+            <h4>API Endpoints</h4>
             <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
@@ -113,6 +119,166 @@
                             <td>
                                 % if ep['GET']:
                                     <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                % endif
+                            </td>
+                            <td>${ep['args'] or """<em>None</em>"""|n}</td>
+                        </tr>
+                    % endfor
+                </tbody>
+            </table>
+
+
+<%
+    api_docs_other = [
+        {'endpoint': '/certificate/upload.json',
+         'about': """Upload a certificate""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/certificate/{ID}/config.json',
+         'about': """config info for a certficate""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/certificate/{ID}/nginx-cache-expire.json',
+         'about': """send reset to nginx""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/certificate/{ID}/renew-quick.json',
+         'about': """renewal - quick""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/certificate/{ID}/renew-custom.json',
+         'about': """custom renewal""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/certificate/{ID}/mark.json',
+         'about': """mark a certficate""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/ca-certificate/upload.json',
+         'about': """Upload an authority certificate""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/ca-certificate/upload-bundle.json',
+         'about': """Upload an authority certificate bundle""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/domain/{DOMAIN|ID}/config.json',
+         'about': """config info for a domain""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/domain/{ID}/nginx-cache-expire.json',
+         'about': """send reset to nginx""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/domain/{ID}/calendar.json',
+         'about': """renewal calendar""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/domain/{ID}/mark.json',
+         'about': """mark a domain""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/account-key/{ID}/config.json',
+         'about': """config info for an account key""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/account-key/{ID}/mark.json',
+         'about': """mark the key""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/private-key/{ID}/mark.json',
+         'about': """mark the key""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+
+        {'endpoint': '/queue-domain/add.json',
+         'about': """queue domains""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/queue-domain/process.json',
+         'about': """engage queue""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/queue-domain/{ID}/mark.json',
+         'about': """mark the queue item""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/queue-renewal/{ID}/mark.json',
+         'about': """mark the queue item""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+        {'endpoint': '/unique-fqdn-set/{ID}/calendar.json',
+         'about': """renewal calendar""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         },
+    ]
+%>
+            <h4>JSON Capable Endpoints</h4>
+            <table class="table table-striped table-condensed">
+                <thead>
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>About</th>
+                        <th>POST</th>
+                        <th>GET</th>
+                        <th>Args</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    % for ep in api_docs_other:
+                        <tr>
+                            <td><code>${ep['endpoint']}</code></td>
+                            <td>${ep['about']}</td>
+                            <td>
+                                % if ep['POST']:
+                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                % endif
+                            </td>
+                            <td>
+                                % if ep['GET'] is True:
+                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                % elif ep['GET'] is None:
+                                    <span class="label label-warning"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span></span>
                                 % endif
                             </td>
                             <td>${ep['args'] or """<em>None</em>"""|n}</td>

@@ -480,8 +480,8 @@ class FunctionalTests_CACertificate(AppTest):
         res = self.testapp.get('/.well-known/admin/ca-certificate/1/chain.der', status=200)
         res = self.testapp.get('/.well-known/admin/ca-certificate/1/chain.pem', status=200)
         res = self.testapp.get('/.well-known/admin/ca-certificate/1/chain.pem.txt', status=200)
-        res = self.testapp.get('/.well-known/admin/ca-certificate/1/signed_certificates', status=200)
-        res = self.testapp.get('/.well-known/admin/ca-certificate/1/signed_certificates/1', status=200)
+        res = self.testapp.get('/.well-known/admin/ca-certificate/1/certificates-signed', status=200)
+        res = self.testapp.get('/.well-known/admin/ca-certificate/1/certificates-signed/1', status=200)
 
     def test_upload(self):
         """This should enter in item #3, but the CaCertificates.order is 1; the other cert is a self-signed"""

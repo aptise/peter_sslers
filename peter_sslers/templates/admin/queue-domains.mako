@@ -20,6 +20,19 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
+            <%
+                results = request.params.get('results')
+            %>
+            % if results:
+                <h4>Results</h4>
+                <textarea class="form-control">${results}</textarea>
+                <hr/>
+            % endif
+            
+            <p>
+                The domain queue is designed to allow for domains to be "queued in" for later batch processing.
+            </p>
+
             % if SslQueueDomains:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">

@@ -173,6 +173,7 @@ class _SslOperationsUnified(_mixin_mapping):
         811: 'queue_domain__add__success',
         812: 'queue_domain__add__already_queued',
         813: 'queue_domain__add__already_exists',
+        814: 'queue_domain__add__already_exists_activate',
         820: 'queue_domain__process',
         821: 'queue_domain__process__success',
         822: 'queue_domain__process__fail',
@@ -783,10 +784,11 @@ class SslServerCertificate(Base):
     cert_issuer = sa.Column(sa.Text, nullable=True, )
     cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
-    is_deactivated = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_revoked = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_deactivated = sa.Column(sa.Boolean, nullable=True, default=None)  # used to determine is_active toggling
+    is_revoked = sa.Column(sa.Boolean, nullable=True, default=None)  # used to determine is_active toggling
     is_auto_renew = sa.Column(sa.Boolean, nullable=False, default=True)
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False)
+    is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
 
     # this is the LetsEncrypt key
     ssl_ca_certificate_id__upchain = sa.Column(sa.Integer, sa.ForeignKey("ssl_ca_certificate.id"), nullable=False)
@@ -845,6 +847,11 @@ class SslServerCertificate(Base):
                                                    primaryjoin="SslServerCertificate.id==SslOperationsObjectEvent.ssl_server_certificate_id",
                                                    back_populates="server_certificate"
                                                    )
+
+    operations_event__created = sa.orm.relationship("SslOperationsEvent",
+                                                    primaryjoin="SslServerCertificate.ssl_operations_event_id__created==SslOperationsEvent.id",
+                                                    uselist=False,
+                                                    )
 
     @property
     def cert_pem_modulus_search(self):
@@ -921,15 +928,11 @@ class SslServerCertificate(Base):
 
     @property
     def domains_as_string(self):
-        domains = sorted([to_d.domain.domain_name for to_d in self.unique_fqdn_set.to_domains])
-        return ', '.join(domains)
+        return self.unique_fqdn_set.domains_as_string
 
     @property
     def domains_as_list(self):
-        domain_names = [to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains]
-        domain_names = list(set(domain_names))
-        domain_names = sorted(domain_names)
-        return domain_names
+        return self.unique_fqdn_set.domains_as_list
 
 
 class SslUniqueFQDNSet(Base):
@@ -969,6 +972,23 @@ class SslUniqueFQDNSet(Base):
                                                    primaryjoin="SslUniqueFQDNSet.id==SslOperationsObjectEvent.ssl_unique_fqdn_set_id",
                                                    back_populates="unique_fqdn_set"
                                                    )
+
+    operations_event__created = sa.orm.relationship("SslOperationsEvent",
+                                                    primaryjoin="SslUniqueFQDNSet.ssl_operations_event_id__created==SslOperationsEvent.id",
+                                                    uselist=False,
+                                                    )
+
+    @property
+    def domains_as_string(self):
+        domains = sorted([to_d.domain.domain_name for to_d in self.to_domains])
+        return ', '.join(domains)
+
+    @property
+    def domains_as_list(self):
+        domain_names = [to_d.domain.domain_name.lower() for to_d in self.to_domains]
+        domain_names = list(set(domain_names))
+        domain_names = sorted(domain_names)
+        return domain_names
 
 
 class SslUniqueFQDNSet2SslDomain(Base):

@@ -12,6 +12,7 @@ import pdb
 # pypi
 import pyramid_formencode_classic as formhandling
 import sqlalchemy
+import transaction
 
 # localapp
 from ..models import *
@@ -352,3 +353,41 @@ class ViewAdmin(Handler):
                                          },
                     }
         return HTTPFound("%s/operations/ca-certificate-probes?result=success&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:api:queue_renewals:update', renderer=None)
+    @view_config(route_name='admin:api:queue_renewals:update.json', renderer='json')
+    def queue_renewal_update(self):
+        try:
+            queue_results = lib_db.queue_renewals__update(self.request.api_context)
+            if self.request.matched_route.name == 'admin:api:queue_renewals:update.json':
+                return {'result': 'success',
+                        }
+            return HTTPFound("%s/queue-renewals?update=1" % self.request.registry.settings['admin_prefix'])
+        except Exception as e:
+            transaction.abort()
+            if self.request.matched_route.name == 'admin:api:queue_renewals:update.json':
+                return {'result': 'error',
+                        'error': e.message,
+                        }
+            raise
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:api:queue_renewals:process', renderer=None)
+    @view_config(route_name='admin:api:queue_renewals:process.json', renderer='json')
+    def queue_renewal_process(self):
+        try:
+            queue_results = lib_db.queue_renewals__process(self.request.api_context)
+            if self.request.matched_route.name == 'admin:api:queue_renewals:process.json':
+                return {'result': 'success',
+                        }
+            return HTTPFound("%s/queue-renewals?process=1&results=%s" % (self.request.registry.settings['admin_prefix'], queue_results))
+        except Exception as e:
+            transaction.abort()
+            if self.request.matched_route.name == 'admin:api:queue_renewals:process.json':
+                return {'result': 'error',
+                        'error': e.message,
+                        }
+            raise

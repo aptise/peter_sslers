@@ -74,7 +74,7 @@
 
             <ul>
                 <li>
-                    <a  href="${admin_prefix}/operations/ca-certificate-probes/probe"
+                    <a  href="${admin_prefix}/api/ca-certificate-probes/probe"
                         class="label label-primary"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>

@@ -90,13 +90,13 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:ca_certificate:focus:signed_certificates', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
-    @view_config(route_name='admin:ca_certificate:focus:signed_certificates_paginated', renderer='/admin/ca_certificate-focus-signed_certificates.mako')
-    def ca_certificate_focus__signed_certificates(self):
+    @view_config(route_name='admin:ca_certificate:focus:certificates_signed', renderer='/admin/ca_certificate-focus-certificates_signed.mako')
+    @view_config(route_name='admin:ca_certificate:focus:certificates_signed_paginated', renderer='/admin/ca_certificate-focus-certificates_signed.mako')
+    def ca_certificate_focus__certificates_signed(self):
         dbCaCertificate = self._ca_certificate_focus()
         items_count = lib_db.get__SslServerCertificate__by_SslCaCertificateId__count(
             self.request.api_context, dbCaCertificate.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificate/%s/signed_certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id))
+        (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificate/%s/certificates-signed/{0}' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id))
         items_paged = lib_db.get__SslServerCertificate__by_SslCaCertificateId__paginated(
             self.request.api_context, dbCaCertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',

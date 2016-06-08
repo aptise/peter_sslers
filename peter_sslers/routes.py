@@ -74,14 +74,19 @@ def _admin_views(config):
     config.add_route_7('admin:api:update_recents', '/api/update-recents')
     config.add_route_7('admin:api:update_recents.json', '/api/update-recents.json')
 
+    config.add_route_7('admin:api:queue_renewals:update', '/api/queue-renewals/update')
+    config.add_route_7('admin:api:queue_renewals:update.json', '/api/queue-renewals/update.json')
+    config.add_route_7('admin:api:queue_renewals:process', '/api/queue-renewals/process')
+    config.add_route_7('admin:api:queue_renewals:process.json', '/api/queue-renewals/process.json')
+
     # CertificateAuthority Certificates
     config.add_route_7('admin:ca_certificates', '/ca-certificates')
     config.add_route_7('admin:ca_certificates_paginated', '/ca-certificates/{@page}')
     config.add_route_7('admin:ca_certificate:focus', '/ca-certificate/{@id}')
     config.add_route_7('admin:ca_certificate:focus:parse.json', '/ca-certificate/{@id}/parse.json')
     config.add_route_7('admin:ca_certificate:focus:raw', '/ca-certificate/{@id}/chain.{format:(cer|crt|der|pem|pem.txt)}')
-    config.add_route_7('admin:ca_certificate:focus:signed_certificates', '/ca-certificate/{@id}/signed_certificates')
-    config.add_route_7('admin:ca_certificate:focus:signed_certificates_paginated', '/ca-certificate/{@id}/signed_certificates/{@page}')
+    config.add_route_7('admin:ca_certificate:focus:certificates_signed', '/ca-certificate/{@id}/certificates-signed')
+    config.add_route_7('admin:ca_certificate:focus:certificates_signed_paginated', '/ca-certificate/{@id}/certificates-signed/{@page}')
     config.add_route_7('admin:ca_certificate:upload', '/ca-certificate/upload')
     config.add_route_7('admin:ca_certificate:upload.json', '/ca-certificate/upload.json')
     config.add_route_7('admin:ca_certificate:upload_bundle', '/ca-certificate/upload-bundle')
@@ -197,10 +202,6 @@ def _admin_views(config):
     config.add_route_7('admin:queue_renewal:focus', '/queue-renewal/{@id}')
     config.add_route_7('admin:queue_renewal:focus:mark', '/queue-renewal/{@id}/mark')
     config.add_route_7('admin:queue_renewal:focus:mark.json', '/queue-renewal/{@id}/mark.json')
-    config.add_route_7('admin:queue_renewals:update', '/queue-renewals/update')
-    config.add_route_7('admin:queue_renewals:update.json', '/queue-renewals/update.json')
-    config.add_route_7('admin:queue_renewals:process', '/queue-renewals/process')
-    config.add_route_7('admin:queue_renewals:process.json', '/queue-renewals/process.json')
 
     # Unique FQDN Sets are tied to Certs and Ratelimits
     config.add_route_7('admin:unique_fqdn_sets', '/unique-fqdn-sets')

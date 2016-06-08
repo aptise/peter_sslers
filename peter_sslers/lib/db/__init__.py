@@ -830,7 +830,7 @@ def log__SslOperationsEvent(
 
     if event_payload_dict is None:
         event_payload_dict = utils.new_event_payload_dict()
-
+    
     # bookkeeping
     dbOperationsEvent = SslOperationsEvent()
     dbOperationsEvent.ssl_operations_event_type_id = event_type_id
@@ -1226,13 +1226,14 @@ def do__CertificateRequest__AcmeAutomated(
             )
             if dbServerCertificate__renewal_of:
                 dbServerCertificate__renewal_of.is_auto_renew = False
+                dbServerCertificate__renewal_of.is_renewed = True
             if dbQueueRenewal__of:
                 dbQueueRenewal__of.timestamp_processed = ctx.timestamp
                 dbQueueRenewal__of.process_result = True
                 dbQueueRenewal__of.is_active = False
 
         mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
-        transaction.manager.commit()
+        # don't commit here, as that will trigger an error on object refresh
         return dbServerCertificate
 
     except Exception as e:
@@ -1528,9 +1529,14 @@ def operations_update_recents(ctx):
 
 def api_domains__enable(ctx, domain_names):
     """this is just a proxy around queue_domains__add"""
-    results = queue_domains__add(ctx, domain_names,
-                                 alternate_event_type_id=SslOperationsEventType.from_string('api_domains__enable'),
-                                 )
+
+    # bookkeeping
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__SslOperationsEvent(ctx,
+                                                SslOperationsEventType.from_string('api_domains__enable'),
+                                                event_payload_dict,
+                                                )
+    results = queue_domains__add(ctx, domain_names)
     return results
 
 
@@ -1541,8 +1547,12 @@ def api_domains__disable(ctx, domain_names):
     domain_names = utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
     for domain_name in domain_names:
-        _exists = get__SslDomain__by_name(ctx, domain_name, preload=False)
+        _exists = get__SslDomain__by_name(ctx, domain_name, preload=False, active_only=False)
         if _exists:
+            if _dbDomain.is_active:
+                # set this inactive
+                _dbDomain.is_active = False
+
             results[domain_name] = 'deactivated'
         elif not _exists:
             _exists_queue = get__SslQueueDomain__by_name(ctx, domain_name)
@@ -1557,17 +1567,15 @@ def api_domains__disable(ctx, domain_names):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_domains__add(ctx, domain_names, alternate_event_type_id=None):
+def queue_domains__add(ctx, domain_names):
     """
     Adds domains to the queue if needed
     2016.06.04 - dbOperationsEvent compliant
-
-    `alternate_event_type_id` can be specified if this should be logged differently
     """
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                alternate_event_type_id or SslOperationsEventType.from_string('queue_domain__add'),
+                                                SslOperationsEventType.from_string('queue_domain__add'),
                                                 event_payload_dict,
                                                 )
 
@@ -1575,46 +1583,51 @@ def queue_domains__add(ctx, domain_names, alternate_event_type_id=None):
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:
-        _exists = get__SslDomain__by_name(ctx, domain_name, preload=False)
-        if _exists:
-            # log request
-            _log_object_event(ctx,
-                              dbOperationsEvent=dbOperationsEvent,
-                              event_status_id=SslOperationsObjectEventStatus.from_string('queue_domain__add__already_exists'),
-                              dbDomain=_exists,
-                              )
-            # note result
-            results[domain_name] = 'exists'
+        _dbDomain = get__SslDomain__by_name(ctx, domain_name, preload=False, active_only=False)
+        _result = None
+        _logger_args = {'event_status_id': None, }
+        if _dbDomain:
+            if not _dbDomain.is_active:
+                # set this active
+                _dbDomain.is_active = True
 
-        elif not _exists:
-            _existing_queue = get__SslQueueDomain__by_name(ctx, domain_name)
-            if _existing_queue:
-                # log request
-                _log_object_event(ctx,
-                                  dbOperationsEvent=dbOperationsEvent,
-                                  event_status_id=SslOperationsObjectEventStatus.from_string('queue_domain__add__already_queued'),
-                                  dbQueueDomain=_existing_queue,
-                                  )
-                # note result
-                results[domain_name] = 'already_queued'
+                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('queue_domain__add__already_exists_activate')
+                _logger_args['dbDomain'] = _dbDomain
+                _result = 'exists'
 
-            elif not _existing_queue:
-                dbQueueDomain = SslQueueDomain()
-                dbQueueDomain.domain_name = domain_name
-                dbQueueDomain.timestamp_entered = _timestamp
-                dbQueueDomain.ssl_operations_event_id__created = dbOperationsEvent.id
-                ctx.dbSession.add(dbQueueDomain)
+            else:
+                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('queue_domain__add__already_exists')
+                _logger_args['dbDomain'] = _dbDomain
+                _result = 'exists'
+
+        elif not _dbDomain:
+            _dbQueueDomain = get__SslQueueDomain__by_name(ctx, domain_name)
+            if _dbQueueDomain:
+                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('queue_domain__add__already_queued')
+                _logger_args['dbQueueDomain'] = _dbQueueDomain
+                _result = 'already_queued'
+
+            else:
+                _dbQueueDomain = SslQueueDomain()
+                _dbQueueDomain.domain_name = domain_name
+                _dbQueueDomain.timestamp_entered = _timestamp
+                _dbQueueDomain.ssl_operations_event_id__created = dbOperationsEvent.id
+                ctx.dbSession.add(_dbQueueDomain)
                 ctx.dbSession.flush()
 
-                # log request
-                _log_object_event(ctx,
-                                  dbOperationsEvent=dbOperationsEvent,
-                                  event_status_id=SslOperationsObjectEventStatus.from_string('queue_domain__add__success'),
-                                  dbQueueDomain=dbQueueDomain,
-                                  )
+                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('queue_domain__add__success')
+                _logger_args['dbQueueDomain'] = _dbQueueDomain
+                _result = 'queued'
 
-                # note result
-                results[domain_name] = 'queued'
+        # note result
+        results[domain_name] = _result
+
+        # log request
+        _log_object_event(ctx,
+                          dbOperationsEvent=dbOperationsEvent,
+                          **_logger_args
+                          )
+
     return results
 
 
@@ -1771,12 +1784,14 @@ def queue_renewals__update(
 
         _subquery_already_queued = ctx.dbSession.query(SslQueueRenewal.ssl_server_certificate_id)\
             .filter(SslQueueRenewal.timestamp_processed.op('IS')(None),
+                    SslQueueRenewal.process_result.op('IS NOT')(True),
                     )\
             .subquery()
 
         _core_query = ctx.dbSession.query(SslServerCertificate)\
             .filter(SslServerCertificate.is_active.op('IS')(True),
                     SslServerCertificate.is_auto_renew.op('IS')(True),
+                    SslServerCertificate.is_renewed.op('IS NOT')(True),
                     SslServerCertificate.timestamp_expires <= _until,
                     SslServerCertificate.id.notin_(_subquery_already_queued),
                     )
@@ -1800,10 +1815,12 @@ def queue_renewals__update(
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+
 def queue_renewals__process(ctx):
     rval = {'count_total': None,
             'count_success': 0,
             'count_fail': 0,
+            'failures': {},
             }
     event_type = SslOperationsEventType.from_string('queue_renewal__process')
     event_payload_dict = utils.new_event_payload_dict()
@@ -1811,36 +1828,71 @@ def queue_renewals__process(ctx):
                                                 event_type,
                                                 event_payload_dict,
                                                 )
-    items_count = get__SslQueueRenewal__count(xtc, show_all=False)
+    items_count = get__SslQueueRenewal__count(ctx, show_all=False)
     rval['count_total'] = items_count
     if items_count:
         items_paged = get__SslQueueRenewal__paginated(ctx, show_all=False, limit=10, offset=0, eagerload_renewal=True)
+        
+        _need_default_key = False
         for dbQueueRenewal in items_paged:
+            if (not dbQueueRenewal.server_certificate.ssl_letsencrypt_account_key_id) or (not dbQueueRenewal.server_certificate.letsencrypt_account_key.is_active):
+                _need_default_key = True
+                break
+        if _need_default_key:
+            dbAccountKeyDefault = get__SslLetsEncryptAccountKey__default(ctx, active_only=True)
+            if not dbAccountKeyDefault:
+                raise ValueError("Could not load a default AccountKey for renewal")
+        
+        for dbQueueRenewal in items_paged:
+            if dbQueueRenewal not in ctx.dbSession:
+                dbQueueRenewal = ctx.dbSession.merge(dbQueueRenewal)
+            if dbAccountKeyDefault:
+                if dbAccountKeyDefault not in ctx.dbSession:
+                    dbAccountKeyDefault = ctx.dbSession.merge(dbAccountKeyDefault)
+            if ctx.dbOperationsEvent not in ctx.dbSession:
+                ctx.dbOperationsEvent = ctx.dbSession.merge(ctx.dbOperationsEvent)
+            if dbOperationsEvent not in ctx.dbSession:
+                dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
+
+            dbServerCertificate = None
             try:
                 dbServerCertificate = do__CertificateRequest__AcmeAutomated(
                     ctx,
-                    domain_names,
-                    dbAccountKey=dbQueueRenewal.server_certificate.account_key,
+                    dbQueueRenewal.server_certificate.domains_as_list,
+                    dbAccountKey=dbQueueRenewal.server_certificate.letsencrypt_account_key or dbAccountKeyDefault,
                     dbPrivateKey=dbQueueRenewal.server_certificate.private_key,
                     dbServerCertificate__renewal_of=dbQueueRenewal.server_certificate,
                     dbQueueRenewal__of=dbQueueRenewal
                 )
-            except:
-                pass
-            if dbServerCertificate:
-                _log_object_event(ctx,
-                                  dbOperationsEvent=dbOperationsEvent,
-                                  event_status_id=SslOperationsEventType.from_string('queue_renewal__process__success'),
-                                  dbQueueRenewal=dbQueueRenewal,
-                                  )
-                rval['count_success'] += 1
-            else:
+                if dbServerCertificate:
+                    _log_object_event(ctx,
+                                      dbOperationsEvent=dbOperationsEvent,
+                                      event_status_id=SslOperationsEventType.from_string('queue_renewal__process__success'),
+                                      dbQueueRenewal=dbQueueRenewal,
+                                      )
+                    rval['count_success'] += 1
+                    dbQueueRenewal.process_result = True
+                else:
+                    raise ValueError("what happened?")
+            except Exception as e:
+                if dbOperationsEvent not in ctx.dbSession:
+                    dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
+                if dbQueueRenewal not in ctx.dbSession:
+                    dbQueueRenewal = ctx.dbSession.merge(dbQueueRenewal)
+
+                dbQueueRenewal.process_result = False
                 _log_object_event(ctx,
                                   dbOperationsEvent=dbOperationsEvent,
                                   event_status_id=SslOperationsEventType.from_string('queue_renewal__process__fail'),
                                   dbQueueRenewal=dbQueueRenewal,
                                   )
                 rval['count_fail'] += 1
+                if isinstance(e, errors.DomainVerificationError):
+                    rval['failures'][dbQueueRenewal.id] = e.message
+                else:
+                    raise
+        event_payload_dict['rval'] = rval
+        dbOperationsEvent.set_event_payload(event_payload_dict)
     return rval
 
 

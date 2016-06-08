@@ -45,9 +45,11 @@ def get__SslLetsEncryptAccountKey__by_id(ctx, key_id, eagerload_web=False):
     return item
 
 
-def get__SslLetsEncryptAccountKey__default(ctx):
+def get__SslLetsEncryptAccountKey__default(ctx, active_only=None):
     q = ctx.dbSession.query(SslLetsEncryptAccountKey)\
         .filter(SslLetsEncryptAccountKey.is_default.op('IS')(True))
+    if active_only:
+        q = q.filter(SslLetsEncryptAccountKey.is_active.op('IS')(True))
     item = q.first()
     return item
 
@@ -336,7 +338,7 @@ def get__SslDomain__by_id(ctx, domain_id, preload=False, eagerload_web=False):
     return item
 
 
-def get__SslDomain__by_name(ctx, domain_name, preload=False, eagerload_web=False):
+def get__SslDomain__by_name(ctx, domain_name, preload=False, eagerload_web=False, active_only=False):
     q = ctx.dbSession.query(SslDomain)\
         .filter(sa.func.lower(SslDomain.domain_name) == sa.func.lower(domain_name))
     if preload:
@@ -556,9 +558,9 @@ def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, ea
         q = q.options(sqlalchemy.orm.joinedload('certificate').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                       )
     elif eagerload_renewal:
-        q = q.options(sqlalchemy.orm.subqueryload('account_key'),
-                      sqlalchemy.orm.subqueryload('private_key'),
-                      sqlalchemy.orm.subqueryload('server_certificate'),
+        q = q.options(sqlalchemy.orm.joinedload('server_certificate'),
+                      sqlalchemy.orm.subqueryload('server_certificate.letsencrypt_account_key'),
+                      sqlalchemy.orm.subqueryload('server_certificate.private_key'),
                       )
     q = q.order_by(SslQueueRenewal.id.desc())
     q = q.limit(limit)\
@@ -567,12 +569,14 @@ def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, ea
     return items_paged
 
 
-def get__SslQueueRenewal__by_id(ctx, set_id):
-    item = ctx.dbSession.query(SslQueueRenewal)\
+def get__SslQueueRenewal__by_id(ctx, set_id, load_events=None):
+    q = ctx.dbSession.query(SslQueueRenewal)\
         .filter(SslQueueRenewal.id == set_id)\
         .options(sqlalchemy.orm.subqueryload('server_certificate').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
-                 )\
-        .first()
+                 )
+    if load_events:
+        q = q.options(sqlalchemy.orm.subqueryload('operations_object_events'))
+    item = q.first()
     return item
 
 

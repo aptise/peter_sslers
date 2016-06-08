@@ -1,14 +1,16 @@
-<%def name="table_tr_event_created(ssl_operations_event_id__created)">
-    % if ssl_operations_event_id__created:
+<%def name="table_tr_event_created(dbObject)">
+    % if dbObject.ssl_operations_event_id__created:
         <tr>
             <th>Event Created At</th>
             <td>
-                <a  href="${admin_prefix}/operations/log/item/${ssl_operations_event_id__created}"
+                <a  href="${admin_prefix}/operations/log/item/${dbObject.ssl_operations_event_id__created}"
                     class="label label-info"
                 >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${ssl_operations_event_id__created}
+                    ${dbObject.ssl_operations_event_id__created}
                 </a>
+                <span class="label label-default">${dbObject.operations_event__created.event_type_text}</span>
+                <timestamp>${dbObject.operations_event__created.timestamp_event or ''}</timestamp>
             </td>
         </tr>
     % endif
@@ -107,6 +109,7 @@
                 <th>id</th>
                 <th>active?</th>
                 <th>auto-renew?</th>
+                <th>is renewed?</th>
                 <th>timestamp_signed</th>
                 <th>timestamp_expires</th>
                 % if show_expiring_days:
@@ -132,6 +135,11 @@
                 <td>
                     <span class="label label-${'success' if cert.is_auto_renew else 'warning'}">
                         ${'AutoRenew' if cert.is_auto_renew else 'manual'}
+                    </span>
+                </td>
+                <td>
+                    <span class="label label-${'success' if cert.is_renewed else 'default'}">
+                        ${'Renewed' if cert.is_renewed else 'not-renewed-yet'}
                     </span>
                 </td>
                 <td><timestamp>${cert.timestamp_signed}</timestamp></td>
@@ -520,10 +528,12 @@
 <%def name="object_event__object(object_event)">
                         % if object_event.ssl_ca_certificate_id:
                             <a class="label label-info" href="${admin_prefix}/ca-certificate/${object_event.ssl_ca_certificate_id}">
+                                CaCert
                                 ${object_event.ssl_ca_certificate_id}
                             </a>
                         % elif object_event.ssl_certificate_request_id:
                             <a class="label label-info" href="${admin_prefix}/certificate-request/${object_event.ssl_certificate_request_id}">
+                                CSR
                                 ${object_event.ssl_certificate_request_id}
                             </a>
                         % elif object_event.ssl_domain_id:
@@ -533,27 +543,33 @@
                             <code>${object_event.domain.domain_name}</code>
                         % elif object_event.ssl_letsencrypt_account_key_id:
                             <a class="label label-info" href="${admin_prefix}/account-key/${object_event.ssl_letsencrypt_account_key_id}">
+                                AccountKey
                                 ${object_event.ssl_letsencrypt_account_key_id}
                             </a>
                         % elif object_event.ssl_private_key_id:
                             <a class="label label-info" href="${admin_prefix}/private-key/${object_event.ssl_private_key_id}">
+                                PrivateKey
                                 ${object_event.ssl_private_key_id}
                             </a>
                         % elif object_event.ssl_queue_domain_id:
                             <a class="label label-info" href="${admin_prefix}/queue-domain/${object_event.ssl_queue_domain_id}">
+                                qDomain
                                 ${object_event.ssl_queue_domain_id}
                             </a>
                             <code>${object_event.queue_domain.domain_name}</code>
                         % elif object_event.ssl_queue_renewal_id:
                             <a class="label label-info" href="${admin_prefix}/queue-renewal/${object_event.ssl_queue_renewal_id}">
+                                qRenewal
                                 ${object_event.ssl_queue_renewal_id}
                             </a>
                         % elif object_event.ssl_server_certificate_id:
                             <a class="label label-info" href="${admin_prefix}/certificate/${object_event.ssl_server_certificate_id}">
+                                Cert
                                 ${object_event.ssl_server_certificate_id}
                             </a>
                         % elif object_event.ssl_unique_fqdn_set_id:
                             <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${object_event.ssl_unique_fqdn_set_id}">
+                                uFQDN
                                 ${object_event.ssl_unique_fqdn_set_id}
                             </a>
                         % endif

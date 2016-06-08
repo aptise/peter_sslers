@@ -64,6 +64,8 @@
                 >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     ${RenewalQueueItem.ssl_unique_fqdn_set_id}</a>
+                </hr/>
+                <code>${RenewalQueueItem.unique_fqdn_set.domains_as_string}</code>
             </td>
         </tr>
         <tr>
@@ -84,27 +86,12 @@
                 ${RenewalQueueItem.process_result or ''}
             </td>
         </tr>
-        ${admin_partials.table_tr_event_created(RenewalQueueItem.ssl_operations_event_id__created)}
-        <tr>
-            <th>operations event?</th>
-            <td>
-               % if RenewalQueueItem.operations_event__created:
-                    <table class="table table-striped table-condensed">
-                        <tr>
-                            <th>event type</th>
-                            <td>
-                                <span class="label label-info">${RenewalQueueItem.operations_event__created.event_type_text}</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>timestamp_event</th>
-                            <td>
-                                <timestamp>${RenewalQueueItem.operations_event__created.timestamp_event or ''}</timestamp>
-                            </td>
-                        </tr>
-                    </table>
-               % endif
-            </td>
-        </tr>
+        ${admin_partials.table_tr_event_created(RenewalQueueItem)}
     </table>
+    
+    <h4>Process History</h4>
+    % if RenewalQueueItem.operations_object_events:
+        ${admin_partials.table_SslOperationsObjectEvents(RenewalQueueItem.operations_object_events, table_context=None)}
+    % endif
+    
 </%block>

@@ -105,6 +105,14 @@
             </td>
         </tr>
         <tr>
+            <th>is_renewed</th>
+            <td>
+                <span class="label label-${'success' if SslServerCertificate.is_renewed else 'default'}">
+                    ${'Renewed' if SslServerCertificate.is_renewed else 'not-renewed-yet'}
+                </span>
+            </td>
+        </tr>
+        <tr>
             <th>is_single_domain_cert</th>
             <td>
                 % if SslServerCertificate.is_single_domain_cert is True:
@@ -256,7 +264,7 @@
                 </table>
             </td>
         </tr>
-        ${admin_partials.table_tr_event_created(SslServerCertificate.ssl_operations_event_id__created)}
+        ${admin_partials.table_tr_event_created(SslServerCertificate)}
         <tr>
             <th>is renewal?</th>
             <td>
