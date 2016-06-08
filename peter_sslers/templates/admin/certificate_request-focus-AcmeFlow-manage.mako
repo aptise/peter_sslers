@@ -35,6 +35,10 @@
     <% request_inactive = True if not SslCertificateRequest.is_active else False %>
 
     <p>This certificate request is <span class="label label-${'warning' if request_inactive else 'success'}">${"inactive" if request_inactive else "Active"}</span>.</p>
+    
+    <p>
+        note: Visiting a `test` URL will direct you to the actual verification URL with "?test=1" appended.  This string instructs the server to not log the visit.  If the "?test=1" string is missing, the server will log the visit.  This is used to track the ACME server verification visits.
+    </p>
 
     <div class="row">
         <div class="col-sm-6">
