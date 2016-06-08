@@ -21,7 +21,7 @@
 
     % if SslServerCertificates:
         ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_certificates__list(SslServerCertificates, show_domains=True, show_expiring_days=True)}
+        ${admin_partials.table_certificates__list(SslServerCertificates, show_domains=False, show_expiring_days=True)}
     % else:
         No known certificates.
     % endif

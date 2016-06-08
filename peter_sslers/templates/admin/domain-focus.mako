@@ -85,6 +85,7 @@
                         nginx-cache-expire</a>
                     <a  class="btn btn-xs btn-primary"
                         href="${admin_prefix}/domain/${SslDomain.id}/nginx-cache-expire.json"
+                        target="_blank"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                         nginx-cache-expire.json</a>
@@ -135,7 +136,10 @@
         <tr>
             <th>unique FQDN Sets</th>
             <td>
-                ${admin_partials.nav_pager("%s/domain/%s/unique-fqdn-sets" % (admin_prefix, SslDomain.id))}
+                ${admin_partials.table_SslUniqueFQDNSets([i.unique_fqdn_set for i in SslDomain.to_unique_fqdn_sets__5])}
+                % if SslDomain.to_unique_fqdn_sets__5:
+                    ${admin_partials.nav_pager("%s/domain/%s/unique-fqdn-sets" % (admin_prefix, SslDomain.id))}
+                % endif
             </td>
         </tr>
     </table>
@@ -144,6 +148,7 @@
         <div class="col-sm-3">
             <a  class="btn btn-info"
                 href="${admin_prefix}/domain/${SslDomain.id}/calendar"
+                target="_blank"
             >
                 Calendar
             </a>

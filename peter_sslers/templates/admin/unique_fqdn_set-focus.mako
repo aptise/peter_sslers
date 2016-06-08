@@ -64,7 +64,7 @@
                                                 ${'Active' if to_domain.domain.is_active else 'inactive'}
                                             </span>
                                         </td>
-                                        <td>${to_domain.domain.domain_name}</td>
+                                        <td><code>${to_domain.domain.domain_name}</code></td>
                                     </tr>
                                 % endfor
                             </table>
@@ -130,7 +130,7 @@
                     <tr>
                         <th>certificates history</th>
                         <td>
-                            ${admin_partials.table_certificates__list(SslUniqueFQDNSet.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                            ${admin_partials.table_certificates__list(SslUniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
                             % if SslUniqueFQDNSet.server_certificates__5:
                                 ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificates" % (admin_prefix, SslUniqueFQDNSet.id))}
                             % endif

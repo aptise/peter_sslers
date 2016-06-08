@@ -21,7 +21,7 @@
 
     % if SslCertificateRequests:
         ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_certificate_requests__list(SslCertificateRequests, show_domains=True)}
+        ${admin_partials.table_certificate_requests__list(SslCertificateRequests, show_domains=False)}
     % else:
         No known certificates requests.
     % endif

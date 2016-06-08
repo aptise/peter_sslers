@@ -67,6 +67,7 @@
             <td>
                 % if SslCertificateRequest.ssl_server_certificate_id__renewal_of:
                     <span class="label label-success">Yes</span>&nbsp;
+                    renewal of Certificate
                     <a class="label label-info" href="${admin_prefix}/certificate/${SslCertificateRequest.ssl_server_certificate_id__renewal_of}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         ${SslCertificateRequest.ssl_server_certificate_id__renewal_of}</a>

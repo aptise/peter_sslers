@@ -1142,6 +1142,24 @@ SslDomain.server_certificates__5 = sa.orm.relationship(
 )
 
 
+# returns an object with a `unique_fqdn_set` on it
+SslDomain.to_unique_fqdn_sets__5 = sa.orm.relationship(
+    SslUniqueFQDNSet2SslDomain,
+    primaryjoin=(
+        sa.and_(SslDomain.id == SslUniqueFQDNSet2SslDomain.ssl_domain_id,
+                SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id.in_(sa.select([SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id])
+                                                                      .where(SslDomain.id == SslUniqueFQDNSet2SslDomain.ssl_domain_id)
+                                                                      .order_by(SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id.desc())
+                                                                      .limit(5)
+                                                                      .correlate()
+                                                                      )
+                )
+    ),
+    order_by=SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id.desc(),
+    viewonly=True
+)
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

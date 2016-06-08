@@ -329,6 +329,7 @@
                         nginx-cache-expire</a>
                     <a  class="btn btn-xs btn-primary"
                         href="${admin_prefix}/certificate/${SslServerCertificate.id}/nginx-cache-expire.json"
+                        target="_blank"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                         nginx-cache-expire.json</a>
@@ -444,7 +445,7 @@
                                         ${to_d.domain.id}</a>
                                 </td>
                                 <td>
-                                    ${to_d.domain.domain_name}
+                                    <code>${to_d.domain.domain_name}</code>
                                 </td>
                                 <td>
                                     % if SslServerCertificate.id in (to_d.domain.ssl_server_certificate_id__latest_single, to_d.domain.ssl_server_certificate_id__latest_multi):
@@ -457,9 +458,6 @@
                                             % endif
                                         </span>
                                     % endif
-                                </td>
-                                <td>
-                                    ${to_d.domain.domain_name}
                                 </td>
                             </tr>
                         % endfor

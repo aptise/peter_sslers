@@ -54,7 +54,7 @@
                     </td>
                 % endif
                 % if show_domains:
-                     <td>${to_cert.certificate.domains_as_string}</td>
+                     <td><code>${to_cert.certificate.domains_as_string}</code></td>
                 % endif
             </tr>
         % endfor
@@ -152,7 +152,7 @@
                     </td>
                 % endif
                 % if show_domains:
-                    <td>${cert.domains_as_string}</td>
+                    <td><code>${cert.domains_as_string}</code></td>
                 % endif
             </tr>
         % endfor
@@ -216,7 +216,7 @@
                 <td><timestamp>${certificate_request.timestamp_started}</timestamp></td>
                 <td><timestamp>${certificate_request.timestamp_finished or ''}</timestamp></td>
                 % if show_domains:
-                    <td>${certificate_request.domains_as_string}</td>
+                     <td><code>${certificate_request.domains_as_string}</code></td>
                 % endif
             </tr>
         % endfor
@@ -422,6 +422,7 @@
             </tr>
         % endfor
         </tbody>
+    </table>
 </%def>
 
 

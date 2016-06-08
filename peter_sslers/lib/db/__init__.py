@@ -830,7 +830,7 @@ def log__SslOperationsEvent(
 
     if event_payload_dict is None:
         event_payload_dict = utils.new_event_payload_dict()
-    
+
     # bookkeeping
     dbOperationsEvent = SslOperationsEvent()
     dbOperationsEvent.ssl_operations_event_type_id = event_type_id
@@ -1832,7 +1832,7 @@ def queue_renewals__process(ctx):
     rval['count_total'] = items_count
     if items_count:
         items_paged = get__SslQueueRenewal__paginated(ctx, show_all=False, limit=10, offset=0, eagerload_renewal=True)
-        
+
         _need_default_key = False
         for dbQueueRenewal in items_paged:
             if (not dbQueueRenewal.server_certificate.ssl_letsencrypt_account_key_id) or (not dbQueueRenewal.server_certificate.letsencrypt_account_key.is_active):
@@ -1842,7 +1842,7 @@ def queue_renewals__process(ctx):
             dbAccountKeyDefault = get__SslLetsEncryptAccountKey__default(ctx, active_only=True)
             if not dbAccountKeyDefault:
                 raise ValueError("Could not load a default AccountKey for renewal")
-        
+
         for dbQueueRenewal in items_paged:
             if dbQueueRenewal not in ctx.dbSession:
                 dbQueueRenewal = ctx.dbSession.merge(dbQueueRenewal)
