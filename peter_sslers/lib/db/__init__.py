@@ -1559,7 +1559,7 @@ def api_domains__disable(ctx, domain_names):
             if _exists_queue:
                 results[domain_name] = 'de-queued'
             else:
-                results[domain_name] = 'no active or in queue'
+                results[domain_name] = 'not active or in queue'
 
     return results
 
@@ -1639,7 +1639,13 @@ def queue_domains__process(
     dbAccountKey=None,
     dbPrivateKey=None,
 ):
-    raise errors.OperationsContextError("Not Compliant")
+    raise errors.OperationsContextError("Not Finished Yet")
+    """
+    This endpoint should pull `1-100[configurable]` domains from the queue, and create a certificate for them
+    
+    * if there are more than 100, should we process them, or return that info in json?
+    
+    """
 
     try:
         items_paged = get__SslQueueDomain__paginated(

@@ -42,6 +42,13 @@ SqlAlchemy is the backing database library, so virtually any database can be use
 Most of us hate having to spend time on DevOps tasks.  Personally, I would rather spend time working on the Product or consumer sides.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
 
+## Status
+
+This largely works for certificate management, manual/queued renewal and for transitions.
+
+The endpoint related to "requesting" domains and handling dynamic queues of new certificates do not work yet.
+
+
 # An important WARNING:
 
 * This package DOES NOT USE/KNOW/CARE ABOUT SECURITY.
@@ -755,13 +762,19 @@ There are a few environment variables you can set:
 	# - test suite that responds to public requests
 	export SSL_LETSENCRYPT_API_VALIDATES=True
 
-Tests are done on a sqlite database as specified in test.ini
+Tests are done on a sqlite database as specified in test.ini AND WILL REQUIRE CUSTOMIZATION FOR YOUR OPENSSL location
 
 The test.ini should also reflect the openssl for your distribution
 
 `test_data/` contains the keys and certificates used for testing
 
-You can overwrite the testdb; beware that it CAN NOT run as a memory db.  it must be a disk file due to how some tests are written.
+You can overwrite the testdb; beware that it CAN NOT run as a memory db.  it must be a disk file due to how the tests are structured.
+
+If running tests against the LetsEncrypt test API, there are some extra configurations to note:
+
+* `SSL_TEST_DOMAINS` should reflect one or more domains that point to the IP address the server runs on.  this will be used for verification challenges
+* `SSL_TEST_PORT` lets you specify which port the test server should bind to
+* `/tools/nginx_conf/testing.conf` is an nginx configuration file that can be used for testing.  it includes a flag check so you can just touch/remove a file to alter how nginx proxies.
 
 
 Gotchas
@@ -769,6 +782,11 @@ Gotchas
 
 This requires a relatively new version of openssl to handle multiple-domain certificates.
 
+
+ToDo
+----
+
+See `TODO.txt`
 
 
 Getting Started

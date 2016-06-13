@@ -1,6 +1,14 @@
+Not Finished Yet
+===============
+* api/enable
+* api/disable
+* queue_domains__process
+* there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
+
+
 * CSR should have domain[0] as subject if there are multiple domains
 
-Test coverage needed for
+Additional Test coverage needed for
 * /.well-known/admin/certificate/5/renew/custom
 
 * finish rate limit calendars
