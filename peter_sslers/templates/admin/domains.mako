@@ -17,81 +17,82 @@
 
 
 <%block name="content_main">
-    <div class="col-sm-9">
-        % if expiring_days:
-            <p>Domains that will be expiring within `${expiring_days}` days.
-            </p>
-        % endif
-        % if SslDomains:
-            ${admin_partials.nav_pagination(pager)}
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>id</th>
-                        <th>domain name</th>
-                        <th>is active</th>
-                        <th>server_certificate__latest_multi</th>
-                        <th>server_certificate__latest_single</th>
-                    </tr>
-                    <tr>
-                        <th></th>
-                        <th></th>
-                        <th></th>
-                        <th>id, expiring, days</th>
-                        <th>id, expiring, days</th>
-                    </tr>
-                </thead>
-                % for d in SslDomains:
-                    <tr>
-                        <td>
-                            <a  class="label label-info"
-                                href="${admin_prefix}/domain/${d.id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${d.id}</a>
-                        </td>
-                        <td><code>${d.domain_name}</code></td>
-                        <td>
-                            <span class="label label-${'success' if d.is_active else 'warning'}">
-                                ${'Active' if d.is_active else 'inactive'}
-                            </span>
-                        </td>
-                        <td>
-                            % if d.ssl_server_certificate_id__latest_multi:
+    <div class="row">
+        <div class="col-sm-9">
+            % if expiring_days:
+                <p>Domains that will be expiring within `${expiring_days}` days.
+                </p>
+            % endif
+            % if SslDomains:
+                ${admin_partials.nav_pagination(pager)}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>id</th>
+                            <th>domain name</th>
+                            <th>is active</th>
+                            <th>server_certificate__latest_multi</th>
+                            <th>server_certificate__latest_single</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th>id, expiring, days</th>
+                            <th>id, expiring, days</th>
+                        </tr>
+                    </thead>
+                    % for d in SslDomains:
+                        <tr>
+                            <td>
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/certificate/${d.ssl_server_certificate_id__latest_multi}"
-                                    >
-                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ${d.ssl_server_certificate_id__latest_multi}</a>
-                                <timestamp>${d.server_certificate__latest_multi.timestamp_expires}</timestamp>
-                                <span class="label label-${d.server_certificate__latest_multi.expiring_days_label}">${d.server_certificate__latest_multi.expiring_days} days</span>
-                            % endif
-                        </td>
-                        <td>
-                            % if d.ssl_server_certificate_id__latest_single:
-                                <a  class="label label-info"
-                                    href="${admin_prefix}/certificate/${d.ssl_server_certificate_id__latest_single}"
-                                    >
-                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ${d.ssl_server_certificate_id__latest_single}</a>
-                                <timestamp>${d.server_certificate__latest_single.timestamp_expires}</timestamp>
-                                <span class="label label-${d.server_certificate__latest_single.expiring_days_label}">${d.server_certificate__latest_single.expiring_days} days</span>
-                            % endif
-                        </td>
-                    </tr>
-                % endfor
-            </table>
-
-        % else:
-            <em>
-                No Domains
-            </em>
-        % endif
-        </div>
-        <div class="col-sm-3">
-            <ul class="nav nav-pills nav-stacked">
-              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/domains">All Domains</a></li>
-              <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/domains/expiring">Expiring Domains</a></li>
-            </ul>
+                                    href="${admin_prefix}/domain/${d.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    ${d.id}</a>
+                            </td>
+                            <td><code>${d.domain_name}</code></td>
+                            <td>
+                                <span class="label label-${'success' if d.is_active else 'warning'}">
+                                    ${'Active' if d.is_active else 'inactive'}
+                                </span>
+                            </td>
+                            <td>
+                                % if d.ssl_server_certificate_id__latest_multi:
+                                    <a  class="label label-info"
+                                        href="${admin_prefix}/certificate/${d.ssl_server_certificate_id__latest_multi}"
+                                        >
+                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                            ${d.ssl_server_certificate_id__latest_multi}</a>
+                                    <timestamp>${d.server_certificate__latest_multi.timestamp_expires}</timestamp>
+                                    <span class="label label-${d.server_certificate__latest_multi.expiring_days_label}">${d.server_certificate__latest_multi.expiring_days} days</span>
+                                % endif
+                            </td>
+                            <td>
+                                % if d.ssl_server_certificate_id__latest_single:
+                                    <a  class="label label-info"
+                                        href="${admin_prefix}/certificate/${d.ssl_server_certificate_id__latest_single}"
+                                        >
+                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                            ${d.ssl_server_certificate_id__latest_single}</a>
+                                    <timestamp>${d.server_certificate__latest_single.timestamp_expires}</timestamp>
+                                    <span class="label label-${d.server_certificate__latest_single.expiring_days_label}">${d.server_certificate__latest_single.expiring_days} days</span>
+                                % endif
+                            </td>
+                        </tr>
+                    % endfor
+                </table>
+            % else:
+                <em>
+                    No Domains
+                </em>
+            % endif
+            </div>
+            <div class="col-sm-3">
+                <ul class="nav nav-pills nav-stacked">
+                  <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/domains">All Domains</a></li>
+                  <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/domains/expiring">Expiring Domains</a></li>
+                </ul>
+            </div>
         </div>
     </div>
 </%block>

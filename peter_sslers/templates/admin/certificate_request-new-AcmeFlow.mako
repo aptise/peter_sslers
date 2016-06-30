@@ -18,19 +18,20 @@
 
 
 <%block name="content_main">
+    <div class="row">
+        <div class="col-sm-12">
+            <form action="${admin_prefix}/certificate-request/new-acme-flow" method="POST">
+                <% form = request.formhandling.get_form(request) %>
+                ${form.html_error_main('Error_Main')|n}
 
-    <form action="${admin_prefix}/certificate-request/new-acme-flow" method="POST">
-        <% form = request.formhandling.get_form(request) %>
-        ${form.html_error_main('Error_Main')|n}
+                <div class="form-group">
+                    <label for="f1-domain_names">Domain Names</label>
+                    <textarea class="form-control" rows="3" name="domain_names" id="f1-domain_names"></textarea>
+                    <p class="help-block">enter domain_names above, separated by commas. <b>This should be EXACTLY what you typed in the letsencrypt client.</p>
+                </div>
 
-        <div class="form-group">
-            <label for="f1-domain_names">Domain Names</label>
-            <textarea class="form-control" rows="3" name="domain_names" id="f1-domain_names"></textarea>
-            <p class="help-block">enter domain_names above, separated by commas. <b>This should be EXACTLY what you typed in the letsencrypt client.</p>
+                <button type="submit" class="btn btn-default">Submit</button>
+            </form>
         </div>
-
-        <button type="submit" class="btn btn-default">Submit</button>
-
-    </form>
-
+    </div>
 </%block>

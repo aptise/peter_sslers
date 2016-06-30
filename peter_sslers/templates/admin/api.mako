@@ -127,7 +127,6 @@
                 </tbody>
             </table>
 
-
 <%
     api_docs_other = [
         {'endpoint': '/certificate/upload.json',

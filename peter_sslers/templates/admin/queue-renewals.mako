@@ -27,7 +27,6 @@
                 <hr/>
             % endif
 
-
             % if SslQueueRenewals:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">

@@ -30,8 +30,6 @@
                 Some webservers require the ServerCertificate and CACertificate be joined in PEM format as a "fullchain" certificate.
             </p>
 
-
-
         </div>
         <div class="col-sm-6">
 

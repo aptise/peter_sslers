@@ -466,7 +466,6 @@
 </%def>
 
 
-
 <%def name="table_SslOperationsObjectEvents(SslOperationsObjectEvents, table_context=None)">
     <%
         show_event = True
@@ -808,7 +807,6 @@
         <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
         CA Certificate Probes</a><br/>
     </${wrapper}>
-
 
     <${wrapper}>
         <a  href="${admin_prefix}/operations/object-log"

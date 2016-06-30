@@ -39,7 +39,11 @@ SSL Certificate Administration
     </%block>
 
     <%block name="page_header">
-        <h2>Page Header</h2>
+        <div class="row">
+            <div class="col-sm-12">
+                <h2>Page Header</h2>
+            </div>
+        </div>
     </%block>
 
     <%block name="content_main">

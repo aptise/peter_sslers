@@ -18,7 +18,6 @@
 
 
 <%block name="content_main">
-
     <div class="row">
         <div class="col-sm-6">
 
@@ -49,7 +48,6 @@
             <p>This form can import your old bundled certificates.</p>
             <p>New certificates are automatically recorded when discovered.</p>
             <p>You can also "probe" the certificate authority to sync discovered certificates with human-readable information.</p>
-
 
             <h3>This form accepts JSON</h3>
 

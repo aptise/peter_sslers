@@ -11,35 +11,40 @@
     </ol>
 </%block>
 
+
 <%block name="page_header">
     <h2>Certificate Request - ACME Flow Manage</h2>
 </%block>
 
+
 <%block name="content_main">
+    <div class="row">
+        <div class="col-sm-12">
 
-    <p>Workspace for
-        <a  class="label label-default"
-            href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}"
-        >Certificate ${SslCertificateRequest.id} | ${SslCertificateRequest.timestamp_started}</a>
-        <span class="label label-info">${SslCertificateRequest.certificate_request_type}</span>
-    </p>
+            <p>Workspace for
+                <a  class="label label-default"
+                    href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}"
+                >Certificate ${SslCertificateRequest.id} | ${SslCertificateRequest.timestamp_started}</a>
+                <span class="label label-info">${SslCertificateRequest.certificate_request_type}</span>
+            </p>
 
-    <p>The `process` tool lets you enter the challenge info for a certification request.</p>
+            <p>The `process` tool lets you enter the challenge info for a certification request.</p>
 
-    <p>The <code>key</code> is the name of the file letsencrypt expects at a url.
-        The <code>value</code> are the files contents.
-    </p>
+            <p>The <code>key</code> is the name of the file letsencrypt expects at a url.
+                The <code>value</code> are the files contents.
+            </p>
 
-    <p>If letsencrypt says the url should be <code>example.com/acme-challenge/foo-bar-biz</code> , then the key is <code>foo-bar-biz</code></p>
+            <p>If letsencrypt says the url should be <code>example.com/acme-challenge/foo-bar-biz</code> , then the key is <code>foo-bar-biz</code></p>
 
-    <% request_inactive = True if not SslCertificateRequest.is_active else False %>
+            <% request_inactive = True if not SslCertificateRequest.is_active else False %>
 
-    <p>This certificate request is <span class="label label-${'warning' if request_inactive else 'success'}">${"inactive" if request_inactive else "Active"}</span>.</p>
+            <p>This certificate request is <span class="label label-${'warning' if request_inactive else 'success'}">${"inactive" if request_inactive else "Active"}</span>.</p>
     
-    <p>
-        note: Visiting a `test` URL will direct you to the actual verification URL with "?test=1" appended.  This string instructs the server to not log the visit.  If the "?test=1" string is missing, the server will log the visit.  This is used to track the ACME server verification visits.
-    </p>
-
+            <p>
+                note: Visiting a `test` URL will direct you to the actual verification URL with "?test=1" appended.  This string instructs the server to not log the visit.  If the "?test=1" string is missing, the server will log the visit.  This is used to track the ACME server verification visits.
+            </p>
+        </div>
+    </div>
     <div class="row">
         <div class="col-sm-6">
             <h5>Domains in Certificate Request</h5>
@@ -109,11 +114,8 @@
                         </form>
                     % endif
 
-
                 </table>
             % endif
         </div>
     </div>
-
-
 </%block>

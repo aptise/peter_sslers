@@ -12,19 +12,21 @@
 
 <%block name="page_header">
     <h2>Certificate Requests</h2>
-
     ${admin_partials.standard_error_display(has_message=True)}
 </%block>
 
 
 <%block name="content_main">
-
-    % if SslCertificateRequests:
-        ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_certificate_requests__list(SslCertificateRequests, show_domains=True, show_certificate=True)}
-    % else:
-        <em>
-            No Certificate Requests
-        </em>
-    % endif
+    <div class="row">
+        <div class="col-sm-12">
+            % if SslCertificateRequests:
+                ${admin_partials.nav_pagination(pager)}
+                ${admin_partials.table_certificate_requests__list(SslCertificateRequests, show_domains=True, show_certificate=True)}
+            % else:
+                <em>
+                    No Certificate Requests
+                </em>
+            % endif
+        </div>
+    </div>
 </%block>

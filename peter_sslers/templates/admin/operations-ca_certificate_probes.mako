@@ -17,7 +17,6 @@
 
 
 <%block name="content_main">
-
     <div class="row">
         <div class="col-sm-9">
 
@@ -95,9 +94,4 @@
 
         </div>
     </div>
-
-
-
 </%block>
-
-

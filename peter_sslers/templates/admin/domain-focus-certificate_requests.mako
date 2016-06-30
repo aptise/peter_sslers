@@ -18,12 +18,14 @@
 
 
 <%block name="content_main">
-
-    % if SslCertificateRequests:
-        ${admin_partials.nav_pagination(pager)}
-        ${admin_partials.table_certificate_requests__list(SslCertificateRequests, show_domains=True)}
-    % else:
-        No known certificate requests
-    % endif
-
+    <div class="row">
+        <div class="col-sm-9">
+            % if SslCertificateRequests:
+                ${admin_partials.nav_pagination(pager)}
+                ${admin_partials.table_certificate_requests__list(SslCertificateRequests, show_domains=True)}
+            % else:
+                No known certificate requests
+            % endif
+        </div>
+    </div>
 </%block>

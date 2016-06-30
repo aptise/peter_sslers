@@ -48,7 +48,6 @@
                 <code>curl http://127.0.0.1:6543${admin_prefix}/ca-certificate/upload.json</code>
             </p>
 
-
             <h3>Do you have a "bundle"?</h3>
             <p>
                 We define a bundle as one or more of the following certificates:

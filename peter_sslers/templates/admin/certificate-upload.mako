@@ -76,7 +76,6 @@
                 </tr>
             </table>
 
-
             <h2>What do all these mean?</h2>
 
             <p>

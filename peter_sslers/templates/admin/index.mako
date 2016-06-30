@@ -32,7 +32,6 @@
                     </a> (${request.text_library.info_PrivateKeys[0]})</li>
             </ul>
 
-
             <h4>Recordkeeping</h4>
             <ul>
                 <li><a class="label label-info" href="${admin_prefix}/unique-fqdn-sets">
@@ -131,9 +130,6 @@
                 Upload CA Certificate</a><br/>
                 <em>${request.text_library.info_UploadCACertificate[0]}</em>
             </p>
-
-
-
         </div>
     </div>
 </%block>
