@@ -74,6 +74,51 @@ def year_week__sqlite(element, compiler, **kw):
     )
 
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+class min_date(expression.FunctionElement):
+    type = sqlalchemy.types.DateTime()
+    name = 'min_date'
+
+
+@compiles(min_date)
+def min_date__default(element, compiler, **kw):
+    # return compiler.visit_function(element)
+    """
+    # just return the first date
+    """
+    args = list(element.clauses)
+    return compiler.process(args[0])
+
+
+@compiles(min_date, 'postgresql')
+def min_date__postgresql(element, compiler, **kw):
+    """
+    # select least(col_a, col_b);
+    """
+    args = list(element.clauses)
+    return "LEAST(%s, %s)" % (
+        compiler.process(args[0]),
+        compiler.process(args[1]),
+    )
+
+
+@compiles(min_date, 'sqlite')
+def min_date__sqlite(element, compiler, **kw):
+    """
+    # select min(col_a, col_b);
+    """
+    args = list(element.clauses)
+    return "min(%s, %s)" % (
+        compiler.process(args[0]),
+        compiler.process(args[1]),
+    )
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 class utcnow(expression.FunctionElement):
     type = sqlalchemy.types.DateTime()
 

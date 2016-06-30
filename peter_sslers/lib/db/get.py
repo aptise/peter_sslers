@@ -255,9 +255,9 @@ def _SslDomain_inject_exipring_days(ctx, q, expiring_days, order=False):
                                )
                 )
     if order:
-        q = q.order_by(sqlalchemy.func.min(SslServerCertificateMulti.timestamp_expires,
-                                           SslServerCertificateSingle.timestamp_expires,
-                                           ).asc(),
+        q = q.order_by(min_date(SslServerCertificateMulti.timestamp_expires,
+                                SslServerCertificateSingle.timestamp_expires,
+                                ).asc(),
                        )
     return q
 
