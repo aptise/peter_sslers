@@ -221,6 +221,24 @@ def validate_cert__der_filepath(der_filepath):
     return True
 
 
+def _cleanup_md5(data):
+    """
+    some versions of openssl handle the md5 as:
+        '1231231231'
+    others handle as
+        "(stdin)=123123'
+    """
+    data = data.strip()
+    if len(data) == 32 and (data[:9] != "(stdin)= "):
+        return data
+    if data[:9] != "(stdin)= " or not data:
+        raise errors.OpenSslError("error reading md5 (i)")
+    data = data[9:]
+    if len(data) != 32:
+        raise errors.OpenSslError("error reading md5 (ii)")
+    return data
+
+
 def modulus_md5_key__pem_filepath(pem_filepath):
     # openssl rsa -noout -modulus -in {KEY} | openssl md5
     proc_modulus = subprocess.Popen([openssl_path, "rsa", "-noout", "-modulus", "-in", pem_filepath],
@@ -228,11 +246,7 @@ def modulus_md5_key__pem_filepath(pem_filepath):
     proc_md5 = subprocess.Popen([openssl_path, "md5"],
                                 stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     data, err = proc_md5.communicate()
-    data = data.strip()
-    if data[:9] != "(stdin)= " or not data:
-        raise errors.OpenSslError("error reading")
-    data = data[9:]
-    return data
+    return _cleanup_md5(data)
 
 
 def modulus_md5_csr__pem_filepath(pem_filepath):
@@ -242,11 +256,7 @@ def modulus_md5_csr__pem_filepath(pem_filepath):
     proc_md5 = subprocess.Popen([openssl_path, "md5"],
                                 stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     data, err = proc_md5.communicate()
-    data = data.strip()
-    if data[:9] != "(stdin)= " or not data:
-        raise errors.OpenSslError("error reading")
-    data = data[9:]
-    return data
+    return _cleanup_md5(data)
 
 
 def modulus_md5_cert__pem_filepath(pem_filepath):
@@ -256,11 +266,7 @@ def modulus_md5_cert__pem_filepath(pem_filepath):
     proc_md5 = subprocess.Popen([openssl_path, "md5"],
                                 stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     data, err = proc_md5.communicate()
-    data = data.strip()
-    if data[:9] != "(stdin)= " or not data:
-        raise errors.OpenSslError("error reading")
-    data = data[9:]
-    return data
+    return _cleanup_md5(data)
 
 
 def cert_single_op__pem_filepath(pem_filepath, single_op):

@@ -17,19 +17,27 @@
                 <li><a class="label label-info" href="${admin_prefix}/domains">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domains
-                    </a> (${request.text_library.info_Domains[0]})</li>
+                    </a>
+                    &nbsp;<em>${request.text_library.info_Domains[0]}</em>
+                    </li>
                 <li><a class="label label-info" href="${admin_prefix}/certificates">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificates
-                    </a> (${request.text_library.info_Certificates[0]})</li>
+                    </a>
+                    &nbsp;<em>${request.text_library.info_Certificates[0]}</em>
+                    </li>
                 <li><a class="label label-info" href="${admin_prefix}/certificate-requests">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-requests
-                    </a> (${request.text_library.info_CertificateRequests[0]})</li>
+                    </a> 
+                    &nbsp;<em>${request.text_library.info_CertificateRequests[0]}</em>
+                    </li>
                 <li><a class="label label-info" href="${admin_prefix}/private-keys">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys
-                    </a> (${request.text_library.info_PrivateKeys[0]})</li>
+                    </a> 
+                    &nbsp;<em>${request.text_library.info_PrivateKeys[0]}</em>
+                    </li>
             </ul>
 
             <h4>Recordkeeping</h4>
@@ -37,15 +45,21 @@
                 <li><a class="label label-info" href="${admin_prefix}/unique-fqdn-sets">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     unique-fqdn-sets
-                    </a> (${request.text_library.info_UniqueFQDNs[0]})</li>
+                    </a> 
+                    &nbsp;<em>${request.text_library.info_UniqueFQDNs[0]}</em>
+                    </li>
                 <li><a class="label label-info" href="${admin_prefix}/account-keys">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     account-keys
-                    </a> (${request.text_library.info_AccountKeys[0]})</li>
+                    </a> 
+                    &nbsp;<em>${request.text_library.info_AccountKeys[0]}</em>
+                    </li>
                 <li><a class="label label-info" href="${admin_prefix}/ca-certificates">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     ca-certificates
-                    </a> (${request.text_library.info_CACertificates[0]})</li>
+                    </a> 
+                    &nbsp;<em>${request.text_library.info_CACertificates[0]}</em>
+                    </li>
                 <li><a class="label label-info" href="${admin_prefix}/queue-renewals">
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     queue-renewals

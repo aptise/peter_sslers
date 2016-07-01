@@ -1079,3 +1079,10 @@ class FunctionalTests_API(AppTest):
         res = self.testapp.get('/.well-known/admin/api/ca-certificate-probes/probe.json', status=200)
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
+
+    @unittest.skip("tests not written yet")
+    def tests__certificate_if_needed(self):
+        """
+        api_domains__certificate_if_needed
+        """
+        pass

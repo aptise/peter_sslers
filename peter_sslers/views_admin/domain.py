@@ -209,34 +209,37 @@ class ViewAdmin(Handler):
             event_payload_dict['action'] = action
             event_status = False
 
-            if action == 'active':
-                if dbDomain.is_active:
-                    raise formhandling.FormInvalid('Already active')
-                dbDomain.is_active = True
-                event_status = 'domain__mark__active'
-
-            elif action == 'inactive':
-                if not dbDomain.is_active:
-                    raise formhandling.FormInvalid('Already inactive')
-                dbDomain.is_active = False
-                event_status = 'domain__mark__inactive'
-
-            else:
-                raise formhandling.FormInvalid('invalid `action`')
-
-            self.request.api_context.dbSession.flush()
-
             # bookkeeping
             dbOperationsEvent = lib_db.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
                 event_payload_dict,
             )
-            lib_db._log_object_event(self.request.api_context,
+
+            if action == 'active':
+                if dbDomain.is_active:
+                    raise formhandling.FormInvalid('Already active')
+                lib_db.enable_Domain(self.request.api_context,
+                                     dbDomain,
                                      dbOperationsEvent=dbOperationsEvent,
-                                     event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
-                                     dbDomain=dbDomain,
+                                     event_status='domain__mark__active',
+                                     action='activated'
                                      )
+
+            elif action == 'inactive':
+                if not dbDomain.is_active:
+                    raise formhandling.FormInvalid('Already inactive')
+                lib_db.disable_Domain(self.request.api_context,
+                                     dbDomain,
+                                     dbOperationsEvent=dbOperationsEvent,
+                                     event_status='domain__mark__inactive',
+                                     action='deactivated'
+                                     )
+
+            else:
+                raise formhandling.FormInvalid('invalid `action`')
+
+            self.request.api_context.dbSession.flush()
 
             url_success = '%s/domain/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],

@@ -60,6 +60,7 @@ def _admin_views(config):
     config.add_route_7('admin:api', '/api')
     config.add_route_7('admin:api:domain:enable', '/api/domain/enable')
     config.add_route_7('admin:api:domain:disable', '/api/domain/disable')
+    config.add_route_7('admin:api:domain:certificate-if-needed', '/api/domain/certificate-if-needed')
     # -
     config.add_route_7('admin:api:deactivate_expired', '/api/deactivate-expired')
     config.add_route_7('admin:api:deactivate_expired.json', '/api/deactivate-expired.json')

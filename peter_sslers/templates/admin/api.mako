@@ -56,6 +56,18 @@
                         </li>
                     </ul>""",
          },
+        {'endpoint': '/api/domain/certificate-if-needed',
+         'about': """Initiates a CSR if needed""",
+         'POST': True,
+         'GET': False,
+         'args': """<ul>
+                        <li>
+                            <code>domain_names</code>
+                            <em>A comma (,) separated list of domain names
+                            </em>
+                        </li>
+                    </ul>""",
+         },
         {'endpoint': '/api/ca-certificate-probes/probe.json',
          'about': """Probes the LetsEncrypt website for certificates""",
          'POST': True,

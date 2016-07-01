@@ -18,12 +18,14 @@ import transaction
 from ..models import *
 from ..lib.forms import (Form_API_Domain_enable,
                          Form_API_Domain_disable,
+                         Form_API_Domain_certificate_if_needed,
                          )
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
 from ..lib import utils as lib_utils
+from ..lib import errors
 
 
 # ==============================================================================
@@ -163,6 +165,60 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name='admin:api:domain:certificate-if-needed', renderer='json')
+    def api_domain_certificate_if_needed(self):
+        if self.request.method == 'POST':
+            return self._api_domain_certificate_if_needed__submit()
+        return self._api_domain_certificate_if_needed__print()
+
+    def _api_domain_certificate_if_needed__print(self):
+        return {'instructions': """POST `domain_names""",
+                'form_fields': {'domain_names': 'required',
+                                'account_key_file': 'optional',
+                                },
+                }
+
+    def _api_domain_certificate_if_needed__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(self.request,
+                                                             schema=Form_API_Domain_certificate_if_needed,
+                                                             validate_get=False
+                                                             )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
+            account_key_pem = None
+            if formStash.results['account_key_file'] is not None:
+                account_key_pem = formStash.results['account_key_file'].file.read()
+            if not domain_names:
+                formStash.set_error(field="domain_names",
+                                    message="Found no domain names",
+                                    raise_FormInvalid=True,
+                                    message_prepend=True
+                                    )
+            api_results = lib_db.api_domains__certificate_if_needed(self.request.api_context,
+                                                                    domain_names,
+                                                                    account_key_pem=account_key_pem
+                                                                    )
+            return {'result': 'success',
+                    'domains': api_results,
+                    }
+
+        except (formhandling.FormInvalid, errors.DisplayableError), e:
+            message = "There was an error with your form."
+            if isinstance(e, errors.DisplayableError):
+                message += " " + e.message
+            formStash.set_error(field="Error_Main",
+                                message=message,
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            return {'result': 'error',
+                    'form_errors': formStash.errors,
+                    }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @view_config(route_name='admin:api:redis:prime', renderer=None)
     @view_config(route_name='admin:api:redis:prime.json', renderer='json')
     def admin_redis_prime(self):

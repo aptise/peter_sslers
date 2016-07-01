@@ -704,6 +704,25 @@ def get__SslServerCertificate__by_SslDomainId__paginated(ctx, domain_id, limit=N
     return items_paged
 
 
+def get__SslServerCertificate__by_SslDomainId__latest(ctx, domain_id):
+    first = ctx.dbSession.query(SslServerCertificate)\
+        .join(SslUniqueFQDNSet,
+              SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet.id
+              )\
+        .join(SslUniqueFQDNSet2SslDomain,
+              SslUniqueFQDNSet.id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+              )\
+        .filter(SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id,
+                SslServerCertificate.is_active.op('IS')(True),
+                )\
+        .order_by(SslServerCertificate.id.desc())\
+        .first()
+    return first
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__SslServerCertificate__by_SslPrivateKeyId__count(ctx, key_id):
     counted = ctx.dbSession.query(SslServerCertificate)\
         .filter(SslServerCertificate.ssl_private_key_id__signed_by == key_id)\

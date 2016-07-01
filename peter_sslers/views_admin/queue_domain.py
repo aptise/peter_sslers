@@ -184,29 +184,27 @@ class ViewAdmin(Handler):
             event_payload_dict['ssl_queue_domain.id'] = dbQueueDomain.id
             event_payload_dict['action'] = formStash.results['action']
 
-            event_status = False
-            if action == 'cancelled':
-                if not dbQueueDomain.is_active:
-                    raise formhandling.FormInvalid('Already cancelled')
-                dbQueueDomain.is_active = False
-                dbQueueDomain.timestamp_processed = self.request.api_context.timestamp
-                event_status = 'queue_domain__mark__cancelled'
-            else:
-                raise formhandling.FormInvalid('invalid `action`')
-
-            self.request.api_context.dbSession.flush()
-
             # bookkeeping
             dbOperationsEvent = lib_db.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
                 event_payload_dict,
             )
-            lib_db._log_object_event(self.request.api_context,
-                                     dbOperationsEvent=dbOperationsEvent,
-                                     event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
-                                     dbQueueDomain=dbQueueDomain,
-                                     )
+
+            event_status = False
+            if action == 'cancelled':
+                if not dbQueueDomain.is_active:
+                    raise formhandling.FormInvalid('Already cancelled')
+                lib_db.dequeue_QueuedDomain(self.request.api_context,
+                                            dbQueueDomain,
+                                            dbOperationsEvent=dbOperationsEvent,
+                                            event_status='queue_domain__mark__cancelled',
+                                            action='de-queued'
+                                            )
+            else:
+                raise formhandling.FormInvalid('invalid `action`')
+
+            self.request.api_context.dbSession.flush()
 
             url_success = '%s/queue-domain/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],

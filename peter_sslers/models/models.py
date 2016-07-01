@@ -224,6 +224,7 @@ class _SslOperationsUnified(_mixin_mapping):
         822: 'queue_domain__process__fail',
         830: 'queue_domain__mark',
         831: 'queue_domain__mark__cancelled',
+        832: 'queue_domain__mark__already_processed',
 
         910: 'queue_renewal__insert',
         920: 'queue_renewal__update',
@@ -240,6 +241,13 @@ class _SslOperationsUnified(_mixin_mapping):
 
         2001: 'api_domains__enable',
         2002: 'api_domains__disable',
+        2010: 'api_domains__certificate_if_needed',
+        2011: 'api_domains__certificate_if_needed__domain_exists',
+        2012: 'api_domains__certificate_if_needed__domain_activate',
+        2013: 'api_domains__certificate_if_needed__domain_new',
+        2015: 'api_domains__certificate_if_needed__certificate_exists',
+        2016: 'api_domains__certificate_if_needed__certificate_new_success',
+        2017: 'api_domains__certificate_if_needed__certificate_new_fail',
     }
 
 

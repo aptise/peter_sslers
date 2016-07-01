@@ -184,3 +184,8 @@ class Form_API_Domain_enable(_Form_Schema_Base):
 
 class Form_API_Domain_disable(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
+
+
+class Form_API_Domain_certificate_if_needed(_Form_Schema_Base):
+    domain_names = UnicodeString(not_empty=True)
+    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
