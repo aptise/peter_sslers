@@ -188,15 +188,21 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
-            account_key_pem = None
-            if formStash.results['account_key_file'] is not None:
-                account_key_pem = formStash.results['account_key_file'].file.read()
             if not domain_names:
                 formStash.set_error(field="domain_names",
                                     message="Found no domain names",
                                     raise_FormInvalid=True,
                                     message_prepend=True
                                     )
+            if len(domain_names) != 1:
+                formStash.set_error(field="domain_names",
+                                    message="This endpoint currently supports only 1 domain name",
+                                    raise_FormInvalid=True,
+                                    message_prepend=True
+                                    )
+            account_key_pem = None
+            if formStash.results['account_key_file'] is not None:
+                account_key_pem = formStash.results['account_key_file'].file.read()
             api_results = lib_db.api_domains__certificate_if_needed(self.request.api_context,
                                                                     domain_names,
                                                                     account_key_pem=account_key_pem
