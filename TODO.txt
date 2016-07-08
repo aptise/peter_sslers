@@ -1,10 +1,7 @@
 Not Finished Yet
 ===============
-* api/enable
-* api/disable
 * queue_domains__process
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
-
 
 * CSR should have domain[0] as subject if there are multiple domains
 
@@ -13,11 +10,6 @@ Additional Test coverage needed for
 
 * finish rate limit calendars
 * search expiring soon
-* api hooks : document
- * /queue-domains
- * /queue-renewals
- * /api/domain/enable
- * /api/domain/disable
 
 * upload CERT/Chains for 'flow' CSR
 * associate all objects to one another when imported; only some objects are currently associated
