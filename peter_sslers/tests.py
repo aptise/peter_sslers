@@ -174,7 +174,7 @@ class AppTestCore(unittest.TestCase):
 
     def setUp(self):
         settings = get_appsettings('test.ini', name='main')
-        # sqlalchemy.url = sqlite:///%(here)s/ssl_minnow_test.sqlite
+        # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
         if False:
             settings['sqlalchemy.url'] = "sqlite://"
         app = main(global_config = None, **settings)

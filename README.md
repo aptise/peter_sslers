@@ -124,13 +124,13 @@ Here we go...
 	git clone https://github.com/aptise/peter_sslers.git
 	cd peter_sslers
 	python setup.py develop
-	initialize_peter_sslers_db development.ini	
-	prequest development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
-	pserve --reload development.ini
+	initialize_peter_sslers_db example_development.ini	
+	prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
+	pserve --reload example_development.ini
 	
 Then you can visit `http://127.0.0.1:6543`
 
-Editing the `development.ini` file will let you specify how the package runs.
+Editing the `example_development.ini` file will let you specify how the package runs.
 
 `Pyramid` applications are based on `.ini` configuration files.  You can use multiple files to deploy the server differently on the same machine, or on different environments.
 
@@ -141,7 +141,7 @@ It is recommended to open up a new terminal and do the following commands
 	cd certificate_admin
 	source peter_sslers-venv/bin/activate
 	cd peter_sslers
-	prequest development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
+	prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
 	cd tools
 	invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
 
@@ -163,7 +163,7 @@ The webserver exposes the following routes/directories:
 THE ADMIN TOOL SHOULD NEVER BE PUBLICLY ACCESSIBLE.
 YOU SHOULD ONLY RUN IT ON A PRIVATE NETWORK
 
-By default, the production.ini file won't even run the admin tools.  that is how serious we are about telling you to be careful!
+By default, the `example_production.ini` file won't even run the admin tools.  that is how serious we are about telling you to be careful!
 
 
 # why/how?
@@ -449,8 +449,8 @@ The logic in pseudocode:
 
 you can use the prequest syntax to spin up a URL and get or post data
 
-`$VENV/bin/prequest development.ini /.well-known/admin/api/ca-certificate-probes/probe.json`
-`$VENV/bin/prequest development.ini /.well-known/admin/api/redis/prime.json`
+`$VENV/bin/prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json`
+`$VENV/bin/prequest example_development.ini /.well-known/admin/api/redis/prime.json`
 
 
 ## Routes Designed for JSON Automation
@@ -685,7 +685,7 @@ For testing certificates, these 2 commands can be useful:
 
 reprime Redis cache
 
-	$ prequest development.ini /.well-known/admin/api/redis/prime.json
+	$ prequest example_development.ini /.well-known/admin/api/redis/prime.json
 
 clear out nginx cache
 
@@ -762,9 +762,9 @@ There are a few environment variables you can set:
 	# - test suite that responds to public requests
 	export SSL_LETSENCRYPT_API_VALIDATES=True
 
-Tests are done on a sqlite database as specified in test.ini AND WILL REQUIRE CUSTOMIZATION FOR YOUR OPENSSL location
+Tests are done on a sqlite database as specified in `test.ini` AND WILL REQUIRE CUSTOMIZATION FOR YOUR OPENSSL location
 
-The test.ini should also reflect the openssl for your distribution
+The `test.ini` should also reflect the openssl for your distribution
 
 `test_data/` contains the keys and certificates used for testing
 
@@ -796,9 +796,9 @@ Getting Started
 
 - $VENV/bin/python setup.py develop
 
-- $VENV/bin/initialize_peter_sslers_db development.ini
+- $VENV/bin/initialize_peter_sslers_db example_development.ini
 
-- $VENV/bin/pserve development.ini
+- $VENV/bin/pserve example_development.ini
 
 
 Import Letsencrypt Data?
