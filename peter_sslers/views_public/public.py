@@ -40,7 +40,7 @@ class ViewPublic(Handler):
         if active_request:
             log_verification = True if 'test' not in self.request.params else False
             if log_verification:
-                active_request.timestamp_verified = datetime.datetime.now()
+                active_request.timestamp_verified = datetime.datetime.utcnow()
                 active_request.ip_verified = self.request.environ['REMOTE_ADDR']
                 self.request.api_context.dbSession.flush()
                 # quick cleanup
@@ -53,7 +53,7 @@ class ViewPublic(Handler):
                         has_unverified = True
                         break
                 if not has_unverified and not dbCertificateRequest.timestamp_finished:
-                    dbCertificateRequest.timestamp_finished = datetime.datetime.now()
+                    dbCertificateRequest.timestamp_finished = datetime.datetime.utcnow()
                     self.request.api_context.dbSession.flush()
             return active_request.challenge_text
         return 'ERROR'

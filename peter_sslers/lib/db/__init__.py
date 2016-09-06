@@ -1908,7 +1908,7 @@ def queue_domains__process(
             raise errors.DisplayableError("No items in queue")
 
         # cache the timestamp
-        timestamp_transaction = datetime.datetime.now()
+        timestamp_transaction = datetime.datetime.utcnow()
 
         # generate domains
         domainObjects = []

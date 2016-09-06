@@ -1,3 +1,7 @@
+0.1.3
+---
+-  replaced `datetime.datetime.now()` with `datetime.datetime.utcnow()`
+
 0.1.2
 ---
 -  Added `example_` prefix to .ini files
