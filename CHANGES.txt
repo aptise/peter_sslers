@@ -1,3 +1,9 @@
+0.1.4
+2016.11.29
+---
+-  removed the lua support into a separate project: http://github.com/aptise/peter_sslers-lua-resty , which can be installed via openresty's opm package manager.
+
+
 0.1.3
 ---
 -  replaced `datetime.datetime.now()` with `datetime.datetime.utcnow()`
