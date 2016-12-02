@@ -17,13 +17,15 @@ Peter's core tool is a lightweight database-backed `Pyramid` application that ca
 * import existing ssl certificates
 * ease provisioning certificates onto various servers
 * browse certificate data and easily see what needs to be renewed
-* communicate with a properly configured openresty enabled `nginx` web server (see next)
+* communicate with a properly configured openresty enabled `nginx` web server (see next section)
 
-Peter ships with a `lua` module for the `openresty` framework on the `nginx` server which will:
+Peter ships alongside a `lua` `opm` module for the `openresty` framework on the `nginx` server which will:
 
 * dynamically request certificates from a primed redis cache
 * store data in shared `nginx` worker memory and
 * expose routes to flush the worker shared memory or expire select keys. 
+
+The module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your openresty/nginx server via the `opm` package installer
 
 The `Pyramid` based application can function as a daemon or a commandline script.
 
@@ -71,9 +73,16 @@ By default, the "SSL Minnow" is a sqlite database `ssl_minnow.sqlite`.  It is th
 The "/tools" directory contains scripts useful for certificate operations.  Currently this includes:
 
 * an `invoke` script for some miscellaneous tasks
-* a `lua` library for integrating with nginx/openresty
-* sample `nginx` configuration files for admin, public and testing routes
 * a sample `fake_server.py` that will spin up a server with routes that you can test against.  this will allow you to setup your integration without running peter_sslers
+
+## The openresty package
+
+Available via the opm package manager:
+
+	opm get peter_sslers-lua-resty
+
+The source and docs are available on github https://github.com/aptise/peter_sslers-lua-resty
+
 
 # General Management Concepts
 
@@ -291,7 +300,10 @@ there is an `invoke` script in the `tools` directory that can be used to automat
 
 right now the invoke script offers:
 
-`import_letsencrypt_certs_archive` given a directory of your local LetsEncrypt archive (which has versioned certs), it will import them all into a server of your choice.
+* `import_letsencrypt_certs_archive` given a directory of your local LetsEncrypt archive (which has versioned certs), it will import them all into a server of your choice.
+* `import_letsencrypt_certs_live` given a directory of your local LetsEncrypt install, it will import the active onesinto a server of your choice.
+* `import_letsencrypt_cert_version` given a specific directory of your LetsEncrypt archive, it will import specific items
+* `import_letsencrypt_cert_plain` given a directory of an unversioned cert (like a particular directory within the "live" certs), will import it.
 
 
 ## commandline interface
@@ -302,10 +314,13 @@ You can interact with this project via a commandline interface in several ways.
 * run explicit routes via `prequest`. this allows you to do admin tasks without spinnig up a server
 
 
-## openresty/nginx lua script
+## openresty/nginx lua integration
 
-	opm get lua-resty-peter_sslers
+The openresty/nginx implementation was migrated to it's own project, handled by `opm` distribution
 
+https://github.com/aptise/peter_sslers-lua-resty
+
+	opm get peter_sslers-lua-resty
 
 
 ## prequest
@@ -363,6 +378,12 @@ if data is not POSTed to the form, instructions are returned in the json.
 There is even an `invoke` script to automate these imports:
 
 	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:6543'
+	
+    invoke import_letsencrypt_cert_version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://0.0.0.0:6543"
+
+	invoke import_letsencrypt_certs_live --live-path='/etc/letsencrypt/live' --server-url-root='http://127.0.0.1:6543'
+
+	invoke import_letsencrypt_cert_plain --cert-path='/etc/letsencrypt/live/example.com' --server-url-root='http://127.0.0.1:6543'
 
 
 ### `/.well-known/admin/ca-certificate/upload.json`

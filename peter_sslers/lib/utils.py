@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 import re
+import warnings
 
 # pypi
 try:
@@ -235,9 +236,13 @@ def prime_redis_domain(request, dbDomain):
 
     try:
         if prime_style == '1':
-            dbServerCertificate = redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts)
-            redis_prime_logic__style_1_PrivateKey(redis_client, dbServerCertificate.private_key, redis_timeouts)
-            redis_prime_logic__style_1_CACertificate(redis_client, dbServerCertificate.certificate_upchain, redis_timeouts)
+            try:
+                dbServerCertificate = redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts)
+                redis_prime_logic__style_1_PrivateKey(redis_client, dbServerCertificate.private_key, redis_timeouts)
+                redis_prime_logic__style_1_CACertificate(redis_client, dbServerCertificate.certificate_upchain, redis_timeouts)
+            except Exception as e:
+                warnings.warn(e.message)
+                return False
         elif prime_style == '2':
             is_primed = redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts)
 
@@ -262,7 +267,7 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     elif dbDomain.ssl_server_certificate_id__latest_single:
         dbServerCertificate = dbDomain.server_certificate__latest_single
     else:
-        raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)
+        raise ValueError("this domain does not have a certificate: `%s`" % dbDomain.domain_name)
 
     # first do the domain
     key_redis = "d:%s" % dbDomain.domain_name
