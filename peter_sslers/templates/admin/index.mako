@@ -76,6 +76,10 @@
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     api
                     </a></li>
+                <li><a class="label label-info" href="${admin_prefix}/api/nginx/status.json">
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    api : nginx/status.json
+                    </a></li>
             </ul>
 
             ${admin_partials.operations_options(enable_redis=enable_redis,

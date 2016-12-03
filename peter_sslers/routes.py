@@ -71,6 +71,7 @@ def _admin_views(config):
     config.add_route_7('admin:api:nginx:cache_flush.json', '/api/nginx/cache-flush.json')
     config.add_route_7('admin:api:redis:prime', '/api/redis/prime')
     config.add_route_7('admin:api:redis:prime.json', '/api/redis/prime.json')
+    config.add_route_7('admin:api:nginx:status.json', '/api/nginx/status.json')
     # -
     config.add_route_7('admin:api:update_recents', '/api/update-recents')
     config.add_route_7('admin:api:update_recents.json', '/api/update-recents.json')

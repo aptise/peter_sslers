@@ -401,6 +401,17 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name='admin:api:nginx:status.json', renderer='json')
+    def admin_nginx_status(self):
+        self._ensure_nginx()
+        servers_status = lib_utils.nginx_status(self.request, self.request.api_context)
+        return {'result': 'success',
+                'servers_status': servers_status,
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name='admin:api:ca_certificate_probes:probe', renderer=None)
     @view_config(route_name='admin:api:ca_certificate_probes:probe.json', renderer='json')
     def ca_certificate_probes__probe(self):

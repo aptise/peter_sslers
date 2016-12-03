@@ -1,3 +1,11 @@
+0.1.5
+2016.12.02
+---
+- renamed `nginx.reset_servers` to  `nginx.servers_pool`
+- added `nginx.status_path`
+- added support for checking nginx status
+
+
 0.1.4
 2016.11.29
 ---

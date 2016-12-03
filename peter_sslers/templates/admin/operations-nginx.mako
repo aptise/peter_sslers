@@ -65,11 +65,11 @@
             </div>
             <table class="table table-striped table-condensed">
                 <tr>
-                    <th>nginx.reset_servers</th>
+                    <th>nginx.servers_pool</th>
                     <td>
-                        % if request.registry.settings['nginx.reset_servers']:
+                        % if request.registry.settings['nginx.servers_pool']:
                             <ul>
-                                % for i in request.registry.settings['nginx.reset_servers']:
+                                % for i in request.registry.settings['nginx.servers_pool']:
                                     <li>${i}</li>
                                 % endfor
                             </ul>
@@ -78,6 +78,10 @@
                 <tr>
                     <th>nginx.reset_path</th>
                     <td><code>${request.registry.settings['nginx.reset_path']}</code></td>
+                </tr>
+                <tr>
+                    <th>nginx.status_path</th>
+                    <td><code>${request.registry.settings['nginx.status_path']}</code></td>
                 </tr>
                 <tr>
                     <th>redis enabled?</th>

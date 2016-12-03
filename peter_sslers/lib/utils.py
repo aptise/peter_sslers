@@ -144,7 +144,7 @@ def redis_default_connection(request,
 
 def nginx_flush_cache(request, ctx):
     _reset_path = request.registry.settings['nginx.reset_path']
-    for _server in request.registry.settings['nginx.reset_servers']:
+    for _server in request.registry.settings['nginx.servers_pool']:
         reset_url = _server + _reset_path + '/all'
         response = requests.get(reset_url, verify=False)
         if response.status_code == 200:
@@ -159,6 +159,21 @@ def nginx_flush_cache(request, ctx):
     return True, dbEvent
 
 
+def nginx_status(request, ctx):
+    """returns the status document for each server"""
+    status_path = request.registry.settings['nginx.status_path']
+    rval = {}
+    for _server in request.registry.settings['nginx.servers_pool']:
+        status_url = _server + status_path
+        response = requests.get(status_url, verify=False)
+        if response.status_code == 200:
+            response_json = json.loads(response.content)
+            rval[_server] = response_json
+        else:
+            rval[_server] = 'error'
+    return rval
+
+
 def nginx_expire_cache(request, ctx, dbDomains=None):
     if not dbDomains:
         raise ValueError("no domains submitted")
@@ -166,7 +181,7 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
                   'failure': set([]),
                   }
     _reset_path = request.registry.settings['nginx.reset_path']
-    for _server in request.registry.settings['nginx.reset_servers']:
+    for _server in request.registry.settings['nginx.servers_pool']:
         for domain in dbDomains:
             reset_url = _server + _reset_path + '/domain/%s' % domain.domain_name
             response = requests.get(reset_url, verify=False)

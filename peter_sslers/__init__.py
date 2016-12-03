@@ -82,11 +82,13 @@ def main(global_config, **settings):
         requests.packages.urllib3.disable_warnings()
 
     _enable_nginx = False
-    if 'nginx.reset_servers' in config.registry.settings:
-        config.registry.settings['nginx.reset_servers'] = [i.strip() for i in config.registry.settings['nginx.reset_servers'].split(',')]
-        _enable_nginx = True
     if 'nginx.reset_path' not in config.registry.settings:
         config.registry.settings['nginx.reset_path'] = '/ngxadmin/shared_cache/expire'
+    if 'nginx.status_path' not in config.registry.settings:
+        config.registry.settings['nginx.status_path'] = '/ngxadmin/shared_cache/status'
+    if 'nginx.servers_pool' in config.registry.settings:
+        config.registry.settings['nginx.servers_pool'] = [i.strip() for i in config.registry.settings['nginx.servers_pool'].split(',')]
+        _enable_nginx = True
     config.registry.settings['enable_nginx'] = _enable_nginx
 
     # let's extend the request too!

@@ -281,8 +281,9 @@ Your `environment.ini` exposes a few configuration options:
 * `redis.timeout.pkey` - INT seconds (default None)
 * `redis.timeout.domain` - INT seconds (default None)
 
-* `nginx.reset_servers` - comma(,) separated list of servers with an expiry route; see Redis Prime section below
+* `nginx.servers_pool` - comma(,) separated list of servers with an expiry route; see Redis Prime section below
 * `nginx.reset_path` - defaults to `/ngxadmin/shared_cache/expire`
+* `nginx.status_path` - defaults to `/ngxadmin/shared_cache/status`
 * `requests.disable_ssl_warning` - will disable the ssl warnings from the requests library
 
 If you have a custom openssl install, you probably want these settings
