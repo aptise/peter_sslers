@@ -4,6 +4,7 @@
 - renamed `nginx.reset_servers` to  `nginx.servers_pool`
 - added `nginx.status_path`
 - added support for checking nginx status
+- added password support to nginx status
 
 
 0.1.4

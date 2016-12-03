@@ -83,9 +83,11 @@ def main(global_config, **settings):
 
     _enable_nginx = False
     if 'nginx.reset_path' not in config.registry.settings:
-        config.registry.settings['nginx.reset_path'] = '/ngxadmin/shared_cache/expire'
+        config.registry.settings['nginx.reset_path'] = '/.peter_sslers/nginx/shared_cache/expire'
     if 'nginx.status_path' not in config.registry.settings:
-        config.registry.settings['nginx.status_path'] = '/ngxadmin/shared_cache/status'
+        config.registry.settings['nginx.status_path'] = '/.peter_sslers/nginx/shared_cache/status'
+    if 'nginx.userpass' not in config.registry.settings:
+        config.registry.settings['nginx.userpass'] = None
     if 'nginx.servers_pool' in config.registry.settings:
         config.registry.settings['nginx.servers_pool'] = [i.strip() for i in config.registry.settings['nginx.servers_pool'].split(',')]
         _enable_nginx = True

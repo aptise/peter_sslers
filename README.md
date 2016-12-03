@@ -282,8 +282,8 @@ Your `environment.ini` exposes a few configuration options:
 * `redis.timeout.domain` - INT seconds (default None)
 
 * `nginx.servers_pool` - comma(,) separated list of servers with an expiry route; see Redis Prime section below
-* `nginx.reset_path` - defaults to `/ngxadmin/shared_cache/expire`
-* `nginx.status_path` - defaults to `/ngxadmin/shared_cache/status`
+* `nginx.reset_path` - defaults to `/.peter_sslers/nginx/shared_cache/expire`
+* `nginx.status_path` - defaults to `/.peter_sslers/nginx/shared_cache/status`
 * `requests.disable_ssl_warning` - will disable the ssl warnings from the requests library
 
 If you have a custom openssl install, you probably want these settings
@@ -574,7 +574,7 @@ reprime Redis cache
 
 clear out nginx cache
 
-	curl -k -f https://127.0.0.1/ngxadmin/shared_cache/expire/all	
+    curl -k -f https://127.0.0.1/.peter_sslers/nginx/shared_cache/expire/all
 
 the `-k` will keep the cert from verifying, the `-f` wont blow up from errors
 

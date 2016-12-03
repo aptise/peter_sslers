@@ -140,13 +140,22 @@ def redis_default_connection(request,
     setattr(request.registry, '_redis_connection', redis)
 
     return redis
+    
+
+def new_nginx_session(request):
+    sess = requests.Session()
+    _auth = request.registry.settings.get('nginx.userpass')
+    if _auth:
+        sess.auth = tuple(_auth.split(':'))
+    return sess
 
 
 def nginx_flush_cache(request, ctx):
     _reset_path = request.registry.settings['nginx.reset_path']
+    sess = new_nginx_session(request)
     for _server in request.registry.settings['nginx.servers_pool']:
         reset_url = _server + _reset_path + '/all'
-        response = requests.get(reset_url, verify=False)
+        response = sess.get(reset_url, verify=False)
         if response.status_code == 200:
             response_json = json.loads(response.content)
             if response_json['result'] != 'success':
@@ -162,15 +171,21 @@ def nginx_flush_cache(request, ctx):
 def nginx_status(request, ctx):
     """returns the status document for each server"""
     status_path = request.registry.settings['nginx.status_path']
+    sess = new_nginx_session(request)
     rval = {}
     for _server in request.registry.settings['nginx.servers_pool']:
-        status_url = _server + status_path
-        response = requests.get(status_url, verify=False)
-        if response.status_code == 200:
-            response_json = json.loads(response.content)
-            rval[_server] = response_json
-        else:
-            rval[_server] = 'error'
+        _status = None
+        try:
+            status_url = _server + status_path
+            response = sess.get(status_url, verify=False)
+            if response.status_code == 200:
+                response_json = json.loads(response.content)
+                status = response_json
+            else:
+                status = 'error [%s]' % response.status_code
+        except Exception as e:
+            status = 'Exception: %s' % e.message
+        rval[_server] = status
     return rval
 
 
@@ -181,10 +196,11 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
                   'failure': set([]),
                   }
     _reset_path = request.registry.settings['nginx.reset_path']
+    sess = new_nginx_session(request)
     for _server in request.registry.settings['nginx.servers_pool']:
         for domain in dbDomains:
             reset_url = _server + _reset_path + '/domain/%s' % domain.domain_name
-            response = requests.get(reset_url, verify=False)
+            response = sess.get(reset_url, verify=False)
             if response.status_code == 200:
                 response_json = json.loads(response.content)
                 if response_json['result'] == 'success':
