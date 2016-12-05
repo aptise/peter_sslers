@@ -13,6 +13,33 @@
 
 <%block name="page_header">
     <h2>Domain Focus</h2>
+    <%
+        operation = request.params.get('operation', None)
+    %>
+    % if operation in ('nginx_cache_expire', ):
+        <%
+            result = request.params.get('result', None)
+            if result != 'success':
+                result = 'result'
+            event_id = request.params.get('event.id', None)
+        %>
+        <div class="alert alert-${result}">
+            <p>
+                Result of <b>${operation}</b>: ${result}
+            </p>
+            % if event_id:
+                <p>
+                    Event ID:
+                    <a href="${admin_prefix}/operations/log/item/${event_id}"
+                       class="label label-info"
+                    >
+                        <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
+                        ${event_id}
+                    </a>
+                </p>
+            % endif
+        </div>
+    % endif
 </%block>
 
 

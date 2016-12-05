@@ -5,6 +5,14 @@ Peter SSLers *or how i stopped worrying and learned to love the ssl certificate*
 
 `peter_sslers` is a package designed to help *experienced* admins and devops people manage SSL Certificates and deploy them on larger systems.
 
+What's in the box ?
+
+* SSL Certificate Manager
+* ACME client for LetsEncrypt Certificate Authority
+* openresty LUA module for Dynamic SSL Certificate Handling on the Nginx webserver
+
+AMAZING, RIGHT?
+
 This package is *not* aimed at casual or single-site users.  This package is *not* aimed at novice users.
 
 Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.

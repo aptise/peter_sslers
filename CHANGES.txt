@@ -1,6 +1,8 @@
 0.1.5
 2016.12.02
 ---
+- updated readme
+- better display info on cert/domain pages if you expire nginx
 - renamed `nginx.reset_servers` to  `nginx.servers_pool`
 - added `nginx.status_path`
 - added support for checking nginx status
