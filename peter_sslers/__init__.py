@@ -91,6 +91,7 @@ def main(global_config, **settings):
     if 'nginx.servers_pool' in config.registry.settings:
         config.registry.settings['nginx.servers_pool'] = [i.strip() for i in config.registry.settings['nginx.servers_pool'].split(',')]
         _enable_nginx = True
+        set_bool_setting(config.registry.settings, 'nginx.servers_pool_allow_invalid')
     config.registry.settings['enable_nginx'] = _enable_nginx
 
     # let's extend the request too!

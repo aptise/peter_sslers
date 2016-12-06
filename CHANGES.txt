@@ -7,6 +7,7 @@
 - added `nginx.status_path`
 - added support for checking nginx status
 - added password support to nginx status
+- allow no-verify for ssl domains on internal servers via `nginx.servers_pool_allow_invalid`
 
 
 0.1.4

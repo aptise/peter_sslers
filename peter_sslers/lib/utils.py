@@ -147,6 +147,9 @@ def new_nginx_session(request):
     _auth = request.registry.settings.get('nginx.userpass')
     if _auth:
         sess.auth = tuple(_auth.split(':'))
+    servers_allow_invalid = request.registry.settings.get('nginx.servers_pool_allow_invalid')
+    if servers_allow_invalid:
+        sess.verify = False
     return sess
 
 
