@@ -10,6 +10,8 @@
 - allow no-verify for ssl domains on internal servers via `nginx.servers_pool_allow_invalid`
 - changed ports on example ini files
 - added .json exceptions for better handling by lua
+- more docs on config file options
+- cleaning up the admin url config file options, using reified request properties to shortcut logic
 
 
 0.1.4

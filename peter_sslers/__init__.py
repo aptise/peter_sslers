@@ -37,6 +37,18 @@ def db_cleanup__tween_factory(handler, registry):
     return db_cleanup__tween
 
 
+def api_host(request):
+    _api_host = request.registry.settings.get('api_host')
+    if _api_host:
+        return _api_host
+    _scheme = request.environ.get('scheme', 'http')
+    return "%s://%s" % (_scheme, request.environ['HTTP_HOST'])
+
+
+def admin_url(request):
+    return request.api_host + request.registry.settings['admin_prefix']
+
+
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
@@ -99,6 +111,10 @@ def main(global_config, **settings):
     config.add_request_method(lambda request: request.registry.settings.get('admin_server', None) or request.environ['HTTP_HOST'], 'admin_server', reify=True)
     config.add_request_method(lambda request: datetime.datetime.utcnow(), 'a_timestamp', reify=True)
     config.add_request_method(lambda request: lib.utils.ApiContext(timestamp=request.a_timestamp, dbSession=request.dbsession), 'api_context', reify=True)
+    config.add_request_method(api_host, 'api_host', reify=True)
+    config.add_request_method(admin_url, 'admin_url', reify=True)
+
+
 
     # don't scan 'everything', only what is enabled
     # config.scan()

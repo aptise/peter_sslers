@@ -27,7 +27,7 @@
             
             <h4>Refresher</h4>
             <p>If not using scripts to access the API, you can use `curl`</p>
-            <code>curl --form "domain_names=example.com" ${admin_server}${admin_prefix}/api/domain/enable</code>
+            <code>curl --form "domain_names=example.com" ${request.admin_url}/api/domain/enable</code>
             <hr/>
             
 <%

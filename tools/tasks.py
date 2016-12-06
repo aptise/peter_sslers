@@ -22,8 +22,9 @@ _le_live_filenames = {'certificate': 'cert.pem',
 
 def upload_fileset(server_url_root, fset):
     """actually uploads a fileset"""
-    server_url_root = server_url_root + ('' if server_url_root[-1] == '/' else '/')
-    url = '%s.well-known/admin/certificate/upload.json' % server_url_root
+    if server_url_root[-1] == '/':
+        server_url_root = server_url_root[:-1]
+    url = '%s/certificate/upload.json' % server_url_root
 
     proc = subprocess.Popen(['curl',
                              "--form", "private_key_file=@%s" % fset['private_key'],
@@ -54,15 +55,13 @@ def import_letsencrypt_certs_archive(archive_path, server_url_root):
     HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC
 
     usage:
-        invoke import_letsencrypt_certs_archive --archive-path="/path/to/archive" --server-url-root="http://0.0.0.0:6543"
+        invoke import_letsencrypt_certs_archive --archive-path="/path/to/archive" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
     """
     if not archive_path:
         raise ValueError("missing `archive-path`")
 
     if server_url_root[:4] != 'http':
         raise ValueError("`server_url_root` does not look like a url")
-    if '.well-known' in server_url_root:
-        raise ValueError("do not include `.well-known`")
 
     if not os.path.isdir(archive_path):
         raise ValueError("`%s` is not a directory" % archive_path)
@@ -118,7 +117,7 @@ def import_letsencrypt_cert_version(domain_certs_path, certificate_version, serv
     you can import a specific version, for example "3", with this command
 
     usage:
-        invoke import_letsencrypt_cert_version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://0.0.0.0:6543"
+        invoke import_letsencrypt_cert_version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://0.0.0.0:7201/.well-known/admin"
     """
     if not domain_certs_path:
         raise ValueError("missing `domain-certs-path`")
@@ -129,8 +128,6 @@ def import_letsencrypt_cert_version(domain_certs_path, certificate_version, serv
 
     if server_url_root[:4] != 'http':
         raise ValueError("`server_url_root` does not look like a url")
-    if '.well-known' in server_url_root:
-        raise ValueError("do not include `.well-known`")
 
     if not os.path.isdir(domain_certs_path):
         raise ValueError("`%s` is not a directory" % domain_certs_path)
@@ -163,15 +160,13 @@ def import_letsencrypt_cert_plain(cert_path, server_url_root):
         /domain-cert/private_key.pem
     
     usage:
-        invoke import_letsencrypt_cert_plain --cert-path="/path/to/ssl/live/example.com" --server-url-root="http://0.0.0.0:6543"
+        invoke import_letsencrypt_cert_plain --cert-path="/path/to/ssl/live/example.com" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
     """
     if not cert_path:
         raise ValueError("missing `cert-path`")
 
     if server_url_root[:4] != 'http':
         raise ValueError("`server_url_root` does not look like a url")
-    if '.well-known' in server_url_root:
-        raise ValueError("do not include `.well-known`")
 
     if not os.path.isdir(cert_path):
         raise ValueError("`%s` is not a directory" % cert_path)
@@ -198,15 +193,13 @@ def import_letsencrypt_certs_live(live_path, server_url_root):
     """imports the letsencrypt live archive  in /etc/letsencrypt/live
 
     usage:
-        invoke import_letsencrypt_certs_live --live-path="/etc/letsencrypt/live" --server-url-root="http://0.0.0.0:6543"
+        invoke import_letsencrypt_certs_live --live-path="/etc/letsencrypt/live" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
     """
     if not live_path:
         raise ValueError("missing `live-path`")
 
     if server_url_root[:4] != 'http':
         raise ValueError("`server_url_root` does not look like a url")
-    if '.well-known' in server_url_root:
-        raise ValueError("do not include `.well-known`")
 
     if not os.path.isdir(live_path):
         raise ValueError("`%s` is not a directory" % live_path)

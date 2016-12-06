@@ -46,7 +46,7 @@ export SSL_RUN_REDIS_TESTS=True
 export SSL_RUN_LETSENCRYPT_API_TESTS=True
 export SSL_LETSENCRYPT_API_VALIDATES=True
 export SSL_TEST_DOMAINS=foo.cliqued.in  # can be a comma-separated string
-export SSL_TEST_PORT=6543
+export SSL_TEST_PORT=7201
 
 if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app so letsencrypt can access it
 
@@ -63,7 +63,7 @@ RUN_LETSENCRYPT_API_TESTS = os.environ.get('SSL_RUN_LETSENCRYPT_API_TESTS', Fals
 LETSENCRYPT_API_VALIDATES = os.environ.get('SSL_LETSENCRYPT_API_VALIDATES', False)
 
 SSL_TEST_DOMAINS = os.environ.get('SSL_TEST_DOMAINS', 'example.com')
-SSL_TEST_PORT = int(os.environ.get('SSL_TEST_PORT', 6543))
+SSL_TEST_PORT = int(os.environ.get('SSL_TEST_PORT', 7201))
 
 DISABLE_UNWRITTEN_TESTS = True
 

@@ -145,7 +145,7 @@ Here we go...
 	prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
 	pserve --reload example_development.ini
 	
-Then you can visit `http://127.0.0.1:6543`
+Then you can visit `http://127.0.0.1:7201`
 
 Editing the `example_development.ini` file will let you specify how the package runs.
 
@@ -160,7 +160,7 @@ It is recommended to open up a new terminal and do the following commands
 	cd peter_sslers
 	prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
 	cd tools
-	invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
+	invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 The `prequest` command above will import the current LetsEncrypt certificates to get you started.
 The `invoke` command will import existing LetsEncrypt issued certificates
@@ -290,9 +290,14 @@ Your `environment.ini` exposes a few configuration options:
 * `redis.timeout.domain` - INT seconds (default None)
 
 * `nginx.servers_pool` - comma(,) separated list of servers with an expiry route; see Redis Prime section below
+* `nginx.userpass` - http authhentication (username:password) which will be provided to each server in `nginx.servers_pool`
 * `nginx.reset_path` - defaults to `/.peter_sslers/nginx/shared_cache/expire`
 * `nginx.status_path` - defaults to `/.peter_sslers/nginx/shared_cache/status`
 * `requests.disable_ssl_warning` - will disable the ssl warnings from the requests library
+
+* `admin_server` (optional) defaults to `HTTP_HOST`
+* `admin_prefix` (optional) prefix for the admin tool.  defaults to `/.well-known/admin`
+* `admin_url` (optional) used for display in instructions. if omitted, scheme+server+prefix will be used
 
 If you have a custom openssl install, you probably want these settings
 
@@ -372,9 +377,9 @@ these are usually documented on the html version
 
 This can be used used to directly import certs issued by LetsEncrypt
 
-	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload.json
+	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:7201/.well-known/admin/certificate/upload.json
 
-	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:6543/.well-known/admin/certificate/upload.json
+	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:7201/.well-known/admin/certificate/upload.json
 	
 Note that the url is not `/upload` like the html form but `/upload.json`
 
@@ -386,13 +391,13 @@ if data is not POSTed to the form, instructions are returned in the json.
 
 There is even an `invoke` script to automate these imports:
 
-	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:6543'
+	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 	
-    invoke import_letsencrypt_cert_version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://0.0.0.0:6543"
+    invoke import_letsencrypt_cert_version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://0.0.0.0:7201/.well-known/admin"
 
-	invoke import_letsencrypt_certs_live --live-path='/etc/letsencrypt/live' --server-url-root='http://127.0.0.1:6543'
+	invoke import_letsencrypt_certs_live --live-path='/etc/letsencrypt/live' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
-	invoke import_letsencrypt_cert_plain --cert-path='/etc/letsencrypt/live/example.com' --server-url-root='http://127.0.0.1:6543'
+	invoke import_letsencrypt_cert_plain --cert-path='/etc/letsencrypt/live/example.com' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
 ### `/.well-known/admin/ca-certificate/upload.json`
@@ -703,7 +708,7 @@ after running the server, in another window...
 
 - cd tools
 
-- $VENV/bin/invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:6543'
+- $VENV/bin/invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
 There is also a button under "operations" to probe LetsEncrypt's public website and update your certs with data.

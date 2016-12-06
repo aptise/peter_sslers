@@ -117,7 +117,7 @@ class ViewAdmin(Handler):
 
     def _ca_certificate_upload__print(self):
         if self.request.matched_route.name == 'admin:ca_certificate:upload.json':
-            return {'instructions': """curl --form 'chain_file=@chain1.pem' --form http://127.0.0.1:6543%s/ca-certificate/upload.json""" % self.request.registry.settings['admin_prefix'],
+            return {'instructions': """curl --form 'chain_file=@chain1.pem' --form %s/ca-certificate/upload.json""" % self.request.admin_url,
                     'form_fields': {'chain_file': 'required',
                                     },
                     }
@@ -184,7 +184,7 @@ class ViewAdmin(Handler):
                 _instructions.append("""--form 'le_%s_auth_file=@letsencryptauthority%s'""" % (xi, xi))
                 _form_fields['le_%s_auth_file' % xi] = 'optional'
             # and the post
-            _instructions.append("""http://127.0.0.1:6543%s/ca-certificate/upload-bundle.json""" % self.request.registry.settings['admin_prefix'])
+            _instructions.append("""%s/ca-certificate/upload-bundle.json""" % self.request.admin_url)
 
             return {'instructions': ' '.join(_instructions),
                     'form_fields': _form_fields

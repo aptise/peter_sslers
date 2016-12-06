@@ -73,7 +73,7 @@ class ViewAdmin(Handler):
 
     def _certificate_upload__print(self):
         if self.request.matched_route.name == 'admin:certificate:upload.json':
-            return {'instructions': """curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' http://127.0.0.1:6543%s/certificate/upload.json""" % self.request.registry.settings['admin_prefix'],
+            return {'instructions': """curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' %s/certificate/upload.json""" % self.request.admin_url,
                     'form_fields': {'private_key_file': 'required',
                                     'chain_file': 'required',
                                     'certificate_file': 'required',
