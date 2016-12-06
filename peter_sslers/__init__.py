@@ -111,5 +111,6 @@ def main(global_config, **settings):
     enable_views_public = set_bool_setting(config.registry.settings, 'enable_views_public')
     config.include(".routes")
     config.include(".models")
+    config.scan(".views")  # shared views, currently just exception handling
 
     return config.make_wsgi_app()

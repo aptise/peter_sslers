@@ -1,5 +1,5 @@
 0.1.5
-2016.12.02
+2016.12.unreleased
 ---
 - updated readme
 - better display info on cert/domain pages if you expire nginx
@@ -8,6 +8,8 @@
 - added support for checking nginx status
 - added password support to nginx status
 - allow no-verify for ssl domains on internal servers via `nginx.servers_pool_allow_invalid`
+- changed ports on example ini files
+- added .json exceptions for better handling by lua
 
 
 0.1.4
