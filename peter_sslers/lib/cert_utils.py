@@ -388,10 +388,10 @@ def probe_cert__format(filepath):
     try:
         validate_cert__pem_filepath(filepath)
         return "pem"
-    except errors.OpenSslError_InvalidCertificate, e:
+    except errors.OpenSslError_InvalidCertificate as e:
         validate_cert__der_filepath(filepath)
         return "der"
-    except errors.OpenSslError_InvalidCertificate, e:
+    except errors.OpenSslError_InvalidCertificate as e:
         raise errors.OpenSslError_InvalidCertificate("not PEM or DER")
 
 

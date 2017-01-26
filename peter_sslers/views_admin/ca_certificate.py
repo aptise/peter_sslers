@@ -148,7 +148,7 @@ class ViewAdmin(Handler):
                         }
             return HTTPFound('%s/ca-certificate/%s?result=success&is_created=%s' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id, (1 if cacert_is_created else 0)))
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -242,7 +242,7 @@ class ViewAdmin(Handler):
                 return rval
             return HTTPFound('%s/ca-certificates?uploaded=1' % self.request.registry.settings['admin_prefix'])
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,

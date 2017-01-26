@@ -1757,7 +1757,7 @@ def api_domains__certificate_if_needed(
                 _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__certificate_new_success')
                 _logger_args['dbServerCertificate'] = _dbServerCertificate
 
-            except errors.DomainVerificationError, e:
+            except errors.DomainVerificationError as e:
                 _result['certificate.status'] = 'fail'
                 _result['ssl_server_certificate.id'] = None
 
@@ -1967,7 +1967,7 @@ def queue_domains__process(
             dbOperationsEvent.set_event_payload(event_payload_dict)
             ctx.dbSession.flush()
 
-        except errors.DomainVerificationError, e:
+        except errors.DomainVerificationError as e:
             event_payload_dict['status'] = 'error - DomainVerificationError'
             event_payload_dict['error'] = e.message
             dbOperationsEvent.set_event_payload(event_payload_dict)

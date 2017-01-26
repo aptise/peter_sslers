@@ -165,7 +165,7 @@ class ViewAdmin(Handler):
                               )
                              )
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -209,7 +209,7 @@ class ViewAdmin(Handler):
 
             return HTTPFound('%s/certificate-request/%s/acme-flow/manage' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id))
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -258,7 +258,7 @@ class ViewAdmin(Handler):
                     account_key_pem=account_key_pem,
                     private_key_pem=private_key_pem,
                 )
-            except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
+            except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError) as e:
                 return HTTPFound('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except:
                 if self.request.registry.settings['exception_redirect']:
@@ -267,7 +267,7 @@ class ViewAdmin(Handler):
 
             return HTTPFound('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificate.id))
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,

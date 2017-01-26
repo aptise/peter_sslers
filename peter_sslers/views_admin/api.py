@@ -108,7 +108,7 @@ class ViewAdmin(Handler):
                     'domains': api_results,
                     }
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -153,7 +153,7 @@ class ViewAdmin(Handler):
                     'domains': api_results,
                     }
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -211,7 +211,7 @@ class ViewAdmin(Handler):
                     'domains': api_results,
                     }
 
-        except (formhandling.FormInvalid, errors.DisplayableError), e:
+        except (formhandling.FormInvalid, errors.DisplayableError) as e:
             message = "There was an error with your form."
             if isinstance(e, errors.DisplayableError):
                 message += " " + e.message

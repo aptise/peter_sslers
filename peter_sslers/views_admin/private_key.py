@@ -136,7 +136,7 @@ class ViewAdmin(Handler):
 
             return HTTPFound('%s/private-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id, ('&is_created=1' if _is_created else '')))
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -223,7 +223,7 @@ class ViewAdmin(Handler):
             )
             return HTTPFound(url_success)
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,

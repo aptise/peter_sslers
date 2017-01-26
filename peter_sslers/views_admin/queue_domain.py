@@ -105,7 +105,7 @@ class ViewAdmin(Handler):
             results_json = json.dumps(queue_results)
             return HTTPFound('%s/queue-domains?result=success&is_created=1&results=%s' % (self.request.registry.settings['admin_prefix'], results_json))
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -132,7 +132,7 @@ class ViewAdmin(Handler):
                 return {'result': 'success',
                         }
             return HTTPFound("%s/queue-domains?processed=1" % self.request.registry.settings['admin_prefix'])
-        except (lib_errors.DisplayableError, lib_errors.DomainVerificationError), e:
+        except (lib_errors.DisplayableError, lib_errors.DomainVerificationError) as e:
             # return, don't raise
             # we still commit the bookkeeping
             if self.request.matched_route.name == 'admin:queue_domains:process.json':
@@ -213,7 +213,7 @@ class ViewAdmin(Handler):
             )
             return HTTPFound(url_success)
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,

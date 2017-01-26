@@ -126,7 +126,7 @@ class ViewAdmin(Handler):
                         }
             return HTTPFound('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id))
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -269,7 +269,7 @@ class ViewAdmin(Handler):
 
             raise NotImplementedError()
 
-        except lib_errors.DisplayableError, e:
+        except lib_errors.DisplayableError as e:
             url_failure = '%s/certificate/%s?operation=renewal&renewal_type=quick&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbServerCertificate.id,
@@ -347,7 +347,7 @@ class ViewAdmin(Handler):
                     dbPrivateKey=dbPrivateKey,
                     dbServerCertificate__renewal_of=dbServerCertificate,
                 )
-            except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError), e:
+            except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError) as e:
                 return HTTPFound('%s/certificate-requests?result=error&error=renew-acme-automated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except:
                 if self.request.registry.settings['exception_redirect']:
@@ -356,7 +356,7 @@ class ViewAdmin(Handler):
 
             return HTTPFound('%s/certificate/%s?is_renewal=True' % (self.request.registry.settings['admin_prefix'], newLetsencryptCertificate.id))
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -482,7 +482,7 @@ class ViewAdmin(Handler):
             )
             return HTTPFound(url_success)
 
-        except formhandling.FormInvalid, e:
+        except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
