@@ -459,7 +459,7 @@ def getcreate__SslUniqueFQDNSet__by_domainObjects(
 
     domain_ids = [dbDomain.id for dbDomain in domainObjects]
     domain_ids.sort()
-    domain_ids_string = ','.join([str(id) for id in domain_ids])
+    domain_ids_string = ','.join([str(id_) for id_ in domain_ids])
 
     dbUniqueFQDNSet = ctx.dbSession.query(SslUniqueFQDNSet)\
         .filter(SslUniqueFQDNSet.domain_ids_string == domain_ids_string,
