@@ -5,7 +5,6 @@ from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
 import datetime
-import pdb
 
 # localapp
 from ..lib import db as lib_db
@@ -25,28 +24,29 @@ class ViewPublic(Handler):
     @view_config(route_name='public_challenge', renderer='string')
     def public_challenge(self):
         challenge = self.request.matchdict['challenge']
-        active_request = lib_db.get__SslCertificateRequest2SslDomain__challenged(self.request.api_context,
-                                                                                 challenge,
-                                                                                 self.request.active_domain_name,
-                                                                                 )
-        if False:
+        activeRequest = lib_db.get.get__SslCertificateRequest2SslDomain__challenged(self.request.api_context,
+                                                                                    challenge,
+                                                                                    self.request.active_domain_name,
+                                                                                    )
+        '''
             print "----------------------"
             print self.request.active_domain_name
             print challenge
-            print active_request
+            print activeRequest
             print "-  -  -  -  -  -  -  -"
             print self.request
             print "----------------------"
-        if active_request:
+        '''
+        if activeRequest:
             log_verification = True if 'test' not in self.request.params else False
             if log_verification:
-                active_request.timestamp_verified = datetime.datetime.utcnow()
-                active_request.ip_verified = self.request.environ['REMOTE_ADDR']
-                self.request.api_context.dbSession.flush()
+                activeRequest.timestamp_verified = datetime.datetime.utcnow()
+                activeRequest.ip_verified = self.request.environ['REMOTE_ADDR']
+                self.request.api_context.dbSession.flush(objects=[activeRequest, ])
                 # quick cleanup
-                dbCertificateRequest = lib_db.get__SslCertificateRequest__by_id(self.request.api_context,
-                                                                                active_request.ssl_certificate_request_id,
-                                                                                )
+                dbCertificateRequest = lib_db.get.get__SslCertificateRequest__by_id(self.request.api_context,
+                                                                                    activeRequest.ssl_certificate_request_id,
+                                                                                    )
                 has_unverified = False
                 for d in dbCertificateRequest.to_domains:
                     if not d.timestamp_verified:
@@ -54,6 +54,6 @@ class ViewPublic(Handler):
                         break
                 if not has_unverified and not dbCertificateRequest.timestamp_finished:
                     dbCertificateRequest.timestamp_finished = datetime.datetime.utcnow()
-                    self.request.api_context.dbSession.flush()
-            return active_request.challenge_text
+                    self.request.api_context.dbSession.flush(objects=[dbCertificateRequest, ])
+            return activeRequest.challenge_text
         return 'ERROR'

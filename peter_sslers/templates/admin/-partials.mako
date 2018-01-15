@@ -426,7 +426,7 @@
 </%def>
 
 
-<%def name="table_SslOperationsEvents(SslOperationsEvents, show_event=None)">
+<%def name="table_SslOperationsEvents(SslOperationsEvents, show_event=None, event_type_listable=None)">
     <%
         event_id = None
         if show_event is not None:
@@ -457,7 +457,17 @@
                             <span class="label label-default">${event.ssl_operations_event_id__child_of}</span>
                         % endif
                     </td>
-                    <td><span class="label label-default">${event.event_type_text}</span></td>
+                    <td>
+                        % if event_type_listable:
+                            <a  href="${admin_prefix}/operations/log?event_type=${event.event_type_text}"
+                                class="label label-default"
+                            >
+                                ${event.event_type_text}
+                            </a>
+                        % else:
+                            <span class="label label-default">${event.event_type_text}</span>
+                        % endif
+                    </td>
                     <td><timestamp>${event.timestamp_event}</timestamp></td>
                 </tr>
             % endfor

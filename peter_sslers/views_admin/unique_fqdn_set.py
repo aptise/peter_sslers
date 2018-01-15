@@ -7,14 +7,13 @@ from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
 import datetime
-import pdb
 
 # pypi
 import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp
-from ..models import *
+from ..models import models
 from ..lib import acme as lib_acme
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
@@ -32,9 +31,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:unique_fqdn_sets', renderer='/admin/unique_fqdn_sets.mako')
     @view_config(route_name='admin:unique_fqdn_sets_paginated', renderer='/admin/unique_fqdn_sets.mako')
     def unique_fqdn_sets(self):
-        items_count = lib_db.get__SslUniqueFQDNSet__count(self.request.api_context)
+        items_count = lib_db.get.get__SslUniqueFQDNSet__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-sets/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslUniqueFQDNSet__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
+        items_paged = lib_db.get.get__SslUniqueFQDNSet__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
         return {'project': 'peter_sslers',
                 'SslUniqueFQDNSets_count': items_count,
                 'SslUniqueFQDNSets': items_paged,
@@ -44,7 +43,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _unique_fqdn_set_focus(self):
-        dbItem = lib_db.get__SslUniqueFQDNSet__by_id(self.request.api_context, self.request.matchdict['id'])
+        dbItem = lib_db.get.get__SslUniqueFQDNSet__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbItem:
             raise HTTPNotFound('the fqdn set was not found')
         return dbItem
@@ -62,10 +61,10 @@ class ViewAdmin(Handler):
     def unique_fqdn_set_focus__calendar(self):
         rval = {}
         dbUniqueFQDNSet = self._unique_fqdn_set_focus()
-        weekly_certs = self.request.api_context.dbSession.query(year_week(SslServerCertificate.timestamp_signed).label('week_num'),
-                                                                sqlalchemy.func.count(SslServerCertificate.id)
+        weekly_certs = self.request.api_context.dbSession.query(models.year_week(models.SslServerCertificate.timestamp_signed).label('week_num'),
+                                                                sqlalchemy.func.count(models.SslServerCertificate.id)
                                                                 )\
-            .filter(SslServerCertificate.ssl_unique_fqdn_set_id == dbUniqueFQDNSet.id,
+            .filter(models.SslServerCertificate.ssl_unique_fqdn_set_id == dbUniqueFQDNSet.id,
                     )\
             .group_by('week_num')\
             .order_by(sqlalchemy.asc('week_num'))\
@@ -81,10 +80,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:unique_fqdn_set:focus:certificates_paginated', renderer='/admin/unique_fqdn_set-focus-certificates.mako')
     def unique_fqdn_set_focus__certificates(self):
         dbUniqueFQDNSet = self._unique_fqdn_set_focus()
-        items_count = lib_db.get__SslServerCertificate__by_SslUniqueFQDNSetId__count(
+        items_count = lib_db.get.get__SslServerCertificate__by_SslUniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-set/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbUniqueFQDNSet.id))
-        items_paged = lib_db.get__SslServerCertificate__by_SslUniqueFQDNSetId__paginated(
+        items_paged = lib_db.get.get__SslServerCertificate__by_SslUniqueFQDNSetId__paginated(
             self.request.api_context, dbUniqueFQDNSet.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslUniqueFQDNSet': dbUniqueFQDNSet,
@@ -97,10 +96,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:unique_fqdn_set:focus:certificate_requests_paginated', renderer='/admin/unique_fqdn_set-focus-certificate_requests.mako')
     def unique_fqdn_set_focus__certificate_requests(self):
         dbUniqueFQDNSet = self._unique_fqdn_set_focus()
-        items_count = lib_db.get__SslCertificateRequest__by_SslUniqueFQDNSetId__count(
-            self.request.api_context, SslDomain.id)
+        items_count = lib_db.get.get__SslCertificateRequest__by_SslUniqueFQDNSetId__count(self.request.api_context, dbUniqueFQDNSet.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-set/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbUniqueFQDNSet.id))
-        items_paged = lib_db.get__SslCertificateRequest__by_SslUniqueFQDNSetId__paginated(
+        items_paged = lib_db.get.get__SslCertificateRequest__by_SslUniqueFQDNSetId__paginated(
             self.request.api_context, dbUniqueFQDNSet.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslUniqueFQDNSet': dbUniqueFQDNSet,

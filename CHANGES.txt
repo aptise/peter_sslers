@@ -1,6 +1,9 @@
 0.1.5
-2016.12.unreleased
+2018.01.unreleased
 ---
+- split library functions into multiple files
+- changed the database cleanup design to work with current pyramid and pyramid_tm
+- explicit objects listed with dbSession.flush()
 - updated readme
 - better display info on cert/domain pages if you expire nginx
 - renamed `nginx.reset_servers` to  `nginx.servers_pool`

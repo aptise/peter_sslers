@@ -15,5 +15,3 @@ def exception_view__upgrade(exc, request):
     if (request.path[-5:]).lower() == '.json':
         request.environ['HTTP_ACCEPT'] = "application/json"
     return exc
-
-

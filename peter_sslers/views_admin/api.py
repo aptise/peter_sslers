@@ -7,7 +7,6 @@ from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
 import datetime
-import pdb
 
 # pypi
 import pyramid_formencode_classic as formhandling
@@ -15,7 +14,7 @@ import sqlalchemy
 import transaction
 
 # localapp
-from ..models import *
+from ..models import models
 from ..lib.forms import (Form_API_Domain_enable,
                          Form_API_Domain_disable,
                          Form_API_Domain_certificate_if_needed,
@@ -50,7 +49,6 @@ class ViewAdmin(Handler):
             return {'result': 'success',
                     'operations_event': operations_event.id,
                     }
-
         return HTTPFound("%s/operations/log?result=success&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -87,10 +85,12 @@ class ViewAdmin(Handler):
 
     def _api_domain_enable__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_API_Domain_enable,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_API_Domain_enable,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -134,10 +134,12 @@ class ViewAdmin(Handler):
 
     def _api_domain_disable__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_API_Domain_disable,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_API_Domain_disable,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -180,10 +182,12 @@ class ViewAdmin(Handler):
 
     def _api_domain_certificate_if_needed__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_API_Domain_certificate_if_needed,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_API_Domain_certificate_if_needed,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -269,7 +273,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_certs = lib_db.get__SslCaCertificate__paginated(
+                active_certs = lib_db.get.get__SslCaCertificate__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -290,7 +294,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_keys = lib_db.get__SslPrivateKey__paginated(
+                active_keys = lib_db.get.get__SslPrivateKey__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -312,7 +316,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_domains = lib_db.get__SslDomain__paginated(
+                active_domains = lib_db.get.get__SslDomain__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -349,7 +353,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_domains = lib_db.get__SslDomain__paginated(
+                active_domains = lib_db.get.get__SslDomain__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -368,11 +372,11 @@ class ViewAdmin(Handler):
                     break
                 offset += limit
 
-        event_payload_dict = utils.new_event_payload_dict()
+        event_payload_dict = lib_utils.new_event_payload_dict()
         event_payload_dict['prime_style'] = prime_style
         event_payload_dict['total_primed'] = total_primed
         dbEvent = lib_db.log__SslOperationsEvent(self.request.api_context,
-                                                 SslOperationsEventType.from_string('api__redis_prime'),
+                                                 models.SslOperationsEventType.from_string('api__redis_prime'),
                                                  event_payload_dict,
                                                  )
         if self.request.matched_route.name == 'admin:api:redis:prime.json':

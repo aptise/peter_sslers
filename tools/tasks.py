@@ -43,7 +43,7 @@ def upload_fileset(server_url_root, fset):
             raise ValueError("error!")
         else:
             print "success | %s" % json_response
-    except:
+    except Exception as exc:
         raise
 
 

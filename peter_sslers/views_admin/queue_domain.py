@@ -8,7 +8,6 @@ from pyramid.httpexceptions import HTTPNotFound
 # stdlib
 import datetime
 import json
-import pdb
 
 # pypi
 import pyramid_formencode_classic as formhandling
@@ -16,7 +15,7 @@ import sqlalchemy
 import transaction
 
 # localapp
-from ..models import *
+from ..models import models
 from ..lib.forms import (Form_QueueDomains_add,
                          Form_QueueDomain_mark,
                          )
@@ -37,9 +36,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_domains', renderer='/admin/queue-domains.mako')
     @view_config(route_name='admin:queue_domains_paginated', renderer='/admin/queue-domains.mako')
     def queue_domains(self):
-        items_count = lib_db.get__SslQueueDomain__count(self.request.api_context, show_processed=False)
+        items_count = lib_db.get.get__SslQueueDomain__count(self.request.api_context, show_processed=False)
         (pager, offset) = self._paginate(items_count, url_template='%s/queue-domains/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslQueueDomain__paginated(self.request.api_context, show_processed=False, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslQueueDomain__paginated(self.request.api_context, show_processed=False, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslQueueDomains_count': items_count,
                 'SslQueueDomains': items_paged,
@@ -50,9 +49,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_domains:all', renderer='/admin/queue-domains.mako')
     @view_config(route_name='admin:queue_domains:all_paginated', renderer='/admin/queue-domains.mako')
     def queue_domains_all(self):
-        items_count = lib_db.get__SslQueueDomain__count(self.request.api_context, show_processed=True)
+        items_count = lib_db.get.get__SslQueueDomain__count(self.request.api_context, show_processed=True)
         (pager, offset) = self._paginate(items_count, url_template='%s/queue-domains/all/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslQueueDomain__paginated(self.request.api_context, show_processed=True, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslQueueDomain__paginated(self.request.api_context, show_processed=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslQueueDomains_count': items_count,
                 'SslQueueDomains': items_paged,
@@ -151,7 +150,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _queue_domain_focus(self):
-        item = lib_db.get__SslQueueDomain__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
+        item = lib_db.get.get__SslQueueDomain__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
         if not item:
             raise HTTPNotFound('the item was not found')
         return item
@@ -179,7 +178,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results['action']
-            event_type = SslOperationsEventType.from_string('queue_domain__mark')
+            event_type = models.SslOperationsEventType.from_string('queue_domain__mark')
             event_payload_dict = lib_utils.new_event_payload_dict()
             event_payload_dict['ssl_queue_domain.id'] = dbQueueDomain.id
             event_payload_dict['action'] = formStash.results['action']
@@ -204,7 +203,7 @@ class ViewAdmin(Handler):
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
-            self.request.api_context.dbSession.flush()
+            self.request.api_context.dbSession.flush(objects=[dbQueueDomain, dbOperationsEvent])
 
             url_success = '%s/queue-domain/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],

@@ -662,7 +662,7 @@ There are a few environment variables you can set:
 
 Tests are done on a sqlite database as specified in `test.ini` AND WILL REQUIRE CUSTOMIZATION FOR YOUR OPENSSL location
 
-The `test.ini` should also reflect the openssl for your distribution
+The `test.ini` should also reflect the openssl for your distribution. YOU PROBABLY HAVE TO EDIT THIS.
 
 `test_data/` contains the keys and certificates used for testing
 

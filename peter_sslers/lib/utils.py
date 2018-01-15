@@ -140,7 +140,7 @@ def redis_default_connection(request,
     setattr(request.registry, '_redis_connection', redis)
 
     return redis
-    
+
 
 def new_nginx_session(request):
     sess = requests.Session()

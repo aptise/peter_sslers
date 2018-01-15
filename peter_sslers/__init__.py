@@ -8,8 +8,9 @@ import datetime
 
 from .lib import acme
 from .lib import cert_utils
-from .lib.config_utils import *
-from .lib import utils
+from .lib.config_utils import set_bool_setting
+from .lib.config_utils import set_int_setting
+from .lib.utils import ApiContext
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -20,8 +21,8 @@ def add_renderer_globals(event):
     event['admin_server'] = event['request'].admin_server
 
 
-def db_cleanup__tween_factory(handler, registry):
-    def db_cleanup__tween(request):
+def db_log_cleanup__tween_factory(handler, registry):
+    def db_log_cleanup__tween(request):
         try:
             if request.environ.get('paste.command_request', None):
                 # turn off logging
@@ -32,9 +33,9 @@ def db_cleanup__tween_factory(handler, registry):
                     logging.getLogger(l).propagate = False
             response = handler(request)
             return response
-        finally:
-            request.dbsession.close()
-    return db_cleanup__tween
+        except:
+            raise
+    return db_log_cleanup__tween
 
 
 def api_host(request):
@@ -110,16 +111,14 @@ def main(global_config, **settings):
     config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)
     config.add_request_method(lambda request: request.registry.settings.get('admin_server', None) or request.environ['HTTP_HOST'], 'admin_server', reify=True)
     config.add_request_method(lambda request: datetime.datetime.utcnow(), 'a_timestamp', reify=True)
-    config.add_request_method(lambda request: lib.utils.ApiContext(timestamp=request.a_timestamp, dbSession=request.dbsession), 'api_context', reify=True)
+    config.add_request_method(lambda request: ApiContext(timestamp=request.a_timestamp, dbSession=request.dbsession), 'api_context', reify=True)
     config.add_request_method(api_host, 'api_host', reify=True)
     config.add_request_method(admin_url, 'admin_url', reify=True)
-
-
 
     # don't scan 'everything', only what is enabled
     # config.scan()
 
-    config.add_tween('.db_cleanup__tween_factory', over=EXCVIEW)
+    config.add_tween('.db_log_cleanup__tween_factory', over=EXCVIEW)
     config.add_subscriber(add_renderer_globals, BeforeRender)
 
     # handle this before including the routes

@@ -99,7 +99,7 @@
             <hr/>
 
             <p>
-                <a  href="${admin_prefix}/operations/nginx/cache-flush"
+                <a  href="${admin_prefix}/api/nginx/cache-flush"
                     class="label label-primary"
                 >
                     <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>

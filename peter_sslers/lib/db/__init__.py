@@ -1,7 +1,9 @@
+# logging
+import logging
+log = logging.getLogger(__name__)
+
 # stdlib
 import datetime
-import logging
-import pdb
 import tempfile
 
 # pypi
@@ -10,7 +12,8 @@ import transaction
 from zope.sqlalchemy import mark_changed
 
 # localapp
-from ...models import *
+from ...models import models
+from ... import lib
 from .. import acme
 from .. import cert_utils
 from .. import letsencrypt_info
@@ -18,883 +21,10 @@ from .. import errors
 from .. import events
 from .. import utils
 
-# setup logging
-log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
-log.setLevel(logging.INFO)
-
-from .get import *
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def getcreate__SslLetsEncryptAccountKey__by_pem_text(ctx, key_pem):
-    """
-    Gets or Creates AccountKeys for LetsEncrypts' ACME server
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    key_pem = cert_utils.cleanup_pem_text(key_pem)
-    key_pem_md5 = utils.md5_text(key_pem)
-    is_created = False
-    dbLetsEncryptAccountKey = ctx.dbSession.query(SslLetsEncryptAccountKey)\
-        .filter(SslLetsEncryptAccountKey.key_pem_md5 == key_pem_md5,
-                SslLetsEncryptAccountKey.key_pem == key_pem,
-                )\
-        .first()
-    if not dbLetsEncryptAccountKey:
-        try:
-            _tmpfile = cert_utils.new_pem_tempfile(key_pem)
-
-            # validate
-            cert_utils.validate_key__pem_filepath(_tmpfile.name)
-
-            # grab the modulus
-            key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
-        except:
-            raise
-        finally:
-            _tmpfile.close()
-
-        event_payload_dict = utils.new_event_payload_dict()
-        dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    SslOperationsEventType.from_string('letsencrypt_account_key__insert'),
-                                                    )
-
-        dbLetsEncryptAccountKey = SslLetsEncryptAccountKey()
-        dbLetsEncryptAccountKey.timestamp_first_seen = ctx.timestamp
-        dbLetsEncryptAccountKey.key_pem = key_pem
-        dbLetsEncryptAccountKey.key_pem_md5 = key_pem_md5
-        dbLetsEncryptAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
-        dbLetsEncryptAccountKey.ssl_operations_event_id__created = dbOperationsEvent.id
-        ctx.dbSession.add(dbLetsEncryptAccountKey)
-        ctx.dbSession.flush()
-        is_created = True
-
-        event_payload_dict['ssl_letsencrypt_account_key.id'] = dbLetsEncryptAccountKey.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
-
-        _log_object_event(ctx,
-                          dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=SslOperationsObjectEventStatus.from_string('letsencrypt_account_key__insert'),
-                          dbLetsEncryptAccountKey=dbLetsEncryptAccountKey,
-                          )
-        ctx.dbSession.flush()
-
-    return dbLetsEncryptAccountKey, is_created
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def getcreate__SslCaCertificate__by_pem_text(
-    ctx,
-    cert_pem,
-    chain_name,
-    le_authority_name = None,
-    is_authority_certificate = None,
-    is_cross_signed_authority_certificate = None,
-):
-    """
-    Gets or Creates CaCertificates
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    dbCACertificate = get__SslCaCertificate__by_pem_text(ctx, cert_pem)
-    is_created = False
-    if not dbCACertificate:
-        cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-        cert_pem_md5 = utils.md5_text(cert_pem)
-        try:
-            _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
-
-            # validate
-            cert_utils.validate_cert__pem_filepath(_tmpfile.name)
-
-            # grab the modulus
-            cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(_tmpfile.name)
-
-            # bookkeeping
-            event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                        SslOperationsEventType.from_string('ca_certificate__insert'),
-                                                        )
-
-            dbCACertificate = SslCaCertificate()
-            dbCACertificate.name = chain_name or 'unknown'
-
-            dbCACertificate.le_authority_name = le_authority_name
-            dbCACertificate.is_ca_certificate = True
-            dbCACertificate.is_authority_certificate = is_authority_certificate
-            dbCACertificate.is_cross_signed_authority_certificate = is_cross_signed_authority_certificate
-            dbCACertificate.id_cross_signed_of = None
-            dbCACertificate.timestamp_first_seen = ctx.timestamp
-            dbCACertificate.cert_pem = cert_pem
-            dbCACertificate.cert_pem_md5 = cert_pem_md5
-            dbCACertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
-
-            dbCACertificate.timestamp_signed = cert_utils.parse_startdate_cert__pem_filepath(_tmpfile.name)
-            dbCACertificate.timestamp_expires = cert_utils.parse_enddate_cert__pem_filepath(_tmpfile.name)
-            dbCACertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-subject')
-            dbCACertificate.cert_subject_hash = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-subject_hash')
-            dbCACertificate.cert_issuer = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-issuer')
-            dbCACertificate.cert_issuer_hash = cert_utils.cert_single_op__pem_filepath(_tmpfile.name, '-issuer_hash')
-            dbCACertificate.ssl_operations_event_id__created = dbOperationsEvent.id
-
-            ctx.dbSession.add(dbCACertificate)
-            ctx.dbSession.flush()
-            is_created = True
-
-            event_payload_dict['ssl_ca_certificate.id'] = dbCACertificate.id
-            dbOperationsEvent.set_event_payload(event_payload_dict)
-            ctx.dbSession.flush()
-
-            _log_object_event(ctx,
-                              dbOperationsEvent=dbOperationsEvent,
-                              event_status_id=SslOperationsObjectEventStatus.from_string('ca_certificate__insert'),
-                              dbCACertificate=dbCACertificate,
-                              )
-            ctx.dbSession.flush()
-
-        except:
-            raise
-        finally:
-            _tmpfile.close()
-
-    return dbCACertificate, is_created
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def getcreate__SslCertificateRequest__by_pem_text(
-    ctx,
-    csr_pem,
-    certificate_request_type_id = None,
-    dbAccountKey = None,
-    dbPrivateKey = None,
-    dbServerCertificate__issued = None,
-    dbServerCertificate__renewal_of = None,
-):
-    """
-    getcreate for a CSR
-    log__SslOperationsEvent takes place in `create__SslCertificateRequest`
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    dbCertificateRequest = get__SslCertificateRequest__by_pem_text(ctx, csr_pem)
-    is_created = False
-    if not dbCertificateRequest:
-        dbCertificateRequest, dbDomainObjects = create__SslCertificateRequest(
-            ctx,
-            csr_pem,
-            certificate_request_type_id = certificate_request_type_id,
-            dbAccountKey = dbAccountKey,
-            dbPrivateKey = dbPrivateKey,
-            dbServerCertificate__issued = dbServerCertificate__issued,
-            dbServerCertificate__renewal_of = dbServerCertificate__renewal_of,
-        )
-        is_created = True
-
-    return dbCertificateRequest, is_created
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-def getcreate__SslDomain__by_domainName(
-    ctx,
-    domain_name,
-    is_from_queue_domain=None,
-):
-    """
-    getcreate wrapping a domain
-
-    return dbDomain, is_created
-
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    is_created = False
-    dbDomain = get__SslDomain__by_name(ctx, domain_name, preload=False)
-    if not dbDomain:
-        event_payload_dict = utils.new_event_payload_dict()
-        dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    SslOperationsEventType.from_string('domain__insert'),
-                                                    )
-        dbDomain = SslDomain()
-        dbDomain.domain_name = domain_name
-        dbDomain.timestamp_first_seen = ctx.timestamp
-        dbDomain.is_from_queue_domain = is_from_queue_domain
-        dbDomain.ssl_operations_event_id__created = dbOperationsEvent.id
-        ctx.dbSession.add(dbDomain)
-        ctx.dbSession.flush()
-        is_created = True
-
-        event_payload_dict['ssl_domain.id'] = dbDomain.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
-
-        _log_object_event(ctx,
-                          dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=SslOperationsObjectEventStatus.from_string('domain__insert'),
-                          dbDomain=dbDomain,
-                          )
-        ctx.dbSession.flush()
-
-    return dbDomain, is_created
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def getcreate__SslPrivateKey__by_pem_text(
-    ctx,
-    key_pem,
-    is_autogenerated_key=None,
-):
-    """
-    getcreate wrapping private keys
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    key_pem = cert_utils.cleanup_pem_text(key_pem)
-    key_pem_md5 = utils.md5_text(key_pem)
-    is_created = False
-    dbPrivateKey = ctx.dbSession.query(SslPrivateKey)\
-        .filter(SslPrivateKey.key_pem_md5 == key_pem_md5,
-                SslPrivateKey.key_pem == key_pem,
-                )\
-        .first()
-    if not dbPrivateKey:
-        try:
-            _tmpfile = cert_utils.new_pem_tempfile(key_pem)
-
-            # validate
-            cert_utils.validate_key__pem_filepath(_tmpfile.name)
-
-            # grab the modulus
-            key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
-        except:
-            raise
-        finally:
-            _tmpfile.close()
-
-        event_payload_dict = utils.new_event_payload_dict()
-        _event_type_id = SslOperationsEventType.from_string('private_key__insert')
-        if is_autogenerated_key:
-            _event_type_id = SslOperationsEventType.from_string('private_key__insert_autogenerated')
-        dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    _event_type_id,
-                                                    )
-
-        dbPrivateKey = SslPrivateKey()
-        dbPrivateKey.timestamp_first_seen = ctx.timestamp
-        dbPrivateKey.key_pem = key_pem
-        dbPrivateKey.key_pem_md5 = key_pem_md5
-        dbPrivateKey.key_pem_modulus_md5 = key_pem_modulus_md5
-        dbPrivateKey.is_autogenerated_key = is_autogenerated_key
-        dbPrivateKey.ssl_operations_event_id__created = dbOperationsEvent.id
-        ctx.dbSession.add(dbPrivateKey)
-        ctx.dbSession.flush()
-        is_created = True
-
-        event_payload_dict['ssl_private_key.id'] = dbPrivateKey.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
-
-        _log_object_event(ctx,
-                          dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=SslOperationsObjectEventStatus.from_string('private_key__insert'),
-                          dbPrivateKey=dbPrivateKey,
-                          )
-        ctx.dbSession.flush()
-
-    return dbPrivateKey, is_created
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def getcreate__SslServerCertificate__by_pem_text(
-    ctx,
-    cert_pem,
-    dbCACertificate=None,
-    dbAccountKey=None,
-    dbPrivateKey=None,
-    dbServerCertificate__renewal_of=None,
-):
-    """
-    getcreate wrapping issued certs
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-    cert_pem_md5 = utils.md5_text(cert_pem)
-    is_created = False
-    dbServerCertificate = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.cert_pem_md5 == cert_pem_md5,
-                SslServerCertificate.cert_pem == cert_pem,
-                )\
-        .first()
-    if dbServerCertificate:
-        if dbPrivateKey and (dbServerCertificate.ssl_private_key_id__signed_by != dbPrivateKey.id):
-            if dbServerCertificate.ssl_private_key_id__signed_by:
-                raise ValueError("Integrity Error. Competing PrivateKey (!?)")
-            elif dbServerCertificate.ssl_private_key_id__signed_by is None:
-                dbServerCertificate.ssl_private_key_id__signed_by = dbPrivateKey.id
-                dbPrivateKey.count_certificates_issued += 1
-                if not dbPrivateKey.timestamp_last_certificate_issue or (dbPrivateKey.timestamp_last_certificate_issue < dbServerCertificate.timestamp_signed):
-                    dbPrivateKey.timestamp_last_certificate_issue = dbServerCertificate.timestamp_signed
-                ctx.dbSession.flush()
-        if dbAccountKey and (dbServerCertificate.ssl_letsencrypt_account_key_id != dbAccountKey.id):
-            if dbServerCertificate.ssl_letsencrypt_account_key_id:
-                raise ValueError("Integrity Error. Competing AccountKey (!?)")
-            elif dbServerCertificate.ssl_letsencrypt_account_key_id is None:
-                dbServerCertificate.ssl_letsencrypt_account_key_id = dbAccountKey.id
-                dbAccountKey.count_certificates_issued += 1
-                if not dbAccountKey.timestamp_last_certificate_issue or (dbAccountKey.timestamp_last_certificate_issue < dbServerCertificate.timestamp_signed):
-                    dbAccountKey.timestamp_last_certificate_issue = dbAccountKey.timestamp_signed
-                ctx.dbSession.flush()
-    elif not dbServerCertificate:
-        _tmpfileCert = None
-        try:
-            _tmpfileCert = cert_utils.new_pem_tempfile(cert_pem)
-
-            # validate
-            cert_utils.validate_cert__pem_filepath(_tmpfileCert.name)
-
-            # bookkeeping
-            event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                        SslOperationsEventType.from_string('certificate__insert'),
-                                                        )
-
-            dbServerCertificate = SslServerCertificate()
-            _certificate_parse_to_record(_tmpfileCert, dbServerCertificate)
-
-            dbServerCertificate.is_active = True
-            dbServerCertificate.cert_pem = cert_pem
-            dbServerCertificate.cert_pem_md5 = cert_pem_md5
-
-            if dbServerCertificate__renewal_of:
-                dbServerCertificate.ssl_server_certificate_id__renewal_of = dbServerCertificate__renewal_of.id
-
-            # this is the LetsEncrypt key
-            if dbCACertificate is None:
-                raise ValueError('dbCACertificate is None')
-            # we should make sure it issued the certificate:
-            if dbServerCertificate.cert_issuer_hash != dbCACertificate.cert_subject_hash:
-                raise ValueError('dbCACertificate did not sign the certificate')
-            dbServerCertificate.ssl_ca_certificate_id__upchain = dbCACertificate.id
-
-            # this is the private key
-            # we should make sure it signed the certificate
-            # the md5 check isn't exact, BUT ITS CLOSE
-            if dbPrivateKey is None:
-                raise ValueError('dbPrivateKey is None')
-            if dbServerCertificate.cert_pem_modulus_md5 != dbPrivateKey.key_pem_modulus_md5:
-                raise ValueError('dbPrivateKey did not sign the certificate')
-            dbServerCertificate.ssl_private_key_id__signed_by = dbPrivateKey.id
-            dbPrivateKey.count_certificates_issued += 1
-            if not dbPrivateKey.timestamp_last_certificate_issue or (dbPrivateKey.timestamp_last_certificate_issue < dbServerCertificate.timestamp_signed):
-                dbPrivateKey.timestamp_last_certificate_issue = dbServerCertificate.timestamp_signed
-
-            # did we submit an account key?
-            if dbAccountKey:
-                dbServerCertificate.ssl_letsencrypt_account_key_id = dbAccountKey.id
-                dbAccountKey.count_certificates_issued += 1
-                if not dbAccountKey.timestamp_last_certificate_issue or (dbAccountKey.timestamp_last_certificate_issue < dbAccountKey.timestamp_signed):
-                    dbAccountKey.timestamp_last_certificate_issue = dbServerCertificate.timestamp_signed
-
-            _subject_domain, _san_domains = cert_utils.parse_cert_domains__segmented(cert_path=_tmpfileCert.name)
-            certificate_domain_names = _san_domains
-            if _subject_domain is not None and _subject_domain not in certificate_domain_names:
-                certificate_domain_names.insert(0, _subject_domain)
-            if not certificate_domain_names:
-                raise ValueError("could not find any domain names in the certificate")
-            # getcreate__SslDomain__by_domainName returns a tuple of (domainObject, is_created)
-            dbDomainObjects = [getcreate__SslDomain__by_domainName(ctx, _domain_name)[0]
-                               for _domain_name in certificate_domain_names]
-            dbUniqueFqdnSet, is_created_fqdn = getcreate__SslUniqueFQDNSet__by_domainObjects(ctx, dbDomainObjects)
-            dbServerCertificate.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
-
-            if len(certificate_domain_names) == 1:
-                dbServerCertificate.is_single_domain_cert = True
-            elif len(certificate_domain_names) > 1:
-                dbServerCertificate.is_single_domain_cert = False
-
-            dbServerCertificate.ssl_operations_event_id__created = dbOperationsEvent.id
-            ctx.dbSession.add(dbServerCertificate)
-            ctx.dbSession.flush()
-            is_created = True
-
-            event_payload_dict['ssl_server_certificate.id'] = dbServerCertificate.id
-            dbOperationsEvent.set_event_payload(event_payload_dict)
-            ctx.dbSession.flush()
-
-            _log_object_event(ctx,
-                              dbOperationsEvent=dbOperationsEvent,
-                              event_status_id=SslOperationsObjectEventStatus.from_string('certificate__insert'),
-                              dbServerCertificate=dbServerCertificate,
-                              )
-            ctx.dbSession.flush()
-
-        except:
-            raise
-        finally:
-            if _tmpfileCert:
-                _tmpfileCert.close()
-
-    return dbServerCertificate, is_created
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def getcreate__SslUniqueFQDNSet__by_domainObjects(
-    ctx,
-    domainObjects,
-):
-    """
-    getcreate wrapping unique fqdn
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    is_created = False
-
-    domain_ids = [dbDomain.id for dbDomain in domainObjects]
-    domain_ids.sort()
-    domain_ids_string = ','.join([str(id_) for id_ in domain_ids])
-
-    dbUniqueFQDNSet = ctx.dbSession.query(SslUniqueFQDNSet)\
-        .filter(SslUniqueFQDNSet.domain_ids_string == domain_ids_string,
-                )\
-        .first()
-
-    if not dbUniqueFQDNSet:
-        event_payload_dict = utils.new_event_payload_dict()
-        dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    SslOperationsEventType.from_string('unqiue_fqdn__insert'),
-                                                    )
-
-        dbUniqueFQDNSet = SslUniqueFQDNSet()
-        dbUniqueFQDNSet.domain_ids_string = domain_ids_string
-        dbUniqueFQDNSet.timestamp_first_seen = ctx.timestamp
-        dbUniqueFQDNSet.ssl_operations_event_id__created = dbOperationsEvent.id
-        ctx.dbSession.add(dbUniqueFQDNSet)
-        ctx.dbSession.flush()
-
-        for dbDomain in domainObjects:
-            dbAssoc = SslUniqueFQDNSet2SslDomain()
-            dbAssoc.ssl_unique_fqdn_set_id = dbUniqueFQDNSet.id
-            dbAssoc.ssl_domain_id = dbDomain.id
-            ctx.dbSession.add(dbAssoc)
-            ctx.dbSession.flush()
-        is_created = True
-
-        event_payload_dict['ssl_unique_fqdn_set.id'] = dbUniqueFQDNSet.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
-
-        _log_object_event(ctx,
-                          dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=SslOperationsObjectEventStatus.from_string('unqiue_fqdn__insert'),
-                          dbUniqueFQDNSet=dbUniqueFQDNSet,
-                          )
-        ctx.dbSession.flush()
-
-    return dbUniqueFQDNSet, is_created
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-def create__SslCertificateRequest(
-    ctx,
-    csr_pem = None,
-    certificate_request_type_id = None,
-    dbAccountKey = None,
-    dbPrivateKey = None,
-    dbServerCertificate__issued = None,
-    dbServerCertificate__renewal_of = None,
-    domain_names = None,
-):
-    """
-    create CSR
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    if certificate_request_type_id not in (
-        SslCertificateRequestType.ACME_FLOW,
-        SslCertificateRequestType.ACME_AUTOMATED,
-    ):
-        raise ValueError("Invalid `certificate_request_type_id`")
-
-    _event_type_id = None
-    if certificate_request_type_id == SslCertificateRequestType.ACME_FLOW:
-        _event_type_id = SslOperationsEventType.from_string('certificate_request__new__flow')
-    elif certificate_request_type_id == SslCertificateRequestType.ACME_AUTOMATED:
-        _event_type_id = SslOperationsEventType.from_string('certificate_request__new__automated')
-
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                _event_type_id,
-                                                )
-
-    # if there is a csr_pem; extract the domains
-    csr_domain_names = None
-    if csr_pem is None:
-        if not domain_names:
-            raise ValueError("Must submit `csr_pem` that contains `domain_names` or explicitly provide `domain_names` (found neither)")
-    if csr_pem is not None:
-        _tmpfile = None
-        try:
-            # store the csr_text in a tmpfile
-            _tmpfile = cert_utils.new_pem_tempfile(csr_pem)
-            _csr_domain_names = cert_utils.parse_csr_domains(csr_path=_tmpfile.name,
-                                                             submitted_domain_names=domain_names,
-                                                             )
-            csr_domain_names = utils.domains_from_list(_csr_domain_names)
-            if len(csr_domain_names) != len(_csr_domain_names):
-                raise ValueError("One or more of the domain names in the CSR are not allowed (%s)" % _csr_domain_names)
-            if not csr_domain_names:
-                raise ValueError("Must submit `csr_pem` that contains `domain_names` (found none)")
-        finally:
-            _tmpfile.close()
-
-    if certificate_request_type_id == SslCertificateRequestType.ACME_FLOW:
-        if domain_names is None:
-            if csr_pem is None:
-                raise ValueError("Must submit `csr_pem` if not submitting `domain_names`")
-            domain_names = csr_domain_names
-        else:
-            if csr_domain_names:
-                if set(domain_names) != set(csr_domain_names):
-                    raise ValueError("Must submit `csr_pem` that matches submitted `domain_names`")
-            else:
-                domain_names = utils.domains_from_list(domain_names)
-
-        if not domain_names:
-            raise ValueError("We have no domains")
-
-        # getcreate__SslDomain__by_domainName returns a tuple of (domainObject, is_created)
-        dbDomainObjects = [getcreate__SslDomain__by_domainName(ctx, _domain_name)[0]
-                           for _domain_name in domain_names]
-        dbUniqueFqdnSet, is_created_fqdn = getcreate__SslUniqueFQDNSet__by_domainObjects(ctx, dbDomainObjects)
-
-        dbCertificateRequest = SslCertificateRequest()
-        dbCertificateRequest.is_active = True
-        dbCertificateRequest.csr_pem = csr_pem
-        dbCertificateRequest.certificate_request_type_id = SslCertificateRequestType.ACME_FLOW
-        dbCertificateRequest.timestamp_started = ctx.timestamp
-        dbCertificateRequest.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
-        dbCertificateRequest.ssl_operations_event_id__created = dbOperationsEvent.id
-        ctx.dbSession.add(dbCertificateRequest)
-        ctx.dbSession.flush()
-
-        event_payload_dict['ssl_certificate_request.id'] = dbCertificateRequest.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-
-        _log_object_event(ctx,
-                          dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=SslOperationsObjectEventStatus.from_string('certificate_request__insert'),
-                          dbCertificateRequest=dbCertificateRequest,
-                          )
-        ctx.dbSession.flush()
-
-        for dbDomain in dbDomainObjects:
-            dbCertificateRequest2D = SslCertificateRequest2SslDomain()
-            dbCertificateRequest2D.ssl_certificate_request_id = dbCertificateRequest.id
-            dbCertificateRequest2D.ssl_domain_id = dbDomain.id
-            ctx.dbSession.add(dbCertificateRequest2D)
-            ctx.dbSession.flush()
-
-        return dbCertificateRequest, dbDomainObjects
-
-    if dbPrivateKey is None:
-        raise ValueError("Must submit `dbPrivateKey` for creation")
-
-    # PARSE FROM THE CSR
-    # timestamp_started
-    # domains / ssl_unique_fqdn_set_id
-    # domain_names = list(domain_names)
-
-    _tmpfile = None
-    dbCertificateRequest = None
-    dbDomainObjects = None
-    try:
-        t_now = ctx.timestamp
-
-        csr_pem = cert_utils.cleanup_pem_text(csr_pem)
-        csr_pem_md5 = utils.md5_text(csr_pem)
-
-        # store the csr_text in a tmpfile
-        _tmpfile = cert_utils.new_pem_tempfile(csr_pem)
-
-        # validate
-        cert_utils.validate_csr__pem_filepath(_tmpfile.name)
-
-        # grab the modulus
-        csr_pem_modulus_md5 = cert_utils.modulus_md5_csr__pem_filepath(_tmpfile.name)
-
-        # we'll use this tuple in a bit...
-        # getcreate__SslDomain__by_domainName returns a tuple of (domainObject, is_created)
-        dbDomainObjects = {_domain_name: getcreate__SslDomain__by_domainName(ctx, _domain_name)[0]
-                           for _domain_name in domain_names
-                           }
-        dbUniqueFqdnSet, is_created_fqdn = getcreate__SslUniqueFQDNSet__by_domainObjects(ctx, dbDomainObjects.values())
-
-        # build the cert
-        dbCertificateRequest = SslCertificateRequest()
-        dbCertificateRequest.is_active = True
-        dbCertificateRequest.certificate_request_type_id = certificate_request_type_id
-        dbCertificateRequest.timestamp_started = t_now
-        dbCertificateRequest.csr_pem = csr_pem
-        dbCertificateRequest.csr_pem_md5 = utils.md5_text(csr_pem)
-        dbCertificateRequest.csr_pem_modulus_md5 = csr_pem_modulus_md5
-        dbCertificateRequest.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
-        dbCertificateRequest.ssl_operations_event_id__created = dbOperationsEvent.id
-
-        # note account/private keys
-        if dbAccountKey:
-            dbCertificateRequest.ssl_letsencrypt_account_key_id = dbAccountKey.id
-        dbCertificateRequest.ssl_private_key_id__signed_by = dbPrivateKey.id
-        if dbServerCertificate__renewal_of:
-            dbCertificateRequest.ssl_server_certificate_id__renewal_of = dbServerCertificate__renewal_of.id
-
-        ctx.dbSession.add(dbCertificateRequest)
-        ctx.dbSession.flush()
-
-        event_payload_dict['ssl_certificate_request.id'] = dbCertificateRequest.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-
-        _log_object_event(ctx,
-                          dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=SslOperationsObjectEventStatus.from_string('certificate_request__insert'),
-                          dbCertificateRequest=dbCertificateRequest,
-                          )
-        ctx.dbSession.flush()
-
-        #
-        # increment account/private key counts
-        #
-        # dbAccountKey is optional
-        if dbAccountKey:
-            dbAccountKey.count_certificate_requests += 1
-            if (
-                not dbAccountKey.timestamp_last_certificate_request
-                or
-                (dbAccountKey.timestamp_last_certificate_request < t_now)
-            ):
-                dbAccountKey.timestamp_last_certificate_request = t_now
-        #
-        # dbPrivateKey is required
-        #
-        dbPrivateKey.count_certificate_requests += 1
-        if not dbPrivateKey.timestamp_last_certificate_request or (dbPrivateKey.timestamp_last_certificate_request < t_now):
-            dbPrivateKey.timestamp_last_certificate_request = t_now
-
-        ctx.dbSession.flush()
-
-        # we'll use this tuple in a bit...
-        for _domain_name in dbDomainObjects.keys():
-            dbDomain = dbDomainObjects[_domain_name]
-
-            dbCertificateRequest2SslDomain = SslCertificateRequest2SslDomain()
-            dbCertificateRequest2SslDomain.ssl_certificate_request_id = dbCertificateRequest.id
-            dbCertificateRequest2SslDomain.ssl_domain_id = dbDomain.id
-
-            ctx.dbSession.add(dbCertificateRequest2SslDomain)
-            ctx.dbSession.flush()
-
-            # update the hash to be a tuple
-            dbDomainObjects[_domain_name] = (dbDomain, dbCertificateRequest2SslDomain)
-
-        ctx.dbSession.flush()
-
-    finally:
-        if _tmpfile:
-            _tmpfile.close()
-
-    return dbCertificateRequest, dbDomainObjects
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-def create__SslServerCertificate(
-    ctx,
-    timestamp_signed = None,
-    timestamp_expires = None,
-    is_active = None,
-    cert_pem = None,
-    chained_pem = None,
-    chain_name = None,
-    dbCertificateRequest = None,
-    dbLetsEncryptAccountKey = None,
-    dbDomains = None,
-    dbServerCertificate__renewal_of = None,
-
-    # only one of these 2
-    dbPrivateKey = None,
-    privkey_pem = None,
-):
-    if not any((dbPrivateKey, privkey_pem)) or all((dbPrivateKey, privkey_pem)):
-        raise ValueError("create__SslServerCertificate must accept ONE OF [`dbPrivateKey`, `privkey_pem`]")
-    if privkey_pem:
-        raise ValueError("need to figure this out; might not need it")
-
-    # we need to figure this out; it's the chained_pem
-    # ssl_ca_certificate_id__upchain
-    dbCACertificate, _is_created_cert = getcreate__SslCaCertificate__by_pem_text(ctx, chained_pem, chain_name)
-    ssl_ca_certificate_id__upchain = dbCACertificate.id
-
-    # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                SslOperationsEventType.from_string('certificate__insert'),
-                                                )
-
-    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-    try:
-        _tmpfileCert = cert_utils.new_pem_tempfile(cert_pem)
-
-        # validate
-        cert_utils.validate_cert__pem_filepath(_tmpfileCert.name)
-
-        # pull the domains, so we can get the fqdn
-        dbUniqueFqdnSet, is_created_fqdn = getcreate__SslUniqueFQDNSet__by_domainObjects(ctx, dbDomains)
-
-        dbServerCertificate = SslServerCertificate()
-        _certificate_parse_to_record(_tmpfileCert, dbServerCertificate)
-
-        # we don't need these anymore, because we're parsing the cert
-        # dbServerCertificate.timestamp_signed = timestamp_signed
-        # dbServerCertificate.timestamp_expires = timestamp_signed
-
-        dbServerCertificate.is_active = is_active
-        dbServerCertificate.cert_pem = cert_pem
-        dbServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
-        if dbCertificateRequest:
-            dbCertificateRequest.is_active = False
-            dbServerCertificate.ssl_certificate_request_id = dbCertificateRequest.id
-        dbServerCertificate.ssl_ca_certificate_id__upchain = ssl_ca_certificate_id__upchain
-        if dbServerCertificate__renewal_of:
-            dbServerCertificate.ssl_server_certificate_id__renewal_of = dbServerCertificate__renewal_of.id
-
-        # note account/private keys
-        dbServerCertificate.ssl_letsencrypt_account_key_id = dbLetsEncryptAccountKey.id
-        dbServerCertificate.ssl_private_key_id__signed_by = dbPrivateKey.id
-
-        # note the fqdn
-        dbServerCertificate.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
-
-        # note the event
-        dbServerCertificate.ssl_operations_event_id__created = dbOperationsEvent.id
-
-        ctx.dbSession.add(dbServerCertificate)
-        ctx.dbSession.flush()
-
-        # increment account/private key counts
-        dbLetsEncryptAccountKey.count_certificates_issued += 1
-        dbPrivateKey.count_certificates_issued += 1
-        if not dbLetsEncryptAccountKey.timestamp_last_certificate_issue or (dbLetsEncryptAccountKey.timestamp_last_certificate_issue < timestamp_signed):
-            dbLetsEncryptAccountKey.timestamp_last_certificate_issue = timestamp_signed
-        if not dbPrivateKey.timestamp_last_certificate_issue or (dbPrivateKey.timestamp_last_certificate_issue < timestamp_signed):
-            dbPrivateKey.timestamp_last_certificate_issue = timestamp_signed
-
-        event_payload_dict['ssl_server_certificate.id'] = dbServerCertificate.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
-
-        _log_object_event(ctx,
-                          dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=SslOperationsObjectEventStatus.from_string('certificate__insert'),
-                          dbServerCertificate=dbServerCertificate,
-                          )
-        ctx.dbSession.flush()
-
-    except:
-        raise
-    finally:
-        _tmpfileCert.close()
-
-    return dbServerCertificate
-
-
-def log__SslOperationsEvent(
-    ctx,
-    event_type_id,
-    event_payload_dict = None,
-    dbOperationsEvent_child_of=None,
-    timestamp_event=None,
-):
-    """
-    creates a SslOperationsEvent instance
-    if needed, registers it into the ctx
-    """
-    # defaults
-    # timestamp overwrite?
-    timestamp_event = timestamp_event or ctx.timestamp
-    # if we didn't pass in an explicit dbOperationsEvent_child_of, use the global
-    dbOperationsEvent_child_of = dbOperationsEvent_child_of or ctx.dbOperationsEvent
-
-    if event_payload_dict is None:
-        event_payload_dict = utils.new_event_payload_dict()
-
-    # bookkeeping
-    dbOperationsEvent = SslOperationsEvent()
-    dbOperationsEvent.ssl_operations_event_type_id = event_type_id
-    dbOperationsEvent.timestamp_event = timestamp_event
-    dbOperationsEvent.set_event_payload(event_payload_dict)
-    if dbOperationsEvent_child_of:
-        dbOperationsEvent.ssl_operations_event_id__child_of = dbOperationsEvent_child_of.id
-    ctx.dbSession.add(dbOperationsEvent)
-    ctx.dbSession.flush()
-
-    # shortcut!
-    # if there isn't a global dbOperationsEvent, set it!
-    if not ctx.dbOperationsEvent:
-        ctx.dbOperationsEvent = dbOperationsEvent
-
-    return dbOperationsEvent
-
-
-def _log_object_event(
-    ctx,
-    dbOperationsEvent=None,
-    event_status_id=None,
-    dbLetsEncryptAccountKey=None,
-    dbCACertificate=None,
-    dbDomain=None,
-    dbPrivateKey=None,
-    dbServerCertificate=None,
-    dbUniqueFQDNSet=None,
-    dbCertificateRequest=None,
-    dbQueueRenewal=None,
-    dbQueueDomain=None,
-):
-    """additional logging for domains"""
-    dbOperationsDomainEvent = SslOperationsObjectEvent()
-    dbOperationsDomainEvent.ssl_operations_event_id = dbOperationsEvent.id
-    dbOperationsDomainEvent.ssl_operations_object_event_status_id = event_status_id
-
-    if dbLetsEncryptAccountKey:
-        dbOperationsDomainEvent.ssl_letsencrypt_account_key_id = dbLetsEncryptAccountKey.id
-    elif dbCACertificate:
-        dbOperationsDomainEvent.ssl_ca_certificate_id = dbCACertificate.id
-    elif dbDomain:
-        dbOperationsDomainEvent.ssl_domain_id = dbDomain.id
-    elif dbPrivateKey:
-        dbOperationsDomainEvent.ssl_private_key_id = dbPrivateKey.id
-    elif dbServerCertificate:
-        dbOperationsDomainEvent.ssl_server_certificate_id = dbServerCertificate.id
-    elif dbUniqueFQDNSet:
-        dbOperationsDomainEvent.ssl_unique_fqdn_set_id = dbUniqueFQDNSet.id
-    elif dbCertificateRequest:
-        dbOperationsDomainEvent.ssl_certificate_request_id = dbCertificateRequest.id
-    elif dbQueueRenewal:
-        dbOperationsDomainEvent.ssl_queue_renewal_id = dbQueueRenewal.id
-    elif dbQueueDomain:
-        dbOperationsDomainEvent.ssl_queue_domain_id = dbQueueDomain.id
-
-    ctx.dbSession.add(dbOperationsDomainEvent)
-    ctx.dbSession.flush()
-
-    return dbOperationsDomainEvent
-
+# local
+from .logger import log__SslOperationsEvent
+from .logger import _log_object_event
+from . import get
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -905,10 +35,11 @@ def dequeue_QueuedDomain(ctx, dbQueueDomain, dbOperationsEvent=None, event_statu
     event_payload_dict['action'] = action
     dbQueueDomain.is_active = False
     dbQueueDomain.timestamp_processed = ctx.timestamp
+    ctx.dbSession.flush(objects=[dbQueueDomain, ])
 
     _log_object_event(ctx,
                       dbOperationsEvent=dbOperationsEvent,
-                      event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
+                      event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
                       dbQueueDomain=dbQueueDomain,
                       )
     return True
@@ -919,10 +50,11 @@ def disable_Domain(ctx, dbDomain, dbOperationsEvent=None, event_status='domain__
     event_payload_dict['ssl_domain.id'] = dbDomain.id
     event_payload_dict['action'] = action
     dbDomain.is_active = False
+    ctx.dbSession.flush(objects=[dbDomain, ])
 
     _log_object_event(ctx,
                       dbOperationsEvent=dbOperationsEvent,
-                      event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
+                      event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
                       dbDomain=dbDomain,
                       )
     return True
@@ -933,86 +65,14 @@ def enable_Domain(ctx, dbDomain, dbOperationsEvent=None, event_status='domain__m
     event_payload_dict['ssl_domain.id'] = dbDomain.id
     event_payload_dict['action'] = action
     dbDomain.is_active = True
+    ctx.dbSession.flush(objects=[dbDomain, ])
 
     _log_object_event(ctx,
                       dbOperationsEvent=dbOperationsEvent,
-                      event_status_id=SslOperationsObjectEventStatus.from_string(event_status),
+                      event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
                       dbDomain=dbDomain,
                       )
     return True
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def create__SslPrivateKey__autogenerated(ctx):
-    """
-    create wrapping private key generation
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    key_pem = cert_utils.new_private_key()
-    dbPrivateKey, _is_created = getcreate__SslPrivateKey__by_pem_text(
-        ctx,
-        key_pem,
-        is_autogenerated_key=True
-    )
-    return dbPrivateKey
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def _create__SslQueueRenewal(ctx, serverCertificate):
-    """
-    Queues an item for renewal
-    This must happen within the context other events
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    if not ctx.dbOperationsEvent:
-        raise ValueError("This must happen WITHIN an operations event")
-
-    dbQueueRenewal = SslQueueRenewal()
-    dbQueueRenewal.timestamp_entered = ctx.timestamp
-    dbQueueRenewal.timestamp_processed = None
-    dbQueueRenewal.ssl_server_certificate_id = serverCertificate.id
-    dbQueueRenewal.ssl_unique_fqdn_set_id = serverCertificate.ssl_unique_fqdn_set_id
-    dbQueueRenewal.ssl_operations_event_id__created = ctx.dbOperationsEvent.id
-    ctx.dbSession.add(dbQueueRenewal)
-    ctx.dbSession.flush()
-
-    event_payload = ctx.dbOperationsEvent.event_payload_json
-    event_payload['ssl_queue_renewal.id'] = dbQueueRenewal.id
-    ctx.dbOperationsEvent.set_event_payload(event_payload)
-
-    _log_object_event(ctx,
-                      dbOperationsEvent=ctx.dbOperationsEvent,
-                      event_status_id=SslOperationsObjectEventStatus.from_string('queue_renewal__insert'),
-                      dbQueueRenewal=dbQueueRenewal,
-                      )
-    ctx.dbSession.flush()
-
-    return dbQueueRenewal
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def _certificate_parse_to_record(_tmpfileCert, dbCertificate):
-    """
-    helper utility
-    """
-    # grab the modulus
-    cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(_tmpfileCert.name)
-    dbCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
-
-    dbCertificate.timestamp_signed = cert_utils.parse_startdate_cert__pem_filepath(_tmpfileCert.name)
-    dbCertificate.timestamp_expires = cert_utils.parse_enddate_cert__pem_filepath(_tmpfileCert.name)
-    dbCertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject')
-    dbCertificate.cert_subject_hash = cert_utils.cert_single_op__pem_filepath(_tmpfileCert.name, '-subject_hash')
-    dbCertificate.cert_issuer = cert_utils.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer')
-    dbCertificate.cert_issuer_hash = cert_utils.cert_single_op__pem_filepath(_tmpfileCert.name, '-issuer_hash')
-
-    return dbCertificate
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1027,7 +87,7 @@ def ca_certificate_probe(ctx):
     # create a bookkeeping object
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                SslOperationsEventType.from_string('ca_certificate__probe'),
+                                                models.SslOperationsEventType.from_string('ca_certificate__probe'),
                                                 )
 
     certs = letsencrypt_info.probe_letsencrypt_certificates()
@@ -1035,9 +95,9 @@ def ca_certificate_probe(ctx):
     certs_modified = []
     for c in certs:
         _is_created = False
-        dbCACertificate = get__SslCaCertificate__by_pem_text(ctx, c['cert_pem'])
+        dbCACertificate = lib.db.get.get__SslCaCertificate__by_pem_text(ctx, c['cert_pem'])
         if not dbCACertificate:
-            dbCACertificate, _is_created = getcreate__SslCaCertificate__by_pem_text(ctx, c['cert_pem'], c['name'])
+            dbCACertificate, _is_created = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(ctx, c['cert_pem'], c['name'])
             if _is_created:
                 certs_discovered.append(dbCACertificate)
         if 'is_ca_certificate' in c:
@@ -1063,6 +123,8 @@ def ca_certificate_probe(ctx):
     event_payload_dict['ids_modified'] = [c.id for c in certs_modified]
 
     dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent, ])
+
     return dbOperationsEvent
 
 
@@ -1089,13 +151,13 @@ def do__SslLetsEncryptAccountKey_authenticate(ctx, dbLetsEncryptAccountKey, acco
         # this would raise if we couldn't authenticate
 
         dbLetsEncryptAccountKey.timestamp_last_authenticated = ctx.timestamp
-        ctx.dbSession.flush()
+        ctx.dbSession.flush(objects=[dbLetsEncryptAccountKey, ])
 
         # log this
         event_payload_dict = utils.new_event_payload_dict()
         event_payload_dict['ssl_letsencrypt_account_key.id'] = dbLetsEncryptAccountKey.id
         dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    SslOperationsEventType.from_string('letsencrypt_account_key__authenticate'),
+                                                    models.SslOperationsEventType.from_string('letsencrypt_account_key__authenticate'),
                                                     event_payload_dict,
                                                     )
         return True
@@ -1148,7 +210,7 @@ def do__CertificateRequest__AcmeAutomated(
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                SslOperationsEventType.from_string('certificate_request__do__automated'),
+                                                models.SslOperationsEventType.from_string('certificate_request__do__automated'),
                                                 )
 
     tmpfiles = []
@@ -1166,7 +228,7 @@ def do__CertificateRequest__AcmeAutomated(
 
         if dbAccountKey is None:
             account_key_pem = cert_utils.cleanup_pem_text(account_key_pem)
-            dbAccountKey, _is_created = getcreate__SslLetsEncryptAccountKey__by_pem_text(ctx, account_key_pem)
+            dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslLetsEncryptAccountKey__by_pem_text(ctx, account_key_pem)
         else:
             account_key_pem = dbAccountKey.key_pem
         # we need to use tmpfiles on the disk
@@ -1175,7 +237,7 @@ def do__CertificateRequest__AcmeAutomated(
 
         if dbPrivateKey is None:
             private_key_pem = cert_utils.cleanup_pem_text(private_key_pem)
-            dbPrivateKey, _is_created = getcreate__SslPrivateKey__by_pem_text(ctx, private_key_pem)
+            dbPrivateKey, _is_created = lib.db.getcreate.getcreate__SslPrivateKey__by_pem_text(ctx, private_key_pem)
         else:
             private_key_pem = dbPrivateKey.key_pem
         # we need to use tmpfiles on the disk
@@ -1192,10 +254,12 @@ def do__CertificateRequest__AcmeAutomated(
 
         # these MUST commit
         with transaction.manager as tx:
-            dbCertificateRequest, dbDomainObjects = create__SslCertificateRequest(
+            (dbCertificateRequest,
+             dbDomainObjects
+             ) = lib.db.create.create__SslCertificateRequest(
                 ctx,
                 csr_pem,
-                certificate_request_type_id = SslCertificateRequestType.ACME_AUTOMATED,
+                certificate_request_type_id = models.SslCertificateRequestType.ACME_AUTOMATED,
                 dbAccountKey = dbAccountKey,
                 dbPrivateKey = dbPrivateKey,
                 dbServerCertificate__issued = None,
@@ -1209,7 +273,7 @@ def do__CertificateRequest__AcmeAutomated(
                 (dbDomain, dbCertificateRequest2D) = dbDomainObjects[domain]
                 dbCertificateRequest2D.challenge_key = token
                 dbCertificateRequest2D.challenge_text = keyauthorization
-                ctx.dbSession.flush()
+                ctx.dbSession.flush(objects=[dbCertificateRequest2D, ])
 
         def process_keyauth_cleanup(domain, token, keyauthorization):
             log.info("-process_keyauth_cleanup %s", domain)
@@ -1259,7 +323,7 @@ def do__CertificateRequest__AcmeAutomated(
 
         # these MUST commit
         with transaction.manager as tx:
-            dbServerCertificate = create__SslServerCertificate(
+            dbServerCertificate = lib.db.create.create__SslServerCertificate(
                 ctx,
                 timestamp_signed = datetime_signed,
                 timestamp_expires = datetime_expires,
@@ -1276,11 +340,14 @@ def do__CertificateRequest__AcmeAutomated(
             if dbServerCertificate__renewal_of:
                 dbServerCertificate__renewal_of.is_auto_renew = False
                 dbServerCertificate__renewal_of.is_renewed = True
+                ctx.dbSession.flush(objects=[dbServerCertificate__renewal_of, ])
             if dbQueueRenewal__of:
                 dbQueueRenewal__of.timestamp_processed = ctx.timestamp
                 dbQueueRenewal__of.process_result = True
                 dbQueueRenewal__of.is_active = False
+                ctx.dbSession.flush(objects=[dbQueueRenewal__of, ])
 
+        log.debug("mark_changed(ctx.dbSession) - is this necessary?")
         mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
         # don't commit here, as that will trigger an error on object refresh
         return dbServerCertificate
@@ -1289,8 +356,10 @@ def do__CertificateRequest__AcmeAutomated(
         if dbCertificateRequest:
             dbCertificateRequest.is_active = False
             dbCertificateRequest.is_error = True
+            ctx.dbSession.flush(objects=[dbCertificateRequest, ])
+            log.debug("mark_changed(ctx.dbSession) - is this necessary?")
             mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
-            transaction.manager.commit()
+            transaction.commit()
         raise
 
     finally:
@@ -1311,7 +380,7 @@ def operations_deactivate_expired(ctx):
     event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict['count_deactivated'] = 0
     operationsEvent = log__SslOperationsEvent(ctx,
-                                              SslOperationsEventType.from_string('certificate__deactivate_expired'),
+                                              models.SslOperationsEventType.from_string('certificate__deactivate_expired'),
                                               event_payload_dict,
                                               )
 
@@ -1321,14 +390,14 @@ def operations_deactivate_expired(ctx):
     # okay, go!
 
     # deactivate expired certificates
-    expired_certs = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.is_active is True,  # noqa
-                SslServerCertificate.timestamp_expires < ctx.timestamp,
+    expired_certs = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.is_active is True,  # noqa
+                models.SslServerCertificate.timestamp_expires < ctx.timestamp,
                 )\
         .all()
     for c in expired_certs:
         c.is_active = False
-        ctx.dbSession.flush()
+        ctx.dbSession.flush(objects=[c, ])
         events.Certificate_expired(ctx, c)
 
     # update the event
@@ -1336,7 +405,8 @@ def operations_deactivate_expired(ctx):
         event_payload_dict['count_deactivated'] = len(expired_certs)
         event_payload_dict['ssl_server_certificate.ids'] = [c.id for c in expired_certs]
         operationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
+        ctx.dbSession.flush(objects=[operationsEvent, ])
+
     return operationsEvent
 
 
@@ -1363,31 +433,31 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict['count_deactivated'] = 0
     operationsEvent = log__SslOperationsEvent(ctx,
-                                              SslOperationsEventType.from_string('deactivate_duplicate'),
+                                              models.SslOperationsEventType.from_string('deactivate_duplicate'),
                                               event_payload_dict,
                                               )
 
-    _q_ids__latest_single = ctx.dbSession.query(SslDomain.ssl_server_certificate_id__latest_single)\
+    _q_ids__latest_single = ctx.dbSession.query(models.SslDomain.ssl_server_certificate_id__latest_single)\
         .distinct()\
-        .filter(SslDomain.ssl_server_certificate_id__latest_single != None,  # noqa
+        .filter(models.SslDomain.ssl_server_certificate_id__latest_single != None,  # noqa
                 )\
         .subquery()
-    _q_ids__latest_multi = ctx.dbSession.query(SslDomain.ssl_server_certificate_id__latest_multi)\
+    _q_ids__latest_multi = ctx.dbSession.query(models.SslDomain.ssl_server_certificate_id__latest_multi)\
         .distinct()\
-        .filter(SslDomain.ssl_server_certificate_id__latest_single != None,  # noqa
+        .filter(models.SslDomain.ssl_server_certificate_id__latest_single != None,  # noqa
                 )\
         .subquery()
 
     # now grab the domains with many certs...
-    q_inner = ctx.dbSession.query(SslUniqueFQDNSet2SslDomain.ssl_domain_id,
-                              sqlalchemy.func.count(SslUniqueFQDNSet2SslDomain.ssl_domain_id).label('counted'),
+    q_inner = ctx.dbSession.query(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id,
+                              sqlalchemy.func.count(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id).label('counted'),
                               )\
-        .join(SslServerCertificate,
-              SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id == SslServerCertificate.ssl_unique_fqdn_set_id
+        .join(models.SslServerCertificate,
+              models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id == models.SslServerCertificate.ssl_unique_fqdn_set_id
               )\
-        .filter(SslServerCertificate.is_active == True,  # noqa
+        .filter(models.SslServerCertificate.is_active == True,  # noqa
                 )\
-        .group_by(SslUniqueFQDNSet2SslDomain.ssl_domain_id)
+        .group_by(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id)
     q_inner = q_inner.subquery()
     q_domains = ctx.dbSession.query(q_inner)\
         .filter(q_inner.c.counted >= 2)
@@ -1397,28 +467,29 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     if False:
         _turned_off = []
         for _domain_id in domain_ids_with_multiple_active_certs:
-            domain_certs = ctx.dbSession.query(SslServerCertificate)\
-                .join(SslUniqueFQDNSet2SslDomain,
-                      SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+            domain_certs = ctx.dbSession.query(models.SslServerCertificate)\
+                .join(models.SslUniqueFQDNSet2SslDomain,
+                      models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
                       )\
-                .filter(SslServerCertificate.is_active == True,  # noqa
-                        SslUniqueFQDNSet2SslDomain.ssl_domain_id == _domain_id,
-                        SslServerCertificate.id.notin_(_q_ids__latest_single),
-                        SslServerCertificate.id.notin_(_q_ids__latest_multi),
+                .filter(models.SslServerCertificate.is_active == True,  # noqa
+                        models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == _domain_id,
+                        models.SslServerCertificate.id.notin_(_q_ids__latest_single),
+                        models.SslServerCertificate.id.notin_(_q_ids__latest_multi),
                         )\
-                .order_by(SslServerCertificate.timestamp_expires.desc())\
+                .order_by(models.SslServerCertificate.timestamp_expires.desc())\
                 .all()
             if len(domain_certs) > 1:
                 for cert in domain_certs[1:]:
                     cert.is_active = False
                     _turned_off.append(cert)
-                    events.Certificate_deactivated(ctx, c)
+                    events.Certificate_deactivated(ctx, cert)
 
     # update the event
     if len(_turned_off):
         event_payload_dict['count_deactivated'] = len(_turned_off)
         operationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
+        ctx.dbSession.flush(objects=[operationsEvent, ])
+
     return operationsEvent
 
 
@@ -1431,117 +502,118 @@ def operations_update_recents(ctx):
     2016.06.04 - dbOperationsEvent compliant
     """
     # first the single
-    # _t_domain = SslDomain.__table__.alias('domain')
-    _q_sub = ctx.dbSession.query(SslServerCertificate.id)\
-        .join(SslUniqueFQDNSet2SslDomain,
-              SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
+    # _t_domain = models.SslDomain.__table__.alias('domain')
+    _q_sub = ctx.dbSession.query(models.SslServerCertificate.id)\
+        .join(models.SslUniqueFQDNSet2SslDomain,
+              models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
         )\
-        .filter(SslServerCertificate.is_active == True,  # noqa
-                SslServerCertificate.is_single_domain_cert == True,  # noqa
-                SslUniqueFQDNSet2SslDomain.ssl_domain_id == SslDomain.id,
+        .filter(models.SslServerCertificate.is_active == True,  # noqa
+                models.SslServerCertificate.is_single_domain_cert == True,  # noqa
+                models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == models.SslDomain.id,
                 )\
-        .order_by(SslServerCertificate.timestamp_expires.desc())\
+        .order_by(models.SslServerCertificate.timestamp_expires.desc())\
         .limit(1)\
         .subquery()\
         .as_scalar()
-    ctx.dbSession.execute(SslDomain.__table__
+    ctx.dbSession.execute(models.SslDomain.__table__
                           .update()
                           .values(ssl_server_certificate_id__latest_single=_q_sub)
                           )
 
     # then the multiple
-    # _t_domain = SslDomain.__table__.alias('domain')
-    _q_sub = ctx.dbSession.query(SslServerCertificate.id)\
-        .join(SslUniqueFQDNSet2SslDomain,
-              SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
+    # _t_domain = models.SslDomain.__table__.alias('domain')
+    _q_sub = ctx.dbSession.query(models.SslServerCertificate.id)\
+        .join(models.SslUniqueFQDNSet2SslDomain,
+              models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
         )\
-        .filter(SslServerCertificate.is_active == True,  # noqa
-                SslServerCertificate.is_single_domain_cert == False,  # noqa
-                SslUniqueFQDNSet2SslDomain.ssl_domain_id == SslDomain.id,
+        .filter(models.SslServerCertificate.is_active == True,  # noqa
+                models.SslServerCertificate.is_single_domain_cert == False,  # noqa
+                models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == models.SslDomain.id,
                 )\
-        .order_by(SslServerCertificate.timestamp_expires.desc())\
+        .order_by(models.SslServerCertificate.timestamp_expires.desc())\
         .limit(1)\
         .subquery()\
         .as_scalar()
-    ctx.dbSession.execute(SslDomain.__table__
+    ctx.dbSession.execute(models.SslDomain.__table__
                           .update()
                           .values(ssl_server_certificate_id__latest_multi=_q_sub)
                           )
 
     # update the count of active certs
-    SslServerCertificate1 = sqlalchemy.orm.aliased(SslServerCertificate)
-    SslServerCertificate2 = sqlalchemy.orm.aliased(SslServerCertificate)
-    _q_sub = ctx.dbSession.query(sqlalchemy.func.count(SslDomain.id))\
+    SslServerCertificate1 = sqlalchemy.orm.aliased(models.SslServerCertificate)
+    SslServerCertificate2 = sqlalchemy.orm.aliased(models.SslServerCertificate)
+    _q_sub = ctx.dbSession.query(sqlalchemy.func.count(models.SslDomain.id))\
         .outerjoin(SslServerCertificate1,
-                   SslDomain.ssl_server_certificate_id__latest_single == SslServerCertificate1.id
+                   models.SslDomain.ssl_server_certificate_id__latest_single == SslServerCertificate1.id
                    )\
         .outerjoin(SslServerCertificate2,
-                   SslDomain.ssl_server_certificate_id__latest_multi == SslServerCertificate2.id
+                   models.SslDomain.ssl_server_certificate_id__latest_multi == SslServerCertificate2.id
                    )\
-        .filter(sqlalchemy.or_(SslCaCertificate.id == SslServerCertificate1.ssl_ca_certificate_id__upchain,
-                               SslCaCertificate.id == SslServerCertificate2.ssl_ca_certificate_id__upchain,
+        .filter(sqlalchemy.or_(models.SslCaCertificate.id == SslServerCertificate1.ssl_ca_certificate_id__upchain,
+                               models.SslCaCertificate.id == SslServerCertificate2.ssl_ca_certificate_id__upchain,
                                ),
                 )\
         .subquery()\
         .as_scalar()
-    ctx.dbSession.execute(SslCaCertificate.__table__
+    ctx.dbSession.execute(models.SslCaCertificate.__table__
                           .update()
                           .values(count_active_certificates=_q_sub)
                           )
 
     # update the count of active PrivateKeys
-    SslServerCertificate1 = sqlalchemy.orm.aliased(SslServerCertificate)
-    SslServerCertificate2 = sqlalchemy.orm.aliased(SslServerCertificate)
-    _q_sub = ctx.dbSession.query(sqlalchemy.func.count(SslDomain.id))\
+    SslServerCertificate1 = sqlalchemy.orm.aliased(models.SslServerCertificate)
+    SslServerCertificate2 = sqlalchemy.orm.aliased(models.SslServerCertificate)
+    _q_sub = ctx.dbSession.query(sqlalchemy.func.count(models.SslDomain.id))\
         .outerjoin(SslServerCertificate1,
-                   SslDomain.ssl_server_certificate_id__latest_single == SslServerCertificate1.id
+                   models.SslDomain.ssl_server_certificate_id__latest_single == SslServerCertificate1.id
                    )\
         .outerjoin(SslServerCertificate2,
-                   SslDomain.ssl_server_certificate_id__latest_multi == SslServerCertificate2.id
+                   models.SslDomain.ssl_server_certificate_id__latest_multi == SslServerCertificate2.id
                    )\
-        .filter(sqlalchemy.or_(SslPrivateKey.id == SslServerCertificate1.ssl_private_key_id__signed_by,
-                               SslPrivateKey.id == SslServerCertificate2.ssl_private_key_id__signed_by,
+        .filter(sqlalchemy.or_(models.SslPrivateKey.id == SslServerCertificate1.ssl_private_key_id__signed_by,
+                               models.SslPrivateKey.id == SslServerCertificate2.ssl_private_key_id__signed_by,
                                ),
                 )\
         .subquery()\
         .as_scalar()
-    ctx.dbSession.execute(SslPrivateKey.__table__
+    ctx.dbSession.execute(models.SslPrivateKey.__table__
                           .update()
                           .values(count_active_certificates=_q_sub)
                           )
 
     # the following works, but this is currently tracked
-    if False:
+    '''
         # update the counts on Account Keys
-        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(SslCertificateRequest.id))\
-            .filter(SslCertificateRequest.ssl_letsencrypt_account_key_id == SslLetsEncryptAccountKey.id,
+        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(models.SslCertificateRequest.id))\
+            .filter(models.SslCertificateRequest.ssl_letsencrypt_account_key_id == models.SslLetsEncryptAccountKey.id,
                     )\
             .subquery()\
             .as_scalar()
-        ctx.dbSession.execute(SslLetsEncryptAccountKey.__table__
+        ctx.dbSession.execute(models.SslLetsEncryptAccountKey.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
                                       # count_certificates_issued=_q_sub_iss,
                                       )
                               )
         # update the counts on Private Keys
-        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(SslCertificateRequest.id))\
-            .filter(SslCertificateRequest.ssl_private_key_id__signed_by == SslPrivateKey.id,
+        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(models.SslCertificateRequest.id))\
+            .filter(models.SslCertificateRequest.ssl_private_key_id__signed_by == models.SslPrivateKey.id,
                     )\
             .subquery()\
             .as_scalar()
-        _q_sub_iss = ctx.dbSession.query(sqlalchemy.func.count(SslServerCertificate.id))\
-            .filter(SslServerCertificate.ssl_private_key_id__signed_by == SslPrivateKey.id,
+        _q_sub_iss = ctx.dbSession.query(sqlalchemy.func.count(models.SslServerCertificate.id))\
+            .filter(models.SslServerCertificate.ssl_private_key_id__signed_by == models.SslPrivateKey.id,
                     )\
             .subquery()\
             .as_scalar()
 
-        ctx.dbSession.execute(SslPrivateKey.__table__
+        ctx.dbSession.execute(models.SslPrivateKey.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
                                       count_certificates_issued=_q_sub_iss,
                                       )
                               )
+    '''
 
     # should we do the timestamps?
     """
@@ -1562,14 +634,17 @@ def operations_update_recents(ctx):
     WHERE ssl_server_certificate.ssl_private_key_id__signed_by = ssl_private_key.id);
     """
 
-    # mark the session changed, but we need to mark the session not scoped session.  ugh.
-    # update: we don't need this if we add the bookkeeping object, but let's just keep this to be safe
+    # bookkeeping, doing this will mark the session as changed!
+    dbOperationsEvent = log__SslOperationsEvent(ctx,
+                                                models.SslOperationsEventType.from_string('operations__update_recents'),
+                                                )
+
+    # mark the session changed
+    # update: we don't need this if we add the bookkeeping object
+    # update2: there is an unresolved bug/behavior where including this somehow commits
+    log.debug("mark_changed(ctx.dbSession) - is this necessary?")
     mark_changed(ctx.dbSession)
 
-    # bookkeeping
-    dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                SslOperationsEventType.from_string('operations__update_recents'),
-                                                )
     return dbOperationsEvent
 
 
@@ -1582,7 +657,7 @@ def api_domains__enable(ctx, domain_names):
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                SslOperationsEventType.from_string('api_domains__enable'),
+                                                models.SslOperationsEventType.from_string('api_domains__enable'),
                                                 event_payload_dict,
                                                 )
     results = queue_domains__add(ctx, domain_names)
@@ -1602,12 +677,12 @@ def api_domains__disable(ctx, domain_names):
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                SslOperationsEventType.from_string('api_domains__disable'),
+                                                models.SslOperationsEventType.from_string('api_domains__disable'),
                                                 event_payload_dict,
                                                 )
 
     for domain_name in domain_names:
-        _dbDomain = get__SslDomain__by_name(ctx, domain_name, preload=False, active_only=False)
+        _dbDomain = lib.db.get.get__SslDomain__by_name(ctx, domain_name, preload=False, active_only=False)
         if _dbDomain:
             if _dbDomain.is_active:
                 disable_Domain(ctx, _dbDomain, dbOperationsEvent=dbOperationsEvent, event_status='domain__mark__inactive', action='deactivated')
@@ -1615,7 +690,7 @@ def api_domains__disable(ctx, domain_names):
             else:
                 results[domain_name] = 'already deactivated'
         elif not _dbDomain:
-            _dbQueueDomain = get__SslQueueDomain__by_name(ctx, domain_name)
+            _dbQueueDomain = lib.db.get.get__SslQueueDomain__by_name(ctx, domain_name)
             if _dbQueueDomain:
                 dequeue_QueuedDomain(ctx, _dbQueueDomain, dbOperationsEvent=dbOperationsEvent, event_status='queue_domain__mark__cancelled', action='de-queued')
                 results[domain_name] = 'de-queued'
@@ -1625,6 +700,7 @@ def api_domains__disable(ctx, domain_names):
     event_payload_dict['results'] = results
     dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
     dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
     return results
 
@@ -1659,13 +735,13 @@ def api_domains__certificate_if_needed(
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                SslOperationsEventType.from_string('api_domains__certificate_if_needed'),
+                                                models.SslOperationsEventType.from_string('api_domains__certificate_if_needed'),
                                                 event_payload_dict,
                                                 )
 
     dbAccountKey = None
     if account_key_pem is not None:
-        dbAccountKey, _is_created = getcreate__SslLetsEncryptAccountKey__by_pem_text(
+        dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslLetsEncryptAccountKey__by_pem_text(
             ctx,
             account_key_pem,
         )
@@ -1673,14 +749,14 @@ def api_domains__certificate_if_needed(
             raise errors.DisplayableError("Could not create an AccountKey")
 
     if account_key_pem is None:
-        dbAccountKey = get__SslLetsEncryptAccountKey__default(ctx)
+        dbAccountKey = lib.db.get.get__SslLetsEncryptAccountKey__default(ctx)
         if not dbAccountKey:
             raise errors.DisplayableError("Could not grab an AccountKey")
 
     if dbPrivateKey is None:
-        dbPrivateKey = get__SslPrivateKey__current_week(ctx)
+        dbPrivateKey = lib.db.get.get__SslPrivateKey__current_week(ctx)
         if not dbPrivateKey:
-            dbPrivateKey = create__SslPrivateKey__autogenerated(ctx)
+            dbPrivateKey = lib.db.create.create__SslPrivateKey__autogenerated(ctx)
         if not dbPrivateKey:
             raise errors.DisplayableError("Could not grab a PrivateKey")
 
@@ -1698,32 +774,32 @@ def api_domains__certificate_if_needed(
 
         # go for the domain
         _logger_args = {'event_status_id': None, }
-        _dbDomain = get__SslDomain__by_name(ctx, domain_name, preload=False, active_only=False)
+        _dbDomain = lib.db.get.get__SslDomain__by_name(ctx, domain_name, preload=False, active_only=False)
         if _dbDomain:
             _result['ssl_domain.id'] = _dbDomain.id
 
             if not _dbDomain.is_active:
                 _result['domain.status'] = 'activated'
 
-                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__domain_activate')
+                _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__domain_activate')
                 _logger_args['dbDomain'] = _dbDomain
 
                 # set this active
                 _dbDomain.is_active = True
-                ctx.dbSession.flush()
+                ctx.dbSession.flush(objects=[_dbDomain, ])
 
             else:
                 _result['domain.status'] = 'exists'
 
-                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__domain_exists')
+                _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__domain_exists')
                 _logger_args['dbDomain'] = _dbDomain
 
         elif not _dbDomain:
 
-            _dbDomain = getcreate__SslDomain__by_domainName(ctx, domain_name)[0]  # (dbDomain, _is_created)
+            _dbDomain = lib.db.getcreate.getcreate__SslDomain__by_domainName(ctx, domain_name)[0]  # (dbDomain, _is_created)
             _result['domain.status'] = 'new'
             _result['ssl_domain.id'] = _dbDomain.id
-            _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__domain_new')
+            _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__domain_new')
             _logger_args['dbDomain'] = _dbDomain
 
         # log domain event
@@ -1737,11 +813,11 @@ def api_domains__certificate_if_needed(
 
         # go for the certificate
         _logger_args = {'event_status_id': None, }
-        _dbServerCertificate = get__SslServerCertificate__by_SslDomainId__latest(ctx, _dbDomain.id)
+        _dbServerCertificate = lib.db.get.get__SslServerCertificate__by_SslDomainId__latest(ctx, _dbDomain.id)
         if _dbServerCertificate:
             _result['certificate.status'] = 'exists'
             _result['ssl_server_certificate.id'] = _dbServerCertificate.id
-            _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__certificate_exists')
+            _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__certificate_exists')
             _logger_args['dbServerCertificate'] = _dbServerCertificate
         else:
             try:
@@ -1754,14 +830,14 @@ def api_domains__certificate_if_needed(
                 _result['certificate.status'] = 'new'
                 _result['ssl_server_certificate.id'] = _dbServerCertificate.id
 
-                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__certificate_new_success')
+                _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__certificate_new_success')
                 _logger_args['dbServerCertificate'] = _dbServerCertificate
 
             except errors.DomainVerificationError as e:
                 _result['certificate.status'] = 'fail'
                 _result['ssl_server_certificate.id'] = None
 
-                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__certificate_new_fail')
+                _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__certificate_new_fail')
                 _logger_args['dbServerCertificate'] = None
 
         dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
@@ -1776,7 +852,7 @@ def api_domains__certificate_if_needed(
         transaction.commit()
 
         # remove from queue if it exists
-        _dbQueueDomain = get__SslQueueDomain__by_name(ctx, domain_name)
+        _dbQueueDomain = lib.db.get.get__SslQueueDomain__by_name(ctx, domain_name)
         if _dbQueueDomain:
             dequeue_QueuedDomain(ctx, _dbQueueDomain, dbOperationsEvent=dbOperationsEvent, event_status='queue_domain__mark__already_processed', action='already_processed')
 
@@ -1789,6 +865,7 @@ def api_domains__certificate_if_needed(
     event_payload_dict['results'] = results
     dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
     dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
     return results
 
@@ -1804,7 +881,7 @@ def queue_domains__add(ctx, domain_names):
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                SslOperationsEventType.from_string('queue_domain__add'),
+                                                models.SslOperationsEventType.from_string('queue_domain__add'),
                                                 event_payload_dict,
                                                 )
 
@@ -1812,7 +889,7 @@ def queue_domains__add(ctx, domain_names):
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:
-        _dbDomain = get__SslDomain__by_name(ctx, domain_name, preload=False, active_only=False)
+        _dbDomain = lib.db.get.get__SslDomain__by_name(ctx, domain_name, preload=False, active_only=False)
         _result = None
         _logger_args = {'event_status_id': None, }
         if _dbDomain:
@@ -1820,31 +897,31 @@ def queue_domains__add(ctx, domain_names):
                 # set this active
                 _dbDomain.is_active = True
 
-                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('queue_domain__add__already_exists_activate')
+                _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('queue_domain__add__already_exists_activate')
                 _logger_args['dbDomain'] = _dbDomain
                 _result = 'exists'
 
             else:
-                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('queue_domain__add__already_exists')
+                _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('queue_domain__add__already_exists')
                 _logger_args['dbDomain'] = _dbDomain
                 _result = 'exists'
 
         elif not _dbDomain:
-            _dbQueueDomain = get__SslQueueDomain__by_name(ctx, domain_name)
+            _dbQueueDomain = lib.db.get.get__SslQueueDomain__by_name(ctx, domain_name)
             if _dbQueueDomain:
-                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('queue_domain__add__already_queued')
+                _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('queue_domain__add__already_queued')
                 _logger_args['dbQueueDomain'] = _dbQueueDomain
                 _result = 'already_queued'
 
             else:
-                _dbQueueDomain = SslQueueDomain()
+                _dbQueueDomain = models.SslQueueDomain()
                 _dbQueueDomain.domain_name = domain_name
                 _dbQueueDomain.timestamp_entered = _timestamp
                 _dbQueueDomain.ssl_operations_event_id__created = dbOperationsEvent.id
                 ctx.dbSession.add(_dbQueueDomain)
-                ctx.dbSession.flush()
+                ctx.dbSession.flush(objects=[_dbQueueDomain, ])
 
-                _logger_args['event_status_id'] = SslOperationsObjectEventStatus.from_string('queue_domain__add__success')
+                _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('queue_domain__add__success')
                 _logger_args['dbQueueDomain'] = _dbQueueDomain
                 _result = 'queued'
 
@@ -1877,7 +954,7 @@ def queue_domains__process(
     """
 
     try:
-        items_paged = get__SslQueueDomain__paginated(
+        items_paged = lib.db.get.get__SslQueueDomain__paginated(
             ctx,
             show_processed=False,
             limit=100,
@@ -1888,7 +965,7 @@ def queue_domains__process(
         event_payload_dict['status'] = 'attempt'
         event_payload_dict['queue_domain_ids'] = ','.join([str(d.id) for d in items_paged])
         dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    SslOperationsEventType.from_string('queue_domain__process'),
+                                                    models.SslOperationsEventType.from_string('queue_domain__process'),
                                                     event_payload_dict,
                                                     )
 
@@ -1896,7 +973,7 @@ def queue_domains__process(
         for qDomain in items_paged:
             _log_object_event(ctx,
                               dbOperationsEvent=dbOperationsEvent,
-                              event_status_id=SslOperationsEventType.from_string('queue_domain__process'),
+                              event_status_id=models.SslOperationsEventType.from_string('queue_domain__process'),
                               dbQueueDomain=qDomain,
                               )
 
@@ -1913,35 +990,35 @@ def queue_domains__process(
         # generate domains
         domainObjects = []
         for qDomain in items_paged:
-            domainObject, _is_created = getcreate__SslDomain__by_domainName(
+            domainObject, _is_created = lib.db.getcreate.getcreate__SslDomain__by_domainName(
                 ctx,
                 qDomain.domain_name,
                 is_from_queue_domain=True,
             )
             domainObjects.append(domainObject)
             qDomain.ssl_domain_id = domainObject.id
-            ctx.dbSession.flush()
+            ctx.dbSession.flush(objects=[qDomain, ])
 
         # create a dbUniqueFqdnSet for this.
         # TODO - should we delete this if we fail? or keep for the CSR record
         #      - rationale is that on another pass, we would have a different fqdn set
-        dbUniqueFqdnSet, is_created = getcreate__SslUniqueFQDNSet__by_domainObjects(ctx, domainObjects)
+        dbUniqueFqdnSet, is_created = lib.db.getcreate.getcreate__SslUniqueFQDNSet__by_domainObjects(ctx, domainObjects)
 
         # update the event
         event_payload_dict['ssl_unique_fqdn_set_id'] = dbUniqueFqdnSet.id
         dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
+        ctx.dbSession.flush(objects=[dbOperationsEvent, ])
         transaction.commit()
 
         if dbAccountKey is None:
-            dbAccountKey = get__SslLetsEncryptAccountKey__default(ctx)
+            dbAccountKey = lib.db.get.get__SslLetsEncryptAccountKey__default(ctx)
             if not dbAccountKey:
                 raise ValueError("Could not grab an AccountKey")
 
         if dbPrivateKey is None:
-            dbPrivateKey = get__SslPrivateKey__current_week(ctx)
+            dbPrivateKey = lib.db.get.get__SslPrivateKey__current_week(ctx)
             if not dbPrivateKey:
-                dbPrivateKey = create__SslPrivateKey__autogenerated(ctx)
+                dbPrivateKey = lib.db.create.create__SslPrivateKey__autogenerated(ctx)
             if not dbPrivateKey:
                 raise ValueError("Could not grab a PrivateKey")
 
@@ -1960,24 +1037,24 @@ def queue_domains__process(
             for qdomain in items_paged:
                 # this may have committed
                 qdomain.timestamp_processed = timestamp_transaction
-            ctx.dbSession.flush()
+                ctx.dbSession.flush(objects=[qdomain, ])
 
             event_payload_dict['status'] = 'success'
             event_payload_dict['certificate.id'] = dbServerCertificate.id
             dbOperationsEvent.set_event_payload(event_payload_dict)
-            ctx.dbSession.flush()
+            ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
         except errors.DomainVerificationError as e:
             event_payload_dict['status'] = 'error - DomainVerificationError'
             event_payload_dict['error'] = e.message
             dbOperationsEvent.set_event_payload(event_payload_dict)
-            ctx.dbSession.flush()
+            ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
             _timestamp = ctx.timestamp
             for qd in items_paged:
                 _log_object_event(ctx,
                                   dbOperationsEvent=dbOperationsEvent,
-                                  event_status_id=SslOperationsEventType.from_string('queue_domain__process__fail'),
+                                  event_status_id=models.SslOperationsEventType.from_string('queue_domain__process__fail'),
                                   dbQueueDomain=qd,
                                   )
             raise
@@ -1986,13 +1063,13 @@ def queue_domains__process(
         for qd in items_paged:
             _log_object_event(ctx,
                               dbOperationsEvent=dbOperationsEvent,
-                              event_status_id=SslOperationsEventType.from_string('queue_domain__process__success'),
+                              event_status_id=models.SslOperationsEventType.from_string('queue_domain__process__success'),
                               dbQueueDomain=qd,
                               )
 
         return True
 
-    except:
+    except Exception as exc:
         raise
 
 
@@ -2007,7 +1084,7 @@ def queue_renewals__update(
         if fqdns_ids_only:
             raise NotImplemented()
 
-        event_type = SslOperationsEventType.from_string('queue_renewal__update')
+        event_type = models.SslOperationsEventType.from_string('queue_renewal__update')
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__SslOperationsEvent(ctx,
                                                     event_type,
@@ -2017,34 +1094,34 @@ def queue_renewals__update(
         _expiring_days = 28
         _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
 
-        _subquery_already_queued = ctx.dbSession.query(SslQueueRenewal.ssl_server_certificate_id)\
-            .filter(SslQueueRenewal.timestamp_processed.op('IS')(None),
-                    SslQueueRenewal.process_result.op('IS NOT')(True),
+        _subquery_already_queued = ctx.dbSession.query(models.SslQueueRenewal.ssl_server_certificate_id)\
+            .filter(models.SslQueueRenewal.timestamp_processed.op('IS')(None),
+                    models.SslQueueRenewal.process_result.op('IS NOT')(True),
                     )\
             .subquery()
 
-        _core_query = ctx.dbSession.query(SslServerCertificate)\
-            .filter(SslServerCertificate.is_active.op('IS')(True),
-                    SslServerCertificate.is_auto_renew.op('IS')(True),
-                    SslServerCertificate.is_renewed.op('IS NOT')(True),
-                    SslServerCertificate.timestamp_expires <= _until,
-                    SslServerCertificate.id.notin_(_subquery_already_queued),
+        _core_query = ctx.dbSession.query(models.SslServerCertificate)\
+            .filter(models.SslServerCertificate.is_active.op('IS')(True),
+                    models.SslServerCertificate.is_auto_renew.op('IS')(True),
+                    models.SslServerCertificate.is_renewed.op('IS NOT')(True),
+                    models.SslServerCertificate.timestamp_expires <= _until,
+                    models.SslServerCertificate.id.notin_(_subquery_already_queued),
                     )
         results = _core_query.all()
 
         renewals = []
         for cert in results:
             # this will call `_log_object_event` as needed
-            dbQueueRenewal = _create__SslQueueRenewal(ctx, cert, )
+            dbQueueRenewal = lib.db.create._create__SslQueueRenewal(ctx, cert, )
             renewals.append(dbQueueRenewal)
         event_payload_dict['ssl_certificate-queued.ids'] = ','.join([str(c.id) for c in results])
         event_payload_dict['sql_queue_renewals.ids'] = ','.join([str(c.id) for c in renewals])
         dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush()
+        ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
         return True
 
-    except:
+    except Exception as exc:
         raise
 
 
@@ -2057,16 +1134,16 @@ def queue_renewals__process(ctx):
             'count_fail': 0,
             'failures': {},
             }
-    event_type = SslOperationsEventType.from_string('queue_renewal__process')
+    event_type = models.SslOperationsEventType.from_string('queue_renewal__process')
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
                                                 event_type,
                                                 event_payload_dict,
                                                 )
-    items_count = get__SslQueueRenewal__count(ctx, show_all=False)
+    items_count = lib.db.get.get__SslQueueRenewal__count(ctx, show_all=False)
     rval['count_total'] = items_count
     if items_count:
-        items_paged = get__SslQueueRenewal__paginated(ctx, show_all=False, limit=10, offset=0, eagerload_renewal=True)
+        items_paged = lib.db.get.get__SslQueueRenewal__paginated(ctx, show_all=False, limit=10, offset=0, eagerload_renewal=True)
 
         _need_default_key = False
         for dbQueueRenewal in items_paged:
@@ -2074,7 +1151,7 @@ def queue_renewals__process(ctx):
                 _need_default_key = True
                 break
         if _need_default_key:
-            dbAccountKeyDefault = get__SslLetsEncryptAccountKey__default(ctx, active_only=True)
+            dbAccountKeyDefault = lib.db.get.get__SslLetsEncryptAccountKey__default(ctx, active_only=True)
             if not dbAccountKeyDefault:
                 raise ValueError("Could not load a default AccountKey for renewal")
 
@@ -2102,11 +1179,12 @@ def queue_renewals__process(ctx):
                 if dbServerCertificate:
                     _log_object_event(ctx,
                                       dbOperationsEvent=dbOperationsEvent,
-                                      event_status_id=SslOperationsEventType.from_string('queue_renewal__process__success'),
+                                      event_status_id=models.SslOperationsEventType.from_string('queue_renewal__process__success'),
                                       dbQueueRenewal=dbQueueRenewal,
                                       )
                     rval['count_success'] += 1
                     dbQueueRenewal.process_result = True
+                    ctx.dbSession.flush(objects=[dbQueueRenewal, ])
                 else:
                     raise ValueError("what happened?")
             except Exception as e:
@@ -2114,11 +1192,12 @@ def queue_renewals__process(ctx):
                     dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
                 if dbQueueRenewal not in ctx.dbSession:
                     dbQueueRenewal = ctx.dbSession.merge(dbQueueRenewal)
-
                 dbQueueRenewal.process_result = False
+                ctx.dbSession.flush(objects=[dbQueueRenewal, ])
+
                 _log_object_event(ctx,
                                   dbOperationsEvent=dbOperationsEvent,
-                                  event_status_id=SslOperationsEventType.from_string('queue_renewal__process__fail'),
+                                  event_status_id=models.SslOperationsEventType.from_string('queue_renewal__process__fail'),
                                   dbQueueRenewal=dbQueueRenewal,
                                   )
                 rval['count_fail'] += 1
@@ -2128,6 +1207,7 @@ def queue_renewals__process(ctx):
                     raise
         event_payload_dict['rval'] = rval
         dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent, ])
     return rval
 
 
@@ -2142,7 +1222,7 @@ def upload__SslCaCertificateBundle__by_pem_text(ctx, bundle_data):
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                SslOperationsEventType.from_string('ca_certificate__upload_bundle'),
+                                                models.SslOperationsEventType.from_string('ca_certificate__upload_bundle'),
                                                 event_payload_dict
                                                 )
     results = {}
@@ -2166,7 +1246,7 @@ def upload__SslCaCertificateBundle__by_pem_text(ctx, bundle_data):
                     is_cross_signed_authority_certificate = c['is_cross_signed_authority_certificate']
                 break
 
-        dbCACertificate, is_created = getcreate__SslCaCertificate__by_pem_text(
+        dbCACertificate, is_created = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(
             ctx,
             cert_pem_text,
             cert_name,
@@ -2191,4 +1271,5 @@ def upload__SslCaCertificateBundle__by_pem_text(ctx, bundle_data):
     event_payload_dict['ids_created'] = ids_created
     event_payload_dict['ids_updated'] = ids_updated
     dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent, ])
     return results

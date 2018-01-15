@@ -10,7 +10,6 @@ import re
 import subprocess
 import tempfile
 import textwrap
-import pdb
 
 # pypi
 from dateutil import parser as dateutil_parser
@@ -174,7 +173,7 @@ def validate_key__pem(key_pem):
         tmpfile_pem = new_pem_tempfile(key_pem)
         pem_filepath = tmpfile_pem.name
         return validate_key__pem_filepath(pem_filepath)
-    except:
+    except Exception as exc:
         raise
     finally:
         if tmpfile_pem:
@@ -412,7 +411,7 @@ def parse_key(key_pem=None, pem_filepath=None):
         rval['check'] = key_single_op__pem_filepath(pem_filepath, '-check')
         rval['text'] = key_single_op__pem_filepath(pem_filepath, '-text')
         return rval
-    except:
+    except Exception as exc:
         raise
     finally:
         if tmpfile_pem:
@@ -442,7 +441,7 @@ def parse_cert(cert_pem=None, pem_filepath=None):
         rval['parse_startdate_cert__pem_filepath'] = str(parse_startdate_cert__pem_filepath(pem_filepath))
 
         return rval
-    except:
+    except Exception as exc:
         raise
     finally:
         if tmpfile_pem:

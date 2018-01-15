@@ -7,14 +7,13 @@ from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
 import datetime
-import pdb
 
 # pypi
 import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp
-from ..models import *
+from ..models import models
 from ..lib.forms import (Form_Domain_mark,
                          )
 from ..lib import acme as lib_acme
@@ -33,9 +32,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains', renderer='/admin/domains.mako')
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
     def domains(self):
-        items_count = lib_db.get__SslDomain__count(self.request.api_context)
+        items_count = lib_db.get.get__SslDomain__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/domains/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslDomain__paginated(self.request.api_context, eagerload_web=True, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslDomain__paginated(self.request.api_context, eagerload_web=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomains_count': items_count,
                 'SslDomains': items_paged,
@@ -47,9 +46,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains:expiring_paginated', renderer='/admin/domains.mako')
     def domains_expiring_only(self):
         expiring_days = self.request.registry.settings['expiring_days']
-        items_count = lib_db.get__SslDomain__count(self.request.api_context, expiring_days=expiring_days)
+        items_count = lib_db.get.get__SslDomain__count(self.request.api_context, expiring_days=expiring_days)
         (pager, offset) = self._paginate(items_count, url_template='%s/domains/expiring/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get__SslDomain__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslDomain__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomains_count': items_count,
                 'SslDomains': items_paged,
@@ -63,9 +62,9 @@ class ViewAdmin(Handler):
     def _domain_focus(self, eagerload_web=False):
         domain_identifier = self.request.matchdict['domain_identifier'].strip()
         if domain_identifier.isdigit():
-            dbDomain = lib_db.get__SslDomain__by_id(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
+            dbDomain = lib_db.get.get__SslDomain__by_id(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
         else:
-            dbDomain = lib_db.get__SslDomain__by_name(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
+            dbDomain = lib_db.get.get__SslDomain__by_name(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
         if not dbDomain:
             raise HTTPNotFound('the domain was not found')
         return dbDomain
@@ -119,10 +118,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificates_paginated', renderer='/admin/domain-focus-certificates.mako')
     def domain_focus__certificates(self):
         dbDomain = self._domain_focus()
-        items_count = lib_db.get__SslServerCertificate__by_SslDomainId__count(
-            self.request.api_context, dbDomain.id)
+        items_count = lib_db.get.get__SslServerCertificate__by_SslDomainId__count(self.request.api_context, dbDomain.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
-        items_paged = lib_db.get__SslServerCertificate__by_SslDomainId__paginated(
+        items_paged = lib_db.get.get__SslServerCertificate__by_SslDomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomain': dbDomain,
@@ -135,10 +133,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:certificate_requests_paginated', renderer='/admin/domain-focus-certificate_requests.mako')
     def domain_focus__certificate_requests(self):
         dbDomain = self._domain_focus()
-        items_count = lib_db.get__SslCertificateRequest__by_SslDomainId__count(
-            self.request.api_context, SslDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], SslDomain.id))
-        items_paged = lib_db.get__SslCertificateRequest__by_SslDomainId__paginated(
+        items_count = lib_db.get.get__SslCertificateRequest__by_SslDomainId__count(self.request.api_context, dbDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
+        items_paged = lib_db.get.get__SslCertificateRequest__by_SslDomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomain': dbDomain,
@@ -153,13 +150,13 @@ class ViewAdmin(Handler):
     def domain_focus__calendar(self):
         rval = {}
         dbDomain = self._domain_focus()
-        weekly_certs = self.request.api_context.dbSession.query(year_week(SslServerCertificate.timestamp_signed).label('week_num'),
-                                                                sqlalchemy.func.count(SslServerCertificate.id)
+        weekly_certs = self.request.api_context.dbSession.query(models.year_week(models.SslServerCertificate.timestamp_signed).label('week_num'),
+                                                                sqlalchemy.func.count(models.SslServerCertificate.id)
                                                                 )\
-            .join(SslUniqueFQDNSet2SslDomain,
-                  SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+            .join(models.SslUniqueFQDNSet2SslDomain,
+                  models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
                   )\
-            .filter(SslUniqueFQDNSet2SslDomain.ssl_domain_id == dbDomain.id,
+            .filter(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == dbDomain.id,
                     )\
             .group_by('week_num')\
             .order_by(sqlalchemy.asc('week_num'))\
@@ -175,10 +172,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:unique_fqdn_sets_paginated', renderer='/admin/domain-focus-unique_fqdn_sets.mako')
     def domain_focus__unique_fqdns(self):
         dbDomain = self._domain_focus()
-        items_count = lib_db.get__SslUniqueFQDNSet__by_SslDomainId__count(
-            self.request.api_context, SslDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/unique-fqdn-sets/{0}' % (self.request.registry.settings['admin_prefix'], SslDomain.id))
-        items_paged = lib_db.get__SslUniqueFQDNSet__by_SslDomainId__paginated(
+        items_count = lib_db.get.get__SslUniqueFQDNSet__by_SslDomainId__count(self.request.api_context, dbDomain.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/unique-fqdn-sets/{0}' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
+        items_paged = lib_db.get.get__SslUniqueFQDNSet__by_SslDomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomain': dbDomain,
@@ -203,7 +199,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results['action']
-            event_type = SslOperationsEventType.from_string('domain__mark')
+            event_type = models.SslOperationsEventType.from_string('domain__mark')
             event_payload_dict = lib_utils.new_event_payload_dict()
             event_payload_dict['domain_id'] = dbDomain.id
             event_payload_dict['action'] = action
@@ -230,16 +226,16 @@ class ViewAdmin(Handler):
                 if not dbDomain.is_active:
                     raise formhandling.FormInvalid('Already inactive')
                 lib_db.disable_Domain(self.request.api_context,
-                                     dbDomain,
-                                     dbOperationsEvent=dbOperationsEvent,
-                                     event_status='domain__mark__inactive',
-                                     action='deactivated'
-                                     )
+                                      dbDomain,
+                                      dbOperationsEvent=dbOperationsEvent,
+                                      event_status='domain__mark__inactive',
+                                      action='deactivated'
+                                      )
 
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 
-            self.request.api_context.dbSession.flush()
+            self.request.api_context.dbSession.flush(objects=[dbOperationsEvent, dbDomain])
 
             url_success = '%s/domain/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],

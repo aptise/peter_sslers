@@ -236,7 +236,7 @@ class AppTest(AppTestCore):
                 #
                 _key_filename = TEST_FILES['AccountKey']['1']
                 key_pem = self._filedata_testfile(_key_filename)
-                _key_account1, _is_created = db.getcreate__SslLetsEncryptAccountKey__by_pem_text(self.ctx, key_pem)
+                _key_account1, _is_created = db.getcreate.getcreate__SslLetsEncryptAccountKey__by_pem_text(self.ctx, key_pem)
                 # print _key_account1, _is_created
                 self.ctx.dbSession.commit()
 
@@ -247,7 +247,7 @@ class AppTest(AppTestCore):
                 _ca_cert_id = 'isrgrootx1'
                 _ca_cert_filename = TEST_FILES['CaCertificates']['cert'][_ca_cert_id]
                 ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
-                _ca_cert_1, _is_created = db.getcreate__SslCaCertificate__by_pem_text(
+                _ca_cert_1, _is_created = db.getcreate.getcreate__SslCaCertificate__by_pem_text(
                     self.ctx,
                     ca_cert_pem,
                     "ISRG Root",
@@ -264,7 +264,7 @@ class AppTest(AppTestCore):
                 #
                 _ca_cert_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['cert']
                 ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
-                _ca_cert_selfsigned1, _is_created = db.getcreate__SslCaCertificate__by_pem_text(
+                _ca_cert_selfsigned1, _is_created = db.getcreate.getcreate__SslCaCertificate__by_pem_text(
                     self.ctx,
                     ca_cert_pem,
                     _ca_cert_filename,
@@ -278,7 +278,7 @@ class AppTest(AppTestCore):
                 #
                 _pkey_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['pkey']
                 pkey_pem = self._filedata_testfile(_pkey_filename)
-                _key_private1, _is_created = db.getcreate__SslPrivateKey__by_pem_text(self.ctx, pkey_pem)
+                _key_private1, _is_created = db.getcreate.getcreate__SslPrivateKey__by_pem_text(self.ctx, pkey_pem)
                 # print _key_private1, _is_created
                 self.ctx.dbSession.commit()
 
@@ -288,7 +288,7 @@ class AppTest(AppTestCore):
                 #
                 _cert_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['cert']
                 cert_pem = self._filedata_testfile(_cert_filename)
-                _cert_1, _is_created = db.getcreate__SslServerCertificate__by_pem_text(
+                _cert_1, _is_created = db.getcreate.getcreate__SslServerCertificate__by_pem_text(
                     self.ctx,
                     cert_pem,
                     dbCACertificate = _ca_cert_selfsigned1,
@@ -299,7 +299,7 @@ class AppTest(AppTestCore):
                 self.ctx.dbSession.commit()
 
                 # ensure we have domains?
-                domains = db.get__SslDomain__paginated(self.ctx)
+                domains = db.get.get__SslDomain__paginated(self.ctx)
                 domain_names = [d.domain_name for d in domains]
                 assert TEST_FILES['ServerCertificates']['SelfSigned']['1']['domain'].lower() in domain_names
 
@@ -307,7 +307,7 @@ class AppTest(AppTestCore):
                 if False:
                     # insert a domain name
                     # one should be extracted from uploading a ServerCertificate though
-                    _domain, _is_created = db.getcreate__SslDomain__by_domainName(self.ctx, "www.example.com")
+                    _domain, _is_created = db.getcreate.getcreate__SslDomain__by_domainName(self.ctx, "www.example.com")
                     self.ctx.dbSession.commit()
 
                     # insert a domain name
@@ -317,7 +317,9 @@ class AppTest(AppTestCore):
                 # upload a csr
                 _csr_filename = TEST_FILES['ServerCertificates']['SelfSigned']['1']['csr']
                 csr_pem = self._filedata_testfile(_csr_filename)
-                _csr_1, _is_created = db.getcreate__SslCertificateRequest__by_pem_text(
+                (_csr_1,
+                 _is_created
+                 ) = db.getcreate.getcreate__SslCertificateRequest__by_pem_text(
                     self.ctx,
                     csr_pem,
                     certificate_request_type_id = models.SslCertificateRequestType.ACME_FLOW,

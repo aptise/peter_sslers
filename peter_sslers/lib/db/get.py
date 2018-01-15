@@ -1,33 +1,31 @@
+# logging
+import logging
+log = logging.getLogger(__name__)
+
 # stdlib
 import datetime
-import logging
 
 # pypi
 import sqlalchemy
 
 # localapp
-from ...models import *
+from ...models import models
 from .. import cert_utils
 from .. import errors
 from .. import utils
-
-# setup logging
-log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
-log.setLevel(logging.INFO)
 
 
 # ==============================================================================
 
 
 def get__SslLetsEncryptAccountKey__count(ctx):
-    counted = ctx.dbSession.query(SslLetsEncryptAccountKey).count()
+    counted = ctx.dbSession.query(models.SslLetsEncryptAccountKey).count()
     return counted
 
 
 def get__SslLetsEncryptAccountKey__paginated(ctx, limit=None, offset=0):
-    dbLetsEncryptAccountKeys = ctx.dbSession.query(SslLetsEncryptAccountKey)\
-        .order_by(SslLetsEncryptAccountKey.id.desc())\
+    dbLetsEncryptAccountKeys = ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
+        .order_by(models.SslLetsEncryptAccountKey.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -35,8 +33,8 @@ def get__SslLetsEncryptAccountKey__paginated(ctx, limit=None, offset=0):
 
 
 def get__SslLetsEncryptAccountKey__by_id(ctx, key_id, eagerload_web=False):
-    q = ctx.dbSession.query(SslLetsEncryptAccountKey)\
-        .filter(SslLetsEncryptAccountKey.id == key_id)
+    q = ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
+        .filter(models.SslLetsEncryptAccountKey.id == key_id)
     if eagerload_web:
         q = q.options(sqlalchemy.orm.subqueryload('certificate_requests__5').joinedload('to_domains').joinedload('domain'),
                       sqlalchemy.orm.subqueryload('server_certificates__5').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
@@ -46,10 +44,10 @@ def get__SslLetsEncryptAccountKey__by_id(ctx, key_id, eagerload_web=False):
 
 
 def get__SslLetsEncryptAccountKey__default(ctx, active_only=None):
-    q = ctx.dbSession.query(SslLetsEncryptAccountKey)\
-        .filter(SslLetsEncryptAccountKey.is_default.op('IS')(True))
+    q = ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
+        .filter(models.SslLetsEncryptAccountKey.is_default.op('IS')(True))
     if active_only:
-        q = q.filter(SslLetsEncryptAccountKey.is_active.op('IS')(True))
+        q = q.filter(models.SslLetsEncryptAccountKey.is_active.op('IS')(True))
     item = q.first()
     return item
 
@@ -58,15 +56,15 @@ def get__SslLetsEncryptAccountKey__default(ctx, active_only=None):
 
 
 def get__SslCaCertificate__count(ctx):
-    counted = ctx.dbSession.query(SslCaCertificate).count()
+    counted = ctx.dbSession.query(models.SslCaCertificate).count()
     return counted
 
 
 def get__SslCaCertificate__paginated(ctx, limit=None, offset=0, active_only=False):
-    q = ctx.dbSession.query(SslCaCertificate)
+    q = ctx.dbSession.query(models.SslCaCertificate)
     if active_only:
-        q = q.filter(SslCaCertificate.count_active_certificates >= 1)
-    q = q.order_by(SslCaCertificate.id.desc())\
+        q = q.filter(models.SslCaCertificate.count_active_certificates >= 1)
+    q = q.order_by(models.SslCaCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)
     items_paged = q.all()
@@ -74,8 +72,8 @@ def get__SslCaCertificate__paginated(ctx, limit=None, offset=0, active_only=Fals
 
 
 def get__SslCaCertificate__by_id(ctx, cert_id):
-    dbCaCertificate = ctx.dbSession.query(SslCaCertificate)\
-        .filter(SslCaCertificate.id == cert_id)\
+    dbCaCertificate = ctx.dbSession.query(models.SslCaCertificate)\
+        .filter(models.SslCaCertificate.id == cert_id, )\
         .first()
     return dbCaCertificate
 
@@ -83,9 +81,9 @@ def get__SslCaCertificate__by_id(ctx, cert_id):
 def get__SslCaCertificate__by_pem_text(ctx, cert_pem):
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
-    dbCertificate = ctx.dbSession.query(SslCaCertificate)\
-        .filter(SslCaCertificate.cert_pem_md5 == cert_pem_md5,
-                SslCaCertificate.cert_pem == cert_pem,
+    dbCertificate = ctx.dbSession.query(models.SslCaCertificate)\
+        .filter(models.SslCaCertificate.cert_pem_md5 == cert_pem_md5,
+                models.SslCaCertificate.cert_pem == cert_pem,
                 )\
         .first()
     return dbCertificate
@@ -95,16 +93,16 @@ def get__SslCaCertificate__by_pem_text(ctx, cert_pem):
 
 
 def get__SslCertificateRequest__count(ctx):
-    counted = ctx.dbSession.query(SslCertificateRequest).count()
+    counted = ctx.dbSession.query(models.SslCertificateRequest).count()
     return counted
 
 
 def get__SslCertificateRequest__paginated(ctx, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslCertificateRequest)\
+    items_paged = ctx.dbSession.query(models.SslCertificateRequest)\
         .options(sqlalchemy.orm.joinedload('server_certificate'),
                  sqlalchemy.orm.subqueryload('to_domains').joinedload('domain'),
                  )\
-        .order_by(SslCertificateRequest.id.desc())\
+        .order_by(models.SslCertificateRequest.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -112,8 +110,8 @@ def get__SslCertificateRequest__paginated(ctx, limit=None, offset=0):
 
 
 def get__SslCertificateRequest__by_id(ctx, certificate_request_id):
-    dbCertificateRequest = ctx.dbSession.query(SslCertificateRequest)\
-        .filter(SslCertificateRequest.id == certificate_request_id)\
+    dbCertificateRequest = ctx.dbSession.query(models.SslCertificateRequest)\
+        .filter(models.SslCertificateRequest.id == certificate_request_id)\
         .options(sqlalchemy.orm.joinedload('server_certificate'),
                  sqlalchemy.orm.subqueryload('to_domains').joinedload('domain'),
                  )\
@@ -124,27 +122,27 @@ def get__SslCertificateRequest__by_id(ctx, certificate_request_id):
 def get__SslCertificateRequest__by_pem_text(ctx, csr_pem):
     csr_pem = cert_utils.cleanup_pem_text(csr_pem)
     csr_pem_md5 = utils.md5_text(csr_pem)
-    dbCertificateRequest = ctx.dbSession.query(SslCertificateRequest)\
-        .filter(SslCertificateRequest.csr_pem_md5 == csr_pem_md5,
-                SslCertificateRequest.csr_pem == csr_pem,
+    dbCertificateRequest = ctx.dbSession.query(models.SslCertificateRequest)\
+        .filter(models.SslCertificateRequest.csr_pem_md5 == csr_pem_md5,
+                models.SslCertificateRequest.csr_pem == csr_pem,
                 )\
         .first()
     return dbCertificateRequest
 
 
 def get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__count(ctx, key_id):
-    counted = ctx.dbSession.query(SslCertificateRequest)\
-        .filter(SslCertificateRequest.ssl_letsencrypt_account_key_id == key_id)\
+    counted = ctx.dbSession.query(models.SslCertificateRequest)\
+        .filter(models.SslCertificateRequest.ssl_letsencrypt_account_key_id == key_id)\
         .count()
     return counted
 
 
 def get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__paginated(ctx, key_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslCertificateRequest)\
-        .filter(SslCertificateRequest.ssl_letsencrypt_account_key_id == key_id)\
+    items_paged = ctx.dbSession.query(models.SslCertificateRequest)\
+        .filter(models.SslCertificateRequest.ssl_letsencrypt_account_key_id == key_id)\
         .options(sqlalchemy.orm.joinedload('to_domains').joinedload('domain'),
                  )\
-        .order_by(SslCertificateRequest.id.desc())\
+        .order_by(models.SslCertificateRequest.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -152,22 +150,22 @@ def get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__paginated(ctx, ke
 
 
 def get__SslCertificateRequest__by_SslDomainId__count(ctx, domain_id):
-    counted = ctx.dbSession.query(SslCertificateRequest)\
-        .join(SslCertificateRequest2SslDomain,
-              SslCertificateRequest.id == SslCertificateRequest2SslDomain.ssl_certificate_request_id,
+    counted = ctx.dbSession.query(models.SslCertificateRequest)\
+        .join(models.SslCertificateRequest2SslDomain,
+              models.SslCertificateRequest.id == models.SslCertificateRequest2SslDomain.ssl_certificate_request_id,
               )\
-        .filter(SslCertificateRequest2SslDomain.ssl_domain_id == domain_id)\
+        .filter(models.SslCertificateRequest2SslDomain.ssl_domain_id == domain_id)\
         .count()
     return counted
 
 
 def get__SslCertificateRequest__by_SslDomainId__paginated(ctx, domain_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslCertificateRequest)\
-        .join(SslCertificateRequest2SslDomain,
-              SslCertificateRequest.id == SslCertificateRequest2SslDomain.ssl_certificate_request_id,
+    items_paged = ctx.dbSession.query(models.SslCertificateRequest)\
+        .join(models.SslCertificateRequest2SslDomain,
+              models.SslCertificateRequest.id == models.SslCertificateRequest2SslDomain.ssl_certificate_request_id,
               )\
-        .filter(SslCertificateRequest2SslDomain.ssl_domain_id == domain_id)\
-        .order_by(SslCertificateRequest.id.desc())\
+        .filter(models.SslCertificateRequest2SslDomain.ssl_domain_id == domain_id)\
+        .order_by(models.SslCertificateRequest.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -175,18 +173,18 @@ def get__SslCertificateRequest__by_SslDomainId__paginated(ctx, domain_id, limit=
 
 
 def get__SslCertificateRequest__by_SslPrivateKeyId__count(ctx, key_id):
-    counted = ctx.dbSession.query(SslCertificateRequest)\
-        .filter(SslCertificateRequest.ssl_private_key_id__signed_by == key_id)\
+    counted = ctx.dbSession.query(models.SslCertificateRequest)\
+        .filter(models.SslCertificateRequest.ssl_private_key_id__signed_by == key_id)\
         .count()
     return counted
 
 
 def get__SslCertificateRequest__by_SslPrivateKeyId__paginated(ctx, key_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslCertificateRequest)\
-        .filter(SslCertificateRequest.ssl_private_key_id__signed_by == key_id)\
+    items_paged = ctx.dbSession.query(models.SslCertificateRequest)\
+        .filter(models.SslCertificateRequest.ssl_private_key_id__signed_by == key_id)\
         .options(sqlalchemy.orm.joinedload('to_domains').joinedload('domain'),
                  )\
-        .order_by(SslCertificateRequest.id.desc())\
+        .order_by(models.SslCertificateRequest.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -194,16 +192,16 @@ def get__SslCertificateRequest__by_SslPrivateKeyId__paginated(ctx, key_id, limit
 
 
 def get__SslCertificateRequest__by_SslUniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
-    counted = ctx.dbSession.query(SslCertificateRequest)\
-        .filter(SslCertificateRequest.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
+    counted = ctx.dbSession.query(models.SslCertificateRequest)\
+        .filter(models.SslCertificateRequest.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
         .count()
     return counted
 
 
 def get__SslCertificateRequest__by_SslUniqueFQDNSetId__paginated(ctx, unique_fqdn_set_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslCertificateRequest)\
-        .filter(SslCertificateRequest.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
-        .order_by(SslCertificateRequest.id.desc())\
+    items_paged = ctx.dbSession.query(models.SslCertificateRequest)\
+        .filter(models.SslCertificateRequest.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
+        .order_by(models.SslCertificateRequest.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -214,16 +212,16 @@ def get__SslCertificateRequest__by_SslUniqueFQDNSetId__paginated(ctx, unique_fqd
 
 
 def get__SslCertificateRequest2SslDomain__challenged(ctx, challenge, domain_name):
-    active_request = ctx.dbSession.query(SslCertificateRequest2SslDomain)\
-        .join(SslDomain,
-              SslCertificateRequest2SslDomain.ssl_domain_id == SslDomain.id
+    active_request = ctx.dbSession.query(models.SslCertificateRequest2SslDomain)\
+        .join(models.SslDomain,
+              models.SslCertificateRequest2SslDomain.ssl_domain_id == models.SslDomain.id
               )\
-        .join(SslCertificateRequest,
-              SslCertificateRequest2SslDomain.ssl_certificate_request_id == SslCertificateRequest.id
+        .join(models.SslCertificateRequest,
+              models.SslCertificateRequest2SslDomain.ssl_certificate_request_id == models.SslCertificateRequest.id
               )\
-        .filter(SslCertificateRequest2SslDomain.challenge_key == challenge,
-                sa.func.lower(SslDomain.domain_name) == sa.func.lower(domain_name),
-                SslCertificateRequest.is_active.op('IS')(True),
+        .filter(models.SslCertificateRequest2SslDomain.challenge_key == challenge,
+                sqlalchemy.func.lower(models.SslDomain.domain_name) == sqlalchemy.func.lower(domain_name),
+                models.SslCertificateRequest.is_active.op('IS')(True),
                 )\
         .options(sqlalchemy.orm.contains_eager('certificate_request'),
                  sqlalchemy.orm.contains_eager('domain'),
@@ -237,14 +235,14 @@ def get__SslCertificateRequest2SslDomain__challenged(ctx, challenge, domain_name
 
 def _SslDomain_inject_exipring_days(ctx, q, expiring_days, order=False):
     """helper function for the count/paginated queries"""
-    SslServerCertificateMulti = sqlalchemy.orm.aliased(SslServerCertificate)
-    SslServerCertificateSingle = sqlalchemy.orm.aliased(SslServerCertificate)
+    SslServerCertificateMulti = sqlalchemy.orm.aliased(models.SslServerCertificate)
+    SslServerCertificateSingle = sqlalchemy.orm.aliased(models.SslServerCertificate)
     _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
     q = q.outerjoin(SslServerCertificateMulti,
-                    SslDomain.ssl_server_certificate_id__latest_multi == SslServerCertificateMulti.id
+                    models.SslDomain.ssl_server_certificate_id__latest_multi == SslServerCertificateMulti.id
                     )\
         .outerjoin(SslServerCertificateSingle,
-                   SslDomain.ssl_server_certificate_id__latest_single == SslServerCertificateSingle.id
+                   models.SslDomain.ssl_server_certificate_id__latest_single == SslServerCertificateSingle.id
                    )\
         .filter(sqlalchemy.or_(sqlalchemy.and_(SslServerCertificateMulti.is_active == True,  # noqa
                                                SslServerCertificateMulti.timestamp_expires <= _until,
@@ -255,18 +253,18 @@ def _SslDomain_inject_exipring_days(ctx, q, expiring_days, order=False):
                                )
                 )
     if order:
-        q = q.order_by(min_date(SslServerCertificateMulti.timestamp_expires,
-                                SslServerCertificateSingle.timestamp_expires,
-                                ).asc(),
+        q = q.order_by(models.min_date(SslServerCertificateMulti.timestamp_expires,
+                                       SslServerCertificateSingle.timestamp_expires,
+                                       ).asc(),
                        )
     return q
 
 
 def get__SslDomain__count(ctx, expiring_days=None, active_only=False):
-    q = ctx.dbSession.query(SslDomain)
+    q = ctx.dbSession.query(models.SslDomain)
     if active_only and not expiring_days:
-        q = q.filter(sqlalchemy.or_(SslDomain.ssl_server_certificate_id__latest_single.op('IS NOT')(None),
-                                    SslDomain.ssl_server_certificate_id__latest_multi.op('IS NOT')(None),
+        q = q.filter(sqlalchemy.or_(models.SslDomain.ssl_server_certificate_id__latest_single.op('IS NOT')(None),
+                                    models.SslDomain.ssl_server_certificate_id__latest_multi.op('IS NOT')(None),
                                     ),
                      )
     if expiring_days:
@@ -276,10 +274,10 @@ def get__SslDomain__count(ctx, expiring_days=None, active_only=False):
 
 
 def get__SslDomain__paginated(ctx, expiring_days=None, eagerload_web=False, limit=None, offset=0, active_only=False):
-    q = ctx.dbSession.query(SslDomain)
+    q = ctx.dbSession.query(models.SslDomain)
     if active_only and not expiring_days:
-        q = q.filter(sqlalchemy.or_(SslDomain.ssl_server_certificate_id__latest_single.op('IS NOT')(None),
-                                    SslDomain.ssl_server_certificate_id__latest_multi.op('IS NOT')(None),
+        q = q.filter(sqlalchemy.or_(models.SslDomain.ssl_server_certificate_id__latest_single.op('IS NOT')(None),
+                                    models.SslDomain.ssl_server_certificate_id__latest_multi.op('IS NOT')(None),
                                     ),
                      )
     if eagerload_web:
@@ -289,7 +287,7 @@ def get__SslDomain__paginated(ctx, expiring_days=None, eagerload_web=False, limi
     if expiring_days:
         q = _SslDomain_inject_exipring_days(ctx, q, expiring_days, order=True)
     else:
-        q = q.order_by(sa.func.lower(SslDomain.domain_name).asc())
+        q = q.order_by(sqlalchemy.func.lower(models.SslDomain.domain_name).asc())
     q = q.limit(limit)\
         .offset(offset)
     items_paged = q.all()
@@ -330,8 +328,8 @@ def _get__SslDomain__core(q, preload=False, eagerload_web=False):
 
 
 def get__SslDomain__by_id(ctx, domain_id, preload=False, eagerload_web=False):
-    q = ctx.dbSession.query(SslDomain)\
-        .filter(SslDomain.id == domain_id)
+    q = ctx.dbSession.query(models.SslDomain)\
+        .filter(models.SslDomain.id == domain_id)
     if preload:
         q = _get__SslDomain__core(q, preload=preload, eagerload_web=eagerload_web)
     item = q.first()
@@ -339,8 +337,8 @@ def get__SslDomain__by_id(ctx, domain_id, preload=False, eagerload_web=False):
 
 
 def get__SslDomain__by_name(ctx, domain_name, preload=False, eagerload_web=False, active_only=False):
-    q = ctx.dbSession.query(SslDomain)\
-        .filter(sa.func.lower(SslDomain.domain_name) == sa.func.lower(domain_name))
+    q = ctx.dbSession.query(models.SslDomain)\
+        .filter(sqlalchemy.func.lower(models.SslDomain.domain_name) == sqlalchemy.func.lower(domain_name))
     if preload:
         q = _get__SslDomain__core(q, preload=preload, eagerload_web=eagerload_web)
     item = q.first()
@@ -351,23 +349,23 @@ def get__SslDomain__by_name(ctx, domain_name, preload=False, eagerload_web=False
 
 
 def get__SslOperationsObjectEvent__count(ctx):
-    q = ctx.dbSession.query(SslOperationsObjectEvent)
+    q = ctx.dbSession.query(models.SslOperationsObjectEvent)
     counted = q.count()
     return counted
 
 
 def get__SslOperationsObjectEvent__paginated(ctx, limit=None, offset=0):
-    q = ctx.dbSession.query(SslOperationsObjectEvent)
-    q = q.order_by(SslOperationsObjectEvent.id.desc())
-    q = q.limit(limit)\
+    q = ctx.dbSession.query(models.SslOperationsObjectEvent)\
+        .order_by(models.SslOperationsObjectEvent.id.desc())\
+        .limit(limit)\
         .offset(offset)
     items_paged = q.all()
     return items_paged
 
 
 def get__SslOperationsObjectEvent__by_id(ctx, event_id, eagerload_log=False):
-    q = ctx.dbSession.query(SslOperationsObjectEvent)\
-        .filter(SslOperationsObjectEvent.id == event_id)
+    q = ctx.dbSession.query(models.SslOperationsObjectEvent)\
+        .filter(models.SslOperationsObjectEvent.id == event_id)
     if eagerload_log:
         q = q.options(sqlalchemy.orm.subqueryload('operations_event'),
                       sqlalchemy.orm.joinedload('operations_event.children'),
@@ -380,18 +378,18 @@ def get__SslOperationsObjectEvent__by_id(ctx, event_id, eagerload_log=False):
 
 
 def get__SslOperationsEvent__count(ctx, event_type_ids=None):
-    q = ctx.dbSession.query(SslOperationsEvent)
+    q = ctx.dbSession.query(models.SslOperationsEvent)
     if event_type_ids is not None:
-        q = q.filter(SslOperationsEvent.ssl_operations_event_type_id.in_(event_type_ids))
+        q = q.filter(models.SslOperationsEvent.ssl_operations_event_type_id.in_(event_type_ids))
     items_count = q.count()
     return items_count
 
 
 def get__SslOperationsEvent__paginated(ctx, event_type_ids=None, limit=None, offset=0):
-    q = ctx.dbSession.query(SslOperationsEvent)
+    q = ctx.dbSession.query(models.SslOperationsEvent)
     if event_type_ids is not None:
-        q = q.filter(SslOperationsEvent.ssl_operations_event_type_id.in_(event_type_ids))
-    items_paged = q.order_by(SslOperationsEvent.id.desc())\
+        q = q.filter(models.SslOperationsEvent.ssl_operations_event_type_id.in_(event_type_ids))
+    items_paged = q.order_by(models.SslOperationsEvent.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -399,8 +397,8 @@ def get__SslOperationsEvent__paginated(ctx, event_type_ids=None, limit=None, off
 
 
 def get__SslOperationsEvent__by_id(ctx, event_id, eagerload_log=False):
-    q = ctx.dbSession.query(SslOperationsEvent)\
-        .filter(SslOperationsEvent.id == event_id)
+    q = ctx.dbSession.query(models.SslOperationsEvent)\
+        .filter(models.SslOperationsEvent.id == event_id)
     if eagerload_log:
         q = q.options(sqlalchemy.orm.subqueryload('object_events'),
                       sqlalchemy.orm.joinedload('object_events.domain'),
@@ -416,17 +414,17 @@ def get__SslOperationsEvent__by_id(ctx, event_id, eagerload_log=False):
 
 
 def get__SslOperationsEvent__certificate_probe__count(ctx):
-    counted = ctx.dbSession.query(SslOperationsEvent)\
-        .filter(SslOperationsEvent.ssl_operations_event_type_id == SslOperationsEventType.from_string('ca_certificate__probe'),
+    counted = ctx.dbSession.query(models.SslOperationsEvent)\
+        .filter(models.SslOperationsEvent.ssl_operations_event_type_id == models.SslOperationsEventType.from_string('ca_certificate__probe'),
                 )\
         .count()
     return counted
 
 
 def get__SslOperationsEvent__certificate_probe__paginated(ctx, limit=None, offset=0):
-    paged_items = ctx.dbSession.query(SslOperationsEvent)\
-        .order_by(SslOperationsEvent.id.desc())\
-        .filter(SslOperationsEvent.ssl_operations_event_type_id == SslOperationsEventType.from_string('ca_certificate__probe'),
+    paged_items = ctx.dbSession.query(models.SslOperationsEvent)\
+        .order_by(models.SslOperationsEvent.id.desc())\
+        .filter(models.SslOperationsEvent.ssl_operations_event_type_id == models.SslOperationsEventType.from_string('ca_certificate__probe'),
                 )\
         .limit(limit)\
         .offset(offset)\
@@ -438,15 +436,15 @@ def get__SslOperationsEvent__certificate_probe__paginated(ctx, limit=None, offse
 
 
 def get__SslPrivateKey__count(ctx):
-    counted = ctx.dbSession.query(SslPrivateKey).count()
+    counted = ctx.dbSession.query(models.SslPrivateKey).count()
     return counted
 
 
 def get__SslPrivateKey__paginated(ctx, limit=None, offset=0, active_only=False):
-    q = ctx.dbSession.query(SslPrivateKey)
+    q = ctx.dbSession.query(models.SslPrivateKey)
     if active_only:
-        q = q.filter(SslPrivateKey.count_active_certificates >= 1)
-    q = q.order_by(SslPrivateKey.id.desc())\
+        q = q.filter(models.SslPrivateKey.count_active_certificates >= 1)
+    q = q.order_by(models.SslPrivateKey.id.desc())\
         .limit(limit)\
         .offset(offset)
     items_paged = q.all()
@@ -454,8 +452,8 @@ def get__SslPrivateKey__paginated(ctx, limit=None, offset=0, active_only=False):
 
 
 def get__SslPrivateKey__by_id(ctx, cert_id, eagerload_web=False):
-    q = ctx.dbSession.query(SslPrivateKey)\
-        .filter(SslPrivateKey.id == cert_id)
+    q = ctx.dbSession.query(models.SslPrivateKey)\
+        .filter(models.SslPrivateKey.id == cert_id)
     if eagerload_web:
         q = q.options(sqlalchemy.orm.subqueryload('certificate_requests__5').joinedload('to_domains').joinedload('domain'),
                       sqlalchemy.orm.subqueryload('server_certificates__5').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
@@ -465,9 +463,9 @@ def get__SslPrivateKey__by_id(ctx, cert_id, eagerload_web=False):
 
 
 def get__SslPrivateKey__current_week(ctx):
-    q = ctx.dbSession.query(SslPrivateKey)\
-        .filter(SslPrivateKey.is_autogenerated_key.op('IS')(True),
-                year_week(SslPrivateKey.timestamp_first_seen) == year_week(ctx.timestamp),
+    q = ctx.dbSession.query(models.SslPrivateKey)\
+        .filter(models.SslPrivateKey.is_autogenerated_key.op('IS')(True),
+                models.year_week(models.SslPrivateKey.timestamp_first_seen) == models.year_week(ctx.timestamp),
                 )
     item = q.first()
     return item
@@ -477,21 +475,21 @@ def get__SslPrivateKey__current_week(ctx):
 
 
 def get__SslQueueDomain__count(ctx, show_processed=False):
-    q = ctx.dbSession.query(SslQueueDomain)
+    q = ctx.dbSession.query(models.SslQueueDomain)
     if not show_processed:
-        q = q.filter(SslQueueDomain.timestamp_processed.op('IS')(None),  # noqa
+        q = q.filter(models.SslQueueDomain.timestamp_processed.op('IS')(None),  # noqa
                      )
     counted = q.count()
     return counted
 
 
 def get__SslQueueDomain__paginated(ctx, show_processed=False, eagerload_web=False, limit=None, offset=0):
-    q = ctx.dbSession.query(SslQueueDomain)
+    q = ctx.dbSession.query(models.SslQueueDomain)
     if not show_processed:
-        q = q.filter(SslQueueDomain.timestamp_processed.op('IS')(None),  # noqa
+        q = q.filter(models.SslQueueDomain.timestamp_processed.op('IS')(None),  # noqa
                      )
     else:
-        q = q.order_by(SslQueueDomain.id.desc())
+        q = q.order_by(models.SslQueueDomain.id.desc())
     q = q.limit(limit)\
         .offset(offset)
     items_paged = q.all()
@@ -499,8 +497,8 @@ def get__SslQueueDomain__paginated(ctx, show_processed=False, eagerload_web=Fals
 
 
 def get__SslQueueDomain__by_id(ctx, set_id, eagerload_log=False):
-    q = ctx.dbSession.query(SslQueueDomain)\
-        .filter(SslQueueDomain.id == set_id)
+    q = ctx.dbSession.query(models.SslQueueDomain)\
+        .filter(models.SslQueueDomain.id == set_id)
     if eagerload_log:
         q = q.options(sqlalchemy.orm.subqueryload('operations_object_events').joinedload('operations_event'))
     item = q.first()
@@ -508,10 +506,10 @@ def get__SslQueueDomain__by_id(ctx, set_id, eagerload_log=False):
 
 
 def get__SslQueueDomain__by_name(ctx, domain_name, active_only=True):
-    q = ctx.dbSession.query(SslQueueDomain)\
-        .filter(sa.func.lower(SslQueueDomain.domain_name) == sa.func.lower(domain_name))
+    q = ctx.dbSession.query(models.SslQueueDomain)\
+        .filter(sqlalchemy.func.lower(models.SslQueueDomain.domain_name) == sqlalchemy.func.lower(domain_name))
     if active_only:
-        q = q.filter(SslQueueDomain.is_active.op('IS')(True))
+        q = q.filter(models.SslQueueDomain.is_active.op('IS')(True))
     item = q.first()
     return item
 
@@ -520,17 +518,17 @@ def get__SslQueueDomain__by_name(ctx, domain_name, active_only=True):
 
 
 def get__SslOperationsQueueDomainEvent__count(ctx):
-    q = ctx.dbSession.query(SslOperationsQueueDomainEvent)
+    q = ctx.dbSession.query(models.SslOperationsQueueDomainEvent)
     counted = q.count()
     return counted
 
 
 def get__SslOperationsQueueDomainEvent__paginated(ctx, limit=None, offset=0):
-    q = ctx.dbSession.query(SslOperationsQueueDomainEvent)\
+    q = ctx.dbSession.query(models.SslOperationsQueueDomainEvent)\
         .options(sqlalchemy.orm.joinedload('queue_domain').load_only('domain_name'),
                  sqlalchemy.orm.joinedload('domain').load_only('domain_name'),
                  )\
-        .order_by(SslOperationsQueueDomainEvent.id.desc())\
+        .order_by(models.SslOperationsQueueDomainEvent.id.desc())\
         .limit(limit)\
         .offset(offset)
     items_paged = q.all()
@@ -541,18 +539,18 @@ def get__SslOperationsQueueDomainEvent__paginated(ctx, limit=None, offset=0):
 
 
 def get__SslQueueRenewal__count(ctx, show_all=False):
-    q = ctx.dbSession.query(SslQueueRenewal)
+    q = ctx.dbSession.query(models.SslQueueRenewal)
     if not show_all:
-        q = q.filter(SslQueueRenewal.timestamp_processed.op('IS')(None),  # noqa
+        q = q.filter(models.SslQueueRenewal.timestamp_processed.op('IS')(None),  # noqa
                      )
     counted = q.count()
     return counted
 
 
 def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, eagerload_renewal=False, limit=None, offset=0):
-    q = ctx.dbSession.query(SslQueueRenewal)
+    q = ctx.dbSession.query(models.SslQueueRenewal)
     if not show_all:
-        q = q.filter(SslQueueRenewal.timestamp_processed.op('IS')(None),  # noqa
+        q = q.filter(models.SslQueueRenewal.timestamp_processed.op('IS')(None),  # noqa
                      )
     if eagerload_web:
         q = q.options(sqlalchemy.orm.joinedload('certificate').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
@@ -562,7 +560,7 @@ def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, ea
                       sqlalchemy.orm.subqueryload('server_certificate.letsencrypt_account_key'),
                       sqlalchemy.orm.subqueryload('server_certificate.private_key'),
                       )
-    q = q.order_by(SslQueueRenewal.id.desc())
+    q = q.order_by(models.SslQueueRenewal.id.desc())
     q = q.limit(limit)\
         .offset(offset)
     items_paged = q.all()
@@ -570,8 +568,8 @@ def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, ea
 
 
 def get__SslQueueRenewal__by_id(ctx, set_id, load_events=None):
-    q = ctx.dbSession.query(SslQueueRenewal)\
-        .filter(SslQueueRenewal.id == set_id)\
+    q = ctx.dbSession.query(models.SslQueueRenewal)\
+        .filter(models.SslQueueRenewal.id == set_id)\
         .options(sqlalchemy.orm.subqueryload('server_certificate').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                  )
     if load_events:
@@ -581,9 +579,9 @@ def get__SslQueueRenewal__by_id(ctx, set_id, load_events=None):
 
 
 def get__SslQueueRenewal__by_SslUniqueFQDNSetId__active(ctx, set_id):
-    q = ctx.dbSession.query(SslQueueRenewal)\
-        .filter(SslQueueRenewal.ssl_unique_fqdn_set_id == set_id,
-                SslQueueRenewal.timestamp_processed.op('IS')(None),
+    q = ctx.dbSession.query(models.SslQueueRenewal)\
+        .filter(models.SslQueueRenewal.ssl_unique_fqdn_set_id == set_id,
+                models.SslQueueRenewal.timestamp_processed.op('IS')(None),
                 )
     items_paged = q.all()
     return items_paged
@@ -592,29 +590,29 @@ def get__SslQueueRenewal__by_SslUniqueFQDNSetId__active(ctx, set_id):
 
 
 def get__SslServerCertificate__count(ctx, expiring_days=None):
-    q = ctx.dbSession.query(SslServerCertificate)
+    q = ctx.dbSession.query(models.SslServerCertificate)
     if expiring_days:
         _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
-        q = q.filter(SslServerCertificate.is_active == True,  # noqa
-                     SslServerCertificate.timestamp_expires <= _until,
+        q = q.filter(models.SslServerCertificate.is_active == True,  # noqa
+                     models.SslServerCertificate.timestamp_expires <= _until,
                      )
     counted = q.count()
     return counted
 
 
 def get__SslServerCertificate__paginated(ctx, expiring_days=None, eagerload_web=False, limit=None, offset=0):
-    q = ctx.dbSession.query(SslServerCertificate)
+    q = ctx.dbSession.query(models.SslServerCertificate)
     if eagerload_web:
         q = q.options(sqlalchemy.orm.joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                       )
     if expiring_days:
         _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
-        q = q.filter(SslServerCertificate.is_active == True,  # noqa
-                     SslServerCertificate.timestamp_expires <= _until,
+        q = q.filter(models.SslServerCertificate.is_active == True,  # noqa
+                     models.SslServerCertificate.timestamp_expires <= _until,
                      )\
-            .order_by(SslServerCertificate.timestamp_expires.asc())
+            .order_by(models.SslServerCertificate.timestamp_expires.asc())
     else:
-        q = q.order_by(SslServerCertificate.id.desc())
+        q = q.order_by(models.SslServerCertificate.id.desc())
     q = q.limit(limit)\
         .offset(offset)
     items_paged = q.all()
@@ -622,8 +620,8 @@ def get__SslServerCertificate__paginated(ctx, expiring_days=None, eagerload_web=
 
 
 def get__SslServerCertificate__by_id(ctx, cert_id):
-    dbServerCertificate = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.id == cert_id)\
+    dbServerCertificate = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.id == cert_id)\
         .options(sqlalchemy.orm.subqueryload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                  )\
         .first()
@@ -634,18 +632,18 @@ def get__SslServerCertificate__by_id(ctx, cert_id):
 
 
 def get__SslServerCertificate__by_SslLetsEncryptAccountKeyId__count(ctx, key_id):
-    counted = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.ssl_letsencrypt_account_key_id == key_id)\
+    counted = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.ssl_letsencrypt_account_key_id == key_id)\
         .count()
     return counted
 
 
 def get__SslServerCertificate__by_SslLetsEncryptAccountKeyId__paginated(ctx, key_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.ssl_letsencrypt_account_key_id == key_id)\
+    items_paged = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.ssl_letsencrypt_account_key_id == key_id)\
         .options(sqlalchemy.orm.joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                  )\
-        .order_by(SslServerCertificate.id.desc())\
+        .order_by(models.SslServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -656,16 +654,16 @@ def get__SslServerCertificate__by_SslLetsEncryptAccountKeyId__paginated(ctx, key
 
 
 def get__SslServerCertificate__by_SslCaCertificateId__count(ctx, cert_id):
-    counted = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.ssl_ca_certificate_id__upchain == cert_id)\
+    counted = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.ssl_ca_certificate_id__upchain == cert_id)\
         .count()
     return counted
 
 
 def get__SslServerCertificate__by_SslCaCertificateId__paginated(ctx, cert_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.ssl_ca_certificate_id__upchain == cert_id)\
-        .order_by(SslServerCertificate.id.desc())\
+    items_paged = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.ssl_ca_certificate_id__upchain == cert_id)\
+        .order_by(models.SslServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -676,28 +674,28 @@ def get__SslServerCertificate__by_SslCaCertificateId__paginated(ctx, cert_id, li
 
 
 def get__SslServerCertificate__by_SslDomainId__count(ctx, domain_id):
-    counted = ctx.dbSession.query(SslServerCertificate)\
-        .join(SslUniqueFQDNSet,
-              SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet.id
+    counted = ctx.dbSession.query(models.SslServerCertificate)\
+        .join(models.SslUniqueFQDNSet,
+              models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet.id
               )\
-        .join(SslUniqueFQDNSet2SslDomain,
-              SslUniqueFQDNSet.id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+        .join(models.SslUniqueFQDNSet2SslDomain,
+              models.SslUniqueFQDNSet.id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
               )\
-        .filter(SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id)\
+        .filter(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id)\
         .count()
     return counted
 
 
 def get__SslServerCertificate__by_SslDomainId__paginated(ctx, domain_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslServerCertificate)\
-        .join(SslUniqueFQDNSet,
-              SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet.id
+    items_paged = ctx.dbSession.query(models.SslServerCertificate)\
+        .join(models.SslUniqueFQDNSet,
+              models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet.id
               )\
-        .join(SslUniqueFQDNSet2SslDomain,
-              SslUniqueFQDNSet.id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+        .join(models.SslUniqueFQDNSet2SslDomain,
+              models.SslUniqueFQDNSet.id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
               )\
-        .filter(SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id)\
-        .order_by(SslServerCertificate.id.desc())\
+        .filter(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id)\
+        .order_by(models.SslServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -705,17 +703,17 @@ def get__SslServerCertificate__by_SslDomainId__paginated(ctx, domain_id, limit=N
 
 
 def get__SslServerCertificate__by_SslDomainId__latest(ctx, domain_id):
-    first = ctx.dbSession.query(SslServerCertificate)\
-        .join(SslUniqueFQDNSet,
-              SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet.id
+    first = ctx.dbSession.query(models.SslServerCertificate)\
+        .join(models.SslUniqueFQDNSet,
+              models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet.id
               )\
-        .join(SslUniqueFQDNSet2SslDomain,
-              SslUniqueFQDNSet.id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+        .join(models.SslUniqueFQDNSet2SslDomain,
+              models.SslUniqueFQDNSet.id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
               )\
-        .filter(SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id,
-                SslServerCertificate.is_active.op('IS')(True),
+        .filter(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id,
+                models.SslServerCertificate.is_active.op('IS')(True),
                 )\
-        .order_by(SslServerCertificate.id.desc())\
+        .order_by(models.SslServerCertificate.id.desc())\
         .first()
     return first
 
@@ -724,16 +722,16 @@ def get__SslServerCertificate__by_SslDomainId__latest(ctx, domain_id):
 
 
 def get__SslServerCertificate__by_SslPrivateKeyId__count(ctx, key_id):
-    counted = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.ssl_private_key_id__signed_by == key_id)\
+    counted = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.ssl_private_key_id__signed_by == key_id)\
         .count()
     return counted
 
 
 def get__SslServerCertificate__by_SslPrivateKeyId__paginated(ctx, key_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.ssl_private_key_id__signed_by == key_id)\
-        .order_by(SslServerCertificate.id.desc())\
+    items_paged = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.ssl_private_key_id__signed_by == key_id)\
+        .order_by(models.SslServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -741,16 +739,16 @@ def get__SslServerCertificate__by_SslPrivateKeyId__paginated(ctx, key_id, limit=
 
 
 def get__SslServerCertificate__by_SslUniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
-    counted = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
+    counted = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
         .count()
     return counted
 
 
 def get__SslServerCertificate__by_SslUniqueFQDNSetId__paginated(ctx, unique_fqdn_set_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
-        .order_by(SslServerCertificate.id.desc())\
+    items_paged = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
+        .order_by(models.SslServerCertificate.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
@@ -758,10 +756,10 @@ def get__SslServerCertificate__by_SslUniqueFQDNSetId__paginated(ctx, unique_fqdn
 
 
 def get__SslServerCertificate__by_SslUniqueFQDNSetId__latest_active(ctx, unique_fqdn_set_id):
-    item = ctx.dbSession.query(SslServerCertificate)\
-        .filter(SslServerCertificate.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
-        .filter(SslServerCertificate.is_active.op('IS')(True))\
-        .order_by(SslServerCertificate.timestamp_expires.desc())\
+    item = ctx.dbSession.query(models.SslServerCertificate)\
+        .filter(models.SslServerCertificate.ssl_unique_fqdn_set_id == unique_fqdn_set_id)\
+        .filter(models.SslServerCertificate.is_active.op('IS')(True))\
+        .order_by(models.SslServerCertificate.timestamp_expires.desc())\
         .first()
     return item
 
@@ -770,18 +768,18 @@ def get__SslServerCertificate__by_SslUniqueFQDNSetId__latest_active(ctx, unique_
 
 
 def get__SslUniqueFQDNSet__count(ctx):
-    q = ctx.dbSession.query(SslUniqueFQDNSet)
+    q = ctx.dbSession.query(models.SslUniqueFQDNSet)
     counted = q.count()
     return counted
 
 
 def get__SslUniqueFQDNSet__paginated(ctx, eagerload_web=False, limit=None, offset=0):
-    q = ctx.dbSession.query(SslUniqueFQDNSet)
+    q = ctx.dbSession.query(models.SslUniqueFQDNSet)
     if eagerload_web:
         q = q.options(sqlalchemy.orm.joinedload('to_domains').joinedload('domain'),
                       )
     else:
-        q = q.order_by(SslUniqueFQDNSet.id.desc())
+        q = q.order_by(models.SslUniqueFQDNSet.id.desc())
     q = q.limit(limit)\
         .offset(offset)
     items_paged = q.all()
@@ -789,8 +787,8 @@ def get__SslUniqueFQDNSet__paginated(ctx, eagerload_web=False, limit=None, offse
 
 
 def get__SslUniqueFQDNSet__by_id(ctx, set_id):
-    item = ctx.dbSession.query(SslUniqueFQDNSet)\
-        .filter(SslUniqueFQDNSet.id == set_id)\
+    item = ctx.dbSession.query(models.SslUniqueFQDNSet)\
+        .filter(models.SslUniqueFQDNSet.id == set_id)\
         .options(sqlalchemy.orm.subqueryload('to_domains').joinedload('domain'),
                  )\
         .first()
@@ -798,22 +796,22 @@ def get__SslUniqueFQDNSet__by_id(ctx, set_id):
 
 
 def get__SslUniqueFQDNSet__by_SslDomainId__count(ctx, domain_id):
-    counted = ctx.dbSession.query(SslUniqueFQDNSet)\
-        .join(SslUniqueFQDNSet2SslDomain,
-              SslUniqueFQDNSet.id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+    counted = ctx.dbSession.query(models.SslUniqueFQDNSet)\
+        .join(models.SslUniqueFQDNSet2SslDomain,
+              models.SslUniqueFQDNSet.id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
               )\
-        .filter(SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id)\
+        .filter(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id)\
         .count()
     return counted
 
 
 def get__SslUniqueFQDNSet__by_SslDomainId__paginated(ctx, domain_id, limit=None, offset=0):
-    items_paged = ctx.dbSession.query(SslUniqueFQDNSet)\
-        .join(SslUniqueFQDNSet2SslDomain,
-              SslUniqueFQDNSet.id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+    items_paged = ctx.dbSession.query(models.SslUniqueFQDNSet)\
+        .join(models.SslUniqueFQDNSet2SslDomain,
+              models.SslUniqueFQDNSet.id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
               )\
-        .filter(SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id)\
-        .order_by(SslUniqueFQDNSet.id.desc())\
+        .filter(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == domain_id)\
+        .order_by(models.SslUniqueFQDNSet.id.desc())\
         .limit(limit)\
         .offset(offset)\
         .all()
