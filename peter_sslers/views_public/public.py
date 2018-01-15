@@ -1,3 +1,7 @@
+# logging
+import logging
+log = logging.getLogger(__name__)
+
 # pyramid
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPFound
@@ -19,6 +23,7 @@ class ViewPublic(Handler):
     @view_config(route_name="public_whoami", renderer="string")
     def public_whoami(self):
         """this is really only useful for testing"""
+        log.info("public whoami: %s", self.request.active_domain_name)
         return self.request.active_domain_name
 
     @view_config(route_name='public_challenge', renderer='string')
@@ -28,15 +33,9 @@ class ViewPublic(Handler):
                                                                                     challenge,
                                                                                     self.request.active_domain_name,
                                                                                     )
-        '''
-            print "----------------------"
-            print self.request.active_domain_name
-            print challenge
-            print activeRequest
-            print "-  -  -  -  -  -  -  -"
-            print self.request
-            print "----------------------"
-        '''
+        # this will log a tuple of (csr_id, domain_id) for activeRequest
+        log.info("public challenge: domain=%s, challenge=%s, activeRequest=%s",
+                 self.request.active_domain_name, challenge, ((activeRequest.ssl_certificate_request_id, activeRequest.ssl_domain_id) if activeRequest else None))
         if activeRequest:
             log_verification = True if 'test' not in self.request.params else False
             if log_verification:

@@ -1,5 +1,11 @@
+0.2
+2018-unreleased
+---
+
+
+
 0.1.5
-2018.01.unreleased
+2018.01.15
 ---
 - split library functions into multiple files
 - changed the database cleanup design to work with current pyramid and pyramid_tm
