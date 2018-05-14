@@ -20,11 +20,7 @@ from .. import lib
 from ..lib.forms import (Form_QueueDomains_add,
                          Form_QueueDomain_mark,
                          )
-from ..lib import acme as lib_acme
-from ..lib import cert_utils as lib_cert_utils
-from ..lib import errors as lib_errors
-from ..lib import letsencrypt_info as lib_letsencrypt_info
-from ..lib import utils as lib_utils
+from ..lib import errors
 from ..lib.handler import Handler, items_per_page
 
 
@@ -85,7 +81,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
+            domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 formStash.set_error(field="domain_names",
                                     message="Found no domain names",
@@ -131,7 +127,7 @@ class ViewAdmin(Handler):
                 return {'result': 'success',
                         }
             return HTTPFound("%s/queue-domains?processed=1" % self.request.registry.settings['admin_prefix'])
-        except (lib_errors.DisplayableError, lib_errors.DomainVerificationError) as e:
+        except (errors.DisplayableError, errors.DomainVerificationError) as e:
             # return, don't raise
             # we still commit the bookkeeping
             if self.request.matched_route.name == 'admin:queue_domains:process.json':
@@ -179,7 +175,7 @@ class ViewAdmin(Handler):
 
             action = formStash.results['action']
             event_type = models.SslOperationsEventType.from_string('queue_domain__mark')
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = lib.utils.new_event_payload_dict()
             event_payload_dict['ssl_queue_domain.id'] = dbQueueDomain.id
             event_payload_dict['action'] = formStash.results['action']
 

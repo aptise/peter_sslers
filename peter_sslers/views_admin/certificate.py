@@ -20,11 +20,7 @@ from ..lib.forms import (Form_Certificate_Upload__file,
                          Form_Certificate_mark,
                          )
 from ..lib.handler import Handler, items_per_page
-from ..lib import acme as lib_acme
-from ..lib import cert_utils as lib_cert_utils
-from ..lib import errors as lib_errors
-from ..lib import events as lib_events
-from ..lib import utils as lib_utils
+from ..lib import errors
 
 
 # ==============================================================================
@@ -166,7 +162,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:parse.json', renderer='json')
     def certificate_focus_parse_json(self):
         dbServerCertificate = self._certificate_focus()
-        return {"%s" % dbServerCertificate.id: lib_cert_utils.parse_cert(cert_pem=dbServerCertificate.cert_pem),
+        return {"%s" % dbServerCertificate.id: lib.cert_utils.parse_cert(cert_pem=dbServerCertificate.cert_pem),
                 }
 
     @view_config(route_name='admin:certificate:focus:chain:raw', renderer='string')
@@ -178,7 +174,7 @@ class ViewAdmin(Handler):
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbServerCertificate.certificate_upchain.cert_pem
         elif self.request.matchdict['format'] in ('cer', 'crt', 'der'):
-            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbServerCertificate.certificate_upchain.cert_pem)
+            as_der = lib.cert_utils.convert_pem_to_der(pem_data=dbServerCertificate.certificate_upchain.cert_pem)
             response = Response()
             if self.request.matchdict['format'] in ('crt', 'der'):
                 response.content_type = 'application/x-x509-ca-cert'
@@ -207,7 +203,7 @@ class ViewAdmin(Handler):
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbServerCertificate.private_key.key_pem
         elif self.request.matchdict['format'] == 'key':
-            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbServerCertificate.private_key.key_pem)
+            as_der = lib.cert_utils.convert_pem_to_der(pem_data=dbServerCertificate.private_key.key_pem)
             response = Response()
             response.content_type = 'application/pkcs8'
             response.body = as_der
@@ -223,7 +219,7 @@ class ViewAdmin(Handler):
         elif self.request.matchdict['format'] == 'pem.txt':
             return dbServerCertificate.cert_pem
         elif self.request.matchdict['format'] == 'crt':
-            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbServerCertificate.cert_pem)
+            as_der = lib.cert_utils.convert_pem_to_der(pem_data=dbServerCertificate.cert_pem)
             response = Response()
             response.content_type = 'application/x-x509-server-cert'
             response.body = as_der
@@ -252,7 +248,7 @@ class ViewAdmin(Handler):
         dbDomains = [c2d.domain for c2d in dbServerCertificate.unique_fqdn_set.to_domains]
 
         # this will generate it's own log__SslOperationsEvent
-        success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=dbDomains)
+        success, dbEvent = lib.utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=dbDomains)
         if self.request.matched_route.name == 'admin:certificate:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
@@ -268,13 +264,13 @@ class ViewAdmin(Handler):
         dbServerCertificate = self._certificate_focus()
         try:
             if not self.request.method == 'POST':
-                raise lib_errors.DisplayableError('Post Only')
+                raise errors.DisplayableError('Post Only')
             if not dbServerCertificate.can_quick_renew:
-                raise lib_errors.DisplayableError('Thie cert is not eligible for `Quick Renew`')
+                raise errors.DisplayableError('Thie cert is not eligible for `Quick Renew`')
 
             raise NotImplementedError()
 
-        except lib_errors.DisplayableError as e:
+        except errors.DisplayableError as e:
             url_failure = '%s/certificate/%s?operation=renewal&renewal_type=quick&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbServerCertificate.id,
@@ -336,7 +332,7 @@ class ViewAdmin(Handler):
                 raise ValueError("unknown option")
 
             try:
-                event_payload_dict = lib_utils.new_event_payload_dict()
+                event_payload_dict = lib.utils.new_event_payload_dict()
                 event_payload_dict['ssl_server_certificate.id'] = dbServerCertificate.id
                 dbEvent = lib.db.logger.log__SslOperationsEvent(self.request.api_context,
                                                                 models.SslOperationsEventType.from_string('certificate__renew'),
@@ -352,7 +348,7 @@ class ViewAdmin(Handler):
                     dbPrivateKey=dbPrivateKey,
                     dbServerCertificate__renewal_of=dbServerCertificate,
                 )
-            except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError) as e:
+            except (errors.AcmeCommunicationError, errors.DomainVerificationError) as e:
                 return HTTPFound('%s/certificate-requests?result=error&error=renew-acme-automated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except Exception as exc:
                 if self.request.registry.settings['exception_redirect']:
@@ -389,7 +385,7 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results['action']
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = lib.utils.new_event_payload_dict()
             event_payload_dict['ssl_server_certificate.id'] = dbServerCertificate.id
             event_payload_dict['action'] = action
             event_type = models.SslOperationsEventType.from_string('certificate__mark')
@@ -472,7 +468,7 @@ class ViewAdmin(Handler):
 
             if deactivated:
                 # this will handle requeuing
-                lib_events.Certificate_deactivated(self.request.api_context,
+                lib.events.Certificate_deactivated(self.request.api_context,
                                                    dbServerCertificate,
                                                    )
 

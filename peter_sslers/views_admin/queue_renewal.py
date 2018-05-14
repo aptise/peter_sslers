@@ -16,10 +16,6 @@ import transaction
 # localapp
 from ..models import models
 from .. import lib
-from ..lib import acme as lib_acme
-from ..lib import cert_utils as lib_cert_utils
-from ..lib import utils as lib_utils
-from ..lib import letsencrypt_info as lib_letsencrypt_info
 from ..lib.forms import (Form_QueueRenewal_mark,
                          )
 from ..lib.handler import Handler, items_per_page
@@ -88,7 +84,7 @@ class ViewAdmin(Handler):
 
             action = formStash.results['action']
             event_type = models.SslOperationsEventType.from_string('queue_renewal__mark')
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = lib.utils.new_event_payload_dict()
             event_payload_dict['ssl_queue_renewal.id'] = dbQueueRenewal.id
             event_payload_dict['action'] = formStash.results['action']
 

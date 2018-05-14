@@ -18,10 +18,6 @@ from .. import lib
 from ..lib.forms import (Form_PrivateKey_new__file,
                          Form_PrivateKey_mark,
                          )
-from ..lib import acme as lib_acme
-from ..lib import events as lib_events
-from ..lib import cert_utils as lib_cert_utils
-from ..lib import utils as lib_utils
 from ..lib.handler import Handler, items_per_page
 
 
@@ -67,13 +63,13 @@ class ViewAdmin(Handler):
             return dbPrivateKey.key_pem
         elif self.request.matchdict['format'] == 'key':
             self.request.response.content_type = 'application/pkcs8'
-            as_der = lib_cert_utils.convert_pem_to_der(pem_data=dbPrivateKey.key_pem)
+            as_der = lib.cert_utils.convert_pem_to_der(pem_data=dbPrivateKey.key_pem)
             return as_der
 
     @view_config(route_name='admin:private_key:focus:parse.json', renderer='json')
     def private_key_focus_parse_json(self):
         dbPrivateKey = self._private_key_focus()
-        return {"%s" % dbPrivateKey.id: lib_cert_utils.parse_key(key_pem=dbPrivateKey.key_pem),
+        return {"%s" % dbPrivateKey.id: lib.cert_utils.parse_key(key_pem=dbPrivateKey.key_pem),
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -166,7 +162,7 @@ class ViewAdmin(Handler):
 
             action = formStash.results['action']
             event_type = models.SslOperationsEventType.from_string('private_key__mark')
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = lib.utils.new_event_payload_dict()
             event_payload_dict['ssl_private_key.id'] = dbPrivateKey.id
             event_payload_dict['action'] = formStash.results['action']
 
@@ -212,7 +208,7 @@ class ViewAdmin(Handler):
                                             dbPrivateKey=dbPrivateKey,
                                             )
             if marked_comprimised:
-                lib_events.PrivateKey_compromised(
+                lib.events.PrivateKey_compromised(
                     self.request.api_context,
                     dbPrivateKey,
                     dbOperationsEvent=dbOperationsEvent,

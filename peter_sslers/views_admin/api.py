@@ -20,10 +20,7 @@ from ..lib.forms import (Form_API_Domain_enable,
                          Form_API_Domain_disable,
                          Form_API_Domain_certificate_if_needed,
                          )
-from ..lib import acme as lib_acme
-from ..lib import cert_utils as lib_cert_utils
 from ..lib.handler import Handler, items_per_page
-from ..lib import utils as lib_utils
 from ..lib import errors
 
 
@@ -94,7 +91,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
+            domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 formStash.set_error(field="domain_names",
                                     message="Found no domain names",
@@ -143,7 +140,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
+            domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 formStash.set_error(field="domain_names",
                                     message="Found no domain names",
@@ -191,7 +188,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
+            domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 formStash.set_error(field="domain_names",
                                     message="Found no domain names",
@@ -234,11 +231,11 @@ class ViewAdmin(Handler):
     def admin_redis_prime(self):
         self._ensure_redis()
 
-        prime_style = lib_utils.redis_prime_style(self.request)
+        prime_style = lib.utils.redis_prime_style(self.request)
         if not prime_style:
             raise ValueError("invalid `redis.prime_style`")
-        redis_client = lib_utils.redis_connection_from_registry(self.request)
-        redis_timeouts = lib_utils.redis_timeouts_from_registry(self.request)
+        redis_client = lib.utils.redis_connection_from_registry(self.request)
+        redis_timeouts = lib.utils.redis_timeouts_from_registry(self.request)
 
         total_primed = {'cacert': 0,
                         'cert': 0,
@@ -284,7 +281,7 @@ class ViewAdmin(Handler):
                     break
                 for dbCACertificate in active_certs:
                     total_primed['cacert'] += 1
-                    is_primed = lib_utils.redis_prime_logic__style_1_CACertificate(redis_client, dbCACertificate, redis_timeouts)
+                    is_primed = lib.utils.redis_prime_logic__style_1_CACertificate(redis_client, dbCACertificate, redis_timeouts)
                 if len(active_certs) < limit:
                     # no more
                     break
@@ -305,7 +302,7 @@ class ViewAdmin(Handler):
                     break
                 for dbPrivateKey in active_keys:
                     total_primed['pkey'] += 1
-                    is_primed = lib_utils.redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_timeouts)
+                    is_primed = lib.utils.redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_timeouts)
 
                 if len(active_keys) < limit:
                     # no more
@@ -328,7 +325,7 @@ class ViewAdmin(Handler):
                 for dbDomain in active_domains:
                     # favor the multi:
                     total_primed['domain'] += 1
-                    is_primed = lib_utils.redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts)
+                    is_primed = lib.utils.redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts)
 
                 if len(active_domains) < limit:
                     # no more
@@ -365,14 +362,14 @@ class ViewAdmin(Handler):
                 for domain in active_domains:
                     # favor the multi:
                     total_primed['domain'] += 1
-                    is_primed = lib_utils.redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts)
+                    is_primed = lib.utils.redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts)
 
                 if len(active_domains) < limit:
                     # no more
                     break
                 offset += limit
 
-        event_payload_dict = lib_utils.new_event_payload_dict()
+        event_payload_dict = lib.utils.new_event_payload_dict()
         event_payload_dict['prime_style'] = prime_style
         event_payload_dict['total_primed'] = total_primed
         dbEvent = lib.db.logger.log__SslOperationsEvent(self.request.api_context,
@@ -394,7 +391,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:api:nginx:cache_flush.json', renderer='json')
     def admin_nginx_cache_flush(self):
         self._ensure_nginx()
-        success, dbEvent = lib_utils.nginx_flush_cache(self.request, self.request.api_context)
+        success, dbEvent = lib.utils.nginx_flush_cache(self.request, self.request.api_context)
         if self.request.matched_route.name == 'admin:api:nginx:cache_flush.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
@@ -408,7 +405,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:api:nginx:status.json', renderer='json')
     def admin_nginx_status(self):
         self._ensure_nginx()
-        servers_status = lib_utils.nginx_status(self.request, self.request.api_context)
+        servers_status = lib.utils.nginx_status(self.request, self.request.api_context)
         return {'result': 'success',
                 'servers_status': servers_status,
                 }

@@ -7,7 +7,7 @@ import pyramid_formencode_classic as formhandling
 import pypages
 
 # localapp
-from . import text as lib_text
+from . import text
 
 
 # ==============================================================================
@@ -28,7 +28,7 @@ class Handler(object):
     def __init__(self, request):
         self.request = request
         self.request.formhandling = formhandling
-        self.request.text_library = lib_text
+        self.request.text_library = text
 
     def _paginate(self, collection_count, items_per_page=items_per_page, url_template=None):
         page_requested = 1 if 'page' not in self.request.matchdict else int(self.request.matchdict['page'])

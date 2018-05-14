@@ -17,9 +17,7 @@ from ..models import models
 from .. import lib
 from ..lib.forms import (Form_Domain_mark,
                          )
-from ..lib import acme as lib_acme
 from ..lib.handler import Handler, items_per_page
-from ..lib import utils as lib_utils
 
 
 # ==============================================================================
@@ -82,7 +80,7 @@ class ViewAdmin(Handler):
         dbDomain = self._domain_focus(eagerload_web=True)
         if not self.request.registry.settings['enable_nginx']:
             raise HTTPFound('%s/domain/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
-        success, dbEvent = lib_utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=[dbDomain, ])
+        success, dbEvent = lib.utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=[dbDomain, ])
         if self.request.matched_route.name == 'admin:domain:focus:nginx_cache_expire.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
@@ -111,7 +109,7 @@ class ViewAdmin(Handler):
             else:
                 rval['server_certificate__latest_multi'] = dbDomain.server_certificate__latest_multi.config_payload
         if self.request.params.get('openresty', None):
-            lib_utils.prime_redis_domain(self.request, dbDomain)
+            lib.utils.prime_redis_domain(self.request, dbDomain)
         return rval
 
     @view_config(route_name='admin:domain:focus:certificates', renderer='/admin/domain-focus-certificates.mako')
@@ -200,7 +198,7 @@ class ViewAdmin(Handler):
 
             action = formStash.results['action']
             event_type = models.SslOperationsEventType.from_string('domain__mark')
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = lib.utils.new_event_payload_dict()
             event_payload_dict['domain_id'] = dbDomain.id
             event_payload_dict['action'] = action
             event_status = False

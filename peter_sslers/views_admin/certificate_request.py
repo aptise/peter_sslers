@@ -20,9 +20,6 @@ from ..lib.forms import (Form_CertificateRequest_new_AcmeFlow,
                          Form_CertificateRequest_new_AcmeAutomated__file,
                          Form_CertificateRequest_AcmeFlow_manage_domain,
                          )
-from ..lib import acme as lib_acme
-from ..lib import errors as lib_errors
-from ..lib import utils as lib_utils
 from ..lib.handler import Handler, items_per_page
 
 
@@ -196,7 +193,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
+            domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 raise ValueError("missing valid domain names")
             (dbCertificateRequest,
@@ -231,7 +228,7 @@ class ViewAdmin(Handler):
         return self._certificate_request_new_AcmeAutomated__print()
 
     def _certificate_request_new_AcmeAutomated__print(self):
-        active_ca = lib_acme.CERTIFICATE_AUTHORITY
+        active_ca = lib.acme.CERTIFICATE_AUTHORITY
         return render_to_response("/admin/certificate_request-new-AcmeAutomated.mako",
                                   {'CERTIFICATE_AUTHORITY': active_ca,
                                    }, self.request)
@@ -245,7 +242,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib_utils.domains_from_string(formStash.results['domain_names'])
+            domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
                 raise ValueError("missing valid domain names")
 
@@ -259,7 +256,7 @@ class ViewAdmin(Handler):
                     account_key_pem=account_key_pem,
                     private_key_pem=private_key_pem,
                 )
-            except (lib_errors.AcmeCommunicationError, lib_errors.DomainVerificationError) as e:
+            except (errors.AcmeCommunicationError, errors.DomainVerificationError) as e:
                 return HTTPFound('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except Exception as exc:
                 if self.request.registry.settings['exception_redirect']:
