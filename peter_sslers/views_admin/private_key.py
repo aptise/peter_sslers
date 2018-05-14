@@ -15,9 +15,9 @@ import sqlalchemy
 # localapp
 from ..models import models
 from .. import lib
-from ..lib.forms import (Form_PrivateKey_new__file,
-                         Form_PrivateKey_mark,
-                         )
+from ..lib import db as lib_db
+from ..lib.forms import Form_PrivateKey_new__file
+from ..lib.forms import Form_PrivateKey_mark
 from ..lib.handler import Handler, items_per_page
 
 
@@ -29,9 +29,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_keys', renderer='/admin/private_keys.mako')
     @view_config(route_name='admin:private_keys_paginated', renderer='/admin/private_keys.mako')
     def private_keys(self):
-        items_count = lib.db.get.get__SslPrivateKey__count(self.request.api_context)
+        items_count = lib_db.get.get__SslPrivateKey__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/private-keys/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib.db.get.get__SslPrivateKey__paginated(self.request.api_context, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslPrivateKey__paginated(self.request.api_context, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslPrivateKeys_count': items_count,
                 'SslPrivateKeys': items_paged,
@@ -41,7 +41,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _private_key_focus(self, eagerload_web=False):
-        dbPrivateKey = lib.db.get.get__SslPrivateKey__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_web=eagerload_web, )
+        dbPrivateKey = lib_db.get.get__SslPrivateKey__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_web=eagerload_web, )
         if not dbPrivateKey:
             raise HTTPNotFound('the key was not found')
         return dbPrivateKey
@@ -78,10 +78,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_key:focus:certificates_paginated', renderer='/admin/private_key-focus-certificates.mako')
     def private_key_focus__certificates(self):
         dbPrivateKey = self._private_key_focus()
-        items_count = lib.db.get.get__SslServerCertificate__by_SslPrivateKeyId__count(
+        items_count = lib_db.get.get__SslServerCertificate__by_SslPrivateKeyId__count(
             self.request.api_context, dbPrivateKey.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/private-key/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id))
-        items_paged = lib.db.get.get__SslServerCertificate__by_SslPrivateKeyId__paginated(
+        items_paged = lib_db.get.get__SslServerCertificate__by_SslPrivateKeyId__paginated(
             self.request.api_context, dbPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslPrivateKey': dbPrivateKey,
@@ -94,10 +94,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_key:focus:certificate_requests_paginated', renderer='/admin/private_key-focus-certificate_requests.mako')
     def private_key_focus__certificate_requests(self):
         dbPrivateKey = self._private_key_focus()
-        items_count = lib.db.get.get__SslCertificateRequest__by_SslPrivateKeyId__count(
+        items_count = lib_db.get.get__SslCertificateRequest__by_SslPrivateKeyId__count(
             self.request.api_context, dbPrivateKey.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/private-key/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id))
-        items_paged = lib.db.get.get__SslCertificateRequest__by_SslPrivateKeyId__paginated(
+        items_paged = lib_db.get.get__SslCertificateRequest__by_SslPrivateKeyId__paginated(
             self.request.api_context, dbPrivateKey.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslPrivateKey': dbPrivateKey,
@@ -129,7 +129,7 @@ class ViewAdmin(Handler):
             private_key_pem = formStash.results['private_key_file'].file.read()
             (dbPrivateKey,
              _is_created
-             ) = lib.db.getcreate.getcreate__SslPrivateKey__by_pem_text(self.request.api_context, private_key_pem)
+             ) = lib_db.getcreate.getcreate__SslPrivateKey__by_pem_text(self.request.api_context, private_key_pem)
 
             return HTTPFound('%s/private-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id, ('&is_created=1' if _is_created else '')))
 
@@ -197,12 +197,12 @@ class ViewAdmin(Handler):
             self.request.api_context.dbSession.flush(objects=[dbPrivateKey, ])
 
             # bookkeeping
-            dbOperationsEvent = lib.db.logger.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
                 event_payload_dict,
             )
-            lib.db.logger._log_object_event(self.request.api_context,
+            lib_db.logger._log_object_event(self.request.api_context,
                                             dbOperationsEvent=dbOperationsEvent,
                                             event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
                                             dbPrivateKey=dbPrivateKey,

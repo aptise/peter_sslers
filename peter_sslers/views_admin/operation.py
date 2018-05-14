@@ -16,6 +16,7 @@ import sqlalchemy
 # localapp
 from ..models import models
 from .. import lib
+from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
 
 
@@ -66,12 +67,12 @@ class ViewAdminOperations(Handler):
         (event_type, event_type_id) = self._parse__event_type()
         event_type_ids = (event_type_id, ) if event_type_id else None
 
-        items_count = lib.db.get.get__SslOperationsEvent__count(self.request.api_context, event_type_ids=event_type_ids)
+        items_count = lib_db.get.get__SslOperationsEvent__count(self.request.api_context, event_type_ids=event_type_ids)
         _url_template = '%s/operations/log/{0}' % self.request.registry.settings['admin_prefix']
         if event_type:
             _url_template = '%s/operations/log/{0}?event_type=%s' % (self.request.registry.settings['admin_prefix'], event_type)
         (pager, offset) = self._paginate(items_count, url_template=_url_template, items_per_page=_items_per_page)
-        items_paged = lib.db.get.get__SslOperationsEvent__paginated(self.request.api_context, event_type_ids=event_type_ids, limit=_items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslOperationsEvent__paginated(self.request.api_context, event_type_ids=event_type_ids, limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslOperationsEvents__count': items_count,
                 'SslOperationsEvents': items_paged,
@@ -83,7 +84,7 @@ class ViewAdminOperations(Handler):
 
     @view_config(route_name='admin:operations:log:focus', renderer='/admin/operations-log-focus.mako')
     def operations_log_focus(self):
-        item = lib.db.get.get__SslOperationsEvent__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
+        item = lib_db.get.get__SslOperationsEvent__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
         if not item:
             raise ValueError("no item")
         return {'project': 'peter_sslers',
@@ -98,9 +99,9 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:ca_certificate_probes', renderer='/admin/operations-ca_certificate_probes.mako')
     @view_config(route_name='admin:operations:ca_certificate_probes_paginated', renderer='/admin/operations-ca_certificate_probes.mako')
     def ca_certificate_probes(self):
-        items_count = lib.db.get.get__SslOperationsEvent__certificate_probe__count(self.request.api_context)
+        items_count = lib_db.get.get__SslOperationsEvent__certificate_probe__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/operations/ca-certificate-probes/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib.db.get.get__SslOperationsEvent__certificate_probe__paginated(self.request.api_context, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslOperationsEvent__certificate_probe__paginated(self.request.api_context, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslOperationsEvents_count': items_count,
                 'SslOperationsEvents': items_paged,
@@ -116,9 +117,9 @@ class ViewAdminOperations(Handler):
         self._ensure_redis()
 
         _items_per_page = 25
-        items_count = lib.db.get.get__SslOperationsEvent__count(self.request.api_context, event_type_ids=(models.SslOperationsEventType.from_string('operations__redis_prime'), ))
+        items_count = lib_db.get.get__SslOperationsEvent__count(self.request.api_context, event_type_ids=(models.SslOperationsEventType.from_string('operations__redis_prime'), ))
         (pager, offset) = self._paginate(items_count, url_template='%s/operations/redis/log/{0}' % self.request.registry.settings['admin_prefix'], items_per_page=_items_per_page)
-        items_paged = lib.db.get.get__SslOperationsEvent__paginated(self.request.api_context, event_type_ids=(models.SslOperationsEventType.from_string('operations__redis_prime'), ), limit=_items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslOperationsEvent__paginated(self.request.api_context, event_type_ids=(models.SslOperationsEventType.from_string('operations__redis_prime'), ), limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslOperationsEvents__count': items_count,
                 'SslOperationsEvents': items_paged,
@@ -136,9 +137,9 @@ class ViewAdminOperations(Handler):
 
         _items_per_page = 25
         _event_type_ids = (models.SslOperationsEventType.from_string('operations__nginx_cache_expire'), models.SslOperationsEventType.from_string('operations__nginx_cache_flush'))
-        items_count = lib.db.get.get__SslOperationsEvent__count(self.request.api_context, event_type_ids=_event_type_ids)
+        items_count = lib_db.get.get__SslOperationsEvent__count(self.request.api_context, event_type_ids=_event_type_ids)
         (pager, offset) = self._paginate(items_count, url_template='%s/operations/nginx/log/{0}' % self.request.registry.settings['admin_prefix'], items_per_page=_items_per_page)
-        items_paged = lib.db.get.get__SslOperationsEvent__paginated(self.request.api_context, event_type_ids=_event_type_ids,
+        items_paged = lib_db.get.get__SslOperationsEvent__paginated(self.request.api_context, event_type_ids=_event_type_ids,
                                                                     limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslOperationsEvents__count': items_count,
@@ -154,9 +155,9 @@ class ViewAdminOperations(Handler):
     @view_config(route_name='admin:operations:object_log_paginated', renderer='/admin/operations-object_log.mako')
     def object_log(self):
         _items_per_page = 25
-        items_count = lib.db.get.get__SslOperationsObjectEvent__count(self.request.api_context)
+        items_count = lib_db.get.get__SslOperationsObjectEvent__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/operations/object-log/{0}' % self.request.registry.settings['admin_prefix'], items_per_page=_items_per_page)
-        items_paged = lib.db.get.get__SslOperationsObjectEvent__paginated(self.request.api_context, limit=_items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslOperationsObjectEvent__paginated(self.request.api_context, limit=_items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslOperationsObjectEvent__count': items_count,
                 'SslOperationsObjectEvents': items_paged,
@@ -167,7 +168,7 @@ class ViewAdminOperations(Handler):
 
     @view_config(route_name='admin:operations:object_log:focus', renderer='/admin/operations-object_log-focus.mako')
     def operations_object_log_focus(self):
-        item = lib.db.get.get__SslOperationsObjectEvent__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
+        item = lib_db.get.get__SslOperationsObjectEvent__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_log=True)
         if not item:
             raise ValueError("no item")
         return {'project': 'peter_sslers',

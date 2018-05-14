@@ -15,10 +15,10 @@ import sqlalchemy
 # localapp
 from ..models import models
 from .. import lib
-from ..lib.forms import (Form_Certificate_Upload__file,
-                         Form_Certificate_Renewal_Custom,
-                         Form_Certificate_mark,
-                         )
+from ..lib import db as lib_db
+from ..lib.forms import Form_Certificate_Upload__file
+from ..lib.forms import Form_Certificate_Renewal_Custom
+from ..lib.forms import Form_Certificate_mark
 from ..lib.handler import Handler, items_per_page
 from ..lib import errors
 
@@ -32,9 +32,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
     def certificates(self):
-        items_count = lib.db.get.get__SslServerCertificate__count(self.request.api_context)
+        items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/certificates/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib.db.get.get__SslServerCertificate__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
+        items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
         return {'project': 'peter_sslers',
                 'SslServerCertificates_count': items_count,
                 'SslServerCertificates': items_paged,
@@ -46,9 +46,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificates:expiring_paginated', renderer='/admin/certificates.mako')
     def certificates_expiring_only(self):
         expiring_days = self.request.registry.settings['expiring_days']
-        items_count = lib.db.get.get__SslServerCertificate__count(self.request.api_context, expiring_days=expiring_days)
+        items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context, expiring_days=expiring_days)
         (pager, offset) = self._paginate(items_count, url_template='%s/certificates/expiring/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib.db.get.get__SslServerCertificate__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslServerCertificates_count': items_count,
                 'SslServerCertificates': items_paged,
@@ -88,7 +88,7 @@ class ViewAdmin(Handler):
             private_key_pem = formStash.results['private_key_file'].file.read()
             (dbPrivateKey,
              pkey_is_created
-             ) = lib.db.getcreate.getcreate__SslPrivateKey__by_pem_text(
+             ) = lib_db.getcreate.getcreate__SslPrivateKey__by_pem_text(
                 self.request.api_context,
                 private_key_pem
             )
@@ -96,7 +96,7 @@ class ViewAdmin(Handler):
             chain_pem = formStash.results['chain_file'].file.read()
             (dbCaCertificate,
              cacert_is_created
-             ) = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+             ) = lib_db.getcreate.getcreate__SslCaCertificate__by_pem_text(
                 self.request.api_context,
                 chain_pem,
                 'manual upload'
@@ -105,7 +105,7 @@ class ViewAdmin(Handler):
             certificate_pem = formStash.results['certificate_file'].file.read()
             (dbServerCertificate,
              cert_is_created
-             ) = lib.db.getcreate.getcreate__SslServerCertificate__by_pem_text(
+             ) = lib_db.getcreate.getcreate__SslServerCertificate__by_pem_text(
                 self.request.api_context, certificate_pem,
                 dbCACertificate=dbCaCertificate,
                 dbPrivateKey=dbPrivateKey,
@@ -146,7 +146,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _certificate_focus(self):
-        dbServerCertificate = lib.db.get.get__SslServerCertificate__by_id(self.request.api_context, self.request.matchdict['id'])
+        dbServerCertificate = lib_db.get.get__SslServerCertificate__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbServerCertificate:
             raise HTTPNotFound('the certificate was not found')
         return dbServerCertificate
@@ -334,12 +334,12 @@ class ViewAdmin(Handler):
             try:
                 event_payload_dict = lib.utils.new_event_payload_dict()
                 event_payload_dict['ssl_server_certificate.id'] = dbServerCertificate.id
-                dbEvent = lib.db.logger.log__SslOperationsEvent(self.request.api_context,
+                dbEvent = lib_db.logger.log__SslOperationsEvent(self.request.api_context,
                                                                 models.SslOperationsEventType.from_string('certificate__renew'),
                                                                 event_payload_dict
                                                                 )
 
-                newLetsencryptCertificate = lib.db.actions.do__CertificateRequest__AcmeAutomated(
+                newLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated(
                     self.request.api_context,
                     domain_names=dbServerCertificate.domains_as_list,
                     account_key_pem=account_key_pem,
@@ -450,19 +450,19 @@ class ViewAdmin(Handler):
             self.request.api_context.dbSession.flush(objects=[dbServerCertificate, ])
 
             # bookkeeping
-            dbOperationsEvent = lib.db.logger.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
                 self.request.api_context,
                 event_type,
                 event_payload_dict,
             )
-            lib.db.logger._log_object_event(self.request.api_context,
+            lib_db.logger._log_object_event(self.request.api_context,
                                             dbOperationsEvent=dbOperationsEvent,
                                             event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
                                             dbServerCertificate=dbServerCertificate,
                                             )
 
             if update_recents:
-                event_update = lib.db.actions.operations_update_recents(self.request.api_context)
+                event_update = lib_db.actions.operations_update_recents(self.request.api_context)
                 event_update.ssl_operations_event_id__child_of = dbOperationsEvent.id
                 self.request.api_context.dbSession.flush(objects=[event_update, ])
 

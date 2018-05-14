@@ -15,9 +15,9 @@ import sqlalchemy
 # localapp
 from ..models import models
 from .. import lib
-from ..lib.forms import (Form_CACertificate_Upload__file,
-                         Form_CACertificate_UploadBundle__file,
-                         )
+from ..lib import db as lib_db
+from ..lib.forms import Form_CACertificate_Upload__file
+from ..lib.forms import Form_CACertificate_UploadBundle__file
 from ..lib.handler import Handler, items_per_page
 
 
@@ -29,9 +29,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificates', renderer='/admin/ca_certificates.mako')
     @view_config(route_name='admin:ca_certificates_paginated', renderer='/admin/ca_certificates.mako')
     def ca_certificates(self):
-        items_count = lib.db.get.get__SslCaCertificate__count(self.request.api_context)
+        items_count = lib_db.get.get__SslCaCertificate__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificates/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib.db.get.get__SslCaCertificate__paginated(self.request.api_context, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslCaCertificate__paginated(self.request.api_context, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslCaCertificates_count': items_count,
                 'SslCaCertificates': items_paged,
@@ -41,7 +41,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _ca_certificate_focus(self):
-        dbCaCertificate = lib.db.get.get__SslCaCertificate__by_id(self.request.api_context, self.request.matchdict['id'])
+        dbCaCertificate = lib_db.get.get__SslCaCertificate__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbCaCertificate:
             raise HTTPNotFound('the cert was not found')
         return dbCaCertificate
@@ -49,9 +49,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus', renderer='/admin/ca_certificate-focus.mako')
     def ca_certificate_focus(self):
         dbCaCertificate = self._ca_certificate_focus()
-        items_count = lib.db.get.get__SslServerCertificate__by_SslCaCertificateId__count(
+        items_count = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__count(
             self.request.api_context, dbCaCertificate.id)
-        items_paged = lib.db.get.get__SslServerCertificate__by_SslCaCertificateId__paginated(
+        items_paged = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__paginated(
             self.request.api_context, dbCaCertificate.id, limit=10, offset=0)
         return {'project': 'peter_sslers',
                 'SslCaCertificate': dbCaCertificate,
@@ -90,10 +90,10 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:ca_certificate:focus:certificates_signed_paginated', renderer='/admin/ca_certificate-focus-certificates_signed.mako')
     def ca_certificate_focus__certificates_signed(self):
         dbCaCertificate = self._ca_certificate_focus()
-        items_count = lib.db.get.get__SslServerCertificate__by_SslCaCertificateId__count(
+        items_count = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__count(
             self.request.api_context, dbCaCertificate.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificate/%s/certificates-signed/{0}' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id))
-        items_paged = lib.db.get.get__SslServerCertificate__by_SslCaCertificateId__paginated(
+        items_paged = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__paginated(
             self.request.api_context, dbCaCertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslCaCertificate': dbCaCertificate,
@@ -132,7 +132,7 @@ class ViewAdmin(Handler):
             chain_file_name = formStash.results['chain_file_name'] or 'manual upload'
             (dbCaCertificate,
              cacert_is_created
-             ) = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+             ) = lib_db.getcreate.getcreate__SslCaCertificate__by_pem_text(
                 self.request.api_context,
                 chain_pem,
                 chain_file_name
@@ -225,7 +225,7 @@ class ViewAdmin(Handler):
 
             bundle_data = dict([i for i in bundle_data.items() if i[1]])
 
-            dbResults = lib.db.actions.upload__SslCaCertificateBundle__by_pem_text(
+            dbResults = lib_db.actions.upload__SslCaCertificateBundle__by_pem_text(
                 self.request.api_context,
                 bundle_data
             )

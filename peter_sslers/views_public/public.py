@@ -12,6 +12,7 @@ import datetime
 
 # localapp
 from .. import lib
+from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
 
 
@@ -29,7 +30,7 @@ class ViewPublic(Handler):
     @view_config(route_name='public_challenge', renderer='string')
     def public_challenge(self):
         challenge = self.request.matchdict['challenge']
-        activeRequest = lib.db.get.get__SslCertificateRequest2SslDomain__challenged(self.request.api_context,
+        activeRequest = lib_db.get.get__SslCertificateRequest2SslDomain__challenged(self.request.api_context,
                                                                                     challenge,
                                                                                     self.request.active_domain_name,
                                                                                     )
@@ -43,7 +44,7 @@ class ViewPublic(Handler):
                 activeRequest.ip_verified = self.request.environ['REMOTE_ADDR']
                 self.request.api_context.dbSession.flush(objects=[activeRequest, ])
                 # quick cleanup
-                dbCertificateRequest = lib.db.get.get__SslCertificateRequest__by_id(self.request.api_context,
+                dbCertificateRequest = lib_db.get.get__SslCertificateRequest__by_id(self.request.api_context,
                                                                                     activeRequest.ssl_certificate_request_id,
                                                                                     )
                 has_unverified = False

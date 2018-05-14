@@ -165,9 +165,9 @@ def nginx_flush_cache(request, ctx):
                 raise ValueError("could not flush cache: `%s`" % reset_url)
         else:
             raise ValueError("could not flush cache: `%s`" % reset_url)
-    dbEvent = lib.db.log__SslOperationsEvent(ctx,
-                                             models.SslOperationsEventType.from_string('operations__nginx_cache_flush'),
-                                             )
+    dbEvent = lib.db.logger.log__SslOperationsEvent(ctx,
+                                                    models.SslOperationsEventType.from_string('operations__nginx_cache_flush'),
+                                                    )
     return True, dbEvent
 
 
@@ -219,10 +219,10 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
     event_payload_dict['ssl_domain_ids'] = {'success': list(domain_ids['success']),
                                             'failure': list(domain_ids['failure']),
                                             }
-    dbEvent = lib.db.log__SslOperationsEvent(ctx,
-                                             models.SslOperationsEventType.from_string('operations__nginx_cache_expire'),
-                                             event_payload_dict,
-                                             )
+    dbEvent = lib.db.logger.log__SslOperationsEvent(ctx,
+                                                    models.SslOperationsEventType.from_string('operations__nginx_cache_expire'),
+                                                    event_payload_dict,
+                                                    )
     return True, dbEvent
 
 

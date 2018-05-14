@@ -76,6 +76,16 @@
                         % endif
                 </tr>
                 <tr>
+                    <th>nginx.userpass</th>
+                    <td>
+                        % if request.registry.settings['nginx.userpass']:
+                            <code>${request.registry.settings['nginx.userpass']}</code>
+                        % else:
+                            <code></code>
+                        % endif
+                    </td>
+                </tr>
+                <tr>
                     <th>nginx.reset_path</th>
                     <td><code>${request.registry.settings['nginx.reset_path']}</code></td>
                 </tr>

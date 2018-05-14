@@ -15,11 +15,11 @@ import sqlalchemy
 # localapp
 from ..models import models
 from .. import lib
-from ..lib.forms import (Form_CertificateRequest_new_AcmeFlow,
-                         # Form_CertificateRequest_new_AcmeAutomated,
-                         Form_CertificateRequest_new_AcmeAutomated__file,
-                         Form_CertificateRequest_AcmeFlow_manage_domain,
-                         )
+from ..lib import db as lib_db
+from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
+from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated__file
+from ..lib.forms import Form_CertificateRequest_AcmeFlow_manage_domain
+# from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated
 from ..lib.handler import Handler, items_per_page
 
 
@@ -31,9 +31,9 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate_requests', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
     def certificate_requests(self):
-        items_count = lib.db.get.get__SslCertificateRequest__count(self.request.api_context)
+        items_count = lib_db.get.get__SslCertificateRequest__count(self.request.api_context)
         (pager, offset) = self._paginate(items_count, url_template='%s/certificate-requests/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib.db.get.get__SslCertificateRequest__paginated(self.request.api_context, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslCertificateRequest__paginated(self.request.api_context, limit=items_per_page, offset=offset)
 
         return {'project': 'peter_sslers',
                 'SslCertificateRequests_count': items_count,
@@ -44,7 +44,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _certificate_request_focus(self):
-        dbCertificateRequest = lib.db.get.get__SslCertificateRequest__by_id(self.request.api_context, self.request.matchdict['id'])
+        dbCertificateRequest = lib_db.get.get__SslCertificateRequest__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbCertificateRequest:
             raise HTTPNotFound('the certificate was not found')
         return dbCertificateRequest
@@ -103,9 +103,9 @@ class ViewAdmin(Handler):
 
         domain_identifier = self.request.matchdict['domain_identifier'].strip()
         if domain_identifier.isdigit():
-            dbDomain = lib.db.get.get__SslDomain__by_id(self.request.api_context, domain_identifier, preload=False, eagerload_web=False)
+            dbDomain = lib_db.get.get__SslDomain__by_id(self.request.api_context, domain_identifier, preload=False, eagerload_web=False)
         else:
-            dbDomain = lib.db.get.get__SslDomain__by_name(self.request.api_context, domain_identifier, preload=False, eagerload_web=False)
+            dbDomain = lib_db.get.get__SslDomain__by_name(self.request.api_context, domain_identifier, preload=False, eagerload_web=False)
         if not dbDomain:
             raise HTTPNotFound('invalid domain')
 
@@ -198,7 +198,7 @@ class ViewAdmin(Handler):
                 raise ValueError("missing valid domain names")
             (dbCertificateRequest,
              dbDomainObjects
-             ) = lib.db.create.create__SslCertificateRequest(
+             ) = lib_db.create.create__SslCertificateRequest(
                 self.request.api_context,
                 csr_pem = None,
                 certificate_request_type_id = models.SslCertificateRequestType.ACME_FLOW,
@@ -250,7 +250,7 @@ class ViewAdmin(Handler):
             private_key_pem = formStash.results['private_key_file'].file.read()
 
             try:
-                dbLetsencryptCertificate = lib.db.actions.do__CertificateRequest__AcmeAutomated(
+                dbLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated(
                     self.request.api_context,
                     domain_names,
                     account_key_pem=account_key_pem,
