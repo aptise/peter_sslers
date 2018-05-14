@@ -331,7 +331,7 @@ class AppTest(AppTestCore):
                 # queue a domain
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
-                db.queue_domains__add(
+                lib.db.queues.queue_domains__add(
                     self.ctx,
                     ['queue.example.com', ],
                 )

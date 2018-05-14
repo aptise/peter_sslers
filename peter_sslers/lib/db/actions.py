@@ -23,7 +23,6 @@ from .. import utils
 from .logger import log__SslOperationsEvent
 from .logger import _log_object_event
 from . import get
-from . import queues
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -644,7 +643,7 @@ def api_domains__enable(ctx, domain_names):
                                                 models.SslOperationsEventType.from_string('api_domains__enable'),
                                                 event_payload_dict,
                                                 )
-    results = queues.queue_domains__add(ctx, domain_names)
+    results = lib.db.queues.queue_domains__add(ctx, domain_names)
     return results
 
 
@@ -676,7 +675,7 @@ def api_domains__disable(ctx, domain_names):
         elif not _dbDomain:
             _dbQueueDomain = lib.db.get.get__SslQueueDomain__by_name(ctx, domain_name)
             if _dbQueueDomain:
-                queues.dequeue_QueuedDomain(ctx, _dbQueueDomain, dbOperationsEvent=dbOperationsEvent, event_status='queue_domain__mark__cancelled', action='de-queued')
+                lib.db.queues.dequeue_QueuedDomain(ctx, _dbQueueDomain, dbOperationsEvent=dbOperationsEvent, event_status='queue_domain__mark__cancelled', action='de-queued')
                 results[domain_name] = 'de-queued'
             else:
                 results[domain_name] = 'not active or in queue'
@@ -838,7 +837,7 @@ def api_domains__certificate_if_needed(
         # remove from queue if it exists
         _dbQueueDomain = lib.db.get.get__SslQueueDomain__by_name(ctx, domain_name)
         if _dbQueueDomain:
-            queues.dequeue_QueuedDomain(ctx, _dbQueueDomain, dbOperationsEvent=dbOperationsEvent, event_status='queue_domain__mark__already_processed', action='already_processed')
+            lib.db.queues.dequeue_QueuedDomain(ctx, _dbQueueDomain, dbOperationsEvent=dbOperationsEvent, event_status='queue_domain__mark__already_processed', action='already_processed')
 
         # do commit, just because THE LOGGGING
         transaction.commit()

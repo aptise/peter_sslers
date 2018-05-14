@@ -15,13 +15,13 @@ import transaction
 
 # localapp
 from ..models import models
+from .. import lib
 from ..lib.forms import (Form_API_Domain_enable,
                          Form_API_Domain_disable,
                          Form_API_Domain_certificate_if_needed,
                          )
 from ..lib import acme as lib_acme
 from ..lib import cert_utils as lib_cert_utils
-from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
 from ..lib import utils as lib_utils
 from ..lib import errors
@@ -44,7 +44,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:api:update_recents', renderer=None)
     @view_config(route_name='admin:api:update_recents.json', renderer='json')
     def api_update_recents(self):
-        operations_event = lib_db.operations_update_recents(self.request.api_context)
+        operations_event = lib.db.actions.operations_update_recents(self.request.api_context)
         if self.request.matched_route.name == 'admin:api:update_recents.json':
             return {'result': 'success',
                     'operations_event': operations_event.id,
@@ -57,7 +57,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:api:deactivate_expired.json', renderer='json')
     def api_deactivate_expired(self):
         rval = {}
-        operations_event = lib_db.operations_deactivate_expired(self.request.api_context)
+        operations_event = lib.db.actions.operations_deactivate_expired(self.request.api_context)
         count_deactivated_expired = operations_event.event_payload_json['count_deactivated']
         rval['SslServerCertificate'] = {'expired': count_deactivated_expired, }
 
@@ -101,9 +101,9 @@ class ViewAdmin(Handler):
                                     raise_FormInvalid=True,
                                     message_prepend=True
                                     )
-            api_results = lib_db.api_domains__enable(self.request.api_context,
-                                                     domain_names,
-                                                     )
+            api_results = lib.db.actions.api_domains__enable(self.request.api_context,
+                                                             domain_names,
+                                                             )
             return {'result': 'success',
                     'domains': api_results,
                     }
@@ -150,7 +150,7 @@ class ViewAdmin(Handler):
                                     raise_FormInvalid=True,
                                     message_prepend=True
                                     )
-            api_results = lib_db.api_domains__disable(self.request.api_context, domain_names)
+            api_results = lib.db.actions.api_domains__disable(self.request.api_context, domain_names)
             return {'result': 'success',
                     'domains': api_results,
                     }
@@ -207,10 +207,10 @@ class ViewAdmin(Handler):
             account_key_pem = None
             if formStash.results['account_key_file'] is not None:
                 account_key_pem = formStash.results['account_key_file'].file.read()
-            api_results = lib_db.api_domains__certificate_if_needed(self.request.api_context,
-                                                                    domain_names,
-                                                                    account_key_pem=account_key_pem
-                                                                    )
+            api_results = lib.db.actions.api_domains__certificate_if_needed(self.request.api_context,
+                                                                            domain_names,
+                                                                            account_key_pem=account_key_pem
+                                                                            )
             return {'result': 'success',
                     'domains': api_results,
                     }
@@ -273,7 +273,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_certs = lib_db.get.get__SslCaCertificate__paginated(
+                active_certs = lib.db.get.get__SslCaCertificate__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -294,7 +294,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_keys = lib_db.get.get__SslPrivateKey__paginated(
+                active_keys = lib.db.get.get__SslPrivateKey__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -316,7 +316,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_domains = lib_db.get.get__SslDomain__paginated(
+                active_domains = lib.db.get.get__SslDomain__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -353,7 +353,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_domains = lib_db.get.get__SslDomain__paginated(
+                active_domains = lib.db.get.get__SslDomain__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -375,10 +375,10 @@ class ViewAdmin(Handler):
         event_payload_dict = lib_utils.new_event_payload_dict()
         event_payload_dict['prime_style'] = prime_style
         event_payload_dict['total_primed'] = total_primed
-        dbEvent = lib_db.log__SslOperationsEvent(self.request.api_context,
-                                                 models.SslOperationsEventType.from_string('api__redis_prime'),
-                                                 event_payload_dict,
-                                                 )
+        dbEvent = lib.db.logger.log__SslOperationsEvent(self.request.api_context,
+                                                        models.SslOperationsEventType.from_string('api__redis_prime'),
+                                                        event_payload_dict,
+                                                        )
         if self.request.matched_route.name == 'admin:api:redis:prime.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
@@ -420,7 +420,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:api:ca_certificate_probes:probe.json', renderer='json')
     def ca_certificate_probes__probe(self):
 
-        operations_event = lib_db.ca_certificate_probe(self.request.api_context)
+        operations_event = lib.db.actions.ca_certificate_probe(self.request.api_context)
 
         if self.request.matched_route.name == 'admin:api:ca_certificate_probes:probe.json':
             return {'result': 'success',
@@ -437,7 +437,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:api:queue_renewals:update.json', renderer='json')
     def queue_renewal_update(self):
         try:
-            queue_results = lib_db.queue_renewals__update(self.request.api_context)
+            queue_results = lib.db.queues.queue_renewals__update(self.request.api_context)
             if self.request.matched_route.name == 'admin:api:queue_renewals:update.json':
                 return {'result': 'success',
                         }
@@ -456,7 +456,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:api:queue_renewals:process.json', renderer='json')
     def queue_renewal_process(self):
         try:
-            queue_results = lib_db.queue_renewals__process(self.request.api_context)
+            queue_results = lib.db.queues.queue_renewals__process(self.request.api_context)
             if self.request.matched_route.name == 'admin:api:queue_renewals:process.json':
                 return {'result': 'success',
                         }
