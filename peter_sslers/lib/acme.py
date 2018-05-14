@@ -249,3 +249,14 @@ def acme_sign_certificate(
     # openssl x509 -inform der -in issuer-cert -out issuer-cert.pem
 
     return cert_pem_text, chained_pem_text, chain_url, datetime_signed, datetime_expires
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+__all__ = ('send_signed_request',
+           'account_key__header_thumbprint',
+           'acme_register_account',
+           'acme_verify_domains',
+           'acme_sign_certificate',
+           )

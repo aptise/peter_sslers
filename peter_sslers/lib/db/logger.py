@@ -89,3 +89,11 @@ def _log_object_event(
     ctx.dbSession.flush(objects=[dbOperationsObjectEvent, ])
 
     return dbOperationsObjectEvent
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+__all__ = ('log__SslOperationsEvent',
+           '_log_object_event',
+           )

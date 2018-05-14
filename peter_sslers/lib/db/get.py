@@ -11,7 +11,6 @@ import sqlalchemy
 # localapp
 from ...models import models
 from .. import cert_utils
-from .. import errors
 from .. import utils
 
 
@@ -816,3 +815,6 @@ def get__SslUniqueFQDNSet__by_SslDomainId__paginated(ctx, domain_id, limit=None,
         .offset(offset)\
         .all()
     return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

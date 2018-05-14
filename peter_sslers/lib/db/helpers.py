@@ -28,3 +28,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbCertificate):
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+__all__ = ('_certificate_parse_to_record',
+           )

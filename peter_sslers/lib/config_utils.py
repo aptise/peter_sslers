@@ -16,3 +16,11 @@ def set_int_setting(settings, key, default=None):
         value = int(default)
     settings[key] = value
     return value
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+__all__ = ('set_bool_setting',
+           'set_int_setting',
+           )

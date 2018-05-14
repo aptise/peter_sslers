@@ -138,3 +138,14 @@ def PrivateKey_compromised(ctx, privateKey, dbOperationsEvent=None):
     ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
     return True
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+__all__ = ('Certificate_issued',
+           'Certificate_renewed',
+           'Certificate_expired',
+           'Certificate_deactivated',
+           'PrivateKey_compromised',
+           )
