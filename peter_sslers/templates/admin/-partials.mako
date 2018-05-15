@@ -786,36 +786,31 @@
             <a  href="${admin_prefix}/operations/log"
             >
             <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Full Operations Log</a>
-        </li>
+            Full Operations Log</a></li>
         % if enable_redis:
             <li class="${'active' if active =='/operations/redis' else ''}">
                 <a  href="${admin_prefix}/operations/redis"
                 >
                 <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-                Operations Log: Redis</a>
-            </li>
+                Operations Log: Redis</a></li>
         % endif
         % if enable_nginx:
             <li class="${'active' if active =='/operations/nginx' else ''}">
                 <a  href="${admin_prefix}/operations/nginx"
                 >
                 <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-                Operations Log: nginx</a>
-            </li>
+                Operations Log: nginx</a></li>
         % endif
         <li class="${'active' if active =='/operations/ca-certificate-probes' else ''}">
             <a  href="${admin_prefix}/operations/ca-certificate-probes"
             >
             <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Operations Log: CA Certificate Probes</a>
-        </li>
+            Operations Log: CA Certificate Probes</a></li>
         <li class="${'active' if active =='/operations/object-log' else ''}">
             <a  href="${admin_prefix}/operations/object-log"
             >
             <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Object Log</a>
-        </li>
+            Object Log</a></li>
     </ul>
 
     <h4>Actions</h4>
@@ -824,15 +819,13 @@
             <a  href="${admin_prefix}/api/deactivate-expired"
             >
              <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-             Deactivate Expired Certificates</a>
-        </li>
+             Deactivate Expired Certificates</a></li>
         <li class="${'active' if active =='/api/update-recents' else ''}">
             <a  href="${admin_prefix}/api/update-recents"
             >
              <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-             Update Recents</a>
-        </li>
-    </ul
+             Update Recents</a></li>
+    </ul>
 </%def>
 
 

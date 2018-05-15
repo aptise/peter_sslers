@@ -29,7 +29,6 @@
         </div>
     </div>
 
-
     <div class="row">
         <div class="col-sm-4">
             <h3>Enrolled Records</h3>
@@ -38,16 +37,12 @@
                        title="${request.text_library.info_Domains[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    domains
-                    </a>
-                    </li>
+                    domains</a></li>
                 <li><a href="${admin_prefix}/certificates"
                        title="${request.text_library.info_Certificates[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificates
-                    </a>
-                    </li>
+                    certificates</a></li>
                 <li><a href="${admin_prefix}/certificate-requests"
                        title="${request.text_library.info_CertificateRequests[0]}"
                     >
@@ -59,9 +54,7 @@
                        title="${request.text_library.info_PrivateKeys[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    private-keys
-                    </a> 
-                    </li>
+                    private-keys</a></li>
             </ul>
 
             <h3>Recordkeeping</h3>
@@ -70,33 +63,25 @@
                        title="${request.text_library.info_UniqueFQDNs[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    unique-fqdn-sets
-                    </a> 
-                    </li>
+                    unique-fqdn-sets</a></li>
                 <li><a href="${admin_prefix}/account-keys"
                        title="${request.text_library.info_AccountKeys[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    account-keys
-                    </a> 
-                    </li>
+                    account-keys</a></li>
                 <li><a href="${admin_prefix}/ca-certificates"
                        title="${request.text_library.info_CACertificates[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    ca-certificates
-                    </a> 
-                    </li>
+                    ca-certificates</a></li>
                 <li><a href="${admin_prefix}/queue-renewals"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    queue-renewals
-                    </a></li>
+                    queue-renewals</a></li>
                 <li><a href="${admin_prefix}/queue-domains"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    queue-domains
-                    </a></li>
+                    queue-domains</a></li>
             </ul>
         </div>
         <div class="col-sm-4">
@@ -104,8 +89,7 @@
             <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/api/nginx/status.json">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    api : nginx/status.json
-                    </a></li>
+                    api : nginx/status.json</a></li>
             </ul>
             ${admin_partials.operations_options(enable_redis=enable_redis,
                                                 enable_nginx=enable_nginx,
