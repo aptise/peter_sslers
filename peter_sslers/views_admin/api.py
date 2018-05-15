@@ -373,7 +373,7 @@ class ViewAdmin(Handler):
         event_payload_dict['prime_style'] = prime_style
         event_payload_dict['total_primed'] = total_primed
         dbEvent = lib_db.logger.log__SslOperationsEvent(self.request.api_context,
-                                                        models.SslOperationsEventType.from_string('api__redis_prime'),
+                                                        models.SslOperationsEventType.from_string('operations__redis_prime'),
                                                         event_payload_dict,
                                                         )
         if self.request.matched_route.name == 'admin:api:redis:prime.json':

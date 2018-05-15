@@ -69,15 +69,27 @@
                 <p>
                     The prime style is: <em>${request.registry.settings['redis.prime_style']}</em>
                 </p>
+                <p>
+                    The database is: <em>${request.registry.settings['redis.url']}</em>
+                </p>
             </div>
             <p>
-                <a  href="${admin_prefix}/operations/redis/prime"
+                <a  href="${admin_prefix}/api/redis/prime"
                     class="label label-primary"
                 >
                     <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                     Prime Redis Cache
                 </a>
             </p>
+            <p>
+                <a  href="${admin_prefix}/api/redis/prime.json"
+                    class="label label-primary"
+                >
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Prime Redis Cache - JSON
+                </a>
+            </p>
+
             <p>
                 <a  href="${admin_prefix}/operations/log"
                     class="label label-info"
