@@ -20,7 +20,7 @@ import sqlalchemy
 from ..models import models
 from .. import lib
 from ..lib.handler import Handler, items_per_page
-
+from ..lib import configuration_options
 
 # ==============================================================================
 
@@ -201,6 +201,7 @@ class ViewAdminMain(Handler):
     @view_config(route_name='admin:settings', renderer='/admin/settings.mako')
     def settings(self):
         return {'project': 'peter_sslers',
+                'documentation_grid': configuration_options.documentation_grid,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

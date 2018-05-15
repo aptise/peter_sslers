@@ -89,13 +89,17 @@
 
         </div>
         <div class="col-sm-6">
-            <p>
-                <a  href="${admin_prefix}/help"
-                    class="btn btn-warning"
-                >
-                    <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
-                    Help</a><br/>
-            </p>
+            <a  href="${admin_prefix}/help"
+                class="btn btn-warning"
+            >
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                Help</a><br/>
+            <a  href="${admin_prefix}/settings"
+                class="btn btn-warning"
+            >
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+                Settings</a><br/>
+            <hr/>
 
             <h2>Create New</h2>
             <p>

@@ -1,5 +1,5 @@
 # this is used to drive documentation
-configuration_options = {
+documentation_grid = {
  'Enabled Options': {
 	'enable_nginx': {'docstring': 'Enables integration with Nginx webserver. This is automatically set if any nginx options are set.'},
 	'enable_redis': {'docstring': 'Enables integration with Redis cache.'},
@@ -12,20 +12,20 @@ configuration_options = {
 	 				 },
 	'api_host': {'docstring': 'A custom host this is served under. If omitted, this will default to the environment scheme+host.'},
 	'exception_redirect': {'docstring': 'If `True`, some views will redirect to a nice error page. If `False`, a raw exception will be raised.',
-						   'default': 'None'
+						   'default': '`None`',
 						   }
  },
-'Certifcate Configuration': {
-	'certificate_authority': {'docstring': '.',
+'Certificate Configuration': {
+	'certificate_authority': {'docstring': 'The url of the ACME certificate authority.',
 	                          'default': '`https://acme-staging.api.letsencrypt.org`',
 					          'default-notes': 'The default is set in `lib.acme`.'
 	                          },
-	'certificate_authority_agreement': {'docstring': '.',
+	'certificate_authority_agreement': {'docstring': 'The URL of the TOS agreement for the Certificate Authority.',
 	                          'default': '`https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf`',
 					          'default-notes': 'The default is set in `lib.acme`.'
 	                          },
 	'expiring_days': {'docstring': 'The number of days remaining on a certificate before it is due for renewal.',
-					  'default': 30
+					  'default': "`30`",
 					  },
 	'openssl_path': {'docstring': 'The path to the OpenSSL binary. PeterSSLers uses the system OpenSSL.',
 					 'default': '`openssl`',
