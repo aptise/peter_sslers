@@ -35,6 +35,7 @@ from . import letsencrypt_info
 
 _DEFAULT_CA = "https://acme-staging.api.letsencrypt.org"
 CERTIFICATE_AUTHORITY = _DEFAULT_CA
+CERTIFICATE_AUTHORITY_AGREEMENT = 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf'
 
 
 # ==============================================================================
@@ -103,7 +104,7 @@ def acme_register_account(
     code, result, headers = send_signed_request(
         CERTIFICATE_AUTHORITY + "/acme/new-reg",
         {"resource": "new-reg",
-         "agreement": "https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf",
+         "agreement": CERTIFICATE_AUTHORITY_AGREEMENT,
          },
         account_key_path,
         header,

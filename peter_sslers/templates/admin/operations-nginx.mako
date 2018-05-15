@@ -109,19 +109,37 @@
             <hr/>
 
             <p>
-                <a  href="${admin_prefix}/api/nginx/cache-flush"
-                    class="label label-primary"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Flush nginx Cache
-                </a>
+                <span class="btn btn-group">
+                    <a  href="${admin_prefix}/api/nginx/cache-flush"
+                        class="btn btn-xs btn-primary"
+                    >
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Flush nginx Cache
+                    </a>
+                    <a  href="${admin_prefix}/api/nginx/cache-flush.json"
+                        class="btn btn-xs btn-primary"
+                    >
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        JSON
+                    </a>
+                </span>
                 <br/>
                 <em>
                 This will clear the entire cache.  if you just want to clear a single domain, use the link off the domain interface.
                 </em>
             </p>
             <hr/>
-
+            <p>
+                <span class="btn btn-group">
+                    <a  href="${admin_prefix}/api/nginx/status.json"
+                        class="btn btn-xs btn-primary"
+                    >
+                        <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                        Nginx Status (JSON)
+                    </a>
+                </span>
+                <br/>
+            </p>
             <p>
                 <a  href="${admin_prefix}/operations/log"
                     class="label label-info"

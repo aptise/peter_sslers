@@ -8,6 +8,8 @@
 2018.05.14
 ---
 - updating some functionality for imports
+- some ux fixes
+- the nginx status tools now return a better json payload
 
 0.1.5
 2018.01.15

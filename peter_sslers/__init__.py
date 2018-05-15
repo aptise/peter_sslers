@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config
 import logging
 import datetime
 
+from . import lib
 from .lib import acme
 from .lib import cert_utils
 from .lib.config_utils import set_bool_setting
@@ -71,6 +72,9 @@ def main(global_config, **settings):
         cert_utils.openssl_path_conf = settings["openssl_path_conf"]
     if 'certificate_authority' in settings:
         acme.CERTIFICATE_AUTHORITY = settings["certificate_authority"]
+    if 'certificate_authority_agreement' in settings:
+        acme.CA_AGREEMENT = settings["certificate_authority_agreement"]
+
 
     # will we redirect on error?
     set_bool_setting(config.registry.settings, 'exception_redirect')
@@ -78,7 +82,6 @@ def main(global_config, **settings):
     # this is an int
     set_int_setting(config.registry.settings, 'expiring_days', default=30)
 
-    # will we redirect on error?
     _enable_redis = set_bool_setting(config.registry.settings, 'enable_redis')
     if _enable_redis:
         # try to load, otherwise error out
@@ -94,15 +97,20 @@ def main(global_config, **settings):
         import requests.packages.urllib3
         requests.packages.urllib3.disable_warnings()
 
-    _enable_nginx = False
+    _enable_nginx = set_bool_setting(config.registry.settings, 'enable_nginx')
     if 'nginx.reset_path' not in config.registry.settings:
         config.registry.settings['nginx.reset_path'] = '/.peter_sslers/nginx/shared_cache/expire'
     if 'nginx.status_path' not in config.registry.settings:
         config.registry.settings['nginx.status_path'] = '/.peter_sslers/nginx/shared_cache/status'
     if 'nginx.userpass' not in config.registry.settings:
         config.registry.settings['nginx.userpass'] = None
+    if 'nginx.timeout' in config.registry.settings:
+        if config.registry.settings['nginx.timeout'].lower() == 'none':
+            config.registry.settings['nginx.timeout'] = None
+        else:
+            set_int_setting(config.registry.settings, 'nginx.timeout', default=1)
     if 'nginx.servers_pool' in config.registry.settings:
-        config.registry.settings['nginx.servers_pool'] = [i.strip() for i in config.registry.settings['nginx.servers_pool'].split(',')]
+        config.registry.settings['nginx.servers_pool'] = list(set([i.strip() for i in config.registry.settings['nginx.servers_pool'].split(',')]))
         _enable_nginx = True
         set_bool_setting(config.registry.settings, 'nginx.servers_pool_allow_invalid')
     config.registry.settings['enable_nginx'] = _enable_nginx

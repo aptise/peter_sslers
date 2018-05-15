@@ -195,3 +195,12 @@ class ViewAdminMain(Handler):
                                                          'query_args': query_args,
                                                          'show_only': show_only,
                                                          }, self.request)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:settings', renderer='/admin/settings.mako')
+    def settings(self):
+        return {'project': 'peter_sslers',
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

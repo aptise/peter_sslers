@@ -39,6 +39,7 @@ def _admin_views(config):
     config.add_route_7('admin_whoami', '/whoami')
     config.add_route_7('admin:help', '/help')
     config.add_route_7('admin:search', '/search')
+    config.add_route_7('admin:settings', '/settings')
 
     # AccountKeys are the LetsEncrypt accounts
     config.add_route_7('admin:account_keys', '/account-keys')

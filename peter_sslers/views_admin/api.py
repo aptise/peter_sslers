@@ -391,11 +391,12 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:api:nginx:cache_flush.json', renderer='json')
     def admin_nginx_cache_flush(self):
         self._ensure_nginx()
-        success, dbEvent = lib.utils.nginx_flush_cache(self.request, self.request.api_context)
+        success, dbEvent, servers_status = lib.utils.nginx_flush_cache(self.request, self.request.api_context)
         if self.request.matched_route.name == 'admin:api:nginx:cache_flush.json':
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
+                    'servers_status': servers_status,
                     }
         return HTTPFound('%s/operations/nginx?operation=nginx_cache_flush&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbEvent.id))
 

@@ -155,40 +155,72 @@ def new_nginx_session(request):
 
 def nginx_flush_cache(request, ctx):
     _reset_path = request.registry.settings['nginx.reset_path']
+    timeout = request.registry.settings['nginx.timeout']
     sess = new_nginx_session(request)
+    rval = {'errors': [], 'success': [], 'servers': {}, }
     for _server in request.registry.settings['nginx.servers_pool']:
-        reset_url = _server + _reset_path + '/all'
-        response = sess.get(reset_url, verify=False)
-        if response.status_code == 200:
-            response_json = json.loads(response.content)
-            if response_json['result'] != 'success':
-                raise ValueError("could not flush cache: `%s`" % reset_url)
-        else:
-            raise ValueError("could not flush cache: `%s`" % reset_url)
+        status = None
+        try:
+            reset_url = _server + _reset_path + '/all'
+            response = sess.get(reset_url, timeout=timeout, verify=False)
+            if response.status_code == 200:
+                response_json = json.loads(response.content)
+                status = response_json
+                if response_json['result'] != 'success':
+                    rval['errors'].append(_server)
+                else:
+                    rval['success'].append(_server)
+            else:
+                rval['errors'].append(_server)
+                status = {'status': 'error',
+                          'error': 'response',
+                          'response': {'status_code': response.status_code,
+                                       'text': response.content,
+                                       }
+                          }
+        except Exception as e:
+            rval['errors'].append(_server)
+            status = {'status': 'error',
+                      'error': 'Exception',
+                      'Exception': "%s" % e.message,  # this could be an object
+                      }
+        rval['servers'][_server] = status
     dbEvent = lib.db.logger.log__SslOperationsEvent(ctx,
                                                     models.SslOperationsEventType.from_string('operations__nginx_cache_flush'),
                                                     )
-    return True, dbEvent
+    return True, dbEvent, rval
 
 
 def nginx_status(request, ctx):
     """returns the status document for each server"""
     status_path = request.registry.settings['nginx.status_path']
+    timeout = request.registry.settings['nginx.timeout']
     sess = new_nginx_session(request)
-    rval = {}
+    rval = {'errors': [], 'success': [], 'servers': {}, }
     for _server in request.registry.settings['nginx.servers_pool']:
-        _status = None
+        status = None
         try:
             status_url = _server + status_path
-            response = sess.get(status_url, verify=False)
+            response = sess.get(status_url, timeout=timeout, verify=False)
             if response.status_code == 200:
                 response_json = json.loads(response.content)
                 status = response_json
+                rval['success'].append(_server)
             else:
-                status = 'error [%s]' % response.status_code
+                rval['errors'].append(_server)
+                status = {'status': 'error',
+                          'error': 'response',
+                          'response': {'status_code': response.status_code,
+                                       'text': response.content,
+                                       }
+                          }
         except Exception as e:
-            status = 'Exception: %s' % e.message
-        rval[_server] = status
+            rval['errors'].append(_server)
+            status = {'status': 'error',
+                      'error': 'Exception',
+                      'Exception': "%s" % e.message,  # this could be an object
+                      }
+        rval['servers'][_server] = status
     return rval
 
 
@@ -199,19 +231,24 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
                   'failure': set([]),
                   }
     _reset_path = request.registry.settings['nginx.reset_path']
+    timeout = request.registry.settings['nginx.timeout']
     sess = new_nginx_session(request)
     for _server in request.registry.settings['nginx.servers_pool']:
         for domain in dbDomains:
-            reset_url = _server + _reset_path + '/domain/%s' % domain.domain_name
-            response = sess.get(reset_url, verify=False)
-            if response.status_code == 200:
-                response_json = json.loads(response.content)
-                if response_json['result'] == 'success':
-                    domain_ids['success'].add(domain.id)
+            try:
+                reset_url = _server + _reset_path + '/domain/%s' % domain.domain_name
+                response = sess.get(reset_url, timeout=timeout, verify=False)
+                if response.status_code == 200:
+                    response_json = json.loads(response.content)
+                    if response_json['result'] == 'success':
+                        domain_ids['success'].add(domain.id)
+                    else:
+                        # log the url?
+                        domain_ids['failure'].add(domain.id)
                 else:
                     # log the url?
                     domain_ids['failure'].add(domain.id)
-            else:
+            except:
                 # log the url?
                 domain_ids['failure'].add(domain.id)
 
