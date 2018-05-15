@@ -7,6 +7,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
+        <li>Peter SSLers</li>
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/certificates">Certificates</a></li>
         <li><a href="${admin_prefix}/certificates/${SslServerCertificate.id}">Focus [${SslServerCertificate.id}]</a></li>

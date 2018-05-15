@@ -4,6 +4,7 @@
 
 <%block name="breadcrumb">
     <ol class="breadcrumb">
+        <li>Peter SSLers</li>
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
         <li><a href="${admin_prefix}/domain/${SslDomain.id}">Focus [${SslDomain.id}]</a></li>
