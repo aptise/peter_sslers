@@ -120,6 +120,7 @@ def main(global_config, **settings):
     config.add_request_method(lambda request: request.registry.settings.get('admin_server', None) or request.environ['HTTP_HOST'], 'admin_server', reify=True)
     config.add_request_method(lambda request: datetime.datetime.utcnow(), 'a_timestamp', reify=True)
     config.add_request_method(lambda request: ApiContext(timestamp=request.a_timestamp, dbSession=request.dbsession), 'api_context', reify=True)
+    config.add_request_method(lambda request: '<li>%s</li><li>Peter SSLers</li>' % request.active_domain_name, 'breadcrumb_prefix', reify=True)
     config.add_request_method(api_host, 'api_host', reify=True)
     config.add_request_method(admin_url, 'admin_url', reify=True)
 

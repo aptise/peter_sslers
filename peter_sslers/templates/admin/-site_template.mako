@@ -34,8 +34,7 @@ SSL Certificate Administration
 
     <%block name="breadcrumb">
         <ol class="breadcrumb">
-            <li>${request.active_domain_name}</li>
-            <li>Peter SSLers</li>
+            ${request.breadcrumb_prefix|n}
             <li class="active">Admin</li>
         </ol>
     </%block>
