@@ -197,7 +197,7 @@ def queue_domains__process(
         dbServerCertificate = None
         try:
             domain_names = [d.domain_name for d in domainObjects]
-            dbServerCertificate = lib.db.do__CertificateRequest__AcmeAutomated(
+            dbServerCertificate = lib.db.actions.do__CertificateRequest__AcmeAutomated(
                 ctx,
                 domain_names,
                 dbAccountKey=dbAccountKey,
@@ -337,7 +337,7 @@ def queue_renewals__process(ctx):
 
             dbServerCertificate = None
             try:
-                dbServerCertificate = lib.db.do__CertificateRequest__AcmeAutomated(
+                dbServerCertificate = lib.db.actions.do__CertificateRequest__AcmeAutomated(
                     ctx,
                     dbQueueRenewal.server_certificate.domains_as_list,
                     dbAccountKey=dbQueueRenewal.server_certificate.letsencrypt_account_key or dbAccountKeyDefault,

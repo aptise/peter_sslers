@@ -7,6 +7,7 @@ Not Finished Yet
 
 Additional Test coverage needed for
 * /.well-known/admin/certificate/5/renew/custom
+* /api/queue-renewals/process
 
 * finish rate limit calendars
 * search expiring soon

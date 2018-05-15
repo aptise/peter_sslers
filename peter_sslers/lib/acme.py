@@ -11,6 +11,7 @@ import copy
 import hashlib
 import json
 import re
+import ssl
 import subprocess
 import tempfile
 import textwrap
@@ -160,6 +161,10 @@ def acme_verify_domains(
         except (IOError, AssertionError):
             handle_keyauth_cleanup(domain, token, keyauthorization)
             raise errors.DomainVerificationError("Wrote keyauth challenge, but couldn't download {0}".format(wellknown_url))
+        except ssl.CertificateError as e:
+            if e.message.startswith('hostname') and ("doesn't match" in e.message):
+                raise errors.DomainVerificationError("Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(wellknown_url, e.message))
+            raise
 
         # notify challenge are met
         code, result, headers = send_signed_request(
