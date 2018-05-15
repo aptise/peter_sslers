@@ -10,14 +10,21 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Certificates</h2>
+</%block>
+
+<%block name="page_header_nav">
+    <ul class="nav nav-pills nav-stacked">
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/certificates">All Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/certificates/expiring">Expiring Certificates</a></li>
+    </ul>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-9">
+        <div class="col-sm-12">
             % if expiring_days:
                 <p>Certificates that will be expiring within `${expiring_days}` days.
                 </p>
@@ -31,12 +38,6 @@
                     No Server Certificates
                 </em>
             % endif
-        </div>
-        <div class="col-sm-3">
-            <ul class="nav nav-pills nav-stacked">
-              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/certificates">All Certificates</a></li>
-              <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/certificates/expiring">Expiring Certificates</a></li>
-            </ul>
         </div>
     </div>
 </%block>

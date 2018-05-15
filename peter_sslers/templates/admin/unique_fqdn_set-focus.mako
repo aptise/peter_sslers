@@ -11,14 +11,23 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Unique FQDN Set: Focus</h2>
+</%block>
+
+
+<%block name="page_header_nav">
+    <a  class="btn btn-info"
+        href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}/calendar"
+    >
+        Calendar
+    </a>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-9">
+        <div class="col-sm-12">
             <table class="table table-striped table-condensed">
                 <tbody>
                     <tr>
@@ -153,13 +162,6 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
-        <div class="col-sm-3">
-            <a  class="btn btn-info"
-                href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}/calendar"
-            >
-                Calendar
-            </a>
         </div>
     </div>
 </%block>

@@ -11,14 +11,14 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Nginx Operations</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-9">
             % if SslOperationsEvents:
                 ${admin_partials.nav_pagination(pager)}
                 <%
@@ -57,7 +57,7 @@
             % endif
     </div>
     <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-3">
             <div class="alert alert-info">
                 <p>
                     Nginx is enabled for this server.
@@ -129,25 +129,29 @@
                 </em>
             </p>
             <hr/>
-            <p>
-                <span class="btn btn-group">
+            <ul class="nav nav-pills nav-stacked">
+                <li class="active">
+                    <a  href="${admin_prefix}/operations/nginx"
+                    >
+                        <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
+                        Nginx Operations Log
+                    </a>
+                </li>
+                <li>
                     <a  href="${admin_prefix}/api/nginx/status.json"
-                        class="btn btn-xs btn-primary"
                     >
                         <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                         Nginx Status (JSON)
                     </a>
-                </span>
-                <br/>
-            </p>
-            <p>
-                <a  href="${admin_prefix}/operations/log"
-                    class="label label-info"
-                >
-                    <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
-                    Full Operations Log
-                </a>
-            </p>
+                </li>
+                <li>
+                    <a  href="${admin_prefix}/operations/log"
+                    >
+                        <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
+                        Full Operations Log
+                    </a>
+                </li>
+            </ul>
         </div>
     </div>
 

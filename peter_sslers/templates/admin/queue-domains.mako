@@ -10,16 +10,34 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Queue: Domains</h2>
 
     ${admin_partials.standard_error_display()}
 </%block>
 
 
+<%block name="page_header_nav">
+    <ul class="nav nav-pills nav-stacked">
+      <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-domains">Unprocessed Items</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-domains/all">All Items</a></li>
+      <li role="presentation" class="">
+        <a href="${admin_prefix}/queue-domains/add">
+        <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>
+        Add Domain</a>
+      </li>
+      <li role="presentation" class="">
+        <a href="${admin_prefix}/queue-domains/process">
+        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+        Process Queue</a>
+      </li>
+    </ul>
+</%block>
+
+
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-9">
+        <div class="col-sm-12">
             <%
                 results = request.params.get('results')
             %>
@@ -77,22 +95,6 @@
                     No Queue Items
                 </em>
             % endif
-        </div>
-        <div class="col-sm-3">
-            <ul class="nav nav-pills nav-stacked">
-              <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-domains">Unprocessed Items</a></li>
-              <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-domains/all">All Items</a></li>
-              <li role="presentation" class="">
-                <a href="${admin_prefix}/queue-domains/add">
-                <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>
-                Add Domain</a>
-              </li>
-              <li role="presentation" class="">
-                <a href="${admin_prefix}/queue-domains/process">
-                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                Process Queue</a>
-              </li>
-            </ul>
         </div>
     </div>
 </%block>

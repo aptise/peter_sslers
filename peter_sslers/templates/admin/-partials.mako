@@ -779,72 +779,60 @@
 </%def>
 
 
-<%def name="operations_options(enable_redis=False, enable_nginx=False, as_list=False)">
-    <%
-        wrapper = 'li' if as_list else 'p'
-    %>
+<%def name="operations_options(enable_redis=False, enable_nginx=False, as_list=None, active=None)">
     <h4>Log</h4>
-    ${'<ul>' if as_list else ''|n}
-    <${wrapper}>
-        <a  href="${admin_prefix}/operations"
-            class="label label-info"
-        >
-        <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
-        Full Operations Log</a><br/>
-    </${wrapper}>
-    % if enable_redis:
-        <${wrapper}>
-            <a  href="${admin_prefix}/operations/redis"
-                class="label label-info"
+    <ul class="nav nav-pills nav-stacked">
+        <li class="${'active' if active =='/operations/log' else ''}">
+            <a  href="${admin_prefix}/operations/log"
             >
-            <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
-            Redis Operations</a><br/>
-        </${wrapper}>
-    % endif
-    % if enable_nginx:
-        <${wrapper}>
-            <a  href="${admin_prefix}/operations/nginx"
-                class="label label-info"
+            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+            Full Operations Log</a>
+        </li>
+        % if enable_redis:
+            <li class="${'active' if active =='/operations/redis' else ''}">
+                <a  href="${admin_prefix}/operations/redis"
+                >
+                <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+                Operations Log: Redis</a>
+            </li>
+        % endif
+        % if enable_nginx:
+            <li class="${'active' if active =='/operations/nginx' else ''}">
+                <a  href="${admin_prefix}/operations/nginx"
+                >
+                <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+                Operations Log: nginx</a>
+            </li>
+        % endif
+        <li class="${'active' if active =='/operations/ca-certificate-probes' else ''}">
+            <a  href="${admin_prefix}/operations/ca-certificate-probes"
             >
-            <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
-            nginx Operations</a><br/>
-        </${wrapper}>
-    % endif
-    <${wrapper}>
-        <a  href="${admin_prefix}/operations/ca-certificate-probes"
-            class="label label-info"
-        >
-        <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
-        CA Certificate Probes</a><br/>
-    </${wrapper}>
-
-    <${wrapper}>
-        <a  href="${admin_prefix}/operations/object-log"
-            class="label label-info"
-        >
-        <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
-        Object Log</a><br/>
-    </${wrapper}>
-
-    ${'</ul>' if as_list else ''|n}
+            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+            Operations Log: CA Certificate Probes</a>
+        </li>
+        <li class="${'active' if active =='/operations/object-log' else ''}">
+            <a  href="${admin_prefix}/operations/object-log"
+            >
+            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+            Object Log</a>
+        </li>
+    </ul>
 
     <h4>Actions</h4>
-    ${'<ul>' if as_list else ''|n}
-    <${wrapper}>
-        <a  href="${admin_prefix}/api/deactivate-expired"
-            class="label label-primary"
-        >
-         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-         Deactivate Expired Certificates</a><br/>
-    </${wrapper}>
-    <${wrapper}>
-        <a  href="${admin_prefix}/api/update-recents"
-            class="label label-primary"
-        >
-         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-         Update Recents</a><br/>
-    </${wrapper}>
-    ${'</ul>' if as_list else ''|n}
+    <ul class="nav nav-pills nav-stacked">
+        <li class="${'active' if active =='/api/deactivate-expired' else ''}">
+            <a  href="${admin_prefix}/api/deactivate-expired"
+            >
+             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+             Deactivate Expired Certificates</a>
+        </li>
+        <li class="${'active' if active =='/api/update-recents' else ''}">
+            <a  href="${admin_prefix}/api/update-recents"
+            >
+             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+             Update Recents</a>
+        </li>
+    </ul
 </%def>
 
 

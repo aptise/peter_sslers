@@ -12,7 +12,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Account Key - Focus | Certificate Requests</h2>
 </%block>
 

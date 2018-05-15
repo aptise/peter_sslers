@@ -11,7 +11,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Certificate Probes</h2>
 </%block>
 
@@ -70,28 +70,30 @@
 
         </div>
         <div class="col-sm-3">
-
-            <ul>
+            <ul class="nav nav-pills nav-stacked">
+                <li class="active">
+                    <a  href="${admin_prefix}/operations/ca-certificate-probes"
+                    >
+                        <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                        Certificate Probes Log
+                    </a>
+                </li>
                 <li>
                     <a  href="${admin_prefix}/api/ca-certificate-probes/probe"
-                        class="label label-primary"
+                        title="Checks for new certs on the public internet"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                         Probe for new certificates
                     </a>
-                    <br/>
-                    <em>Checks for new certs on the public internet</em>
                 </li>
                 <li>
                     <a  href="${admin_prefix}/operations/log"
-                        class="label label-info"
                     >
                         <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                         Full Operations Log
                     </a>
                 </li>
             </ul>
-
         </div>
     </div>
 </%block>

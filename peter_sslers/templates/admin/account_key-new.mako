@@ -11,7 +11,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Account Key | New</h2>
     <p><em>${request.text_library.info_AccountKeys[1]}</em></p>
 </%block>

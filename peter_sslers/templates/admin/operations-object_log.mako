@@ -10,7 +10,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Object Log</h2>
 </%block>
 

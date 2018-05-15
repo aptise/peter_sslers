@@ -12,7 +12,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Private Key - Focus | Certificate Requests</h2>
 </%block>
 

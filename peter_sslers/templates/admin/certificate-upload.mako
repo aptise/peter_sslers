@@ -11,7 +11,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Upload Certificate</h2>
     <p>
         You can upload existing certificates for management and deployment.

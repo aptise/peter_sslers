@@ -11,7 +11,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Redis Operations</h2>
 </%block>
 
@@ -73,31 +73,36 @@
                     The database is: <em>${request.registry.settings['redis.url']}</em>
                 </p>
             </div>
-            <p>
-                <a  href="${admin_prefix}/api/redis/prime"
-                    class="label label-primary"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Prime Redis Cache
-                </a>
-            </p>
-            <p>
-                <a  href="${admin_prefix}/api/redis/prime.json"
-                    class="label label-primary"
-                >
-                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                    Prime Redis Cache - JSON
-                </a>
-            </p>
-
-            <p>
-                <a  href="${admin_prefix}/operations/log"
-                    class="label label-info"
-                >
-                    <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
-                    Full Operations Log
-                </a>
-            </p>
+            <ul class="nav nav-pills nav-stacked">
+                <li class="active">
+                    <a  href="${admin_prefix}/operations/redis"
+                    >
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Redis Operations Log
+                    </a>
+                </li>
+                <li>
+                    <a  href="${admin_prefix}/api/redis/prime"
+                    >
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Prime Redis Cache
+                    </a>
+                </li>
+                <li>
+                    <a  href="${admin_prefix}/api/redis/prime.json"
+                    >
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                        Prime Redis Cache - JSON
+                    </a>
+                </li>
+                <li>
+                    <a  href="${admin_prefix}/operations/log"
+                    >
+                        <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span>
+                        Full Operations Log
+                    </a>
+                </li>
+            </ul>
         </div>
     </div>
 

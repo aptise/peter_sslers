@@ -10,7 +10,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Operations Log</h2>
 </%block>
 
@@ -36,6 +36,8 @@
             % endif
             ${admin_partials.operations_options(enable_redis=enable_redis,
                                                 enable_nginx=enable_nginx,
+                                                as_list=True,
+                                                active='/operations/log'
                                                 )}
         </div>
     </div>

@@ -11,7 +11,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Domain Focus</h2>
     <%
         operation = request.params.get('operation', None)
@@ -43,9 +43,20 @@
 </%block>
 
 
+<%block name="page_header_nav">
+    <a  class="btn btn-info"
+        href="${admin_prefix}/domain/${SslDomain.id}/calendar"
+        target="_blank"
+    >
+        Calendar
+    </a>
+</%block>
+
+
+
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-9">
+        <div class="col-sm-12">
             <table class="table">
                 <tr>
                     <th>id</th>
@@ -169,14 +180,6 @@
                     </td>
                 </tr>
             </table>
-        </div>
-        <div class="col-sm-3">
-            <a  class="btn btn-info"
-                href="${admin_prefix}/domain/${SslDomain.id}/calendar"
-                target="_blank"
-            >
-                Calendar
-            </a>
         </div>
     </div>
 </%block>

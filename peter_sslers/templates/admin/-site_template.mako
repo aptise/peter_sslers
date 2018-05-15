@@ -21,6 +21,7 @@
                   }
     tr.success {border-left: 2px solid green;
                 }
+    .nav>li>a{padding:5px 10px;}
 </style>
 
 <title>
@@ -34,15 +35,19 @@ SSL Certificate Administration
     <%block name="breadcrumb">
         <ol class="breadcrumb">
             <li>${request.active_domain_name}</li>
+            <li>Peter SSLers</li>
             <li class="active">Admin</li>
         </ol>
     </%block>
 
     <%block name="page_header">
         <div class="row">
-            <div class="col-sm-12">
-                <h2>Page Header</h2>
+            <div class="col-sm-6">
+                <%block name="page_header_col">
+                    <h2>Page Header</h2>
+                </%block>
             </div>
+            <div class="col-sm-6"><%block name="page_header_nav"></%block></div>            
         </div>
     </%block>
 

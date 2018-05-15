@@ -10,7 +10,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Account Keys</h2>
     <p>${request.text_library.info_AccountKeys[1]}</p>
 </%block>

@@ -10,15 +10,23 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Domains</h2>
     These domains are known to the system.
 </%block>
 
 
+<%block name="page_header_nav">
+    <ul class="nav nav-pills nav-stacked">
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/domains">All Domains</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/domains/expiring">Expiring Domains</a></li>
+    </ul>
+</%block>
+
+
 <%block name="content_main">
     <div class="row">
-        <div class="col-sm-9">
+        <div class="col-sm-12">
             % if expiring_days:
                 <p>Domains that will be expiring within `${expiring_days}` days.
                 </p>
@@ -86,12 +94,6 @@
                     No Domains
                 </em>
             % endif
-            </div>
-            <div class="col-sm-3">
-                <ul class="nav nav-pills nav-stacked">
-                  <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/domains">All Domains</a></li>
-                  <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/domains/expiring">Expiring Domains</a></li>
-                </ul>
             </div>
         </div>
     </div>

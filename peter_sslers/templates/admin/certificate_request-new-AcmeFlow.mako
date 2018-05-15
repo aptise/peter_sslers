@@ -11,7 +11,7 @@
 </%block>
 
 
-<%block name="page_header">
+<%block name="page_header_col">
     <h2>Certificate Request - Acme Flow | New</h2>
     <p><em>${request.text_library.info_CertificateRequest_new_AcmeFlow[1]}</em></p>
 </%block>
