@@ -28,10 +28,31 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:private_keys', renderer='/admin/private_keys.mako')
     @view_config(route_name='admin:private_keys_paginated', renderer='/admin/private_keys.mako')
+    @view_config(route_name='admin:private_keys|json', renderer='json')
+    @view_config(route_name='admin:private_keys_paginated|json', renderer='json')
     def private_keys(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         items_count = lib_db.get.get__SslPrivateKey__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template='%s/private-keys/{0}' % self.request.registry.settings['admin_prefix'])
+        if wants_json:
+            (pager, offset) = self._paginate(items_count, url_template='%s/private-keys/{0}' % self.request.registry.settings['admin_prefix'])
+        else:
+            (pager, offset) = self._paginate(items_count, url_template='%s/private-keys/{0}.json' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get.get__SslPrivateKey__paginated(self.request.api_context, limit=items_per_page, offset=offset)
+        if wants_json:
+            _keys = {k.id: {'id': k.id,
+                            'is_active': True if k.is_active else False,
+                            'key_pem_md5': k.key_pem_md5,
+                            'key_pem': k.key_pem,
+                            'timestamp_first_seen': k.timestamp_first_seen_isoformat,
+                            }
+                      for k in items_paged
+                      }
+            return {'SslPrivateKeys': _keys,
+                    'pagination': {'total_items': items_count,
+                                   'page': pager.page_num,
+                                   'page_next': pager.next if pager.has_next else None,
+                                   }
+                    }
         return {'project': 'peter_sslers',
                 'SslPrivateKeys_count': items_count,
                 'SslPrivateKeys': items_paged,

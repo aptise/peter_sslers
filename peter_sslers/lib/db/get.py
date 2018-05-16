@@ -22,12 +22,15 @@ def get__SslLetsEncryptAccountKey__count(ctx):
     return counted
 
 
-def get__SslLetsEncryptAccountKey__paginated(ctx, limit=None, offset=0):
-    dbLetsEncryptAccountKeys = ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
+def get__SslLetsEncryptAccountKey__paginated(ctx, limit=None, offset=0, active_only=False):
+    query = ctx.dbSession.query(models.SslLetsEncryptAccountKey)
+    if active_only:
+        query = query.filter(models.SslLetsEncryptAccountKey.is_active.op('IS')(True))
+    query = query\
         .order_by(models.SslLetsEncryptAccountKey.id.desc())\
         .limit(limit)\
-        .offset(offset)\
-        .all()
+        .offset(offset)
+    dbLetsEncryptAccountKeys = query.all()
     return dbLetsEncryptAccountKeys
 
 

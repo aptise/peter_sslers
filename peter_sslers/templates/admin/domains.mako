@@ -22,6 +22,19 @@
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/domains">All Domains</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/domains/expiring">Expiring Domains</a></li>
     </ul>
+    <p class="pull-right">
+        % if sidenav_option == 'expiring' :
+            <a href="${admin_prefix}/domains/expiring.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>    
+                .json
+            </a>
+        % else:
+            <a href="${admin_prefix}/domains.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>    
+                .json
+            </a>
+        % endif
+    </p>
 </%block>
 
 

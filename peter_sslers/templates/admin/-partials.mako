@@ -236,6 +236,7 @@
                 <th>timestamp_entered</th>
                 <th>ssl_operations_event_id__created</th>
                 <th>timestamp_processed</th>
+                <th>result</th>
             </tr>
         </thead>
         <tbody>
@@ -254,6 +255,15 @@
                 <td><timestamp>${queue_renewal.timestamp_entered or ''}</timestamp></td>
                 <td><span class="label label-info">${queue_renewal.ssl_operations_event_id__created}</span></td>
                 <td><timestamp>${queue_renewal.timestamp_processed or ''}</timestamp></td>
+                <td>
+                    % if queue_renewal.process_result is None:
+                        &nbsp;
+                    % elif queue_renewal.process_result is False:
+                        <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                    % elif queue_renewal.process_result is True:
+                        <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                    % endif
+                </td>
             </tr>
         % endfor
         </tbody>
@@ -616,9 +626,52 @@
 </%def>
 
 
-<%def name="formgroup__account_key_file(show_text=False)">
+<%def name="formgroup__account_key_selector(show_text=None)">
     <div class="form-group clearfix">
-        <label for="f1-account_key_file">Account Private Key</label>
+        <table class="table table-condensed" style='max-width:100%;'>
+            <tr>
+                <th>Upload New</th>
+                <td>${formgroup__account_key_file(show_text=show_text, header=None)}</td>
+            </tr>
+            <tr>
+                <th>Use Default</th>
+                <td>
+                    % if dbAccountKeyDefault:
+                        <input type="checkbox" name="account_key_default" id="f1-account_key_default" value="${dbAccountKeyDefault.key_pem_md5}"/>
+                        <table class='table' style='max-width:100%;'>
+                            <tr>
+                                <th>pem md5</th>
+                                <td><code>${dbAccountKeyDefault.key_pem_md5}</code></td>
+                            </tr>
+                            <tr>
+                                <th>pem line 1</th>
+                                <td><code>${dbAccountKeyDefault.key_pem_sample}</code></td>
+                            </tr>
+                        </table>
+                    % else:
+                        <p>No default.</p>
+                    % endif
+                </td>
+            </tr>
+            <tr>
+                <th>Use Existing</th>
+                <td>
+                    <label for="f1-account_key">Other existing key (md5)</label>
+                    <input class="form-control" name="account_key_existing" id="f1-account_key_existing"></textarea>
+                </td>
+            </tr>
+        </table>
+       
+    </div>
+</%def>
+
+
+
+<%def name="formgroup__account_key_file(show_text=None, header=True)">
+    <div class="form-group clearfix">
+        % if header:
+            <label for="f1-account_key_file">Account Private Key</label>
+        % endif
         <input class="form-control" type="file" id="f1-account_key_file" name="account_key_file" />
         <p class="help-block">
             Enter your LetsEncrypted registered PRIVATE AccountKey above in PEM format; this will be used to sign your request.

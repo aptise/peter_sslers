@@ -31,28 +31,65 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificates', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
-    def certificates(self):
-        items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template='%s/certificates/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
-        return {'project': 'peter_sslers',
-                'SslServerCertificates_count': items_count,
-                'SslServerCertificates': items_paged,
-                'sidenav_option': 'all',
-                'pager': pager,
-                }
-
     @view_config(route_name='admin:certificates:expiring', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates:expiring_paginated', renderer='/admin/certificates.mako')
-    def certificates_expiring_only(self):
+    @view_config(route_name='admin:certificates|json', renderer='json')
+    @view_config(route_name='admin:certificates_paginated|json', renderer='json')
+    @view_config(route_name='admin:certificates:expiring|json', renderer='json')
+    @view_config(route_name='admin:certificates:expiring_paginated|json', renderer='json')
+    def certificates(self):
         expiring_days = self.request.registry.settings['expiring_days']
-        items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context, expiring_days=expiring_days)
-        (pager, offset) = self._paginate(items_count, url_template='%s/certificates/expiring/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if self.request.matched_route.name in ('admin:certificates:expiring',
+                                               'admin:certificates:expiring_paginated',
+                                               'admin:certificates:expiring|json',
+                                               'admin:certificates:expiring_paginated|json',
+                                               ):
+            sidenav_option = 'expiring'
+            url_template = '%s/certificates/expiring/{0}' % self.request.registry.settings['admin_prefix']
+            if wants_json:
+                url_template = "%s.json" % wants_json
+            items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context, expiring_days=expiring_days)
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        else:
+            sidenav_option = 'all'
+            url_template = '%s/certificates/{0}' % self.request.registry.settings['admin_prefix']
+            if wants_json:
+                url_template = "%s.json" % wants_json
+            items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context)
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
+        if self.request.matched_route.name.endswith('|json'):
+            _certificates = {}
+            for c in items_paged:
+                _certificates[c.id] = {'id': c.id,
+                                       'is_active': True if c.is_active else False,
+                                       'is_auto_renew': True if c.is_auto_renew else False,
+                                       'is_deactivated': True if c.is_deactivated else False,
+                                       'is_revoked': True if c.is_revoked else False,
+                                       'is_renewed': True if c.is_renewed else False,
+                                       'timestamp_expires': c.timestamp_expires_isoformat,
+                                       'timestamp_signed': c.timestamp_signed_isoformat,
+                                       'cert_pem': c.cert_pem,
+                                       'cert_pem_md5': c.cert_pem_md5,
+                                       'ssl_unique_fqdn_set_id': c.ssl_unique_fqdn_set_id,
+                                       'ssl_ca_certificate_id__upchain': c.ssl_ca_certificate_id__upchain,
+                                       'ssl_private_key_id__signed_by': c.ssl_private_key_id__signed_by,
+                                       'ssl_letsencrypt_account_key_id': c.ssl_letsencrypt_account_key_id,
+                                       'domains_as_list': c.domains_as_list,
+                                       }
+            return {'SslServerCertificates': _certificates,
+                    'pagination': {'total_items': items_count,
+                                   'page': pager.page_num,
+                                   'page_next': pager.next if pager.has_next else None,
+                                   }
+                    }
+
         return {'project': 'peter_sslers',
                 'SslServerCertificates_count': items_count,
                 'SslServerCertificates': items_paged,
-                'sidenav_option': 'expiring',
+                'sidenav_option': sidenav_option,
                 'expiring_days': expiring_days,
                 'pager': pager,
                 }
@@ -285,13 +322,17 @@ class ViewAdmin(Handler):
     def certificate_focus_renew_custom(self):
         dbServerCertificate = self._certificate_focus()
         self.dbServerCertificate = dbServerCertificate
+        self.dbAccountKeyDefault = lib.db.get.get__SslLetsEncryptAccountKey__default(self.request.api_context, active_only=True)
         if self.request.method == 'POST':
             return self._certificate_focus_renew_custom__submit()
         return self._certificate_focus_renew_custom__print()
 
     def _certificate_focus_renew_custom__print(self):
+        self._load_AccountKeyDefault()
         return render_to_response("/admin/certificate-focus-renew.mako",
-                                  {'SslServerCertificate': self.dbServerCertificate},
+                                  {'SslServerCertificate': self.dbServerCertificate,
+                                   'dbAccountKeyDefault': self.dbAccountKeyDefault,
+                                   },
                                   self.request
                                   )
 

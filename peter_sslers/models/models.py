@@ -314,6 +314,12 @@ class SslLetsEncryptAccountKey(Base):
     def key_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=account_key&account_key.id=%s" % (self.key_pem_modulus_md5, self.id, )
 
+    @property
+    def key_pem_sample(self):
+        # strip the pem, because the last line is whitespace after "-----END RSA PRIVATE KEY-----"
+        pem_lines = self.key_pem.strip().split('\n')
+        return "%s...%s"  % (pem_lines[1][0:5], pem_lines[-2][-5:])
+
 
 class SslCaCertificate(Base):
     """
@@ -352,6 +358,12 @@ class SslCaCertificate(Base):
     @property
     def cert_issuer_hash_search(self):
         return "type=cert_issuer_hash&cert_issuer_hash=%s&source=ca_certificate&ca_certificate.id=%s" % (self.cert_issuer_hash, self.id, )
+
+    @property
+    def timestamp_first_seen_isoformat(self):
+        if self.timestamp_first_seen:
+            return self.timestamp_first_seen.isoformat()
+        return None
 
     operations_event__created = sa.orm.relationship("SslOperationsEvent",
                                                     primaryjoin="SslCaCertificate.ssl_operations_event_id__created==SslOperationsEvent.id",
@@ -751,6 +763,12 @@ class SslPrivateKey(Base):
             return ''
         return "%s.%s" % self.timestamp_first_seen.isocalendar()[0:2]
 
+    @property
+    def timestamp_first_seen_isoformat(self):
+        if self.timestamp_first_seen:
+            return self.timestamp_first_seen.isoformat()
+        return None
+
 
 class SslQueueDomain(Base):
     """
@@ -946,6 +964,18 @@ class SslServerCertificate(Base):
         return 'danger'
 
     @property
+    def timestamp_expires_isoformat(self):
+        if self.timestamp_expires:
+            return self.timestamp_expires.isoformat()
+        return None
+
+    @property
+    def timestamp_signed_isoformat(self):
+        if self.timestamp_signed:
+            return self.timestamp_signed.isoformat()
+        return None
+
+    @property
     def config_payload(self):
         # the ids are strings so that the fullchain id can be split by a client without further processing
         return {'id': str(self.id),
@@ -1047,6 +1077,12 @@ class SslUniqueFQDNSet(Base):
         domain_names = list(set(domain_names))
         domain_names = sorted(domain_names)
         return domain_names
+
+    @property
+    def timestamp_first_seen_isoformat(self):
+        if self.timestamp_first_seen:
+            return self.timestamp_first_seen.isoformat()
+        return None
 
 
 class SslUniqueFQDNSet2SslDomain(Base):

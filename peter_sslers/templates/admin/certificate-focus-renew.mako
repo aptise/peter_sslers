@@ -86,8 +86,14 @@
                                     </label>
                                 </div>
                             % else:
+                                <p>This certificate is not already associated to a tracked LE account.</p>
                                 <input type="hidden" name="account_key_option" id="account_key_option-upload" value="upload">
                             % endif
+                            % if dbAccountKeyDefault:
+                                The default account key for this PeterSSLers installation
+                            % endif
+                            
+                            ---
 
                             ${admin_partials.formgroup__account_key_file(show_text=False)}
 

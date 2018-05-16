@@ -372,6 +372,8 @@ def queue_renewals__process(ctx):
                 rval['count_fail'] += 1
                 if isinstance(e, errors.DomainVerificationError):
                     rval['failures'][dbQueueRenewal.id] = e.message
+                elif isinstance(e, errors.DomainVerificationError):
+                    rval['failures'][dbQueueRenewal.id] = e.message
                 else:
                     raise
         event_payload_dict['rval'] = rval

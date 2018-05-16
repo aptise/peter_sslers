@@ -116,17 +116,19 @@
                     <tr>
                         <th>nginx cache</th>
                         <td>
-                            <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/domain/${SslDomain.id}/nginx-cache-expire"
-                            >
-                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                nginx-cache-expire</a>
-                            <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/domain/${SslDomain.id}/nginx-cache-expire.json"
-                                target="_blank"
-                            >
-                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                nginx-cache-expire.json</a>
+                            <span class="btn-group">
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/domain/${SslDomain.id}/nginx-cache-expire"
+                                >
+                                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                    nginx-cache-expire</a>
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/domain/${SslDomain.id}/nginx-cache-expire.json"
+                                    target="_blank"
+                                >
+                                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                    .json</a>
+                            </span<
                         </td>
                     </tr>
                 % endif

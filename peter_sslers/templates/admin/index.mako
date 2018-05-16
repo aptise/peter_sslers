@@ -55,15 +55,6 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys</a></li>
-            </ul>
-
-            <h3>Recordkeeping</h3>
-            <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/unique-fqdn-sets"
-                       title="${request.text_library.info_UniqueFQDNs[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    unique-fqdn-sets</a></li>
                 <li><a href="${admin_prefix}/account-keys"
                        title="${request.text_library.info_AccountKeys[0]}"
                     >
@@ -74,6 +65,15 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     ca-certificates</a></li>
+            </ul>
+
+            <h3>Recordkeeping</h3>
+            <ul class="nav nav-pills nav-stacked">
+                <li><a href="${admin_prefix}/unique-fqdn-sets"
+                       title="${request.text_library.info_UniqueFQDNs[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    unique-fqdn-sets</a></li>
                 <li><a href="${admin_prefix}/queue-renewals"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>

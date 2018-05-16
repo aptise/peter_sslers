@@ -8,6 +8,7 @@ import pypages
 
 # localapp
 from . import text
+from . import db
 
 
 # ==============================================================================
@@ -56,3 +57,9 @@ class Handler(object):
     def _ensure_redis(self):
         if not self.request.registry.settings['enable_redis']:
             raise HTTPFound('%s?error=no_redis' % self.request.registry.settings['admin_prefix'])
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def _load_AccountKeyDefault(self):
+        self.dbAccountKeyDefault = db.get.get__SslLetsEncryptAccountKey__default(self.request.api_context, active_only=True)
+

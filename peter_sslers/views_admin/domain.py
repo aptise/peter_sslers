@@ -29,30 +29,71 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:domains', renderer='/admin/domains.mako')
     @view_config(route_name='admin:domains_paginated', renderer='/admin/domains.mako')
+    @view_config(route_name='admin:domains:expiring', renderer='/admin/domains.mako')
+    @view_config(route_name='admin:domains:expiring_paginated', renderer='/admin/domains.mako')
     def domains(self):
-        items_count = lib_db.get.get__SslDomain__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template='%s/domains/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get.get__SslDomain__paginated(self.request.api_context, eagerload_web=True, limit=items_per_page, offset=offset)
+        expiring_days = self.request.registry.settings['expiring_days']
+        if self.request.matched_route.name in ('admin:domains:expiring', 'admin:domains:expiring_paginated'):
+            sidenav_option = 'expiring'
+            url_template = '%s/domains/expiring/{0}' % self.request.registry.settings['admin_prefix']
+            items_count = lib_db.get.get__SslDomain__count(self.request.api_context, expiring_days=expiring_days)
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__SslDomain__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        else:
+            sidenav_option = 'all'
+            url_template = '%s/domains/{0}' % self.request.registry.settings['admin_prefix']
+            items_count = lib_db.get.get__SslDomain__count(self.request.api_context)
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__SslDomain__paginated(self.request.api_context, eagerload_web=True, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
                 'SslDomains_count': items_count,
                 'SslDomains': items_paged,
-                'sidenav_option': 'all',
+                'sidenav_option': sidenav_option,
+                'expiring_days': expiring_days,
                 'pager': pager,
                 }
 
-    @view_config(route_name='admin:domains:expiring', renderer='/admin/domains.mako')
-    @view_config(route_name='admin:domains:expiring_paginated', renderer='/admin/domains.mako')
-    def domains_expiring_only(self):
+    @view_config(route_name='admin:domains|json', renderer='json')
+    @view_config(route_name='admin:domains_paginated|json', renderer='json')
+    @view_config(route_name='admin:domains:expiring|json', renderer='json')
+    @view_config(route_name='admin:domains:expiring_paginated|json', renderer='json')
+    def domains_json(self):
         expiring_days = self.request.registry.settings['expiring_days']
-        items_count = lib_db.get.get__SslDomain__count(self.request.api_context, expiring_days=expiring_days)
-        (pager, offset) = self._paginate(items_count, url_template='%s/domains/expiring/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get.get__SslDomain__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
-        return {'project': 'peter_sslers',
-                'SslDomains_count': items_count,
-                'SslDomains': items_paged,
-                'sidenav_option': 'expiring',
-                'expiring_days': expiring_days,
-                'pager': pager,
+        if self.request.matched_route.name in ('admin:domains:expiring|json', 'admin:domains:expiring_paginated|json'):
+            url_template='%s/domains/expiring/{0}' % self.request.registry.settings['admin_prefix']
+            items_count = lib_db.get.get__SslDomain__count(self.request.api_context, expiring_days=expiring_days)
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__SslDomain__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        else:
+            url_template = '%s/domains/{0}' % self.request.registry.settings['admin_prefix']
+            items_count = lib_db.get.get__SslDomain__count(self.request.api_context)
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__SslDomain__paginated(self.request.api_context, eagerload_web=True, limit=items_per_page, offset=offset)
+        _domains = {}
+        for d in items_paged:
+            _domains[d.id] = {'id': d.id,
+                              'is_active': True if d.is_active else False,
+                              'domain_name': d.domain_name,
+                              'certificate__latest_multi': {},
+                              'certificate__latest_single': {},
+                              }
+            if d.ssl_server_certificate_id__latest_multi:
+                _domains[d.id]['certificate__latest_multi'] = {
+                    'id': d.ssl_server_certificate_id__latest_multi,
+                    'timestamp_expires': d.server_certificate__latest_multi.timestamp_expires_isoformat,
+                    'expiring_days': d.server_certificate__latest_multi.expiring_days,
+                }
+            if d.ssl_server_certificate_id__latest_single:
+                _domains[d.id]['certificate__latest_single'] = {
+                    'id': d.ssl_server_certificate_id__latest_single,
+                    'timestamp_expires': d.server_certificate__latest_single.timestamp_expires_isoformat,
+                    'expiring_days': d.server_certificate__latest_single.expiring_days,
+                }
+        return {'SslDomains': _domains,
+                'pagination': {'total_items': items_count,
+                               'page': pager.page_num,
+                               'page_next': pager.next if pager.has_next else None,
+                               }
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

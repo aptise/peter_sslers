@@ -28,10 +28,29 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:unique_fqdn_sets', renderer='/admin/unique_fqdn_sets.mako')
     @view_config(route_name='admin:unique_fqdn_sets_paginated', renderer='/admin/unique_fqdn_sets.mako')
+    @view_config(route_name='admin:unique_fqdn_sets|json', renderer='json')
+    @view_config(route_name='admin:unique_fqdn_sets_paginated|json', renderer='json')
     def unique_fqdn_sets(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         items_count = lib_db.get.get__SslUniqueFQDNSet__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-sets/{0}' % self.request.registry.settings['admin_prefix'])
+        if wants_json:
+            (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-sets/{0}.json' % self.request.registry.settings['admin_prefix'])
+        else:
+            (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-sets/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get.get__SslUniqueFQDNSet__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
+        if wants_json:
+            _sets = {s.id: {'id': s.id,
+                            'timestamp_first_seen': s.timestamp_first_seen_isoformat,
+                            'domains_as_list': s.domains_as_list,
+                            }
+                     for s in items_paged
+                     }
+            return {'SslUniqueFQDNSets': _sets,
+                    'pagination': {'total_items': items_count,
+                                   'page': pager.page_num,
+                                   'page_next': pager.next if pager.has_next else None,
+                                   }
+                    }
         return {'project': 'peter_sslers',
                 'SslUniqueFQDNSets_count': items_count,
                 'SslUniqueFQDNSets': items_paged,
