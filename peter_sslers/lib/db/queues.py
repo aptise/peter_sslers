@@ -298,9 +298,14 @@ def queue_renewals__update(
 
 
 def queue_renewals__process(ctx):
+    """
+    process the queue
+    in order to best deal with transactions, we do 1 queue item at a time and redirect to process more
+    """
     rval = {'count_total': None,
             'count_success': 0,
             'count_fail': 0,
+            'count_remaining': 0,
             'failures': {},
             }
     event_type = models.SslOperationsEventType.from_string('queue_renewal__process')
@@ -309,16 +314,18 @@ def queue_renewals__process(ctx):
                                                 event_type,
                                                 event_payload_dict,
                                                 )
-    items_count = lib.db.get.get__SslQueueRenewal__count(ctx, show_all=False)
+    items_count = lib.db.get.get__SslQueueRenewal__count(ctx, unprocessed_only=True)
     rval['count_total'] = items_count
+    rval['count_remaining'] = items_count
     if items_count:
-        items_paged = lib.db.get.get__SslQueueRenewal__paginated(ctx, show_all=False, limit=10, offset=0, eagerload_renewal=True)
+        items_paged = lib.db.get.get__SslQueueRenewal__paginated(ctx, unprocessed_only=True, limit=1, offset=0, eagerload_renewal=True)
 
         _need_default_key = False
         for dbQueueRenewal in items_paged:
             if (not dbQueueRenewal.server_certificate.ssl_letsencrypt_account_key_id) or (not dbQueueRenewal.server_certificate.letsencrypt_account_key.is_active):
                 _need_default_key = True
                 break
+
         if _need_default_key:
             dbAccountKeyDefault = lib.db.get.get__SslLetsEncryptAccountKey__default(ctx, active_only=True)
             if not dbAccountKeyDefault:
@@ -327,6 +334,7 @@ def queue_renewals__process(ctx):
         for dbQueueRenewal in items_paged:
             if dbQueueRenewal not in ctx.dbSession:
                 dbQueueRenewal = ctx.dbSession.merge(dbQueueRenewal)
+
             if dbAccountKeyDefault:
                 if dbAccountKeyDefault not in ctx.dbSession:
                     dbAccountKeyDefault = ctx.dbSession.merge(dbAccountKeyDefault)
@@ -337,6 +345,7 @@ def queue_renewals__process(ctx):
 
             dbServerCertificate = None
             try:
+                timestamp_attempt = datetime.datetime.utcnow()
                 dbServerCertificate = lib.db.actions.do__CertificateRequest__AcmeAutomated(
                     ctx,
                     dbQueueRenewal.server_certificate.domains_as_list,
@@ -352,16 +361,23 @@ def queue_renewals__process(ctx):
                                       dbQueueRenewal=dbQueueRenewal,
                                       )
                     rval['count_success'] += 1
+                    rval['count_remaining'] -= 1
                     dbQueueRenewal.process_result = True
+                    dbQueueRenewal.timestamp_process_attempt = timestamp_attempt
+                    dbQueueRenewal.ssl_server_certificate_id__renewed = dbServerCertificate.id
                     ctx.dbSession.flush(objects=[dbQueueRenewal, ])
+
                 else:
                     raise ValueError("what happened?")
+
             except Exception as e:
+
                 if dbOperationsEvent not in ctx.dbSession:
                     dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
                 if dbQueueRenewal not in ctx.dbSession:
                     dbQueueRenewal = ctx.dbSession.merge(dbQueueRenewal)
                 dbQueueRenewal.process_result = False
+                dbQueueRenewal.timestamp_process_attempt = timestamp_attempt
                 ctx.dbSession.flush(objects=[dbQueueRenewal, ])
 
                 _log_object_event(ctx,
@@ -377,6 +393,8 @@ def queue_renewals__process(ctx):
                 else:
                     raise
         event_payload_dict['rval'] = rval
+        if dbOperationsEvent not in ctx.dbSession:
+            dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent, ])
     return rval

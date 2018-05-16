@@ -7,6 +7,7 @@ from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
 import datetime
+import json
 
 # pypi
 import pyramid_formencode_classic as formhandling
@@ -25,31 +26,61 @@ from ..lib.handler import Handler, items_per_page
 
 
 class ViewAdmin(Handler):
+    """
+    note-
+    if a renewal fails, the record is marked with the following:
+        timestamp_process_attempt = time.time()
+        process_result = False
+    Records with the above are the failed renewal attempts.
+
+    The record stays active and in the queue, as it may renew later on.
+    To be removed, it must suucceed or be explicitly removed from the queue.   
+    """
 
     @view_config(route_name='admin:queue_renewals', renderer='/admin/queue-renewals.mako')
     @view_config(route_name='admin:queue_renewals_paginated', renderer='/admin/queue-renewals.mako')
-    def rewnewal_queue(self):
-        items_count = lib_db.get.get__SslQueueRenewal__count(self.request.api_context, show_all=False)
-        (pager, offset) = self._paginate(items_count, url_template='%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get.get__SslQueueRenewal__paginated(self.request.api_context, show_all=False, limit=items_per_page, offset=offset)
-        return {'project': 'peter_sslers',
-                'SslQueueRenewals_count': items_count,
-                'SslQueueRenewals': items_paged,
-                'sidenav_option': 'unprocessed',
-                'pager': pager,
-                }
-
     @view_config(route_name='admin:queue_renewals:all', renderer='/admin/queue-renewals.mako')
     @view_config(route_name='admin:queue_renewals:all_paginated', renderer='/admin/queue-renewals.mako')
-    def queue_renewal_all(self):
-        items_count = lib_db.get.get__SslQueueRenewal__count(self.request.api_context, show_all=True)
-        (pager, offset) = self._paginate(items_count, url_template='%s/queue-renewals/all/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get.get__SslQueueRenewal__paginated(self.request.api_context, show_all=True, limit=items_per_page, offset=offset)
+    @view_config(route_name='admin:queue_renewals:active_failures', renderer='/admin/queue-renewals.mako')
+    @view_config(route_name='admin:queue_renewals:active_failures_paginated', renderer='/admin/queue-renewals.mako')
+    def queue_renewals(self):
+        get_kwargs = {}
+        url_template = None
+        sidenav_option = None
+        if self.request.matched_route.name in ('admin:queue_renewals', 'admin:queue_renewals_paginated'):
+            get_kwargs['unprocessed_only'] = True
+            url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
+            sidenav_option = 'unprocessed'
+        elif self.request.matched_route.name in ('admin:queue_renewals:all', 'admin:queue_renewals:all_paginated'):
+            url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
+            sidenav_option = 'all'
+        elif self.request.matched_route.name in ('admin:queue_renewals:active_failures', 'admin:queue_renewals:active_failures_paginated'):
+            get_kwargs['unprocessed_failures_only'] = True
+            url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
+            sidenav_option = 'active-failures'
+            
+        items_count = lib_db.get.get__SslQueueRenewal__count(self.request.api_context, **get_kwargs)
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__SslQueueRenewal__paginated(self.request.api_context, limit=items_per_page, offset=offset, **get_kwargs)
+
+        continue_processing = False
+        _results = self.request.params.get('results', None)
+        if _results:
+            try:
+                _results = json.loads(_results)
+                items_remaining = int(_results.get('count_remaining', 0))
+                if items_remaining:
+                    continue_processing = True
+            except:
+                # this could be a json or int() error
+                pass
+        
         return {'project': 'peter_sslers',
                 'SslQueueRenewals_count': items_count,
                 'SslQueueRenewals': items_paged,
-                'sidenav_option': 'all',
+                'sidenav_option': sidenav_option,
                 'pager': pager,
+                'continue_processing': continue_processing,
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

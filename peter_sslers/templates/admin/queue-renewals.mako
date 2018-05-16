@@ -19,6 +19,7 @@
 <%block name="page_header_nav">
     <ul class="nav nav-pills nav-stacked">
       <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-renewals">Unprocessed Items</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'active-failures' else ''}"><a href="${admin_prefix}/queue-renewals/active-failures">Unprocessed Failures</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-renewals/all">All Items</a></li>
       <li role="presentation" class="">
         <a href="${admin_prefix}/api/queue-renewals/update">
@@ -30,6 +31,11 @@
             <a href="${admin_prefix}/api/queue-renewals/process">
             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
             Process Queue Items</a>
+          </li>
+          <li role="presentation" class="">
+            <a href="${admin_prefix}/api/queue-renewals/process.json">
+            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+            Process Queue Items - JSON</a>
           </li>
         % endif
     </ul>
@@ -48,6 +54,14 @@
                 <hr/>
             % endif
 
+            ## set via controller
+            % if continue_processing:
+                <meta http-equiv="refresh" content="1; url=${admin_prefix}/api/queue-renewals/process">
+                <div class="alert alert-info">
+                    Queue Still Populated, automatically continuing...
+                </div>
+            % endif
+            
             % if SslQueueRenewals:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
@@ -57,6 +71,7 @@
                             <th>certificate_id</th>
                             <th>unique fqdn</th>
                             <th>timestamp_entered</th>
+                            <th>timestamp_process_attempt</th>
                             <th>timestamp_processed</th>
                             <th>process_result</th>
                         </tr>
@@ -73,7 +88,8 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.ssl_unique_fqdn_set_id}</a></td>
                             <td><timestamp>${q.timestamp_entered}</timestamp></td>
-                            <td><timestamp>${q.timestamp_processed}</timestamp></td>
+                            <td><timestamp>${q.timestamp_process_attempt or ''}</timestamp></td>
+                            <td><timestamp>${q.timestamp_processed or ''}</timestamp></td>
                             <td>
                                 % if q.process_result is True:
                                     <span class="label label-success"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></span>

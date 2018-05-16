@@ -15,9 +15,18 @@
 - private keys can now be marked as default
 - SQL Changes
     ALTER TABLE ssl_private_key ADD is_default BOOLEAN DEFAULT NULL;
+    ALTER TABLE ssl_queue_renewal ADD timestamp_process_attempt DATETIME;
+    ALTER TABLE ssl_queue_renewal ADD ssl_server_certificate_id__renewed INT REFERENCES ssl_server_certificate(id);
+    
+- SQLITE Check
+    PRAGMA table_info(ssl_private_key);
+    PRAGMA table_info(ssl_queue_renewal);
+
 - centralized some json list views into the main views
 - centralized json representation into the model. used as_json instead of the encoder hook for now.
 - updated CSR to allow multiple types of account/private key uploads
+- queue renewals is now using a metadata tag to constantly refresh for the queue, the json endpoint gives results as well
+- a fake_boulder.py script is provided for faking interaction, there are some testing options too
 
 0.1.5
 2018.01.15

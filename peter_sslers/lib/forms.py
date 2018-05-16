@@ -116,7 +116,7 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
 
 
 class Form_Certificate_mark(_Form_Schema_Base):
-    action = OneOf(('active', 'inactive', 'revoked', 'renew_manual', 'renew_auto', ))
+    action = OneOf(('active', 'inactive', 'revoked', 'renew_manual', 'renew_auto', 'unrevoke', ))
 
 
 class Form_CertificateRequest_new_AcmeFlow(_Form_Schema_Base):

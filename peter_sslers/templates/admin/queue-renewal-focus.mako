@@ -50,7 +50,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>certificate_id</th>
+                    <th>certificate_id - renewal of</th>
                     <td>
                         <a class="label label-info"
                             href="${admin_prefix}/certificate/${RenewalQueueItem.ssl_server_certificate_id}"
@@ -87,6 +87,18 @@
                     <th>process_result</th>
                     <td>
                         ${RenewalQueueItem.process_result or ''}
+                    </td>
+                </tr>
+                <tr>
+                    <th>certificate_id - renewed</th>
+                    <td>
+                        % if RenewalQueueItem.ssl_server_certificate_id__renewed:
+                            <a class="label label-info"
+                                href="${admin_prefix}/certificate/${RenewalQueueItem.ssl_server_certificate_id__renewed}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                ${RenewalQueueItem.ssl_server_certificate_id__renewed}</a>
+                        % endif
                     </td>
                 </tr>
                 ${admin_partials.table_tr_event_created(RenewalQueueItem)}

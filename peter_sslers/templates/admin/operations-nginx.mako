@@ -63,6 +63,9 @@
                 <p>
                     Nginx is enabled for this server.
                 </p>
+                <p>
+                    Nginx integration is provided by the `<a href="https://github.com/aptise/peter_sslers-lua-resty" target="_blank">lua-resty-peter_sslers</a>` package available via the OpenResty OPM.
+                </p>
             </div>
             <table class="table table-striped table-condensed">
                 <tr>

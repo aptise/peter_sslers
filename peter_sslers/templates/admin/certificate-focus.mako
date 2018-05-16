@@ -68,8 +68,8 @@
                         <span class="label label-${'success' if SslServerCertificate.is_active else 'warning'}">
                             ${'Active' if SslServerCertificate.is_active else 'inactive'}
                         </span>
+                        &nbsp;
                         % if SslServerCertificate.is_active:
-                            &nbsp;
                             <a  class="label label-warning"
                                 href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=inactive"
                             >
@@ -77,31 +77,45 @@
                                 deactivate
                             </a>
                             &nbsp;
-                            <a  class="label label-warning"
+                            <a  class="label label-danger"
                                 href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=revoked"
                             >
                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                 mark revoked
                             </a>
                         % else:
-                            % if SslServerCertificate.is_deactivated or SslServerCertificate.is_revoked:
-                                &nbsp;
-                                reason:
-                                % if SslServerCertificate.is_deactivated:
-                                    &nbsp;
-                                    <span class="label label-warning">inactive</span>
-                                % endif
-                                % if SslServerCertificate.is_revoked:
-                                    &nbsp;
-                                    <span class="label label-warning">revoked</span>
-                                % endif
+                            ## show a reason
+                            % if SslServerCertificate.is_revoked:
+                                Reason: <code>revoked</code>
+                            % elif SslServerCertificate.is_deactivated:
+                                Reason: <code>deactivated</code>
+                            % endif
 
+                            % if SslServerCertificate.is_deactivated:
+                                ## manual deactivations can be undone
+                                ## this could be an 'inactive' or a 'revoke'
+                                &nbsp;
+                                Actions:
+                                % if SslServerCertificate.is_revoked:
+                                    <a  class="label label-warning"
+                                        href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=unrevoke"
+                                    >
+                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                        unrevoke
+                                    </a>
+                                % endif
                                 % if not SslServerCertificate.is_revoked:
                                     <a  class="label label-success"
                                         href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=active"
                                     >
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                         activate
+                                    </a>
+                                    <a  class="label label-danger"
+                                        href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=revoked"
+                                    >
+                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                        revoke
                                     </a>
                                 % endif
                             % endif
@@ -114,6 +128,7 @@
                         <span class="label label-${'success' if SslServerCertificate.is_auto_renew else 'warning'}">
                             ${'AutoRenew' if SslServerCertificate.is_auto_renew else 'manual'}
                         </span>
+                        &nbsp;
                         % if SslServerCertificate.is_active:
                             % if SslServerCertificate.is_auto_renew:
                                 <a  class="label label-warning"
@@ -130,6 +145,13 @@
                                     enable auto-renew
                                 </a>
                             % endif
+                            &nbsp;
+                            <a  class="label label-primary"
+                                href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/queue"
+                            >
+                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                queue a renewal
+                            </a>
                         % endif
                     </td>
                 </tr>

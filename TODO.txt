@@ -29,3 +29,5 @@ Additional Test coverage needed for
 
 * longterm - decouple from openssl and use pure-python methods
 * the queue-renewals update script could work on fqdns, not just certificates
+* create tool for exporting and deleting the logs
+* allow an "inactive" certificate to be "mark revoked"

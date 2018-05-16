@@ -12,6 +12,7 @@ import datetime
 import pyramid_formencode_classic as formhandling
 import sqlalchemy
 import transaction
+import json
 
 # localapp
 from ..models import models
@@ -457,7 +458,10 @@ class ViewAdmin(Handler):
             queue_results = lib_db.queues.queue_renewals__process(self.request.api_context)
             if self.request.matched_route.name == 'admin:api:queue_renewals:process.json':
                 return {'result': 'success',
+                        'queue_results': queue_results,
                         }
+            if queue_results:
+                queue_results = json.dumps(queue_results)
             return HTTPFound("%s/queue-renewals?process=1&results=%s" % (self.request.registry.settings['admin_prefix'], queue_results))
         except Exception as e:
             transaction.abort()

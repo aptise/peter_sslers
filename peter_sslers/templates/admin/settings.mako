@@ -52,6 +52,10 @@
                                         ${_default}
                                     % endif
                                 % endif
+                                % if documentation_grid[section][option].get('show_on_settings'):
+                                    <hr/>
+                                    Active: <code>${request.registry.settings.get(option) or ''}</code>
+                                % endif
                             </thd>
                         </tr>
                     % endfor

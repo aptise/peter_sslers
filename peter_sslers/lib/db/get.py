@@ -571,18 +571,32 @@ def get__SslOperationsQueueDomainEvent__paginated(ctx, limit=None, offset=0):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslQueueRenewal__count(ctx, show_all=False):
+def get__SslQueueRenewal__count(ctx, unprocessed_only=False, unprocessed_failures_only=None):
+    if unprocessed_failures_only and unprocessed_only:
+        raise ValueError("only submit one strategy")
     q = ctx.dbSession.query(models.SslQueueRenewal)
-    if not show_all:
+    if unprocessed_failures_only:
+        q = q.filter(models.SslQueueRenewal.timestamp_processed.op('IS')(None),  # noqa
+                     models.SslQueueRenewal.timestamp_process_attempt.op('IS NOT')(None),  # noqa
+                     models.SslQueueRenewal.process_result.op('IS')(False),  # noqa
+                     )
+    if unprocessed_only:
         q = q.filter(models.SslQueueRenewal.timestamp_processed.op('IS')(None),  # noqa
                      )
     counted = q.count()
     return counted
 
 
-def get__SslQueueRenewal__paginated(ctx, show_all=False, eagerload_web=False, eagerload_renewal=False, limit=None, offset=0):
+def get__SslQueueRenewal__paginated(ctx, unprocessed_only=False, unprocessed_failures_only=None, eagerload_web=False, eagerload_renewal=False, limit=None, offset=0):
+    if unprocessed_failures_only and unprocessed_only:
+        raise ValueError("only submit one strategy")
     q = ctx.dbSession.query(models.SslQueueRenewal)
-    if not show_all:
+    if unprocessed_failures_only:
+        q = q.filter(models.SslQueueRenewal.timestamp_processed.op('IS')(None),  # noqa
+                     models.SslQueueRenewal.timestamp_process_attempt.op('IS NOT')(None),  # noqa
+                     models.SslQueueRenewal.process_result.op('IS')(False),  # noqa
+                     )
+    if unprocessed_only:
         q = q.filter(models.SslQueueRenewal.timestamp_processed.op('IS')(None),  # noqa
                      )
     if eagerload_web:

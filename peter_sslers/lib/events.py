@@ -46,6 +46,7 @@ def _handle_certificate_activated(ctx, serverCertificate):
         tnow = datetime.datetime.utcnow()
         for q in dbActiveQueues:
             q.timestamp_processed = tnow
+            q.timestamp_process_attempt = tnow
             q.process_result = True
             ctx.dbSession.flush(objects=[q, ])
         return True

@@ -72,6 +72,10 @@ def main(global_config, **settings):
         cert_utils.openssl_path_conf = settings["openssl_path_conf"]
     if 'certificate_authority' in settings:
         acme.CERTIFICATE_AUTHORITY = settings["certificate_authority"]
+    if 'certificate_authority_testing' in settings:
+        certificate_authority_testing = set_bool_setting(config.registry.settings, 'certificate_authority_testing')
+        if certificate_authority_testing:
+            acme.TESTING_ENVIRONMENT = True
     if 'certificate_authority_agreement' in settings:
         acme.CA_AGREEMENT = settings["certificate_authority_agreement"]
 

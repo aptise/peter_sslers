@@ -37,9 +37,21 @@ from . import letsencrypt_info
 _DEFAULT_CA = "https://acme-staging.api.letsencrypt.org"
 CERTIFICATE_AUTHORITY = _DEFAULT_CA
 CERTIFICATE_AUTHORITY_AGREEMENT = 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf'
+TESTING_ENVIRONMENT = False
 
 
 # ==============================================================================
+
+
+def my_urlopen(url, *args):
+    if TESTING_ENVIRONMENT:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        resp = urlopen(url, *args, context=ctx)
+    else:
+        resp = urlopen(url, *args)
+    return resp
 
 
 # helper function base64 encode for jose spec
@@ -51,7 +63,8 @@ def _b64(b):
 def send_signed_request(url, payload, account_key_path, header):
     payload64 = _b64(json.dumps(payload).encode("utf8"))
     protected = copy.deepcopy(header)
-    protected["nonce"] = urlopen(CERTIFICATE_AUTHORITY + "/directory").headers["Replay-Nonce"]
+    resp_directory = my_urlopen(CERTIFICATE_AUTHORITY + "/directory")
+    protected["nonce"] = resp_directory.headers["Replay-Nonce"]
     protected64 = _b64(json.dumps(protected).encode("utf8"))
     proc = subprocess.Popen([cert_utils.openssl_path, "dgst", "-sha256", "-sign", account_key_path],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -64,7 +77,7 @@ def send_signed_request(url, payload, account_key_path, header):
                        "signature": _b64(out),
                        })
     try:
-        resp = urlopen(url, data.encode("utf8"))
+        resp = my_urlopen(url, data.encode("utf8"))
         return resp.getcode(), resp.read(), resp.info()
     except IOError as e:
         return getattr(e, "code", None), getattr(e, "read", e.__str__)(), None
@@ -154,17 +167,20 @@ def acme_verify_domains(
 
         # check that the file is in place
         wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(domain, token)
-        try:
-            resp = urlopen(wellknown_url)
-            resp_data = resp.read().decode("utf8").strip()
-            assert resp_data == keyauthorization
-        except (IOError, AssertionError):
-            handle_keyauth_cleanup(domain, token, keyauthorization)
-            raise errors.DomainVerificationError("Wrote keyauth challenge, but couldn't download {0}".format(wellknown_url))
-        except ssl.CertificateError as e:
-            if e.message.startswith('hostname') and ("doesn't match" in e.message):
-                raise errors.DomainVerificationError("Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(wellknown_url, e.message))
-            raise
+        if TESTING_ENVIRONMENT:
+            print("TESTING_ENVIRONMENT, not ensuring the challenge is readable")
+        else:
+            try:
+                resp = urlopen(wellknown_url)
+                resp_data = resp.read().decode("utf8").strip()
+                assert resp_data == keyauthorization
+            except (IOError, AssertionError):
+                handle_keyauth_cleanup(domain, token, keyauthorization)
+                raise errors.DomainVerificationError("Wrote keyauth challenge, but couldn't download {0}".format(wellknown_url))
+            except ssl.CertificateError as e:
+                if e.message.startswith('hostname') and ("doesn't match" in e.message):
+                    raise errors.DomainVerificationError("Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(wellknown_url, e.message))
+                raise
 
         # notify challenge are met
         code, result, headers = send_signed_request(

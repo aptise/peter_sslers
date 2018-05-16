@@ -236,6 +236,7 @@
                 <th>timestamp_entered</th>
                 <th>ssl_operations_event_id__created</th>
                 <th>timestamp_processed</th>
+                <th>timestamp_process_attempt</th>
                 <th>result</th>
             </tr>
         </thead>
@@ -255,6 +256,7 @@
                 <td><timestamp>${queue_renewal.timestamp_entered or ''}</timestamp></td>
                 <td><span class="label label-info">${queue_renewal.ssl_operations_event_id__created}</span></td>
                 <td><timestamp>${queue_renewal.timestamp_processed or ''}</timestamp></td>
+                <td><timestamp>${queue_renewal.timestamp_process_attempt or ''}</timestamp></td>
                 <td>
                     % if queue_renewal.process_result is None:
                         &nbsp;

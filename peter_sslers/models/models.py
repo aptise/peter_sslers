@@ -211,6 +211,7 @@ class _SslOperationsUnified(_mixin_mapping):
         723: 'certificate__mark__revoked',
         724: 'certificate__mark__renew_auto',
         725: 'certificate__mark__renew_manual',
+        726: 'certificate__mark__unrevoked',
         730: 'certificate__renew',
         740: 'certificate__revoke',
         751: 'certificate__deactivate_expired',
@@ -901,11 +902,18 @@ class SslQueueRenewal(Base):
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False)
     ssl_operations_event_id__created = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    timestamp_process_attempt = sa.Column(sa.DateTime, nullable=True, )  # if not-null then an attempt was made on this item
+    ssl_server_certificate_id__renewed = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True)
 
     server_certificate = sa.orm.relationship("SslServerCertificate",
                                              primaryjoin="SslQueueRenewal.ssl_server_certificate_id==SslServerCertificate.id",
                                              uselist=False,
                                              )
+
+    server_certificate__renewed = sa.orm.relationship("SslServerCertificate",
+                                                      primaryjoin="SslQueueRenewal.ssl_server_certificate_id__renewed==SslServerCertificate.id",
+                                                      uselist=False,
+                                                      )
 
     unique_fqdn_set = sa.orm.relationship("SslUniqueFQDNSet",
                                           primaryjoin="SslQueueRenewal.ssl_unique_fqdn_set_id==SslUniqueFQDNSet.id",
@@ -945,8 +953,8 @@ class SslServerCertificate(Base):
     cert_issuer = sa.Column(sa.Text, nullable=True, )
     cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
-    is_deactivated = sa.Column(sa.Boolean, nullable=True, default=None)  # used to determine is_active toggling
-    is_revoked = sa.Column(sa.Boolean, nullable=True, default=None)  # used to determine is_active toggling
+    is_deactivated = sa.Column(sa.Boolean, nullable=True, default=None)  # used to determine is_active toggling.
+    is_revoked = sa.Column(sa.Boolean, nullable=True, default=None)  # used to determine is_active toggling. this will set 'is_deactivated'
     is_auto_renew = sa.Column(sa.Boolean, nullable=False, default=True)
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False)
     is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
@@ -1093,8 +1101,8 @@ class SslServerCertificate(Base):
                 }
 
     @property
-    def can_quick_renew(self):
-        """only allow renewable of LE certificates"""
+    def can_renew_letsencrypt(self):
+        """only allow renew of LE certificates"""
         if self.ssl_letsencrypt_account_key_id:
             return True
         return False

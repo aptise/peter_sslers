@@ -281,22 +281,41 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:renew:quick', renderer=None)
     @view_config(route_name='admin:certificate:focus:renew:quick.json', renderer='json')
     def certificate_focus_renew_quick(self):
+        """this endpoint is for immediately renewing the certificate acme-auto protocol"""
         dbServerCertificate = self._certificate_focus()
         try:
+            raise NotImplementedError()
             if not self.request.method == 'POST':
                 raise errors.DisplayableError('Post Only')
-            if not dbServerCertificate.can_quick_renew:
+            if not dbServerCertificate.can_renew_letsencrypt:
                 raise errors.DisplayableError('Thie cert is not eligible for `Quick Renew`')
-
-            raise NotImplementedError()
-
         except errors.DisplayableError as e:
             url_failure = '%s/certificate/%s?operation=renewal&renewal_type=quick&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbServerCertificate.id,
                 e.message,
             )
-            raise HTTPFound("%s&error=POST-ONLY" % url_failure)
+            raise HTTPFound(url_failure)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:certificate:focus:renew:queue', renderer=None)
+    @view_config(route_name='admin:certificate:focus:renew:queue.json', renderer='json')
+    def certificate_focus_renew_queue(self):
+        """this endpoint is for adding the certificate to the renewal queue immediately"""
+        dbServerCertificate = self._certificate_focus()
+        try:
+            import pdb
+            pdb.set_trace()
+
+
+        except errors.DisplayableError as e:
+            url_failure = '%s/certificate/%s?operation=renewal&renewal_type=queue&error=%s' % (
+                self.request.registry.settings['admin_prefix'],
+                dbServerCertificate.id,
+                e.message,
+            )
+            raise HTTPFound(url_failure)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -421,22 +440,32 @@ class ViewAdmin(Handler):
 
             if action == 'active':
                 if dbServerCertificate.is_active:
-                    raise formhandling.FormInvalid('already active!')
+                    raise formhandling.FormInvalid('Already active!')
+                # is_deactivated is our manual toggle; 
+                if not dbServerCertificate.is_deactivated:
+                    raise formhandling.FormInvalid('This was not manually deactivated')
                 if dbServerCertificate.is_revoked:
-                    raise formhandling.FormInvalid('Certificate is revoked revoked')
+                    raise formhandling.FormInvalid('Certificate is revoked. You must unrevoke first.')
+                # now make it active!
                 dbServerCertificate.is_active = True
-                if dbServerCertificate.is_deactivated:
-                    dbServerCertificate.is_deactivated = False
+                # unset the manual toggle
+                dbServerCertificate.is_deactivated = False
+                # cleanup options
                 update_recents = True
                 activated = True
                 event_status = 'certificate__mark__active'
 
             elif action == 'inactive':
+                if not dbServerCertificate.is_active:
+                    raise formhandling.FormInvalid('Already inactive!')
                 if dbServerCertificate.is_deactivated:
                     raise formhandling.FormInvalid('Already deactivated')
-                dbServerCertificate.is_deactivated = True
+                # deactivate it
                 dbServerCertificate.is_active = False
                 dbServerCertificate.is_auto_renew = False
+                # set the manual toggle
+                dbServerCertificate.is_deactivated = True
+                # cleanup options
                 update_recents = True
                 deactivated = True
                 event_status = 'certificate__mark__inactive'
@@ -444,9 +473,14 @@ class ViewAdmin(Handler):
             elif action == 'revoked':
                 if dbServerCertificate.is_revoked:
                     raise formhandling.FormInvalid('Already revoked')
+                # mark revoked
                 dbServerCertificate.is_revoked = True
+                # deactivate it
                 dbServerCertificate.is_active = False
                 dbServerCertificate.is_auto_renew = False
+                # set the manual toggle
+                dbServerCertificate.is_deactivated = True
+                # cleanup options
                 update_recents = True
                 deactivated = True
                 event_type = 'certificate__revoke'
@@ -454,10 +488,12 @@ class ViewAdmin(Handler):
 
             elif action == 'renew_auto':
                 if not dbServerCertificate.is_active:
-                    raise formhandling.FormInvalid('certificate must be `active`')
+                    raise formhandling.FormInvalid('Certificate must be `active`')
                 if dbServerCertificate.is_auto_renew:
-                    raise formhandling.FormInvalid('Already renew_auto')
+                    raise formhandling.FormInvalid('Already set to auto-renew')
+                # set the renewal
                 dbServerCertificate.is_auto_renew = True
+                # cleanup options
                 event_status = 'certificate__mark__renew_auto'
 
             elif action == 'renew_manual':
@@ -465,8 +501,21 @@ class ViewAdmin(Handler):
                     raise formhandling.FormInvalid('certificate must be `active`')
                 if not dbServerCertificate.is_auto_renew:
                     raise formhandling.FormInvalid('Already renew_manual')
+                # unset the renewal
                 dbServerCertificate.is_auto_renew = False
+                # cleanup options
                 event_status = 'certificate__mark__renew_manual'
+
+            elif action == 'unrevoke':
+                if not dbServerCertificate.is_revoked:
+                    raise formhandling.FormInvalid('Certificate is not revoked')
+                # unset the revoke
+                dbServerCertificate.is_revoked = False
+                # lead is_active and is_deactivated as-is
+                # cleanup options
+                update_recents = True
+                activated = None
+                event_status = 'certificate__mark__unrevoked'
 
             else:
                 raise formhandling.FormInvalid('invalid `action`')

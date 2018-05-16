@@ -527,6 +527,15 @@ Certificates end up in the renewal queue through the `update` command or being i
 
 Certificates can also have a "custom renewal".
 
+To process the queue:
+
+To deal with timeouts and various issues, queue processing only works on one queue item at a time.
+
+There are simple ways to process the entire queue though:
+
+* Visit the renewal page and choose HTML processing. An item will be popped off the queue.  Refresh tags are used to continue processing until finished.
+* Use the API endpoint. Inspect results and continue processing as needed
+
 
 # FAQ
 
