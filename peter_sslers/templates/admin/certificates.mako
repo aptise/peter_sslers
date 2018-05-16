@@ -15,6 +15,7 @@
     <h2>Certificates</h2>
 </%block>
 
+
 <%block name="page_header_nav">
     <ul class="nav nav-pills nav-stacked">
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/certificates">All Certificates</a></li>

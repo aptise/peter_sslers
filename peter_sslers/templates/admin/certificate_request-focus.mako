@@ -127,13 +127,15 @@
                 <tr>
                     <th>csr_pem_modulus_md5</th>
                     <td>
-                        <code>${SslCertificateRequest.csr_pem_modulus_md5 or ''}</code>
-                        <a
-                            class="btn btn-xs btn-info"
-                            href="${admin_prefix}/search?${SslCertificateRequest.csr_pem_modulus_search}"
-                        >
-                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                        </a>
+                        % if SslCertificateRequest.csr_pem_modulus_md5:
+                            <code>${SslCertificateRequest.csr_pem_modulus_md5}</code>
+                            <a
+                                class="btn btn-xs btn-info"
+                                href="${admin_prefix}/search?${SslCertificateRequest.csr_pem_modulus_search}"
+                            >
+                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                            </a>
+                        % endif
                     </td>
                 </tr>
                 <tr>

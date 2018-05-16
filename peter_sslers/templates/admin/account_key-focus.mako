@@ -92,7 +92,7 @@
                         &nbsp;
                         % if not SslLetsEncryptAccountKey.is_default:
                             <a  href="${admin_prefix}/account-key/${SslLetsEncryptAccountKey.id}/mark?action=default"
-                                class="label label-info"
+                                class="label label-primary"
                             >
                                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                 make default

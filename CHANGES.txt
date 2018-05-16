@@ -12,7 +12,12 @@
 - the nginx status tools now return a better json payload
 - adding a settings panel that documents all the config options
 - adding more json endpoints for easier commandline work
-
+- private keys can now be marked as default
+- SQL Changes
+    ALTER TABLE ssl_private_key ADD is_default BOOLEAN DEFAULT NULL;
+- centralized some json list views into the main views
+- centralized json representation into the model. used as_json instead of the encoder hook for now.
+- updated CSR to allow multiple types of account/private key uploads
 
 0.1.5
 2018.01.15

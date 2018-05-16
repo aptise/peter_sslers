@@ -627,55 +627,64 @@
 
 
 <%def name="formgroup__account_key_selector(show_text=None)">
-    <div class="form-group clearfix">
-        <table class="table table-condensed" style='max-width:100%;'>
-            <tr>
-                <th>Upload New</th>
-                <td>${formgroup__account_key_file(show_text=show_text, header=None)}</td>
-            </tr>
-            <tr>
-                <th>Use Default</th>
-                <td>
-                    % if dbAccountKeyDefault:
-                        <input type="checkbox" name="account_key_default" id="f1-account_key_default" value="${dbAccountKeyDefault.key_pem_md5}"/>
-                        <table class='table' style='max-width:100%;'>
-                            <tr>
-                                <th>pem md5</th>
-                                <td><code>${dbAccountKeyDefault.key_pem_md5}</code></td>
-                            </tr>
-                            <tr>
-                                <th>pem line 1</th>
-                                <td><code>${dbAccountKeyDefault.key_pem_sample}</code></td>
-                            </tr>
-                        </table>
-                    % else:
-                        <p>No default.</p>
-                    % endif
-                </td>
-            </tr>
-            <tr>
-                <th>Use Existing</th>
-                <td>
-                    <label for="f1-account_key">Other existing key (md5)</label>
-                    <input class="form-control" name="account_key_existing" id="f1-account_key_existing"></textarea>
-                </td>
-            </tr>
-        </table>
-       
-    </div>
+    <h4>Account Key</h4>
+    <h5>Use Default</h5>
+        % if dbAccountKeyDefault:
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="account_key_default" id="f1-account_key_default" value="${dbAccountKeyDefault.key_pem_md5}"/>
+                    Check this box to use the default.<br/>
+                    <b>pem md5:</b> <code>${dbAccountKeyDefault.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${dbAccountKeyDefault.key_pem_sample}</code>
+                </label>
+            </div>
+        % else:
+            <p>No default.</p>
+        % endif
+    <h5>or Use Existing</h5>
+        <div class="form-group">
+            <label for="f1-account_key_existing">Other existing key (pem md5)</label>
+            <input class="form-control" name="account_key_existing" id="f1-account_key_existing" type="text"/>
+        </div>    
+    <h5>or Upload File</h5>
+        ${formgroup__account_key_file(show_text=show_text, header=None)}
 </%def>
 
 
+<%def name="formgroup__private_key_selector(show_text=None)">
+    <h4>Private Key</h4>
+        % if dbPrivateKeyDefault:
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="private_key_default" id="f1-private_key_default" value="${dbPrivateKeyDefault.key_pem_md5}"/>
+                    Check this box to use the default.<br/>
+                    <b>pem md5:</b> <code>${dbPrivateKeyDefault.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${dbPrivateKeyDefault.key_pem_sample}</code>
+                </label>
+            </div>
+        % else:
+            <p>No default.</p>
+        % endif
+    <h5>Use Default</h5>
+    <h5>or Use Existing</h5>
+        <div class="form-group">
+            <label for="f1-private_key_existing">Other existing key (pem md5)</label>
+            <input class="form-control" name="private_key_existing" id="f1-private_key_existing" type="text"/>
+        </div>    
+    <h5>or Upload File</h5>
+        ${formgroup__private_key_file(show_text=show_text, header=None)}
+</%def>
+
 
 <%def name="formgroup__account_key_file(show_text=None, header=True)">
-    <div class="form-group clearfix">
+    <div class="form-group">
         % if header:
             <label for="f1-account_key_file">Account Private Key</label>
         % endif
         <input class="form-control" type="file" id="f1-account_key_file" name="account_key_file" />
         <p class="help-block">
             Enter your LetsEncrypted registered PRIVATE AccountKey above in PEM format; this will be used to sign your request.
-            This is saved ot the DB and is used to track requests and handle reiussues.
+            This is saved to the DB and is used to track requests and handle reiussues.
         </p>
         % if show_text:
             <label for="f1-account_key">Account Private Key [text]</label>
@@ -688,9 +697,11 @@
 </%def>
 
 
-<%def name="formgroup__private_key_file(show_text=False)">
+<%def name="formgroup__private_key_file(show_text=False, header=True)">
     <div class="form-group clearfix">
-        <label for="f1-private_key_file">Private Key</label>
+        % if header:
+            <label for="f1-private_key_file">Private Key</label>
+        % endif
         <input class="form-control" type="file" id="f1-private_key_file" name="private_key_file" />
         <p class="help-block">
             Enter your PRIVATE key used to sign CSRs above in PEM format; this will be used to create a CSR used for configuring servers/chains and matched against existing issued certs.

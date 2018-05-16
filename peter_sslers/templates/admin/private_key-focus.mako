@@ -89,9 +89,28 @@
                     <th>is_compromised?</th>
                     <td>
                         % if SslPrivateKey.is_compromised:
-                            <span class="label label-dander">
+                            <span class="label label-danger">
                                 COMPROMISED
                             </span>
+                        % endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>is_default?</th>
+                    <td>
+                        % if SslPrivateKey.is_default:
+                            <span class="label label-success">
+                                DEFAULT
+                            </span>
+                        % else:
+                            % if not SslPrivateKey.is_compromised and SslPrivateKey.is_active:
+                                <a  href="${admin_prefix}/private-key/${SslPrivateKey.id}/mark?action=default"
+                                    class="label label-primary"
+                                >
+                                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                    make default
+                                </a>
+                            % endif
                         % endif
                     </td>
                 </tr>

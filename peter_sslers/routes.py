@@ -131,6 +131,8 @@ def _admin_views(config):
     # Certificate Requests
     config.add_route_7('admin:certificate_requests', '/certificate-requests')
     config.add_route_7('admin:certificate_requests_paginated', '/certificate-requests/{@page}')
+    config.add_route_7('admin:certificate_requests|json', '/certificate-requests.json')
+    config.add_route_7('admin:certificate_requests_paginated|json', '/certificate-requests/{@page}.json')
     config.add_route_7('admin:certificate_request:focus', '/certificate-request/{@id}')
     config.add_route_7('admin:certificate_request:focus:raw', '/certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}')
     config.add_route_7('admin:certificate_request:focus:acme-flow:deactivate', '/certificate-request/{@id}/acme-flow/deactivate')

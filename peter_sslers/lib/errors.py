@@ -30,5 +30,9 @@ class DisplayableError(Exception):
     pass
 
 
+class TransitionError(Exception):
+    pass
+
+
 class OperationsContextError(Exception):
     pass

@@ -39,14 +39,7 @@ class ViewAdmin(Handler):
             (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificates/{0}.json' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get.get__SslCaCertificate__paginated(self.request.api_context, limit=items_per_page, offset=offset)
         if wants_json:
-            _certs = {c.id: {'id': c.id,
-                             'name': c.name,
-                             'cert_pem_md5': c.cert_pem_md5,
-                             'cert_pem': c.cert_pem,
-                             'timestamp_first_seen': c.timestamp_first_seen_isoformat,
-                             }
-                      for c in items_paged
-                      }
+            _certs = {c.id: c.as_json for c in items_paged}
             return {'SslDomains': _certs,
                     'pagination': {'total_items': items_count,
                                    'page': pager.page_num,

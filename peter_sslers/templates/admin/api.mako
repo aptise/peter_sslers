@@ -232,6 +232,21 @@
          'GET': None,
          'args': """This route is self-documenting on GET requests""",
          },
+
+        {'endpoint': '/certificate-requests.json',
+         'about': """list certificate-requests""",
+         'POST': True,
+         'GET': True,
+         'args': "",
+         },
+        {'endpoint': '/certificate-requests/{PAGE}.json',
+         'about': """list certificate-requests, paginated""",
+         'POST': True,
+         'GET': True,
+         'args': "",
+         },
+
+
         {'endpoint': '/domains.json',
          'about': """list domains""",
          'POST': True,

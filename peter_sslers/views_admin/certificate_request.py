@@ -16,10 +16,13 @@ import sqlalchemy
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import text as lib_text
+from ..lib import form_utils as form_utils
 from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
-from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated__file
+from ..lib import errors
+#from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated__file
 from ..lib.forms import Form_CertificateRequest_AcmeFlow_manage_domain
-# from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated
+from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated
 from ..lib.handler import Handler, items_per_page
 
 
@@ -30,11 +33,24 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_requests', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
+    @view_config(route_name='admin:certificate_requests|json', renderer='json')
+    @view_config(route_name='admin:certificate_requests_paginated|json', renderer='json')
     def certificate_requests(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         items_count = lib_db.get.get__SslCertificateRequest__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template='%s/certificate-requests/{0}' % self.request.registry.settings['admin_prefix'])
+        if wants_json:
+            (pager, offset) = self._paginate(items_count, url_template='%s/certificate-requests/{0}.json' % self.request.registry.settings['admin_prefix'])
+        else:
+            (pager, offset) = self._paginate(items_count, url_template='%s/certificate-requests/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get.get__SslCertificateRequest__paginated(self.request.api_context, limit=items_per_page, offset=offset)
-
+        if wants_json:
+            csrs = {csr.id: csr.as_json for csr in items_paged}
+            return {'SslCertificateRequests': csrs,
+                    'pagination': {'total_items': items_count,
+                                   'page': pager.page_num,
+                                   'page_next': pager.next if pager.has_next else None,
+                                   }
+                    }
         return {'project': 'peter_sslers',
                 'SslCertificateRequests_count': items_count,
                 'SslCertificateRequests': items_paged,
@@ -227,33 +243,45 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:new:acme-automated')
     def certificate_request_new_AcmeAutomated(self):
+        self._load_AccountKeyDefault()
+        self._load_PrivateKeyDefault()
         if self.request.method == 'POST':
             return self._certificate_request_new_AcmeAutomated__submit()
         return self._certificate_request_new_AcmeAutomated__print()
 
     def _certificate_request_new_AcmeAutomated__print(self):
         active_ca = lib.acme.CERTIFICATE_AUTHORITY
-        self._load_AccountKeyDefault()
         return render_to_response("/admin/certificate_request-new-AcmeAutomated.mako",
                                   {'CERTIFICATE_AUTHORITY': active_ca,
                                    'dbAccountKeyDefault': self.dbAccountKeyDefault,
+                                   'dbPrivateKeyDefault': self.dbPrivateKeyDefault,
                                    }, self.request)
 
     def _certificate_request_new_AcmeAutomated__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CertificateRequest_new_AcmeAutomated__file,
+                                                             schema=Form_CertificateRequest_new_AcmeAutomated,
                                                              validate_get=False
                                                              )
+            formStash.html_error_main_template = lib_text.TEMPLATE_FORMSTASH_ERRORS
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
+            try:
+                domain_names = lib.utils.domains_from_string(formStash.results['domain_names']) 
+            except ValueError as e:
+                formStash.set_error(field='domain_names', 
+                                    message="invalid domain names detected",
+                                    raise_FormInvalid=True,
+                                    )
             if not domain_names:
-                raise ValueError("missing valid domain names")
+                formStash.set_error(field='domain_names', 
+                                    message="invalid or no valid domain names detected",
+                                    raise_FormInvalid=True,
+                                    )
 
-            account_key_pem = formStash.results['account_key_file'].file.read()
-            private_key_pem = formStash.results['private_key_file'].file.read()
+            account_key_pem = form_utils.parse_AccountKeyPem(self.request, formStash)
+            private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash)
 
             try:
                 dbLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated(
@@ -262,7 +290,9 @@ class ViewAdmin(Handler):
                     account_key_pem=account_key_pem,
                     private_key_pem=private_key_pem,
                 )
-            except (errors.AcmeCommunicationError, errors.DomainVerificationError) as e:
+            except (errors.AcmeCommunicationError,
+                    errors.DomainVerificationError,
+                    ) as e:
                 return HTTPFound('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except Exception as exc:
                 if self.request.registry.settings['exception_redirect']:
@@ -280,7 +310,7 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._certificate_request_new_AcmeAutomated__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

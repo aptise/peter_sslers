@@ -39,12 +39,7 @@ class ViewAdmin(Handler):
             (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-sets/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get.get__SslUniqueFQDNSet__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
         if wants_json:
-            _sets = {s.id: {'id': s.id,
-                            'timestamp_first_seen': s.timestamp_first_seen_isoformat,
-                            'domains_as_list': s.domains_as_list,
-                            }
-                     for s in items_paged
-                     }
+            _sets = {s.id: s.as_json for s in items_paged}
             return {'SslUniqueFQDNSets': _sets,
                     'pagination': {'total_items': items_count,
                                    'page': pager.page_num,

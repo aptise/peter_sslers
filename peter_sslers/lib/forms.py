@@ -124,23 +124,25 @@ class Form_CertificateRequest_new_AcmeFlow(_Form_Schema_Base):
 
 
 class Form_CertificateRequest_new_AcmeAutomated(_Form_Schema_Base):
-    account_key = UnicodeString(not_empty=False, if_missing=None)
+    account_key_existing = UnicodeString(not_empty=False, if_missing=None)
     account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    account_key_default = UnicodeString(not_empty=False, if_missing=None)
 
-    private_key = UnicodeString(not_empty=False, if_missing=None)
+    private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key_default = UnicodeString(not_empty=False, if_missing=None)
 
     domain_names = UnicodeString(not_empty=True)
 
-    chained_validators = [OnlyOneOf(('account_key', 'account_key_file', ), not_empty=True),
-                          OnlyOneOf(('private_key', 'private_key_file', ), not_empty=True),
+    chained_validators = [OnlyOneOf(('account_key_existing', 'account_key_file', 'account_key_default', ), not_empty=True),
+                          OnlyOneOf(('private_key_existing', 'private_key_file', 'private_key_default', ), not_empty=True),
                           ]
 
 
-class Form_CertificateRequest_new_AcmeAutomated__file(_Form_Schema_Base):
-    account_key_file = FieldStorageUploadConverter(not_empty=True)
-    private_key_file = FieldStorageUploadConverter(not_empty=True)
-    domain_names = UnicodeString(not_empty=True)
+#class Form_CertificateRequest_new_AcmeAutomated__file(_Form_Schema_Base):
+#    account_key_file = FieldStorageUploadConverter(not_empty=True)
+#    private_key_file = FieldStorageUploadConverter(not_empty=True)
+#    domain_names = UnicodeString(not_empty=True)
 
 
 class Form_CertificateRequest_AcmeFlow_manage_domain(_Form_Schema_Base):
@@ -164,7 +166,7 @@ class Form_PrivateKey_new__file(_Form_Schema_Base):
 
 
 class Form_PrivateKey_mark(_Form_Schema_Base):
-    action = OneOf(('compromised', 'active', 'inactive', ))
+    action = OneOf(('compromised', 'active', 'inactive', 'default', ))
 
 
 class Form_QueueDomain_mark(_Form_Schema_Base):

@@ -30,35 +30,28 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:account_keys', renderer='/admin/account_keys.mako')
     @view_config(route_name='admin:account_keys_paginated', renderer='/admin/account_keys.mako')
+    @view_config(route_name='admin:account_keys|json', renderer='json')
+    @view_config(route_name='admin:account_keys_paginated|json', renderer='json')
     def account_keys(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         items_count = lib_db.get.get__SslLetsEncryptAccountKey__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template='%s/account-keys/{0}' % self.request.registry.settings['admin_prefix'])
+        if wants_json:
+            (pager, offset) = self._paginate(items_count, url_template='%s/account-keys/{0}.json' % self.request.registry.settings['admin_prefix'])
+        else:
+            (pager, offset) = self._paginate(items_count, url_template='%s/account-keys/{0}' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get.get__SslLetsEncryptAccountKey__paginated(self.request.api_context, limit=items_per_page, offset=offset)
+        if wants_json:
+            _accountKeys = {k.id: k.as_json for k in items_paged}
+            return {'SslLetsEncryptAccountKeys': _accountKeys,
+                    'pagination': {'total_items': items_count,
+                                   'page': pager.page_num,
+                                   'page_next': pager.next if pager.has_next else None,
+                                   }
+                    }
         return {'project': 'peter_sslers',
                 'SslLetsEncryptAccountKeys_count': items_count,
                 'SslLetsEncryptAccountKeys': items_paged,
                 'pager': pager,
-                }
-
-    @view_config(route_name='admin:account_keys|json', renderer='json')
-    @view_config(route_name='admin:account_keys_paginated|json', renderer='json')
-    def account_keys_json(self):
-        items_count = lib_db.get.get__SslLetsEncryptAccountKey__count(self.request.api_context)
-        (pager, offset) = self._paginate(items_count, url_template='%s/account-keys/{0}.json' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get.get__SslLetsEncryptAccountKey__paginated(self.request.api_context, limit=items_per_page, offset=offset)
-        _accountKeys = {k.id: {'key_pem': k.key_pem,
-                               'key_pem_md5': k.key_pem_md5,
-                               'is_active': True if k.is_active else False,
-                               'is_default': True if k.is_active else False,
-                               'id': k.id,
-                               }
-                        for k in items_paged
-                        }
-        return {'SslLetsEncryptAccountKeys': _accountKeys,
-                'pagination': {'total_items': items_count,
-                               'page': pager.page_num,
-                               'page_next': pager.next if pager.has_next else None,
-                               }
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -39,14 +39,7 @@ class ViewAdmin(Handler):
             (pager, offset) = self._paginate(items_count, url_template='%s/private-keys/{0}.json' % self.request.registry.settings['admin_prefix'])
         items_paged = lib_db.get.get__SslPrivateKey__paginated(self.request.api_context, limit=items_per_page, offset=offset)
         if wants_json:
-            _keys = {k.id: {'id': k.id,
-                            'is_active': True if k.is_active else False,
-                            'key_pem_md5': k.key_pem_md5,
-                            'key_pem': k.key_pem,
-                            'timestamp_first_seen': k.timestamp_first_seen_isoformat,
-                            }
-                      for k in items_paged
-                      }
+            _keys = {k.id: k.as_json for k in items_paged}
             return {'SslPrivateKeys': _keys,
                     'pagination': {'total_items': items_count,
                                    'page': pager.page_num,
@@ -209,9 +202,25 @@ class ViewAdmin(Handler):
                     raise formhandling.FormInvalid('Already compromised')
                 dbPrivateKey.is_active = False
                 dbPrivateKey.is_compromised = True
+                if dbPrivateKey.is_default:
+                    dbPrivateKey.is_default = False
                 event_type = models.SslOperationsEventType.from_string('private_key__revoke')
                 marked_comprimised = True
                 event_status = 'private_key__mark__compromised'
+
+            elif action == 'default':
+                if dbPrivateKey.is_default:
+                    raise formhandling.FormInvalid('Already default')
+                if not dbPrivateKey.is_active:
+                    raise formhandling.FormInvalid('Key not active')
+                formerDefaultKey = lib_db.get.get__SslPrivateKey__default(self.request.api_context)
+                if formerDefaultKey:
+                    formerDefaultKey.is_default = False
+                    event_payload_dict['private_key_id.former_default'] = formerDefaultKey.id
+                    event_alt = ('private_key__mark__notdefault', formerDefaultKey)
+                dbPrivateKey.is_default = True
+                event_status = 'private_key__mark__default'
+
             else:
                 raise formhandling.FormInvalid('invalid `action`')
 

@@ -37,12 +37,16 @@
                 enctype="multipart/form-data"
             >
                 <% form = request.formhandling.get_form(request) %>
-                ${form.html_error_main('Error_Main')|n}
+                % if form.errors:
+                    <input type="hidden" name="Error_Main" />
+                % endif
 
                 ${admin_partials.formgroup__account_key_selector(show_text=show_text)}
                 <hr/>
-                ${admin_partials.formgroup__private_key_file(show_text=show_text)}
+
+                ${admin_partials.formgroup__private_key_selector(show_text=show_text)}
                 <hr/>
+
                 ${admin_partials.formgroup__domain_names()}
                 <hr/>
 

@@ -61,24 +61,7 @@ class ViewAdmin(Handler):
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
         if self.request.matched_route.name.endswith('|json'):
-            _certificates = {}
-            for c in items_paged:
-                _certificates[c.id] = {'id': c.id,
-                                       'is_active': True if c.is_active else False,
-                                       'is_auto_renew': True if c.is_auto_renew else False,
-                                       'is_deactivated': True if c.is_deactivated else False,
-                                       'is_revoked': True if c.is_revoked else False,
-                                       'is_renewed': True if c.is_renewed else False,
-                                       'timestamp_expires': c.timestamp_expires_isoformat,
-                                       'timestamp_signed': c.timestamp_signed_isoformat,
-                                       'cert_pem': c.cert_pem,
-                                       'cert_pem_md5': c.cert_pem_md5,
-                                       'ssl_unique_fqdn_set_id': c.ssl_unique_fqdn_set_id,
-                                       'ssl_ca_certificate_id__upchain': c.ssl_ca_certificate_id__upchain,
-                                       'ssl_private_key_id__signed_by': c.ssl_private_key_id__signed_by,
-                                       'ssl_letsencrypt_account_key_id': c.ssl_letsencrypt_account_key_id,
-                                       'domains_as_list': c.domains_as_list,
-                                       }
+            _certificates = {c.id: c.as_json for c in items_paged}
             return {'SslServerCertificates': _certificates,
                     'pagination': {'total_items': items_count,
                                    'page': pager.page_num,

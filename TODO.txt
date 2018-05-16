@@ -7,9 +7,12 @@ Not Finished Yet
 * CSR should have domain[0] as subject if there are multiple domains
 
 Additional Test coverage needed for
-* /.well-known/admin/certificate/5/renew/custom
+* /admin/certificate/5/renew/custom
 * /api/queue-renewals/process
+* /admin/private-key/7?operation=mark&action=default&result=success
 
+
+* update formerror printing
 * finish rate limit calendars
 * search expiring soon
 
