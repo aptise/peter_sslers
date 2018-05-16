@@ -1,10 +1,9 @@
 Not Finished Yet
 ===============
-* queue_domains__process
+* queue_domains__process | /admin/queue-domains/processc
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
 * log full actual results; if a queue fails log that data too
 * cert custom renewal - allow to choose existing accounts
-
 * CSR should have domain[0] as subject if there are multiple domains
 
 Additional Test coverage needed for

@@ -5,12 +5,14 @@
 
 
 0.1.6
-2018.05.14
+2018.05.--
 ---
 - updating some functionality for imports
 - some ux fixes
 - the nginx status tools now return a better json payload
 - adding a settings panel that documents all the config options
+- adding more json endpoints for easier commandline work
+
 
 0.1.5
 2018.01.15
