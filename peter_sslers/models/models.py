@@ -531,6 +531,13 @@ class SslCertificateRequest(Base):
         return None
 
     @property
+    def ssl_server_certificate_id__issued(self):
+        if self.server_certificate:
+            return self.server_certificate.id
+        return None
+
+
+    @property
     def as_json(self):
         return {'id': self.id,
                 'is_active': True if self.is_active else False,
@@ -544,6 +551,27 @@ class SslCertificateRequest(Base):
                 'ssl_server_certificate_id__renewal_of': self.ssl_server_certificate_id__renewal_of,
                 'ssl_unique_fqdn_set_id': self.ssl_unique_fqdn_set_id,
                 }        
+
+    @property
+    def as_json_extended(self):
+        return {'id': self.id,
+                'is_active': True if self.is_active else False,
+                'is_error': True if self.is_error else False,
+                'csr_pem_md5': self.csr_pem_md5,
+                'certificate_request_type': self.certificate_request_type,
+                'timestamp_started': self.timestamp_started_isoformat,
+                'timestamp_finished': self.timestamp_finished_isoformat,
+                'ssl_letsencrypt_account_key_id': self.ssl_letsencrypt_account_key_id,
+                'ssl_private_key_id__signed_by': self.ssl_private_key_id__signed_by,
+                'ssl_server_certificate_id__renewal_of': self.ssl_server_certificate_id__renewal_of,
+                'ssl_unique_fqdn_set_id': self.ssl_unique_fqdn_set_id,
+
+                'domains': self.domains_as_list,
+                'csr_pem': self.csr_pem,
+                'ssl_server_certificate_id__issued': self.ssl_server_certificate_id__issued,
+                }
+
+
 
 class SslCertificateRequest2SslDomain(Base):
     """

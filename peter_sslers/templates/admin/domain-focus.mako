@@ -45,12 +45,19 @@
 
 
 <%block name="page_header_nav">
-    <a  class="btn btn-info"
-        href="${admin_prefix}/domain/${SslDomain.id}/calendar"
-        target="_blank"
-    >
-        Calendar
-    </a>
+    <p class="pull-right">
+        <a  class="btn btn-xs btn-info"
+            href="${admin_prefix}/domain/${SslDomain.id}/calendar"
+            target="_blank"
+        >
+            <span class="glyphicon glyphicon-calendar" aria-hidden="true"></span>
+            Calendar</a>
+        <a  class="btn btn-xs btn-info"
+            href="${admin_prefix}/domain/${SslDomain.id}.json"
+        >
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json</a>
+    </p>
 </%block>
 
 

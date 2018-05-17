@@ -66,8 +66,13 @@ class ViewAdmin(Handler):
         return dbCertificateRequest
 
     @view_config(route_name='admin:certificate_request:focus', renderer='/admin/certificate_request-focus.mako')
+    @view_config(route_name='admin:certificate_request:focus|json', renderer='json')
     def certificate_request_focus(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbCertificateRequest = self._certificate_request_focus()
+        if wants_json:
+            return {'SslCertificateRequest': dbCertificateRequest.as_json_extended,
+                    }
         return {'project': 'peter_sslers',
                 'SslCertificateRequest': dbCertificateRequest
                 }
@@ -186,7 +191,7 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._certificate_request_AcmeFlow_manage_domain__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -236,7 +241,7 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._certificate_request_new_AcmeFlow__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

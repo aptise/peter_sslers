@@ -2,7 +2,6 @@ Not Finished Yet
 ===============
 asap tasks
 ---------------
-* cert custom renewal - allow to choose existing accounts
 * cert queue immediate renewal
 * search expiring soon
 * log full actual results; if a queue fails log that data too
@@ -17,6 +16,8 @@ deferred tasks
 * upload CERT/Chains for 'flow' CSR | once the flow is finished, upload a cert into it.
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
 * the queue-renewals update script could work on fqdns, not just certificates
+* add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
+
 
 Long Term Questions:
 ==================================

@@ -16,6 +16,8 @@ import sqlalchemy
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import text as lib_text
+from ..lib import form_utils as form_utils
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.forms import Form_Certificate_Renewal_Custom
 from ..lib.forms import Form_Certificate_mark
@@ -160,7 +162,7 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._certificate_upload__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -172,8 +174,13 @@ class ViewAdmin(Handler):
         return dbServerCertificate
 
     @view_config(route_name='admin:certificate:focus', renderer='/admin/certificate-focus.mako')
+    @view_config(route_name='admin:certificate:focus|json', renderer='json')
     def certificate_focus(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbServerCertificate = self._certificate_focus()
+        if wants_json:
+            return {'SslServerCertificate': dbServerCertificate.as_json,
+                    }
         # x-x509-server-cert
         return {'project': 'peter_sslers',
                 'SslServerCertificate': dbServerCertificate
@@ -347,32 +354,9 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            #
-            # handle the Account Key
-            #
-            dbAccountKey = None
-            account_key_pem = None
-            if formStash.results['account_key_option'] == 'upload':
-                account_key_pem = formStash.results['account_key_file'].file.read()
-            elif formStash.results['account_key_option'] == 'existing':
-                if not dbServerCertificate.ssl_letsencrypt_account_key_id:
-                    raise ValueError("This Certificate does not have an existing Account Key")
-                dbAccountKey = dbServerCertificate.letsencrypt_account_key
-            else:
-                raise ValueError("unknown option")
-
-            #
-            # handle the Private Key
-            #
-            dbPrivateKey = None
-            private_key_pem = None
-            if formStash.results['private_key_option'] == 'upload':
-                private_key_pem = formStash.results['private_key_file'].file.read()
-            elif formStash.results['private_key_option'] == 'existing':
-                dbPrivateKey = dbServerCertificate.private_key
-            else:
-                raise ValueError("unknown option")
-
+            account_key_pem = form_utils.parse_AccountKeyPem(self.request, formStash, seek_selected=formStash.results['account_key_option'])
+            private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash, seek_selected=formStash.results['private_key_option'])
+            
             try:
                 event_payload_dict = lib.utils.new_event_payload_dict()
                 event_payload_dict['ssl_server_certificate.id'] = dbServerCertificate.id
@@ -385,12 +369,12 @@ class ViewAdmin(Handler):
                     self.request.api_context,
                     domain_names=dbServerCertificate.domains_as_list,
                     account_key_pem=account_key_pem,
-                    dbAccountKey=dbAccountKey,
                     private_key_pem=private_key_pem,
-                    dbPrivateKey=dbPrivateKey,
                     dbServerCertificate__renewal_of=dbServerCertificate,
                 )
-            except (errors.AcmeCommunicationError, errors.DomainVerificationError) as e:
+            except (errors.AcmeCommunicationError,
+                    errors.DomainVerificationError,
+                    ) as e:
                 return HTTPFound('%s/certificate-requests?result=error&error=renew-acme-automated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except Exception as exc:
                 if self.request.registry.settings['exception_redirect']:
@@ -408,7 +392,7 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._certificate_focus_renew_custom__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

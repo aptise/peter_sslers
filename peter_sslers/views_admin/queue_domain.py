@@ -18,6 +18,7 @@ import transaction
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import text as lib_text
 from ..lib.forms import Form_QueueDomains_add
 from ..lib.forms import Form_QueueDomain_mark
 from ..lib import errors
@@ -113,7 +114,7 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._queue_domains_add__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

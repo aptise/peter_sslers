@@ -89,8 +89,13 @@ class ViewAdmin(Handler):
         return dbDomain
 
     @view_config(route_name='admin:domain:focus', renderer='/admin/domain-focus.mako')
+    @view_config(route_name='admin:domain:focus|json', renderer='json')
     def domain_focus(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbDomain = self._domain_focus(eagerload_web=True)
+        if wants_json:
+            return {'SslDomain': dbDomain.as_json,
+                    }
         return {'project': 'peter_sslers',
                 'SslDomain': dbDomain
                 }

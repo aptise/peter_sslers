@@ -16,6 +16,7 @@ import sqlalchemy
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import text as lib_text
 from ..lib.forms import Form_CACertificate_Upload__file
 from ..lib.forms import Form_CACertificate_UploadBundle__file
 from ..lib.handler import Handler, items_per_page
@@ -173,7 +174,7 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._ca_certificate_upload__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -267,5 +268,5 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._ca_certificate_upload_bundle__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )

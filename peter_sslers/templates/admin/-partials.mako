@@ -654,6 +654,56 @@
 </%def>
 
 
+<%def name="formgroup__account_key_selector_advanced(show_text=None, dbAccountKeyReuse=None)">
+    % if dbAccountKeyReuse:
+        <div class="radio">
+            <label>
+                <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" checked="checked"/>
+                <input type="hidden" name="account_key_reuse" value="${dbAccountKeyReuse.key_pem_md5}"/>
+                Select to renew with same Account Key<br/>
+                <b>pem md5:</b> <code>${dbAccountKeyReuse.key_pem_md5}</code><br/>
+                <b>pem line 1:</b> <code>${dbAccountKeyReuse.key_pem_sample}</code>
+            </label>
+            <a  class="btn btn-xs btn-info"
+                href="${admin_prefix}/account-keys/${dbAccountKeyReuse.id}"
+            >
+                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                account-${dbAccountKeyReuse.id}
+            </a>
+        </div>
+    % endif
+    % if dbAccountKeyDefault:
+        <div class="radio">
+            <label>
+                <input type="radio" name="account_key_option" id="account_key_option-account_key_default" value="account_key_default"/>
+                <input type="hidden" name="account_key_default" value="${dbAccountKeyDefault.key_pem_md5}"/>
+                Select to use the default Account Key<br/>
+                <b>pem md5:</b> <code>${dbAccountKeyDefault.key_pem_md5}</code><br/>
+                <b>pem line 1:</b> <code>${dbAccountKeyDefault.key_pem_sample}</code>
+            </label>
+        </div>
+    % endif
+    <div class="radio">
+        <label>
+            <input type="radio" name="account_key_option" id="account_key_option-account_key_existing" value="account_key_existing"/>
+            Select to provide a different existing key (as pem_md5).
+        </label>
+        <label>
+            <input class="form-control" name="account_key_existing" id="account_key_existing-pem_md5" type="text"/>
+        </label>
+    </div>
+    <div class="radio">
+        <label>
+            <input type="radio" name="account_key_option" id="account_key_option-account_key_file" value="account_key_file">
+            Select to upload a new Account Key<br/>
+        </label>
+        <label>
+            ${formgroup__account_key_file(show_text=False)}
+        </label>
+    </div>
+</%def>
+
+
 <%def name="formgroup__private_key_selector(show_text=None)">
     <h4>Private Key</h4>
         % if dbPrivateKeyDefault:
@@ -676,6 +726,45 @@
         </div>    
     <h5>or Upload File</h5>
         ${formgroup__private_key_file(show_text=show_text, header=None)}
+</%def>
+
+
+<%def name="formgroup__private_key_selector_advanced(show_text=None, dbPrivateKeyReuse=None)">
+    % if dbPrivateKeyReuse:
+        <div class="radio">
+            <label>
+                <input type="radio" name="private_key_option" id="private_key_option-private_key_reuse" value="private_key_reuse" checked="checked"/>
+                <input type="hidden" name="private_key_reuse" value="${dbPrivateKeyReuse.key_pem_md5}"/>
+                Select to renew with same RSA Private Key<br/>
+                <b>pem md5:</b> <code>${dbPrivateKeyReuse.key_pem_md5}</code><br/>
+                <b>pem line 1:</b> <code>${dbPrivateKeyReuse.key_pem_sample}</code>
+            </label>
+            <a  class="btn btn-xs btn-info"
+                href="${admin_prefix}/private-keys/${dbPrivateKeyReuse.id}"
+            >
+                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                private-${dbPrivateKeyReuse.id}
+            </a>
+        </div>
+    % endif
+    <div class="radio">
+        <label>
+            <input type="radio" name="private_key_option" id="private_key_option-private_key_existing" value="private_key_existing"/>
+            Select to provide a different existing RSA Private key (as pem_md5).
+        </label>
+        <label>
+            <input class="form-control" name="private_key_existing" id="private_key_existing-pem_md5" type="text"/>
+        </label>
+    </div>
+    <div class="radio">
+        <label>
+            <input type="radio" name="private_key_option" id="private_key_option-private_key_file" value="private_key_file">
+            Select to upload a new RSA Private Key<br/>
+        </label>
+        <label>
+            ${formgroup__private_key_file(show_text=False)}
+        </label>
+    </div>
 </%def>
 
 

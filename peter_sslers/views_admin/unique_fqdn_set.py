@@ -61,10 +61,17 @@ class ViewAdmin(Handler):
         return dbItem
 
     @view_config(route_name='admin:unique_fqdn_set:focus', renderer='/admin/unique_fqdn_set-focus.mako')
+    @view_config(route_name='admin:unique_fqdn_set:focus|json', renderer='json')
     def unique_fqdn_set_focus(self):
-        dbItem = self._unique_fqdn_set_focus()
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        dbFqdnSet = self._unique_fqdn_set_focus()
+        if wants_json:
+            _prefix = "%s/unique-fqdn-set/%s" % (self.request.registry.settings['admin_prefix'], dbFqdnSet.id)
+            return {"SslUniqueFQDNSet": dbFqdnSet.as_json,
+                    }
+                    
         return {'project': 'peter_sslers',
-                'SslUniqueFQDNSet': dbItem
+                'SslUniqueFQDNSet': dbFqdnSet
                 }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

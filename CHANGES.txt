@@ -31,6 +31,8 @@
 - allow an "mark revoked" certificate to be unrevoked
 - allow an "inactive" certificate to be "mark revoked"
 - some light docs for database install
+- added `.json` endpoints to core records. this makes commandline browsing via curl easier.
+- cert custom renewal - allow to choose existing accounts
 
 
 

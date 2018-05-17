@@ -16,6 +16,7 @@ import sqlalchemy
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import text as lib_text
 from ..lib.forms import Form_PrivateKey_new__file
 from ..lib.forms import Form_PrivateKey_mark
 from ..lib.handler import Handler, items_per_page
@@ -61,8 +62,18 @@ class ViewAdmin(Handler):
         return dbPrivateKey
 
     @view_config(route_name='admin:private_key:focus', renderer='/admin/private_key-focus.mako')
+    @view_config(route_name='admin:private_key:focus|json', renderer='json')
     def private_key_focus(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbPrivateKey = self._private_key_focus(eagerload_web=True)
+        if wants_json:
+            _prefix = "%s/private-key/%s" % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id)
+            return {"SslPrivateKey": dbPrivateKey.as_json,
+                    "raw": {"pem.txt": "%s/key.pem.txt" % _prefix,
+                            "pem": "%s/key.pem" % _prefix,
+                            "der": "%s/key.key" % _prefix,
+                            }                              
+                    }
         return {'project': 'peter_sslers',
                 'SslPrivateKey': dbPrivateKey
                 }
@@ -156,7 +167,7 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._private_key_new__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

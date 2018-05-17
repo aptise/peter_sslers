@@ -109,9 +109,15 @@ class Form_Certificate_Upload__file(_Form_Schema_Base):
 
 
 class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
-    private_key_option = OneOf(('existing', 'upload', ))
-    account_key_option = OneOf(('existing', 'upload', ))
+    account_key_option = OneOf(('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file'))
+    account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+    account_key_default = UnicodeString(not_empty=False, if_missing=None)
+    account_key_existing = UnicodeString(not_empty=False, if_missing=None)
     account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+
+    private_key_option = OneOf(('private_key_reuse', 'private_key_existing', 'private_key_file'))
+    private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+    private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
 

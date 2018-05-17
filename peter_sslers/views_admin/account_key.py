@@ -16,6 +16,7 @@ import sqlalchemy
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import text as lib_text
 from ..lib.forms import Form_AccountKey_new__file
 from ..lib.forms import Form_AccountKey_mark
 from ..lib.handler import Handler, items_per_page
@@ -65,8 +66,18 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:account_key:focus', renderer='/admin/account_key-focus.mako')
+    @view_config(route_name='admin:account_key:focus|json', renderer='json')
     def account_key_focus(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbLetsEncryptAccountKey = self._account_key_focus(eagerload_web=True)
+        if wants_json:
+            _prefix = "%s/account-key/%s" % (self.request.registry.settings['admin_prefix'], dbLetsEncryptAccountKey.id)
+            return {"LetsEncryptAccountKey": dbLetsEncryptAccountKey.as_json,
+                    "raw": {"pem.txt": "%s/key.pem.txt" % _prefix,
+                            "pem": "%s/key.pem" % _prefix,
+                            "der": "%s/key.key" % _prefix,
+                            }                              
+                    }
         return {'project': 'peter_sslers',
                 'SslLetsEncryptAccountKey': dbLetsEncryptAccountKey
                 }
@@ -181,7 +192,7 @@ class ViewAdmin(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._account_key_new__print,
-                auto_error_formatter=formhandling.formatter_none,
+                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
