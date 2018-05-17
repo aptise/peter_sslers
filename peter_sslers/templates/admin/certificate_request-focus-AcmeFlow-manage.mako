@@ -30,6 +30,11 @@
             </p>
 
             <p>The `process` tool lets you enter the challenge info for a certification request.</p>
+            <p>
+                <b>
+                    This tool is a convenience wrapper for using another client to perform the challenge.  You can upload the certificate data onto the request later.
+                </b>
+            </p>
 
             <p>The <code>key</code> is the name of the file letsencrypt expects at a url.
                 The <code>value</code> are the files contents.
@@ -44,6 +49,7 @@
             <p>
                 note: Visiting a `test` URL will direct you to the actual verification URL with "?test=1" appended.  This string instructs the server to not log the visit.  If the "?test=1" string is missing, the server will log the visit.  This is used to track the ACME server verification visits.
             </p>
+            
         </div>
     </div>
     <div class="row">

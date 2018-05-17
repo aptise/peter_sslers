@@ -28,6 +28,10 @@
 - queue renewals is now using a metadata tag to constantly refresh for the queue, the json endpoint gives results as well
 - a fake_boulder.py script is provided for faking interaction, there are some testing options too
 - update formerror printing
+- allow an "mark revoked" certificate to be unrevoked
+- allow an "inactive" certificate to be "mark revoked"
+- some light docs for database install
+
 
 
 0.1.5

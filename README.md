@@ -151,6 +151,16 @@ Editing the `example_development.ini` file will let you specify how the package 
 
 `Pyramid` applications are based on `.ini` configuration files.  You can use multiple files to deploy the server differently on the same machine, or on different environments.
 
+You can run this on sqlite or switch to Posgtresql by adjusting the sqlalchemy url
+
+If you run via sqlalchemy, you'll need to setup the database BEFORE running `initialize_peter_sslers_db`
+
+roughly, that entails...
+
+	$ psql -Upostgres
+	psql> create user ssl_minnow with password '{PASSWORD}';
+	psql> create database ssl_minnow with owner ssl_minnow ;
+
 Some tools are provided to automatically import existing certificates and chains (see below).
 
 It is recommended to open up a new terminal and do the following commands
