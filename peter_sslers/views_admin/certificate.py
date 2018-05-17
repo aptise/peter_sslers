@@ -3,6 +3,7 @@ from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
 from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
@@ -82,7 +83,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:upload')
-    @view_config(route_name='admin:certificate:upload.json', renderer='json')
+    @view_config(route_name='admin:certificate:upload|json', renderer='json')
     def certificate_upload(self):
         if self.request.method == 'POST':
             return self._certificate_upload__submit()
@@ -186,7 +187,7 @@ class ViewAdmin(Handler):
                 'SslServerCertificate': dbServerCertificate
                 }
 
-    @view_config(route_name='admin:certificate:focus:parse.json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:parse|json', renderer='json')
     def certificate_focus_parse_json(self):
         dbServerCertificate = self._certificate_focus()
         return {"%s" % dbServerCertificate.id: lib.cert_utils.parse_cert(cert_pem=dbServerCertificate.cert_pem),
@@ -267,7 +268,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:nginx_cache_expire', renderer=None)
-    @view_config(route_name='admin:certificate:focus:nginx_cache_expire.json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:nginx_cache_expire|json', renderer='json')
     def certificate_focus_nginx_expire(self):
         dbServerCertificate = self._certificate_focus()
         if not self.request.registry.settings['enable_nginx']:
@@ -286,17 +287,46 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:renew:quick', renderer=None)
-    @view_config(route_name='admin:certificate:focus:renew:quick.json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:renew:quick|json', renderer='json')
     def certificate_focus_renew_quick(self):
         """this endpoint is for immediately renewing the certificate acme-auto protocol"""
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbServerCertificate = self._certificate_focus()
         try:
-            raise NotImplementedError()
-            if not self.request.method == 'POST':
-                raise errors.DisplayableError('Post Only')
+            if (not dbServerCertificate.private_key.is_active) or (not dbServerCertificate.letsencrypt_account_key.is_active):
+                raise errors.DisplayableError("The PrivateKey or AccountKey is not active. You can not Quick-Renew.")
             if not dbServerCertificate.can_renew_letsencrypt:
                 raise errors.DisplayableError('Thie cert is not eligible for `Quick Renew`')
+            
+            try:
+                dbLetsencryptCertificateNew = lib_db.actions.do__CertificateRequest__AcmeAutomated(
+                    self.request.api_context,
+                    None,  # domain_names, handle via the certificate...
+                    dbAccountKey = dbServerCertificate.letsencrypt_account_key,
+                    dbPrivateKey = dbServerCertificate.private_key,
+                    dbServerCertificate__renewal_of=dbServerCertificate,
+                )
+            except (errors.AcmeCommunicationError,
+                    errors.DomainVerificationError,
+                    ) as e:
+                raise errors.DisplayableError(e.message)
+
+            if wants_json:
+                return {"status": "success",
+                        "queue_item": dbQueue.id,
+                        }
+            url_success = '%s/certificate/%s?operation=renewal&renewal_type=quick&success=%s' % (
+                self.request.registry.settings['admin_prefix'],
+                dbServerCertificate.id,
+                dbLetsencryptCertificateNew.id,
+            )
+            raise HTTPSeeOther(url_success)
+
         except errors.DisplayableError as e:
+            if wants_json:
+                return {"status": "error",
+                        "error": e.message
+                        }
             url_failure = '%s/certificate/%s?operation=renewal&renewal_type=quick&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbServerCertificate.id,
@@ -307,16 +337,48 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:renew:queue', renderer=None)
-    @view_config(route_name='admin:certificate:focus:renew:queue.json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:renew:queue|json', renderer='json')
     def certificate_focus_renew_queue(self):
         """this endpoint is for adding the certificate to the renewal queue immediately"""
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbServerCertificate = self._certificate_focus()
         try:
-            import pdb
-            pdb.set_trace()
+            # first check to see if this is already queued
+            dbQueued = lib_db.get.get__SslQueueRenewal__by_SslUniqueFQDNSetId__active(self.request.api_context, dbServerCertificate.ssl_unique_fqdn_set_id)
+            if dbQueued:
+                raise errors.DisplayableError("There is an existing entry in the queue for this certificate's FQDN set.".replace(' ', '+'))
 
+            # okay, we're good to go...'
+            event_type = models.SslOperationsEventType.from_string('queue_renewal__update')
+            event_payload_dict = lib.utils.new_event_payload_dict()
+            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(self.request.api_context,
+                                                                      event_type,
+                                                                      event_payload_dict,
+                                                                      )
+            dbQueue = lib_db.create._create__SslQueueRenewal(self.request.api_context,
+                                                             dbServerCertificate,
+                                                             )
+            event_payload_dict['ssl_certificate-queued.ids'] = str(dbServerCertificate.id)
+            event_payload_dict['sql_queue_renewals.ids'] = str(dbQueue.id)
+            dbOperationsEvent.set_event_payload(event_payload_dict)
+            self.request.api_context.dbSession.flush(objects=[dbOperationsEvent, ])
+            
+            if wants_json:
+                return {"status": "success",
+                        "queue_item": dbQueue.id,
+                        }
+            url_success = '%s/certificate/%s?operation=renewal&renewal_type=queue&success=%s' % (
+                self.request.registry.settings['admin_prefix'],
+                dbServerCertificate.id,
+                dbQueue.id,
+            )
+            raise HTTPSeeOther(url_success)
 
         except errors.DisplayableError as e:
+            if wants_json:
+                return {"status": "error",
+                        "error": e.message
+                        }
             url_failure = '%s/certificate/%s?operation=renewal&renewal_type=queue&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbServerCertificate.id,
@@ -327,7 +389,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:renew:custom', renderer=None)
-    @view_config(route_name='admin:certificate:focus:renew:custom.json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:renew:custom|json', renderer='json')
     def certificate_focus_renew_custom(self):
         dbServerCertificate = self._certificate_focus()
         self.dbServerCertificate = dbServerCertificate
@@ -398,7 +460,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate:focus:mark', renderer=None)
-    @view_config(route_name='admin:certificate:focus:mark.json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:mark|json', renderer='json')
     def certificate_focus_mark(self):
         dbServerCertificate = self._certificate_focus()
         action = '!MISSING or !INVALID'

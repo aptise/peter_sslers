@@ -79,14 +79,14 @@
                         </span>
                         &nbsp;
                         % if SslServerCertificate.is_active:
-                            <a  class="label label-warning"
+                            <a  class="btn btn-xs btn-warning"
                                 href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=inactive"
                             >
                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                 deactivate
                             </a>
                             &nbsp;
-                            <a  class="label label-danger"
+                            <a  class="btn btn-xs btn-danger"
                                 href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=revoked"
                             >
                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -106,7 +106,7 @@
                                 &nbsp;
                                 Actions:
                                 % if SslServerCertificate.is_revoked:
-                                    <a  class="label label-warning"
+                                    <a  class="btn btn-xs btn-warning"
                                         href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=unrevoke"
                                     >
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -114,13 +114,13 @@
                                     </a>
                                 % endif
                                 % if not SslServerCertificate.is_revoked:
-                                    <a  class="label label-success"
+                                    <a  class="btn btn-xs btn-success"
                                         href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=active"
                                     >
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                         activate
                                     </a>
-                                    <a  class="label label-danger"
+                                    <a  class="btn btn-xs btn-danger"
                                         href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=revoked"
                                     >
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -140,27 +140,20 @@
                         &nbsp;
                         % if SslServerCertificate.is_active:
                             % if SslServerCertificate.is_auto_renew:
-                                <a  class="label label-warning"
+                                <a  class="btn btn-xs btn-warning"
                                     href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=renew_manual"
                                 >
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                     deactivate auto-renew
                                 </a>
                             % else:
-                                <a  class="label label-success"
+                                <a  class="btn btn-xs btn-success"
                                     href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=renew_auto"
                                 >
                                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                     enable auto-renew
                                 </a>
                             % endif
-                            &nbsp;
-                            <a  class="label label-primary"
-                                href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/queue"
-                            >
-                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                queue a renewal
-                            </a>
                         % endif
                     </td>
                 </tr>
@@ -170,6 +163,46 @@
                         <span class="label label-${'success' if SslServerCertificate.is_renewed else 'default'}">
                             ${'Renewed' if SslServerCertificate.is_renewed else 'not-renewed-yet'}
                         </span>
+
+                        &nbsp;
+                        <a  class="btn btn-xs btn-primary"
+                            href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/queue"
+                            title="Queue a renewal with the same private key and account key."
+                        >
+                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                            queue a renewal
+                        </a>
+
+                        % if SslServerCertificate.private_key.is_active and SslServerCertificate.letsencrypt_account_key.is_active:
+                            &nbsp;
+                            <a  class="btn btn-xs btn-primary"
+                                href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/quick"
+                                title="Renew NOW with the same private key and account key."
+                            >
+                                <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
+                                quick renewal
+                            </a>
+                        % else:
+                            &nbsp;
+                            <a  class="btn btn-xs btn-default"
+                                href="#"
+                                title="The PrivateKey or AccountKey has been disabled. Can not quick-renew."
+                            >
+                                <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
+                                quick renewal
+                            </a>
+                        % endif
+
+                        &nbsp;
+                        <a  class="btn btn-xs btn-primary"
+                            href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/custom"
+                            title="Select a new PrivateKey or AccountKey for renewal."
+                        >
+                            <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                            custom renewal
+                        </a>
+
+
                     </td>
                 </tr>
                 <tr>
@@ -200,13 +233,6 @@
                         <span class="label label-${SslServerCertificate.expiring_days_label}">
                             ${SslServerCertificate.expiring_days} days
                         </span>
-                        &nbsp;
-                        <a  href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/custom"
-                            span class="label label-primary"
-                        >
-                            <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                            Custom Renewal
-                        </form>
                     </td>
                 </tr>
                 <tr>

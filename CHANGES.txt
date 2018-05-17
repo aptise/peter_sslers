@@ -33,7 +33,8 @@
 - some light docs for database install
 - added `.json` endpoints to core records. this makes commandline browsing via curl easier.
 - cert custom renewal - allow to choose existing accounts
-
+- cert queue renewal
+- cert quick renewal
 
 
 0.1.5

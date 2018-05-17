@@ -2,7 +2,7 @@ Not Finished Yet
 ===============
 asap tasks
 ---------------
-* cert queue immediate renewal
+
 * search expiring soon
 * log full actual results; if a queue fails log that data too
 * ensure the fqdns on a cert renewal match; this failed on tests when we stuck a bad cert in

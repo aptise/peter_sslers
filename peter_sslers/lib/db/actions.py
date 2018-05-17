@@ -189,6 +189,11 @@ def do__CertificateRequest__AcmeAutomated(
 
     if not any((dbPrivateKey, private_key_pem)) or all((dbPrivateKey, private_key_pem)):
         raise ValueError("Submit one and only one of: `dbPrivateKey`, `private_key_pem`")
+    
+    if domain_names is None:
+        if not dbServerCertificate__renewal_of:
+            raise ValueError("`domain_names` must be provided unless this is a renewal")
+        domain_names = dbServerCertificate__renewal_of.domains_as_list
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
