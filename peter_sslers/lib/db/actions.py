@@ -308,7 +308,20 @@ def do__CertificateRequest__AcmeAutomated(
         #
         # end acme-tiny
         # ######################################################################
-
+        
+        # let's make sure we have the right domains in the cert!!
+        # this only happens on development during tests when we use a single cert
+        # for all requests...
+        # so we don't need to handle this or save it. just raise an error.
+        tmpfile_signed_cert = cert_utils.new_pem_tempfile(cert_pem)
+        tmpfiles.append(tmpfile_signed_cert)
+        cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
+        if set(domain_names) != set(cert_domains):
+            log.error("set(domain_names) != set(cert_domains)")
+            log.error(domain_names)
+            log.error(cert_domains)
+            raise ValueError("this should not happen!")
+        
         # these MUST commit
         with transaction.manager as tx:
             dbServerCertificate = lib.db.create.create__SslServerCertificate(

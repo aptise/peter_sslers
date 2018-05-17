@@ -245,7 +245,7 @@
             <tr>
                 <td><a href="${admin_prefix}/queue-renewal/${queue_renewal.id}" class="label label-info">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${queue_renewal.id}</a>
+                    qrenew-${queue_renewal.id}</a>
                 </td>
                 % if show_certificate:
                     <td><a href="${admin_prefix}/certificate/${queue_renewal.ssl_server_certificate_id}" class="label label-info">

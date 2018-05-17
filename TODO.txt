@@ -3,9 +3,9 @@ Not Finished Yet
 asap tasks
 ---------------
 
-* search expiring soon
+* migrate cert_subject hash and tracking to SAN
+* search expiring soon | note: isn't this the `/certificates/expiring` view?
 * log full actual results; if a queue fails log that data too
-* ensure the fqdns on a cert renewal match; this failed on tests when we stuck a bad cert in
 * CSR should have domain[0] as subject if there are multiple domains | note: letsencrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
 

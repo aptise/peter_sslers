@@ -69,7 +69,7 @@
                                 % for to_domain in SslUniqueFQDNSet.to_domains:
                                     <tr>
                                         <td>
-                                            <a  class="btn btn-xs btn-info"
+                                            <a  class="label label-info"
                                                 href="${admin_prefix}/domain/${to_domain.domain.id}"
                                             >
                                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

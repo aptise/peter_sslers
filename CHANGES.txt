@@ -35,6 +35,9 @@
 - cert custom renewal - allow to choose existing accounts
 - cert queue renewal
 - cert quick renewal
+- ensure the fqdns on a cert signing; this failed on tests when we stuck a bad cert in.
+  because this only happens off the test server, instead of doing a fancy handling of the error we just raise a ValueError and trash the cert
+  
 
 
 0.1.5
