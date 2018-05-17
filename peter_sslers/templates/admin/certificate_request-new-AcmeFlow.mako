@@ -23,7 +23,7 @@
         <div class="col-sm-12">
             <form action="${admin_prefix}/certificate-request/new-acme-flow" method="POST">
                 <% form = request.formhandling.get_form(request) %>
-                ${form.html_error_main('Error_Main')|n}
+                ${form.html_error_main_fillable()|n}
 
                 <div class="form-group">
                     <label for="f1-domain_names">Domain Names</label>

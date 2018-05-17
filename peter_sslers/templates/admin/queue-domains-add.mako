@@ -25,7 +25,7 @@
                 method="POST"
             >
                 <% form = request.formhandling.get_form(request) %>
-                ${form.html_error_main('Error_Main')|n}
+                ${form.html_error_main_fillable()|n}
 
                 ${admin_partials.formgroup__domain_names()}
                 <hr/>

@@ -37,9 +37,7 @@
                 enctype="multipart/form-data"
             >
                 <% form = request.formhandling.get_form(request) %>
-                % if form.errors:
-                    <input type="hidden" name="Error_Main" />
-                % endif
+                ${form.html_error_main_fillable()|n}
 
                 ${admin_partials.formgroup__account_key_selector(show_text=show_text)}
                 <hr/>

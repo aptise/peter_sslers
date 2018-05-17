@@ -1,21 +1,12 @@
 Not Finished Yet
 ===============
-* queue_domains__process | /admin/queue-domains/processc
+* cert custom renewal - allow to choose existing accounts
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
 * log full actual results; if a queue fails log that data too
-* cert custom renewal - allow to choose existing accounts
 * CSR should have domain[0] as subject if there are multiple domains
-
-Additional Test coverage needed for
-* /admin/certificate/5/renew/custom
-* /api/queue-renewals/process
-* /admin/private-key/7?operation=mark&action=default&result=success
-
-
 * update formerror printing
 * finish rate limit calendars
 * search expiring soon
-
 * upload CERT/Chains for 'flow' CSR
 * associate all objects to one another when imported; only some objects are currently associated
 * Database Documentation
@@ -27,7 +18,21 @@ Additional Test coverage needed for
 
 	change the config settings
 
-* longterm - decouple from openssl and use pure-python methods
 * the queue-renewals update script could work on fqdns, not just certificates
 * create tool for exporting and deleting the logs
 * allow an "inactive" certificate to be "mark revoked"
+
+Long Term Questions:
+==================================
+* decouple from openssl and use pure-python methods
+	- using the openssl was initial decision to have fewest python requirements possible
+	- if that happens, should requests be used?
+
+
+
+Additional Test coverage needed for
+-----------------------------------
+* /admin/certificate/5/renew/custom
+* /api/queue-renewals/process
+* /admin/private-key/7?operation=mark&action=default&result=success
+* queue_domains__process | /admin/queue-domains/process

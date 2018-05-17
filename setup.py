@@ -12,7 +12,7 @@ requires = [
     'pyramid',
     'pyramid_mako',
     'pyramid_debugtoolbar',
-    'pyramid_formencode_classic',
+    'pyramid_formencode_classic>=0.1.10',
     'pyramid_tm',
     'SQLAlchemy',
     'transaction',
