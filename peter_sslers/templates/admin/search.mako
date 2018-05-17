@@ -47,7 +47,7 @@
                                             href="${admin_prefix}/account-key/${key.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            ${key.id}</a>
+                                            account-${key.id}</a>
                                     </td>
                                     <td><code>${key.key_pem_modulus_md5}</code></td>
                                     <td><timestamp>${key.timestamp_last_certificate_request}</timestamp></td>
@@ -85,7 +85,7 @@
                                             href="${admin_prefix}/private-key/${key.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            ${key.id}</a>
+                                            pkey-${key.id}</a>
                                     </td>
                                     <td><code>${key.key_pem_modulus_md5}</code></td>
                                     <td><timestamp>${key.timestamp_last_certificate_request}</timestamp></td>
@@ -126,7 +126,7 @@
                                             href="${admin_prefix}/certificate/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            ${cert.id}</a>
+                                            cert-${cert.id}</a>
                                     </td>
                                     <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                     <td><span class="label label-${'success' if cert.is_active else 'danger'}">${'Y' if cert.is_active else ''}</label></td>
@@ -169,7 +169,7 @@
                                             href="${admin_prefix}/ca-certificate/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            ${cert.id}</a>
+                                            cacert-${cert.id}</a>
                                     </td>
                                     <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                     <td><timestamp>${cert.timestamp_signed}</timestamp></td>
@@ -200,7 +200,7 @@
                                             href="${admin_prefix}/certificate-request/${csr.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            ${csr.id}</a>
+                                            csr-${csr.id}</a>
                                     </td>
                                 </tr>
                             % endfor

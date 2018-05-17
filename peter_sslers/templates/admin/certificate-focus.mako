@@ -205,7 +205,7 @@
                     <td>
                         <a class="label label-info" href="${admin_prefix}/ca-certificate/${SslServerCertificate.ssl_ca_certificate_id__upchain}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ${SslServerCertificate.ssl_ca_certificate_id__upchain}</a>
+                            cacert-${SslServerCertificate.ssl_ca_certificate_id__upchain}</a>
                     </td>
                 </tr>
                 <tr>
@@ -214,11 +214,11 @@
                         % if not SslServerCertificate.private_key.is_compromised:
                             <a class="label label-info" href="${admin_prefix}/private-key/${SslServerCertificate.ssl_private_key_id__signed_by}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${SslServerCertificate.ssl_private_key_id__signed_by}</a>
+                                pkey-${SslServerCertificate.ssl_private_key_id__signed_by}</a>
                         % else:
                             <a class="label label-danger" href="${admin_prefix}/private-key/${SslServerCertificate.ssl_private_key_id__signed_by}">
                                 <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                ${SslServerCertificate.ssl_private_key_id__signed_by}</a>
+                                pkey-${SslServerCertificate.ssl_private_key_id__signed_by}</a>
                         % endif
                     </td>
                 </tr>
@@ -228,7 +228,7 @@
                         % if SslServerCertificate.ssl_certificate_request_id:
                             <a class="label label-info" href="${admin_prefix}/certificate-request/${SslServerCertificate.ssl_certificate_request_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${SslServerCertificate.ssl_certificate_request_id}</a>
+                                csr-${SslServerCertificate.ssl_certificate_request_id}</a>
                         % endif
                     </td>
                 </tr>
@@ -237,9 +237,9 @@
                     <td>
                         <a  class="label label-info"
                             href="${admin_prefix}/unique-fqdn-set/${SslServerCertificate.ssl_unique_fqdn_set_id}"
-                            >
+                        >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ${SslServerCertificate.ssl_unique_fqdn_set_id}
+                            fqdnset-${SslServerCertificate.ssl_unique_fqdn_set_id}
                         </a>
                         <%
                             latest_certificate = SslServerCertificate.unique_fqdn_set.latest_certificate
@@ -268,7 +268,7 @@
                                                     href="${admin_prefix}/certificate/${latest_certificate.id}"
                                                     >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    ${latest_certificate.id}
+                                                    cert-${latest_certificate.id}
                                                 </a>
                                             % endif
                                         </td>
@@ -295,7 +295,7 @@
                                                     href="${admin_prefix}/certificate/${latest_active_certificate.id}"
                                                     >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    ${latest_active_certificate.id}
+                                                    cert-${latest_active_certificate.id}
                                                 </a>
                                             % endif
                                         </td>
@@ -323,7 +323,7 @@
                             <span class="label label-success">Yes</span>&nbsp;
                             <a class="label label-info" href="${admin_prefix}/certificate/${SslServerCertificate.ssl_server_certificate_id__renewal_of}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${SslServerCertificate.ssl_server_certificate_id__renewal_of}</a>
+                                cert-${SslServerCertificate.ssl_server_certificate_id__renewal_of}</a>
                         % else:
                             <span class="label label-default">No</span>
                         % endif
@@ -495,7 +495,7 @@
                                         <td>
                                             <a class="label label-info" href="${admin_prefix}/domain/${to_d.domain.id}">
                                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                ${to_d.domain.id}</a>
+                                                domain-${to_d.domain.id}</a>
                                         </td>
                                         <td>
                                             <code>${to_d.domain.domain_name}</code>

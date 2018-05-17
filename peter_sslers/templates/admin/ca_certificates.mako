@@ -46,7 +46,7 @@
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/ca-certificate/${cert.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${cert.id}</a></td>
+                                cacert-${cert.id}</a></td>
                             <td><span class="badge">${cert.count_active_certificates or ''}</span></td>
                             <td>${cert.name or ''}</td>
                             <td><timestamp>${cert.timestamp_first_seen}</timestamp></td>

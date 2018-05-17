@@ -1,24 +1,28 @@
 Not Finished Yet
 ===============
+asap tasks
+---------------
 * cert custom renewal - allow to choose existing accounts
-* upload CERT/Chains for 'flow' CSR
-* finish rate limit calendars
+* cert queue immediate renewal
 * search expiring soon
-* there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
 * log full actual results; if a queue fails log that data too
 * ensure the fqdns on a cert renewal match; this failed on tests when we stuck a bad cert in
-* CSR should have domain[0] as subject if there are multiple domains
+* CSR should have domain[0] as subject if there are multiple domains | note: letsencrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
-* the queue-renewals update script could work on fqdns, not just certificates
+
+deferred tasks
+---------------
 * create tool for exporting and deleting the logs
+* finish rate limit calendars
+* upload CERT/Chains for 'flow' CSR | once the flow is finished, upload a cert into it.
+* there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
+* the queue-renewals update script could work on fqdns, not just certificates
 
 Long Term Questions:
 ==================================
 * decouple from openssl and use pure-python methods
 	- using the openssl was initial decision to have fewest python requirements possible
 	- if that happens, should requests be used?
-
-
 
 Additional Test coverage needed for
 -----------------------------------

@@ -68,9 +68,10 @@
                         <tr>
                             <td>
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/domain/${d.id}">
+                                    href="${admin_prefix}/domain/${d.id}"
+                                >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    ${d.id}</a>
+                                    domain-${d.id}</a>
                             </td>
                             <td><code>${d.domain_name}</code></td>
                             <td>
@@ -82,9 +83,9 @@
                                 % if d.ssl_server_certificate_id__latest_multi:
                                     <a  class="label label-info"
                                         href="${admin_prefix}/certificate/${d.ssl_server_certificate_id__latest_multi}"
-                                        >
-                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            ${d.ssl_server_certificate_id__latest_multi}</a>
+                                    >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        cert-${d.ssl_server_certificate_id__latest_multi}</a>
                                     <timestamp>${d.server_certificate__latest_multi.timestamp_expires}</timestamp>
                                     <span class="label label-${d.server_certificate__latest_multi.expiring_days_label}">${d.server_certificate__latest_multi.expiring_days} days</span>
                                 % endif
@@ -93,9 +94,9 @@
                                 % if d.ssl_server_certificate_id__latest_single:
                                     <a  class="label label-info"
                                         href="${admin_prefix}/certificate/${d.ssl_server_certificate_id__latest_single}"
-                                        >
-                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            ${d.ssl_server_certificate_id__latest_single}</a>
+                                    >
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        cert-${d.ssl_server_certificate_id__latest_single}</a>
                                     <timestamp>${d.server_certificate__latest_single.timestamp_expires}</timestamp>
                                     <span class="label label-${d.server_certificate__latest_single.expiring_days_label}">${d.server_certificate__latest_single.expiring_days} days</span>
                                 % endif

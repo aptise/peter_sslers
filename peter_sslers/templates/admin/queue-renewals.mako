@@ -83,10 +83,10 @@
                                 ${q.id}</a></td>
                             <td><a class="label label-info" href="${admin_prefix}/certificate/${q.ssl_server_certificate_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${q.ssl_server_certificate_id}</a></td>
+                                cert-${q.ssl_server_certificate_id}</a></td>
                             <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.ssl_unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${q.ssl_unique_fqdn_set_id}</a></td>
+                                fqdnset-${q.ssl_unique_fqdn_set_id}</a></td>
                             <td><timestamp>${q.timestamp_entered}</timestamp></td>
                             <td><timestamp>${q.timestamp_process_attempt or ''}</timestamp></td>
                             <td><timestamp>${q.timestamp_processed or ''}</timestamp></td>

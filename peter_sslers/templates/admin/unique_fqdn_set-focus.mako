@@ -66,7 +66,7 @@
                                                 href="${admin_prefix}/domain/${to_domain.domain.id}"
                                             >
                                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                ${to_domain.domain.id}
+                                                domain-${to_domain.domain.id}
                                             </a>
                                         </td>
                                         <td>
@@ -103,9 +103,9 @@
                                 <td>
                                     <a  class="label label-info"
                                         href="${admin_prefix}/certificate/${latest_certificate.id}"
-                                        >
+                                    >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ${latest_certificate.id}
+                                        cert-${latest_certificate.id}
                                     </a>
                                 </td>
                                 <td>
@@ -121,9 +121,9 @@
                                 <td>
                                     <a  class="label label-info"
                                         href="${admin_prefix}/certificate/${latest_active_certificate.id}"
-                                        >
+                                    >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ${latest_active_certificate.id}
+                                        cert-${latest_active_certificate.id}
                                     </a>
                                 </td>
                                 <td>

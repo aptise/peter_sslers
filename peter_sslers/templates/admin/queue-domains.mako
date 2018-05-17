@@ -84,7 +84,7 @@
                                 % if q.ssl_domain_id:
                                     <a class="label label-info" href="${admin_prefix}/domain/${q.ssl_domain_id}">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ${q.ssl_domain_id}
+                                        domain-${q.ssl_domain_id}
                                     </a>
                                 % endif
                             </td>

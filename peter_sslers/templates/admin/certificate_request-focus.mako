@@ -58,7 +58,7 @@
                             <span class="label label-success">Yes</span>&nbsp;
                             <a class="label label-info" href="${admin_prefix}/certificate/${SslCertificateRequest.server_certificate.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${SslCertificateRequest.server_certificate.id}</a>
+                                cert-${SslCertificateRequest.server_certificate.id}</a>
                         % else:
                             <span class="label label-default">No</span>
                         % endif
@@ -72,7 +72,7 @@
                             renewal of Certificate
                             <a class="label label-info" href="${admin_prefix}/certificate/${SslCertificateRequest.ssl_server_certificate_id__renewal_of}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${SslCertificateRequest.ssl_server_certificate_id__renewal_of}</a>
+                                cert-${SslCertificateRequest.ssl_server_certificate_id__renewal_of}</a>
                         % else:
                             <span class="label label-default">No</span>
                         % endif
@@ -84,7 +84,7 @@
                         % if SslCertificateRequest.ssl_letsencrypt_account_key_id:
                             <a class="label label-info" href="${admin_prefix}/account-key/${SslCertificateRequest.ssl_letsencrypt_account_key_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${SslCertificateRequest.ssl_letsencrypt_account_key_id}</a>
+                                account-${SslCertificateRequest.ssl_letsencrypt_account_key_id}</a>
                         % endif
                     </td>
                 </tr>
@@ -95,11 +95,11 @@
                             % if SslCertificateRequest.private_key__signed_by.is_compromised:
                                 <a class="label label-danger" href="${admin_prefix}/private-key/${SslCertificateRequest.ssl_private_key_id__signed_by}">
                                     <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                    ${SslCertificateRequest.ssl_private_key_id__signed_by}</a>
+                                    pkey-${SslCertificateRequest.ssl_private_key_id__signed_by}</a>
                             % else:
                                 <a class="label label-info" href="${admin_prefix}/private-key/${SslCertificateRequest.ssl_private_key_id__signed_by}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    ${SslCertificateRequest.ssl_private_key_id__signed_by}</a>
+                                    pkey-${SslCertificateRequest.ssl_private_key_id__signed_by}</a>
                             % endif
                         % endif
                     </td>
@@ -109,7 +109,7 @@
                     <td>
                         <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${SslCertificateRequest.ssl_unique_fqdn_set_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ${SslCertificateRequest.ssl_unique_fqdn_set_id}</a>
+                            fqdnset-${SslCertificateRequest.ssl_unique_fqdn_set_id}</a>
                     </td>
                 </tr>
                 <tr>

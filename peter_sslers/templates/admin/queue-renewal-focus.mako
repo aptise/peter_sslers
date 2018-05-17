@@ -56,7 +56,7 @@
                             href="${admin_prefix}/certificate/${RenewalQueueItem.ssl_server_certificate_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ${RenewalQueueItem.ssl_server_certificate_id}</a>
+                            cert-${RenewalQueueItem.ssl_server_certificate_id}</a>
                     </td>
                 </tr>
                 <tr>
@@ -66,7 +66,7 @@
                             href="${admin_prefix}/unique-fqdn-set/${RenewalQueueItem.ssl_unique_fqdn_set_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ${RenewalQueueItem.ssl_unique_fqdn_set_id}</a>
+                            fqdnset-${RenewalQueueItem.ssl_unique_fqdn_set_id}</a>
                         </hr/>
                         <code>${RenewalQueueItem.unique_fqdn_set.domains_as_string}</code>
                     </td>
@@ -97,7 +97,7 @@
                                 href="${admin_prefix}/certificate/${RenewalQueueItem.ssl_server_certificate_id__renewed}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${RenewalQueueItem.ssl_server_certificate_id__renewed}</a>
+                                cert-${RenewalQueueItem.ssl_server_certificate_id__renewed}</a>
                         % endif
                     </td>
                 </tr>

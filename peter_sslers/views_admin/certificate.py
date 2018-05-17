@@ -324,13 +324,12 @@ class ViewAdmin(Handler):
     def certificate_focus_renew_custom(self):
         dbServerCertificate = self._certificate_focus()
         self.dbServerCertificate = dbServerCertificate
-        self.dbAccountKeyDefault = lib.db.get.get__SslLetsEncryptAccountKey__default(self.request.api_context, active_only=True)
+        self._load_AccountKeyDefault()
         if self.request.method == 'POST':
             return self._certificate_focus_renew_custom__submit()
         return self._certificate_focus_renew_custom__print()
 
     def _certificate_focus_renew_custom__print(self):
-        self._load_AccountKeyDefault()
         return render_to_response("/admin/certificate-focus-renew.mako",
                                   {'SslServerCertificate': self.dbServerCertificate,
                                    'dbAccountKeyDefault': self.dbAccountKeyDefault,

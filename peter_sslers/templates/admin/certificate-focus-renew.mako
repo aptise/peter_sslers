@@ -24,7 +24,7 @@
 <%block name="content_main">
 
     <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-12">
 
             <form method="POST"
                   action="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/custom"
@@ -38,7 +38,12 @@
                     <tr>
                         <th>renewal of: id</th>
                         <td>
-                            <span class="label label-default">${SslServerCertificate.id}</span>
+                            <a  class="btn btn-xs btn-info"
+                                href="${admin_prefix}/certificate/${SslServerCertificate.id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                cert-${SslServerCertificate.id}
+                            </a>
                         </td>
                     </tr>
                     <tr>
@@ -61,7 +66,7 @@
                     </tr>
                     <tr>
                         <th>domains</th>
-                        <td>${SslServerCertificate.domains_as_string}</td>
+                        <td><code>${SslServerCertificate.domains_as_string}</code></td>
                     </tr>
                     <tr>
                         <th>Lets Encrypt Account</th>
@@ -76,7 +81,7 @@
                                         href="${admin_prefix}/account-keys/${SslServerCertificate.ssl_letsencrypt_account_key_id}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ${SslServerCertificate.ssl_letsencrypt_account_key_id}
+                                        account-${SslServerCertificate.ssl_letsencrypt_account_key_id}
                                     </a>
                                 </div>
                                 <div class="radio">

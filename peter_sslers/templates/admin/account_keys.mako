@@ -49,7 +49,7 @@
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/account-key/${key.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${key.id}</a></td>
+                                account-${key.id}</a></td>
                             <td>
                                 % if key.is_active:
                                     <span class="label label-success">active</span>

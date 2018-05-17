@@ -37,7 +37,7 @@
             <tr>
                 <td><a class="label label-info" href="${admin_prefix}/certificate/${to_cert.certificate.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${to_cert.certificate.id}</a>
+                    cert-${to_cert.certificate.id}</a>
                 </td>
                 <td>
                     <span class="label label-${'success' if to_cert.certificate.is_active else 'warning'}">
@@ -82,7 +82,7 @@
                     <a  class="label label-info"
                         href="${admin_prefix}/certificate-request/${to_cr.certificate_request.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        ${to_cr.certificate_request.id}</a>
+                        csr-${to_cr.certificate_request.id}</a>
                 </td>
                 <td>
                     <span class="label label-${'success' if to_cr.certificate_request.is_active else 'warning'}">
@@ -125,7 +125,7 @@
             <tr>
                 <td><a class="label label-info" href="${admin_prefix}/certificate/${cert.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${cert.id}</a>
+                    cert-${cert.id}</a>
                 </td>
                 <td>
                     <span class="label label-${'success' if cert.is_active else 'warning'}">
@@ -186,7 +186,7 @@
                     <a  class="label label-info"
                         href="${admin_prefix}/certificate-request/${certificate_request.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        ${certificate_request.id}</a>
+                        csr-${certificate_request.id}</a>
                 </td>
                 <td>
                     <span class="label label-default">${certificate_request.certificate_request_type}</span>
@@ -207,7 +207,7 @@
                             <a  class="label label-info"
                                 href="${admin_prefix}/certificate/${certificate_request.server_certificate.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${certificate_request.server_certificate.id}</a>
+                                cert-${certificate_request.server_certificate.id}</a>
                         % else:
                             &nbsp;
                         % endif
@@ -250,7 +250,7 @@
                 % if show_certificate:
                     <td><a href="${admin_prefix}/certificate/${queue_renewal.ssl_server_certificate_id}" class="label label-info">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        ${queue_renewal.ssl_server_certificate_id}</a>
+                        cert-${queue_renewal.ssl_server_certificate_id}</a>
                     </td>
                 % endif
                 <td><timestamp>${queue_renewal.timestamp_entered or ''}</timestamp></td>
@@ -290,7 +290,7 @@
                     <tr>
                         <td><a href="${admin_prefix}/domain/${to_d.domain.id}" class="label label-info">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ${to_d.domain.id}</a> ${to_d.domain.domain_name}</td>
+                            domain-${to_d.domain.id}</a> ${to_d.domain.domain_name}</td>
                         <td><timestamp>${to_d.timestamp_verified or ''}</timestamp></td>
                         <td><code>${to_d.challenge_key or ''}</code></td>
                         <td><code>${to_d.challenge_text or ''}</code></td>
@@ -422,7 +422,7 @@
                         href="${admin_prefix}/unique-fqdn-set/${i.id}"
                     >
                      <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                     ${i.id}
+                     fqdnset-${i.id}
                     </a>
                 </td>
                 <td>
@@ -560,6 +560,7 @@
                             </a>
                         % elif object_event.ssl_domain_id:
                             <a class="label label-info" href="${admin_prefix}/domain/${object_event.ssl_domain_id}">
+                                Domain
                                 ${object_event.ssl_domain_id}
                             </a>
                             <code>${object_event.domain.domain_name}</code>
@@ -570,18 +571,18 @@
                             </a>
                         % elif object_event.ssl_private_key_id:
                             <a class="label label-info" href="${admin_prefix}/private-key/${object_event.ssl_private_key_id}">
-                                PrivateKey
+                                Private Key
                                 ${object_event.ssl_private_key_id}
                             </a>
                         % elif object_event.ssl_queue_domain_id:
                             <a class="label label-info" href="${admin_prefix}/queue-domain/${object_event.ssl_queue_domain_id}">
-                                qDomain
+                                q-Domain
                                 ${object_event.ssl_queue_domain_id}
                             </a>
                             <code>${object_event.queue_domain.domain_name}</code>
                         % elif object_event.ssl_queue_renewal_id:
                             <a class="label label-info" href="${admin_prefix}/queue-renewal/${object_event.ssl_queue_renewal_id}">
-                                qRenewal
+                                q-Renewal
                                 ${object_event.ssl_queue_renewal_id}
                             </a>
                         % elif object_event.ssl_server_certificate_id:
