@@ -27,6 +27,8 @@
 - updated CSR to allow multiple types of account/private key uploads
 - queue renewals is now using a metadata tag to constantly refresh for the queue, the json endpoint gives results as well
 - a fake_boulder.py script is provided for faking interaction, there are some testing options too
+- update formerror printing
+
 
 0.1.5
 2018.01.15
