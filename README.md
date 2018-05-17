@@ -17,7 +17,7 @@ This package is *not* aimed at casual or single-site users.  This package is *no
 
 Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
 
-Peter combines an ACME client designed to operate against the LetsEncrypt service, alongside tools designed to manage & deploy certificates.
+Peter combines an ACME client designed to operate against the LetsEncrypt v1 service, alongside tools designed to manage & deploy certificates.
 
 Peter's core tool is a lightweight database-backed `Pyramid` application that can:
 
@@ -26,6 +26,7 @@ Peter's core tool is a lightweight database-backed `Pyramid` application that ca
 * ease provisioning certificates onto various servers
 * browse certificate data and easily see what needs to be renewed
 * communicate with a properly configured openresty enabled `nginx` web server (see next section)
+* translate certificates into different formats
 
 Peter ships alongside a `lua` `opm` module for the `openresty` framework on the `nginx` server which will:
 
@@ -35,7 +36,7 @@ Peter ships alongside a `lua` `opm` module for the `openresty` framework on the 
 
 The module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your openresty/nginx server via the `opm` package installer
 
-The `Pyramid` based application can function as a daemon or a commandline script.
+The `Pyramid` based application can function as a daemon or a commandline script.  Most pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window.
 
 Do you like book-keeping?  Peter's `Pryamid` component logs everything into sql.  
 
@@ -46,6 +47,9 @@ Peter has absolutely no security measures and should only be used by people who 
 Peter offers several commandline tools -- so spinning up a tool "webserver" mode may not be necessary at all -- or might only be needed for brief periods of time.
 
 SqlAlchemy is the backing database library, so virtually any database can be used (sqlite, postgres, mysql, oracle, mssql, etc). `sqlite` is the default, but the package has been tested against postgres.  sqlite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
+
+Peter leverages the system's OpenSSL instead of using Python's modules. The reason is to minimize the amount of downloads/packages.
+
 
 ## Why?
 
