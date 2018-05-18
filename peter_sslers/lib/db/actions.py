@@ -3,6 +3,7 @@ import logging
 log = logging.getLogger(__name__)
 
 # stdlib
+import datetime
 
 # pypi
 import sqlalchemy
@@ -127,12 +128,19 @@ def do__SslAcmeAccountKey_authenticate(ctx, dbAcmeAccountKey, account_key_path=N
 
         # parse account key to get public key
         header, thumbprint = acme_v1.account_key__header_thumbprint(account_key_path=account_key_path, )
+        
+        def func_log_registration():
+            sslAcmeEventLog = models.SslAcmeEventLog()
+            sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+            sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-reg')
+            ctx.dbSessionLogger.add(sslAcmeEventLog)
 
         acme_v1.acme_register_account(header,
-                                      account_key_path=account_key_path)
+                                      account_key_path=account_key_path,
+                                      func_logger=func_log_registration
+                                      )
 
         # this would raise if we couldn't authenticate
-
         dbAcmeAccountKey.timestamp_last_authenticated = ctx.timestamp
         ctx.dbSession.flush(objects=[dbAcmeAccountKey, ])
 
@@ -286,6 +294,58 @@ def do__CertificateRequest__AcmeAutomated(
                                                account_key_path=tmpfile_account.name,
                                                )
 
+        def func_newauthz_log(domain):
+            """
+            Logs a newauthz and the challenge option
+            """
+            sslAcmeEventLog = models.SslAcmeEventLog()
+            sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+            sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-authz')
+            sslAcmeEventLog.ssl_acme_account_key_id = dbAccountKey.id
+            sslAcmeEventLog.ssl_certificate_request_id = dbCertificateRequest.id
+            ctx.dbSessionLogger.add(sslAcmeEventLog)
+            ctx.dbSessionLogger.flush()
+
+            sslAcmeChallengeLog = models.SslAcmeChallengeLog()
+            sslAcmeChallengeLog.acme_event_id = dbAccountKey.id
+            sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
+            sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
+            sslAcmeChallengeLog.domain = domain
+            sslAcmeChallengeLog.ssl_acme_account_key_id = dbAccountKey.id
+            ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+            ctx.dbSessionLogger.flush()
+            
+            return (sslAcmeEventLog, sslAcmeChallengeLog)
+
+        def func_challenge_trigger_log(sslAcmeChallengeLog):
+            """
+            Logs a challenge request
+            """
+            sslAcmeChallengeLog.timestamp_challenge_trigger = datetime.datetime.utcnow()
+            sslAcmeChallengeLog.count_polled = 0
+            ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+            ctx.dbSessionLogger.flush()
+
+        def func_challenge_polled_log(sslAcmeChallengeLog):
+            sslAcmeChallengeLog.count_polled += 1
+            ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+            ctx.dbSessionLogger.flush()
+
+        def func_challenge_pass_log(sslAcmeChallengeLog):
+            sslAcmeChallengeLog.timestamp_challenge_pass = datetime.datetime.utcnow()
+            ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+            ctx.dbSessionLogger.flush()
+        
+        def func_error_log(sslAcmeChallengeLog, failtype):
+            if failtype in ('pretest-1', 'pretest-2'):
+                sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string('setup-prevalidation')
+                ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+                ctx.dbSessionLogger.flush()
+            elif failtype in ('fail-1', 'fail-2'):
+                sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string('upstream-validation')
+                ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+                ctx.dbSessionLogger.flush()
+
         # verify each domain
         acme_v1.acme_verify_domains(csr_domains=csr_domains,
                                     account_key_path=tmpfile_account.name,
@@ -293,6 +353,11 @@ def do__CertificateRequest__AcmeAutomated(
                                     handle_keyauth_cleanup=process_keyauth_cleanup,
                                     thumbprint=thumbprint,
                                     header=header,
+                                    func_newauthz_log=func_newauthz_log,
+                                    func_challenge_trigger_log=func_challenge_trigger_log,
+                                    func_challenge_polled_log=func_challenge_polled_log,
+                                    func_challenge_pass_log=func_challenge_pass_log,
+                                    func_error_log=func_error_log,
                                     )
 
         # sign it

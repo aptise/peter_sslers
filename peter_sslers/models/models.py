@@ -288,7 +288,103 @@ class AcmeAccountEndpoint(_mixin_mapping):
     }
 
 
+class AcmeChallengeType(_mixin_mapping):
+    """
+    Used for Acme Logging
+    """
+    _mapping = {
+        1: 'http-01',
+        2: 'dns-01',
+    }
+
+
+class AcmeChallengeFailType(_mixin_mapping):
+    """
+    Used for Acme Logging
+    """
+    _mapping = {
+        1: 'setup-prevalidation',
+        2: 'upstream-validation',
+    }
+
+
+class AcmeEvent(_mixin_mapping):
+    """
+    Used for Acme Logging
+    """
+    _mapping = {
+        1: 'v1|/acme/new-reg',  # account create
+        2: 'v1|/acme/new-authz',  # cert-request
+        3: 'v1|/acme/new-cert',  # cert-issue
+    }
+
 # ==============================================================================
+
+
+class SslAcmeEventLog(Base):
+    """
+    log acme requests
+    """
+    __tablename__ = 'ssl_acme_event_log'
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_event = sa.Column(sa.DateTime, nullable=False, )
+    acme_event_id = sa.Column(sa.Integer, nullable=False)  # AcmeEvent
+    ssl_acme_account_key_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_acme_account_key.id"), nullable=True)  # no account key on new-reg
+    ssl_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_certificate_request.id"), nullable=True)  # no account key on new-reg
+    # ssl_acme_challenge_id ?
+    # ssl_server_certificate_id ?
+
+    @property
+    def acme_event(self):
+        if self.acme_event_id:
+            return AcmeEvent.as_string(self.acme_event_id)
+        return None
+
+    acme_challenge_logs = sa.orm.relationship("SslAcmeChallengeLog",
+                                              primaryjoin="SslAcmeEventLog.id==SslAcmeChallengeLog.ssl_acme_event_log_id",
+                                              order_by='SslAcmeChallengeLog.id.asc()',
+                                              back_populates='acme_event_log',
+                                              )
+
+
+class SslAcmeChallengeLog(Base):
+    """
+    log acme requests
+    """
+    __tablename__ = 'ssl_acme_challenge_log'
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False, )
+    ssl_acme_event_log_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_acme_event_log.id"), nullable=False)   # AcmeEvent['v1|/acme/new-authz']
+    domain = sa.Column(sa.Unicode(255), nullable=False)
+    acme_challenge_type_id = sa.Column(sa.Integer, nullable=True)  # http01, but we won't know util after we ping for a domain
+    acme_challenge = sa.Column(sa.Unicode(255), nullable=True)
+    timestamp_challenge_trigger = sa.Column(sa.DateTime, nullable=True, )
+    count_polled = sa.Column(sa.Integer, nullable=True, default=0)
+    timestamp_challenge_pass = sa.Column(sa.DateTime, nullable=True, )
+    acme_challenge_fail_type_id = sa.Column(sa.Integer, nullable=True)
+
+    def set__challenge(self, acme_challenge_type, keyauthorization):
+        self.acme_challenge_type_id = AcmeChallengeType.from_string(acme_challenge_type)
+        self.acme_challenge = keyauthorization
+        # flush/commit?
+
+    @property
+    def acme_challenge_type(self):
+        if self.acme_challenge_type_id:
+            return AcmeChallengeType.as_string(self.acme_challenge_type_id)
+        return None
+
+    @property
+    def acme_challenge_fail_type(self):
+        if self.acme_challenge_fail_type_id:
+            return AcmeChallengeFailType.as_string(self.acme_challenge_fail_type_id)
+        return None
+
+    acme_event_log = sa.orm.relationship("SslAcmeEventLog",
+                                         primaryjoin="SslAcmeChallengeLog.ssl_acme_event_log_id==SslAcmeEventLog.id",
+                                         back_populates='acme_challenge_logs',
+                                         uselist=False,
+                                         )
 
 
 class SslAcmeAccountKey(Base):
@@ -360,6 +456,7 @@ class SslAcmeAccountKey(Base):
                 'acme_account_provider': self.acme_account_provider,
                 'id': self.id,
                 }
+
 
 class SslCaCertificate(Base):
     """

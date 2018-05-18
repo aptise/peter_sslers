@@ -43,15 +43,26 @@ def get_tm_session(request, session_factory, transaction_manager):
               dbsession = get_tm_session(request, session_factory, transaction.manager)
 
     """
-    dbsession = session_factory()
+    dbSession = session_factory()
     zope.sqlalchemy.register(
-        dbsession, transaction_manager=transaction_manager, keep_session=True)
+        dbSession, transaction_manager=transaction_manager, keep_session=True)
 
     if request is not None:
         def _cleanup(request):
-            dbsession.close()
+            dbSession.close()
         request.add_finished_callback(_cleanup)
-    return dbsession
+    return dbSession
+
+
+def get_session_simple(request, session_factory):
+    """just gets a session wiuthout any transaction registration"""
+    dbSession = session_factory()
+    if request is not None:
+        def _cleanup(request):
+            dbSession.close()
+        request.add_finished_callback(_cleanup)
+    return dbSession
+
 
 
 def includeme(config):
@@ -67,14 +78,22 @@ def includeme(config):
     config.include('pyramid_tm')
 
     session_factory = get_session_factory(get_engine(settings))
-    config.registry['dbsession_factory'] = session_factory
-    
-    # make request.dbsession available for use in Pyramid
+    config.registry['dbSession_factory'] = session_factory
+
+    # make request.dbSession available for use in Pyramid
     config.add_request_method(
         # r.tm is the transaction manager used by pyramid_tm
         lambda r: get_tm_session(r, session_factory, r.tm),
-        'dbsession',
+        'dbSession',
         reify=True
     )
     
-    
+    # our logger
+    engine = get_engine(settings, prefix='sqlalchemy_logger.')
+    session_factory_logger = sessionmaker(bind=engine, autocommit=True)
+    config.registry['dbSessionLogger_factory'] = session_factory_logger
+    config.add_request_method(
+        lambda r: get_session_simple(r, session_factory_logger),
+        'dbSessionLogger',
+        reify=True
+    )

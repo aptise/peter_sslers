@@ -33,16 +33,19 @@ class ApiContext(object):
 
     :timestamp: `datetime.datetime.utcnow()`
     :dbSession: - sqlalchemy `session` object
+    :dbSessionLogger: - sqlalchemy `session` object with autocommit
     :dbOperationsEvent: - a topline SslOperationsEvent object for this request, if any
     """
 
     dbOperationsEvent = None
     dbSession = None
+    dbSessionLogger = None
     timestamp = None
 
-    def __init__(self, dbOperationsEvent=None, dbSession=None, timestamp=None, ):
+    def __init__(self, dbOperationsEvent=None, dbSession=None, dbSessionLogger=None, timestamp=None, ):
         self.dbOperationsEvent = dbOperationsEvent
         self.dbSession = dbSession
+        self.dbSessionLogger = dbSessionLogger
         self.timestamp = timestamp
 
 

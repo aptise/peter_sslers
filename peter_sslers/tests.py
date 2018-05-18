@@ -211,7 +211,7 @@ class AppTest(AppTestCore):
 
             print "---------------"
             print "INITIALIZING DB"
-            engine = self.testapp.app.registry['dbsession_factory']().bind
+            engine = self.testapp.app.registry['dbSession_factory']().bind
 
             models.meta.Base.metadata.drop_all(engine)
             engine.execute("VACUUM")
@@ -359,8 +359,10 @@ class AppTest(AppTestCore):
     @property
     def ctx(self):
         if self._ctx is None:
-            dbsession_factory = self.testapp.app.registry['dbsession_factory']
-            self._ctx = lib.utils.ApiContext(dbSession=dbsession_factory(),
+            dbSession_factory = self.testapp.app.registry['dbSession_factory']
+            dbSessionLogger_factory = self.testapp.app.registry['dbSessionLogger_factory']
+            self._ctx = lib.utils.ApiContext(dbSession=dbSession_factory(),
+                                             dbSessionLogger=dbSessionLogger_factory(),
                                              timestamp=datetime.datetime.utcnow(),
                                              )
         return self._ctx

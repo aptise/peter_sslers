@@ -60,7 +60,7 @@ def _b64(b):
 
 
 # helper function make signed requests
-def send_signed_request(url, payload, account_key_path, header):
+def _send_signed_request(url, payload, account_key_path, header):
     payload64 = _b64(json.dumps(payload).encode("utf8"))
     protected = copy.deepcopy(header)
     resp_directory = my_urlopen(CERTIFICATE_AUTHORITY + "/directory")
@@ -112,10 +112,12 @@ def account_key__header_thumbprint(
 
 def acme_register_account(
     header=None,
-    account_key_path=None
+    account_key_path=None,
+    func_log_registration=None,
 ):
     log.info("Registering account...")
-    code, result, headers = send_signed_request(
+    func_log_registration()  # log this to the db
+    code, result, headers = _send_signed_request(
         CERTIFICATE_AUTHORITY + "/acme/new-reg",
         {"resource": "new-reg",
          "agreement": CERTIFICATE_AUTHORITY_AGREEMENT,
@@ -139,14 +141,26 @@ def acme_verify_domains(
     handle_keyauth_cleanup=None,
     thumbprint=None,
     header=None,
+    func_newauthz_log=None,
+    func_challenge_trigger_log=None,
+    func_challenge_polled_log=None,
+    func_challenge_pass_log=None, 
+    func_error_log=None, 
 ):
+    """
+        func_newauthz_log(domain): return (sslAcmeEventLog_new_authz, SslAcmeChallengeLog)
+        func_challenge_trigger_log(SslAcmeChallengeLog):
+    """
 
     # verify each domain
     for domain in csr_domains:
         log.info("Verifying {0}...".format(domain))
 
         # get new challenge
-        code, result, headers = send_signed_request(
+        (sslAcmeEventLog_new_authz,
+         sslAcmeChallengeLog
+         ) = func_newauthz_log(domain=domain)  # log this to the db
+        code, result, headers = _send_signed_request(
             CERTIFICATE_AUTHORITY + "/acme/new-authz",
             {"resource": "new-authz",
              "identifier": {"type": "dns",
@@ -163,6 +177,11 @@ def acme_verify_domains(
         challenge = [c for c in json.loads(result.decode("utf8"))["challenges"] if c["type"] == "http-01"][0]
         token = re.sub(r"[^A-Za-z0-9_\-]", "_", challenge["token"])
         keyauthorization = "{0}.{1}".format(token, thumbprint)
+
+        # update the challenge
+        sslAcmeChallengeLog.set__challenge("http-01", keyauthorization)
+
+        # update the db; this should be integrated with the above
         wellknown_path = handle_keyauth_challenge(domain, token, keyauthorization)
 
         # check that the file is in place
@@ -176,14 +195,19 @@ def acme_verify_domains(
                 assert resp_data == keyauthorization
             except (IOError, AssertionError):
                 handle_keyauth_cleanup(domain, token, keyauthorization)
+                func_error_log(sslAcmeChallengeLog, 'pretest-1')
                 raise errors.DomainVerificationError("Wrote keyauth challenge, but couldn't download {0}".format(wellknown_url))
             except ssl.CertificateError as e:
+                func_error_log(sslAcmeChallengeLog, 'pretest-2')
                 if e.message.startswith('hostname') and ("doesn't match" in e.message):
                     raise errors.DomainVerificationError("Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(wellknown_url, e.message))
                 raise
 
+        # note the challenge
+        func_challenge_trigger_log(sslAcmeChallengeLog)
+
         # if all challenges are active, trigger validation from LetsEncrypt
-        code, result, headers = send_signed_request(
+        code, result, headers = _send_signed_request(
             challenge["uri"],
             {"resource": "challenge",
              "keyAuthorization": keyauthorization,
@@ -198,9 +222,11 @@ def acme_verify_domains(
         # this just pings LetsEncrypt every 2 seconds
         while True:
             try:
+                func_challenge_polled_log(sslAcmeChallengeLog)
                 resp = urlopen(challenge["uri"])
                 challenge_status = json.loads(resp.read().decode("utf8"))
             except IOError as e:
+                func_error_log(sslAcmeChallengeLog, 'fail-1')
                 raise errors.AcmeCommunicationError("Error checking challenge: {0} {1}".format(e.code, json.loads(e.read().decode("utf8"))))
             if challenge_status["status"] == "pending":
                 time.sleep(2)
@@ -209,7 +235,9 @@ def acme_verify_domains(
                 handle_keyauth_cleanup(domain, token, keyauthorization)
                 break
             else:
+                func_error_log(sslAcmeChallengeLog, 'fail-2')
                 raise errors.DomainVerificationError("{0} challenge did not pass: {1}".format(domain, challenge_status))
+        func_challenge_pass_log(sslAcmeChallengeLog)
     return True
 
 
@@ -223,7 +251,7 @@ def acme_sign_certificate(
     proc = subprocess.Popen([cert_utils.openssl_path, "req", "-in", csr_path, "-outform", "DER"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     csr_der, err = proc.communicate()
-    code, result, headers = send_signed_request(
+    code, result, headers = _send_signed_request(
         CERTIFICATE_AUTHORITY + "/acme/new-cert",
         {"resource": "new-cert",
          "csr": _b64(csr_der),
@@ -277,8 +305,7 @@ def acme_sign_certificate(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-__all__ = ('send_signed_request',
-           'account_key__header_thumbprint',
+__all__ = ('account_key__header_thumbprint',
            'acme_register_account',
            'acme_verify_domains',
            'acme_sign_certificate',

@@ -17,6 +17,50 @@ from .. import utils
 # ==============================================================================
 
 
+def get__SslAcmeEventLogs__count(ctx):
+    counted = ctx.dbSession.query(models.SslAcmeEventLog).count()
+    return counted
+
+
+def get__SslAcmeEventLogs__paginated(ctx, limit=None, offset=0):
+    query = ctx.dbSession.query(models.SslAcmeEventLog)\
+        .order_by(models.SslAcmeEventLog.id.desc())\
+        .limit(limit)\
+        .offset(offset)
+    sslAcmeEventLogs = query.all()
+    return sslAcmeEventLogs
+
+
+def get__SslAcmeEventLog__by_id(ctx, id):
+    counted = ctx.dbSession.query(models.SslAcmeEventLog).get(id)
+    return counted
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__SslAcmeChallengeLogs__count(ctx):
+    counted = ctx.dbSession.query(models.SslAcmeChallengeLog).count()
+    return counted
+
+
+def get__SslAcmeChallengeLogs__paginated(ctx, limit=None, offset=0):
+    query = ctx.dbSession.query(models.SslAcmeChallengeLog)\
+        .order_by(models.SslAcmeChallengeLog.id.desc())\
+        .limit(limit)\
+        .offset(offset)
+    dnSslAcmeChallengeLogs = query.all()
+    return dnSslAcmeChallengeLogs
+
+
+def get__SslAcmeChallengeLog__by_id(ctx, id):
+    counted = ctx.dbSession.query(models.SslAcmeChallengeLog).get(id)
+    return counted
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__SslAcmeAccountKey__count(ctx):
     counted = ctx.dbSession.query(models.SslAcmeAccountKey).count()
     return counted

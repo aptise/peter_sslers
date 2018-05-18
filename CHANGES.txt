@@ -24,12 +24,15 @@
 	ALTER TABLE ssl_acme_account_key ADD acme_account_provider_id INTEGER;
 	UPDATE ssl_acme_account_key SET acme_account_provider_id = 2;
 	ALTER TABLE ssl_acme_account_key ALTER acme_account_provider_id SET NOT NULL;
+
+	ALTER TABLE ssl_operations_object_event RENAME ssl_letsencrypt_account_key_id TO ssl_acme_account_key_id;
 	
 - SQLITE Check
     PRAGMA table_info(ssl_private_key);
     PRAGMA table_info(ssl_queue_renewal);
 	PRAGMA table_info(ssl_certificate_request);
 	PRAGMA table_info(ssl_server_certificate);
+	PRAGMA table_info(ssl_operations_object_event);
 
 - centralized some json list views into the main views
 - centralized json representation into the model. used as_json instead of the encoder hook for now.
@@ -51,6 +54,7 @@
 - renamed `ssl_letsencrypt_account_key` to `ssl_acme_account_key`
 - renamed `letsencrypt_account_key` to `acme_account_key`
 - `getcreate__SslAcmeAccountKey__by_pem_text` now requires acmeAccountProvider
+- add acme-event-log and acme-challenge-log
 
 0.1.5
 2018.01.15

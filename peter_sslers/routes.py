@@ -89,6 +89,15 @@ def _admin_views(config):
     config.add_route_7('admin:api:queue_renewals:process', '/api/queue-renewals/process')
     config.add_route_7('admin:api:queue_renewals:process|json', '/api/queue-renewals/process.json')
 
+
+    # CertificateAuthority Certificates
+    config.add_route_7('admin:acme_event_log', '/acme-event-logs')
+    config.add_route_7('admin:acme_event_log_paginated', '/acme-event-logs/{@page}')
+    config.add_route_7('admin:acme_event_log:focus', '/acme-event-log/{@id}')
+    config.add_route_7('admin:acme_challenge_log', '/acme-challenge-logs')
+    config.add_route_7('admin:acme_challenge_log_paginated', '/acme-challenge-logs/{@page}')
+    config.add_route_7('admin:acme_challenge_log:focus', '/acme-challenge-log/{@id}')
+
     # CertificateAuthority Certificates
     config.add_route_7('admin:ca_certificates', '/ca-certificates')
     config.add_route_7('admin:ca_certificates_paginated', '/ca-certificates/{@page}')
