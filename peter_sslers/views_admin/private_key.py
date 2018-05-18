@@ -91,7 +91,7 @@ class ViewAdmin(Handler):
             as_der = lib.cert_utils.convert_pem_to_der(pem_data=dbPrivateKey.key_pem)
             return as_der
 
-    @view_config(route_name='admin:private_key:focus:parse.json', renderer='json')
+    @view_config(route_name='admin:private_key:focus:parse|json', renderer='json')
     def private_key_focus_parse_json(self):
         dbPrivateKey = self._private_key_focus()
         return {"%s" % dbPrivateKey.id: lib.cert_utils.parse_key(key_pem=dbPrivateKey.key_pem),
@@ -173,8 +173,9 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:private_key:focus:mark', renderer=None)
-    @view_config(route_name='admin:private_key:focus:mark.json', renderer='json')
+    @view_config(route_name='admin:private_key:focus:mark|json', renderer='json')
     def private_key_focus_mark(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbPrivateKey = self._private_key_focus()
         action = '!MISSING or !INVALID'
         try:

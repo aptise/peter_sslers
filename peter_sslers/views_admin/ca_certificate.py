@@ -93,8 +93,9 @@ class ViewAdmin(Handler):
             return response
         return 'chain.?'
 
-    @view_config(route_name='admin:ca_certificate:focus:parse.json', renderer='json')
+    @view_config(route_name='admin:ca_certificate:focus:parse|json', renderer='json')
     def ca_certificate_focus_parse_json(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbCaCertificate = self._ca_certificate_focus()
         return {"%s" % dbCaCertificate.id: lib.cert_utils.parse_cert(cert_pem=dbCaCertificate.cert_pem),
                 }
@@ -120,14 +121,15 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:ca_certificate:upload')
-    @view_config(route_name='admin:ca_certificate:upload.json', renderer='json')
+    @view_config(route_name='admin:ca_certificate:upload|json', renderer='json')
     def ca_certificate_upload(self):
         if self.request.method == 'POST':
             return self._ca_certificate_upload__submit()
         return self._ca_certificate_upload__print()
 
     def _ca_certificate_upload__print(self):
-        if self.request.matched_route.name == 'admin:ca_certificate:upload.json':
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
             return {'instructions': """curl --form 'chain_file=@chain1.pem' --form %s/ca-certificate/upload.json""" % self.request.admin_url,
                     'form_fields': {'chain_file': 'required',
                                     },
@@ -135,6 +137,7 @@ class ViewAdmin(Handler):
         return render_to_response("/admin/ca_certificate-new.mako", {}, self.request)
 
     def _ca_certificate_upload__submit(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_CACertificate_Upload__file,
@@ -153,7 +156,7 @@ class ViewAdmin(Handler):
                 chain_file_name
             )
 
-            if self.request.matched_route.name == 'admin:ca_certificate:upload.json':
+            if wants_json:
                 return {'result': 'success',
                         'ca_certificate': {'created': cacert_is_created,
                                            'id': dbCaCertificate.id,
@@ -167,7 +170,7 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            if self.request.matched_route.name == 'admin:ca_certificate:upload.json':
+            if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
@@ -180,14 +183,15 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:ca_certificate:upload_bundle')
-    @view_config(route_name='admin:ca_certificate:upload_bundle.json', renderer='json')
+    @view_config(route_name='admin:ca_certificate:upload_bundle|json', renderer='json')
     def ca_certificate_upload_bundle(self):
         if self.request.method == 'POST':
             return self._ca_certificate_upload_bundle__submit()
         return self._ca_certificate_upload_bundle__print()
 
     def _ca_certificate_upload_bundle__print(self):
-        if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle.json':
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
             _instructions = ["curl --form 'isrgrootx1_file=@isrgrootx1.pem'", ]
             _form_fields = {'isrgrootx1_file': 'optional'}
             for xi in lib.letsencrypt_info.CA_CROSS_SIGNED_X:
@@ -209,6 +213,7 @@ class ViewAdmin(Handler):
                                   self.request)
 
     def _ca_certificate_upload_bundle__submit(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_CACertificate_UploadBundle__file,
@@ -245,7 +250,7 @@ class ViewAdmin(Handler):
                 bundle_data
             )
 
-            if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle.json':
+            if wants_json:
                 rval = {'result': 'success'
                         }
                 for (cert_type, cert_result) in dbResults.items():
@@ -261,7 +266,7 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            if self.request.matched_route.name == 'admin:ca_certificate:upload_bundle.json':
+            if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }

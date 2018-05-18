@@ -51,7 +51,7 @@ class ViewAdmin(Handler):
             sidenav_option = 'expiring'
             url_template = '%s/certificates/expiring/{0}' % self.request.registry.settings['admin_prefix']
             if wants_json:
-                url_template = "%s.json" % wants_json
+                url_template = "%s.json" % url_template
             items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context, expiring_days=expiring_days)
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
@@ -59,7 +59,7 @@ class ViewAdmin(Handler):
             sidenav_option = 'all'
             url_template = '%s/certificates/{0}' % self.request.registry.settings['admin_prefix']
             if wants_json:
-                url_template = "%s.json" % wants_json
+                url_template = "%s.json" % url_template
             items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context)
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, limit=items_per_page, offset=offset, eagerload_web=True)
@@ -90,7 +90,8 @@ class ViewAdmin(Handler):
         return self._certificate_upload__print()
 
     def _certificate_upload__print(self):
-        if self.request.matched_route.name == 'admin:certificate:upload.json':
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
             return {'instructions': """curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' %s/certificate/upload.json""" % self.request.admin_url,
                     'form_fields': {'private_key_file': 'required',
                                     'chain_file': 'required',
@@ -100,6 +101,7 @@ class ViewAdmin(Handler):
         return render_to_response("/admin/certificate-upload.mako", {}, self.request)
 
     def _certificate_upload__submit(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_Certificate_Upload__file,
@@ -135,7 +137,7 @@ class ViewAdmin(Handler):
                 dbAccountKey=None,
             )
 
-            if self.request.matched_route.name == 'admin:certificate:upload.json':
+            if wants_json:
                 return {'result': 'success',
                         'certificate': {'created': cert_is_created,
                                         'id': dbServerCertificate.id,
@@ -156,7 +158,7 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            if self.request.matched_route.name == 'admin:certificate:upload.json':
+            if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
@@ -256,7 +258,7 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:certificate:focus:config_json', renderer='json')
+    @view_config(route_name='admin:certificate:focus:config|json', renderer='json')
     def certificate_focus_config_json(self):
         dbServerCertificate = self._certificate_focus()
         if self.request.params.get('idonly', None):
@@ -270,6 +272,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:nginx_cache_expire', renderer=None)
     @view_config(route_name='admin:certificate:focus:nginx_cache_expire|json', renderer='json')
     def certificate_focus_nginx_expire(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbServerCertificate = self._certificate_focus()
         if not self.request.registry.settings['enable_nginx']:
             raise HTTPFound('%s/certificate/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id))
@@ -277,7 +280,7 @@ class ViewAdmin(Handler):
 
         # this will generate it's own log__SslOperationsEvent
         success, dbEvent = lib.utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=dbDomains)
-        if self.request.matched_route.name == 'admin:certificate:focus:nginx_cache_expire.json':
+        if wants_json:
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },

@@ -182,7 +182,7 @@ def acme_verify_domains(
                     raise errors.DomainVerificationError("Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(wellknown_url, e.message))
                 raise
 
-        # notify challenge are met
+        # if all challenges are active, trigger validation from LetsEncrypt
         code, result, headers = send_signed_request(
             challenge["uri"],
             {"resource": "challenge",
@@ -195,6 +195,7 @@ def acme_verify_domains(
             raise errors.AcmeCommunicationError("Error triggering challenge: {0} {1}".format(code, result))
 
         # wait for challenge to be verified
+        # this just pings LetsEncrypt every 2 seconds
         while True:
             try:
                 resp = urlopen(challenge["uri"])

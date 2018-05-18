@@ -48,8 +48,8 @@ def _admin_views(config):
     config.add_route_7('admin:account_keys_paginated|json', '/account-keys/{@page}.json')
     config.add_route_7('admin:account_key:focus', '/account-key/{@id}')
     config.add_route_7('admin:account_key:focus|json', '/account-key/{@id}.json')
-    config.add_route_7('admin:account_key:focus:config_json', '/account-key/{@id}/config.json')
-    config.add_route_7('admin:account_key:focus:parse.json', '/account-key/{@id}/parse.json')
+    config.add_route_7('admin:account_key:focus:config|json', '/account-key/{@id}/config.json')
+    config.add_route_7('admin:account_key:focus:parse|json', '/account-key/{@id}/parse.json')
     config.add_route_7('admin:account_key:focus:raw', '/account-key/{@id}/key.{format:(key|pem|pem.txt)}')
     config.add_route_7('admin:account_key:focus:certificate_requests', '/account-key/{@id}/certificate-requests')
     config.add_route_7('admin:account_key:focus:certificate_requests_paginated', '/account-key/{@id}/certificate-requests/{@page}')
@@ -57,7 +57,7 @@ def _admin_views(config):
     config.add_route_7('admin:account_key:focus:certificates_paginated', '/account-key/{@id}/certificates/{@page}')
     config.add_route_7('admin:account_key:focus:authenticate', '/account-key/{@id}/authenticate')
     config.add_route_7('admin:account_key:focus:mark', '/account-key/{@id}/mark')
-    config.add_route_7('admin:account_key:focus:mark.json', '/account-key/{@id}/mark.json')
+    config.add_route_7('admin:account_key:focus:mark|json', '/account-key/{@id}/mark.json')
     config.add_route_7('admin:account_key:new', '/account-key/new')
 
     # Admin API Items
@@ -67,23 +67,23 @@ def _admin_views(config):
     config.add_route_7('admin:api:domain:certificate-if-needed', '/api/domain/certificate-if-needed')
     # -
     config.add_route_7('admin:api:deactivate_expired', '/api/deactivate-expired')
-    config.add_route_7('admin:api:deactivate_expired.json', '/api/deactivate-expired.json')
+    config.add_route_7('admin:api:deactivate_expired|json', '/api/deactivate-expired.json')
     # -
     config.add_route_7('admin:api:ca_certificate_probes:probe', '/api/ca-certificate-probes/probe')
-    config.add_route_7('admin:api:ca_certificate_probes:probe.json', '/api/ca-certificate-probes/probe.json')
+    config.add_route_7('admin:api:ca_certificate_probes:probe|json', '/api/ca-certificate-probes/probe.json')
     config.add_route_7('admin:api:nginx:cache_flush', '/api/nginx/cache-flush')
-    config.add_route_7('admin:api:nginx:cache_flush.json', '/api/nginx/cache-flush.json')
+    config.add_route_7('admin:api:nginx:cache_flush|json', '/api/nginx/cache-flush.json')
     config.add_route_7('admin:api:redis:prime', '/api/redis/prime')
-    config.add_route_7('admin:api:redis:prime.json', '/api/redis/prime.json')
-    config.add_route_7('admin:api:nginx:status.json', '/api/nginx/status.json')
+    config.add_route_7('admin:api:redis:prime|json', '/api/redis/prime.json')
+    config.add_route_7('admin:api:nginx:status|json', '/api/nginx/status.json')
     # -
     config.add_route_7('admin:api:update_recents', '/api/update-recents')
-    config.add_route_7('admin:api:update_recents.json', '/api/update-recents.json')
+    config.add_route_7('admin:api:update_recents|json', '/api/update-recents.json')
 
     config.add_route_7('admin:api:queue_renewals:update', '/api/queue-renewals/update')
-    config.add_route_7('admin:api:queue_renewals:update.json', '/api/queue-renewals/update.json')
+    config.add_route_7('admin:api:queue_renewals:update|json', '/api/queue-renewals/update.json')
     config.add_route_7('admin:api:queue_renewals:process', '/api/queue-renewals/process')
-    config.add_route_7('admin:api:queue_renewals:process.json', '/api/queue-renewals/process.json')
+    config.add_route_7('admin:api:queue_renewals:process|json', '/api/queue-renewals/process.json')
 
     # CertificateAuthority Certificates
     config.add_route_7('admin:ca_certificates', '/ca-certificates')
@@ -92,14 +92,14 @@ def _admin_views(config):
     config.add_route_7('admin:ca_certificates_paginated|json', '/ca-certificates/{@page}.json')
 
     config.add_route_7('admin:ca_certificate:focus', '/ca-certificate/{@id}')
-    config.add_route_7('admin:ca_certificate:focus:parse.json', '/ca-certificate/{@id}/parse.json')
+    config.add_route_7('admin:ca_certificate:focus:parse|json', '/ca-certificate/{@id}/parse.json')
     config.add_route_7('admin:ca_certificate:focus:raw', '/ca-certificate/{@id}/chain.{format:(cer|crt|der|pem|pem.txt)}')
     config.add_route_7('admin:ca_certificate:focus:certificates_signed', '/ca-certificate/{@id}/certificates-signed')
     config.add_route_7('admin:ca_certificate:focus:certificates_signed_paginated', '/ca-certificate/{@id}/certificates-signed/{@page}')
     config.add_route_7('admin:ca_certificate:upload', '/ca-certificate/upload')
-    config.add_route_7('admin:ca_certificate:upload.json', '/ca-certificate/upload.json')
+    config.add_route_7('admin:ca_certificate:upload|json', '/ca-certificate/upload.json')
     config.add_route_7('admin:ca_certificate:upload_bundle', '/ca-certificate/upload-bundle')
-    config.add_route_7('admin:ca_certificate:upload_bundle.json', '/ca-certificate/upload-bundle.json')
+    config.add_route_7('admin:ca_certificate:upload_bundle|json', '/ca-certificate/upload-bundle.json')
 
     # Certificates
     config.add_route_7('admin:certificates', '/certificates')
@@ -112,7 +112,7 @@ def _admin_views(config):
     config.add_route_7('admin:certificates:expiring_paginated|json', '/certificates/expiring/{@page}.json')
     config.add_route_7('admin:certificate:focus', '/certificate/{@id}')
     config.add_route_7('admin:certificate:focus|json', '/certificate/{@id}.json')
-    config.add_route_7('admin:certificate:focus:config_json', '/certificate/{@id}/config.json')
+    config.add_route_7('admin:certificate:focus:config|json', '/certificate/{@id}/config.json')
     config.add_route_7('admin:certificate:focus:parse|json', '/certificate/{@id}/parse.json')
     config.add_route_7('admin:certificate:focus:chain:raw', '/certificate/{@id}/chain.{format:(cer|crt|der|pem|pem.txt)}')
     config.add_route_7('admin:certificate:focus:fullchain:raw', '/certificate/{@id}/fullchain.{format:(pem|pem.txt)}')
@@ -151,7 +151,7 @@ def _admin_views(config):
     config.add_route_7('admin:domains_paginated', '/domains/{@page}')
     config.add_route_7('admin:domains:expiring', '/domains/expiring')
     config.add_route_7('admin:domains:expiring_paginated', '/domains/expiring/{@page}')
-    config.add_route_7('admin:domains|json', '/domains.json')
+    config.add_route_7('admin:domains|json', '/domains|json')
     config.add_route_7('admin:domains_paginated|json', '/domains/{@page}.json')
     config.add_route_7('admin:domains:expiring|json', '/domains/expiring.json')
     config.add_route_7('admin:domains:expiring_paginated|json', '/domains/expiring/{@page}.json')
@@ -160,9 +160,9 @@ def _admin_views(config):
     config.add_route_7('admin:domain:focus', '/domain/{domain_identifier}')
     # config.add_route_7('admin:domain:focus_name', '/domain/{domain_identifier}')
     # config.add_route_7('admin:domain:focus_name|json', '/domain/{domain_identifier}.json')
-    config.add_route_7('admin:domain:focus:config_json', '/domain/{domain_identifier}/config.json')
+    config.add_route_7('admin:domain:focus:config|json', '/domain/{domain_identifier}/config.json')
     config.add_route_7('admin:domain:focus:nginx_cache_expire', '/domain/{domain_identifier}/nginx-cache-expire')
-    config.add_route_7('admin:domain:focus:nginx_cache_expire.json', '/domain/{domain_identifier}/nginx-cache-expire.json')
+    config.add_route_7('admin:domain:focus:nginx_cache_expire|json', '/domain/{domain_identifier}/nginx-cache-expire.json')
     config.add_route_7('admin:domain:focus:certificates', '/domain/{domain_identifier}/certificates')
     config.add_route_7('admin:domain:focus:certificates_paginated', '/domain/{domain_identifier}/certificates/{@page}')
     config.add_route_7('admin:domain:focus:certificate_requests', '/domain/{domain_identifier}/certificate-requests')
@@ -171,7 +171,7 @@ def _admin_views(config):
     config.add_route_7('admin:domain:focus:unique_fqdn_sets', '/domain/{domain_identifier}/unique-fqdn-sets')
     config.add_route_7('admin:domain:focus:unique_fqdn_sets_paginated', '/domain/{domain_identifier}/unique-fqdn-sets/{@page}')
     config.add_route_7('admin:domain:focus:mark', '/domain/{domain_identifier}/mark')
-    config.add_route_7('admin:domain:focus:mark.json', '/domain/{domain_identifier}/mark.json')
+    config.add_route_7('admin:domain:focus:mark|json', '/domain/{domain_identifier}/mark.json')
 
     # Operations & sync events
     config.add_route_7('admin:operations', '/operations')
@@ -200,14 +200,14 @@ def _admin_views(config):
     config.add_route_7('admin:private_keys_paginated|json', '/private-keys/{@page}.json')
     config.add_route_7('admin:private_key:focus', '/private-key/{@id}')
     config.add_route_7('admin:private_key:focus|json', '/private-key/{@id}.json')
-    config.add_route_7('admin:private_key:focus:parse.json', '/private-key/{@id}/parse.json')
+    config.add_route_7('admin:private_key:focus:parse|json', '/private-key/{@id}/parse.json')
     config.add_route_7('admin:private_key:focus:raw', '/private-key/{@id}/key.{format:(key|pem|pem.txt)}')
     config.add_route_7('admin:private_key:focus:certificates', '/private-key/{@id}/certificates')
     config.add_route_7('admin:private_key:focus:certificates_paginated', '/private-key/{@id}/certificates/{@page}')
     config.add_route_7('admin:private_key:focus:certificate_requests', '/private-key/{@id}/certificate-requests')
     config.add_route_7('admin:private_key:focus:certificate_requests_paginated', '/private-key/{@id}/certificate-requests/{@page}')
     config.add_route_7('admin:private_key:focus:mark', '/private-key/{@id}/mark')
-    config.add_route_7('admin:private_key:focus:mark.json', '/private-key/{@id}/mark.json')
+    config.add_route_7('admin:private_key:focus:mark|json', '/private-key/{@id}/mark.json')
     config.add_route_7('admin:private_key:new', '/private-key/new')
 
     # Domains can be queued in for batch processing
@@ -216,12 +216,12 @@ def _admin_views(config):
     config.add_route_7('admin:queue_domains:all', '/queue-domains/all')
     config.add_route_7('admin:queue_domains:all_paginated', '/queue-domains/all/{@page}')
     config.add_route_7('admin:queue_domains:add', '/queue-domains/add')
-    config.add_route_7('admin:queue_domains:add.json', '/queue-domains/add.json')
+    config.add_route_7('admin:queue_domains:add|json', '/queue-domains/add.json')
     config.add_route_7('admin:queue_domains:process', '/queue-domains/process')
-    config.add_route_7('admin:queue_domains:process.json', '/queue-domains/process.json')
+    config.add_route_7('admin:queue_domains:process|json', '/queue-domains/process.json')
     config.add_route_7('admin:queue_domain:focus', '/queue-domain/{@id}')
     config.add_route_7('admin:queue_domain:focus:mark', '/queue-domain/{@id}/mark')
-    config.add_route_7('admin:queue_domain:focus:mark.json', '/queue-domain/{@id}/mark.json')
+    config.add_route_7('admin:queue_domain:focus:mark|json', '/queue-domain/{@id}/mark.json')
 
     # Unique FQDN Sets are tied to Certs and Ratelimits
     config.add_route_7('admin:queue_renewals', '/queue-renewals')
@@ -232,7 +232,7 @@ def _admin_views(config):
     config.add_route_7('admin:queue_renewals:active_failures_paginated', '/queue-renewals/active-failures/{@page}')
     config.add_route_7('admin:queue_renewal:focus', '/queue-renewal/{@id}')
     config.add_route_7('admin:queue_renewal:focus:mark', '/queue-renewal/{@id}/mark')
-    config.add_route_7('admin:queue_renewal:focus:mark.json', '/queue-renewal/{@id}/mark.json')
+    config.add_route_7('admin:queue_renewal:focus:mark|json', '/queue-renewal/{@id}/mark.json')
 
     # Unique FQDN Sets are tied to Certs and Ratelimits
     config.add_route_7('admin:unique_fqdn_sets', '/unique-fqdn-sets')

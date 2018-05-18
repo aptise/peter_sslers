@@ -95,7 +95,7 @@ class ViewAdmin(Handler):
             as_der = lib.cert_utils.convert_pem_to_der(pem_data=dbLetsEncryptAccountKey.key_pem)
             return as_der
 
-    @view_config(route_name='admin:account_key:focus:parse.json', renderer='json')
+    @view_config(route_name='admin:account_key:focus:parse|json', renderer='json')
     def account_key_focus_parse_json(self):
         dbLetsEncryptAccountKey = self._account_key_focus()
         return {"%s" % dbLetsEncryptAccountKey.id: lib.cert_utils.parse_key(key_pem=dbLetsEncryptAccountKey.key_pem),
@@ -103,7 +103,7 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:account_key:focus:config_json', renderer='json')
+    @view_config(route_name='admin:account_key:focus:config|json', renderer='json')
     def account_key_focus_config_json(self):
         dbLetsEncryptAccountKey = self._account_key_focus(eagerload_web=True)
         return {'id': dbLetsEncryptAccountKey.id,
@@ -198,7 +198,7 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:account_key:focus:mark', renderer=None)
-    @view_config(route_name='admin:account_key:focus:mark.json', renderer='json')
+    @view_config(route_name='admin:account_key:focus:mark|json', renderer='json')
     def account_key_focus_mark(self):
         dbLetsEncryptAccountKey = self._account_key_focus()
         action = '!MISSING or !INVALID'

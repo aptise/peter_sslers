@@ -40,10 +40,11 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:api:update_recents', renderer=None)
-    @view_config(route_name='admin:api:update_recents.json', renderer='json')
+    @view_config(route_name='admin:api:update_recents|json', renderer='json')
     def api_update_recents(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         operations_event = lib_db.actions.operations_update_recents(self.request.api_context)
-        if self.request.matched_route.name == 'admin:api:update_recents.json':
+        if wants_json:
             return {'result': 'success',
                     'operations_event': operations_event.id,
                     }
@@ -52,8 +53,9 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:api:deactivate_expired', renderer=None)
-    @view_config(route_name='admin:api:deactivate_expired.json', renderer='json')
+    @view_config(route_name='admin:api:deactivate_expired|json', renderer='json')
     def api_deactivate_expired(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         rval = {}
         operations_event = lib_db.actions.operations_deactivate_expired(self.request.api_context)
         count_deactivated_expired = operations_event.event_payload_json['count_deactivated']
@@ -62,7 +64,7 @@ class ViewAdmin(Handler):
         rval['result'] = 'success'
         rval['operations_event'] = operations_event.id
 
-        if self.request.matched_route.name == 'admin:api:deactivate_expired.json':
+        if wants_json:
             return rval
 
         return HTTPFound('%s/operations/log?result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], operations_event.id))
@@ -228,8 +230,9 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @view_config(route_name='admin:api:redis:prime', renderer=None)
-    @view_config(route_name='admin:api:redis:prime.json', renderer='json')
+    @view_config(route_name='admin:api:redis:prime|json', renderer='json')
     def admin_redis_prime(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         self._ensure_redis()
 
         prime_style = lib.utils.redis_prime_style(self.request)
@@ -377,7 +380,7 @@ class ViewAdmin(Handler):
                                                         models.SslOperationsEventType.from_string('operations__redis_prime'),
                                                         event_payload_dict,
                                                         )
-        if self.request.matched_route.name == 'admin:api:redis:prime.json':
+        if wants_json:
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          'total_primed': dbEvent.event_payload_json['total_primed'],
@@ -389,11 +392,12 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:api:nginx:cache_flush', renderer=None)
-    @view_config(route_name='admin:api:nginx:cache_flush.json', renderer='json')
+    @view_config(route_name='admin:api:nginx:cache_flush|json', renderer='json')
     def admin_nginx_cache_flush(self):
         self._ensure_nginx()
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         success, dbEvent, servers_status = lib.utils.nginx_flush_cache(self.request, self.request.api_context)
-        if self.request.matched_route.name == 'admin:api:nginx:cache_flush.json':
+        if wants_json:
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
@@ -404,8 +408,9 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:api:nginx:status.json', renderer='json')
+    @view_config(route_name='admin:api:nginx:status|json', renderer='json')
     def admin_nginx_status(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         self._ensure_nginx()
         servers_status = lib.utils.nginx_status(self.request, self.request.api_context)
         return {'result': 'success',
@@ -416,12 +421,13 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:api:ca_certificate_probes:probe', renderer=None)
-    @view_config(route_name='admin:api:ca_certificate_probes:probe.json', renderer='json')
+    @view_config(route_name='admin:api:ca_certificate_probes:probe|json', renderer='json')
     def ca_certificate_probes__probe(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
 
         operations_event = lib_db.actions.ca_certificate_probe(self.request.api_context)
 
-        if self.request.matched_route.name == 'admin:api:ca_certificate_probes:probe.json':
+        if wants_json:
             return {'result': 'success',
                     'operations_event': {'id': operations_event.id,
                                          'is_certificates_discovered': operations_event.event_payload_json['is_certificates_discovered'],
@@ -433,17 +439,18 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:api:queue_renewals:update', renderer=None)
-    @view_config(route_name='admin:api:queue_renewals:update.json', renderer='json')
+    @view_config(route_name='admin:api:queue_renewals:update|json', renderer='json')
     def queue_renewal_update(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             queue_results = lib_db.queues.queue_renewals__update(self.request.api_context)
-            if self.request.matched_route.name == 'admin:api:queue_renewals:update.json':
+            if wants_json:
                 return {'result': 'success',
                         }
             return HTTPFound("%s/queue-renewals?update=1" % self.request.registry.settings['admin_prefix'])
         except Exception as e:
             transaction.abort()
-            if self.request.matched_route.name == 'admin:api:queue_renewals:update.json':
+            if wants_json:
                 return {'result': 'error',
                         'error': e.message,
                         }
@@ -452,11 +459,12 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:api:queue_renewals:process', renderer=None)
-    @view_config(route_name='admin:api:queue_renewals:process.json', renderer='json')
+    @view_config(route_name='admin:api:queue_renewals:process|json', renderer='json')
     def queue_renewal_process(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             queue_results = lib_db.queues.queue_renewals__process(self.request.api_context)
-            if self.request.matched_route.name == 'admin:api:queue_renewals:process.json':
+            if wants_json:
                 return {'result': 'success',
                         'queue_results': queue_results,
                         }
@@ -465,7 +473,7 @@ class ViewAdmin(Handler):
             return HTTPFound("%s/queue-renewals?process=1&results=%s" % (self.request.registry.settings['admin_prefix'], queue_results))
         except Exception as e:
             transaction.abort()
-            if self.request.matched_route.name == 'admin:api:queue_renewals:process.json':
+            if wants_json:
                 return {'result': 'error',
                         'error': e.message,
                         }

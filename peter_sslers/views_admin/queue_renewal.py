@@ -101,8 +101,9 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:queue_renewal:focus:mark', renderer=None)
-    @view_config(route_name='admin:queue_renewal:focus:mark.json', renderer='json')
+    @view_config(route_name='admin:queue_renewal:focus:mark|json', renderer='json')
     def queue_renewal_focus_mark(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbQueueRenewal = self._queue_renewal_focus()
         action = '!MISSING or !INVALID'
         try:

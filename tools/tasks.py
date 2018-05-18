@@ -50,16 +50,16 @@ def upload_fileset(server_url_root, fset):
 @task(help={'archive_path': "Path to letsencrypt archive files.",
             'server_url_root': "URL of server to post to, do not include `.well-known`",
             })
-def import_letsencrypt_certs_archive(archive_path, server_url_root):
+def import_letsencrypt_certs_archive(c, archive_path, server_url_root):
     """imports the entire letescrypt archive on `archive_path`
     HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC
 
     usage:
-        invoke import_letsencrypt_certs_archive --archive-path="/path/to/archive" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
+        invoke import-letsencrypt-certs-archive --archive-path="/path/to/archive" server-url-root="http://0.0.0.0:7201/.well-known/admin"
     """
     if not archive_path:
         raise ValueError("missing `archive-path`")
-
+        
     if server_url_root[:4] != 'http':
         raise ValueError("`server_url_root` does not look like a url")
 
@@ -106,7 +106,7 @@ def import_letsencrypt_certs_archive(archive_path, server_url_root):
             'certificate_version': "digit. the certificate version you want.",
             'server_url_root': "URL of server to post to, do not include `.well-known`",
             })
-def import_letsencrypt_cert_version(domain_certs_path, certificate_version, server_url_root):
+def import_letsencrypt_cert_version(c, domain_certs_path, certificate_version, server_url_root):
     """imports the archive path for a version
 
     eg, if a folder has a family of certs numbered like this:
@@ -151,7 +151,7 @@ def import_letsencrypt_cert_version(domain_certs_path, certificate_version, serv
 @task(help={'cert_path': "Path to cert folder.",
             'server_url_root': "URL of server to post to, do not include `.well-known`",
             })
-def import_letsencrypt_cert_plain(cert_path, server_url_root):
+def import_letsencrypt_cert_plain(c, cert_path, server_url_root):
     """imports the certificate for a folder, given an unversioned content structure:
 
         /domain-cert/certificate.pem
@@ -189,7 +189,7 @@ def import_letsencrypt_cert_plain(cert_path, server_url_root):
 @task(help={'live_path': "Path to letsencrypt live files. should be `/etc/letsencrypt/live`",
             'server_url_root': "URL of server to post to, do not include `.well-known`",
             })
-def import_letsencrypt_certs_live(live_path, server_url_root):
+def import_letsencrypt_certs_live(c, live_path, server_url_root):
     """imports the letsencrypt live archive  in /etc/letsencrypt/live
 
     usage:

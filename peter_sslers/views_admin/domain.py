@@ -101,20 +101,21 @@ class ViewAdmin(Handler):
                 }
 
     @view_config(route_name='admin:domain:focus:nginx_cache_expire', renderer=None)
-    @view_config(route_name='admin:domain:focus:nginx_cache_expire.json', renderer='json')
+    @view_config(route_name='admin:domain:focus:nginx_cache_expire|json', renderer='json')
     def domain_focus_nginx_expire(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbDomain = self._domain_focus(eagerload_web=True)
         if not self.request.registry.settings['enable_nginx']:
             raise HTTPFound('%s/domain/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
         success, dbEvent = lib.utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=[dbDomain, ])
-        if self.request.matched_route.name == 'admin:domain:focus:nginx_cache_expire.json':
+        if wants_json:
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
                     }
         return HTTPFound('%s/domain/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbDomain.id, dbEvent.id))
 
-    @view_config(route_name='admin:domain:focus:config_json', renderer='json')
+    @view_config(route_name='admin:domain:focus:config|json', renderer='json')
     def domain_focus_config_json(self):
         dbDomain = self._domain_focus()
         rval = {'domain': {'id': str(dbDomain.id),
@@ -210,8 +211,9 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:domain:focus:mark', renderer=None)
-    @view_config(route_name='admin:domain:focus:mark.json', renderer='json')
+    @view_config(route_name='admin:domain:focus:mark|json', renderer='json')
     def domain_focus_mark(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbDomain = self._domain_focus()
         action = '!MISSING or !INVALID'
         try:

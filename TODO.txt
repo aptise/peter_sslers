@@ -8,6 +8,8 @@ asap tasks
 * log full actual results; if a queue fails log that data too
 * CSR should have domain[0] as subject if there are multiple domains | note: letsencrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
+* queue_renewal_focus_mark - return JSON
+* log pending validations
 
 deferred tasks
 ---------------

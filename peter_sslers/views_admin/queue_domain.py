@@ -59,14 +59,15 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:queue_domains:add')
-    @view_config(route_name='admin:queue_domains:add.json', renderer='json')
+    @view_config(route_name='admin:queue_domains:add|json', renderer='json')
     def queue_domains_add(self):
         if self.request.method == 'POST':
             return self._queue_domains_add__submit()
         return self._queue_domains_add__print()
 
     def _queue_domains_add__print(self):
-        if self.request.matched_route.name == 'admin:queue_domains:add.json':
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
             return {'instructions': """POST `domain_names""",
                     'form_fields': {'domain_names': 'required',
                                     },
@@ -74,6 +75,7 @@ class ViewAdmin(Handler):
         return render_to_response("/admin/queue-domains-add.mako", {}, self.request)
 
     def _queue_domains_add__submit(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_QueueDomains_add,
@@ -94,7 +96,7 @@ class ViewAdmin(Handler):
                                                              domain_names,
                                                              )
 
-            if self.request.matched_route.name == 'admin:queue_domains:add.json':
+            if wants_json:
                 return {'result': 'success',
                         'domains': queue_results,
                         }
@@ -107,7 +109,7 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
-            if self.request.matched_route.name == 'admin:queue_domains:add.json':
+            if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
@@ -120,25 +122,26 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:queue_domains:process', renderer=None)
-    @view_config(route_name='admin:queue_domains:process.json', renderer='json')
+    @view_config(route_name='admin:queue_domains:process|json', renderer='json')
     def queue_domain_process(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             queue_results = lib_db.queues.queue_domains__process(self.request.api_context)
-            if self.request.matched_route.name == 'admin:queue_domains:process.json':
+            if wants_json:
                 return {'result': 'success',
                         }
             return HTTPFound("%s/queue-domains?processed=1" % self.request.registry.settings['admin_prefix'])
         except (errors.DisplayableError, errors.DomainVerificationError) as e:
             # return, don't raise
             # we still commit the bookkeeping
-            if self.request.matched_route.name == 'admin:queue_domains:process.json':
+            if wants_json:
                 return {'result': 'error',
                         'error': e.message,
                         }
             return HTTPFound("%s/queue-domains?processed=0&error=%s" % (self.request.registry.settings['admin_prefix'], e.message))
         except Exception as e:
             transaction.abort()
-            if self.request.matched_route.name == 'admin:queue_domains:process.json':
+            if wants_json:
                 return {'result': 'error',
                         'error': e.message,
                         }
@@ -162,8 +165,9 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:queue_domain:focus:mark', renderer=None)
-    @view_config(route_name='admin:queue_domain:focus:mark.json', renderer='json')
+    @view_config(route_name='admin:queue_domain:focus:mark|json', renderer='json')
     def queue_domain_focus_mark(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbQueueDomain = self._queue_domain_focus()
         action = '!MISSING or !INVALID'
         try:
