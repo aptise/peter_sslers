@@ -17,10 +17,19 @@
     ALTER TABLE ssl_private_key ADD is_default BOOLEAN DEFAULT NULL;
     ALTER TABLE ssl_queue_renewal ADD timestamp_process_attempt DATETIME;
     ALTER TABLE ssl_queue_renewal ADD ssl_server_certificate_id__renewed INT REFERENCES ssl_server_certificate(id);
-    
+    ALTER TABLE ssl_letsencrypt_account_key RENAME TO ssl_acme_account_key;
+	ALTER TABLE ssl_certificate_request RENAME ssl_letsencrypt_account_key_id TO ssl_acme_account_key_id;
+	ALTER TABLE ssl_server_certificate RENAME ssl_letsencrypt_account_key_id TO ssl_acme_account_key_id;
+	
+	ALTER TABLE ssl_acme_account_key ADD acme_account_provider_id INTEGER;
+	UPDATE ssl_acme_account_key SET acme_account_provider_id = 2;
+	ALTER TABLE ssl_acme_account_key ALTER acme_account_provider_id SET NOT NULL;
+	
 - SQLITE Check
     PRAGMA table_info(ssl_private_key);
     PRAGMA table_info(ssl_queue_renewal);
+	PRAGMA table_info(ssl_certificate_request);
+	PRAGMA table_info(ssl_server_certificate);
 
 - centralized some json list views into the main views
 - centralized json representation into the model. used as_json instead of the encoder hook for now.
@@ -37,8 +46,11 @@
 - cert quick renewal
 - ensure the fqdns on a cert signing; this failed on tests when we stuck a bad cert in.
   because this only happens off the test server, instead of doing a fancy handling of the error we just raise a ValueError and trash the cert
-  
-
+- renamed `SslLetsEncryptAccountKey` to `SslAcmeAccountKey`
+- renamed `dbLetsEncryptAccountKey` to `dbAcmeAccountKey`
+- renamed `ssl_letsencrypt_account_key` to `ssl_acme_account_key`
+- renamed `letsencrypt_account_key` to `acme_account_key`
+- `getcreate__SslAcmeAccountKey__by_pem_text` now requires acmeAccountProvider
 
 0.1.5
 2018.01.15

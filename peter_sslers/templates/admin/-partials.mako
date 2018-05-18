@@ -564,10 +564,10 @@
                                 ${object_event.ssl_domain_id}
                             </a>
                             <code>${object_event.domain.domain_name}</code>
-                        % elif object_event.ssl_letsencrypt_account_key_id:
-                            <a class="label label-info" href="${admin_prefix}/account-key/${object_event.ssl_letsencrypt_account_key_id}">
+                        % elif object_event.ssl_acme_account_key_id:
+                            <a class="label label-info" href="${admin_prefix}/account-key/${object_event.ssl_acme_account_key_id}">
                                 AccountKey
-                                ${object_event.ssl_letsencrypt_account_key_id}
+                                ${object_event.ssl_acme_account_key_id}
                             </a>
                         % elif object_event.ssl_private_key_id:
                             <a class="label label-info" href="${admin_prefix}/private-key/${object_event.ssl_private_key_id}">

@@ -36,7 +36,7 @@ def parse_AccountKeyPem(request, formStash, seek_selected=None):
                                     message="You did not provide a value",
                                     raise_FormInvalid=True,
                                     )
-            dbAccountKey = lib_db.get.get__SslLetsEncryptAccountKey__by_pemMd5(
+            dbAccountKey = lib_db.get.get__SslAcmeAccountKey__by_pemMd5(
                 request.api_context,
                 account_key_pem_md5,
                 is_active=True,
@@ -70,7 +70,7 @@ def parse_AccountKeyPem(request, formStash, seek_selected=None):
             field_source = 'account_key_existing'
         if not account_key_pem_md5:
             raise ValueError("form validation should prevent this condition")
-        dbAccountKey = lib_db.get.get__SslLetsEncryptAccountKey__by_pemMd5(
+        dbAccountKey = lib_db.get.get__SslAcmeAccountKey__by_pemMd5(
             request.api_context,
             account_key_pem_md5,
             is_active=True,

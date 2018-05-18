@@ -65,6 +65,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     ca-certificates</a></li>
+                <li><a href="${admin_prefix}/acme-providers"
+                       title="Acme Providers"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-providers</a></li>
             </ul>
 
             <h3>Recordkeeping</h3>
@@ -85,7 +90,7 @@
             </ul>
         </div>
         <div class="col-sm-4">
-            <h3>Operations</h3>
+            <h3>Status</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/api/nginx/status.json">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

@@ -180,7 +180,7 @@ def queue_domains__process(
         transaction.commit()
 
         if dbAccountKey is None:
-            dbAccountKey = lib.db.get.get__SslLetsEncryptAccountKey__default(ctx)
+            dbAccountKey = lib.db.get.get__SslAcmeAccountKey__default(ctx)
             if not dbAccountKey:
                 raise ValueError("Could not grab an AccountKey")
 
@@ -322,12 +322,12 @@ def queue_renewals__process(ctx):
 
         _need_default_key = False
         for dbQueueRenewal in items_paged:
-            if (not dbQueueRenewal.server_certificate.ssl_letsencrypt_account_key_id) or (not dbQueueRenewal.server_certificate.letsencrypt_account_key.is_active):
+            if (not dbQueueRenewal.server_certificate.ssl_acme_account_key_id) or (not dbQueueRenewal.server_certificate.ssl_acme_account_key.is_active):
                 _need_default_key = True
                 break
 
         if _need_default_key:
-            dbAccountKeyDefault = lib.db.get.get__SslLetsEncryptAccountKey__default(ctx, active_only=True)
+            dbAccountKeyDefault = lib.db.get.get__SslAcmeAccountKey__default(ctx, active_only=True)
             if not dbAccountKeyDefault:
                 raise ValueError("Could not load a default AccountKey for renewal")
 
@@ -349,7 +349,7 @@ def queue_renewals__process(ctx):
                 dbServerCertificate = lib.db.actions.do__CertificateRequest__AcmeAutomated(
                     ctx,
                     dbQueueRenewal.server_certificate.domains_as_list,
-                    dbAccountKey=dbQueueRenewal.server_certificate.letsencrypt_account_key or dbAccountKeyDefault,
+                    dbAccountKey=dbQueueRenewal.server_certificate.acme_account_key or dbAccountKeyDefault,
                     dbPrivateKey=dbQueueRenewal.server_certificate.private_key,
                     dbServerCertificate__renewal_of=dbQueueRenewal.server_certificate,
                     dbQueueRenewal__of=dbQueueRenewal

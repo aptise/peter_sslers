@@ -89,12 +89,12 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_letsencrypt_account_key_id</th>
+                    <th>ssl_acme_account_key_id</th>
                     <td>
-                        % if SslCertificateRequest.ssl_letsencrypt_account_key_id:
-                            <a class="label label-info" href="${admin_prefix}/account-key/${SslCertificateRequest.ssl_letsencrypt_account_key_id}">
+                        % if SslCertificateRequest.ssl_acme_account_key_id:
+                            <a class="label label-info" href="${admin_prefix}/account-key/${SslCertificateRequest.ssl_acme_account_key_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                account-${SslCertificateRequest.ssl_letsencrypt_account_key_id}</a>
+                                account-${SslCertificateRequest.ssl_acme_account_key_id}</a>
                         % endif
                     </td>
                 </tr>

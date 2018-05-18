@@ -17,26 +17,26 @@ from .. import utils
 # ==============================================================================
 
 
-def get__SslLetsEncryptAccountKey__count(ctx):
-    counted = ctx.dbSession.query(models.SslLetsEncryptAccountKey).count()
+def get__SslAcmeAccountKey__count(ctx):
+    counted = ctx.dbSession.query(models.SslAcmeAccountKey).count()
     return counted
 
 
-def get__SslLetsEncryptAccountKey__paginated(ctx, limit=None, offset=0, active_only=False):
-    query = ctx.dbSession.query(models.SslLetsEncryptAccountKey)
+def get__SslAcmeAccountKey__paginated(ctx, limit=None, offset=0, active_only=False):
+    query = ctx.dbSession.query(models.SslAcmeAccountKey)
     if active_only:
-        query = query.filter(models.SslLetsEncryptAccountKey.is_active.op('IS')(True))
+        query = query.filter(models.SslAcmeAccountKey.is_active.op('IS')(True))
     query = query\
-        .order_by(models.SslLetsEncryptAccountKey.id.desc())\
+        .order_by(models.SslAcmeAccountKey.id.desc())\
         .limit(limit)\
         .offset(offset)
-    dbLetsEncryptAccountKeys = query.all()
-    return dbLetsEncryptAccountKeys
+    dbAcmeAccountKeys = query.all()
+    return dbAcmeAccountKeys
 
 
-def get__SslLetsEncryptAccountKey__by_id(ctx, key_id, eagerload_web=False):
-    q = ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
-        .filter(models.SslLetsEncryptAccountKey.id == key_id)
+def get__SslAcmeAccountKey__by_id(ctx, key_id, eagerload_web=False):
+    q = ctx.dbSession.query(models.SslAcmeAccountKey)\
+        .filter(models.SslAcmeAccountKey.id == key_id)
     if eagerload_web:
         q = q.options(sqlalchemy.orm.subqueryload('certificate_requests__5').joinedload('to_domains').joinedload('domain'),
                       sqlalchemy.orm.subqueryload('server_certificates__5').joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
@@ -45,22 +45,22 @@ def get__SslLetsEncryptAccountKey__by_id(ctx, key_id, eagerload_web=False):
     return item
 
 
-def get__SslLetsEncryptAccountKey__by_pemMd5(ctx, pem_md5, default_only=False, is_active=True, ):
-    q = ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
-        .filter(models.SslLetsEncryptAccountKey.key_pem_md5 == pem_md5)
+def get__SslAcmeAccountKey__by_pemMd5(ctx, pem_md5, default_only=False, is_active=True, ):
+    q = ctx.dbSession.query(models.SslAcmeAccountKey)\
+        .filter(models.SslAcmeAccountKey.key_pem_md5 == pem_md5)
     if default_only:
-        q = q.filter(models.SslLetsEncryptAccountKey.is_default.op('IS')(True), )
+        q = q.filter(models.SslAcmeAccountKey.is_default.op('IS')(True), )
     if is_active:
-        q = q.filter(models.SslLetsEncryptAccountKey.is_active.op('IS')(True), )
+        q = q.filter(models.SslAcmeAccountKey.is_active.op('IS')(True), )
     item = q.first()
     return item
 
 
-def get__SslLetsEncryptAccountKey__default(ctx, active_only=None):
-    q = ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
-        .filter(models.SslLetsEncryptAccountKey.is_default.op('IS')(True))
+def get__SslAcmeAccountKey__default(ctx, active_only=None):
+    q = ctx.dbSession.query(models.SslAcmeAccountKey)\
+        .filter(models.SslAcmeAccountKey.is_default.op('IS')(True))
     if active_only:
-        q = q.filter(models.SslLetsEncryptAccountKey.is_active.op('IS')(True))
+        q = q.filter(models.SslAcmeAccountKey.is_active.op('IS')(True))
     item = q.first()
     return item
 
@@ -143,16 +143,16 @@ def get__SslCertificateRequest__by_pem_text(ctx, csr_pem):
     return dbCertificateRequest
 
 
-def get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__count(ctx, key_id):
+def get__SslCertificateRequest__by_SslAcmeAccountKeyId__count(ctx, key_id):
     counted = ctx.dbSession.query(models.SslCertificateRequest)\
-        .filter(models.SslCertificateRequest.ssl_letsencrypt_account_key_id == key_id)\
+        .filter(models.SslCertificateRequest.ssl_acme_account_key_id == key_id)\
         .count()
     return counted
 
 
-def get__SslCertificateRequest__by_SslLetsEncryptAccountKeyId__paginated(ctx, key_id, limit=None, offset=0):
+def get__SslCertificateRequest__by_SslAcmeAccountKeyId__paginated(ctx, key_id, limit=None, offset=0):
     items_paged = ctx.dbSession.query(models.SslCertificateRequest)\
-        .filter(models.SslCertificateRequest.ssl_letsencrypt_account_key_id == key_id)\
+        .filter(models.SslCertificateRequest.ssl_acme_account_key_id == key_id)\
         .options(sqlalchemy.orm.joinedload('to_domains').joinedload('domain'),
                  )\
         .order_by(models.SslCertificateRequest.id.desc())\
@@ -604,7 +604,7 @@ def get__SslQueueRenewal__paginated(ctx, unprocessed_only=False, unprocessed_fai
                       )
     elif eagerload_renewal:
         q = q.options(sqlalchemy.orm.joinedload('server_certificate'),
-                      sqlalchemy.orm.subqueryload('server_certificate.letsencrypt_account_key'),
+                      sqlalchemy.orm.subqueryload('server_certificate.acme_account_key'),
                       sqlalchemy.orm.subqueryload('server_certificate.private_key'),
                       )
     q = q.order_by(models.SslQueueRenewal.id.desc())
@@ -678,16 +678,16 @@ def get__SslServerCertificate__by_id(ctx, cert_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslServerCertificate__by_SslLetsEncryptAccountKeyId__count(ctx, key_id):
+def get__SslServerCertificate__by_SslAcmeAccountKeyId__count(ctx, key_id):
     counted = ctx.dbSession.query(models.SslServerCertificate)\
-        .filter(models.SslServerCertificate.ssl_letsencrypt_account_key_id == key_id)\
+        .filter(models.SslServerCertificate.ssl_acme_account_key_id == key_id)\
         .count()
     return counted
 
 
-def get__SslServerCertificate__by_SslLetsEncryptAccountKeyId__paginated(ctx, key_id, limit=None, offset=0):
+def get__SslServerCertificate__by_SslAcmeAccountKeyId__paginated(ctx, key_id, limit=None, offset=0):
     items_paged = ctx.dbSession.query(models.SslServerCertificate)\
-        .filter(models.SslServerCertificate.ssl_letsencrypt_account_key_id == key_id)\
+        .filter(models.SslServerCertificate.ssl_acme_account_key_id == key_id)\
         .options(sqlalchemy.orm.joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                  )\
         .order_by(models.SslServerCertificate.id.desc())\

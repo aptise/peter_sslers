@@ -20,20 +20,21 @@ from .helpers import _certificate_parse_to_record
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__SslLetsEncryptAccountKey__by_pem_text(ctx, key_pem):
+def getcreate__SslAcmeAccountKey__by_pem_text(ctx, key_pem, acmeAccountProvider):
     """
     Gets or Creates AccountKeys for LetsEncrypts' ACME server
+    2018.05.17 - add acmeAccountProvider
     2016.06.04 - dbOperationsEvent compliant
     """
     key_pem = cert_utils.cleanup_pem_text(key_pem)
     key_pem_md5 = utils.md5_text(key_pem)
     is_created = False
-    dbLetsEncryptAccountKey = ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
-        .filter(models.SslLetsEncryptAccountKey.key_pem_md5 == key_pem_md5,
-                models.SslLetsEncryptAccountKey.key_pem == key_pem,
+    dbAcmeAccountKey = ctx.dbSession.query(models.SslAcmeAccountKey)\
+        .filter(models.SslAcmeAccountKey.key_pem_md5 == key_pem_md5,
+                models.SslAcmeAccountKey.key_pem == key_pem,
                 )\
         .first()
-    if not dbLetsEncryptAccountKey:
+    if not dbAcmeAccountKey:
         try:
             _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
@@ -49,30 +50,31 @@ def getcreate__SslLetsEncryptAccountKey__by_pem_text(ctx, key_pem):
 
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    models.SslOperationsEventType.from_string('letsencrypt_account_key__insert'),
+                                                    models.SslOperationsEventType.from_string('acme_account_key__insert'),
                                                     )
 
-        dbLetsEncryptAccountKey = models.SslLetsEncryptAccountKey()
-        dbLetsEncryptAccountKey.timestamp_first_seen = ctx.timestamp
-        dbLetsEncryptAccountKey.key_pem = key_pem
-        dbLetsEncryptAccountKey.key_pem_md5 = key_pem_md5
-        dbLetsEncryptAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
-        dbLetsEncryptAccountKey.ssl_operations_event_id__created = dbOperationsEvent.id
-        ctx.dbSession.add(dbLetsEncryptAccountKey)
-        ctx.dbSession.flush(objects=[dbLetsEncryptAccountKey, ])
+        dbAcmeAccountKey = models.SslAcmeAccountKey()
+        dbAcmeAccountKey.timestamp_first_seen = ctx.timestamp
+        dbAcmeAccountKey.key_pem = key_pem
+        dbAcmeAccountKey.key_pem_md5 = key_pem_md5
+        dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
+        dbAcmeAccountKey.ssl_operations_event_id__created = dbOperationsEvent.id
+        dbAcmeAccountKey.acme_account_provider_id = acmeAccountProvider.id
+        ctx.dbSession.add(dbAcmeAccountKey)
+        ctx.dbSession.flush(objects=[dbAcmeAccountKey, ])
         is_created = True
 
-        event_payload_dict['ssl_letsencrypt_account_key.id'] = dbLetsEncryptAccountKey.id
+        event_payload_dict['ssl_acme_account_key.id'] = dbAcmeAccountKey.id
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
         _log_object_event(ctx,
                           dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=models.SslOperationsObjectEventStatus.from_string('letsencrypt_account_key__insert'),
-                          dbLetsEncryptAccountKey=dbLetsEncryptAccountKey,
+                          event_status_id=models.SslOperationsObjectEventStatus.from_string('acme_account_key__insert'),
+                          dbAcmeAccountKey=dbAcmeAccountKey,
                           )
 
-    return dbLetsEncryptAccountKey, is_created
+    return dbAcmeAccountKey, is_created
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -334,11 +336,11 @@ def getcreate__SslServerCertificate__by_pem_text(
                 ctx.dbSession.flush(objects=[dbServerCertificate,
                                              dbPrivateKey,
                                              ])
-        if dbAccountKey and (dbServerCertificate.ssl_letsencrypt_account_key_id != dbAccountKey.id):
-            if dbServerCertificate.ssl_letsencrypt_account_key_id:
+        if dbAccountKey and (dbServerCertificate.ssl_acme_account_key_id != dbAccountKey.id):
+            if dbServerCertificate.ssl_acme_account_key_id:
                 raise ValueError("Integrity Error. Competing AccountKey (!?)")
-            elif dbServerCertificate.ssl_letsencrypt_account_key_id is None:
-                dbServerCertificate.ssl_letsencrypt_account_key_id = dbAccountKey.id
+            elif dbServerCertificate.ssl_acme_account_key_id is None:
+                dbServerCertificate.ssl_acme_account_key_id = dbAccountKey.id
                 dbAccountKey.count_certificates_issued += 1
                 if not dbAccountKey.timestamp_last_certificate_issue or (dbAccountKey.timestamp_last_certificate_issue < dbServerCertificate.timestamp_signed):
                     dbAccountKey.timestamp_last_certificate_issue = dbAccountKey.timestamp_signed
@@ -391,7 +393,7 @@ def getcreate__SslServerCertificate__by_pem_text(
 
             # did we submit an account key?
             if dbAccountKey:
-                dbServerCertificate.ssl_letsencrypt_account_key_id = dbAccountKey.id
+                dbServerCertificate.ssl_acme_account_key_id = dbAccountKey.id
                 dbAccountKey.count_certificates_issued += 1
                 if not dbAccountKey.timestamp_last_certificate_issue or (dbAccountKey.timestamp_last_certificate_issue < dbAccountKey.timestamp_signed):
                     dbAccountKey.timestamp_last_certificate_issue = dbServerCertificate.timestamp_signed
@@ -496,7 +498,7 @@ def getcreate__SslUniqueFQDNSet__by_domainObjects(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-__all__ = ('getcreate__SslLetsEncryptAccountKey__by_pem_text',
+__all__ = ('getcreate__SslAcmeAccountKey__by_pem_text',
            'getcreate__SslCaCertificate__by_pem_text',
            'getcreate__SslCertificateRequest__by_pem_text',
            'getcreate__SslDomain__by_domainName',

@@ -51,7 +51,7 @@ def _log_object_event(
     ctx,
     dbOperationsEvent=None,
     event_status_id=None,
-    dbLetsEncryptAccountKey=None,
+    dbAcmeAccountKey=None,
     dbCACertificate=None,
     dbDomain=None,
     dbPrivateKey=None,
@@ -66,8 +66,8 @@ def _log_object_event(
     dbOperationsObjectEvent.ssl_operations_event_id = dbOperationsEvent.id
     dbOperationsObjectEvent.ssl_operations_object_event_status_id = event_status_id
 
-    if dbLetsEncryptAccountKey:
-        dbOperationsObjectEvent.ssl_letsencrypt_account_key_id = dbLetsEncryptAccountKey.id
+    if dbAcmeAccountKey:
+        dbOperationsObjectEvent.ssl_acme_account_key_id = dbAcmeAccountKey.id
     elif dbCACertificate:
         dbOperationsObjectEvent.ssl_ca_certificate_id = dbCACertificate.id
     elif dbDomain:

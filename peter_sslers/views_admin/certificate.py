@@ -296,7 +296,7 @@ class ViewAdmin(Handler):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbServerCertificate = self._certificate_focus()
         try:
-            if (not dbServerCertificate.private_key.is_active) or (not dbServerCertificate.letsencrypt_account_key.is_active):
+            if (not dbServerCertificate.private_key.is_active) or (not dbServerCertificate.acme_account_key.is_active):
                 raise errors.DisplayableError("The PrivateKey or AccountKey is not active. You can not Quick-Renew.")
             if not dbServerCertificate.can_renew_letsencrypt:
                 raise errors.DisplayableError('Thie cert is not eligible for `Quick Renew`')
@@ -305,7 +305,7 @@ class ViewAdmin(Handler):
                 dbLetsencryptCertificateNew = lib_db.actions.do__CertificateRequest__AcmeAutomated(
                     self.request.api_context,
                     None,  # domain_names, handle via the certificate...
-                    dbAccountKey = dbServerCertificate.letsencrypt_account_key,
+                    dbAccountKey = dbServerCertificate.acme_account_key,
                     dbPrivateKey = dbServerCertificate.private_key,
                     dbServerCertificate__renewal_of=dbServerCertificate,
                 )

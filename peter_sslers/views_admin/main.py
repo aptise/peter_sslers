@@ -68,7 +68,7 @@ class ViewAdminMain(Handler):
                                                          }, self.request)
 
     def _search__submit(self, search_type):
-        results = {'SslLetsEncryptAccountKey': {'count': 0, 'items': [], 'next': False, },
+        results = {'SslAcmeAccountKey': {'count': 0, 'items': [], 'next': False, },
                    'SslDomain': {'count': 0, 'items': [], 'next': False, },
                    'SslCaCertificate': {'count': 0, 'items': [], 'next': False, },
                    'SslCertificateRequest': {'count': 0, 'items': [], 'next': False, },
@@ -103,13 +103,13 @@ class ViewAdminMain(Handler):
             if not all((search_modulus, source_type, source_id)):
                 raise ValueError("invalid search")
 
-            # SslLetsEncryptAccountKey
-            if show_only['SslLetsEncryptAccountKey']:
-                _base = self.request.api_context.dbSession.query(models.SslLetsEncryptAccountKey)\
-                    .filter(models.SslLetsEncryptAccountKey.key_pem_modulus_md5 == search_modulus)
-                results['SslLetsEncryptAccountKey']['count'] = _base.count()
-                if results['SslLetsEncryptAccountKey']['count']:
-                    results['SslLetsEncryptAccountKey']['items'] = _base.limit(item_limit).offset(offset).all()
+            # SslAcmeAccountKey
+            if show_only['SslAcmeAccountKey']:
+                _base = self.request.api_context.dbSession.query(models.SslAcmeAccountKey)\
+                    .filter(models.SslAcmeAccountKey.key_pem_modulus_md5 == search_modulus)
+                results['SslAcmeAccountKey']['count'] = _base.count()
+                if results['SslAcmeAccountKey']['count']:
+                    results['SslAcmeAccountKey']['items'] = _base.limit(item_limit).offset(offset).all()
 
             # SslCaCertificate
             if show_only['SslCaCertificate']:

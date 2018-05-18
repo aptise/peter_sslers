@@ -30,7 +30,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if SslLetsEncryptAccountKeys:
+            % if SslAcmeAccountKeys:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -45,7 +45,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                    % for key in SslLetsEncryptAccountKeys:
+                    % for key in SslAcmeAccountKeys:
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/account-key/${key.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

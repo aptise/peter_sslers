@@ -41,6 +41,10 @@ def _admin_views(config):
     config.add_route_7('admin:search', '/search')
     config.add_route_7('admin:settings', '/settings')
 
+    # this is just letsencrypt endpoints
+    config.add_route_7('admin:acme_providers', '/acme-providers')
+    config.add_route_7('admin:acme_providers|json', '/acme-providers.json')
+
     # AccountKeys are the LetsEncrypt accounts
     config.add_route_7('admin:account_keys', '/account-keys')
     config.add_route_7('admin:account_keys|json', '/account-keys.json')

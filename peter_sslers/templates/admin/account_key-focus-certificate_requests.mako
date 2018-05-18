@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/account-keys">Account Keys</a></li>
-        <li><a href="${admin_prefix}/account-key/${SslLetsEncryptAccountKey.id}">Focus [${SslLetsEncryptAccountKey.id}]</a></li>
+        <li><a href="${admin_prefix}/account-key/${SslAcmeAccountKey.id}">Focus [${SslAcmeAccountKey.id}]</a></li>
         <li class="active">Certificate Requests</li>
     </ol>
 </%block>

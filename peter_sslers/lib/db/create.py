@@ -167,7 +167,7 @@ def create__SslCertificateRequest(
 
         # note account/private keys
         if dbAccountKey:
-            dbCertificateRequest.ssl_letsencrypt_account_key_id = dbAccountKey.id
+            dbCertificateRequest.ssl_acme_account_key_id = dbAccountKey.id
         dbCertificateRequest.ssl_private_key_id__signed_by = dbPrivateKey.id
         if dbServerCertificate__renewal_of:
             dbCertificateRequest.ssl_server_certificate_id__renewal_of = dbServerCertificate__renewal_of.id
@@ -236,7 +236,7 @@ def create__SslServerCertificate(
     chained_pem = None,
     chain_name = None,
     dbCertificateRequest = None,
-    dbLetsEncryptAccountKey = None,
+    dbAcmeAccountKey = None,
     dbDomains = None,
     dbServerCertificate__renewal_of = None,
 
@@ -292,7 +292,7 @@ def create__SslServerCertificate(
             dbServerCertificate.ssl_server_certificate_id__renewal_of = dbServerCertificate__renewal_of.id
 
         # note account/private keys
-        dbServerCertificate.ssl_letsencrypt_account_key_id = dbLetsEncryptAccountKey.id
+        dbServerCertificate.ssl_acme_account_key_id = dbAcmeAccountKey.id
         dbServerCertificate.ssl_private_key_id__signed_by = dbPrivateKey.id
 
         # note the fqdn
@@ -305,10 +305,10 @@ def create__SslServerCertificate(
         ctx.dbSession.flush(objects=[dbServerCertificate, ])
 
         # increment account/private key counts
-        dbLetsEncryptAccountKey.count_certificates_issued += 1
+        dbAcmeAccountKey.count_certificates_issued += 1
         dbPrivateKey.count_certificates_issued += 1
-        if not dbLetsEncryptAccountKey.timestamp_last_certificate_issue or (dbLetsEncryptAccountKey.timestamp_last_certificate_issue < timestamp_signed):
-            dbLetsEncryptAccountKey.timestamp_last_certificate_issue = timestamp_signed
+        if not dbAcmeAccountKey.timestamp_last_certificate_issue or (dbAcmeAccountKey.timestamp_last_certificate_issue < timestamp_signed):
+            dbAcmeAccountKey.timestamp_last_certificate_issue = timestamp_signed
         if not dbPrivateKey.timestamp_last_certificate_issue or (dbPrivateKey.timestamp_last_certificate_issue < timestamp_signed):
             dbPrivateKey.timestamp_last_certificate_issue = timestamp_signed
 

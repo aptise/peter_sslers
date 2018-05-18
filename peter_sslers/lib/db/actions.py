@@ -114,7 +114,7 @@ def ca_certificate_probe(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def do__SslLetsEncryptAccountKey_authenticate(ctx, dbLetsEncryptAccountKey, account_key_path=None):
+def do__SslAcmeAccountKey_authenticate(ctx, dbAcmeAccountKey, account_key_path=None):
     """
     Authenticates the AccountKey against the LetsEncrypt ACME servers
     2016.06.04 - dbOperationsEvent compliant
@@ -122,7 +122,7 @@ def do__SslLetsEncryptAccountKey_authenticate(ctx, dbLetsEncryptAccountKey, acco
     _tmpfile = None
     try:
         if account_key_path is None:
-            _tmpfile = cert_utils.new_pem_tempfile(dbLetsEncryptAccountKey.key_pem)
+            _tmpfile = cert_utils.new_pem_tempfile(dbAcmeAccountKey.key_pem)
             account_key_path = _tmpfile.name
 
         # parse account key to get public key
@@ -133,14 +133,14 @@ def do__SslLetsEncryptAccountKey_authenticate(ctx, dbLetsEncryptAccountKey, acco
 
         # this would raise if we couldn't authenticate
 
-        dbLetsEncryptAccountKey.timestamp_last_authenticated = ctx.timestamp
-        ctx.dbSession.flush(objects=[dbLetsEncryptAccountKey, ])
+        dbAcmeAccountKey.timestamp_last_authenticated = ctx.timestamp
+        ctx.dbSession.flush(objects=[dbAcmeAccountKey, ])
 
         # log this
         event_payload_dict = utils.new_event_payload_dict()
-        event_payload_dict['ssl_letsencrypt_account_key.id'] = dbLetsEncryptAccountKey.id
+        event_payload_dict['ssl_acme_account_key.id'] = dbAcmeAccountKey.id
         dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    models.SslOperationsEventType.from_string('letsencrypt_account_key__authenticate'),
+                                                    models.SslOperationsEventType.from_string('acme_account_key__authenticate'),
                                                     event_payload_dict,
                                                     )
         return True
@@ -216,7 +216,7 @@ def do__CertificateRequest__AcmeAutomated(
 
         if dbAccountKey is None:
             account_key_pem = cert_utils.cleanup_pem_text(account_key_pem)
-            dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslLetsEncryptAccountKey__by_pem_text(ctx, account_key_pem)
+            dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(ctx, account_key_pem)
         else:
             account_key_pem = dbAccountKey.key_pem
         # we need to use tmpfiles on the disk
@@ -281,10 +281,10 @@ def do__CertificateRequest__AcmeAutomated(
 
         # register the account / ensure that it is registered
         if not dbAccountKey.timestamp_last_authenticated:
-            do__SslLetsEncryptAccountKey_authenticate(ctx,
-                                                      dbAccountKey,
-                                                      account_key_path=tmpfile_account.name,
-                                                      )
+            do__SslAcmeAccountKey_authenticate(ctx,
+                                               dbAccountKey,
+                                               account_key_path=tmpfile_account.name,
+                                               )
 
         # verify each domain
         acme_v1.acme_verify_domains(csr_domains=csr_domains,
@@ -333,7 +333,7 @@ def do__CertificateRequest__AcmeAutomated(
                 chained_pem = chained_pem,
                 chain_name = chain_url,
                 dbCertificateRequest = dbCertificateRequest,
-                dbLetsEncryptAccountKey = dbAccountKey,
+                dbAcmeAccountKey = dbAccountKey,
                 dbPrivateKey = dbPrivateKey,
                 dbDomains = [v[0] for v in dbDomainObjects.values()],
                 dbServerCertificate__renewal_of = dbServerCertificate__renewal_of,
@@ -586,11 +586,11 @@ def operations_update_recents(ctx):
     '''
         # update the counts on Account Keys
         _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(models.SslCertificateRequest.id))\
-            .filter(models.SslCertificateRequest.ssl_letsencrypt_account_key_id == models.SslLetsEncryptAccountKey.id,
+            .filter(models.SslCertificateRequest.ssl_acme_account_key_id == models.SslAcmeAccountKey.id,
                     )\
             .subquery()\
             .as_scalar()
-        ctx.dbSession.execute(models.SslLetsEncryptAccountKey.__table__
+        ctx.dbSession.execute(models.SslAcmeAccountKey.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
                                       # count_certificates_issued=_q_sub_iss,
@@ -618,13 +618,13 @@ def operations_update_recents(ctx):
 
     # should we do the timestamps?
     """
-    UPDATE ssl_letsencrypt_account_key SET timestamp_last_certificate_request = (
+    UPDATE ssl_acme_account_key SET timestamp_last_certificate_request = (
     SELECT MAX(timestamp_finished) FROM ssl_certificate_request
-    WHERE ssl_certificate_request.ssl_letsencrypt_account_key_id = ssl_letsencrypt_account_key.id);
+    WHERE ssl_certificate_request.ssl_acme_account_key_id = ssl_acme_account_key.id);
 
-    UPDATE ssl_letsencrypt_account_key SET timestamp_last_certificate_issue = (
+    UPDATE ssl_acme_account_key SET timestamp_last_certificate_issue = (
     SELECT MAX(timestamp_signed) FROM ssl_server_certificate
-    WHERE ssl_server_certificate.ssl_letsencrypt_account_key_id = ssl_letsencrypt_account_key.id);
+    WHERE ssl_server_certificate.ssl_acme_account_key_id = ssl_acme_account_key.id);
 
     UPDATE ssl_private_key SET timestamp_last_certificate_request = (
     SELECT MAX(timestamp_finished) FROM ssl_certificate_request
@@ -742,7 +742,7 @@ def api_domains__certificate_if_needed(
 
     dbAccountKey = None
     if account_key_pem is not None:
-        dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslLetsEncryptAccountKey__by_pem_text(
+        dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(
             ctx,
             account_key_pem,
         )
@@ -750,7 +750,7 @@ def api_domains__certificate_if_needed(
             raise errors.DisplayableError("Could not create an AccountKey")
 
     if account_key_pem is None:
-        dbAccountKey = lib.db.get.get__SslLetsEncryptAccountKey__default(ctx)
+        dbAccountKey = lib.db.get.get__SslAcmeAccountKey__default(ctx)
         if not dbAccountKey:
             raise errors.DisplayableError("Could not grab an AccountKey")
 

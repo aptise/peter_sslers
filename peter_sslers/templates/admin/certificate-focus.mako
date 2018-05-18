@@ -173,7 +173,7 @@
                             queue a renewal
                         </a>
 
-                        % if SslServerCertificate.private_key.is_active and SslServerCertificate.letsencrypt_account_key.is_active:
+                        % if SslServerCertificate.private_key and SslServerCertificate.private_key.is_active and SslServerCertificate.acme_account_key and SslServerCertificate.acme_account_key.is_active:
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
                                 href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/quick"
@@ -254,6 +254,16 @@
                             <a class="label label-danger" href="${admin_prefix}/private-key/${SslServerCertificate.ssl_private_key_id__signed_by}">
                                 <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
                                 pkey-${SslServerCertificate.ssl_private_key_id__signed_by}</a>
+                        % endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>ssl_acme_account_key_id</th>
+                    <td>
+                        % if SslServerCertificate.ssl_acme_account_key_id:
+                            <a class="label label-info" href="${admin_prefix}/account-key/${SslServerCertificate.ssl_acme_account_key_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                pkey-${SslServerCertificate.ssl_acme_account_key_id}</a>
                         % endif
                     </td>
                 </tr>

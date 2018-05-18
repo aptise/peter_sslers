@@ -76,7 +76,7 @@
                         <td>
                             ${admin_partials.formgroup__account_key_selector_advanced(
                                 show_text=False,
-                                dbAccountKeyReuse=SslServerCertificate.letsencrypt_account_key,
+                                dbAccountKeyReuse=SslServerCertificate.acme_account_key,
                             )}
                         </td>
                     </tr>

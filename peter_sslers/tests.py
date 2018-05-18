@@ -231,12 +231,12 @@ class AppTest(AppTestCore):
                 """
 
                 #
-                # insert SslLetsEncryptAccountKey
+                # insert SslAcmeAccountKey
                 # this should create `/account-key/1`
                 #
                 _key_filename = TEST_FILES['AccountKey']['1']
                 key_pem = self._filedata_testfile(_key_filename)
-                _key_account1, _is_created = db.getcreate.getcreate__SslLetsEncryptAccountKey__by_pem_text(self.ctx, key_pem)
+                _key_account1, _is_created = db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(self.ctx, key_pem)
                 # print _key_account1, _is_created
                 self.ctx.dbSession.commit()
 
@@ -397,9 +397,9 @@ class FunctionalTests_AccountKeys(AppTest):
 
     def _get_item(self):
         # grab a Key
-        focus_item = self.ctx.dbSession.query(models.SslLetsEncryptAccountKey)\
-            .filter(models.SslLetsEncryptAccountKey.is_active.op('IS')(True))\
-            .order_by(models.SslLetsEncryptAccountKey.id.asc())\
+        focus_item = self.ctx.dbSession.query(models.SslAcmeAccountKey)\
+            .filter(models.SslAcmeAccountKey.is_active.op('IS')(True))\
+            .order_by(models.SslAcmeAccountKey.id.asc())\
             .first()
         return focus_item
 

@@ -61,7 +61,7 @@ class Handler(object):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _load_AccountKeyDefault(self):
-        self.dbAccountKeyDefault = db.get.get__SslLetsEncryptAccountKey__default(self.request.api_context, active_only=True)
+        self.dbAccountKeyDefault = db.get.get__SslAcmeAccountKey__default(self.request.api_context, active_only=True)
         return self.dbAccountKeyDefault
 
     def _load_PrivateKeyDefault(self):
