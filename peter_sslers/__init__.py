@@ -7,7 +7,7 @@ import logging
 import datetime
 
 from . import lib
-from .lib import acme
+from .lib import acme_v1
 from .lib import cert_utils
 from .lib.config_utils import set_bool_setting
 from .lib.config_utils import set_int_setting
@@ -71,13 +71,13 @@ def main(global_config, **settings):
     if 'openssl_path_conf' in settings:
         cert_utils.openssl_path_conf = settings["openssl_path_conf"]
     if 'certificate_authority' in settings:
-        acme.CERTIFICATE_AUTHORITY = settings["certificate_authority"]
+        acme_v1.CERTIFICATE_AUTHORITY = settings["certificate_authority"]
     if 'certificate_authority_testing' in settings:
         certificate_authority_testing = set_bool_setting(config.registry.settings, 'certificate_authority_testing')
         if certificate_authority_testing:
-            acme.TESTING_ENVIRONMENT = True
+            acme_v1.TESTING_ENVIRONMENT = True
     if 'certificate_authority_agreement' in settings:
-        acme.CA_AGREEMENT = settings["certificate_authority_agreement"]
+        acme_v1.CA_AGREEMENT = settings["certificate_authority_agreement"]
 
 
     # will we redirect on error?

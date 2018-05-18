@@ -20,7 +20,7 @@ import unittest
 from . import main
 from . import models
 from . import lib
-from .lib import acme  # for override
+from .lib import acme_v1  # for override
 from .lib import cert_utils  # for override
 from .lib import db  # lib.db doesn't work
 import sqlalchemy

@@ -12,7 +12,7 @@ from zope.sqlalchemy import mark_changed
 # localapp
 from ...models import models
 from ... import lib
-from .. import acme
+from .. import acme_v1
 from .. import cert_utils
 from .. import letsencrypt_info
 from .. import errors
@@ -126,10 +126,10 @@ def do__SslLetsEncryptAccountKey_authenticate(ctx, dbLetsEncryptAccountKey, acco
             account_key_path = _tmpfile.name
 
         # parse account key to get public key
-        header, thumbprint = acme.account_key__header_thumbprint(account_key_path=account_key_path, )
+        header, thumbprint = acme_v1.account_key__header_thumbprint(account_key_path=account_key_path, )
 
-        acme.acme_register_account(header,
-                                   account_key_path=account_key_path)
+        acme_v1.acme_register_account(header,
+                                      account_key_path=account_key_path)
 
         # this would raise if we couldn't authenticate
 
@@ -277,7 +277,7 @@ def do__CertificateRequest__AcmeAutomated(
             raise ValueError("Did not make a valid set")
 
         # parse account key to get public key
-        header, thumbprint = acme.account_key__header_thumbprint(account_key_path=tmpfile_account.name, )
+        header, thumbprint = acme_v1.account_key__header_thumbprint(account_key_path=tmpfile_account.name, )
 
         # register the account / ensure that it is registered
         if not dbAccountKey.timestamp_last_authenticated:
@@ -287,13 +287,13 @@ def do__CertificateRequest__AcmeAutomated(
                                                       )
 
         # verify each domain
-        acme.acme_verify_domains(csr_domains=csr_domains,
-                                 account_key_path=tmpfile_account.name,
-                                 handle_keyauth_challenge=process_keyauth_challenge,
-                                 handle_keyauth_cleanup=process_keyauth_cleanup,
-                                 thumbprint=thumbprint,
-                                 header=header,
-                                 )
+        acme_v1.acme_verify_domains(csr_domains=csr_domains,
+                                    account_key_path=tmpfile_account.name,
+                                    handle_keyauth_challenge=process_keyauth_challenge,
+                                    handle_keyauth_cleanup=process_keyauth_cleanup,
+                                    thumbprint=thumbprint,
+                                    header=header,
+                                    )
 
         # sign it
         (cert_pem,
@@ -301,10 +301,10 @@ def do__CertificateRequest__AcmeAutomated(
          chain_url,
          datetime_signed,
          datetime_expires,
-         ) = acme.acme_sign_certificate(csr_path=tmpfile_csr.name,
-                                        account_key_path=tmpfile_account.name,
-                                        header=header,
-                                        )
+         ) = acme_v1.acme_sign_certificate(csr_path=tmpfile_csr.name,
+                                           account_key_path=tmpfile_account.name,
+                                           header=header,
+                                           )
         #
         # end acme-tiny
         # ######################################################################

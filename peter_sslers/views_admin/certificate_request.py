@@ -255,7 +255,7 @@ class ViewAdmin(Handler):
         return self._certificate_request_new_AcmeAutomated__print()
 
     def _certificate_request_new_AcmeAutomated__print(self):
-        active_ca = lib.acme.CERTIFICATE_AUTHORITY
+        active_ca = lib.acme_v1.CERTIFICATE_AUTHORITY
         return render_to_response("/admin/certificate_request-new-AcmeAutomated.mako",
                                   {'CERTIFICATE_AUTHORITY': active_ca,
                                    'dbAccountKeyDefault': self.dbAccountKeyDefault,
