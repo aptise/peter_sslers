@@ -434,7 +434,7 @@ class ViewAdmin(Handler):
                 key_create_args = accountKeySelection.upload_parsed.getcreate_args
                 (dbAcmeAccountKey,
                  _is_created
-                 ) = lib_db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(
+                 ) = lib_db.getcreate.getcreate__SslAcmeAccountKey(
                     self.request.api_context,
                     **key_create_args
                 )

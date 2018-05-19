@@ -28,6 +28,7 @@ import sqlalchemy
 
 # ==============================================================================
 
+DEFAULT_acme_account_provider = 'letsencrypt-v1-staging'
 
 """
 queue tests:
@@ -45,7 +46,7 @@ export SSL_RUN_NGINX_TESTS=True
 export SSL_RUN_REDIS_TESTS=True
 export SSL_RUN_LETSENCRYPT_API_TESTS=True
 export SSL_LETSENCRYPT_API_VALIDATES=True
-export SSL_TEST_DOMAINS=foo.cliqued.in  # can be a comma-separated string
+export SSL_TEST_DOMAINS=dev.cliqued.in  # can be a comma-separated string
 export SSL_TEST_PORT=7201
 
 if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app so letsencrypt can access it
@@ -69,6 +70,13 @@ DISABLE_UNWRITTEN_TESTS = True
 
 
 # ==============================================================================
+
+
+DEFAULT_acme_account_provider_id = None
+for pvd in models.models.AcmeAccountProvider.registry.values():
+    if pvd['name'] == DEFAULT_acme_account_provider:
+        DEFAULT_acme_account_provider_id = pvd['id']
+        break
 
 
 TEST_FILES = {'AccountKey': {'1': 'account_1.key',
@@ -236,7 +244,11 @@ class AppTest(AppTestCore):
                 #
                 _key_filename = TEST_FILES['AccountKey']['1']
                 key_pem = self._filedata_testfile(_key_filename)
-                _key_account1, _is_created = db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(self.ctx, key_pem)
+                _key_account1, _is_created = db.getcreate.getcreate__SslAcmeAccountKey(
+                    self.ctx,
+                    key_pem,
+                    acme_account_provider_id=DEFAULT_acme_account_provider_id
+                )
                 # print _key_account1, _is_created
                 self.ctx.dbSession.commit()
 
@@ -453,7 +465,9 @@ class FunctionalTests_AccountKeys(AppTest):
         res = self.testapp.get('/.well-known/admin/account-key/upload', status=200)
         form = res.form
         form['account_key_file_pem'] = Upload(key_filepath)
+        form['acme_account_provider_id'].force_value(str(DEFAULT_acme_account_provider_id))  # why aren't any valid options showing?'
         res2 = form.submit()
+        print res2.status_code
         assert res2.status_code == 302
         assert res2.location == """http://localhost/.well-known/admin/account-key/2?result=success&is_created=1"""
         res3 = self.testapp.get(res2.location, status=200)
@@ -462,7 +476,9 @@ class FunctionalTests_AccountKeys(AppTest):
     def tests_letsencrypt_api(self):
         # this hits LE
         res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=302)
-        assert res.location == """http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=1"""
+        assert res.location in ("""http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=existing-account""",
+                                """http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=new-account""",
+                                )
 
 
 class FunctionalTests_CACertificate(AppTest):

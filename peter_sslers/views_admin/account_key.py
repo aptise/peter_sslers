@@ -207,7 +207,7 @@ class ViewAdmin(Handler):
 
             (dbAcmeAccountKey,
              _is_created
-             ) = lib_db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(
+             ) = lib_db.getcreate.getcreate__SslAcmeAccountKey(
                 self.request.api_context,
                 **key_create_args
             )

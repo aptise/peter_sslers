@@ -23,7 +23,7 @@ from .helpers import _certificate_parse_to_record
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__SslAcmeAccountKey__by_pem_text(
+def getcreate__SslAcmeAccountKey(
     ctx,
     key_pem=None,
     le_meta_jsons=None,
@@ -603,7 +603,7 @@ def getcreate__SslUniqueFQDNSet__by_domainObjects(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-__all__ = ('getcreate__SslAcmeAccountKey__by_pem_text',
+__all__ = ('getcreate__SslAcmeAccountKey',
            'getcreate__SslCaCertificate__by_pem_text',
            'getcreate__SslCertificateRequest__by_pem_text',
            'getcreate__SslDomain__by_domainName',

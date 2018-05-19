@@ -762,7 +762,7 @@ def api_domains__certificate_if_needed(
     dbAccountKey = None
     if account_key_pem is not None:
         raise ValueError('acmeAccountProvider_id')
-        dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(
+        dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslAcmeAccountKey(
             ctx,
             account_key_pem,
             acmeAccountProvider_id = None,

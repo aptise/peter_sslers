@@ -27,7 +27,7 @@ requires = [
 ]
 
 setup(name='peter_sslers',
-      version='0.2.0',
+      version='0.2.0-DEV',
       description='peter_sslers',
       long_description=README + '\n\n' + CHANGES,
       classifiers=["Programming Language :: Python",
@@ -50,6 +50,5 @@ setup(name='peter_sslers',
       main = peter_sslers:main
       [console_scripts]
       initialize_peter_sslers_db = peter_sslers.scripts.initializedb:main
-      update_foo = peter_sslers.scripts.update_foo:main
       """,
       )
