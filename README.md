@@ -175,9 +175,11 @@ It is recommended to open up a new terminal and do the following commands
 	prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
 	cd tools
 	invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	invoke import_letsencrypt_accounts_all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 The `prequest` command above will import the current LetsEncrypt certificates to get you started.
-The `invoke` command will import existing LetsEncrypt issued certificates
+The first `invoke` command will import existing LetsEncrypt issued certificates
+The second `invoke` command will import existing LetsEncrypt accounts
 
 
 # Implementation Details
@@ -335,6 +337,10 @@ right now the invoke script offers:
 * `import_letsencrypt_certs_live` given a directory of your local LetsEncrypt install, it will import the active onesinto a server of your choice.
 * `import_letsencrypt_cert_version` given a specific directory of your LetsEncrypt archive, it will import specific items
 * `import_letsencrypt_cert_plain` given a directory of an unversioned cert (like a particular directory within the "live" certs), will import it.
+
+* `import_letsencrypt_account` import a specific letsencrypt account
+* `import_letsencrypt_accounts_server` import all accounts for a letsencrypt server (i.e. v1, v1-staging)
+* `import_letsencrypt_accounts_all` import all accounts for all letsencrypt servers
 
 
 ## commandline interface
@@ -578,6 +584,12 @@ The current solution:
 This means that a cert will stay active so long as any one domain has not yet-replaced it.
 
 When querying for a domain's cert, the system will currently send the most recent cert. a future feature might allow for this to be customized, and show the most widely usable cert.
+
+
+## How does this handle LetsEncrypt accounts keys?
+
+Account keys from the letsencrypt client are reformatted into PEM-encoded RSA keys. The data from the various json files are archived into the database for use later.  The account data is searched for the actual environment it is registered with, and that becomes part of the account record.
+
 
 ## Why use openssl directly? / does this work on windows?
 
