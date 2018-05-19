@@ -300,7 +300,7 @@ class ViewAdmin(Handler):
                 raise errors.DisplayableError("The PrivateKey or AccountKey is not active. You can not Quick-Renew.")
             if not dbServerCertificate.can_renew_letsencrypt:
                 raise errors.DisplayableError('Thie cert is not eligible for `Quick Renew`')
-            
+
             try:
                 dbLetsencryptCertificateNew = lib_db.actions.do__CertificateRequest__AcmeAutomated(
                     self.request.api_context,
@@ -316,7 +316,7 @@ class ViewAdmin(Handler):
 
             if wants_json:
                 return {"status": "success",
-                        "queue_item": dbQueue.id,
+                        "certificate_new.id": dbLetsencryptCertificateNew.id,
                         }
             url_success = '%s/certificate/%s?operation=renewal&renewal_type=quick&success=%s' % (
                 self.request.registry.settings['admin_prefix'],
@@ -365,7 +365,7 @@ class ViewAdmin(Handler):
             event_payload_dict['sql_queue_renewals.ids'] = str(dbQueue.id)
             dbOperationsEvent.set_event_payload(event_payload_dict)
             self.request.api_context.dbSession.flush(objects=[dbOperationsEvent, ])
-            
+
             if wants_json:
                 return {"status": "success",
                         "queue_item": dbQueue.id,
@@ -439,9 +439,9 @@ class ViewAdmin(Handler):
                     **key_create_args
                 )
                 accountKeySelection.SslAcmeAccountKey = dbAcmeAccountKey
-                
+
             private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash, seek_selected=formStash.results['private_key_option'])
-            
+
             try:
                 event_payload_dict = lib.utils.new_event_payload_dict()
                 event_payload_dict['ssl_server_certificate.id'] = dbServerCertificate.id
@@ -509,7 +509,7 @@ class ViewAdmin(Handler):
             if action == 'active':
                 if dbServerCertificate.is_active:
                     raise formhandling.FormInvalid('Already active!')
-                # is_deactivated is our manual toggle; 
+                # is_deactivated is our manual toggle;
                 if not dbServerCertificate.is_deactivated:
                     raise formhandling.FormInvalid('This was not manually deactivated')
                 if dbServerCertificate.is_revoked:

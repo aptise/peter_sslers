@@ -61,7 +61,7 @@
                     Queue Still Populated, automatically continuing...
                 </div>
             % endif
-            
+
             % if SslQueueRenewals:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">

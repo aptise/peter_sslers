@@ -69,7 +69,7 @@ class ViewAdmin(Handler):
             _prefix = "%s/unique-fqdn-set/%s" % (self.request.registry.settings['admin_prefix'], dbFqdnSet.id)
             return {"SslUniqueFQDNSet": dbFqdnSet.as_json,
                     }
-                    
+
         return {'project': 'peter_sslers',
                 'SslUniqueFQDNSet': dbFqdnSet
                 }

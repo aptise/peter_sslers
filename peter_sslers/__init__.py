@@ -35,7 +35,7 @@ def db_log_cleanup__tween_factory(handler, registry):
                     logging.getLogger(l).propagate = False
             response = handler(request)
             return response
-        except:
+        except Exception as e:
             raise
     return db_log_cleanup__tween
 
@@ -75,7 +75,7 @@ def main(global_config, **settings):
     ca_selected = None
     if 'certificate_authority' in settings:
         ca_submitted = settings["certificate_authority"]
-        
+
         # handle custom endpoints
         if ca_submitted == 'custom':
             ca_submitted_endpoint = settings["certificate_authority_endpoint"]
@@ -84,7 +84,7 @@ def main(global_config, **settings):
             if not ca_submitted_endpoint.startswith('http://') and not ca_submitted_endpoint.startswith('https://'):
                 raise ValueError('`certificate_authority_endpoint` does not look like a URL')
             models_models.AcmeAccountProvider.registry[0]['endpoint'] = ca_submitted_endpoint
-            
+
         # register the selected endpoint
         for (ca_id, ca_record) in models_models.AcmeAccountProvider.registry.items():
             if ca_record['name'] == ca_submitted:

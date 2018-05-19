@@ -70,7 +70,7 @@
                                     >
                                         challenge-${challenge.id}
                                     </a>
-                                </li>                            
+                                </li>
                             % endfor
                             </ul>
                         % endif

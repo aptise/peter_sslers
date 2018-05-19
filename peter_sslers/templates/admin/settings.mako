@@ -45,7 +45,7 @@
                                 % if documentation_grid[section][option].get('default'):
                                     <% _default = documentation_grid[section][option].get('default') %>
                                     <hr/>
-                                    Default: 
+                                    Default:
                                     % if _default[0] == '`':
                                         <code>${_default[1:-1]}</code>
                                     % else:

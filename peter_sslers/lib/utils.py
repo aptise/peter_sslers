@@ -251,7 +251,7 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
                 else:
                     # log the url?
                     domain_ids['failure'].add(domain.id)
-            except:
+            except Exception as e:
                 # log the url?
                 domain_ids['failure'].add(domain.id)
 

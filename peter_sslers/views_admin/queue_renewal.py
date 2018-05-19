@@ -34,7 +34,7 @@ class ViewAdmin(Handler):
     Records with the above are the failed renewal attempts.
 
     The record stays active and in the queue, as it may renew later on.
-    To be removed, it must suucceed or be explicitly removed from the queue.   
+    To be removed, it must suucceed or be explicitly removed from the queue.
     """
 
     @view_config(route_name='admin:queue_renewals', renderer='/admin/queue-renewals.mako')
@@ -58,7 +58,7 @@ class ViewAdmin(Handler):
             get_kwargs['unprocessed_failures_only'] = True
             url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
             sidenav_option = 'active-failures'
-            
+
         items_count = lib_db.get.get__SslQueueRenewal__count(self.request.api_context, **get_kwargs)
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__SslQueueRenewal__paginated(self.request.api_context, limit=items_per_page, offset=offset, **get_kwargs)
@@ -71,10 +71,10 @@ class ViewAdmin(Handler):
                 items_remaining = int(_results.get('count_remaining', 0))
                 if items_remaining:
                     continue_processing = True
-            except:
+            except Exception as e:
                 # this could be a json or int() error
                 pass
-        
+
         return {'project': 'peter_sslers',
                 'SslQueueRenewals_count': items_count,
                 'SslQueueRenewals': items_paged,

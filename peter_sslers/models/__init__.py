@@ -87,7 +87,7 @@ def includeme(config):
         'dbSession',
         reify=True
     )
-    
+
     # our logger
     engine = get_engine(settings, prefix='sqlalchemy_logger.')
     session_factory_logger = sessionmaker(bind=engine, autocommit=True)

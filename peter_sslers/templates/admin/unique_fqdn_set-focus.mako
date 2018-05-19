@@ -22,11 +22,11 @@
         <a  class="btn btn-info btn-xs"
             href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}/calendar"
         >
-            <span class="glyphicon glyphicon-calendar" aria-hidden="true"></span>    
+            <span class="glyphicon glyphicon-calendar" aria-hidden="true"></span>
             Calendar
         </a>
         <a href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}.json" class="btn btn-xs btn-info">
-            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>    
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
     </p>

@@ -694,7 +694,7 @@
         <div class="form-group">
             <label for="f1-private_key_existing">Other existing key (pem md5)</label>
             <input class="form-control" name="private_key_existing" id="f1-private_key_existing" type="text"/>
-        </div>    
+        </div>
     <h5>or Upload File</h5>
         ${formgroup__private_key_file(show_text=show_text, header=None)}
 </%def>

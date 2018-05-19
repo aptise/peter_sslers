@@ -20,7 +20,7 @@
 <%block name="page_header_nav">
     <p class="pull-right">
         <a href="${admin_prefix}/certificate-requests.json" class="btn btn-xs btn-info">
-            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>    
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
     </p>

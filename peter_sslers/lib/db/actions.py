@@ -131,7 +131,7 @@ def do__SslAcmeAccountKey_authenticate(ctx, dbAcmeAccountKey, account_key_path=N
         header, thumbprint = acme_v1.account_key__header_thumbprint(account_key_path=account_key_path, )
 
         acmeLogger = AcmeLogger(ctx)
-        
+
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
         result = acme_v1.acme_register_account(header,
@@ -196,7 +196,7 @@ def do__CertificateRequest__AcmeAutomated(
 
     if not any((dbPrivateKey, private_key_pem)) or all((dbPrivateKey, private_key_pem)):
         raise ValueError("Submit one and only one of: `dbPrivateKey`, `private_key_pem`")
-    
+
     if domain_names is None:
         if not dbServerCertificate__renewal_of:
             raise ValueError("`domain_names` must be provided unless this is a renewal")
@@ -319,12 +319,13 @@ def do__CertificateRequest__AcmeAutomated(
          ) = acme_v1.acme_sign_certificate(csr_path=tmpfile_csr.name,
                                            account_key_path=tmpfile_account.name,
                                            header=header,
+                                           acmeLogger=acmeLogger,
                                            acmeAccountKey=dbAccountKey,
                                            )
         #
         # end acme-tiny
         # ######################################################################
-        
+
         # let's make sure we have the right domains in the cert!!
         # this only happens on development during tests when we use a single cert
         # for all requests...
@@ -337,7 +338,7 @@ def do__CertificateRequest__AcmeAutomated(
             log.error(domain_names)
             log.error(cert_domains)
             raise ValueError("this should not happen!")
-        
+
         # these MUST commit
         with transaction.manager as tx:
             dbServerCertificate = lib.db.create.create__SslServerCertificate(

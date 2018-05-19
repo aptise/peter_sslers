@@ -11,7 +11,7 @@ class AccountKeyUploadParser(object):
     """
     # overwritten in __init__
     getcreate_args = None
-    formStash= None
+    formStash = None
     # tracked
     acme_account_provider_id = None
     account_key_pem = None
@@ -23,7 +23,7 @@ class AccountKeyUploadParser(object):
     def __init__(self, formStash):
         self.formStash = formStash
         self.getcreate_args = {}
-    
+
     def require_upload(self):
         formStash = self.formStash
 
@@ -45,15 +45,15 @@ class AccountKeyUploadParser(object):
                 else:
                     passes.append(idx)
 
-        if (len(passes) != 1) or failures :
+        if (len(passes) != 1) or failures:
             formStash.set_error(field="Error_Main",
                                 message="You must upload `account_key_file_pem` or all of (`account_key_file_le_meta`, `account_key_file_le_pkey`, `account_key_file_le_reg`).",
                                 raise_FormInvalid=True,
                                 )
-    
+
         # -------------------
 
-        # validate the provider option         
+        # validate the provider option
         # will be None unless a pem is uploaded
         # required for PEM, ignored otherwise
         acme_account_provider_id = formStash.results.get('acme_account_provider_id', None)
@@ -68,13 +68,13 @@ class AccountKeyUploadParser(object):
                                     message="Invalid provider submitted.",
                                     raise_FormInvalid=True,
                                     )
-            
+
         getcreate_args = {}
         if formStash.results['account_key_file_pem'] is not None:
             self.upload_type = 'pem'
             self.acme_account_provider_id = getcreate_args['acme_account_provider_id'] = acme_account_provider_id
             self.account_key_pem = getcreate_args['key_pem'] = formStash.results['account_key_file_pem'].file.read()
-        else:                
+        else:
             # note that we use `jsonS` to indicate a string
             self.le_meta_jsons = getcreate_args['le_meta_jsons'] = formStash.results['account_key_file_le_meta'].file.read()
             self.le_pkey_jsons = getcreate_args['le_pkey_jsons'] = formStash.results['account_key_file_le_pkey'].file.read()
@@ -84,10 +84,10 @@ class AccountKeyUploadParser(object):
 
 
 class AccountKeySelection(object):
-    selection = None  # upload, 
+    selection = None  # upload,
     upload_parsed = None  # instance of AccountKeyUploadParser or None
     SslAcmeAccountKey = None
-        
+
 
 def parse_AccountKeySelection(request, formStash, seek_selected=None):
     account_key_pem = None
@@ -95,14 +95,14 @@ def parse_AccountKeySelection(request, formStash, seek_selected=None):
     dbAccountKey = None
     is_default = None
     # handle the explicit-option
-    
+
     accountKeySelection = AccountKeySelection()
     if seek_selected == 'account_key_file':
         # this will handle form validation and raise errors.
         parser = AccountKeyUploadParser(formStash)
         parser.require_upload()
 
-        # update our object            
+        # update our object
         accountKeySelection.selection = 'upload'
         accountKeySelection.upload_parsed = parser
 
@@ -119,7 +119,7 @@ def parse_AccountKeySelection(request, formStash, seek_selected=None):
             accountKeySelection.selection = 'reuse'
             account_key_pem_md5 = formStash.results['account_key_reuse']
         if not account_key_pem_md5:
-            formStash.set_error(field=seek_selected, 
+            formStash.set_error(field=seek_selected,
                                 message="You did not provide a value",
                                 raise_FormInvalid=True,
                                 )
@@ -129,18 +129,18 @@ def parse_AccountKeySelection(request, formStash, seek_selected=None):
             is_active=True,
         )
         if not dbAccountKey:
-            formStash.set_error(field=field_source, 
+            formStash.set_error(field=seek_selected,
                                 message="This account key is not tracked.",
                                 raise_FormInvalid=True,
                                 )
         if is_default and not dbAccountKey.is_default:
-            formStash.set_error(field=field_source, 
+            formStash.set_error(field=seek_selected,
                                 message="This account key is not the default any more.",
                                 raise_FormInvalid=True,
                                 )
         accountKeySelection.SslAcmeAccountKey = dbAccountKey
         return accountKeySelection
-    formStash.set_error(field='Error_Main', 
+    formStash.set_error(field='Error_Main',
                         message="There was an error Validating your form.",
                         raise_FormInvalid=True,
                         )
@@ -155,11 +155,11 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
         if seek_selected == 'private_key_file':
             try:
                 private_key_pem = formStash.results['private_key_file'].file.read()
-            except:
+            except Exception as e:
                 # we'll still error out...'
                 pass
             if not private_key_pem:
-                formStash.set_error(field='private_key_file', 
+                formStash.set_error(field='private_key_file',
                                     message="There was an error uploading your file.",
                                     raise_FormInvalid=True,
                                     )
@@ -170,7 +170,7 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
             elif seek_selected == 'private_key_reuse':
                 private_key_pem_md5 = formStash.results['private_key_reuse']
             if not private_key_pem_md5:
-                formStash.set_error(field=seek_selected, 
+                formStash.set_error(field=seek_selected,
                                     message="You did not provide a value",
                                     raise_FormInvalid=True,
                                     )
@@ -180,12 +180,12 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
                 is_active=True,
             )
             if not dbPrivateKey:
-                formStash.set_error(field=field_source, 
+                formStash.set_error(field=seek_selected,
                                     message="This private key is not tracked.",
                                     raise_FormInvalid=True,
                                     )
             return dbPrivateKey.key_pem
-        formStash.set_error(field='Error_Main', 
+        formStash.set_error(field='Error_Main',
                             message="There was an error Validating your form.",
                             raise_FormInvalid=True,
                             )
@@ -206,7 +206,7 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
             is_active=True,
         )
         if not dbPrivateKey:
-            formStash.set_error(field=field_source, 
+            formStash.set_error(field=field_source,
                                 message="this private key is not tracked.",
                                 raise_FormInvalid=True,
                                 )

@@ -51,7 +51,7 @@
                     <td><code type="payload">${SslOperationsEvent.event_payload_json}</code></td>
                 </tr>
             </table>
-            
+
             <h4>Children</h4>
             ${admin_partials.table_SslOperationsEvents(SslOperationsEvent.children, show_event='event.id')}
 

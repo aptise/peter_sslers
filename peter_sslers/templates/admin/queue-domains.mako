@@ -47,7 +47,7 @@
                 <textarea class="form-control">${results}</textarea>
                 <hr/>
             % endif
-            
+
             <p>
                 The domain queue is designed to allow for domains to be "queued in" for later batch processing.
             </p>

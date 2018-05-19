@@ -67,4 +67,3 @@ class Handler(object):
     def _load_PrivateKeyDefault(self):
         self.dbPrivateKeyDefault = db.get.get__SslPrivateKey__default(self.request.api_context, active_only=True)
         return self.dbPrivateKeyDefault
-

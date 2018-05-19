@@ -11,7 +11,6 @@ def formatter_error(error):
     return '<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">%s</span></div></div>\n' % formencode.rewritingparser.html_quote(error)
 
 
-
 # these should be tuples of ('Short', 'Long')
 
 info_AccountKeys = ['Used to sign Certificate Requests',

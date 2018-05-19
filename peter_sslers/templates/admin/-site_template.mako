@@ -46,7 +46,7 @@ SSL Certificate Administration
                     <h2>Page Header</h2>
                 </%block>
             </div>
-            <div class="col-sm-6"><%block name="page_header_nav"></%block></div>            
+            <div class="col-sm-6"><%block name="page_header_nav"></%block></div>
         </div>
     </%block>
 

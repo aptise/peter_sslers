@@ -391,7 +391,6 @@ def convert_der_to_pem__rsakey(der_data=None):
     return as_pem
 
 
-
 def convert_pem_to_der(pem_data=None):
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     lines = [l.strip() for l in pem_data.strip().split('\n')]
@@ -483,8 +482,8 @@ def new_private_key():
     # this will raise an error
     validate_key__pem(key_pem)
     return key_pem
-    
-    
+
+
 def convert_jwk_to_ans1(pkey_jsons):
     """
     input is a json string
@@ -495,11 +494,12 @@ def convert_jwk_to_ans1(pkey_jsons):
     def enc(data):
         missing_padding = 4 - len(data) % 4
         if missing_padding:
-          data += b'='* missing_padding
-        return '0x'+binascii.hexlify(base64.b64decode(data,b'-_')).upper()
+            data += b'=' * missing_padding
+        return '0x' + binascii.hexlify(base64.b64decode(data, b'-_')).upper()
 
-    for k,v in pkey.items(): 
-        if k == 'kty': continue 
+    for k, v in pkey.items():
+        if k == 'kty':
+            continue
         pkey[k] = enc(v.encode())
 
     converted = []
@@ -514,10 +514,10 @@ def convert_jwk_to_ans1(pkey_jsons):
     converted.append("qi=INTEGER:{}".format(pkey[u'qi']))
     converted.append("")  # trailing newline
     converted = '\n'.join(converted)
-    
+
     return converted
 
-    
+
 def convert_lejson(pkey_jsons, to='pem'):
     """
     input is a json string
@@ -545,17 +545,13 @@ def convert_lejson(pkey_jsons, to='pem'):
             raise ValueError(err)
 
         as_pem = convert_der_to_pem__rsakey(tmpfile_der.read())
-        print(as_pem )
-        
         validate_key__pem(as_pem)
-        
         return as_pem
-        
-    except:
+
+    except Exception as e:
         raise
     finally:
         for t in tmpfiles:
             t.close()
 
     return as_pem
-

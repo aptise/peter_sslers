@@ -77,7 +77,7 @@ class ViewAdmin(Handler):
                     "raw": {"pem.txt": "%s/key.pem.txt" % _prefix,
                             "pem": "%s/key.pem" % _prefix,
                             "der": "%s/key.key" % _prefix,
-                            }                              
+                            }
                     }
         return {'project': 'peter_sslers',
                 'SslAcmeAccountKey': dbAcmeAccountKey
@@ -123,7 +123,7 @@ class ViewAdmin(Handler):
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
         result = lib_db.actions.do__SslAcmeAccountKey_authenticate(self.request.api_context, dbAcmeAccountKey)
-        return HTTPFound('%s/account-key/%s?result=success&is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, ('1' if is_authenticated else '0')))
+        return HTTPFound('%s/account-key/%s?result=success&is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, result))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -180,10 +180,10 @@ class ViewAdmin(Handler):
                                     'account_key_file_le_pkey': 'Group B',
                                     'account_key_file_le_reg': 'Group B',
                                     },
-                     'notes': ["You must submit ALL items from Group A or Group B"
-                               ],
-                     'valid_options': {'acme_account_provider_id': {v['id']: v['name'] for v in models.AcmeAccountProvider.registry.values()},
-                                       }
+                    'notes': ["You must submit ALL items from Group A or Group B"
+                              ],
+                    'valid_options': {'acme_account_provider_id': {v['id']: v['name'] for v in models.AcmeAccountProvider.registry.values()},
+                                      }
                     }
         # quick setup, we need a bunch of options for dropdowns...
         providers = models.AcmeAccountProvider.registry.values()
@@ -200,7 +200,7 @@ class ViewAdmin(Handler):
                                             )
             if not result:
                 raise formhandling.FormInvalid()
-            
+
             parser = AccountKeyUploadParser(formStash)
             parser.require_upload()
             key_create_args = parser.getcreate_args

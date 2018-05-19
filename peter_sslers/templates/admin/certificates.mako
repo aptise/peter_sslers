@@ -24,12 +24,12 @@
     <p class="pull-right">
         % if sidenav_option == 'expiring' :
             <a href="${admin_prefix}/certificates/expiring.json" class="btn btn-xs btn-info">
-                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>    
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % else:
             <a href="${admin_prefix}/certificates.json" class="btn btn-xs btn-info">
-                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>    
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % endif

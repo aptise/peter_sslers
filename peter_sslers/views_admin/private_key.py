@@ -72,7 +72,7 @@ class ViewAdmin(Handler):
                     "raw": {"pem.txt": "%s/key.pem.txt" % _prefix,
                             "pem": "%s/key.pem" % _prefix,
                             "der": "%s/key.key" % _prefix,
-                            }                              
+                            }
                     }
         return {'project': 'peter_sslers',
                 'SslPrivateKey': dbPrivateKey

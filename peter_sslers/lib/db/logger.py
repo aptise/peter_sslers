@@ -31,7 +31,7 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
         return sslAcmeEventLog
-    
+
     def log_new_authz(self, domain):
         """
         Logs a newauthz and the challenge option
@@ -96,7 +96,7 @@ class AcmeLogger(object):
         sslAcmeChallengeLog.timestamp_challenge_pass = datetime.datetime.utcnow()
         self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
         self.ctx.dbSessionLogger.flush()
-    
+
     def log_challenge_error(self, sslAcmeChallengeLog, failtype):
         """
         Logs a challenge as error

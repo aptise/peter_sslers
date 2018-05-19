@@ -20,7 +20,6 @@ from ..lib import text as lib_text
 from ..lib import form_utils as form_utils
 from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
 from ..lib import errors
-#from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated__file
 from ..lib.forms import Form_CertificateRequest_AcmeFlow_manage_domain
 from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated
 from ..lib.handler import Handler, items_per_page
@@ -277,14 +276,14 @@ class ViewAdmin(Handler):
                 raise formhandling.FormInvalid()
 
             try:
-                domain_names = lib.utils.domains_from_string(formStash.results['domain_names']) 
+                domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             except ValueError as e:
-                formStash.set_error(field='domain_names', 
+                formStash.set_error(field='domain_names',
                                     message="invalid domain names detected",
                                     raise_FormInvalid=True,
                                     )
             if not domain_names:
-                formStash.set_error(field='domain_names', 
+                formStash.set_error(field='domain_names',
                                     message="invalid or no valid domain names detected",
                                     raise_FormInvalid=True,
                                     )

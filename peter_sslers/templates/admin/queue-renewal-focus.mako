@@ -103,7 +103,7 @@
                 </tr>
                 ${admin_partials.table_tr_event_created(RenewalQueueItem)}
             </table>
-    
+
             <h4>Process History</h4>
             % if RenewalQueueItem.operations_object_events:
                 ${admin_partials.table_SslOperationsObjectEvents(RenewalQueueItem.operations_object_events, table_context=None)}

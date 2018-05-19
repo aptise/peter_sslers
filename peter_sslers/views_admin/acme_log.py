@@ -35,7 +35,7 @@ class ViewAdmin(Handler):
                 }
 
     def _acme_event_log_focus(self):
-        dbSslAcmeEventLog = lib_db.get.get__SslAcmeEventLog__by_id(self.request.api_context, self.request.matchdict['id'] )
+        dbSslAcmeEventLog = lib_db.get.get__SslAcmeEventLog__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbSslAcmeEventLog:
             raise HTTPNotFound('the log was not found')
         return dbSslAcmeEventLog
@@ -62,7 +62,7 @@ class ViewAdmin(Handler):
                 }
 
     def _acme_challenge_log_focus(self):
-        dbSslAcmeChallengeLog = lib_db.get.get__SslAcmeChallengeLog__by_id(self.request.api_context, self.request.matchdict['id'] )
+        dbSslAcmeChallengeLog = lib_db.get.get__SslAcmeChallengeLog__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbSslAcmeChallengeLog:
             raise HTTPNotFound('the log was not found')
         return dbSslAcmeChallengeLog

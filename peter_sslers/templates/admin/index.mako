@@ -48,7 +48,7 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-requests
-                    </a> 
+                    </a>
                     </li>
                 <li><a href="${admin_prefix}/private-keys"
                        title="${request.text_library.info_PrivateKeys[0]}"

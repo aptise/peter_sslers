@@ -422,7 +422,7 @@ class SslAcmeAccountKey(Base):
     acme_account_provider_id = sa.Column(sa.Integer, nullable=False)
     ssl_operations_event_id__created = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False)
     letsencrypt_data = sa.Column(sa.Text, nullable=True)
-    
+
     certificate_requests = sa.orm.relationship("SslCertificateRequest",
                                                primaryjoin="SslAcmeAccountKey.id==SslCertificateRequest.ssl_acme_account_key_id",
                                                order_by='SslCertificateRequest.id.desc()',
@@ -453,7 +453,7 @@ class SslAcmeAccountKey(Base):
     def key_pem_sample(self):
         # strip the pem, because the last line is whitespace after "-----END RSA PRIVATE KEY-----"
         pem_lines = self.key_pem.strip().split('\n')
-        return "%s...%s"  % (pem_lines[1][0:5], pem_lines[-2][-5:])
+        return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
 
     @reify
     def acme_account_provider(self):
@@ -687,7 +687,6 @@ class SslCertificateRequest(Base):
             return self.server_certificate.id
         return None
 
-
     @property
     def as_json(self):
         return {'id': self.id,
@@ -701,7 +700,7 @@ class SslCertificateRequest(Base):
                 'ssl_private_key_id__signed_by': self.ssl_private_key_id__signed_by,
                 'ssl_server_certificate_id__renewal_of': self.ssl_server_certificate_id__renewal_of,
                 'ssl_unique_fqdn_set_id': self.ssl_unique_fqdn_set_id,
-                }        
+                }
 
     @property
     def as_json_extended(self):
@@ -721,7 +720,6 @@ class SslCertificateRequest(Base):
                 'csr_pem': self.csr_pem,
                 'ssl_server_certificate_id__issued': self.ssl_server_certificate_id__issued,
                 }
-
 
 
 class SslCertificateRequest2SslDomain(Base):
@@ -813,7 +811,6 @@ class SslDomain(Base):
                 'expiring_days': self.server_certificate__latest_single.expiring_days,
             }
         return payload
-        
 
 
 class SslOperationsEvent(Base, _mixin_SslOperationsEventType):
@@ -1022,7 +1019,7 @@ class SslPrivateKey(Base):
     def key_pem_sample(self):
         # strip the pem, because the last line is whitespace after "-----END RSA PRIVATE KEY-----"
         pem_lines = self.key_pem.strip().split('\n')
-        return "%s...%s"  % (pem_lines[1][0:5], pem_lines[-2][-5:])
+        return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
 
     @property
     def as_json(self):
@@ -1296,22 +1293,22 @@ class SslServerCertificate(Base):
 
     @property
     def as_json(self):
-        return  {'id': self.id,
-                 'is_active': True if self.is_active else False,
-                 'is_auto_renew': True if self.is_auto_renew else False,
-                 'is_deactivated': True if self.is_deactivated else False,
-                 'is_revoked': True if self.is_revoked else False,
-                 'is_renewed': True if self.is_renewed else False,
-                 'timestamp_expires': self.timestamp_expires_isoformat,
-                 'timestamp_signed': self.timestamp_signed_isoformat,
-                 'cert_pem': self.cert_pem,
-                 'cert_pem_md5': self.cert_pem_md5,
-                 'ssl_unique_fqdn_set_id': self.ssl_unique_fqdn_set_id,
-                 'ssl_ca_certificate_id__upchain': self.ssl_ca_certificate_id__upchain,
-                 'ssl_private_key_id__signed_by': self.ssl_private_key_id__signed_by,
-                 'ssl_acme_account_key_id': self.ssl_acme_account_key_id,
-                 'domains_as_list': self.domains_as_list,
-                 }
+        return {'id': self.id,
+                'is_active': True if self.is_active else False,
+                'is_auto_renew': True if self.is_auto_renew else False,
+                'is_deactivated': True if self.is_deactivated else False,
+                'is_revoked': True if self.is_revoked else False,
+                'is_renewed': True if self.is_renewed else False,
+                'timestamp_expires': self.timestamp_expires_isoformat,
+                'timestamp_signed': self.timestamp_signed_isoformat,
+                'cert_pem': self.cert_pem,
+                'cert_pem_md5': self.cert_pem_md5,
+                'ssl_unique_fqdn_set_id': self.ssl_unique_fqdn_set_id,
+                'ssl_ca_certificate_id__upchain': self.ssl_ca_certificate_id__upchain,
+                'ssl_private_key_id__signed_by': self.ssl_private_key_id__signed_by,
+                'ssl_acme_account_key_id': self.ssl_acme_account_key_id,
+                'domains_as_list': self.domains_as_list,
+                }
 
 
 class SslUniqueFQDNSet(Base):

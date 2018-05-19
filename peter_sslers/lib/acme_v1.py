@@ -256,6 +256,7 @@ def acme_sign_certificate(
     account_key_path=None,
     csr_path=None,
     header=None,
+    acmeLogger=None,  # an instance of AcmeLogger
     acmeAccountKey=None,
 ):
     # get the new certificate
