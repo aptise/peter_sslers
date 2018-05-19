@@ -142,7 +142,7 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: Private Key</a></li>
                 <li>
-                    <a  href="${admin_prefix}/account-key/new"
+                    <a  href="${admin_prefix}/account-key/upload"
                         title="${request.text_library.info_UploadAccountKey[0]}"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

@@ -236,7 +236,7 @@ class AppTest(AppTestCore):
                 #
                 _key_filename = TEST_FILES['AccountKey']['1']
                 key_pem = self._filedata_testfile(_key_filename)
-                _key_account1, _is_created = db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(self.ctx, key_pem)
+                _key_account1, _is_created = db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(self.ctx, key_pem, acmeAccountProvider_id)
                 # print _key_account1, _is_created
                 self.ctx.dbSession.commit()
 
@@ -450,9 +450,9 @@ class FunctionalTests_AccountKeys(AppTest):
         _key_filename = TEST_FILES['AccountKey']['2']
         key_filepath = self._filepath_testfile(_key_filename)
 
-        res = self.testapp.get('/.well-known/admin/account-key/new', status=200)
+        res = self.testapp.get('/.well-known/admin/account-key/upload', status=200)
         form = res.form
-        form['account_key_file'] = Upload(key_filepath)
+        form['account_key_file_pem'] = Upload(key_filepath)
         res2 = form.submit()
         assert res2.status_code == 302
         assert res2.location == """http://localhost/.well-known/admin/account-key/2?result=success&is_created=1"""
@@ -699,7 +699,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         self.testapp_http.wait()
         res = self.testapp.get('/.well-known/admin/certificate-request/new-acme-automated', status=200)
         form = res.form
-        form['account_key_file'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['acme_test']['account_key']))
+        form['account_key_file_pem'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['acme_test']['account_key']))
         form['private_key_file'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['acme_test']['private_key']))
         form['domain_names'] = TEST_FILES['CertificateRequests']['acme_test']['domains']
         res2 = form.submit()

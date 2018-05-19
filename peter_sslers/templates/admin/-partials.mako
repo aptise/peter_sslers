@@ -650,7 +650,7 @@
             <input class="form-control" name="account_key_existing" id="f1-account_key_existing" type="text"/>
         </div>    
     <h5>or Upload File</h5>
-        ${formgroup__account_key_file(show_text=show_text, header=None)}
+        ${formgroup__account_key_file(show_header=None)}
 </%def>
 
 
@@ -694,11 +694,11 @@
     </div>
     <div class="radio">
         <label>
-            <input type="radio" name="account_key_option" id="account_key_option-account_key_file" value="account_key_file">
+            <input type="radio" name="account_key_option" id="account_key_option-account_key_file_pem" value="account_key_file_pem">
             Select to upload a new Account Key<br/>
         </label>
         <label>
-            ${formgroup__account_key_file(show_text=False)}
+            ${formgroup__account_key_file()}
         </label>
     </div>
 </%def>
@@ -768,23 +768,25 @@
 </%def>
 
 
-<%def name="formgroup__account_key_file(show_text=None, header=True)">
+<%def name="formgroup__account_key_file(show_header=True)">
     <div class="form-group">
-        % if header:
-            <label for="f1-account_key_file">Account Private Key</label>
-        % endif
-        <input class="form-control" type="file" id="f1-account_key_file" name="account_key_file" />
+        <label for="f1-account_key_file_pem">Account Key: PEM</label>
         <p class="help-block">
-            Enter your LetsEncrypted registered PRIVATE AccountKey above in PEM format; this will be used to sign your request.
-            This is saved to the DB and is used to track requests and handle reiussues.
+            Enter your LetsEncrypt registered AccountKey in PEM format. This is used when requesting the ACME server sign your certificates.
         </p>
-        % if show_text:
-            <label for="f1-account_key">Account Private Key [text]</label>
-            <textarea class="form-control" rows="4" name="account_key" id="f1-account_key"></textarea>
-            <p class="help-block">
-                Alternately, provide text inline.
-            </p>
-        % endif
+        <input class="form-control" type="file" id="f1-account_key_file_pem" name="account_key_file_pem" />
+        <hr/>
+        or
+        <hr/>
+        <p class="help-block">
+            Enter your LetsEncrypt registered AccountKey in PEM format. This is used when requesting the ACME server sign your certificates.
+        </p>
+        <label for="f1-account_key_file_le_meta">Account Key: LetsEncrypt meta.json</label>
+        <input class="form-control" type="file" id="f1-account_key_file_le_meta" name="account_key_file_le_meta" />
+        <label for="f1-account_key_file_le_pkey">Account Key: LetsEncrypt private_key.json</label>
+        <input class="form-control" type="file" id="f1-account_key_file_le_pkey" name="account_key_file_le_pkey" />
+        <label for="f1-account_key_file_le_reg">Account Key: LetsEncrypt regr.json</label>
+        <input class="form-control" type="file" id="f1-account_key_file_le_reg" name="account_key_file_le_reg" />
     </div>
 </%def>
 

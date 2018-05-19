@@ -176,7 +176,7 @@ class ViewAdmin(Handler):
     def _api_domain_certificate_if_needed__print(self):
         return {'instructions': """POST `domain_names""",
                 'form_fields': {'domain_names': 'required',
-                                'account_key_file': 'optional',
+                                'account_key_file_pem': 'optional',
                                 },
                 }
 
@@ -205,8 +205,8 @@ class ViewAdmin(Handler):
                                     message_prepend=True
                                     )
             account_key_pem = None
-            if formStash.results['account_key_file'] is not None:
-                account_key_pem = formStash.results['account_key_file'].file.read()
+            if formStash.results['account_key_file_pem'] is not None:
+                account_key_pem = formStash.results['account_key_file_pem'].file.read()
             api_results = lib_db.actions.api_domains__certificate_if_needed(self.request.api_context,
                                                                             domain_names,
                                                                             account_key_pem=account_key_pem

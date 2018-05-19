@@ -21,6 +21,7 @@ from .. import events
 from .. import utils
 
 # local
+from .logger import AcmeLogger
 from .logger import log__SslOperationsEvent
 from .logger import _log_object_event
 from . import get
@@ -128,16 +129,12 @@ def do__SslAcmeAccountKey_authenticate(ctx, dbAcmeAccountKey, account_key_path=N
 
         # parse account key to get public key
         header, thumbprint = acme_v1.account_key__header_thumbprint(account_key_path=account_key_path, )
-        
-        def func_log_registration():
-            sslAcmeEventLog = models.SslAcmeEventLog()
-            sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-            sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-reg')
-            ctx.dbSessionLogger.add(sslAcmeEventLog)
 
+        acmeLogger = AcmeLogger(ctx)
+        
         acme_v1.acme_register_account(header,
                                       account_key_path=account_key_path,
-                                      func_logger=func_log_registration
+                                      acmeLogger=acmeLogger
                                       )
 
         # this would raise if we couldn't authenticate
@@ -223,9 +220,11 @@ def do__CertificateRequest__AcmeAutomated(
         domain_names = list(domain_names)
 
         if dbAccountKey is None:
+            raise ValueError("!!!")
             account_key_pem = cert_utils.cleanup_pem_text(account_key_pem)
             dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(ctx, account_key_pem)
         else:
+            raise ValueError("!!!")
             account_key_pem = dbAccountKey.key_pem
         # we need to use tmpfiles on the disk
         tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
@@ -294,57 +293,11 @@ def do__CertificateRequest__AcmeAutomated(
                                                account_key_path=tmpfile_account.name,
                                                )
 
-        def func_newauthz_log(domain):
-            """
-            Logs a newauthz and the challenge option
-            """
-            sslAcmeEventLog = models.SslAcmeEventLog()
-            sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-            sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-authz')
-            sslAcmeEventLog.ssl_acme_account_key_id = dbAccountKey.id
-            sslAcmeEventLog.ssl_certificate_request_id = dbCertificateRequest.id
-            ctx.dbSessionLogger.add(sslAcmeEventLog)
-            ctx.dbSessionLogger.flush()
-
-            sslAcmeChallengeLog = models.SslAcmeChallengeLog()
-            sslAcmeChallengeLog.acme_event_id = dbAccountKey.id
-            sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
-            sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
-            sslAcmeChallengeLog.domain = domain
-            sslAcmeChallengeLog.ssl_acme_account_key_id = dbAccountKey.id
-            ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-            ctx.dbSessionLogger.flush()
-            
-            return (sslAcmeEventLog, sslAcmeChallengeLog)
-
-        def func_challenge_trigger_log(sslAcmeChallengeLog):
-            """
-            Logs a challenge request
-            """
-            sslAcmeChallengeLog.timestamp_challenge_trigger = datetime.datetime.utcnow()
-            sslAcmeChallengeLog.count_polled = 0
-            ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-            ctx.dbSessionLogger.flush()
-
-        def func_challenge_polled_log(sslAcmeChallengeLog):
-            sslAcmeChallengeLog.count_polled += 1
-            ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-            ctx.dbSessionLogger.flush()
-
-        def func_challenge_pass_log(sslAcmeChallengeLog):
-            sslAcmeChallengeLog.timestamp_challenge_pass = datetime.datetime.utcnow()
-            ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-            ctx.dbSessionLogger.flush()
-        
-        def func_error_log(sslAcmeChallengeLog, failtype):
-            if failtype in ('pretest-1', 'pretest-2'):
-                sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string('setup-prevalidation')
-                ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-                ctx.dbSessionLogger.flush()
-            elif failtype in ('fail-1', 'fail-2'):
-                sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string('upstream-validation')
-                ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-                ctx.dbSessionLogger.flush()
+        acmeLogger = AcmeLogger(
+            ctx,
+            dbAccountKey=dbAccountKey,
+            dbCertificateRequest=dbCertificateRequest,
+        )
 
         # verify each domain
         acme_v1.acme_verify_domains(csr_domains=csr_domains,
@@ -353,11 +306,7 @@ def do__CertificateRequest__AcmeAutomated(
                                     handle_keyauth_cleanup=process_keyauth_cleanup,
                                     thumbprint=thumbprint,
                                     header=header,
-                                    func_newauthz_log=func_newauthz_log,
-                                    func_challenge_trigger_log=func_challenge_trigger_log,
-                                    func_challenge_polled_log=func_challenge_polled_log,
-                                    func_challenge_pass_log=func_challenge_pass_log,
-                                    func_error_log=func_error_log,
+                                    acmeLogger=acmeLogger,
                                     )
 
         # sign it
@@ -366,6 +315,7 @@ def do__CertificateRequest__AcmeAutomated(
          chain_url,
          datetime_signed,
          datetime_expires,
+         acmeLoggedEvent,
          ) = acme_v1.acme_sign_certificate(csr_path=tmpfile_csr.name,
                                            account_key_path=tmpfile_account.name,
                                            header=header,
@@ -412,6 +362,8 @@ def do__CertificateRequest__AcmeAutomated(
                 dbQueueRenewal__of.process_result = True
                 dbQueueRenewal__of.is_active = False
                 ctx.dbSession.flush(objects=[dbQueueRenewal__of, ])
+            # update the logger
+            acmeLogger.log_event_certificate(acmeLoggedEvent, dbServerCertificate)
 
         log.debug("mark_changed(ctx.dbSession) - is this necessary?")
         mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
@@ -807,9 +759,11 @@ def api_domains__certificate_if_needed(
 
     dbAccountKey = None
     if account_key_pem is not None:
+        raise ValueError('acmeAccountProvider_id')
         dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(
             ctx,
             account_key_pem,
+            acmeAccountProvider_id = None,
         )
         if not dbAccountKey:
             raise errors.DisplayableError("Could not create an AccountKey")

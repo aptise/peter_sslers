@@ -11,14 +11,14 @@ def parse_AccountKeyPem(request, formStash, seek_selected=None):
     is_default = None
     # handle the explicit-option
     if seek_selected:
-        if seek_selected == 'account_key_file':
+        if seek_selected == 'account_key_file_pem':
             try:
-                account_key_pem = formStash.results['account_key_file'].file.read()
+                account_key_pem = formStash.results['account_key_file_pem'].file.read()
             except:
                 # we'll still error out...'
                 pass
             if not account_key_pem:
-                formStash.set_error(field='account_key_file', 
+                formStash.set_error(field='account_key_file_pem', 
                                     message="There was an error uploading your file.",
                                     raise_FormInvalid=True,
                                     )
@@ -57,8 +57,8 @@ def parse_AccountKeyPem(request, formStash, seek_selected=None):
                             raise_FormInvalid=True,
                             )
     # handle the best-option now
-    if formStash.results['account_key_file'] is not None:
-        account_key_pem = formStash.results['account_key_file'].file.read()
+    if formStash.results['account_key_file_pem'] is not None:
+        account_key_pem = formStash.results['account_key_file_pem'].file.read()
     else:
         field_source = None
         if formStash.results['account_key_default'] is not None:

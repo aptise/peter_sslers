@@ -7,6 +7,7 @@ import logging
 import datetime
 
 from . import lib
+from .models import models as models_models
 from .lib import acme_v1
 from .lib import cert_utils
 from .lib.config_utils import set_bool_setting
@@ -71,7 +72,27 @@ def main(global_config, **settings):
     if 'openssl_path_conf' in settings:
         cert_utils.openssl_path_conf = settings["openssl_path_conf"]
     if 'certificate_authority' in settings:
-        acme_v1.CERTIFICATE_AUTHORITY = settings["certificate_authority"]
+        _valid_cas = ('https://acme-staging.api.letsencrypt.org',
+                      )
+        ca_submitted = settings["certificate_authority"]
+        if ca_submitted not in _valid_cas:
+            raise ValueError("invalid option for `certificate_authority`")
+        ca_submitted_name = None
+        for (ca_name, ca_endpoint) in models_models.AcmeAccountEndpoint._mapping.items():
+            if ca_endpoint == ca_submitted:
+                ca_submitted_name = ca_name
+                break
+        if not ca_submitted_name:
+            raise ValueError("invalid `certificate_authority`")
+        default_acme_provider_id = models_models.AcmeAccountProvider.from_string(ca_name)
+        if not ca_submitted_name:
+            raise ValueError("invalid `certificate_authority` 2")
+
+        # okay stash this
+        acme_v1.CERTIFICATE_AUTHORITY = ca_submitted
+        config.registry.settings["CERTIFICATE_AUTHORITY"] = ca_submitted
+        config.registry.settings["AcmeAccountProvider"] = ca_submitted_name
+
     if 'certificate_authority_testing' in settings:
         certificate_authority_testing = set_bool_setting(config.registry.settings, 'certificate_authority_testing')
         if certificate_authority_testing:

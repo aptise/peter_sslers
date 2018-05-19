@@ -157,6 +157,7 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:account_key:new')
     def account_key_new(self):
+        # TODO: make this a json endpoint
         if self.request.method == 'POST':
             return self._account_key_new__submit()
         return self._account_key_new__print()
@@ -166,22 +167,62 @@ class ViewAdmin(Handler):
 
     def _account_key_new__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_AccountKey_new__file,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_AccountKey_new__file,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
-            account_key_pem = formStash.results['account_key_file'].file.read()
+            # -------------------
+            # do a quick parse...
+            requirements_either_or = (('account_key_file_pem', ),
+                                      ('account_key_file_le_meta', 'account_key_file_le_pkey', 'account_key_file_le_reg', )
+                                      )
+            failures = []
+            passes = []
+            for idx, option_set in enumerate(requirements_either_or):
+                option_set_results = [True if formStash.results[option_set_item] is not None else False
+                                      for option_set_item in option_set
+                                      ]
+                # if we have any item, we need all of them
+                if any(option_set_results):
+                    if not all(option_set_results):
+                        failures.append("If any of %s is provided, all must be provided." % str(option_set))
+                    else:
+                        passes.append(idx)
+
+            if (len(passes) != 1) or failures :
+                formStash.set_error(field="Error_Main",
+                                    message="You must upload `account_key_file_pem` or all of (`account_key_file_le_meta`, `account_key_file_le_pkey`, `account_key_file_le_reg`).",
+                                    raise_FormInvalid=True,
+                                    )
+            # -------------------
+            
+            defaultAcmeAccountProvider = self.request.registry.settings["AcmeAccountProvider"]
+            defaultAcmeAccountProvider_id = models.AcmeAccountProvider.from_string(defaultAcmeAccountProvider)
+            
+            key_create_args = {'acmeAccountProvider_id': defaultAcmeAccountProvider_id, }
+            if formStash.results['account_key_file_pem'] is not None:
+                key_create_args['key_pem'] = formStash.results['account_key_file_pem'].file.read()
+            else:                
+                # note that we use `jsonS` to indicate a string
+                key_create_args['le_meta_jsons'] = formStash.results['account_key_file_le_meta'].file.read()
+                key_create_args['le_pkey_jsons'] = formStash.results['account_key_file_le_pkey'].file.read()
+                key_create_args['le_reg_jsons'] = formStash.results['account_key_file_le_reg'].file.read()
+
+
+
             (dbAcmeAccountKey,
              _is_created
              ) = lib_db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(
                 self.request.api_context,
-                account_key_pem,
+                **key_create_args
             )
 
-            return HTTPFound('%s/account-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, ('&is_created=1' if _is_created else '')))
+            return HTTPFound('%s/account-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, ('&is_created=1' if _is_created else '&is_existing=1')))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",

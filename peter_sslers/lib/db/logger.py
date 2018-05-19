@@ -5,7 +5,6 @@ log = logging.getLogger(__name__)
 # pypi
 import datetime
 
-
 # localapp
 from ...models import models
 from .. import utils
@@ -14,6 +13,102 @@ from .. import utils
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+class AcmeLogger(object):
+
+    def __init__(self, ctx, dbAccountKey=None, dbCertificateRequest=None):
+        self.ctx = ctx
+        self.dbAccountKey = dbAccountKey
+        self.dbCertificateRequest = dbCertificateRequest
+
+    def log_registration(self):
+        """
+        logs a call to v1|/acme/new-reg
+        TODO: update with result?
+        """
+        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-reg')
+        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
+        self.ctx.dbSessionLogger.flush()
+        return sslAcmeEventLog
+    
+    def log_new_authz(self, domain):
+        """
+        Logs a newauthz and the challenge option
+        """
+        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-authz')
+        sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
+        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
+        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
+        self.ctx.dbSessionLogger.flush()
+
+        sslAcmeChallengeLog = models.SslAcmeChallengeLog()
+        sslAcmeChallengeLog.acme_event_id = sslAcmeEventLog.id
+        sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
+        sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
+        sslAcmeChallengeLog.domain = domain
+        sslAcmeChallengeLog.ssl_acme_account_key_id = self.dbAccountKey.id
+        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        self.ctx.dbSessionLogger.flush()
+        return (sslAcmeEventLog, sslAcmeChallengeLog)
+
+    def log_new_cert(self):
+        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-cert')
+        sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
+        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
+        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
+        self.ctx.dbSessionLogger.flush()
+        return sslAcmeEventLog
+
+    def log_event_certificate(self, sslAcmeEventLog, ssl_server_certificate_id):
+        """
+        Logs a challenge request
+        """
+        sslAcmeEventLog.ssl_server_certificate_id = ssl_server_certificate_id
+        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
+        self.ctx.dbSessionLogger.flush()
+
+    def log_challenge_trigger(self, sslAcmeChallengeLog):
+        """
+        Logs a challenge request
+        """
+        sslAcmeChallengeLog.timestamp_challenge_trigger = datetime.datetime.utcnow()
+        sslAcmeChallengeLog.count_polled = 0
+        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        self.ctx.dbSessionLogger.flush()
+
+    def log_challenge_polled(self, sslAcmeChallengeLog):
+        """
+        Logs a challenge poll
+        """
+        sslAcmeChallengeLog.count_polled += 1
+        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        self.ctx.dbSessionLogger.flush()
+
+    def log_challenge_pass(self, sslAcmeChallengeLog):
+        """
+        Logs a challenge as passed
+        """
+        sslAcmeChallengeLog.timestamp_challenge_pass = datetime.datetime.utcnow()
+        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        self.ctx.dbSessionLogger.flush()
+    
+    def log_challenge_error(self, sslAcmeChallengeLog, failtype):
+        """
+        Logs a challenge as error
+        """
+        if failtype in ('pretest-1', 'pretest-2'):
+            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string('setup-prevalidation')
+            self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+            self.ctx.dbSessionLogger.flush()
+        elif failtype in ('fail-1', 'fail-2'):
+            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string('upstream-validation')
+            self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+            self.ctx.dbSessionLogger.flush()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -104,6 +199,7 @@ def _log_object_event(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-__all__ = ('log__SslOperationsEvent',
+__all__ = ('AcmeLogger',
+           'log__SslOperationsEvent',
            '_log_object_event',
            )

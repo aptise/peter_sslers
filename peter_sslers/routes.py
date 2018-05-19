@@ -62,7 +62,7 @@ def _admin_views(config):
     config.add_route_7('admin:account_key:focus:authenticate', '/account-key/{@id}/authenticate')
     config.add_route_7('admin:account_key:focus:mark', '/account-key/{@id}/mark')
     config.add_route_7('admin:account_key:focus:mark|json', '/account-key/{@id}/mark.json')
-    config.add_route_7('admin:account_key:new', '/account-key/new')
+    config.add_route_7('admin:account_key:new', '/account-key/upload')
 
     # Admin API Items
     config.add_route_7('admin:api', '/api')

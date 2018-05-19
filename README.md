@@ -286,7 +286,9 @@ Peter shows you buttons for available formats on each page.
 
 # Configuration options
 
-Your `environment.ini` exposes a few configuration options:
+Your `environment.ini` exposes a few configuration options.
+
+These are documented at-length on the in-app settings page.
 
 * `openssl_path` - the full path to your openssl binary (default `openssl`)
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)

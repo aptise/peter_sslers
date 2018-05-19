@@ -55,7 +55,8 @@ def import_letsencrypt_certs_archive(c, archive_path, server_url_root):
     HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC
 
     usage:
-        invoke import-letsencrypt-certs-archive --archive-path="/path/to/archive" server-url-root="http://0.0.0.0:7201/.well-known/admin"
+        invoke import-letsencrypt-certs-archive --archive-path="/path/to/archive" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
+        invoke import-letsencrypt-certs-archive --archive-path="/etc/letsencrypt/archive" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
     """
     if not archive_path:
         raise ValueError("missing `archive-path`")

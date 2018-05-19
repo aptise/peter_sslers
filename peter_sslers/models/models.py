@@ -331,8 +331,7 @@ class SslAcmeEventLog(Base):
     acme_event_id = sa.Column(sa.Integer, nullable=False)  # AcmeEvent
     ssl_acme_account_key_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_acme_account_key.id"), nullable=True)  # no account key on new-reg
     ssl_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_certificate_request.id"), nullable=True)  # no account key on new-reg
-    # ssl_acme_challenge_id ?
-    # ssl_server_certificate_id ?
+    ssl_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True)  # no account key on new-reg
 
     @property
     def acme_event(self):
@@ -407,6 +406,7 @@ class SslAcmeAccountKey(Base):
     is_default = sa.Column(sa.Boolean, nullable=True, default=None)
     acme_account_provider_id = sa.Column(sa.Integer, nullable=False)
     ssl_operations_event_id__created = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False)
+    letsencrypt_data = sa.Column(sa.Text, nullable=True)
 
     certificate_requests = sa.orm.relationship("SslCertificateRequest",
                                                primaryjoin="SslAcmeAccountKey.id==SslCertificateRequest.ssl_acme_account_key_id",

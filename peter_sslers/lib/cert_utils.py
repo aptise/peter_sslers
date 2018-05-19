@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())
@@ -10,6 +12,11 @@ import re
 import subprocess
 import tempfile
 import textwrap
+# needed for conversion...
+import sys
+import json
+import binascii
+
 
 # pypi
 from dateutil import parser as dateutil_parser
@@ -369,6 +376,22 @@ def convert_der_to_pem(der_data=None):
     return as_pem
 
 
+def convert_der_to_pem__rsakey(der_data=None):
+    # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
+    """
+    proc = subprocess.Popen([openssl_path, "rsa", "-in", tmpfile_der.name, "-inform", 'der', '-outform', 'pem'],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    generated, err = proc.communicate()
+    if err and (err != 'writing RSA key\n'):
+        raise ValueError(err)
+    as_pem = generated
+    """
+    as_pem = """-----BEGIN RSA PRIVATE KEY-----\n{0}\n-----END RSA PRIVATE KEY-----\n""".format(
+        "\n".join(textwrap.wrap(base64.b64encode(der_data).decode('utf8'), 64)))
+    return as_pem
+
+
+
 def convert_pem_to_der(pem_data=None):
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     lines = [l.strip() for l in pem_data.strip().split('\n')]
@@ -460,3 +483,79 @@ def new_private_key():
     # this will raise an error
     validate_key__pem(key_pem)
     return key_pem
+    
+    
+def convert_jwk_to_ans1(pkey_jsons):
+    """
+    input is a json string
+    much work from https://gist.github.com/JonLundy/f25c99ee0770e19dc595
+    """
+    pkey = json.loads(pkey_jsons)
+
+    def enc(data):
+        missing_padding = 4 - len(data) % 4
+        if missing_padding:
+          data += b'='* missing_padding
+        return '0x'+binascii.hexlify(base64.b64decode(data,b'-_')).upper()
+
+    for k,v in pkey.items(): 
+        if k == 'kty': continue 
+        pkey[k] = enc(v.encode())
+
+    converted = []
+    converted.append("asn1=SEQUENCE:private_key\n[private_key]\nversion=INTEGER:0")
+    converted.append("n=INTEGER:{}".format(pkey[u'n']))
+    converted.append("e=INTEGER:{}".format(pkey[u'e']))
+    converted.append("d=INTEGER:{}".format(pkey[u'd']))
+    converted.append("p=INTEGER:{}".format(pkey[u'p']))
+    converted.append("q=INTEGER:{}".format(pkey[u'q']))
+    converted.append("dp=INTEGER:{}".format(pkey[u'dp']))
+    converted.append("dq=INTEGER:{}".format(pkey[u'dq']))
+    converted.append("qi=INTEGER:{}".format(pkey[u'qi']))
+    converted.append("")  # trailing newline
+    converted = '\n'.join(converted)
+    
+    return converted
+
+    
+def convert_lejson(pkey_jsons, to='pem'):
+    """
+    input is a json string
+    much work from https://gist.github.com/JonLundy/f25c99ee0770e19dc595
+
+    openssl asn1parse -noout -out private_key.der -genconf <(python conv.py private_key.json)
+    openssl rsa -in private_key.der -inform der > private_key.pem
+    openssl rsa -in private_key.pem
+    """
+    ans1 = convert_jwk_to_ans1(pkey_jsons)
+    as_pem = None
+
+    tmpfiles = []
+    try:
+        tmpfile_ans1 = new_pem_tempfile(ans1)
+        tmpfiles.append(tmpfile_ans1)
+
+        tmpfile_der = new_pem_tempfile('')
+        tmpfiles.append(tmpfile_der)
+
+        proc = subprocess.Popen([openssl_path, "asn1parse", "-noout", "-out", tmpfile_der.name, "-genconf", tmpfile_ans1.name],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        generated, err = proc.communicate()
+        if err:
+            raise ValueError(err)
+
+        as_pem = convert_der_to_pem__rsakey(tmpfile_der.read())
+        print(as_pem )
+        
+        validate_key__pem(as_pem)
+        
+        return as_pem
+        
+    except:
+        raise
+    finally:
+        for t in tmpfiles:
+            t.close()
+
+    return as_pem
+

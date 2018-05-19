@@ -64,15 +64,13 @@ class _Form_Schema_Base(_FormSchema):
     filter_extra_fields = True
 
 
-class Form_AccountKey_new__full(_Form_Schema_Base):
-    account_key = UnicodeString(not_empty=False, if_missing=None)
-    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    chained_validators = [OnlyOneOf(('account_key', 'account_key_file', ), not_empty=True),
-                          ]
-
-
 class Form_AccountKey_new__file(_Form_Schema_Base):
-    account_key_file = FieldStorageUploadConverter(not_empty=True)
+    # if this isn't provided...
+    account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    # require all of these...
+    account_key_file_le_meta = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    account_key_file_le_pkey = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    account_key_file_le_reg = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
 
 class Form_AccountKey_mark(_Form_Schema_Base):
@@ -109,11 +107,11 @@ class Form_Certificate_Upload__file(_Form_Schema_Base):
 
 
 class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
-    account_key_option = OneOf(('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file'))
+    account_key_option = OneOf(('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file_pem'))
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
     account_key_default = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
-    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
     private_key_option = OneOf(('private_key_reuse', 'private_key_existing', 'private_key_file'))
     private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
@@ -131,7 +129,7 @@ class Form_CertificateRequest_new_AcmeFlow(_Form_Schema_Base):
 
 class Form_CertificateRequest_new_AcmeAutomated(_Form_Schema_Base):
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
-    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     account_key_default = UnicodeString(not_empty=False, if_missing=None)
 
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
@@ -140,13 +138,13 @@ class Form_CertificateRequest_new_AcmeAutomated(_Form_Schema_Base):
 
     domain_names = UnicodeString(not_empty=True)
 
-    chained_validators = [OnlyOneOf(('account_key_existing', 'account_key_file', 'account_key_default', ), not_empty=True),
+    chained_validators = [OnlyOneOf(('account_key_existing', 'account_key_file_pem', 'account_key_default', ), not_empty=True),
                           OnlyOneOf(('private_key_existing', 'private_key_file', 'private_key_default', ), not_empty=True),
                           ]
 
 
 #class Form_CertificateRequest_new_AcmeAutomated__file(_Form_Schema_Base):
-#    account_key_file = FieldStorageUploadConverter(not_empty=True)
+#    account_key_file_pem = FieldStorageUploadConverter(not_empty=True)
 #    private_key_file = FieldStorageUploadConverter(not_empty=True)
 #    domain_names = UnicodeString(not_empty=True)
 
@@ -197,4 +195,4 @@ class Form_API_Domain_disable(_Form_Schema_Base):
 
 class Form_API_Domain_certificate_if_needed(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
-    account_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)

@@ -163,6 +163,14 @@
                         <a class="btn btn-xs btn-info" href="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/key.key">key.key (der)</a>
                     </td>
                 </tr>
+                <tr>
+                    <th>letsencrypt_data</th>
+                    <td>
+                        % if SslAcmeAccountKey.letsencrypt_data:
+                            ${SslAcmeAccountKey.letsencrypt_data}
+                        % endif
+                    </td>
+                </tr>
                 ${admin_partials.table_tr_event_created(SslAcmeAccountKey)}
                 <tr>
                     <th>certificates</th>

@@ -23,6 +23,12 @@
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>    
             .json
         </a>
+        <a  href="${admin_prefix}/account-key/upload"
+            title="${request.text_library.info_UploadAccountKey[0]}"
+            class="btn btn-xs btn-primary"
+        >
+        <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+        Upload: New</a>
     </p>
 </%block>
 

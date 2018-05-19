@@ -2,6 +2,9 @@
 import logging
 log = logging.getLogger(__name__)
 
+# pypi
+import json
+
 # localapp
 from ...models import models
 from ... import lib
@@ -20,59 +23,147 @@ from .helpers import _certificate_parse_to_record
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__SslAcmeAccountKey__by_pem_text(ctx, key_pem, acmeAccountProvider):
+def getcreate__SslAcmeAccountKey__by_pem_text(
+    ctx,
+    key_pem=None,
+    le_meta_jsons=None,
+    le_pkey_jsons=None,
+    le_reg_jsons=None,
+    acmeAccountProvider_id=None,
+):
     """
     Gets or Creates AccountKeys for LetsEncrypts' ACME server
-    2018.05.17 - add acmeAccountProvider
+    2018.05.18 - extend creation args
+        key_pem
+        le_meta_json
+        le_pkey_json
+        le_reg_json
+    2018.05.17 - add acmeAccountProvider_id
     2016.06.04 - dbOperationsEvent compliant
     """
-    key_pem = cert_utils.cleanup_pem_text(key_pem)
-    key_pem_md5 = utils.md5_text(key_pem)
-    is_created = False
-    dbAcmeAccountKey = ctx.dbSession.query(models.SslAcmeAccountKey)\
-        .filter(models.SslAcmeAccountKey.key_pem_md5 == key_pem_md5,
-                models.SslAcmeAccountKey.key_pem == key_pem,
-                )\
-        .first()
-    if not dbAcmeAccountKey:
-        try:
-            _tmpfile = cert_utils.new_pem_tempfile(key_pem)
+    if not acmeAccountProvider_id:
+        raise ValueError("no `acmeAccountProvider_id`")
+    if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
+        raise ValueError("Must supply `key_pem` OR all of `le_meta_jsons, le_pkey_jsons, le_reg_jsons`.")
+    if not (key_pem) and not all((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
+        raise ValueError("Must supply `key_pem` OR all of `le_meta_jsons, le_pkey_jsons, le_reg_jsons`.")
+    
+    if key_pem:
+        key_pem = cert_utils.cleanup_pem_text(key_pem)
+        key_pem_md5 = utils.md5_text(key_pem)
+        is_created = False
+        dbAcmeAccountKey = ctx.dbSession.query(models.SslAcmeAccountKey)\
+            .filter(models.SslAcmeAccountKey.key_pem_md5 == key_pem_md5,
+                    models.SslAcmeAccountKey.key_pem == key_pem,
+                    )\
+            .first()
+        if not dbAcmeAccountKey:
+            try:
+                _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
-            # validate
-            cert_utils.validate_key__pem_filepath(_tmpfile.name)
+                # validate
+                cert_utils.validate_key__pem_filepath(_tmpfile.name)
 
-            # grab the modulus
-            key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
-        except Exception as exc:
-            raise
-        finally:
-            _tmpfile.close()
+                # grab the modulus
+                key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
+            except Exception as exc:
+                raise
+            finally:
+                _tmpfile.close()
 
-        event_payload_dict = utils.new_event_payload_dict()
-        dbOperationsEvent = log__SslOperationsEvent(ctx,
-                                                    models.SslOperationsEventType.from_string('acme_account_key__insert'),
-                                                    )
+            event_payload_dict = utils.new_event_payload_dict()
+            dbOperationsEvent = log__SslOperationsEvent(ctx,
+                                                        models.SslOperationsEventType.from_string('acme_account_key__insert'),
+                                                        )
 
-        dbAcmeAccountKey = models.SslAcmeAccountKey()
-        dbAcmeAccountKey.timestamp_first_seen = ctx.timestamp
-        dbAcmeAccountKey.key_pem = key_pem
-        dbAcmeAccountKey.key_pem_md5 = key_pem_md5
-        dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
-        dbAcmeAccountKey.ssl_operations_event_id__created = dbOperationsEvent.id
-        dbAcmeAccountKey.acme_account_provider_id = acmeAccountProvider.id
-        ctx.dbSession.add(dbAcmeAccountKey)
-        ctx.dbSession.flush(objects=[dbAcmeAccountKey, ])
-        is_created = True
+            dbAcmeAccountKey = models.SslAcmeAccountKey()
+            dbAcmeAccountKey.timestamp_first_seen = ctx.timestamp
+            dbAcmeAccountKey.key_pem = key_pem
+            dbAcmeAccountKey.key_pem_md5 = key_pem_md5
+            dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
+            dbAcmeAccountKey.ssl_operations_event_id__created = dbOperationsEvent.id
+            dbAcmeAccountKey.acme_account_provider_id = acmeAccountProvider_id
+            ctx.dbSession.add(dbAcmeAccountKey)
+            ctx.dbSession.flush(objects=[dbAcmeAccountKey, ])
+            is_created = True
 
-        event_payload_dict['ssl_acme_account_key.id'] = dbAcmeAccountKey.id
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush(objects=[dbOperationsEvent, ])
+            event_payload_dict['ssl_acme_account_key.id'] = dbAcmeAccountKey.id
+            dbOperationsEvent.set_event_payload(event_payload_dict)
+            ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
-        _log_object_event(ctx,
-                          dbOperationsEvent=dbOperationsEvent,
-                          event_status_id=models.SslOperationsObjectEventStatus.from_string('acme_account_key__insert'),
-                          dbAcmeAccountKey=dbAcmeAccountKey,
-                          )
+            _log_object_event(ctx,
+                              dbOperationsEvent=dbOperationsEvent,
+                              event_status_id=models.SslOperationsObjectEventStatus.from_string('acme_account_key__insert'),
+                              dbAcmeAccountKey=dbAcmeAccountKey,
+                              )
+    else:
+        le_meta_json = json.loads(le_meta_jsons)
+        le_reg_json = json.loads(le_reg_jsons)
+        '''
+        There is some useful data in here...
+            meta.json = creation_dt DATETIME; save as created
+            meta.json = creation_host STRING; save for info
+            regr.json = contact: email, save for info
+            regr.json = agreement: url, save for info
+            regr.json = key, save for info
+            regr.json = uri, save for info
+            regr.json = tos, save for info
+        '''
+        letsencrypt_data = {'meta.json': le_meta_json,
+                            'regr.json': le_reg_json,
+                            }
+        letsencrypt_data = json.dumps(letsencrypt_data)
+        
+        key_pem = cert_utils.convert_lejson(le_pkey_jsons)
+        key_pem = cert_utils.cleanup_pem_text(key_pem)
+        key_pem_md5 = utils.md5_text(key_pem)
+        is_created = False
+        dbAcmeAccountKey = ctx.dbSession.query(models.SslAcmeAccountKey)\
+            .filter(models.SslAcmeAccountKey.key_pem_md5 == key_pem_md5,
+                    models.SslAcmeAccountKey.key_pem == key_pem,
+                    )\
+            .first()
+        if not dbAcmeAccountKey:
+            try:
+                _tmpfile = cert_utils.new_pem_tempfile(key_pem)
+
+                # validate
+                cert_utils.validate_key__pem_filepath(_tmpfile.name)
+
+                # grab the modulus
+                key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
+            except Exception as exc:
+                raise
+            finally:
+                _tmpfile.close()
+
+            event_payload_dict = utils.new_event_payload_dict()
+            dbOperationsEvent = log__SslOperationsEvent(ctx,
+                                                        models.SslOperationsEventType.from_string('acme_account_key__insert'),
+                                                        )
+
+            dbAcmeAccountKey = models.SslAcmeAccountKey()
+            dbAcmeAccountKey.timestamp_first_seen = ctx.timestamp
+            dbAcmeAccountKey.key_pem = key_pem
+            dbAcmeAccountKey.key_pem_md5 = key_pem_md5
+            dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
+            dbAcmeAccountKey.ssl_operations_event_id__created = dbOperationsEvent.id
+            dbAcmeAccountKey.acme_account_provider_id = acmeAccountProvider_id
+            dbAcmeAccountKey.letsencrypt_data = letsencrypt_data
+
+            ctx.dbSession.add(dbAcmeAccountKey)
+            ctx.dbSession.flush(objects=[dbAcmeAccountKey, ])
+            is_created = True
+
+            event_payload_dict['ssl_acme_account_key.id'] = dbAcmeAccountKey.id
+            dbOperationsEvent.set_event_payload(event_payload_dict)
+            ctx.dbSession.flush(objects=[dbOperationsEvent, ])
+
+            _log_object_event(ctx,
+                              dbOperationsEvent=dbOperationsEvent,
+                              event_status_id=models.SslOperationsObjectEventStatus.from_string('acme_account_key__insert'),
+                              dbAcmeAccountKey=dbAcmeAccountKey,
+                              )
 
     return dbAcmeAccountKey, is_created
 
