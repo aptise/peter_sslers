@@ -46,7 +46,7 @@ def upload_fileset(server_url_root, fset):
             pprint.pprint(json_response)
             raise ValueError("error!")
         else:
-            print "success | %s" % json_response
+            print("success | %s" % json_response)
     except Exception as exc:
         raise
 
@@ -73,7 +73,7 @@ def upload_account(server_url_root, fset):
             pprint.pprint(json_response)
             raise ValueError("error!")
         else:
-            print "success | %s" % json_response
+            print("success | %s" % json_response)
     except Exception as exc:
         raise
 
@@ -267,12 +267,28 @@ def import_letsencrypt_certs_live(c, live_path, server_url_root):
     return
 
 
+# ==============================================================================
+
+
+def _accountPath_to_fileSet(account_path):
+    dfiles = [f for f in os.listdir(account_path) if f[0] != '.']
+    # ensure we have the right files in here...
+    if len(dfiles) != 3:
+        raise ValueError("`%s` does not look to be a letsencrypt account directory" % account_path)
+    fset = {}
+    for fname in _le_account_filenames:
+        fpath = os.path.join(account_path, fname)
+        if not os.path.exists(fpath):
+            raise ValueError("`%s` does not look to be a letsencrypt account directory; expected %s" % (account_path, fname))
+        fset[fname] = fpath
+    return fset
+
 
 @task(help={'account_path': "Path to letsencrypt account files. should be `/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`",
             'server_url_root': "URL of server to post to, do not include `.well-known`",
             })
 def import_letsencrypt_account(c, account_path, server_url_root):
-    """imports the letsencrypt live archive  in /etc/letsencrypt/live
+    """imports a specific letsencrypt account
 
     usage:
         invoke import_letsencrypt_account --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
@@ -285,22 +301,101 @@ def import_letsencrypt_account(c, account_path, server_url_root):
 
     if not os.path.isdir(account_path):
         raise ValueError("`%s` is not a directory" % account_path)
-        
-    dfiles = [f for f in os.listdir(account_path) if f[0] != '.']
-    # ensure we have the right files in here...
-    if len(dfiles) != 3:
-        raise ValueError("`%s` does not look to be a letsencrypt account directory" % account_path)
-
-    fset = {}
-    for fname in _le_account_filenames:
-        fpath = os.path.join(account_path, fname)
-        if not os.path.exists(fpath):
-            raise ValueError("`%s` does not look to be a letsencrypt account directory; expected %s" % (account_path, fname))
-        fset[fname] = fpath
-
+    
+    fset = _accountPath_to_fileSet(account_path)
     upload_account(server_url_root, fset)
     return
 
+
+@task(help={'server_accounts_path': "Path to letsencrypt server account files. should be `/etc/letsencrypt/accounts/{SERVER}`",
+            'server_url_root': "URL of server to post to, do not include `.well-known`",
+            })
+def import_letsencrypt_accounts_server(c, accounts_path_server, server_url_root):
+    """imports all accounts for a given letsencrypt server
+
+    usage:
+        invoke import_letsencrypt_accounts_server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
+    """
+    if not accounts_path_server:
+        raise ValueError("missing `accounts-path-server`")
+
+    if server_url_root[:4] != 'http':
+        raise ValueError("`server_url_root` does not look like a url")
+
+    if not os.path.isdir(accounts_path_server):
+        raise ValueError("`%s` is not a directory" % accounts_path_server)
+        
+    dfiles = [f for f in os.listdir(accounts_path_server) if f[0] != '.']
+    # ensure we have the right files in here...
+    if (len(dfiles) != 1) or ('directory' not in dfiles):
+        raise ValueError("`%s` does not look to be a letsencrypt server account directory" % accounts_path_server)
+
+    dpath_directory = os.path.join(accounts_path_server, 'directory')
+    account_directories = [f for f in os.listdir(dpath_directory) if f[0] != '.']
+    if (not account_directories):
+        raise ValueError("`%s` does not have any accounts" % dpath_directory)
+
+    filesets = []
+    for account_hash in account_directories:
+        account_path = os.path.join(dpath_directory, account_hash)
+        account_fset = _accountPath_to_fileSet(account_path)
+        filesets.append(account_fset)
+
+    if not filesets:
+        raise ValueError("no filesets detected")
+    for fset in filesets:
+        upload_account(server_url_root, fset)
+    return
+
+
+@task(help={'accounts_all_path': "Path to letsencrypt server account files. should be `/etc/letsencrypt/accounts`",
+            'server_url_root': "URL of server to post to, do not include `.well-known`",
+            })
+def import_letsencrypt_accounts_all(c, accounts_all_path, server_url_root):
+    """imports all accounts for a letsencrypt install
+
+    usage:
+        invoke import_letsencrypt_accounts_all --accounts-all-path="/etc/letsencrypt/accounts" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
+    """
+    if not accounts_all_path:
+        raise ValueError("missing `accounts-all-path`")
+
+    if server_url_root[:4] != 'http':
+        raise ValueError("`server_url_root` does not look like a url")
+
+    if not os.path.isdir(accounts_all_path):
+        raise ValueError("`%s` is not a directory" % accounts_all_path)
+
+    serverNames = [f for f in os.listdir(accounts_all_path) if f[0] != '.']
+    # ensure we have the right files in here...
+    if (not len(serverNames)) or (not all([True if d.startswith('acme-') else False
+                                           for d in serverNames
+                                           ])):
+        raise ValueError("`%s` does not look to be a letsencrypt accounts directory" % accounts_all_path)
+        
+    filesets = []
+
+    for sname in serverNames:
+        accounts_path_server =  os.path.join(accounts_all_path, sname)
+        dpath_directory = os.path.join(accounts_path_server, 'directory')
+        account_directories = [f for f in os.listdir(dpath_directory) if f[0] != '.']
+        if (not account_directories):
+            raise ValueError("`%s` does not have any accounts" % dpath_directory)
+
+        for account_hash in account_directories:
+            account_path = os.path.join(dpath_directory, account_hash)
+            account_fset = _accountPath_to_fileSet(account_path)
+            filesets.append(account_fset)
+
+    if not filesets:
+        raise ValueError("no filesets detected")
+    
+    for fset in filesets:
+        upload_account(server_url_root, fset)
+    return
+
+
+# ==============================================================================
 
 
 namespace = Collection(import_letsencrypt_certs_archive,
@@ -309,4 +404,6 @@ namespace = Collection(import_letsencrypt_certs_archive,
                        import_letsencrypt_cert_plain,
 
                        import_letsencrypt_account,
+                       import_letsencrypt_accounts_server,
+                       import_letsencrypt_accounts_all,
                        )
