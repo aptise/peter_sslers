@@ -6,6 +6,7 @@ from formencode.validators import (
     Invalid,
     OneOf,
     UnicodeString,
+    Int,
 )
 
 from . import letsencrypt_info
@@ -67,6 +68,7 @@ class _Form_Schema_Base(_FormSchema):
 class Form_AccountKey_new__file(_Form_Schema_Base):
     # if this isn't provided...
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    acme_account_provider_id = Int(not_empty=False, if_missing=None)
     # require all of these...
     account_key_file_le_meta = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     account_key_file_le_pkey = FieldStorageUploadConverter(not_empty=False, if_missing=None)

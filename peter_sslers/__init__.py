@@ -71,35 +71,40 @@ def main(global_config, **settings):
         cert_utils.openssl_path = settings["openssl_path"]
     if 'openssl_path_conf' in settings:
         cert_utils.openssl_path_conf = settings["openssl_path_conf"]
-    if 'certificate_authority' in settings:
-        _valid_cas = ('https://acme-staging.api.letsencrypt.org',
-                      )
-        ca_submitted = settings["certificate_authority"]
-        if ca_submitted not in _valid_cas:
-            raise ValueError("invalid option for `certificate_authority`")
-        ca_submitted_name = None
-        for (ca_name, ca_endpoint) in models_models.AcmeAccountEndpoint._mapping.items():
-            if ca_endpoint == ca_submitted:
-                ca_submitted_name = ca_name
-                break
-        if not ca_submitted_name:
-            raise ValueError("invalid `certificate_authority`")
-        default_acme_provider_id = models_models.AcmeAccountProvider.from_string(ca_name)
-        if not ca_submitted_name:
-            raise ValueError("invalid `certificate_authority` 2")
 
-        # okay stash this
-        acme_v1.CERTIFICATE_AUTHORITY = ca_submitted
-        config.registry.settings["CERTIFICATE_AUTHORITY"] = ca_submitted
-        config.registry.settings["AcmeAccountProvider"] = ca_submitted_name
+    ca_selected = None
+    if 'certificate_authority' in settings:
+        ca_submitted = settings["certificate_authority"]
+        
+        # handle custom endpoints
+        if ca_submitted == 'custom':
+            ca_submitted_endpoint = settings["certificate_authority_endpoint"]
+            if not ca_submitted_endpoint:
+                raise ValueError('`certificate_authority_endpoint` required when `certificate_authority=custom`')
+            if not ca_submitted_endpoint.startswith('http://') and not ca_submitted_endpoint.startswith('https://'):
+                raise ValueError('`certificate_authority_endpoint` does not look like a URL')
+            models_models.AcmeAccountProvider.registry[0]['endpoint'] = ca_submitted_endpoint
+            
+        # register the selected endpoint
+        for (ca_id, ca_record) in models_models.AcmeAccountProvider.registry.items():
+            if ca_record['name'] == ca_submitted:
+                ca_record['is_default'] = True
+                ca_selected = ca_record
+                break
+    if not ca_selected:
+        raise ValueError("invalid `certificate_authority`")
+    # okay stash this
+    acme_v1.CERTIFICATE_AUTHORITY = ca_record['endpoint']
+    config.registry.settings["CERTIFICATE_AUTHORITY"] = ca_selected
 
     if 'certificate_authority_testing' in settings:
         certificate_authority_testing = set_bool_setting(config.registry.settings, 'certificate_authority_testing')
         if certificate_authority_testing:
             acme_v1.TESTING_ENVIRONMENT = True
-    if 'certificate_authority_agreement' in settings:
-        acme_v1.CA_AGREEMENT = settings["certificate_authority_agreement"]
 
+    # TODO: automatic CA agreement
+    # if 'certificate_authority_agreement' in settings:
+    #    acme_v1.CA_AGREEMENT = settings["certificate_authority_agreement"]
 
     # will we redirect on error?
     set_bool_setting(config.registry.settings, 'exception_redirect')

@@ -775,11 +775,20 @@
             Enter your LetsEncrypt registered AccountKey in PEM format. This is used when requesting the ACME server sign your certificates.
         </p>
         <input class="form-control" type="file" id="f1-account_key_file_pem" name="account_key_file_pem" />
+        <div class="form-group">
+            <label for="f1-account_key_file_le_meta">Account Key: LetsEncrypt meta.json</label>
+            <select class="form-control" id="f1-acme_account_provider_id" name="acme_account_provider_id" />
+                % for option in AcmeAccountProviderOptions:
+                    <option value="${option['id']}" ${'selected' if option['is_default'] else ''}>${option['name']}</option>
+                % endfor
+            </select>
+        </div>
         <hr/>
         or
         <hr/>
         <p class="help-block">
             Enter your LetsEncrypt registered AccountKey in PEM format. This is used when requesting the ACME server sign your certificates.
+            The provider will be auto-detected.
         </p>
         <label for="f1-account_key_file_le_meta">Account Key: LetsEncrypt meta.json</label>
         <input class="form-control" type="file" id="f1-account_key_file_le_meta" name="account_key_file_le_meta" />

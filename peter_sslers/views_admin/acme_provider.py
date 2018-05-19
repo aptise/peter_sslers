@@ -26,14 +26,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:acme_providers|json', renderer='json')
     def acme_providers(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        acmeProviders = {provider_name: {'id': provider_id,
-                                         'name': provider_name,
-                                         }
-                         for (provider_id, provider_name)
-                         in models.AcmeAccountProvider._mapping.items()
-                         }
-        for (provider_name, provider_endpoint) in models.AcmeAccountEndpoint._mapping.items():
-            acmeProviders[provider_name]['endpoint'] = provider_endpoint
+        acmeProviders = models.AcmeAccountProvider.registry.values()
         if wants_json:
             return {'AcmeProviders': acmeProviders, }
         return {'project': 'peter_sslers',

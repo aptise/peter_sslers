@@ -6,7 +6,7 @@ from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
-import datetime
+import json
 
 # pypi
 import pyramid_formencode_classic as formhandling
@@ -163,7 +163,10 @@ class ViewAdmin(Handler):
         return self._account_key_new__print()
 
     def _account_key_new__print(self):
-        return render_to_response("/admin/account_key-new.mako", {}, self.request)
+
+        # quick setup, we need a bunch of options for dropdowns...
+        providers = models.AcmeAccountProvider.registry.values()
+        return render_to_response("/admin/account_key-new.mako", {'AcmeAccountProviderOptions': providers}, self.request)
 
     def _account_key_new__submit(self):
         try:
@@ -200,20 +203,32 @@ class ViewAdmin(Handler):
                                     raise_FormInvalid=True,
                                     )
             # -------------------
-            
-            defaultAcmeAccountProvider = self.request.registry.settings["AcmeAccountProvider"]
-            defaultAcmeAccountProvider_id = models.AcmeAccountProvider.from_string(defaultAcmeAccountProvider)
-            
-            key_create_args = {'acmeAccountProvider_id': defaultAcmeAccountProvider_id, }
+
+            # validate the provider option         
+            # will be None unless a pem is uploaded
+            # required for PEM, ignored otherwise
+            acme_account_provider_id = formStash.results.get('acme_account_provider_id', None)
+            if formStash.results.get('account_key_file_pem'):
+                if acme_account_provider_id is None:
+                    formStash.set_error(field="acme_account_provider_id",
+                                        message="No provider submitted.",
+                                        raise_FormInvalid=True,
+                                        )
+                if acme_account_provider_id not in models.AcmeAccountProvider.registry.keys():
+                    formStash.set_error(field="acme_account_provider_id",
+                                        message="Invalid provider submitted.",
+                                        raise_FormInvalid=True,
+                                        )
+                
+            key_create_args = {}
             if formStash.results['account_key_file_pem'] is not None:
                 key_create_args['key_pem'] = formStash.results['account_key_file_pem'].file.read()
+                key_create_args['acme_account_provider_id'] = acme_account_provider_id
             else:                
                 # note that we use `jsonS` to indicate a string
                 key_create_args['le_meta_jsons'] = formStash.results['account_key_file_le_meta'].file.read()
                 key_create_args['le_pkey_jsons'] = formStash.results['account_key_file_le_pkey'].file.read()
                 key_create_args['le_reg_jsons'] = formStash.results['account_key_file_le_reg'].file.read()
-
-
 
             (dbAcmeAccountKey,
              _is_created

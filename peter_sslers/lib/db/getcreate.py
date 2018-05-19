@@ -29,7 +29,7 @@ def getcreate__SslAcmeAccountKey__by_pem_text(
     le_meta_jsons=None,
     le_pkey_jsons=None,
     le_reg_jsons=None,
-    acmeAccountProvider_id=None,
+    acme_account_provider_id=None,
 ):
     """
     Gets or Creates AccountKeys for LetsEncrypts' ACME server
@@ -41,8 +41,6 @@ def getcreate__SslAcmeAccountKey__by_pem_text(
     2018.05.17 - add acmeAccountProvider_id
     2016.06.04 - dbOperationsEvent compliant
     """
-    if not acmeAccountProvider_id:
-        raise ValueError("no `acmeAccountProvider_id`")
     if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
         raise ValueError("Must supply `key_pem` OR all of `le_meta_jsons, le_pkey_jsons, le_reg_jsons`.")
     if not (key_pem) and not all((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
@@ -58,6 +56,8 @@ def getcreate__SslAcmeAccountKey__by_pem_text(
                     )\
             .first()
         if not dbAcmeAccountKey:
+            if not acme_account_provider_id:
+                raise ValueError("no `acme_account_provider_id`. required if PEM key is uploaded.")
             try:
                 _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
@@ -82,7 +82,7 @@ def getcreate__SslAcmeAccountKey__by_pem_text(
             dbAcmeAccountKey.key_pem_md5 = key_pem_md5
             dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
             dbAcmeAccountKey.ssl_operations_event_id__created = dbOperationsEvent.id
-            dbAcmeAccountKey.acme_account_provider_id = acmeAccountProvider_id
+            dbAcmeAccountKey.acme_account_provider_id = acme_account_provider_id
             ctx.dbSession.add(dbAcmeAccountKey)
             ctx.dbSession.flush(objects=[dbAcmeAccountKey, ])
             is_created = True
@@ -113,6 +113,20 @@ def getcreate__SslAcmeAccountKey__by_pem_text(
                             'regr.json': le_reg_json,
                             }
         letsencrypt_data = json.dumps(letsencrypt_data)
+        
+        # derive the api server
+        try:
+            account_uri = le_reg_json['uri']
+            for acme_provider in models.AcmeAccountProvider.registry.values():
+                if not acme_provider['endpoint']:
+                    # the custom might not be enabled...
+                    continue
+                if account_uri.startswith(acme_provider['endpoint']):
+                    acme_account_provider_id = acme_provider['id']
+            if not acme_account_provider_id:
+                raise ValueError('could not derive an account')
+        except KeyError:
+            raise ValueError("could not parse an account")
         
         key_pem = cert_utils.convert_lejson(le_pkey_jsons)
         key_pem = cert_utils.cleanup_pem_text(key_pem)
@@ -148,7 +162,7 @@ def getcreate__SslAcmeAccountKey__by_pem_text(
             dbAcmeAccountKey.key_pem_md5 = key_pem_md5
             dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
             dbAcmeAccountKey.ssl_operations_event_id__created = dbOperationsEvent.id
-            dbAcmeAccountKey.acme_account_provider_id = acmeAccountProvider_id
+            dbAcmeAccountKey.acme_account_provider_id = acme_account_provider_id
             dbAcmeAccountKey.letsencrypt_data = letsencrypt_data
 
             ctx.dbSession.add(dbAcmeAccountKey)

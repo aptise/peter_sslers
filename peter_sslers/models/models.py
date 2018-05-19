@@ -268,23 +268,36 @@ class SslOperationsObjectEventStatus(_SslOperationsUnified):
     pass
 
 
-class AcmeAccountProvider(_mixin_mapping):
+class AcmeAccountProvider():
     """
-    Used for Acme Logging
+    Used for Acme Logging, API setup, etc
     """
-    _mapping = {
-        1: 'letsencrypt-v1',
-        2: 'letsencrypt-v1-staging',
-    }
-
-
-class AcmeAccountEndpoint(_mixin_mapping):
-    """
-    Used for Acme Logging
-    """
-    _mapping = {
-        'letsencrypt-v1': 'https://acme-v01.api.letsencrypt.org',
-        'letsencrypt-v1-staging': 'https://acme-staging.api.letsencrypt.org',
+    registry = {
+        0: {'id': 0,
+            'name': 'custom',
+            'endpoint': None,
+            'is_default': None,
+            },
+        1: {'id': 1,
+            'name': 'letsencrypt-v1',
+            'endpoint': 'https://acme-v01.api.letsencrypt.org',
+            'is_default': None,
+            },
+        2: {'id': 2,
+            'name': 'letsencrypt-v1-staging',
+            'endpoint': 'https://acme-staging.api.letsencrypt.org',
+            'is_default': None,
+            },
+        3: {'id': 3,
+            'name': 'letsencrypt-v2',
+            'endpoint': 'https://acme-v02.api.letsencrypt.org',
+            'is_default': None,
+            },
+        4: {'id': 4,
+            'name': 'letsencrypt-v2-staging',
+            'endpoint': 'https://acme-staging-v02.api.letsencrypt.org',
+            'is_default': None,
+            },
     }
 
 
@@ -443,7 +456,9 @@ class SslAcmeAccountKey(Base):
     @property
     def acme_account_provider(self):
         if self.acme_account_provider_id:
-            return AcmeAccountProvider.as_string(self.acme_account_provider_id)
+            for provider_info in AcmeAccountProvider.registry.values():
+                if provider_info['id'] == self.acme_account_provider_id:
+                    return provider_info['name']
         return None
 
     @property

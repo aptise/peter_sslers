@@ -33,14 +33,20 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
+                            <th>is default</th>
                             <th>id</th>
                             <th>name</th>
                             <th>endpoint</th>
                         </tr>
                     </thead>
                     <tbody>
-                    % for (provider_name, provider_data) in AcmeProviders.items():
+                    % for provider_data in AcmeProviders:
                         <tr>
+                            <td>
+                                % if provider_data['is_default']:
+                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                % endif
+                            </td>
                             <td><code>${provider_data['id']}</code></td>
                             <td><code>${provider_data['name']}</code></td>
                             <td><code>${provider_data['endpoint']}</code></td>
