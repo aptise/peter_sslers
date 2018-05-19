@@ -10,7 +10,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/certificates">Certificates</a></li>
-        <li><a href="${admin_prefix}/certificates/${SslServerCertificate.id}">Focus [${SslServerCertificate.id}]</a></li>
+        <li><a href="${admin_prefix}/certificate/${SslServerCertificate.id}">Focus [${SslServerCertificate.id}]</a></li>
         <li class="active">Renew</li>
     </ol>
 </%block>
@@ -75,7 +75,6 @@
                         <th>Lets Encrypt Account</th>
                         <td>
                             ${admin_partials.formgroup__account_key_selector_advanced(
-                                show_text=False,
                                 dbAccountKeyReuse=SslServerCertificate.acme_account_key,
                             )}
                         </td>

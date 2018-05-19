@@ -39,7 +39,8 @@
                 <% form = request.formhandling.get_form(request) %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__account_key_selector(show_text=show_text)}
+                <h3>LetsEncrypt Account</h3>
+                ${admin_partials.formgroup__account_key_selector_advanced()}
                 <hr/>
 
                 ${admin_partials.formgroup__private_key_selector(show_text=show_text)}

@@ -4,8 +4,8 @@
 
 
 
-0.1.6
-2018.05.--
+0.2.0
+2018.05.21
 ---
 - updating some functionality for imports
 - some ux fixes
@@ -59,6 +59,16 @@
 - account-key/upload now takes letsencrypt jwk data and payloads
 - parse letsencrypt account key data for the right auth/provider
 - json upload of account keys - single key, all server keys, all keys(all-servers)
+- do__CertificateRequest__AcmeAutomated() now requires an AcmeAccountKey. It can not only use a PEM.
+- you MUST set `certificate_authority_agreement = 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf'` in the settings in order to agree. Otherwise this will fail.
+- used pyramid's @reify to memoize some @property items in the model
+- the following items now use the actual endpoint for the account:
+	acme_register_account
+	acme_verify_domains
+	acme_sign_certificate
+- system should configure based on acme provider, not url
+- update account/key authentication system to hit the right endpoint for the actual account
+
 
 
 0.1.5

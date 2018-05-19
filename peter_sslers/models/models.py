@@ -9,6 +9,8 @@ import sqlalchemy as sa
 
 from .meta import Base
 
+from pyramid.decorator import reify
+
 
 # ==============================================================================
 
@@ -346,7 +348,7 @@ class SslAcmeEventLog(Base):
     ssl_certificate_request_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_certificate_request.id"), nullable=True)  # no account key on new-reg
     ssl_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True)  # no account key on new-reg
 
-    @property
+    @reify
     def acme_event(self):
         if self.acme_event_id:
             return AcmeEvent.as_string(self.acme_event_id)
@@ -380,13 +382,13 @@ class SslAcmeChallengeLog(Base):
         self.acme_challenge = keyauthorization
         # flush/commit?
 
-    @property
+    @reify
     def acme_challenge_type(self):
         if self.acme_challenge_type_id:
             return AcmeChallengeType.as_string(self.acme_challenge_type_id)
         return None
 
-    @property
+    @reify
     def acme_challenge_fail_type(self):
         if self.acme_challenge_fail_type_id:
             return AcmeChallengeFailType.as_string(self.acme_challenge_fail_type_id)
@@ -420,7 +422,7 @@ class SslAcmeAccountKey(Base):
     acme_account_provider_id = sa.Column(sa.Integer, nullable=False)
     ssl_operations_event_id__created = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False)
     letsencrypt_data = sa.Column(sa.Text, nullable=True)
-
+    
     certificate_requests = sa.orm.relationship("SslCertificateRequest",
                                                primaryjoin="SslAcmeAccountKey.id==SslCertificateRequest.ssl_acme_account_key_id",
                                                order_by='SslCertificateRequest.id.desc()',
@@ -443,22 +445,30 @@ class SslAcmeAccountKey(Base):
                                                     uselist=False,
                                                     )
 
-    @property
+    @reify
     def key_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=account_key&account_key.id=%s" % (self.key_pem_modulus_md5, self.id, )
 
-    @property
+    @reify
     def key_pem_sample(self):
         # strip the pem, because the last line is whitespace after "-----END RSA PRIVATE KEY-----"
         pem_lines = self.key_pem.strip().split('\n')
         return "%s...%s"  % (pem_lines[1][0:5], pem_lines[-2][-5:])
 
-    @property
+    @reify
     def acme_account_provider(self):
         if self.acme_account_provider_id:
             for provider_info in AcmeAccountProvider.registry.values():
                 if provider_info['id'] == self.acme_account_provider_id:
                     return provider_info['name']
+        return None
+
+    @reify
+    def acme_account_provider_endpoint(self):
+        if self.acme_account_provider_id:
+            for provider_info in AcmeAccountProvider.registry.values():
+                if provider_info['id'] == self.acme_account_provider_id:
+                    return provider_info['endpoint']
         return None
 
     @property
@@ -499,15 +509,15 @@ class SslCaCertificate(Base):
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
     ssl_operations_event_id__created = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False)
 
-    @property
+    @reify
     def cert_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=ca_certificate&ca_certificate.id=%s" % (self.cert_pem_modulus_md5, self.id, )
 
-    @property
+    @reify
     def cert_subject_hash_search(self):
         return "type=cert_subject_hash&cert_subject_hash=%s&source=ca_certificate&ca_certificate.id=%s" % (self.cert_subject_hash, self.id, )
 
-    @property
+    @reify
     def cert_issuer_hash_search(self):
         return "type=cert_issuer_hash&cert_issuer_hash=%s&source=ca_certificate&ca_certificate.id=%s" % (self.cert_issuer_hash, self.id, )
 
@@ -624,11 +634,11 @@ class SslCertificateRequest(Base):
                                     and (csr_pem is NOT NULL and csr_pem_md5 is NOT NULL and csr_pem_modulus_md5 is NOT NULL)
                                     )""", name='check1')
 
-    @property
+    @reify
     def csr_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=certificate_request&certificate_request.id=%s" % (self.csr_pem_modulus_md5, self.id, )
 
-    @property
+    @reify
     def certificate_request_type(self):
         if self.certificate_request_type_id == SslCertificateRequestType.RECORD:
             return "Record"

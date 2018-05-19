@@ -19,6 +19,7 @@ from ..lib import db as lib_db
 from ..lib import text as lib_text
 from ..lib.forms import Form_AccountKey_new__file
 from ..lib.forms import Form_AccountKey_mark
+from ..lib.form_utils import AccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
 
 
@@ -115,9 +116,13 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:account_key:focus:authenticate', renderer=None)
     def account_key_focus__authenticate(self):
+        """
+        this just hits the api, hoping we authenticate correctly.
+        """
         dbAcmeAccountKey = self._account_key_focus()
-        raise ValueError("TODO - migrate")
-        is_authenticated = lib_db.actions.do__SslAcmeAccountKey_authenticate(self.request.api_context, dbAcmeAccountKey)
+        # result is either: `new-account` or `existing-account`
+        # failing will raise an exception
+        result = lib_db.actions.do__SslAcmeAccountKey_authenticate(self.request.api_context, dbAcmeAccountKey)
         return HTTPFound('%s/account-key/%s?result=success&is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, ('1' if is_authenticated else '0')))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -195,57 +200,10 @@ class ViewAdmin(Handler):
                                             )
             if not result:
                 raise formhandling.FormInvalid()
-
-            # -------------------
-            # do a quick parse...
-            requirements_either_or = (('account_key_file_pem', ),
-                                      ('account_key_file_le_meta', 'account_key_file_le_pkey', 'account_key_file_le_reg', )
-                                      )
-            failures = []
-            passes = []
-            for idx, option_set in enumerate(requirements_either_or):
-                option_set_results = [True if formStash.results[option_set_item] is not None else False
-                                      for option_set_item in option_set
-                                      ]
-                # if we have any item, we need all of them
-                if any(option_set_results):
-                    if not all(option_set_results):
-                        failures.append("If any of %s is provided, all must be provided." % str(option_set))
-                    else:
-                        passes.append(idx)
-
-            if (len(passes) != 1) or failures :
-                formStash.set_error(field="Error_Main",
-                                    message="You must upload `account_key_file_pem` or all of (`account_key_file_le_meta`, `account_key_file_le_pkey`, `account_key_file_le_reg`).",
-                                    raise_FormInvalid=True,
-                                    )
-            # -------------------
-
-            # validate the provider option         
-            # will be None unless a pem is uploaded
-            # required for PEM, ignored otherwise
-            acme_account_provider_id = formStash.results.get('acme_account_provider_id', None)
-            if formStash.results.get('account_key_file_pem'):
-                if acme_account_provider_id is None:
-                    formStash.set_error(field="acme_account_provider_id",
-                                        message="No provider submitted.",
-                                        raise_FormInvalid=True,
-                                        )
-                if acme_account_provider_id not in models.AcmeAccountProvider.registry.keys():
-                    formStash.set_error(field="acme_account_provider_id",
-                                        message="Invalid provider submitted.",
-                                        raise_FormInvalid=True,
-                                        )
-                
-            key_create_args = {}
-            if formStash.results['account_key_file_pem'] is not None:
-                key_create_args['key_pem'] = formStash.results['account_key_file_pem'].file.read()
-                key_create_args['acme_account_provider_id'] = acme_account_provider_id
-            else:                
-                # note that we use `jsonS` to indicate a string
-                key_create_args['le_meta_jsons'] = formStash.results['account_key_file_le_meta'].file.read()
-                key_create_args['le_pkey_jsons'] = formStash.results['account_key_file_le_pkey'].file.read()
-                key_create_args['le_reg_jsons'] = formStash.results['account_key_file_le_reg'].file.read()
+            
+            parser = AccountKeyUploadParser(formStash)
+            parser.require_upload()
+            key_create_args = parser.getcreate_args
 
             (dbAcmeAccountKey,
              _is_created

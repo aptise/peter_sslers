@@ -402,9 +402,11 @@ class ViewAdmin(Handler):
         return self._certificate_focus_renew_custom__print()
 
     def _certificate_focus_renew_custom__print(self):
+        providers = models.AcmeAccountProvider.registry.values()
         return render_to_response("/admin/certificate-focus-renew.mako",
                                   {'SslServerCertificate': self.dbServerCertificate,
                                    'dbAccountKeyDefault': self.dbAccountKeyDefault,
+                                   'AcmeAccountProviderOptions': providers,
                                    },
                                   self.request
                                   )
@@ -412,14 +414,32 @@ class ViewAdmin(Handler):
     def _certificate_focus_renew_custom__submit(self):
         dbServerCertificate = self.dbServerCertificate
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_Certificate_Renewal_Custom,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_Certificate_Renewal_Custom,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
-            account_key_pem = form_utils.parse_AccountKeyPem(self.request, formStash, seek_selected=formStash.results['account_key_option'])
+            # use the form_utils to process account-key selections
+            # why? because they may be uploaded in multiple ways
+            accountKeySelection = form_utils.parse_AccountKeySelection(
+                self.request,
+                formStash,
+                seek_selected=formStash.results['account_key_option']
+            )
+            if accountKeySelection.selection == 'upload':
+                key_create_args = accountKeySelection.upload_parsed.getcreate_args
+                (dbAcmeAccountKey,
+                 _is_created
+                 ) = lib_db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(
+                    self.request.api_context,
+                    **key_create_args
+                )
+                accountKeySelection.SslAcmeAccountKey = dbAcmeAccountKey
+                
             private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash, seek_selected=formStash.results['private_key_option'])
             
             try:
@@ -433,7 +453,7 @@ class ViewAdmin(Handler):
                 newLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated(
                     self.request.api_context,
                     domain_names=dbServerCertificate.domains_as_list,
-                    account_key_pem=account_key_pem,
+                    dbAccountKey = accountKeySelection.SslAcmeAccountKey,
                     private_key_pem=private_key_pem,
                     dbServerCertificate__renewal_of=dbServerCertificate,
                 )

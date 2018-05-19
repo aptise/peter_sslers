@@ -236,7 +236,7 @@ class AppTest(AppTestCore):
                 #
                 _key_filename = TEST_FILES['AccountKey']['1']
                 key_pem = self._filedata_testfile(_key_filename)
-                _key_account1, _is_created = db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(self.ctx, key_pem, acmeAccountProvider_id)
+                _key_account1, _is_created = db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(self.ctx, key_pem)
                 # print _key_account1, _is_created
                 self.ctx.dbSession.commit()
 

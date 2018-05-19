@@ -151,7 +151,7 @@ Here we go...
 	
 Then you can visit `http://127.0.0.1:7201`
 
-Editing the `example_development.ini` file will let you specify how the package runs.
+Editing the `example_development.ini` file will let you specify how the package runs.  some fields are necessary for it to work correctly
 
 `Pyramid` applications are based on `.ini` configuration files.  You can use multiple files to deploy the server differently on the same machine, or on different environments.
 
@@ -294,6 +294,7 @@ These are documented at-length on the in-app settings page.
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
 
 * `certificate_authority` - the LetsEncrypt certificate authority. by default we use their staging URL. you will have to manually put in the real URL as defined on their docs.
+* `certificate_authority_agreement` - the LetsEncrypt agreement URL used when creating new accounts. 
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?

@@ -97,6 +97,14 @@ def create__SslCertificateRequest(
         dbCertificateRequest.timestamp_started = ctx.timestamp
         dbCertificateRequest.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
         dbCertificateRequest.ssl_operations_event_id__created = dbOperationsEvent.id
+
+        # note account/private keys
+        # these were most-likely-NOT provided
+        if dbPrivateKey:
+            dbCertificateRequest.ssl_private_key_id__signed_by = dbPrivateKey.id
+        if dbAccountKey:
+            dbCertificateRequest.ssl_acme_account_key_id = dbAccountKey.id
+
         ctx.dbSession.add(dbCertificateRequest)
         ctx.dbSession.flush(objects=[dbCertificateRequest, ])
 
@@ -164,11 +172,11 @@ def create__SslCertificateRequest(
         dbCertificateRequest.csr_pem_modulus_md5 = csr_pem_modulus_md5
         dbCertificateRequest.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
         dbCertificateRequest.ssl_operations_event_id__created = dbOperationsEvent.id
-
         # note account/private keys
+        dbCertificateRequest.ssl_private_key_id__signed_by = dbPrivateKey.id
         if dbAccountKey:
             dbCertificateRequest.ssl_acme_account_key_id = dbAccountKey.id
-        dbCertificateRequest.ssl_private_key_id__signed_by = dbPrivateKey.id
+
         if dbServerCertificate__renewal_of:
             dbCertificateRequest.ssl_server_certificate_id__renewal_of = dbServerCertificate__renewal_of.id
 

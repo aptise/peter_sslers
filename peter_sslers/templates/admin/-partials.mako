@@ -625,32 +625,7 @@
 </%def>
 
 
-<%def name="formgroup__account_key_selector(show_text=None)">
-    <h4>Account Key</h4>
-    <h5>Use Default</h5>
-        % if dbAccountKeyDefault:
-            <div class="checkbox">
-                <label>
-                    <input type="checkbox" name="account_key_default" id="f1-account_key_default" value="${dbAccountKeyDefault.key_pem_md5}"/>
-                    Check this box to use the default.<br/>
-                    <b>pem md5:</b> <code>${dbAccountKeyDefault.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${dbAccountKeyDefault.key_pem_sample}</code>
-                </label>
-            </div>
-        % else:
-            <p>No default.</p>
-        % endif
-    <h5>or Use Existing</h5>
-        <div class="form-group">
-            <label for="f1-account_key_existing">Other existing key (pem md5)</label>
-            <input class="form-control" name="account_key_existing" id="f1-account_key_existing" type="text"/>
-        </div>    
-    <h5>or Upload File</h5>
-        ${formgroup__account_key_file(show_header=None)}
-</%def>
-
-
-<%def name="formgroup__account_key_selector_advanced(show_text=None, dbAccountKeyReuse=None)">
+<%def name="formgroup__account_key_selector_advanced(dbAccountKeyReuse=None)">
     % if dbAccountKeyReuse:
         <div class="radio">
             <label>
@@ -661,7 +636,7 @@
                 <b>pem line 1:</b> <code>${dbAccountKeyReuse.key_pem_sample}</code>
             </label>
             <a  class="btn btn-xs btn-info"
-                href="${admin_prefix}/account-keys/${dbAccountKeyReuse.id}"
+                href="${admin_prefix}/account-key/${dbAccountKeyReuse.id}"
             >
                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                 account-${dbAccountKeyReuse.id}
@@ -690,7 +665,7 @@
     </div>
     <div class="radio">
         <label>
-            <input type="radio" name="account_key_option" id="account_key_option-account_key_file_pem" value="account_key_file_pem">
+            <input type="radio" name="account_key_option" id="account_key_option-account_key_file" value="account_key_file">
             Select to upload a new Account Key<br/>
         </label>
         <label>
@@ -736,7 +711,7 @@
                 <b>pem line 1:</b> <code>${dbPrivateKeyReuse.key_pem_sample}</code>
             </label>
             <a  class="btn btn-xs btn-info"
-                href="${admin_prefix}/private-keys/${dbPrivateKeyReuse.id}"
+                href="${admin_prefix}/private-key/${dbPrivateKeyReuse.id}"
             >
                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                 private-${dbPrivateKeyReuse.id}

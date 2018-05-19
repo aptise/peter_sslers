@@ -3,10 +3,6 @@ Not Finished Yet
 asap tasks
 ---------------
 
-* system should configure based on acme provider, not url | how do we test?
-* tool to import all letsencrypt account keys
-* update account/key authentication system to hit the right endpoint (or not hit unconfigured endpoints)  | account_key_focus__authenticate
-
 * build authorization deactivate tool
 * migrate cert_subject hash and tracking to SAN
 * search expiring soon | note: isn't this the `/certificates/expiring` view?

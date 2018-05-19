@@ -102,9 +102,8 @@ def main(global_config, **settings):
         if certificate_authority_testing:
             acme_v1.TESTING_ENVIRONMENT = True
 
-    # TODO: automatic CA agreement
-    # if 'certificate_authority_agreement' in settings:
-    #    acme_v1.CA_AGREEMENT = settings["certificate_authority_agreement"]
+    if 'certificate_authority_agreement' in settings:
+        acme_v1.CERTIFICATE_AUTHORITY_AGREEMENT = settings["certificate_authority_agreement"]
 
     # will we redirect on error?
     set_bool_setting(config.registry.settings, 'exception_redirect')

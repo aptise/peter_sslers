@@ -132,10 +132,13 @@ def do__SslAcmeAccountKey_authenticate(ctx, dbAcmeAccountKey, account_key_path=N
 
         acmeLogger = AcmeLogger(ctx)
         
-        acme_v1.acme_register_account(header,
-                                      account_key_path=account_key_path,
-                                      acmeLogger=acmeLogger
-                                      )
+        # result is either: `new-account` or `existing-account`
+        # failing will raise an exception
+        result = acme_v1.acme_register_account(header,
+                                               account_key_path=account_key_path,
+                                               acmeLogger=acmeLogger,
+                                               acmeAccountKey=dbAcmeAccountKey,
+                                               )
 
         # this would raise if we couldn't authenticate
         dbAcmeAccountKey.timestamp_last_authenticated = ctx.timestamp
@@ -148,7 +151,7 @@ def do__SslAcmeAccountKey_authenticate(ctx, dbAcmeAccountKey, account_key_path=N
                                                     models.SslOperationsEventType.from_string('acme_account_key__authenticate'),
                                                     event_payload_dict,
                                                     )
-        return True
+        return result
 
     finally:
         if _tmpfile:
@@ -160,7 +163,6 @@ def do__CertificateRequest__AcmeAutomated(
     domain_names,
 
     dbAccountKey=None,
-    account_key_pem=None,
 
     dbPrivateKey=None,
     private_key_pem=None,
@@ -189,8 +191,8 @@ def do__CertificateRequest__AcmeAutomated(
     /usr/local/opt/openssl/bin/openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <
 
     """
-    if not any((dbAccountKey, account_key_pem)) or all((dbAccountKey, account_key_pem)):
-        raise ValueError("Submit one and only one of: `dbAccountKey`, `account_key_pem`")
+    if not dbAccountKey:
+        raise ValueError("Must submit `dbAccountKey`")
 
     if not any((dbPrivateKey, private_key_pem)) or all((dbPrivateKey, private_key_pem)):
         raise ValueError("Submit one and only one of: `dbPrivateKey`, `private_key_pem`")
@@ -219,13 +221,9 @@ def do__CertificateRequest__AcmeAutomated(
         # we need a list
         domain_names = list(domain_names)
 
-        if dbAccountKey is None:
-            raise ValueError("!!!")
-            account_key_pem = cert_utils.cleanup_pem_text(account_key_pem)
-            dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(ctx, account_key_pem)
-        else:
-            raise ValueError("!!!")
-            account_key_pem = dbAccountKey.key_pem
+        # pull the pem out of the account_key
+        account_key_pem = dbAccountKey.key_pem
+
         # we need to use tmpfiles on the disk
         tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
         tmpfiles.append(tmpfile_account)
@@ -235,6 +233,7 @@ def do__CertificateRequest__AcmeAutomated(
             dbPrivateKey, _is_created = lib.db.getcreate.getcreate__SslPrivateKey__by_pem_text(ctx, private_key_pem)
         else:
             private_key_pem = dbPrivateKey.key_pem
+
         # we need to use tmpfiles on the disk
         tmpfile_pkey = cert_utils.new_pem_tempfile(private_key_pem)
         tmpfiles.append(tmpfile_pkey)
@@ -307,6 +306,7 @@ def do__CertificateRequest__AcmeAutomated(
                                     thumbprint=thumbprint,
                                     header=header,
                                     acmeLogger=acmeLogger,
+                                    acmeAccountKey=dbAccountKey,
                                     )
 
         # sign it
@@ -319,6 +319,7 @@ def do__CertificateRequest__AcmeAutomated(
          ) = acme_v1.acme_sign_certificate(csr_path=tmpfile_csr.name,
                                            account_key_path=tmpfile_account.name,
                                            header=header,
+                                           acmeAccountKey=dbAccountKey,
                                            )
         #
         # end acme-tiny

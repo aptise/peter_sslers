@@ -27,7 +27,7 @@ requires = [
 ]
 
 setup(name='peter_sslers',
-      version='0.1.6',
+      version='0.2.0',
       description='peter_sslers',
       long_description=README + '\n\n' + CHANGES,
       classifiers=["Programming Language :: Python",

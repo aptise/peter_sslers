@@ -36,7 +36,7 @@ from . import letsencrypt_info
 
 _DEFAULT_CA = "https://acme-staging.api.letsencrypt.org"
 CERTIFICATE_AUTHORITY = _DEFAULT_CA
-CERTIFICATE_AUTHORITY_AGREEMENT = 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf'
+CERTIFICATE_AUTHORITY_AGREEMENT = None
 TESTING_ENVIRONMENT = False
 
 
@@ -60,10 +60,13 @@ def _b64(b):
 
 
 # helper function make signed requests
-def _send_signed_request(url, payload, account_key_path, header):
+def _send_signed_request(url, payload, account_key_path, header, acmeAccountKey):
     payload64 = _b64(json.dumps(payload).encode("utf8"))
     protected = copy.deepcopy(header)
-    resp_directory = my_urlopen(CERTIFICATE_AUTHORITY + "/directory")
+    ca_endpoint = acmeAccountKey.acme_account_provider_endpoint
+    if not ca_endpoint:
+        raise ValueError("no CERTIFICATE_AUTHORITY for this account!")
+    resp_directory = my_urlopen(ca_endpoint + "/directory")
     protected["nonce"] = resp_directory.headers["Replay-Nonce"]
     protected64 = _b64(json.dumps(protected).encode("utf8"))
     proc = subprocess.Popen([cert_utils.openssl_path, "dgst", "-sha256", "-sign", account_key_path],
@@ -114,24 +117,31 @@ def acme_register_account(
     header=None,
     account_key_path=None,
     acmeLogger=None,  # an instance of AcmeLogger
+    acmeAccountKey=None,
 ):
     log.info("Registering account...")
+
+    ca_endpoint = acmeAccountKey.acme_account_provider_endpoint
+    if not ca_endpoint:
+        raise ValueError("no CERTIFICATE_AUTHORITY for this account!")
+
     acmeLogger.log_registration()  # log this to the db
     code, result, headers = _send_signed_request(
-        CERTIFICATE_AUTHORITY + "/acme/new-reg",
+        ca_endpoint + "/acme/new-reg",
         {"resource": "new-reg",
          "agreement": CERTIFICATE_AUTHORITY_AGREEMENT,
          },
         account_key_path,
         header,
+        acmeAccountKey,
     )
     if code == 201:
         log.info("Registered!")
+        return "new-account"
     elif code == 409:
         log.info("Already registered!")
-    else:
-        raise errors.AcmeCommunicationError("Error registering: {0} {1}".format(code, result))
-    return True
+        return "existing-account"
+    raise errors.AcmeCommunicationError("Error registering: {0} {1}".format(code, result))
 
 
 def acme_verify_domains(
@@ -142,9 +152,15 @@ def acme_verify_domains(
     thumbprint=None,
     header=None,
     acmeLogger=None,  # an instance of AcmeLogger
+    acmeAccountKey=None,
 ):
     """
     """
+    log.info("acme_verify_domains...")
+
+    ca_endpoint = acmeAccountKey.acme_account_provider_endpoint
+    if not ca_endpoint:
+        raise ValueError("no CERTIFICATE_AUTHORITY for this account!")
 
     # verify each domain
     for domain in csr_domains:
@@ -155,7 +171,7 @@ def acme_verify_domains(
          sslAcmeChallengeLog
          ) = acmeLogger.log_new_authz(domain=domain)  # log this to the db
         code, result, headers = _send_signed_request(
-            CERTIFICATE_AUTHORITY + "/acme/new-authz",
+            ca_endpoint + "/acme/new-authz",
             {"resource": "new-authz",
              "identifier": {"type": "dns",
                             "value": domain
@@ -163,6 +179,7 @@ def acme_verify_domains(
              },
             account_key_path,
             header,
+            acmeAccountKey,
         )
         if code != 201:
             raise errors.AcmeCommunicationError("Error requesting challenges: {0} {1}".format(code, result))
@@ -207,6 +224,7 @@ def acme_verify_domains(
              },
             account_key_path,
             header,
+            acmeAccountKey,
         )
         if code != 202:
             raise errors.AcmeCommunicationError("Error triggering challenge: {0} {1}".format(code, result))
@@ -238,21 +256,26 @@ def acme_sign_certificate(
     account_key_path=None,
     csr_path=None,
     header=None,
+    acmeAccountKey=None,
 ):
     # get the new certificate
     log.info("Signing certificate...")
+    ca_endpoint = acmeAccountKey.acme_account_provider_endpoint
+    if not ca_endpoint:
+        raise ValueError("no CERTIFICATE_AUTHORITY for this account!")
     proc = subprocess.Popen([cert_utils.openssl_path, "req", "-in", csr_path, "-outform", "DER"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     csr_der, err = proc.communicate()
 
     acmeLoggedEvent = acmeLogger.log_new_cert()  # log this to the db
     code, result, headers = _send_signed_request(
-        CERTIFICATE_AUTHORITY + "/acme/new-cert",
+        ca_endpoint + "/acme/new-cert",
         {"resource": "new-cert",
          "csr": _b64(csr_der),
          },
         account_key_path,
         header,
+        acmeAccountKey,
     )
     if code != 201:
         raise errors.AcmeCommunicationError("Error signing certificate: {0} {1}".format(code, result))

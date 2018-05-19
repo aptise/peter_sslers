@@ -256,18 +256,22 @@ class ViewAdmin(Handler):
 
     def _certificate_request_new_AcmeAutomated__print(self):
         active_ca = lib.acme_v1.CERTIFICATE_AUTHORITY
+        providers = models.AcmeAccountProvider.registry.values()
         return render_to_response("/admin/certificate_request-new-AcmeAutomated.mako",
                                   {'CERTIFICATE_AUTHORITY': active_ca,
                                    'dbAccountKeyDefault': self.dbAccountKeyDefault,
                                    'dbPrivateKeyDefault': self.dbPrivateKeyDefault,
+                                   'AcmeAccountProviderOptions': providers,
                                    }, self.request)
 
     def _certificate_request_new_AcmeAutomated__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CertificateRequest_new_AcmeAutomated,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_CertificateRequest_new_AcmeAutomated,
+                                            validate_get=False
+                                            )
             formStash.html_error_main_template = lib_text.TEMPLATE_FORMSTASH_ERRORS
             if not result:
                 raise formhandling.FormInvalid()
@@ -285,14 +289,28 @@ class ViewAdmin(Handler):
                                     raise_FormInvalid=True,
                                     )
 
-            account_key_pem = form_utils.parse_AccountKeyPem(self.request, formStash)
+            accountKeySelection = form_utils.parse_AccountKeySelection(
+                self.request,
+                formStash,
+                seek_selected=formStash.results['account_key_option']
+            )
+            if accountKeySelection.selection == 'upload':
+                key_create_args = accountKeySelection.upload_parsed.getcreate_args
+                (dbAcmeAccountKey,
+                 _is_created
+                 ) = lib_db.getcreate.getcreate__SslAcmeAccountKey__by_pem_text(
+                    self.request.api_context,
+                    **key_create_args
+                )
+                accountKeySelection.SslAcmeAccountKey = dbAcmeAccountKey
+
             private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash)
 
             try:
                 dbLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated(
                     self.request.api_context,
                     domain_names,
-                    account_key_pem=account_key_pem,
+                    dbAccountKey = accountKeySelection.SslAcmeAccountKey,
                     private_key_pem=private_key_pem,
                 )
             except (errors.AcmeCommunicationError,
