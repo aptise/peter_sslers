@@ -604,10 +604,6 @@
         <p>Use an Existing LetsEncrypt key from their client.
            This is the easiest way to register with LetsEncrypt and opt into their TOS.
         </p>
-        <p>
-            You have to convert the key from <code>jwk</code> to <code>pem</code> format.
-            The easiest way is outlined on this github page: <a href="https://github.com/diafygi/acme-tiny">https://github.com/diafygi/acme-tiny</a>
-        </p>
 </%def>
 
 

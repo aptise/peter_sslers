@@ -37,6 +37,11 @@
         </div>
         <div class="col-sm-6">
             ${admin_partials.info_AccountKey()}
+            <h3>This form accepts JSON</h3>
+
+            <p>
+                <code>curl ${request.api_host}${admin_prefix}/account-key/upload.json</code>
+            </p>
         </div>
     </div>
 </%block>

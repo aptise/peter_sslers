@@ -18,6 +18,10 @@ _le_live_filenames = {'certificate': 'cert.pem',
                       'fullchain': 'fullchain.pem',
                       'private_key': 'privkey.pem',
                       }
+_le_account_filenames = ['private_key.json',
+                         'meta.json',
+                         'regr.json',
+                         ]
 
 
 def upload_fileset(server_url_root, fset):
@@ -30,6 +34,33 @@ def upload_fileset(server_url_root, fset):
                              "--form", "private_key_file=@%s" % fset['private_key'],
                              "--form", "certificate_file=@%s" % fset['certificate'],
                              "--form", "chain_file=@%s" % fset['chain'],
+                             url
+                             ],
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    json_response, err = proc.communicate()
+    try:
+        if not json_response:
+            raise ValueError("error")
+        json_response = json.loads(json_response)
+        if ('result' not in json_response) or (json_response['result'] != 'success'):
+            pprint.pprint(json_response)
+            raise ValueError("error!")
+        else:
+            print "success | %s" % json_response
+    except Exception as exc:
+        raise
+
+
+def upload_account(server_url_root, fset):
+    """actually uploads an account fileset"""
+    if server_url_root[-1] == '/':
+        server_url_root = server_url_root[:-1]
+    url = '%s/account-key/upload.json' % server_url_root
+
+    proc = subprocess.Popen(['curl',
+                             "--form", "account_key_file_le_pkey=@%s" % fset['private_key.json'],
+                             "--form", "account_key_file_le_meta=@%s" % fset['meta.json'],
+                             "--form", "account_key_file_le_reg=@%s" % fset['regr.json'],
                              url
                              ],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -235,8 +266,47 @@ def import_letsencrypt_certs_live(c, live_path, server_url_root):
         upload_fileset(server_url_root, fset)
     return
 
+
+
+@task(help={'account_path': "Path to letsencrypt account files. should be `/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`",
+            'server_url_root': "URL of server to post to, do not include `.well-known`",
+            })
+def import_letsencrypt_account(c, account_path, server_url_root):
+    """imports the letsencrypt live archive  in /etc/letsencrypt/live
+
+    usage:
+        invoke import_letsencrypt_account --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}" --server-url-root="http://0.0.0.0:7201/.well-known/admin"
+    """
+    if not account_path:
+        raise ValueError("missing `account-path`")
+
+    if server_url_root[:4] != 'http':
+        raise ValueError("`server_url_root` does not look like a url")
+
+    if not os.path.isdir(account_path):
+        raise ValueError("`%s` is not a directory" % account_path)
+        
+    dfiles = [f for f in os.listdir(account_path) if f[0] != '.']
+    # ensure we have the right files in here...
+    if len(dfiles) != 3:
+        raise ValueError("`%s` does not look to be a letsencrypt account directory" % account_path)
+
+    fset = {}
+    for fname in _le_account_filenames:
+        fpath = os.path.join(account_path, fname)
+        if not os.path.exists(fpath):
+            raise ValueError("`%s` does not look to be a letsencrypt account directory; expected %s" % (account_path, fname))
+        fset[fname] = fpath
+
+    upload_account(server_url_root, fset)
+    return
+
+
+
 namespace = Collection(import_letsencrypt_certs_archive,
                        import_letsencrypt_certs_live,
                        import_letsencrypt_cert_version,
                        import_letsencrypt_cert_plain,
+
+                       import_letsencrypt_account,
                        )

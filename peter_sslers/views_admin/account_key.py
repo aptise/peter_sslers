@@ -116,6 +116,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_key:focus:authenticate', renderer=None)
     def account_key_focus__authenticate(self):
         dbAcmeAccountKey = self._account_key_focus()
+        raise ValueError("TODO - migrate")
         is_authenticated = lib_db.actions.do__SslAcmeAccountKey_authenticate(self.request.api_context, dbAcmeAccountKey)
         return HTTPFound('%s/account-key/%s?result=success&is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, ('1' if is_authenticated else '0')))
 
@@ -155,20 +156,36 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:account_key:new')
-    def account_key_new(self):
-        # TODO: make this a json endpoint
+    @view_config(route_name='admin:account_key:upload')
+    @view_config(route_name='admin:account_key:upload|json', renderer="json")
+    def account_key_upload(self):
         if self.request.method == 'POST':
-            return self._account_key_new__submit()
-        return self._account_key_new__print()
+            return self._account_key_upload__submit()
+        return self._account_key_upload__print()
 
-    def _account_key_new__print(self):
-
+    def _account_key_upload__print(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': ["""curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/account-key/upload.json""" % self.request.admin_url,
+                                     """curl --form 'account_key_file_le_meta=@meta.json' 'account_key_file_le_pkey=@private_key.json' 'account_key_file_le_reg=@regr.json' %s/account-key/upload.json""" % self.request.admin_url,
+                                     ],
+                    'form_fields': {'account_key_file_pem': 'Group A',
+                                    'acme_account_provider_id': 'Group A',
+                                    'account_key_file_le_meta': 'Group B',
+                                    'account_key_file_le_pkey': 'Group B',
+                                    'account_key_file_le_reg': 'Group B',
+                                    },
+                     'notes': ["You must submit ALL items from Group A or Group B"
+                               ],
+                     'valid_options': {'acme_account_provider_id': {v['id']: v['name'] for v in models.AcmeAccountProvider.registry.values()},
+                                       }
+                    }
         # quick setup, we need a bunch of options for dropdowns...
         providers = models.AcmeAccountProvider.registry.values()
         return render_to_response("/admin/account_key-new.mako", {'AcmeAccountProviderOptions': providers}, self.request)
 
-    def _account_key_new__submit(self):
+    def _account_key_upload__submit(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result,
              formStash
@@ -237,6 +254,13 @@ class ViewAdmin(Handler):
                 **key_create_args
             )
 
+            if wants_json:
+                return {'result': 'success',
+                        'AcmeAccountKey': dbAcmeAccountKey.as_json,
+                        'is_created': True if _is_created else False,
+                        'is_existing': False if _is_created else True,
+                        }
+
             return HTTPFound('%s/account-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, ('&is_created=1' if _is_created else '&is_existing=1')))
 
         except formhandling.FormInvalid as e:
@@ -245,9 +269,13 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
+            if wants_json:
+                return {'result': 'error',
+                        'form_errors': formStash.errors,
+                        }
             return formhandling.form_reprint(
                 self.request,
-                self._account_key_new__print,
+                self._account_key_upload__print,
                 auto_error_formatter=lib_text.formatter_error,
             )
 

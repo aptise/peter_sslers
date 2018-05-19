@@ -58,6 +58,7 @@
 - account-key/new is now account-key/upload
 - account-key/upload now takes letsencrypt jwk data and payloads
 - parse letsencrypt account key data for the right auth/provider
+- json upload of account keys - single key
 
 
 0.1.5
