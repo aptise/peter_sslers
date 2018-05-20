@@ -20,10 +20,10 @@
 <%block name="page_header_nav">
     <p class="pull-right">
         <a  class="btn btn-info btn-xs"
-            href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}/calendar"
+            href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}/calendar.json"
         >
             <span class="glyphicon glyphicon-calendar" aria-hidden="true"></span>
-            Calendar
+            calendar.json
         </a>
         <a href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>

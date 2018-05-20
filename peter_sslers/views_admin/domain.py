@@ -171,7 +171,7 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:domain:focus:calendar', renderer='json')
+    @view_config(route_name='admin:domain:focus:calendar|json', renderer='json')
     def domain_focus__calendar(self):
         rval = {}
         dbDomain = self._domain_focus()
@@ -213,14 +213,37 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domain:focus:mark', renderer=None)
     @view_config(route_name='admin:domain:focus:mark|json', renderer='json')
     def domain_focus_mark(self):
-        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbDomain = self._domain_focus()
+        if self.request.method == 'POST':
+            return self._domain_focus_mark__submit(dbDomain)
+        return self._domain_focus_mark__print(dbDomain)
+    
+    def _domain_focus_mark__print(self, dbDomain):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': ["""curl --form 'action=active' %s/domain/1/mark.json""" % self.request.admin_url,
+                                     ],
+                    'form_fields': {'action': 'the intended action',
+                                    },
+                    'valid_options': {'action': ['active', 'inactive'],
+                                      }
+                    }
+        url_post_required = '%s/domain/%s?operation=mark&result=post+required' % (
+            self.request.registry.settings['admin_prefix'],
+            dbDomain.id,
+        )
+        return HTTPFound(url_post_required)    
+
+    def _account_key_focus_mark__submit(self, dbAcmeAccountKey):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         action = '!MISSING or !INVALID'
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_Domain_mark,
-                                                             validate_get=True
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_Domain_mark,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -240,7 +263,10 @@ class ViewAdmin(Handler):
 
             if action == 'active':
                 if dbDomain.is_active:
-                    raise formhandling.FormInvalid('Already active')
+                    formStash.set_error(field='Error_Main',
+                                        message='Already active.',
+                                        raise_FormInvalid=True,
+                                        )
                 lib_db.actions.enable_Domain(self.request.api_context,
                                              dbDomain,
                                              dbOperationsEvent=dbOperationsEvent,
@@ -250,7 +276,10 @@ class ViewAdmin(Handler):
 
             elif action == 'inactive':
                 if not dbDomain.is_active:
-                    raise formhandling.FormInvalid('Already inactive')
+                    formStash.set_error(field='Error_Main',
+                                        message='Already inactive.',
+                                        raise_FormInvalid=True,
+                                        )
                 lib_db.actions.disable_Domain(self.request.api_context,
                                               dbDomain,
                                               dbOperationsEvent=dbOperationsEvent,
@@ -259,9 +288,17 @@ class ViewAdmin(Handler):
                                               )
 
             else:
-                raise formhandling.FormInvalid('invalid `action`')
+                formStash.set_error(field='action',
+                                    message='invalid option.',
+                                    raise_FormInvalid=True,
+                                    )
 
             self.request.api_context.dbSession.flush(objects=[dbOperationsEvent, dbDomain])
+            
+            if wants_json:
+                return {'result': 'success',
+                        'SslDomain': dbDomain.as_json,
+                        }
 
             url_success = '%s/domain/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
@@ -276,6 +313,10 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
+            if wants_json:
+                return {'result': 'error',
+                        'form_errors': formStash.errors,
+                        }
             url_failure = '%s/domain/%s?operation=mark&action=%s&result=error&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbDomain.id,

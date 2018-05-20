@@ -70,6 +70,10 @@
 - update account/key authentication system to hit the right endpoint for the actual account
 - renamed `getcreate__SslAcmeAccountKey__by_pem_text` to `getcreate__SslAcmeAccountKey`
 - adding protocol tracking and control for endpoints
+- standardizing api docs and tests
+- changed endpoints "/calendar" to "/calendar.json"
+* make self-documenting: admin:account_key:focus:mark|json ; fix formerror too
+* make self-documenting: admin:domain:focus:mark|json ; fix formerror too
 
 
 

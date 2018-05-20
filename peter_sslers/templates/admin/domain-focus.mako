@@ -47,11 +47,11 @@
 <%block name="page_header_nav">
     <p class="pull-right">
         <a  class="btn btn-xs btn-info"
-            href="${admin_prefix}/domain/${SslDomain.id}/calendar"
+            href="${admin_prefix}/domain/${SslDomain.id}/calendar.json"
             target="_blank"
         >
             <span class="glyphicon glyphicon-calendar" aria-hidden="true"></span>
-            Calendar</a>
+            calendar.json</a>
         <a  class="btn btn-xs btn-info"
             href="${admin_prefix}/domain/${SslDomain.id}.json"
         >

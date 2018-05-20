@@ -423,12 +423,19 @@ class FunctionalTests_AccountKeys(AppTest):
         # paginated
         res = self.testapp.get('/.well-known/admin/account-keys/1', status=200)
 
+        # json root
+        res = self.testapp.get('/.well-known/admin/account-keys.json', status=200)
+        # json paginated
+        res = self.testapp.get('/.well-known/admin/account-keys/1.json', status=200)
+
     def test_focus(self):
         focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
 
         res = self.testapp.get('/.well-known/admin/account-key/%s' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/account-key/%s.json' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/account-key/%s/config.json' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/account-key/%s/parse.json' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/account-key/%s/key.key' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/account-key/%s/key.pem' % focus_id, status=200)
@@ -437,22 +444,24 @@ class FunctionalTests_AccountKeys(AppTest):
         res = self.testapp.get('/.well-known/admin/account-key/%s/certificate-requests/1' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/account-key/%s/certificates' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/account-key/%s/certificates/1' % focus_id, status=200)
-        res = self.testapp.get('/.well-known/admin/account-key/%s/config.json' % focus_id, status=200)
 
     def test_manipulate(self):
         focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
 
+        # TODO:
+        # config.add_route_7('admin:account_key:focus:authenticate', '/account-key/{@id}/authenticate')
+
         if not focus_item.is_default:
             # make sure to roundtrip!
             # note we expect a 302 on success!
             if focus_item.is_active:
                 res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
-                res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'active'}, status=302)
+                res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'active'}, status=200)
             else:
                 res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'active'}, status=302)
-                res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'inactive'}, status=302)
+                res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'inactive'}, status=200)
         else:
             # TODO
             print "MUST TEST non-default"
@@ -467,10 +476,22 @@ class FunctionalTests_AccountKeys(AppTest):
         form['account_key_file_pem'] = Upload(key_filepath)
         form['acme_account_provider_id'].force_value(str(DEFAULT_acme_account_provider_id))  # why aren't any valid options showing?'
         res2 = form.submit()
-        print res2.status_code
         assert res2.status_code == 302
         assert res2.location == """http://localhost/.well-known/admin/account-key/2?result=success&is_created=1"""
         res3 = self.testapp.get(res2.location, status=200)
+
+        res = self.testapp.get('/.well-known/admin/account-key/upload.json', status=200)
+        res_json = json.loads(res.body)
+        assert 'instructions' in res_json
+
+        form = {}
+        form['account_key_file_pem'] = Upload(key_filepath)
+        form['acme_account_provider_id'] = str(DEFAULT_acme_account_provider_id)
+        res2 = self.testapp.post('/.well-known/admin/account-key/upload.json', form)
+        assert res2.status_code == 200
+        res2_json = json.loads(res2.body)
+        assert 'result' in res2_json
+        assert res2_json['result'] == 'success'
 
     @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):
@@ -774,6 +795,15 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get('/.well-known/admin/domains/1', status=200)
         res = self.testapp.get('/.well-known/admin/domains/expiring/1', status=200)
 
+        # json root
+        res = self.testapp.get('/.well-known/admin/domains.json', status=200)
+        res = self.testapp.get('/.well-known/admin/domains/expiring.json', status=200)
+
+        # json paginated
+        res = self.testapp.get('/.well-known/admin/domains/1.json', status=200)
+        res = self.testapp.get('/.well-known/admin/domains/expiring/1.json', status=200)
+
+
     def test_focus(self):
         focus_item = self._get_item()
         assert focus_item is not None
@@ -783,13 +813,18 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get('/.well-known/admin/domain/%s' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/domain/%s' % focus_name, status=200)
 
+        res = self.testapp.get('/.well-known/admin/domain/%s.json' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/domain/%s.json' % focus_name, status=200)
+
         res = self.testapp.get('/.well-known/admin/domain/%s/config.json' % focus_id, status=200)
-        res = self.testapp.get('/.well-known/admin/domain/%s/calendar' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/domain/%s/calendar.json' % focus_id, status=200)
+
+        res = self.testapp.get('/.well-known/admin/domain/%s/certificates' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/domain/%s/certificates/1' % focus_id, status=200)
 
         res = self.testapp.get('/.well-known/admin/domain/%s/certificate-requests' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/domain/%s/certificate-requests/1' % focus_id, status=200)
-        res = self.testapp.get('/.well-known/admin/domain/%s/certificates' % focus_id, status=200)
-        res = self.testapp.get('/.well-known/admin/domain/%s/certificates/1' % focus_id, status=200)
+
         res = self.testapp.get('/.well-known/admin/domain/%s/unique-fqdn-sets' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/domain/%s/unique-fqdn-sets/1' % focus_id, status=200)
 
@@ -802,10 +837,10 @@ class FunctionalTests_Domain(AppTest):
         # note we expect a 302 on success!
         if focus_item.is_active:
             res = self.testapp.get('/.well-known/admin/domain/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
-            res = self.testapp.get('/.well-known/admin/domain/%s/mark.json' % focus_id, {'action': 'active'}, status=302)
+            res = self.testapp.get('/.well-known/admin/domain/%s/mark.json' % focus_id, {'action': 'active'}, status=200)
         else:
             res = self.testapp.get('/.well-known/admin/domain/%s/mark' % focus_id, {'action': 'active'}, status=302)
-            res = self.testapp.get('/.well-known/admin/domain/%s/mark.json' % focus_id, {'action': 'inactive'}, status=302)
+            res = self.testapp.get('/.well-known/admin/domain/%s/mark.json' % focus_id, {'action': 'inactive'}, status=200)
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     def tests_nginx(self):
@@ -909,7 +944,7 @@ class FunctionalTests_UniqueFQDNSets(AppTest):
         focus_id = focus_item.id
 
         res = self.testapp.get('/.well-known/admin/unique-fqdn-set/%s' % focus_id, status=200)
-        res = self.testapp.get('/.well-known/admin/unique-fqdn-set/%s/calendar' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/unique-fqdn-set/%s/calendar.json' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/private-key/%s/certificate-requests' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/private-key/%s/certificate-requests/1' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/private-key/%s/certificates' % focus_id, status=200)

@@ -76,7 +76,7 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:unique_fqdn_set:focus:calendar', renderer='json')
+    @view_config(route_name='admin:unique_fqdn_set:focus:calendar|json', renderer='json')
     def unique_fqdn_set_focus__calendar(self):
         rval = {}
         dbUniqueFQDNSet = self._unique_fqdn_set_focus()

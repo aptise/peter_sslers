@@ -243,12 +243,36 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_key:focus:mark|json', renderer='json')
     def account_key_focus_mark(self):
         dbAcmeAccountKey = self._account_key_focus()
-        action = '!MISSING or !INVALID'
+        if self.request.method == 'POST':
+            return self._account_key_focus_mark__submit(dbAcmeAccountKey)
+        return self._account_key_focus_mark__print(dbAcmeAccountKey)
+
+    def _account_key_focus_mark__print(self, dbAcmeAccountKey):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': ["""curl --form 'action=active' %s/account-key/1/mark.json""" % self.request.admin_url,
+                                     ],
+                    'form_fields': {'action': 'the intended action',
+                                    },
+                    'valid_options': {'action': ['default', 'active', 'inactive'],
+                                      }
+                    }
+        url_post_required = '%s/account-key/%s?operation=mark&result=post+required' % (
+            self.request.registry.settings['admin_prefix'],
+            dbAcmeAccountKey.id,
+        )
+        return HTTPFound(url_post_required)
+
+    def _account_key_focus_mark__submit(self, dbAcmeAccountKey):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_AccountKey_mark,
-                                                             validate_get=True
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_AccountKey_mark,
+                                            validate_get=False,
+                                            # validate_post=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -263,21 +287,33 @@ class ViewAdmin(Handler):
 
             if action == 'active':
                 if dbAcmeAccountKey.is_active:
-                    raise formhandling.FormInvalid('Already activated')
+                    formStash.set_error(field='Error_Main',
+                                        message='Already activated',
+                                        raise_FormInvalid=True,
+                                        )
                 dbAcmeAccountKey.is_active = True
                 event_status = 'acme_account_key__mark__active'
 
             elif action == 'inactive':
                 if dbAcmeAccountKey.is_default:
-                    raise formhandling.FormInvalid('You can not deactivate the default. Make another key default first.')
+                    formStash.set_error(field='Error_Main',
+                                        message='You can not deactivate the default. Make another key default first.',
+                                        raise_FormInvalid=True,
+                                        )
                 if not dbAcmeAccountKey.is_active:
-                    raise formhandling.FormInvalid('Already deactivated')
+                    formStash.set_error(field='Error_Main',
+                                        message='Already deactivated.',
+                                        raise_FormInvalid=True,
+                                        )
                 dbAcmeAccountKey.is_active = False
                 event_status = 'acme_account_key__mark__inactive'
 
             elif action == 'default':
                 if dbAcmeAccountKey.is_default:
-                    raise formhandling.FormInvalid('Already default')
+                    formStash.set_error(field='Error_Main',
+                                        message='Already default.',
+                                        raise_FormInvalid=True,
+                                        )
                 formerDefaultKey = lib_db.get.get__SslAcmeAccountKey__default(self.request.api_context)
                 if formerDefaultKey:
                     formerDefaultKey.is_default = False
@@ -287,7 +323,10 @@ class ViewAdmin(Handler):
                 event_status = 'acme_account_key__mark__default'
 
             else:
-                raise formhandling.FormInvalid('invalid `action`')
+                formStash.set_error(field='action',
+                                    message='invalid option',
+                                    raise_FormInvalid=True,
+                                    )
 
             self.request.api_context.dbSession.flush(objects=[dbAcmeAccountKey, ])
 
@@ -308,6 +347,10 @@ class ViewAdmin(Handler):
                                                 event_status_id=models.SslOperationsObjectEventStatus.from_string(event_alt[0]),
                                                 dbAcmeAccountKey=event_alt[1],
                                                 )
+            if wants_json:
+                return {'result': 'success',
+                        'SslAcmeAccountKey': dbAcmeAccountKey,
+                        }
             url_success = '%s/account-key/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
                 dbAcmeAccountKey.id,
@@ -321,6 +364,10 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
+            if wants_json:
+                return {'result': 'error',
+                        'form_errors': formStash.errors,
+                        }
             url_failure = '%s/account-key/%s?operation=mark&action=%s&result=error&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbAcmeAccountKey.id,

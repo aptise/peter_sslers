@@ -3,6 +3,7 @@ Not Finished Yet
 asap tasks
 ---------------
 
+* audit apidocs
 * build authorization deactivate tool
 * migrate cert_subject hash and tracking to SAN
 * search expiring soon | note: isn't this the `/certificates/expiring` view?
