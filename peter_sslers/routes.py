@@ -103,8 +103,8 @@ def _admin_views(config):
     config.add_route_7('admin:ca_certificates_paginated', '/ca-certificates/{@page}')
     config.add_route_7('admin:ca_certificates|json', '/ca-certificates.json')
     config.add_route_7('admin:ca_certificates_paginated|json', '/ca-certificates/{@page}.json')
-
     config.add_route_7('admin:ca_certificate:focus', '/ca-certificate/{@id}')
+    config.add_route_7('admin:ca_certificate:focus|json', '/ca-certificate/{@id}.json')
     config.add_route_7('admin:ca_certificate:focus:parse|json', '/ca-certificate/{@id}/parse.json')
     config.add_route_7('admin:ca_certificate:focus:raw', '/ca-certificate/{@id}/chain.{format:(cer|crt|der|pem|pem.txt)}')
     config.add_route_7('admin:ca_certificate:focus:certificates_signed', '/ca-certificate/{@id}/certificates-signed')

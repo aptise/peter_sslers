@@ -470,7 +470,6 @@ class FunctionalTests_AcmeChallengeLog(AppTest):
         res = self.testapp.get('/.well-known/admin/acme-challenge-log/%s' % focus_id, status=200)
 
 
-
 class FunctionalTests_AcmeProviders(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_AcmeProviders"""
     def test_list(self):
@@ -590,8 +589,14 @@ class FunctionalTests_CACertificate(AppTest):
         # paginated
         res = self.testapp.get('/.well-known/admin/ca-certificates/1', status=200)
 
+        # JSON root
+        res = self.testapp.get('/.well-known/admin/ca-certificates.json', status=200)
+        # JSON paginated
+        res = self.testapp.get('/.well-known/admin/ca-certificates/1.json', status=200)
+
     def test_focus(self):
         res = self.testapp.get('/.well-known/admin/ca-certificate/1', status=200)
+        res = self.testapp.get('/.well-known/admin/ca-certificate/1.json', status=200)
         res = self.testapp.get('/.well-known/admin/ca-certificate/1/parse.json', status=200)
 
         res = self.testapp.get('/.well-known/admin/ca-certificate/1/chain.cer', status=200)

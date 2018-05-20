@@ -62,12 +62,18 @@ class ViewAdmin(Handler):
         return dbCaCertificate
 
     @view_config(route_name='admin:ca_certificate:focus', renderer='/admin/ca_certificate-focus.mako')
+    @view_config(route_name='admin:ca_certificate:focus|json', renderer='json')
     def ca_certificate_focus(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbCaCertificate = self._ca_certificate_focus()
         items_count = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__count(
             self.request.api_context, dbCaCertificate.id)
         items_paged = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__paginated(
             self.request.api_context, dbCaCertificate.id, limit=10, offset=0)
+        if wants_json:
+            return {'SslCaCertificate': dbCaCertificate.as_json,
+                    'SslServerCertificates_count': items_count,
+                    }
         return {'project': 'peter_sslers',
                 'SslCaCertificate': dbCaCertificate,
                 'SslServerCertificates_count': items_count,
