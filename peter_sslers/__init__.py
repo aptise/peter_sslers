@@ -84,6 +84,10 @@ def main(global_config, **settings):
             if not ca_submitted_endpoint.startswith('http://') and not ca_submitted_endpoint.startswith('https://'):
                 raise ValueError('`certificate_authority_endpoint` does not look like a URL')
             models_models.AcmeAccountProvider.registry[0]['endpoint'] = ca_submitted_endpoint
+            ca_submitted_protocol = settings["certificate_authority_protocol"]
+            if ca_submitted_protocol not in ("acme-v1", "acme-v2"):
+                raise ValueError('`ca_submitted_protocol` is not acme-v1 or acme-v2')
+            models_models.AcmeAccountProvider.registry[0]['protocol'] = ca_submitted_protocol
 
         # register the selected endpoint
         for (ca_id, ca_record) in models_models.AcmeAccountProvider.registry.items():
