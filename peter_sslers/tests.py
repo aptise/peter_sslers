@@ -236,6 +236,9 @@ class AppTest(AppTestCore):
                         selfsigned_1-server.crt
                     PrivateKey
                         selfsigned_1-server.key
+                    
+                    AcmeEventLog
+                    AcmeChallengeLog
                 """
 
                 #
@@ -340,6 +343,24 @@ class AppTest(AppTestCore):
                 )
                 self.ctx.dbSession.commit()
 
+                #AcmeEventLog
+                sslAcmeEventLog = models.models.SslAcmeEventLog()
+                sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+                sslAcmeEventLog.acme_event_id = models.models.AcmeEvent.from_string('v1|/acme/new-reg')
+                self.ctx.dbSession.add(sslAcmeEventLog)
+                self.ctx.dbSession.flush()
+                self.ctx.dbSession.commit()
+
+                #AcmeChallengeLog
+                sslAcmeChallengeLog = models.models.SslAcmeChallengeLog()
+                sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
+                sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
+                sslAcmeChallengeLog.domain = 'example.com'
+                sslAcmeChallengeLog.ssl_acme_account_key_id = _key_account1.id
+                self.ctx.dbSession.add(sslAcmeChallengeLog)
+                self.ctx.dbSession.flush()
+                self.ctx.dbSession.commit()
+
                 # queue a domain
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
@@ -403,6 +424,51 @@ class FunctionalTests_Passes(AppTest):
 
     def tests_passes(self):
         return True
+
+
+class FunctionalTests_AcmeEventLog(AppTest):
+    """python -m unittest peter_sslers.tests.FunctionalTests_AcmeEventLog"""
+
+    def _get_item(self):
+        # grab an event
+        focus_item = self.ctx.dbSession.query(models.models.SslAcmeEventLog).first()
+        return focus_item
+
+    def test_list(self):
+        # root
+        res = self.testapp.get('/.well-known/admin/acme-event-logs', status=200)
+        # paginated
+        res = self.testapp.get('/.well-known/admin/acme-event-logs/1', status=200)
+
+    def test_focus(self):
+        # focus
+        focus_item = self._get_item()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        res = self.testapp.get('/.well-known/admin/acme-event-log/%s' % focus_id, status=200)
+
+
+class FunctionalTests_AcmeChallengeLog(AppTest):
+    """python -m unittest peter_sslers.tests.FunctionalTests_AcmeChallengeLog"""
+
+    def _get_item(self):
+        # grab a event
+        focus_item = self.ctx.dbSession.query(models.models.SslAcmeChallengeLog).first()
+        return focus_item
+
+    def test_list(self):
+        # root
+        res = self.testapp.get('/.well-known/admin/acme-challenge-logs', status=200)
+        # paginated
+        res = self.testapp.get('/.well-known/admin/acme-challenge-logs/1', status=200)
+
+    def test_focus(self):
+        # focus
+        focus_item = self._get_item()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        res = self.testapp.get('/.well-known/admin/acme-challenge-log/%s' % focus_id, status=200)
+
 
 
 class FunctionalTests_AcmeProviders(AppTest):

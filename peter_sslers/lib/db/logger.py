@@ -45,7 +45,6 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.flush()
 
         sslAcmeChallengeLog = models.SslAcmeChallengeLog()
-        sslAcmeChallengeLog.acme_event_id = sslAcmeEventLog.id
         sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
         sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
         sslAcmeChallengeLog.domain = domain
