@@ -221,6 +221,16 @@
          'example': "curl --form 'action=active' http://127.0.0.1:7201/.well-known/admin/account-key/1/mark.json",
          },
 
+
+        {'endpoint': '/acme-providers.json',
+         'about': """list acme-providers""",
+         'POST': True,
+         'GET': True,
+         'args': "",
+         'example': "curl {ADMIN_PREFIX}/acme-providers.json",
+         },
+
+
         {'endpoint': '/domains.json',
          'about': """list domains""",
          'POST': True,

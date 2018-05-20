@@ -405,6 +405,18 @@ class FunctionalTests_Passes(AppTest):
         return True
 
 
+class FunctionalTests_AcmeProviders(AppTest):
+    """python -m unittest peter_sslers.tests.FunctionalTests_AcmeProviders"""
+    def test_list(self):
+        # root
+        res = self.testapp.get('/.well-known/admin/acme-providers', status=200)
+
+        # json root
+        res = self.testapp.get('/.well-known/admin/acme-providers.json', status=200)
+        res_json = json.loads(res.body)
+        assert 'AcmeProviders' in res_json
+
+
 class FunctionalTests_AccountKeys(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_AccountKeys"""
     """python -m unittest peter_sslers.tests.FunctionalTests_AccountKeys.test_new"""

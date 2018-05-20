@@ -74,6 +74,7 @@
 - changed endpoints "/calendar" to "/calendar.json"
 * make self-documenting: admin:account_key:focus:mark|json ; fix formerror too
 * make self-documenting: admin:domain:focus:mark|json ; fix formerror too
+* tests - acme-providers
 
 
 
