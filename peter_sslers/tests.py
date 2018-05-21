@@ -369,6 +369,20 @@ class AppTest(AppTestCore):
                     ['queue.example.com', ],
                 )
                 self.ctx.dbSession.commit()
+                
+                # renew a csr
+                # this MUST be a new domain to add to the queue
+                # if it is existing, a domain will not be added
+                event_type = models.models.SslOperationsEventType.from_string('queue_renewal__update')
+                event_payload_dict = lib.utils.new_event_payload_dict()
+                dbOperationsEvent = lib.db.logger.log__SslOperationsEvent(self.ctx,
+                                                                          event_type,
+                                                                          event_payload_dict,
+                                                                          )
+                dbQueue = lib.db.create._create__SslQueueRenewal(self.ctx,
+                                                                 _cert_1,
+                                                                 )
+                self.ctx.dbSession.commit()
 
             except Exception as e:
                 print ""
@@ -689,6 +703,12 @@ class FunctionalTests_Certificate(AppTest):
         res = self.testapp.get('/.well-known/admin/certificates/1', status=200)
         res = self.testapp.get('/.well-known/admin/certificates/expiring/1', status=200)
 
+        # json
+        res = self.testapp.get('/.well-known/admin/certificates.json', status=200)
+        res = self.testapp.get('/.well-known/admin/certificates/expiring.json', status=200)
+        res = self.testapp.get('/.well-known/admin/certificates/1.json', status=200)
+        res = self.testapp.get('/.well-known/admin/certificates/expiring/1.json', status=200)
+
     def test_focus(self):
         focus_item = self._get_item()
         assert focus_item is not None
@@ -714,6 +734,16 @@ class FunctionalTests_Certificate(AppTest):
         res = self.testapp.get('/.well-known/admin/certificate/%s/cert.crt' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate/%s/cert.pem' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate/%s/cert.pem.txt' % focus_id, status=200)
+
+        res = self.testapp.get('/.well-known/admin/certificate/%s/renew/queue' % focus_id, status=303)
+        res = self.testapp.get('/.well-known/admin/certificate/%s/renew/queue.json' % focus_id, status=200)
+
+        res = self.testapp.get('/.well-known/admin/certificate/%s/renew/quick' % focus_id, status=302)
+        res = self.testapp.get('/.well-known/admin/certificate/%s/renew/quick.json' % focus_id, status=200)
+        
+        res = self.testapp.get('/.well-known/admin/certificate/%s/renew/custom' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/certificate/%s/renew/custom.json' % focus_id, status=200)
+
 
     def test_manipulate(self):
         focus_item = self._get_item()
@@ -803,12 +833,19 @@ class FunctionalTests_CertificateRequest(AppTest):
         # paginated
         res = self.testapp.get('/.well-known/admin/certificate-requests/1', status=200)
 
+        # root
+        res = self.testapp.get('/.well-known/admin/certificate-requests.json', status=200)
+
+        # paginated
+        res = self.testapp.get('/.well-known/admin/certificate-requests/1.json', status=200)
+
     def test_focus(self):
         focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
 
         res = self.testapp.get('/.well-known/admin/certificate-request/%s' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/certificate-request/%s.json' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate-request/%s/csr.csr' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate-request/%s/csr.pem' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate-request/%s/csr.pem.txt' % focus_id, status=200)
@@ -856,6 +893,8 @@ class FunctionalTests_CertificateRequest(AppTest):
         # deactivate!
         res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/deactivate', status=302)
         assert '?result=success' in res.location
+
+        res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/deactivate.json', status=200)
 
 
 class FunctionalTests_Domain(AppTest):
@@ -982,10 +1021,10 @@ class FunctionalTests_PrivateKeys(AppTest):
             # note we expect a 302 on success!
             if focus_item.is_active:
                 res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
-                res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'active'}, status=302)
+                res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'active'}, status=200)
             else:
                 res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'active'}, status=302)
-                res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'inactive'}, status=302)
+                res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'inactive'}, status=200)
         else:
             # TODO
             print "MUST TEST compromised"
@@ -994,7 +1033,7 @@ class FunctionalTests_PrivateKeys(AppTest):
         # this should be creating a new key
         _key_filename = TEST_FILES['PrivateKey']['2']['file']
         key_filepath = self._filepath_testfile(_key_filename)
-        res = self.testapp.get('/.well-known/admin/private-key/new', status=200)
+        res = self.testapp.get('/.well-known/admin/private-key/upload', status=200)
         form = res.form
         form['private_key_file'] = Upload(key_filepath)
         res2 = form.submit()
@@ -1003,6 +1042,11 @@ class FunctionalTests_PrivateKeys(AppTest):
         # for some reason, we don't always "create" this.
         assert """?result=success""" in res2.location
         res3 = self.testapp.get(res2.location, status=200)
+
+        res = self.testapp.get('/.well-known/admin/private-key/upload.json', status=200)
+        form['private_key_file'] = Upload(key_filepath)
+        res2 = self.testapp.get('/.well-known/admin/private-key/upload.json', form)
+        assert res2.status_code == 200
 
 
 class FunctionalTests_UniqueFQDNSets(AppTest):
@@ -1018,8 +1062,10 @@ class FunctionalTests_UniqueFQDNSets(AppTest):
     def test_list(self):
         # root
         res = self.testapp.get('/.well-known/admin/unique-fqdn-sets', status=200)
+        res = self.testapp.get('/.well-known/admin/unique-fqdn-sets.json', status=200)
         # paginated
         res = self.testapp.get('/.well-known/admin/unique-fqdn-sets/1', status=200)
+        res = self.testapp.get('/.well-known/admin/unique-fqdn-sets/1.json', status=200)
 
     def test_focus(self):
         focus_item = self._get_item()
@@ -1027,6 +1073,7 @@ class FunctionalTests_UniqueFQDNSets(AppTest):
         focus_id = focus_item.id
 
         res = self.testapp.get('/.well-known/admin/unique-fqdn-set/%s' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/unique-fqdn-set/%s.json' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/unique-fqdn-set/%s/calendar.json' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/private-key/%s/certificate-requests' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/private-key/%s/certificate-requests/1' % focus_id, status=200)
@@ -1052,12 +1099,20 @@ class FunctionalTests_QueueDomains(AppTest):
         res = self.testapp.get('/.well-known/admin/queue-domains/1', status=200)
         res = self.testapp.get('/.well-known/admin/queue-domains/all/1', status=200)
 
+        # json root
+        res = self.testapp.get('/.well-known/admin/queue-domains.json', status=200)
+        res = self.testapp.get('/.well-known/admin/queue-domains/all.json', status=200)
+        # json paginated
+        res = self.testapp.get('/.well-known/admin/queue-domains/1.json', status=200)
+        res = self.testapp.get('/.well-known/admin/queue-domains/all/1.json', status=200)
+
     def test_focus(self):
         focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
 
         res = self.testapp.get('/.well-known/admin/queue-domain/%s' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/queue-domain/%s.json' % focus_id, status=200)
 
     def tests_add(self):
         res = self.testapp.get('/.well-known/admin/queue-domains/add', status=200)
@@ -1083,6 +1138,14 @@ class FunctionalTests_QueueDomains(AppTest):
         res = self.testapp.get('/.well-known/admin/queue-domains/process', status=200)
         res = self.testapp.get('/.well-known/admin/queue-domains/process.json', status=200)
 
+    def test_manipulate(self):
+        focus_item = self._get_item()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get('/.well-known/admin/queue-domain/%s/mark' % focus_id, {'action': 'cancel'}, status=302)
+        res = self.testapp.get('/.well-known/admin/queue-domain/%s/mark.json' % focus_id, {'action': 'cancel'}, status=200)
+
 
 class FunctionalTests_QueueRenewal(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_QueueRenewal"""
@@ -1098,9 +1161,20 @@ class FunctionalTests_QueueRenewal(AppTest):
         # root
         res = self.testapp.get('/.well-known/admin/queue-renewals', status=200)
         res = self.testapp.get('/.well-known/admin/queue-renewals/all', status=200)
+        res = self.testapp.get('/.well-known/admin/queue-renewals/active-failures', status=200)
         # paginated
         res = self.testapp.get('/.well-known/admin/queue-renewals/1', status=200)
         res = self.testapp.get('/.well-known/admin/queue-renewals/all/1', status=200)
+        res = self.testapp.get('/.well-known/admin/queue-renewals/active-failures/1', status=200)
+
+        # root|json
+        res = self.testapp.get('/.well-known/admin/queue-renewals.json', status=200)
+        res = self.testapp.get('/.well-known/admin/queue-renewals/all.json', status=200)
+        res = self.testapp.get('/.well-known/admin/queue-renewals/active-failures.json', status=200)
+        # paginated|json
+        res = self.testapp.get('/.well-known/admin/queue-renewals/1.json', status=200)
+        res = self.testapp.get('/.well-known/admin/queue-renewals/all/1.json', status=200)
+        res = self.testapp.get('/.well-known/admin/queue-renewals/active-failures/1.json', status=200)
 
     def test_focus(self):
         """this doesn't work on solo tests"""
@@ -1108,16 +1182,23 @@ class FunctionalTests_QueueRenewal(AppTest):
         assert focus_item is not None
         focus_id = focus_item.id
         res = self.testapp.get('/.well-known/admin/queue-renewal/%s' % focus_id, status=200)
+        res = self.testapp.get('/.well-known/admin/queue-renewal/%s.json' % focus_id, status=200)
 
     @unittest.skip("tests not written yet")
     def tests_todo(self):
         # todo
         if DISABLE_UNWRITTEN_TESTS:
             return True
-        res = self.testapp.get('/.well-known/admin/queue-renewals/update', status=200)
-        res = self.testapp.get('/.well-known/admin/queue-renewals/update.json', status=200)
         res = self.testapp.get('/.well-known/admin/queue-renewals/process', status=200)
         res = self.testapp.get('/.well-known/admin/queue-renewals/process.json', status=200)
+
+    def test_manipulate(self):
+        focus_item = self._get_item()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get('/.well-known/admin/queue-renewal/%s/mark' % focus_id, {'action': 'cancel'}, status=302)
+        res = self.testapp.get('/.well-known/admin/queue-renewal/%s/mark.json' % focus_id, {'action': 'cancel'}, status=200)
 
 
 class FunctionalTests_Operations(AppTest):

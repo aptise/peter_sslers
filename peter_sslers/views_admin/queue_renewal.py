@@ -43,20 +43,36 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_renewals:all_paginated', renderer='/admin/queue-renewals.mako')
     @view_config(route_name='admin:queue_renewals:active_failures', renderer='/admin/queue-renewals.mako')
     @view_config(route_name='admin:queue_renewals:active_failures_paginated', renderer='/admin/queue-renewals.mako')
+    @view_config(route_name='admin:queue_renewals|json', renderer='json')
+    @view_config(route_name='admin:queue_renewals_paginated|json', renderer='json')
+    @view_config(route_name='admin:queue_renewals:all|json', renderer='json')
+    @view_config(route_name='admin:queue_renewals:all_paginated|json', renderer='json')
+    @view_config(route_name='admin:queue_renewals:active_failures|json', renderer='json')
+    @view_config(route_name='admin:queue_renewals:active_failures_paginated|json', renderer='json')
     def queue_renewals(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         get_kwargs = {}
         url_template = None
         sidenav_option = None
         if self.request.matched_route.name in ('admin:queue_renewals', 'admin:queue_renewals_paginated'):
             get_kwargs['unprocessed_only'] = True
-            url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
+            if wants_json:
+                url_template = '%s/queue-renewals/{0}.json' % self.request.registry.settings['admin_prefix']
+            else:
+                url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
             sidenav_option = 'unprocessed'
         elif self.request.matched_route.name in ('admin:queue_renewals:all', 'admin:queue_renewals:all_paginated'):
-            url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
+            if wants_json:
+                url_template = '%s/queue-renewals/{0}.json' % self.request.registry.settings['admin_prefix']
+            else:
+                url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
             sidenav_option = 'all'
         elif self.request.matched_route.name in ('admin:queue_renewals:active_failures', 'admin:queue_renewals:active_failures_paginated'):
             get_kwargs['unprocessed_failures_only'] = True
-            url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
+            if wants_json:
+                url_template = '%s/queue-renewals/{0}.json' % self.request.registry.settings['admin_prefix']
+            else:
+                url_template = '%s/queue-renewals/{0}' % self.request.registry.settings['admin_prefix']
             sidenav_option = 'active-failures'
 
         items_count = lib_db.get.get__SslQueueRenewal__count(self.request.api_context, **get_kwargs)
@@ -74,7 +90,14 @@ class ViewAdmin(Handler):
             except Exception as e:
                 # this could be a json or int() error
                 pass
-
+        if wants_json:
+            _domains = {d.id: d.as_json for d in items_paged}
+            return {'SslQueueRenewals': _domains,
+                    'pagination': {'total_items': items_count,
+                                   'page': pager.page_num,
+                                   'page_next': pager.next if pager.has_next else None,
+                                   }
+                    }
         return {'project': 'peter_sslers',
                 'SslQueueRenewals_count': items_count,
                 'SslQueueRenewals': items_paged,
@@ -92,8 +115,14 @@ class ViewAdmin(Handler):
         return item
 
     @view_config(route_name='admin:queue_renewal:focus', renderer='/admin/queue-renewal-focus.mako')
+    @view_config(route_name='admin:queue_renewal:focus|json', renderer='json')
     def queue_renewal_focus(self):
         dbRenewalQueueItem = self._queue_renewal_focus()
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'status': 'success',
+                    'SslQueueRenewal': dbRenewalQueueItem.as_json,
+                    }
         return {'project': 'peter_sslers',
                 'RenewalQueueItem': dbRenewalQueueItem,
                 }
@@ -103,14 +132,31 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_renewal:focus:mark', renderer=None)
     @view_config(route_name='admin:queue_renewal:focus:mark|json', renderer='json')
     def queue_renewal_focus_mark(self):
+        dbRenewalQueueItem = self._queue_renewal_focus()
+        if self.request.method == 'POST':
+            return self._queue_renewal_focus_mark__submit(dbRenewalQueueItem)
+        return self._queue_renewal_focus_mark__print(dbRenewalQueueItem)
+
+    def _queue_renewal_focus_mark__print(self, dbRenewalQueueItem):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': ["""curl --form 'action=active' %s/queue-renewal/1/mark.json""" % self.request.admin_url,
+                                     ],
+                    'form_fields': {'action': 'the intended action',
+                                    },
+                    'valid_options': {'action': ['cancel'],
+                                      }
+                    }
+                    
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbQueueRenewal = self._queue_renewal_focus()
-        action = '!MISSING or !INVALID'
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_QueueRenewal_mark,
-                                                             validate_get=True
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_QueueRenewal_mark,
+                                            validate_get=True
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -121,15 +167,21 @@ class ViewAdmin(Handler):
             event_payload_dict['action'] = formStash.results['action']
 
             event_status = False
-            if action == 'cancelled':
+            if action == 'cancel':
                 if not dbQueueRenewal.is_active:
-                    raise formhandling.FormInvalid('Already cancelled')
+                    formStash.set_error(field='action',
+                                        message="Already cancelled",
+                                        raise_FormInvalid=True,
+                                        )
                 dbQueueRenewal.is_active = False
                 dbQueueRenewal.timestamp_processed = self.request.api_context.timestamp
                 event_status = 'queue_renewal__mark__cancelled'
                 self.request.api_context.dbSession.flush(objects=[dbQueueRenewal, ])
             else:
-                raise formhandling.FormInvalid('invalid `action`')
+                formStash.set_error(field='action',
+                                    message="invalid action",
+                                    raise_FormInvalid=True,
+                                    )
 
             # bookkeeping
             dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
@@ -142,6 +194,11 @@ class ViewAdmin(Handler):
                                             event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
                                             dbQueueRenewal=dbQueueRenewal,
                                             )
+
+            if wants_json:
+                return {'result': 'success',
+                        'SslQueueRenewal': dbQueueRenewal.as_json,
+                        }
 
             url_success = '%s/queue-renewal/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
@@ -156,6 +213,10 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
+            if wants_json:
+                return {'result': 'error',
+                        'form_errors': formStash.errors,
+                        }
             url_failure = '%s/queue-renewal/%s?operation=mark&action=%s&result=error&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbQueueRenewal.id,

@@ -39,7 +39,7 @@
                         % if RenewalQueueItem.is_active:
                             &nbsp;
                             <a  class="label label-warning"
-                                href="${admin_prefix}/queue-renewal/${RenewalQueueItem.id}/mark?action=cancelled"
+                                href="${admin_prefix}/queue-renewal/${RenewalQueueItem.id}/mark?action=cancel"
                             >
                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                 cancel

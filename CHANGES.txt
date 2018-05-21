@@ -55,6 +55,7 @@
 - renamed `letsencrypt_account_key` to `acme_account_key`
 - `getcreate__SslAcmeAccountKey__by_pem_text` now requires acmeAccountProvider
 - add acme-event-log and acme-challenge-log
+- private-key/new is now private-key/upload
 - account-key/new is now account-key/upload
 - account-key/upload now takes letsencrypt jwk data and payloads
 - parse letsencrypt account key data for the right auth/provider

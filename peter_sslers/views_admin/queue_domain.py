@@ -32,27 +32,48 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:queue_domains', renderer='/admin/queue-domains.mako')
     @view_config(route_name='admin:queue_domains_paginated', renderer='/admin/queue-domains.mako')
-    def queue_domains(self):
-        items_count = lib_db.get.get__SslQueueDomain__count(self.request.api_context, show_processed=False)
-        (pager, offset) = self._paginate(items_count, url_template='%s/queue-domains/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get.get__SslQueueDomain__paginated(self.request.api_context, show_processed=False, limit=items_per_page, offset=offset)
-        return {'project': 'peter_sslers',
-                'SslQueueDomains_count': items_count,
-                'SslQueueDomains': items_paged,
-                'sidenav_option': 'unprocessed',
-                'pager': pager,
-                }
-
+    @view_config(route_name='admin:queue_domains|json', renderer='json')
+    @view_config(route_name='admin:queue_domains_paginated|json', renderer='json')
     @view_config(route_name='admin:queue_domains:all', renderer='/admin/queue-domains.mako')
     @view_config(route_name='admin:queue_domains:all_paginated', renderer='/admin/queue-domains.mako')
-    def queue_domains_all(self):
-        items_count = lib_db.get.get__SslQueueDomain__count(self.request.api_context, show_processed=True)
-        (pager, offset) = self._paginate(items_count, url_template='%s/queue-domains/all/{0}' % self.request.registry.settings['admin_prefix'])
-        items_paged = lib_db.get.get__SslQueueDomain__paginated(self.request.api_context, show_processed=True, limit=items_per_page, offset=offset)
+    @view_config(route_name='admin:queue_domains:all|json', renderer='json')
+    @view_config(route_name='admin:queue_domains:all_paginated|json', renderer='json')
+    def queue_domains(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        wants_all = True if self.request.matched_route.name in ('admin:queue_domains:all',
+                                                                'admin:queue_domains:all_paginated',
+                                                                'admin:queue_domains:all|json',
+                                                                'admin:queue_domains:all_paginated|json',
+                                                                ) else False
+        sidenav_option = 'unprocessed'
+        if wants_all:
+            sidenav_option = 'all'
+        if wants_json:
+            if wants_all:
+                url_template = '%s/queue-domains/all/{0}.json' % self.request.registry.settings['admin_prefix']
+            else:
+                url_template = '%s/queue-domains/{0}.json' % self.request.registry.settings['admin_prefix']
+        else:
+            if wants_all:
+                url_template = '%s/queue-domains/all/{0}' % self.request.registry.settings['admin_prefix']
+            else:
+                url_template = '%s/queue-domains/{0}' % self.request.registry.settings['admin_prefix']
+        show_processed = False if wants_all else True    
+        items_count = lib_db.get.get__SslQueueDomain__count(self.request.api_context, show_processed=show_processed)
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__SslQueueDomain__paginated(self.request.api_context, show_processed=show_processed, limit=items_per_page, offset=offset)
+        if wants_json:
+            _domains = {d.id: d.as_json for d in items_paged}
+            return {'SslQueueDomains': _domains,
+                    'pagination': {'total_items': items_count,
+                                   'page': pager.page_num,
+                                   'page_next': pager.next if pager.has_next else None,
+                                   }
+                    }
         return {'project': 'peter_sslers',
                 'SslQueueDomains_count': items_count,
                 'SslQueueDomains': items_paged,
-                'sidenav_option': 'all',
+                'sidenav_option': sidenav_option,
                 'pager': pager,
                 }
 
@@ -140,6 +161,7 @@ class ViewAdmin(Handler):
                         }
             return HTTPFound("%s/queue-domains?processed=0&error=%s" % (self.request.registry.settings['admin_prefix'], e.message))
         except Exception as e:
+            print e
             transaction.abort()
             if wants_json:
                 return {'result': 'error',
@@ -156,8 +178,14 @@ class ViewAdmin(Handler):
         return item
 
     @view_config(route_name='admin:queue_domain:focus', renderer='/admin/queue-domain-focus.mako')
+    @view_config(route_name='admin:queue_domain:focus|json', renderer='json')
     def queue_domain_focus(self):
         dbQueueDomain = self._queue_domain_focus()
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'status': 'success',
+                    'SslQueueDomain': dbQueueDomain.as_json,
+                    }
         return {'project': 'peter_sslers',
                 'QueueDomainItem': dbQueueDomain,
                 }
@@ -167,14 +195,36 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_domain:focus:mark', renderer=None)
     @view_config(route_name='admin:queue_domain:focus:mark|json', renderer='json')
     def queue_domain_focus_mark(self):
-        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbQueueDomain = self._queue_domain_focus()
-        action = '!MISSING or !INVALID'
+        if self.request.method == 'POST':
+            return self._queue_domain_focus_mark__submit(dbQueueDomain)
+        return self._queue_domain_focus_mark__print(dbQueueDomain)
+
+    def _queue_domain_focus_mark__print(self, dbQueueDomain):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': ["""curl --form 'action=active' %s/queue-domain/1/mark.json""" % self.request.admin_url,
+                                     ],
+                    'form_fields': {'action': 'the intended action',
+                                    },
+                    'valid_options': {'action': ['cancel'],
+                                      }
+                    }
+        url_post_required = '%s/queue-domain/%s?operation=mark&result=post+required' % (
+            self.request.registry.settings['admin_prefix'],
+            dbQueueDomain.id,
+        )
+        return HTTPFound(url_post_required)            
+    
+    def _queue_domain_focus_mark__submit(self, dbQueueDomain):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_QueueDomain_mark,
-                                                             validate_get=True
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_QueueDomain_mark,
+                                            validate_get=True
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -192,9 +242,12 @@ class ViewAdmin(Handler):
             )
 
             event_status = False
-            if action == 'cancelled':
+            if action == 'cancel':
                 if not dbQueueDomain.is_active:
-                    raise formhandling.FormInvalid('Already cancelled')
+                    formStash.set_error(field='action',
+                                        message="Already cancelled",
+                                        raise_FormInvalid=True,
+                                        )
                 lib_db.queues.dequeue_QueuedDomain(self.request.api_context,
                                                    dbQueueDomain,
                                                    dbOperationsEvent=dbOperationsEvent,
@@ -202,9 +255,17 @@ class ViewAdmin(Handler):
                                                    action='de-queued'
                                                    )
             else:
-                raise formhandling.FormInvalid('invalid `action`')
+                formStash.set_error(field='action',
+                                    message="invalid `action",
+                                    raise_FormInvalid=True,
+                                    )
 
             self.request.api_context.dbSession.flush(objects=[dbQueueDomain, dbOperationsEvent])
+
+            if wants_json:
+                return {'result': 'success',
+                        'SslQueueDomain': dbQueueDomain.as_json,
+                        }
 
             url_success = '%s/queue-domain/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
@@ -219,6 +280,10 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
+            if wants_json:
+                return {'result': 'error',
+                        'form_errors': formStash.errors,
+                        }
             url_failure = '%s/queue-domain/%s?operation=mark&action=%s&result=error&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbQueueDomain.id,

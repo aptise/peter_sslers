@@ -296,7 +296,7 @@ class ViewAdmin(Handler):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbServerCertificate = self._certificate_focus()
         try:
-            if (not dbServerCertificate.private_key.is_active) or (not dbServerCertificate.acme_account_key.is_active):
+            if (not dbServerCertificate.private_key) or (not dbServerCertificate.private_key.is_active) or (not dbServerCertificate.acme_account_key) or (not dbServerCertificate.acme_account_key.is_active):
                 raise errors.DisplayableError("The PrivateKey or AccountKey is not active. You can not Quick-Renew.")
             if not dbServerCertificate.can_renew_letsencrypt:
                 raise errors.DisplayableError('Thie cert is not eligible for `Quick Renew`')
@@ -403,6 +403,27 @@ class ViewAdmin(Handler):
 
     def _certificate_focus_renew_custom__print(self):
         providers = models.AcmeAccountProvider.registry.values()
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'form_fields': {'account_key_option': "One of ('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file')",
+                                    'account_key_reuse': 'pem_md5 of the existing account key',
+                                    'account_key_default': 'pem_md5 of the default account key',
+                                    'account_key_existing': 'pem_md5 of any key',
+                                    'account_key_reuse': 'pem_md5 of the existing account key',
+
+                                    'account_key_file_pem': 'pem of the account key file, requires acme_account_provider_id.',
+                                    'acme_account_provider_id': 'account provider. only if account_key_file_pem is used',
+                                    'account_key_file_le_meta': "letsencrypt file",
+                                    'account_key_file_le_pkey': "letsencrypt file",
+                                    'account_key_file_le_reg': "letsencrypt file",
+
+                                    'private_key_option': "One of('private_key_reuse', 'private_key_existing', 'private_key_file')",
+                                    'private_key_reuse': 'pem_md5 of existing key',
+                                    'private_key_existing': 'pem_md5 of existing key',
+                                    'private_key_file': 'pem to upload',
+                                    }
+                    }
+
         return render_to_response("/admin/certificate-focus-renew.mako",
                                   {'SslServerCertificate': self.dbServerCertificate,
                                    'dbAccountKeyDefault': self.dbAccountKeyDefault,
@@ -486,12 +507,35 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:certificate:focus:mark|json', renderer='json')
     def certificate_focus_mark(self):
         dbServerCertificate = self._certificate_focus()
-        action = '!MISSING or !INVALID'
+        if self.request.method == 'POST':
+            return self._certificate_focus_mark__submit(dbServerCertificate)
+        return self._certificate_focus_mark__print(dbServerCertificate)
+        
+    def _certificate_focus_mark__print(self, dbServerCertificate):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': ["""curl --form 'action=active' %s/certificate/1/mark.json""" % self.request.admin_url,
+                                     ],
+                    'form_fields': {'action': 'the intended action',
+                                    },
+                    'valid_options': {'action': ['active', 'inactive', 'revoked', 'renew_manual', 'renew_auto', 'unrevoke'],
+                                      }
+                    }
+        url_post_required = '%s/certificate/%s?operation=mark&result=post+required' % (
+            self.request.registry.settings['admin_prefix'],
+            dbDomain.id,
+        )
+        return HTTPFound(url_post_required)            
+
+    def _certificate_focus_mark__submit(self, dbServerCertificate):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_Certificate_mark,
-                                                             validate_get=True
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_Certificate_mark,
+                                            validate_get=True
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -508,12 +552,21 @@ class ViewAdmin(Handler):
 
             if action == 'active':
                 if dbServerCertificate.is_active:
-                    raise formhandling.FormInvalid('Already active!')
+                    formStash.set_error(field='action',
+                                        message="Already active",
+                                        raise_FormInvalid=True,
+                                        )
                 # is_deactivated is our manual toggle;
                 if not dbServerCertificate.is_deactivated:
-                    raise formhandling.FormInvalid('This was not manually deactivated')
+                    formStash.set_error(field='action',
+                                        message="Certificate was not manually deactivated",
+                                        raise_FormInvalid=True,
+                                        )
                 if dbServerCertificate.is_revoked:
-                    raise formhandling.FormInvalid('Certificate is revoked. You must unrevoke first.')
+                    formStash.set_error(field='action',
+                                        message="Certificate is revoked. You must unrevoke first",
+                                        raise_FormInvalid=True,
+                                        )
                 # now make it active!
                 dbServerCertificate.is_active = True
                 # unset the manual toggle
@@ -525,9 +578,15 @@ class ViewAdmin(Handler):
 
             elif action == 'inactive':
                 if not dbServerCertificate.is_active:
-                    raise formhandling.FormInvalid('Already inactive!')
+                    formStash.set_error(field='action',
+                                        message="Already inactive",
+                                        raise_FormInvalid=True,
+                                        )
                 if dbServerCertificate.is_deactivated:
-                    raise formhandling.FormInvalid('Already deactivated')
+                    formStash.set_error(field='action',
+                                        message="Already deactivated",
+                                        raise_FormInvalid=True,
+                                        )
                 # deactivate it
                 dbServerCertificate.is_active = False
                 dbServerCertificate.is_auto_renew = False
@@ -540,7 +599,10 @@ class ViewAdmin(Handler):
 
             elif action == 'revoked':
                 if dbServerCertificate.is_revoked:
-                    raise formhandling.FormInvalid('Already revoked')
+                    formStash.set_error(field='action',
+                                        message="Already revoked",
+                                        raise_FormInvalid=True,
+                                        )
                 # mark revoked
                 dbServerCertificate.is_revoked = True
                 # deactivate it
@@ -556,9 +618,15 @@ class ViewAdmin(Handler):
 
             elif action == 'renew_auto':
                 if not dbServerCertificate.is_active:
-                    raise formhandling.FormInvalid('Certificate must be `active`')
+                    formStash.set_error(field='action',
+                                        message="Certificate must be `active`",
+                                        raise_FormInvalid=True,
+                                        )
                 if dbServerCertificate.is_auto_renew:
-                    raise formhandling.FormInvalid('Already set to auto-renew')
+                    formStash.set_error(field='action',
+                                        message="Already set to auto-renew",
+                                        raise_FormInvalid=True,
+                                        )
                 # set the renewal
                 dbServerCertificate.is_auto_renew = True
                 # cleanup options
@@ -566,9 +634,15 @@ class ViewAdmin(Handler):
 
             elif action == 'renew_manual':
                 if not dbServerCertificate.is_active:
-                    raise formhandling.FormInvalid('certificate must be `active`')
+                    formStash.set_error(field='action',
+                                        message="certificate must be `active`",
+                                        raise_FormInvalid=True,
+                                        )
                 if not dbServerCertificate.is_auto_renew:
-                    raise formhandling.FormInvalid('Already renew_manual')
+                    formStash.set_error(field='action',
+                                        message="Already set to manual renewal",
+                                        raise_FormInvalid=True,
+                                        )
                 # unset the renewal
                 dbServerCertificate.is_auto_renew = False
                 # cleanup options
@@ -576,7 +650,10 @@ class ViewAdmin(Handler):
 
             elif action == 'unrevoke':
                 if not dbServerCertificate.is_revoked:
-                    raise formhandling.FormInvalid('Certificate is not revoked')
+                    formStash.set_error(field='action',
+                                        message="Certificate is not revoked",
+                                        raise_FormInvalid=True,
+                                        )
                 # unset the revoke
                 dbServerCertificate.is_revoked = False
                 # lead is_active and is_deactivated as-is
@@ -586,7 +663,10 @@ class ViewAdmin(Handler):
                 event_status = 'certificate__mark__unrevoked'
 
             else:
-                raise formhandling.FormInvalid('invalid `action`')
+                formStash.set_error(field='action',
+                                    message="invalid option",
+                                    raise_FormInvalid=True,
+                                    )
 
             self.request.api_context.dbSession.flush(objects=[dbServerCertificate, ])
 
@@ -617,6 +697,10 @@ class ViewAdmin(Handler):
                 # nothing to do?
                 pass
 
+            if wants_json:
+                return {'result': 'success',
+                        'SslDomain': dbServerCertificate.as_json,
+                        }
             url_success = '%s/certificate/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
                 dbServerCertificate.id,
@@ -630,6 +714,10 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
+            if wants_json:
+                return {'result': 'error',
+                        'form_errors': formStash.errors,
+                        }
             url_failure = '%s/certificate/%s?operation=mark&action=%s&result=error&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbServerCertificate.id,

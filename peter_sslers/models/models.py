@@ -1068,6 +1068,29 @@ class SslQueueDomain(Base):
                                                     uselist=False,
                                                     )
 
+    @property
+    def timestamp_entered_isoformat(self):
+        if self.timestamp_entered:
+            return self.timestamp_entered.isoformat()
+        return None
+
+    @property
+    def timestamp_processed_isoformat(self):
+        if self.timestamp_processed:
+            return self.timestamp_processed.isoformat()
+        return None
+
+    @property
+    def as_json(self):
+        return {'id': self.id,
+                'domain_name': self.domain_name,
+                'timestamp_entered': self.timestamp_entered_isoformat,
+                'timestamp_processed': self.timestamp_processed_isoformat,
+                'ssl_domain_id': self.ssl_domain_id,
+                'is_active': True if self.is_active else False,
+                }
+
+
 
 class SslQueueRenewal(Base):
     """
@@ -1085,6 +1108,37 @@ class SslQueueRenewal(Base):
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     timestamp_process_attempt = sa.Column(sa.DateTime, nullable=True, )  # if not-null then an attempt was made on this item
     ssl_server_certificate_id__renewed = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True)
+
+    @property
+    def timestamp_entered_isoformat(self):
+        if self.timestamp_entered:
+            return self.timestamp_entered.isoformat()
+        return None
+
+    @property
+    def timestamp_processed_isoformat(self):
+        if self.timestamp_processed:
+            return self.timestamp_processed.isoformat()
+        return None
+
+    @property
+    def timestamp_process_attempt_isoformat(self):
+        if self.timestamp_process_attempt:
+            return self.timestamp_process_attempt.isoformat()
+        return None
+
+    @property
+    def as_json(self):
+        return {'id': self.id,
+                'ssl_server_certificate_id': self.ssl_server_certificate_id,
+                'process_result': self.process_result,
+                'ssl_unique_fqdn_set_id': self.ssl_unique_fqdn_set_id,
+                'timestamp_entered': self.timestamp_entered_isoformat,
+                'timestamp_processed': self.timestamp_processed_isoformat,
+                'timestamp_process_attempt': self.timestamp_process_attempt_isoformat,
+                'is_active': True if self.is_active else False,
+                'ssl_server_certificate_id__renewed': self.ssl_server_certificate_id__renewed,
+                }
 
     server_certificate = sa.orm.relationship("SslServerCertificate",
                                              primaryjoin="SslQueueRenewal.ssl_server_certificate_id==SslServerCertificate.id",

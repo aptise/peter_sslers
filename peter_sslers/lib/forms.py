@@ -187,11 +187,11 @@ class Form_PrivateKey_mark(_Form_Schema_Base):
 
 
 class Form_QueueDomain_mark(_Form_Schema_Base):
-    action = OneOf(('cancelled', ))
+    action = OneOf(('cancel', ))
 
 
 class Form_QueueRenewal_mark(_Form_Schema_Base):
-    action = OneOf(('cancelled', ))
+    action = OneOf(('cancel', ))
 
 
 class Form_QueueDomains_add(_Form_Schema_Base):

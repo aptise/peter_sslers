@@ -187,7 +187,7 @@ class ViewAdmin(Handler):
                     }
         # quick setup, we need a bunch of options for dropdowns...
         providers = models.AcmeAccountProvider.registry.values()
-        return render_to_response("/admin/account_key-new.mako", {'AcmeAccountProviderOptions': providers}, self.request)
+        return render_to_response("/admin/account_key-upload.mako", {'AcmeAccountProviderOptions': providers}, self.request)
 
     def _account_key_upload__submit(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False

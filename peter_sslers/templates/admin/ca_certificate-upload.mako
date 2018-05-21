@@ -7,13 +7,13 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/ca-certificates">CA Certificates</a></li>
-        <li class="active">New</li>
+        <li class="active">Upload</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>CA Certificates | New</h2>
+    <h2>CA Certificates | Upload</h2>
     <p><em>${request.text_library.info_CACertificates[1]}</em></p>
 </%block>
 

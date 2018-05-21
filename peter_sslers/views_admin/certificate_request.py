@@ -92,12 +92,23 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate_request:focus:acme-flow:deactivate')
+    @view_config(route_name='admin:certificate_request:focus:acme-flow:deactivate|json', renderer="json")
     def certificate_request_deactivate(self):
+        # todo: post only?
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbCertificateRequest = self._certificate_request_focus()
         if not dbCertificateRequest.certificate_request_type_is('acme flow'):
+            if wants_json:
+                return {"result": "error",
+                        "error": "Only availble for Acme Flow",
+                        }
             raise HTTPNotFound('Only availble for Acme Flow')
         dbCertificateRequest.is_active = False
         self.request.api_context.dbSession.flush(objects=[dbCertificateRequest, ])
+        if wants_json:
+            return {"result": "success",
+                    "SslCertificateRequest": dbCertificateRequest.as_json,
+                    }
         return HTTPFound('%s/certificate-request/%s?result=success' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

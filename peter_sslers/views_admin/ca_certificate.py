@@ -140,7 +140,7 @@ class ViewAdmin(Handler):
                     'form_fields': {'chain_file': 'required',
                                     },
                     }
-        return render_to_response("/admin/ca_certificate-new.mako", {}, self.request)
+        return render_to_response("/admin/ca_certificate-upload.mako", {}, self.request)
 
     def _ca_certificate_upload__submit(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False

@@ -133,21 +133,30 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:private_key:new')
-    def private_key_new(self):
+    @view_config(route_name='admin:private_key:upload')
+    @view_config(route_name='admin:private_key:upload|json', renderer='json')
+    def private_key_upload(self):
         if self.request.method == 'POST':
-            return self._private_key_new__submit()
-        return self._private_key_new__print()
+            return self._private_key_upload__submit()
+        return self._private_key_upload__print()
 
-    def _private_key_new__print(self):
-        return render_to_response("/admin/private_key-new.mako", {}, self.request)
+    def _private_key_upload__print(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': """curl --form 'private_key_file=@privkey1.pem' %s/private-key/upload.json""" % self.request.admin_url,
+                    'form_fields': {'private_key_file': 'required',
+                                    },
+                    }
+        return render_to_response("/admin/private_key-upload.mako", {}, self.request)
 
-    def _private_key_new__submit(self):
+    def _private_key_upload__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_PrivateKey_new__file,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_PrivateKey_new__file,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -156,6 +165,11 @@ class ViewAdmin(Handler):
              _is_created
              ) = lib_db.getcreate.getcreate__SslPrivateKey__by_pem_text(self.request.api_context, private_key_pem)
 
+            if wants_json:
+                return {'result': 'success',
+                        'is_created': True if _is_created else False,
+                        'SslPrivateKey': dbPrivateKey.as_json,
+                        }
             return HTTPFound('%s/private-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id, ('&is_created=1' if _is_created else '')))
 
         except formhandling.FormInvalid as e:
@@ -166,7 +180,7 @@ class ViewAdmin(Handler):
                                 )
             return formhandling.form_reprint(
                 self.request,
-                self._private_key_new__print,
+                self._private_key_upload__print,
                 auto_error_formatter=lib_text.formatter_error,
             )
 
@@ -175,14 +189,36 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:private_key:focus:mark', renderer=None)
     @view_config(route_name='admin:private_key:focus:mark|json', renderer='json')
     def private_key_focus_mark(self):
-        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbPrivateKey = self._private_key_focus()
-        action = '!MISSING or !INVALID'
+        if self.request.method == 'POST':
+            return self._private_key_focus_mark__submit(dbPrivateKey)
+        return self._private_key_focus_mark__print(dbPrivateKey)
+        
+    def _private_key_focus_mark__print(self, dbPrivateKey):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': ["""curl --form 'action=active' %s/private-key/1/mark.json""" % self.request.admin_url,
+                                     ],
+                    'form_fields': {'action': 'the intended action',
+                                    },
+                    'valid_options': {'action': ['compromised', 'active', 'inactive', 'default'],
+                                      }
+                    }
+        url_post_required = '%s/private-key/%s?operation=mark&result=post+required' % (
+            self.request.registry.settings['admin_prefix'],
+            dbPrivateKey.id,
+        )
+        return HTTPFound(url_post_required)            
+
+    def _private_key_focus_mark__submit(self, dbPrivateKey):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_PrivateKey_mark,
-                                                             validate_get=True
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_PrivateKey_mark,
+                                            validate_get=True
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -197,21 +233,33 @@ class ViewAdmin(Handler):
 
             if action == 'active':
                 if dbPrivateKey.is_active:
-                    raise formhandling.FormInvalid('Already activated')
+                    formStash.set_error(field='action',
+                                        message="Already activated",
+                                        raise_FormInvalid=True,
+                                        )
                 if dbPrivateKey.is_compromised:
-                    raise formhandling.FormInvalid('Can not activate a compromised key')
+                    formStash.set_error(field='action',
+                                        message="Can not activate a compromised key",
+                                        raise_FormInvalid=True,
+                                        )
                 dbPrivateKey.is_active = True
                 event_status = 'private_key__mark__active'
 
             elif action == 'inactive':
                 if not dbPrivateKey.is_active:
-                    raise formhandling.FormInvalid('Already deactivated')
+                    formStash.set_error(field='action',
+                                        message="Already deactivated",
+                                        raise_FormInvalid=True,
+                                        )
                 dbPrivateKey.is_active = False
                 event_status = 'private_key__mark__inactive'
 
             elif action == 'compromised':
                 if dbPrivateKey.is_compromised:
-                    raise formhandling.FormInvalid('Already compromised')
+                    formStash.set_error(field='action',
+                                        message="Already compromised",
+                                        raise_FormInvalid=True,
+                                        )
                 dbPrivateKey.is_active = False
                 dbPrivateKey.is_compromised = True
                 if dbPrivateKey.is_default:
@@ -222,9 +270,15 @@ class ViewAdmin(Handler):
 
             elif action == 'default':
                 if dbPrivateKey.is_default:
-                    raise formhandling.FormInvalid('Already default')
+                    formStash.set_error(field='action',
+                                        message="Already default",
+                                        raise_FormInvalid=True,
+                                        )
                 if not dbPrivateKey.is_active:
-                    raise formhandling.FormInvalid('Key not active')
+                    formStash.set_error(field='action',
+                                        message="Key not active",
+                                        raise_FormInvalid=True,
+                                        )
                 formerDefaultKey = lib_db.get.get__SslPrivateKey__default(self.request.api_context)
                 if formerDefaultKey:
                     formerDefaultKey.is_default = False
@@ -234,7 +288,10 @@ class ViewAdmin(Handler):
                 event_status = 'private_key__mark__default'
 
             else:
-                raise formhandling.FormInvalid('invalid `action`')
+                    formStash.set_error(field='action',
+                                        message="invalid `action`",
+                                        raise_FormInvalid=True,
+                                        )
 
             self.request.api_context.dbSession.flush(objects=[dbPrivateKey, ])
 
@@ -256,6 +313,10 @@ class ViewAdmin(Handler):
                     dbOperationsEvent=dbOperationsEvent,
                 )
 
+            if wants_json:
+                return {'result': 'success',
+                        'SslDomain': dbPrivateKey.as_json,
+                        }
             url_success = '%s/private-key/%s?operation=mark&action=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
                 dbPrivateKey.id,
@@ -269,6 +330,10 @@ class ViewAdmin(Handler):
                                 raise_FormInvalid=False,
                                 message_prepend=True
                                 )
+            if wants_json:
+                return {'result': 'error',
+                        'form_errors': formStash.errors,
+                        }
             url_failure = '%s/private-key/%s?operation=mark&action=%s&result=error&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
                 dbPrivateKey.id,

@@ -136,7 +136,7 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: Existing Certificate</a></li>
                 <li>
-                    <a  href="${admin_prefix}/private-key/new"
+                    <a  href="${admin_prefix}/private-key/upload"
                         title="${request.text_library.info_UploadPrivateKey[0]}"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
