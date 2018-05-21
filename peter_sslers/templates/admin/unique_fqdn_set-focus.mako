@@ -87,6 +87,20 @@
                             </table>
                         </td>
                     </tr>
+                    <tr>
+                        <th>Renew?</th>
+                        <td>
+                            &nbsp;
+                            <a  class="btn btn-xs btn-primary"
+                                href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}/renew/queue"
+                                title="Queue a renewal with the system defaults."
+                            >
+                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                queue a renewal with system defaults
+                            </a>
+
+                        </td>
+                    </tr>
                     ${admin_partials.table_tr_event_created(SslUniqueFQDNSet)}
                     <tr>
                         <td>Latest Certificates</td>

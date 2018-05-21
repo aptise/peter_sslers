@@ -57,27 +57,30 @@
                         % endif
                         % if not SslPrivateKey.is_active and not SslPrivateKey.is_compromised:
                             &nbsp;
-                            <a  href="${admin_prefix}/private-key/${SslPrivateKey.id}/mark?action=active"
-                                class="label label-info"
-                            >
-                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                activate
-                            </a>
+                            <form action="${admin_prefix}/private-key/${SslPrivateKey.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="active"/>
+                                <button class="btn btn-xs btn-success" type="submit">
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    activate
+                                </button>
+                            </form>
                         % elif SslPrivateKey.is_active and not SslPrivateKey.is_compromised:
                             &nbsp;
-                            <a  href="${admin_prefix}/private-key/${SslPrivateKey.id}/mark?action=inactive"
-                                class="label label-danger"
-                            >
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                deactivate
-                            </a>
+                            <form action="${admin_prefix}/private-key/${SslPrivateKey.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="inactive"/>
+                                <button class="btn btn-xs btn-danger" type="submit">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    deactivate
+                                </button>
+                            </form>
                             &nbsp;
-                            <a  href="${admin_prefix}/private-key/${SslPrivateKey.id}/mark?action=compromised"
-                                class="label label-danger"
-                            >
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                mark compromised
-                            </a>
+                            <form action="${admin_prefix}/private-key/${SslPrivateKey.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="compromised"/>
+                                <button class="btn btn-xs btn-danger" type="submit">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    mark compromised
+                                </button>
+                            </form>
                         % endif
                     </td>
                 </tr>
@@ -114,12 +117,13 @@
                             </span>
                         % else:
                             % if not SslPrivateKey.is_compromised and SslPrivateKey.is_active:
-                                <a  href="${admin_prefix}/private-key/${SslPrivateKey.id}/mark?action=default"
-                                    class="label label-primary"
-                                >
-                                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                    make default
-                                </a>
+                                <form action="${admin_prefix}/private-key/${SslPrivateKey.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="default"/>
+                                    <button class="btn btn-xs btn-success" type="submit">
+                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                        make default
+                                    </button>
+                                </form>
                             % endif
                         % endif
                     </td>

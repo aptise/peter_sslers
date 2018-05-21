@@ -14,19 +14,19 @@
 - adding more json endpoints for easier commandline work
 - private keys can now be marked as default
 - SQL Changes
-    ALTER TABLE ssl_private_key ADD is_default BOOLEAN DEFAULT NULL;
-    ALTER TABLE ssl_queue_renewal ADD timestamp_process_attempt DATETIME;
-    ALTER TABLE ssl_queue_renewal ADD ssl_server_certificate_id__renewed INT REFERENCES ssl_server_certificate(id);
+    ALTER TABLE ssl_acme_account_key ADD acme_account_provider_id INTEGER;
+    ALTER TABLE ssl_acme_account_key ALTER acme_account_provider_id SET NOT NULL;
+    ALTER TABLE ssl_certificate_request RENAME ssl_letsencrypt_account_key_id TO ssl_acme_account_key_id;
     ALTER TABLE ssl_letsencrypt_account_key RENAME TO ssl_acme_account_key;
-	ALTER TABLE ssl_certificate_request RENAME ssl_letsencrypt_account_key_id TO ssl_acme_account_key_id;
-	ALTER TABLE ssl_server_certificate RENAME ssl_letsencrypt_account_key_id TO ssl_acme_account_key_id;
-	
-	ALTER TABLE ssl_acme_account_key ADD acme_account_provider_id INTEGER;
-	UPDATE ssl_acme_account_key SET acme_account_provider_id = 2;
-	ALTER TABLE ssl_acme_account_key ALTER acme_account_provider_id SET NOT NULL;
+    ALTER TABLE ssl_operations_object_event RENAME ssl_letsencrypt_account_key_id TO ssl_acme_account_key_id;
+    ALTER TABLE ssl_private_key ADD is_default BOOLEAN DEFAULT NULL;
+    ALTER TABLE ssl_queue_renewal ADD ssl_server_certificate_id__renewed INT REFERENCES ssl_server_certificate(id);
+    ALTER TABLE ssl_queue_renewal ADD timestamp_process_attempt DATETIME;
+    ALTER TABLE ssl_queue_renewal ALTER ssl_server_certificate_id DROP NOT NULL;
+    ALTER TABLE ssl_server_certificate RENAME ssl_letsencrypt_account_key_id TO ssl_acme_account_key_id;
+    ALTER TABLE ssl_server_certificate ADD timestamp_revoked_upstream DATETIME DEFAULT NULL;
+    UPDATE ssl_acme_account_key SET acme_account_provider_id = 2;
 
-	ALTER TABLE ssl_operations_object_event RENAME ssl_letsencrypt_account_key_id TO ssl_acme_account_key_id;
-	
 - SQLITE Check
     PRAGMA table_info(ssl_private_key);
     PRAGMA table_info(ssl_queue_renewal);
@@ -77,10 +77,10 @@
 - make self-documenting: admin:domain:focus:mark|json ; fix formerror too
 - tests - acme-providers
 - tests - acme-events
-- function and tests - /domains/search
+- function and tests - /domains/search -- is it enrolled, etc?
 - added lynx images
 - made acme-flow a configuration option
-
+- added `timestamp_revoked_upstream` to SslServerCertificate; set when the cert is reported/officially revoked.
 
 
 0.1.5

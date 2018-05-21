@@ -91,20 +91,22 @@
 
                         % if SslDomain.is_active:
                             &nbsp;
-                            <a  class="label label-warning"
-                                href="${admin_prefix}/domain/${SslDomain.id}/mark?action=inactive"
-                            >
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                inactive
-                            </a>
+                            <form action="${admin_prefix}/domain/${SslDomain.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="inactive"/>
+                                <button class="btn btn-xs btn-warning" type="submit">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    inactive
+                                </button>
+                            </form>
                         % else:
                             &nbsp;
-                            <a  class="label label-success"
-                                href="${admin_prefix}/domain/${SslDomain.id}/mark?action=active"
-                            >
-                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                active
-                            </a>
+                            <form action="${admin_prefix}/domain/${SslDomain.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="active"/>
+                                <button class="btn btn-xs btn-success" type="submit">
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    active
+                                </button>
+                            </form>
                         % endif
 
                     </td>

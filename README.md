@@ -100,6 +100,14 @@ The source and docs are available on github https://github.com/aptise/peter_ssle
 
 # General Management Concepts
 
+## Certificates and Certificate Requests
+
+This handles several types of certificate requests
+
+1. Upload an existing Certificate Request and Certificate for tracking
+2. Have the built-in ACME-v1 client generate a Certificate Request and handle the challeges (Acme-Automated)
+3. Use an external tool to generate the certificate request, use PeterSSLers via HTML/API to manage the challenges (Acme-Flow)
+
 ## Input
 
 1. An admin dashboard allows you to upload certificates (in a triplet of Cert, Signing Key, CA-Chain)
@@ -153,7 +161,7 @@ Here we go...
 	
 Then you can visit `http://127.0.0.1:7201`
 
-Editing the `example_development.ini` file will let you specify how the package runs.  some fields are necessary for it to work correctly
+Editing the `example_development.ini` file will let you specify how the package runs.  some fields are necessary for it to work correctly, they are noted below...
 
 `Pyramid` applications are based on `.ini` configuration files.  You can use multiple files to deploy the server differently on the same machine, or on different environments.
 
@@ -298,10 +306,11 @@ These are documented at-length on the in-app settings page.
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
 
 * `certificate_authority` - the LetsEncrypt certificate authority. by default we use their staging URL. you will have to manually put in the real URL as defined on their docs.
-* `certificate_authority_agreement` - the LetsEncrypt agreement URL used when creating new accounts. 
+* `certificate_authority_agreement` - the LetsEncrypt agreement URL used when creating new accounts.  Everything will probably fail if you don't include this argument.
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
+* `enable_acme_flow` - boolean, should we enable the acme-flow tool?
 
 * `redis.url` - URL of redis (includes port)
 * `redis.prime_style` - MUST be "1" or "2"; see Redis Prime section below.
@@ -349,7 +358,7 @@ right now the invoke script offers:
 
 You can interact with this project via a commandline interface in several ways.
 
-* run a webserver instance and query JSON urls
+* run a webserver instance and query JSON urls or use a browser like lynx
 * run explicit routes via `prequest`. this allows you to do admin tasks without spinnig up a server
 
 
@@ -530,7 +539,7 @@ If a certificate is "active" (`True` by default) then it is actively managed and
 
 #### `is_deactivated` and `is_revoked`
 
-If a certificate is not "active", only one of these will be `True`.  If an inactive certificate was deactivated, then it can be activated and this flag will reverse.  If the certificate was revoked, it is permanent and can not be re-activated.
+If a certificate is not "active", only one of these will be `True`.  If an inactive certificate was deactivated, then it can be activated and this flag will reverse.  If the certificate was revoked, it is permanent and should not be re-activated.
 
 ## Domain Queue
 

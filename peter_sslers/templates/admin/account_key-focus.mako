@@ -46,11 +46,11 @@
                     <th>timestamp_last_authenticated</th>
                     <td><timestamp>${SslAcmeAccountKey.timestamp_last_authenticated  or ''}</timestamp>
                         % if not SslAcmeAccountKey.timestamp_last_authenticated:
-                            <a  href="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/authenticate"
-                                class="btn btn-xs btn-primary"
-                            >
-                                authenticate against LetsEncrypt
-                            </a>
+                            <form action="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/authenticate" method="POST">
+                                <button class="btn btn-xs btn-primary" type="submit">
+                                    authenticate against LetsEncrypt
+                                </button>
+                            </form>
                         % endif
                     </td>
                 </tr>
@@ -62,20 +62,22 @@
                         </span>
                         &nbsp;
                         % if not SslAcmeAccountKey.is_active:
-                            <a  href="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/mark?action=active"
-                                class="label label-info"
-                            >
-                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                active
-                            </a>
+                            <form action="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="active"/>
+                                <button class="label label-info" type="submit">
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    active
+                                </button>
+                            </form>
                         % else:
                             % if not SslAcmeAccountKey.is_default:
-                                <a  href="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/mark?action=inactive"
-                                    class="label label-danger disabled"
-                                >
-                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                    inactive
-                                </a>
+                                <form action="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="inactive"/>
+                                    <button class="label label-danger" type="submit">
+                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                        inactive
+                                    </button>
+                                </form>
                             % else:
                                 <span
                                     class="label label-warning"
@@ -101,12 +103,13 @@
                         % endif
                         &nbsp;
                         % if not SslAcmeAccountKey.is_default:
-                            <a  href="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/mark?action=default"
-                                class="label label-primary"
-                            >
-                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                make default
-                            </a>
+                            <form action="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="default"/>
+                                <button class="label label-primary" type="submit">
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    make default
+                                </button>
+                            </form>
                         % endif
                     </td>
                 </tr>

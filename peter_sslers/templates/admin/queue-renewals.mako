@@ -81,9 +81,12 @@
                             <td><a class="label label-info" href="${admin_prefix}/queue-renewal/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.id}</a></td>
-                            <td><a class="label label-info" href="${admin_prefix}/certificate/${q.ssl_server_certificate_id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${q.ssl_server_certificate_id}</a></td>
+                            <td>
+                                % if q.ssl_server_certificate_id:
+                                    <a class="label label-info" href="${admin_prefix}/certificate/${q.ssl_server_certificate_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    cert-${q.ssl_server_certificate_id}</a></td>
+                                % endif
                             <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.ssl_unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 fqdnset-${q.ssl_unique_fqdn_set_id}</a></td>

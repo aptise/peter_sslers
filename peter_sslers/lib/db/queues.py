@@ -249,41 +249,42 @@ def queue_renewals__update(
     ctx,
     fqdns_ids_only = None,
 ):
+    renewals = []
+    results = []
     try:
-        if fqdns_ids_only:
-            raise NotImplemented()
-
         event_type = models.SslOperationsEventType.from_string('queue_renewal__update')
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__SslOperationsEvent(ctx,
                                                     event_type,
                                                     event_payload_dict,
                                                     )
+        if fqdns_ids_only:
+            for fqdns_id in fqdns_ids_only:
+                dbQueueRenewal = lib.db.create._create__SslQueueRenewal_fqdns(ctx, fqdns_id, )
+                renewals.append(dbQueueRenewal)
+            event_payload_dict['ssl_unique_fqdn_set-queued.ids'] = ','.join([str(sid) for sid in fqdns_ids_only])
+        else:
+            _expiring_days = 28
+            _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
+            _subquery_already_queued = ctx.dbSession.query(models.SslQueueRenewal.ssl_server_certificate_id)\
+                .filter(models.SslQueueRenewal.timestamp_processed.op('IS')(None),
+                        models.SslQueueRenewal.process_result.op('IS NOT')(True),
+                        )\
+                .subquery()
+            _core_query = ctx.dbSession.query(models.SslServerCertificate)\
+                .filter(models.SslServerCertificate.is_active.op('IS')(True),
+                        models.SslServerCertificate.is_auto_renew.op('IS')(True),
+                        models.SslServerCertificate.is_renewed.op('IS NOT')(True),
+                        models.SslServerCertificate.timestamp_expires <= _until,
+                        models.SslServerCertificate.id.notin_(_subquery_already_queued),
+                        )
+            results = _core_query.all()
+            for cert in results:
+                # this will call `_log_object_event` as needed
+                dbQueueRenewal = lib.db.create._create__SslQueueRenewal(ctx, cert, )
+                renewals.append(dbQueueRenewal)
+            event_payload_dict['ssl_certificate-queued.ids'] = ','.join([str(c.id) for c in results])
 
-        _expiring_days = 28
-        _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
-
-        _subquery_already_queued = ctx.dbSession.query(models.SslQueueRenewal.ssl_server_certificate_id)\
-            .filter(models.SslQueueRenewal.timestamp_processed.op('IS')(None),
-                    models.SslQueueRenewal.process_result.op('IS NOT')(True),
-                    )\
-            .subquery()
-
-        _core_query = ctx.dbSession.query(models.SslServerCertificate)\
-            .filter(models.SslServerCertificate.is_active.op('IS')(True),
-                    models.SslServerCertificate.is_auto_renew.op('IS')(True),
-                    models.SslServerCertificate.is_renewed.op('IS NOT')(True),
-                    models.SslServerCertificate.timestamp_expires <= _until,
-                    models.SslServerCertificate.id.notin_(_subquery_already_queued),
-                    )
-        results = _core_query.all()
-
-        renewals = []
-        for cert in results:
-            # this will call `_log_object_event` as needed
-            dbQueueRenewal = lib.db.create._create__SslQueueRenewal(ctx, cert, )
-            renewals.append(dbQueueRenewal)
-        event_payload_dict['ssl_certificate-queued.ids'] = ','.join([str(c.id) for c in results])
         event_payload_dict['sql_queue_renewals.ids'] = ','.join([str(c.id) for c in renewals])
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent, ])

@@ -129,7 +129,7 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name='admin:queue_renewal:focus:mark', renderer=None)
+    @view_config(route_name='admin:queue_renewal:focus:mark')
     @view_config(route_name='admin:queue_renewal:focus:mark|json', renderer='json')
     def queue_renewal_focus_mark(self):
         dbRenewalQueueItem = self._queue_renewal_focus()
@@ -147,9 +147,14 @@ class ViewAdmin(Handler):
                     'valid_options': {'action': ['cancel'],
                                       }
                     }
-                    
+        url_huh = '%s/queue-renewal/%s?operation=mark&result=huh' % (
+            self.request.registry.settings['admin_prefix'],
+            dbRenewalQueueItem.id,
+        )
+        return HTTPSeeOther(url_huh)
+
+    def _queue_renewal_focus_mark__submit(self, dbRenewalQueueItem):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbQueueRenewal = self._queue_renewal_focus()
         try:
             (result,
              formStash
@@ -163,20 +168,20 @@ class ViewAdmin(Handler):
             action = formStash.results['action']
             event_type = models.SslOperationsEventType.from_string('queue_renewal__mark')
             event_payload_dict = lib.utils.new_event_payload_dict()
-            event_payload_dict['ssl_queue_renewal.id'] = dbQueueRenewal.id
+            event_payload_dict['ssl_queue_renewal.id'] = dbRenewalQueueItem.id
             event_payload_dict['action'] = formStash.results['action']
 
             event_status = False
             if action == 'cancel':
-                if not dbQueueRenewal.is_active:
+                if not dbRenewalQueueItem.is_active:
                     formStash.set_error(field='action',
                                         message="Already cancelled",
                                         raise_FormInvalid=True,
                                         )
-                dbQueueRenewal.is_active = False
-                dbQueueRenewal.timestamp_processed = self.request.api_context.timestamp
+                dbRenewalQueueItem.is_active = False
+                dbRenewalQueueItem.timestamp_processed = self.request.api_context.timestamp
                 event_status = 'queue_renewal__mark__cancelled'
-                self.request.api_context.dbSession.flush(objects=[dbQueueRenewal, ])
+                self.request.api_context.dbSession.flush(objects=[dbRenewalQueueItem, ])
             else:
                 formStash.set_error(field='action',
                                     message="invalid action",
@@ -192,20 +197,19 @@ class ViewAdmin(Handler):
             lib_db.logger._log_object_event(self.request.api_context,
                                             dbOperationsEvent=dbOperationsEvent,
                                             event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
-                                            dbQueueRenewal=dbQueueRenewal,
+                                            dbQueueRenewal=dbRenewalQueueItem,
                                             )
 
             if wants_json:
                 return {'result': 'success',
-                        'SslQueueRenewal': dbQueueRenewal.as_json,
+                        'SslQueueRenewal': dbRenewalQueueItem.as_json,
                         }
 
-            url_success = '%s/queue-renewal/%s?operation=mark&action=%s&result=success' % (
+            url_post_required = '%s/queue-renewal/%s?operation=mark&result=success' % (
                 self.request.registry.settings['admin_prefix'],
-                dbQueueRenewal.id,
-                action,
+                dbRenewalQueueItem.id,
             )
-            return HTTPSeeOther(url_success)
+            return HTTPSeeOther(url_post_required)
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -219,7 +223,7 @@ class ViewAdmin(Handler):
                         }
             url_failure = '%s/queue-renewal/%s?operation=mark&action=%s&result=error&error=%s' % (
                 self.request.registry.settings['admin_prefix'],
-                dbQueueRenewal.id,
+                dbRenewalQueueItem.id,
                 action,
                 e.message,
             )

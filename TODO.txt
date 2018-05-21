@@ -3,15 +3,11 @@ Not Finished Yet
 asap tasks
 ---------------
 
-* audit apidocs
-	certificate/{ID}/renew/custom.json better self-docs
 * ensure self-documenting endpoints POST on mako
     @view_config(route_name='admin:queue_domains:process', renderer=None)
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
     def queue_domain_process(self):
-
-tests
-	curl http://127.0.0.1:7201/.well-known/admin/queue-domains/process.json
+* search for pending validations
 
 	
 * build authorization deactivate tool
@@ -20,15 +16,14 @@ tests
 * log full actual results; if a queue fails log that data too
 * CSR should have domain[0] as subject if there are multiple domains | note: letsencrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
-* queue_renewal_focus_mark - return JSON
-* log pending validations
 * tests - api_events	
-* search for domain status -- is it enrolled, etc?
 
 
 
 deferred tasks
 ---------------
+* migrate certificate renewal to fqdn renewal
+* take into account the validity of existing LetsEncrypt authz and challenges when requesting certs
 * create tool for exporting and deleting the logs
 * finish rate limit calendars
 * upload CERT/Chains for 'flow' CSR | once the flow is finished, upload a cert into it.

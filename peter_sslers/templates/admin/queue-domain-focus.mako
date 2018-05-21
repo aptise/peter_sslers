@@ -46,12 +46,13 @@
 
                         % if QueueDomainItem.is_active:
                             &nbsp;
-                            <a  class="label label-warning"
-                                href="${admin_prefix}/queue-domain/${QueueDomainItem.id}/mark?action=cancel"
-                            >
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                cancel
-                            </a>
+                            <form action="${admin_prefix}/queue-domain/${QueueDomainItem.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="cancel"/>
+                                <button class="label label-warning" type="submit">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    cancel
+                                </button>
+                            </form>
                         % else:
                             <span class="label label-default">cancelled</span>
                             <em>queue this domain again to activate it.</em>

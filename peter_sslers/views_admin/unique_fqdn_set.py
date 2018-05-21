@@ -3,6 +3,7 @@ from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import datetime
@@ -16,6 +17,7 @@ from ..models import models
 from .. import lib
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
+from ..lib import errors
 
 
 # ==============================================================================
@@ -124,3 +126,55 @@ class ViewAdmin(Handler):
                 'SslCertificateRequests': items_paged,
                 'pager': pager,
                 }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:unique_fqdn_set:focus:renew:queue', renderer=None)
+    @view_config(route_name='admin:unique_fqdn_set:focus:renew:queue|json', renderer='json')
+    def certificate_focus_renew_queue(self):
+        """this endpoint is for adding the certificate to the renewal queue immediately"""
+        dbUniqueFQDNSet = self._unique_fqdn_set_focus()
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        try:
+            # first check to see if this is already queued
+            dbQueued = lib_db.get.get__SslQueueRenewal__by_SslUniqueFQDNSetId__active(self.request.api_context, dbUniqueFQDNSet.id)
+            if dbQueued:
+                raise errors.DisplayableError("There is an existing entry in the queue for this certificate's FQDN set.")
+
+            # okay, we're good to go...'
+            event_type = models.SslOperationsEventType.from_string('queue_renewal__update')
+            event_payload_dict = lib.utils.new_event_payload_dict()
+            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(self.request.api_context,
+                                                                      event_type,
+                                                                      event_payload_dict,
+                                                                      )
+            dbQueue = lib_db.create._create__SslQueueRenewal_fqdns(self.request.api_context,
+                                                                   dbUniqueFQDNSet.id,
+                                                                   )
+            event_payload_dict['ssl_unique_fqdn_set-queued.ids'] = str(dbUniqueFQDNSet.id)
+            event_payload_dict['sql_queue_renewals.ids'] = str(dbQueue.id)
+            dbOperationsEvent.set_event_payload(event_payload_dict)
+            self.request.api_context.dbSession.flush(objects=[dbOperationsEvent, ])
+
+            if wants_json:
+                return {"status": "success",
+                        "queue_item": dbQueue.id,
+                        }
+            url_success = '%s/unique-fqdn-set/%s?operation=renewal&renewal_type=queue&success=%s' % (
+                self.request.registry.settings['admin_prefix'],
+                dbUniqueFQDNSet.id,
+                dbQueue.id,
+            )
+            raise HTTPSeeOther(url_success)
+
+        except errors.DisplayableError as e:
+            if wants_json:
+                return {"status": "error",
+                        "error": e.message
+                        }
+            url_failure = '%s/unique-fqdn-set/%s?operation=renewal&renewal_type=queue&error=%s' % (
+                self.request.registry.settings['admin_prefix'],
+                dbUniqueFQDNSet.id,
+                e.message.replace(' ', '+'),
+            )
+            raise HTTPSeeOther(url_failure)

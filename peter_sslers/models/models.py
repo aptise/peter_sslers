@@ -1100,14 +1100,14 @@ class SslQueueRenewal(Base):
     __tablename__ = 'ssl_queue_renewal'
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_entered = sa.Column(sa.DateTime, nullable=False, )
-    ssl_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=False)
     timestamp_processed = sa.Column(sa.DateTime, nullable=True, )
+    timestamp_process_attempt = sa.Column(sa.DateTime, nullable=True, )  # if not-null then an attempt was made on this item
     process_result = sa.Column(sa.Boolean, nullable=True, default=None)
+    ssl_server_certificate_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True)  # could be null if we're renewing a fqdnset
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False)
     ssl_operations_event_id__created = sa.Column(sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    timestamp_process_attempt = sa.Column(sa.DateTime, nullable=True, )  # if not-null then an attempt was made on this item
     ssl_server_certificate_id__renewed = sa.Column(sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
 
     @property
     def timestamp_entered_isoformat(self):
@@ -1193,6 +1193,7 @@ class SslServerCertificate(Base):
     is_auto_renew = sa.Column(sa.Boolean, nullable=False, default=True)
     ssl_unique_fqdn_set_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False)
     is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
+    timestamp_revoked_upstream = sa.Column(sa.DateTime, nullable=True, )  # if set, the cert was reported revoked upstream and this is FINAL
 
     # this is the LetsEncrypt key
     ssl_ca_certificate_id__upchain = sa.Column(sa.Integer, sa.ForeignKey("ssl_ca_certificate.id"), nullable=False)
@@ -1302,7 +1303,13 @@ class SslServerCertificate(Base):
         if self.timestamp_signed:
             return self.timestamp_signed.isoformat()
         return None
-
+    
+    @property
+    def timestamp_revoked_upstream_isoformat(self):
+        if self.timestamp_revoked_upstream:
+            return self.timestamp_revoked_upstream.isoformat()
+        return None
+    
     @property
     def config_payload(self):
         # the ids are strings so that the fullchain id can be split by a client without further processing
@@ -1360,6 +1367,7 @@ class SslServerCertificate(Base):
                 'is_renewed': True if self.is_renewed else False,
                 'timestamp_expires': self.timestamp_expires_isoformat,
                 'timestamp_signed': self.timestamp_signed_isoformat,
+                'timestamp_revoked_upstream': self.timestamp_revoked_upstream_isoformat,
                 'cert_pem': self.cert_pem,
                 'cert_pem_md5': self.cert_pem_md5,
                 'ssl_unique_fqdn_set_id': self.ssl_unique_fqdn_set_id,

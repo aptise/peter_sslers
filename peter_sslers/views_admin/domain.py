@@ -303,7 +303,7 @@ class ViewAdmin(Handler):
         )
         return HTTPSeeOther(url_post_required)    
 
-    def _account_key_focus_mark__submit(self, dbAcmeAccountKey):
+    def _domain_focus_mark__submit(self, dbDomain):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         action = '!MISSING or !INVALID'
         try:

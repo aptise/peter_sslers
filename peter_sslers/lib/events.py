@@ -129,7 +129,6 @@ def PrivateKey_compromised(ctx, privateKey, dbOperationsEvent=None):
         fqdns_ids_only = revoked_fqdns_ids,
     )
 
-    raise ValueError("correct operations event?", dbOperationsEvent.event_payload_json)
     event_payload = dbOperationsEvent.event_payload_json
     event_payload['revoked.certificates'] = {'active': revoked_certificates['active'].keys(),
                                              'inactive': revoked_certificates['inactive'].keys(),

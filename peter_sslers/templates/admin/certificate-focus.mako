@@ -79,19 +79,21 @@
                         </span>
                         &nbsp;
                         % if SslServerCertificate.is_active:
-                            <a  class="btn btn-xs btn-warning"
-                                href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=inactive"
-                            >
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                deactivate
-                            </a>
+                            <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="inactive"/>
+                                <button class="btn btn-xs btn-warning" type="submit">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    deactivate
+                                </button>
+                            </form>
                             &nbsp;
-                            <a  class="btn btn-xs btn-danger"
-                                href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=revoked"
-                            >
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                mark revoked
-                            </a>
+                            <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="revoked"/>
+                                <button class="btn btn-xs btn-danger" type="submit">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    mark revoked
+                                </button>
+                            </form>
                         % else:
                             ## show a reason
                             % if SslServerCertificate.is_revoked:
@@ -106,26 +108,29 @@
                                 &nbsp;
                                 Actions:
                                 % if SslServerCertificate.is_revoked:
-                                    <a  class="btn btn-xs btn-warning"
-                                        href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=unrevoke"
-                                    >
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        unrevoke
-                                    </a>
+                                    <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                        <input type="hidden" name="action" value="unrevoke"/>
+                                        <button class="btn btn-xs btn-warning" type="submit">
+                                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                            unrevoke
+                                        </button>
+                                    </form>
                                 % endif
                                 % if not SslServerCertificate.is_revoked:
-                                    <a  class="btn btn-xs btn-success"
-                                        href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=active"
-                                    >
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        activate
-                                    </a>
-                                    <a  class="btn btn-xs btn-danger"
-                                        href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=revoked"
-                                    >
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        revoke
-                                    </a>
+                                    <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                        <input type="hidden" name="action" value="active"/>
+                                        <button class="btn btn-xs btn-success" type="submit">
+                                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                            activate
+                                        </button>
+                                    </form>
+                                    <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                        <input type="hidden" name="action" value="revoked"/>
+                                        <button class="btn btn-xs btn-danger" type="submit">
+                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                            mark revoked
+                                        </button>
+                                    </form>
                                 % endif
                             % endif
                         % endif
@@ -140,19 +145,21 @@
                         &nbsp;
                         % if SslServerCertificate.is_active:
                             % if SslServerCertificate.is_auto_renew:
-                                <a  class="btn btn-xs btn-warning"
-                                    href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=renew_manual"
-                                >
-                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                    deactivate auto-renew
-                                </a>
+                                <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="renew_manual"/>
+                                    <button class="btn btn-xs btn-warning" type="submit">
+                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                        deactivate auto-renew
+                                    </button>
+                                </form>
                             % else:
-                                <a  class="btn btn-xs btn-success"
-                                    href="${admin_prefix}/certificate/${SslServerCertificate.id}/mark?action=renew_auto"
-                                >
-                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                    enable auto-renew
-                                </a>
+                                <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="renew_auto"/>
+                                    <button class="btn btn-xs btn-success" type="submit">
+                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                        enable auto-renew
+                                    </button>
+                                </form>
                             % endif
                         % endif
                     </td>
@@ -203,6 +210,17 @@
                         </a>
 
 
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th>is_revoked_upstream</th>
+                    <td>
+                        % if SslServerCertificate.timestamp_revoked_upstream is not None:
+                            <span class="label label-danger">
+                                revoked upstream @ ${SslServerCertificate.timestamp_revoked_upstream_isoformat}
+                            </span>
+                        % endif
                     </td>
                 </tr>
                 <tr>

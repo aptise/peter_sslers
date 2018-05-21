@@ -128,9 +128,15 @@
                     cert-${cert.id}</a>
                 </td>
                 <td>
-                    <span class="label label-${'success' if cert.is_active else 'warning'}">
-                        ${'Active' if cert.is_active else 'inactive'}
-                    </span>
+                    % if cert.is_revoked:
+                        <span class="label label-danger">
+                            revoked
+                        </span>
+                    % else:
+                        <span class="label label-${'success' if cert.is_active else 'warning'}">
+                            ${'Active' if cert.is_active else 'inactive'}
+                        </span>
+                    % endif
                 </td>
                 <td>
                     <span class="label label-${'success' if cert.is_auto_renew else 'warning'}">
@@ -230,6 +236,7 @@
         <thead>
             <tr>
                 <th>id</th>
+                <th>active?</th>
                 % if show_certificate:
                     <th>certificate</th>
                 % endif
@@ -247,10 +254,18 @@
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     qrenew-${queue_renewal.id}</a>
                 </td>
+                <td>
+                    <span class="label label-${'success' if queue_renewal.is_active else 'warning'}">
+                        ${'active' if queue_renewal.is_active else 'no'}
+                    </span>
+                </td>
                 % if show_certificate:
-                    <td><a href="${admin_prefix}/certificate/${queue_renewal.ssl_server_certificate_id}" class="label label-info">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        cert-${queue_renewal.ssl_server_certificate_id}</a>
+                    <td>
+                        % if queue_renewal.ssl_server_certificate_id:
+                            <a href="${admin_prefix}/certificate/${queue_renewal.ssl_server_certificate_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                cert-${queue_renewal.ssl_server_certificate_id}</a>
+                        % endif
                     </td>
                 % endif
                 <td><timestamp>${queue_renewal.timestamp_entered or ''}</timestamp></td>
@@ -418,7 +433,7 @@
         % for i in SslUniqueFQDNSets:
             <tr>
                 <td>
-                    <a  class="btn btn-xs btn-info"
+                    <a  class="label label-info"
                         href="${admin_prefix}/unique-fqdn-set/${i.id}"
                     >
                      <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -635,7 +650,7 @@
                 <b>pem md5:</b> <code>${dbAccountKeyReuse.key_pem_md5}</code><br/>
                 <b>pem line 1:</b> <code>${dbAccountKeyReuse.key_pem_sample}</code>
             </label>
-            <a  class="btn btn-xs btn-info"
+            <a  class="label label-info"
                 href="${admin_prefix}/account-key/${dbAccountKeyReuse.id}"
             >
                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -710,7 +725,7 @@
                 <b>pem md5:</b> <code>${dbPrivateKeyReuse.key_pem_md5}</code><br/>
                 <b>pem line 1:</b> <code>${dbPrivateKeyReuse.key_pem_sample}</code>
             </label>
-            <a  class="btn btn-xs btn-info"
+            <a  class="label label-info"
                 href="${admin_prefix}/private-key/${dbPrivateKeyReuse.id}"
             >
                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

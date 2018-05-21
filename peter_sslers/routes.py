@@ -277,4 +277,8 @@ def _admin_views(config):
     config.add_route_7('admin:unique_fqdn_set:focus:certificate_requests', '/unique-fqdn-set/{@id}/certificate-requests')
     config.add_route_7('admin:unique_fqdn_set:focus:certificate_requests_paginated', '/unique-fqdn-set/{@id}/certificate-requests/{@page}')
 
+    config.add_route_7('admin:unique_fqdn_set:focus:renew:queue', '/unique-fqdn-set/{@id}/renew/queue')
+    config.add_route_7('admin:unique_fqdn_set:focus:renew:queue|json', '/unique-fqdn-set/{@id}/renew/queue.json')
+
+
     config.scan("peter_sslers.views_admin")

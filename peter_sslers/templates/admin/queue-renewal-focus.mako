@@ -38,12 +38,13 @@
 
                         % if RenewalQueueItem.is_active:
                             &nbsp;
-                            <a  class="label label-warning"
-                                href="${admin_prefix}/queue-renewal/${RenewalQueueItem.id}/mark?action=cancel"
-                            >
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                cancel
-                            </a>
+                            <form action="${admin_prefix}/queue-renewal/${RenewalQueueItem.id}/mark" method="POST" style="display:inline;">
+                                <input type="hidden" name="action" value="cancel"/>
+                                <button class="label label-warning" type="submit">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    cancel
+                                </button>
+                            </form>
                         % else:
                             <span class="label label-default">cancelled</span>
                         % endif
@@ -52,11 +53,13 @@
                 <tr>
                     <th>certificate_id - renewal of</th>
                     <td>
-                        <a class="label label-info"
-                            href="${admin_prefix}/certificate/${RenewalQueueItem.ssl_server_certificate_id}"
-                        >
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            cert-${RenewalQueueItem.ssl_server_certificate_id}</a>
+                        % if RenewalQueueItem.ssl_server_certificate_id:
+                            <a class="label label-info"
+                                href="${admin_prefix}/certificate/${RenewalQueueItem.ssl_server_certificate_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                cert-${RenewalQueueItem.ssl_server_certificate_id}</a>
+                        % endif
                     </td>
                 </tr>
                 <tr>

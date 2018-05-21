@@ -404,23 +404,30 @@ class ViewAdmin(Handler):
         providers = models.AcmeAccountProvider.registry.values()
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
-            return {'form_fields': {'account_key_option': "One of ('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file')",
-                                    'account_key_reuse': 'pem_md5 of the existing account key',
-                                    'account_key_default': 'pem_md5 of the default account key',
-                                    'account_key_existing': 'pem_md5 of any key',
-                                    'account_key_reuse': 'pem_md5 of the existing account key',
+            return {'form_fields': {'account_key_option': "One of ('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file'). REQUIRED.",
+                                    'account_key_reuse': 'pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`',
+                                    'account_key_default': 'pem_md5 of the default account key. Must/Only submit if `account_key_option==account_key_default`',
+                                    'account_key_existing': 'pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`',
 
-                                    'account_key_file_pem': 'pem of the account key file, requires acme_account_provider_id.',
-                                    'acme_account_provider_id': 'account provider. only if account_key_file_pem is used',
-                                    'account_key_file_le_meta': "letsencrypt file",
+                                    'account_key_file_pem': 'pem of the account key file. Must/Only submit if `account_key_option==account_key_file`',
+                                    'acme_account_provider_id': 'account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.',
+
+                                    'account_key_file_le_meta': "letsencrypt file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
                                     'account_key_file_le_pkey': "letsencrypt file",
                                     'account_key_file_le_reg': "letsencrypt file",
 
-                                    'private_key_option': "One of('private_key_reuse', 'private_key_existing', 'private_key_file')",
+                                    'private_key_option': "One of('private_key_reuse', 'private_key_existing', 'private_key_file'). REQUIRED.",
                                     'private_key_reuse': 'pem_md5 of existing key',
                                     'private_key_existing': 'pem_md5 of existing key',
                                     'private_key_file': 'pem to upload',
-                                    }
+                                    },
+                    'form_fields_related': [["account_key_file_pem", "acme_account_provider_id", ],
+                                            ["account_key_file_le_meta", "account_key_file_le_pkey", "account_key_file_le_reg", ],
+                                            ],
+                    'requirements': ["Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three letsencrypt files.",
+                                     ],
+                    'instructions': ["""curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/certificate/1/renew.json""" % self.request.admin_url,
+                                     ],
                     }
 
         return render_to_response("/admin/certificate-focus-renew.mako",
@@ -509,7 +516,7 @@ class ViewAdmin(Handler):
         if self.request.method == 'POST':
             return self._certificate_focus_mark__submit(dbServerCertificate)
         return self._certificate_focus_mark__print(dbServerCertificate)
-        
+
     def _certificate_focus_mark__print(self, dbServerCertificate):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
@@ -524,7 +531,7 @@ class ViewAdmin(Handler):
             self.request.registry.settings['admin_prefix'],
             dbServerCertificate.id,
         )
-        return HTTPSeeOther(url_post_required)            
+        return HTTPSeeOther(url_post_required)
 
     def _certificate_focus_mark__submit(self, dbServerCertificate):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
