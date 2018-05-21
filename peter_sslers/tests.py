@@ -15,6 +15,7 @@ import os
 import pdb
 import sys
 import unittest
+import re
 
 # local
 from . import main
@@ -546,12 +547,12 @@ class FunctionalTests_AccountKeys(AppTest):
 
         if not focus_item.is_default:
             # make sure to roundtrip!
-            # note we expect a 302 on success!
+            # note we expect a 303 on success!
             if focus_item.is_active:
-                res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
+                res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'inactive'}, status=303)
                 res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'active'}, status=200)
             else:
-                res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'active'}, status=302)
+                res = self.testapp.get('/.well-known/admin/account-key/%s/mark' % focus_id, {'action': 'active'}, status=303)
                 res = self.testapp.get('/.well-known/admin/account-key/%s/mark.json' % focus_id, {'action': 'inactive'}, status=200)
         else:
             # TODO
@@ -567,7 +568,7 @@ class FunctionalTests_AccountKeys(AppTest):
         form['account_key_file_pem'] = Upload(key_filepath)
         form['acme_account_provider_id'].force_value(str(DEFAULT_acme_account_provider_id))  # why aren't any valid options showing?'
         res2 = form.submit()
-        assert res2.status_code == 302
+        assert res2.status_code == 303
         assert res2.location == """http://localhost/.well-known/admin/account-key/2?result=success&is_created=1"""
         res3 = self.testapp.get(res2.location, status=200)
 
@@ -587,7 +588,7 @@ class FunctionalTests_AccountKeys(AppTest):
     @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):
         # this hits LE
-        res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=302)
+        res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=303)
         assert res.location in ("""http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=existing-account""",
                                 """http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=new-account""",
                                 )
@@ -631,7 +632,7 @@ class FunctionalTests_CACertificate(AppTest):
         form = res.form
         form['chain_file'] = Upload(_ca_cert_filepath)
         res2 = form.submit()
-        assert res2.status_code == 302
+        assert res2.status_code == 303
         assert res2.location == """http://localhost/.well-known/admin/ca-certificate/3?result=success&is_created=1"""
         res3 = self.testapp.get(res2.location, status=200)
 
@@ -662,7 +663,7 @@ class FunctionalTests_CACertificate(AppTest):
         form['le_x3_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x3_cross_signed']))
         form['le_x4_cross_signed_file'] = Upload(self._filepath_testfile(TEST_FILES['CaCertificates']['cert']['le_x4_cross_signed']))
         res2 = form.submit()
-        assert res2.status_code == 302
+        assert res2.status_code == 303
         assert res2.location == """http://localhost/.well-known/admin/ca-certificates?uploaded=1"""
         res3 = self.testapp.get(res2.location, status=200)
 
@@ -738,7 +739,7 @@ class FunctionalTests_Certificate(AppTest):
         res = self.testapp.get('/.well-known/admin/certificate/%s/renew/queue' % focus_id, status=303)
         res = self.testapp.get('/.well-known/admin/certificate/%s/renew/queue.json' % focus_id, status=200)
 
-        res = self.testapp.get('/.well-known/admin/certificate/%s/renew/quick' % focus_id, status=302)
+        res = self.testapp.get('/.well-known/admin/certificate/%s/renew/quick' % focus_id, status=303)
         res = self.testapp.get('/.well-known/admin/certificate/%s/renew/quick.json' % focus_id, status=200)
         
         res = self.testapp.get('/.well-known/admin/certificate/%s/renew/custom' % focus_id, status=200)
@@ -752,13 +753,13 @@ class FunctionalTests_Certificate(AppTest):
 
         if not focus_item.is_revoked:
             # make sure to roundtrip!
-            # note we expect a 302 on success!
+            # note we expect a 303 on success!
             if focus_item.is_active:
-                res = self.testapp.get('/.well-known/admin/certificate/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
-                res = self.testapp.get('/.well-known/admin/certificate/%s/mark.json' % focus_id, {'action': 'active'}, status=302)
+                res = self.testapp.get('/.well-known/admin/certificate/%s/mark' % focus_id, {'action': 'inactive'}, status=303)
+                res = self.testapp.get('/.well-known/admin/certificate/%s/mark.json' % focus_id, {'action': 'active'}, status=200)
             else:
-                res = self.testapp.get('/.well-known/admin/certificate/%s/mark' % focus_id, {'action': 'active'}, status=302)
-                res = self.testapp.get('/.well-known/admin/certificate/%s/mark.json' % focus_id, {'action': 'inactive'}, status=302)
+                res = self.testapp.get('/.well-known/admin/certificate/%s/mark' % focus_id, {'action': 'active'}, status=303)
+                res = self.testapp.get('/.well-known/admin/certificate/%s/mark.json' % focus_id, {'action': 'inactive'}, status=200)
         else:
             # TODO
             print "MUST TEST revoked"
@@ -773,7 +774,7 @@ class FunctionalTests_Certificate(AppTest):
         form['chain_file'] = Upload(self._filepath_testfile(TEST_FILES['ServerCertificates']['SelfSigned'][_SelfSigned_id]['cert']))
         form['private_key_file'] = Upload(self._filepath_testfile(TEST_FILES['ServerCertificates']['SelfSigned'][_SelfSigned_id]['pkey']))
         res2 = form.submit()
-        assert res2.status_code == 302
+        assert res2.status_code == 303
         assert res2.location == """http://localhost/.well-known/admin/certificate/1"""
 
         res = self.testapp.get('/.well-known/admin/certificate/upload.json', status=200)
@@ -807,7 +808,7 @@ class FunctionalTests_Certificate(AppTest):
         assert focus_item is not None
         focus_id = focus_item.id
 
-        res = self.testapp.get('/.well-known/admin/certificate/%s/nginx-cache-expire' % focus_id, status=302)
+        res = self.testapp.get('/.well-known/admin/certificate/%s/nginx-cache-expire' % focus_id, status=303)
         assert "/.well-known/admin/certificate/%s?operation=nginx_cache_expire&result=success&event.id=" % focus_id in res.location
 
         res = self.testapp.get('/.well-known/admin/certificate/%s/nginx-cache-expire.json' % focus_id, status=200)
@@ -860,7 +861,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         form['private_key_file'] = Upload(self._filepath_testfile(TEST_FILES['CertificateRequests']['acme_test']['private_key']))
         form['domain_names'] = TEST_FILES['CertificateRequests']['acme_test']['domains']
         res2 = form.submit()
-        assert res2.status_code == 302
+        assert res2.status_code == 303
         if not LETSENCRYPT_API_VALIDATES:
             if "/.well-known/admin/certificate-requests?error=new-AcmeAutomated&message=Wrote keyauth challenge, but couldn't download" not in res2.location:
                 raise ValueError("Expected an error: failure to validate")
@@ -875,14 +876,17 @@ class FunctionalTests_CertificateRequest(AppTest):
         form = res.form
         form['domain_names'] = TEST_FILES['CertificateRequests']['1']['domains']
         res2 = form.submit()
-        assert res2.status_code == 302
-        assert res2.location == """http://localhost/.well-known/admin/certificate-request/2/acme-flow/manage"""
+        assert res2.status_code == 303
+        re_expected = re.compile("""^http://localhost/\.well-known/admin/certificate-request/(\d+)/acme-flow/manage$""")
+        matched = re_expected.match(res2.location)
+        assert matched
+        url_id = matched.groups()[0]
 
         # make sure we can get this
-        res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/manage', status=200)
+        res = self.testapp.get('/.well-known/admin/certificate-request/%s/acme-flow/manage' % url_id, status=200)
         domains = [i.strip().lower() for i in TEST_FILES['CertificateRequests']['1']['domains'].split(',')]
         for _domain in domains:
-            res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/manage/domain/%s' % _domain, status=200)
+            res = self.testapp.get('/.well-known/admin/certificate-request/%s/acme-flow/manage/domain/%s' % (url_id, _domain), status=200)
             form = res.form
             form['challenge_key'] = 'foo'
             form['challenge_text'] = 'foo'
@@ -891,10 +895,10 @@ class FunctionalTests_CertificateRequest(AppTest):
             assert '?result=success' in res2.location
 
         # deactivate!
-        res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/deactivate', status=302)
+        res = self.testapp.get('/.well-known/admin/certificate-request/%s/acme-flow/deactivate' % url_id, status=303)
         assert '?result=success' in res.location
 
-        res = self.testapp.get('/.well-known/admin/certificate-request/2/acme-flow/deactivate.json', status=200)
+        res = self.testapp.get('/.well-known/admin/certificate-request/%s/acme-flow/deactivate.json' % url_id, status=200)
 
 
 class FunctionalTests_Domain(AppTest):
@@ -956,12 +960,12 @@ class FunctionalTests_Domain(AppTest):
         focus_id = focus_item.id
 
         # make sure to roundtrip!
-        # note we expect a 302 on success!
+        # note we expect a 303 on success!
         if focus_item.is_active:
-            res = self.testapp.get('/.well-known/admin/domain/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
+            res = self.testapp.get('/.well-known/admin/domain/%s/mark' % focus_id, {'action': 'inactive'}, status=303)
             res = self.testapp.get('/.well-known/admin/domain/%s/mark.json' % focus_id, {'action': 'active'}, status=200)
         else:
-            res = self.testapp.get('/.well-known/admin/domain/%s/mark' % focus_id, {'action': 'active'}, status=302)
+            res = self.testapp.get('/.well-known/admin/domain/%s/mark' % focus_id, {'action': 'active'}, status=303)
             res = self.testapp.get('/.well-known/admin/domain/%s/mark.json' % focus_id, {'action': 'inactive'}, status=200)
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
@@ -971,7 +975,7 @@ class FunctionalTests_Domain(AppTest):
         focus_id = focus_item.id
         focus_name = focus_item.domain_name
 
-        res = self.testapp.get('/.well-known/admin/domain/%s/nginx-cache-expire' % focus_id, status=302)
+        res = self.testapp.get('/.well-known/admin/domain/%s/nginx-cache-expire' % focus_id, status=303)
         assert "/.well-known/admin/domain/%s?operation=nginx_cache_expire&result=success&event.id=" % focus_id in res.location
 
         res = self.testapp.get('/.well-known/admin/domain/%s/nginx-cache-expire.json' % focus_id, status=200)
@@ -1018,12 +1022,12 @@ class FunctionalTests_PrivateKeys(AppTest):
 
         if not focus_item.is_compromised:
             # make sure to roundtrip!
-            # note we expect a 302 on success!
+            # note we expect a 303 on success!
             if focus_item.is_active:
-                res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'inactive'}, status=302)
+                res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'inactive'}, status=303)
                 res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'active'}, status=200)
             else:
-                res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'active'}, status=302)
+                res = self.testapp.get('/.well-known/admin/private-key/%s/mark' % focus_id, {'action': 'active'}, status=303)
                 res = self.testapp.get('/.well-known/admin/private-key/%s/mark.json' % focus_id, {'action': 'inactive'}, status=200)
         else:
             # TODO
@@ -1037,15 +1041,16 @@ class FunctionalTests_PrivateKeys(AppTest):
         form = res.form
         form['private_key_file'] = Upload(key_filepath)
         res2 = form.submit()
-        assert res2.status_code == 302
+        assert res2.status_code == 303
         assert """/.well-known/admin/private-key/""" in res2.location
         # for some reason, we don't always "create" this.
         assert """?result=success""" in res2.location
         res3 = self.testapp.get(res2.location, status=200)
 
         res = self.testapp.get('/.well-known/admin/private-key/upload.json', status=200)
+        form = {}
         form['private_key_file'] = Upload(key_filepath)
-        res2 = self.testapp.get('/.well-known/admin/private-key/upload.json', form)
+        res2 = self.testapp.post('/.well-known/admin/private-key/upload.json', form)
         assert res2.status_code == 200
 
 
@@ -1119,7 +1124,7 @@ class FunctionalTests_QueueDomains(AppTest):
         form = res.form
         form['domain_names'] = TEST_FILES['Domains']['Queue']['1']['add']
         res2 = form.submit()
-        assert res2.status_code == 302
+        assert res2.status_code == 303
         assert """http://localhost/.well-known/admin/queue-domains?result=success""" in res2.location
 
         res = self.testapp.get('/.well-known/admin/queue-domains/add.json', status=200)
@@ -1143,7 +1148,7 @@ class FunctionalTests_QueueDomains(AppTest):
         assert focus_item is not None
         focus_id = focus_item.id
 
-        res = self.testapp.get('/.well-known/admin/queue-domain/%s/mark' % focus_id, {'action': 'cancel'}, status=302)
+        res = self.testapp.get('/.well-known/admin/queue-domain/%s/mark' % focus_id, {'action': 'cancel'}, status=303)
         res = self.testapp.get('/.well-known/admin/queue-domain/%s/mark.json' % focus_id, {'action': 'cancel'}, status=200)
 
 
@@ -1197,7 +1202,7 @@ class FunctionalTests_QueueRenewal(AppTest):
         assert focus_item is not None
         focus_id = focus_item.id
 
-        res = self.testapp.get('/.well-known/admin/queue-renewal/%s/mark' % focus_id, {'action': 'cancel'}, status=302)
+        res = self.testapp.get('/.well-known/admin/queue-renewal/%s/mark' % focus_id, {'action': 'cancel'}, status=303)
         res = self.testapp.get('/.well-known/admin/queue-renewal/%s/mark.json' % focus_id, {'action': 'cancel'}, status=200)
 
 
@@ -1258,7 +1263,7 @@ class FunctionalTests_API(AppTest):
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     def tests_nginx(self):
-        res = self.testapp.get('/.well-known/admin/api/nginx/cache-flush', status=302)
+        res = self.testapp.get('/.well-known/admin/api/nginx/cache-flush', status=303)
         assert "/.well-known/admin/operations/nginx?operation=nginx_cache_flush&result=success&event.id=" in res.location
 
         res = self.testapp.get('/.well-known/admin/api/nginx/cache-flush.json', status=200)
@@ -1267,7 +1272,7 @@ class FunctionalTests_API(AppTest):
 
     @unittest.skipUnless(RUN_REDIS_TESTS, "not running against nginx")
     def tests_redis(self):
-        res = self.testapp.get('/.well-known/admin/api/redis/prime', status=302)
+        res = self.testapp.get('/.well-known/admin/api/redis/prime', status=303)
         assert "/.well-known/admin/operations/redis?operation=redis_prime&result=success&event.id=" in res.location
 
         res = self.testapp.get('/.well-known/admin/api/redis/prime.json', status=200)
@@ -1276,7 +1281,7 @@ class FunctionalTests_API(AppTest):
 
     def tests_manipulate(self):
         # deactivate-expired
-        res = self.testapp.get('/.well-known/admin/api/deactivate-expired', status=302)
+        res = self.testapp.get('/.well-known/admin/api/deactivate-expired', status=303)
         assert "/.well-known/admin/operations/log?result=success&event.id=" in res.location
 
         res = self.testapp.get('/.well-known/admin/api/deactivate-expired.json', status=200)
@@ -1284,7 +1289,7 @@ class FunctionalTests_API(AppTest):
         assert res_json['result'] == 'success'
 
         # update-recents
-        res = self.testapp.get('/.well-known/admin/api/update-recents', status=302)
+        res = self.testapp.get('/.well-known/admin/api/update-recents', status=303)
         assert "/.well-known/admin/operations/log?result=success&event.id=" in res.location
         res = self.testapp.get('/.well-known/admin/api/update-recents.json', status=200)
         res_json = json.loads(res.body)
@@ -1292,7 +1297,7 @@ class FunctionalTests_API(AppTest):
 
     @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):
-        res = self.testapp.get('/.well-known/admin/api/ca-certificate-probes/probe', status=302)
+        res = self.testapp.get('/.well-known/admin/api/ca-certificate-probes/probe', status=303)
         assert '/admin/operations/ca-certificate-probes?result=success&event.id=' in res.location
 
         res = self.testapp.get('/.well-known/admin/api/ca-certificate-probes/probe.json', status=200)

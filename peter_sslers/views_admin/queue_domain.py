@@ -2,8 +2,8 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
-from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import datetime
@@ -122,7 +122,7 @@ class ViewAdmin(Handler):
                         'domains': queue_results,
                         }
             results_json = json.dumps(queue_results)
-            return HTTPFound('%s/queue-domains?result=success&is_created=1&results=%s' % (self.request.registry.settings['admin_prefix'], results_json))
+            return HTTPSeeOther('%s/queue-domains?result=success&is_created=1&results=%s' % (self.request.registry.settings['admin_prefix'], results_json))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -151,7 +151,7 @@ class ViewAdmin(Handler):
             if wants_json:
                 return {'result': 'success',
                         }
-            return HTTPFound("%s/queue-domains?processed=1" % self.request.registry.settings['admin_prefix'])
+            return HTTPSeeOther("%s/queue-domains?processed=1" % self.request.registry.settings['admin_prefix'])
         except (errors.DisplayableError, errors.DomainVerificationError) as e:
             # return, don't raise
             # we still commit the bookkeeping
@@ -159,7 +159,7 @@ class ViewAdmin(Handler):
                 return {'result': 'error',
                         'error': e.message,
                         }
-            return HTTPFound("%s/queue-domains?processed=0&error=%s" % (self.request.registry.settings['admin_prefix'], e.message))
+            return HTTPSeeOther("%s/queue-domains?processed=0&error=%s" % (self.request.registry.settings['admin_prefix'], e.message))
         except Exception as e:
             print e
             transaction.abort()
@@ -214,7 +214,7 @@ class ViewAdmin(Handler):
             self.request.registry.settings['admin_prefix'],
             dbQueueDomain.id,
         )
-        return HTTPFound(url_post_required)            
+        return HTTPSeeOther(url_post_required)            
     
     def _queue_domain_focus_mark__submit(self, dbQueueDomain):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
@@ -272,7 +272,7 @@ class ViewAdmin(Handler):
                 dbQueueDomain.id,
                 action,
             )
-            return HTTPFound(url_success)
+            return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -290,4 +290,4 @@ class ViewAdmin(Handler):
                 action,
                 e.message,
             )
-            raise HTTPFound(url_failure)
+            raise HTTPSeeOther(url_failure)

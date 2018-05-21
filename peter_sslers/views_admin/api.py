@@ -2,8 +2,7 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
-from pyramid.httpexceptions import HTTPFound
-from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import datetime
@@ -48,7 +47,7 @@ class ViewAdmin(Handler):
             return {'result': 'success',
                     'operations_event': operations_event.id,
                     }
-        return HTTPFound("%s/operations/log?result=success&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
+        return HTTPSeeOther("%s/operations/log?result=success&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -67,7 +66,7 @@ class ViewAdmin(Handler):
         if wants_json:
             return rval
 
-        return HTTPFound('%s/operations/log?result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], operations_event.id))
+        return HTTPSeeOther('%s/operations/log?result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], operations_event.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -386,7 +385,7 @@ class ViewAdmin(Handler):
                                          'total_primed': dbEvent.event_payload_json['total_primed'],
                                          },
                     }
-        return HTTPFound('%s/operations/redis?operation=redis_prime&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbEvent.id))
+        return HTTPSeeOther('%s/operations/redis?operation=redis_prime&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbEvent.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -403,7 +402,7 @@ class ViewAdmin(Handler):
                                          },
                     'servers_status': servers_status,
                     }
-        return HTTPFound('%s/operations/nginx?operation=nginx_cache_flush&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbEvent.id))
+        return HTTPSeeOther('%s/operations/nginx?operation=nginx_cache_flush&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbEvent.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -434,7 +433,7 @@ class ViewAdmin(Handler):
                                          'is_certificates_updated': operations_event.event_payload_json['is_certificates_updated'],
                                          },
                     }
-        return HTTPFound("%s/operations/ca-certificate-probes?result=success&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
+        return HTTPSeeOther("%s/operations/ca-certificate-probes?result=success&event.id=%s" % (self.request.registry.settings['admin_prefix'], operations_event.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -447,7 +446,7 @@ class ViewAdmin(Handler):
             if wants_json:
                 return {'result': 'success',
                         }
-            return HTTPFound("%s/queue-renewals?update=1" % self.request.registry.settings['admin_prefix'])
+            return HTTPSeeOther("%s/queue-renewals?update=1" % self.request.registry.settings['admin_prefix'])
         except Exception as e:
             transaction.abort()
             if wants_json:
@@ -470,7 +469,7 @@ class ViewAdmin(Handler):
                         }
             if queue_results:
                 queue_results = json.dumps(queue_results)
-            return HTTPFound("%s/queue-renewals?process=1&results=%s" % (self.request.registry.settings['admin_prefix'], queue_results))
+            return HTTPSeeOther("%s/queue-renewals?process=1&results=%s" % (self.request.registry.settings['admin_prefix'], queue_results))
         except Exception as e:
             transaction.abort()
             if wants_json:

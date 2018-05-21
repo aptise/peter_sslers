@@ -2,8 +2,8 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
-from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import datetime
@@ -150,6 +150,7 @@ class ViewAdmin(Handler):
         return render_to_response("/admin/private_key-upload.mako", {}, self.request)
 
     def _private_key_upload__submit(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result,
              formStash
@@ -170,7 +171,7 @@ class ViewAdmin(Handler):
                         'is_created': True if _is_created else False,
                         'SslPrivateKey': dbPrivateKey.as_json,
                         }
-            return HTTPFound('%s/private-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id, ('&is_created=1' if _is_created else '')))
+            return HTTPSeeOther('%s/private-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id, ('&is_created=1' if _is_created else '')))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -208,7 +209,7 @@ class ViewAdmin(Handler):
             self.request.registry.settings['admin_prefix'],
             dbPrivateKey.id,
         )
-        return HTTPFound(url_post_required)            
+        return HTTPSeeOther(url_post_required)            
 
     def _private_key_focus_mark__submit(self, dbPrivateKey):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
@@ -322,7 +323,7 @@ class ViewAdmin(Handler):
                 dbPrivateKey.id,
                 action,
             )
-            return HTTPFound(url_success)
+            return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -340,4 +341,4 @@ class ViewAdmin(Handler):
                 action,
                 e.message,
             )
-            raise HTTPFound(url_failure)
+            raise HTTPSeeOther(url_failure)

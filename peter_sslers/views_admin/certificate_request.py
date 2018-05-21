@@ -2,8 +2,8 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
-from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import datetime
@@ -109,7 +109,7 @@ class ViewAdmin(Handler):
             return {"result": "success",
                     "SslCertificateRequest": dbCertificateRequest.as_json,
                     }
-        return HTTPFound('%s/certificate-request/%s?result=success' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id))
+        return HTTPSeeOther('%s/certificate-request/%s?result=success' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -185,12 +185,12 @@ class ViewAdmin(Handler):
 
             self.request.api_context.dbSession.flush(objects=[self.db_SslCertificateRequest2SslDomain, ])
 
-            return HTTPFound('%s/certificate-request/%s/acme-flow/manage/domain/%s?result=success' %
-                             (self.request.registry.settings['admin_prefix'],
-                              self.db_SslCertificateRequest.id,
-                              self.db_SslCertificateRequest2SslDomain.ssl_domain_id
-                              )
-                             )
+            return HTTPSeeOther('%s/certificate-request/%s/acme-flow/manage/domain/%s?result=success' %
+                                (self.request.registry.settings['admin_prefix'],
+                                 self.db_SslCertificateRequest.id,
+                                 self.db_SslCertificateRequest2SslDomain.ssl_domain_id
+                                 )
+                                )
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -240,7 +240,7 @@ class ViewAdmin(Handler):
                 domain_names = domain_names,
             )
 
-            return HTTPFound('%s/certificate-request/%s/acme-flow/manage' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id))
+            return HTTPSeeOther('%s/certificate-request/%s/acme-flow/manage' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -326,13 +326,13 @@ class ViewAdmin(Handler):
             except (errors.AcmeCommunicationError,
                     errors.DomainVerificationError,
                     ) as e:
-                return HTTPFound('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
+                return HTTPSeeOther('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except Exception as exc:
                 if self.request.registry.settings['exception_redirect']:
-                    return HTTPFound('%s/certificate-requests?error=new-AcmeAutomated' % self.request.registry.settings['admin_prefix'])
+                    return HTTPSeeOther('%s/certificate-requests?error=new-AcmeAutomated' % self.request.registry.settings['admin_prefix'])
                 raise
 
-            return HTTPFound('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificate.id))
+            return HTTPSeeOther('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificate.id))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",

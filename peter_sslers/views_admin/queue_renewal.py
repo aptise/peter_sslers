@@ -2,8 +2,8 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
-from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import datetime
@@ -205,7 +205,7 @@ class ViewAdmin(Handler):
                 dbQueueRenewal.id,
                 action,
             )
-            return HTTPFound(url_success)
+            return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -223,4 +223,4 @@ class ViewAdmin(Handler):
                 action,
                 e.message,
             )
-            raise HTTPFound(url_failure)
+            raise HTTPSeeOther(url_failure)

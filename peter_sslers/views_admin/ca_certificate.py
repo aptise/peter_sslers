@@ -2,8 +2,8 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
-from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import datetime
@@ -168,7 +168,7 @@ class ViewAdmin(Handler):
                                            'id': dbCaCertificate.id,
                                            },
                         }
-            return HTTPFound('%s/ca-certificate/%s?result=success&is_created=%s' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id, (1 if cacert_is_created else 0)))
+            return HTTPSeeOther('%s/ca-certificate/%s?result=success&is_created=%s' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id, (1 if cacert_is_created else 0)))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -264,7 +264,7 @@ class ViewAdmin(Handler):
                                        'id': cert_result[0].id,
                                        }
                 return rval
-            return HTTPFound('%s/ca-certificates?uploaded=1' % self.request.registry.settings['admin_prefix'])
+            return HTTPSeeOther('%s/ca-certificates?uploaded=1' % self.request.registry.settings['admin_prefix'])
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",

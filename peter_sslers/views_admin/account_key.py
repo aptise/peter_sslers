@@ -2,8 +2,8 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
-from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import json
@@ -123,7 +123,7 @@ class ViewAdmin(Handler):
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
         result = lib_db.actions.do__SslAcmeAccountKey_authenticate(self.request.api_context, dbAcmeAccountKey)
-        return HTTPFound('%s/account-key/%s?result=success&is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, result))
+        return HTTPSeeOther('%s/account-key/%s?result=success&is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, result))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -219,7 +219,7 @@ class ViewAdmin(Handler):
                         'is_existing': False if _is_created else True,
                         }
 
-            return HTTPFound('%s/account-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, ('&is_created=1' if _is_created else '&is_existing=1')))
+            return HTTPSeeOther('%s/account-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, ('&is_created=1' if _is_created else '&is_existing=1')))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -261,7 +261,7 @@ class ViewAdmin(Handler):
             self.request.registry.settings['admin_prefix'],
             dbAcmeAccountKey.id,
         )
-        return HTTPFound(url_post_required)
+        return HTTPSeeOther(url_post_required)
 
     def _account_key_focus_mark__submit(self, dbAcmeAccountKey):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
@@ -356,7 +356,7 @@ class ViewAdmin(Handler):
                 dbAcmeAccountKey.id,
                 action,
             )
-            return HTTPFound(url_success)
+            return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -374,4 +374,4 @@ class ViewAdmin(Handler):
                 action,
                 e.message,
             )
-            raise HTTPFound(url_failure)
+            raise HTTPSeeOther(url_failure)

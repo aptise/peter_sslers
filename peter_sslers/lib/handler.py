@@ -1,6 +1,5 @@
 # pyramid
 from pyramid.httpexceptions import HTTPFound
-from pyramid.httpexceptions import HTTPNotFound
 
 # pypi
 import pyramid_formencode_classic as formhandling

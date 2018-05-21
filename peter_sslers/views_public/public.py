@@ -4,8 +4,6 @@ log = logging.getLogger(__name__)
 
 # pyramid
 from pyramid.view import view_config
-from pyramid.httpexceptions import HTTPFound
-from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
 import datetime

@@ -2,8 +2,8 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
-from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import datetime
@@ -106,14 +106,14 @@ class ViewAdmin(Handler):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbDomain = self._domain_focus(eagerload_web=True)
         if not self.request.registry.settings['enable_nginx']:
-            raise HTTPFound('%s/domain/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
+            raise HTTPSeeOther('%s/domain/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
         success, dbEvent = lib.utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=[dbDomain, ])
         if wants_json:
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
                     }
-        return HTTPFound('%s/domain/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbDomain.id, dbEvent.id))
+        return HTTPSeeOther('%s/domain/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbDomain.id, dbEvent.id))
 
     @view_config(route_name='admin:domain:focus:config|json', renderer='json')
     def domain_focus_config_json(self):
@@ -232,7 +232,7 @@ class ViewAdmin(Handler):
             self.request.registry.settings['admin_prefix'],
             dbDomain.id,
         )
-        return HTTPFound(url_post_required)    
+        return HTTPSeeOther(url_post_required)    
 
     def _account_key_focus_mark__submit(self, dbAcmeAccountKey):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
@@ -305,7 +305,7 @@ class ViewAdmin(Handler):
                 dbDomain.id,
                 action,
             )
-            return HTTPFound(url_success)
+            return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -323,4 +323,4 @@ class ViewAdmin(Handler):
                 action,
                 e.message,
             )
-            raise HTTPFound(url_failure)
+            raise HTTPSeeOther(url_failure)

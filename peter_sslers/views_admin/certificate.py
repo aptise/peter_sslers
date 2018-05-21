@@ -2,7 +2,6 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.renderers import render, render_to_response
-from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.httpexceptions import HTTPNotFound
 
@@ -150,7 +149,7 @@ class ViewAdmin(Handler):
                                         'id': dbPrivateKey.id,
                                         },
                         }
-            return HTTPFound('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id))
+            return HTTPSeeOther('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -275,7 +274,7 @@ class ViewAdmin(Handler):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbServerCertificate = self._certificate_focus()
         if not self.request.registry.settings['enable_nginx']:
-            raise HTTPFound('%s/certificate/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id))
+            raise HTTPSeeOther('%s/certificate/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id))
         dbDomains = [c2d.domain for c2d in dbServerCertificate.unique_fqdn_set.to_domains]
 
         # this will generate it's own log__SslOperationsEvent
@@ -285,7 +284,7 @@ class ViewAdmin(Handler):
                     'operations_event': {'id': dbEvent.id,
                                          },
                     }
-        return HTTPFound('%s/certificate/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id, dbEvent.id))
+        return HTTPSeeOther('%s/certificate/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id, dbEvent.id))
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -335,7 +334,7 @@ class ViewAdmin(Handler):
                 dbServerCertificate.id,
                 e.message,
             )
-            raise HTTPFound(url_failure)
+            raise HTTPSeeOther(url_failure)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -387,7 +386,7 @@ class ViewAdmin(Handler):
                 dbServerCertificate.id,
                 e.message,
             )
-            raise HTTPFound(url_failure)
+            raise HTTPSeeOther(url_failure)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -481,13 +480,13 @@ class ViewAdmin(Handler):
             except (errors.AcmeCommunicationError,
                     errors.DomainVerificationError,
                     ) as e:
-                return HTTPFound('%s/certificate-requests?result=error&error=renew-acme-automated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
+                return HTTPSeeOther('%s/certificate-requests?result=error&error=renew-acme-automated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
             except Exception as exc:
                 if self.request.registry.settings['exception_redirect']:
-                    return HTTPFound('%s/certificate-requests?result=error&error=renew-acme-automated' % self.request.registry.settings['admin_prefix'])
+                    return HTTPSeeOther('%s/certificate-requests?result=error&error=renew-acme-automated' % self.request.registry.settings['admin_prefix'])
                 raise
 
-            return HTTPFound('%s/certificate/%s?is_renewal=True' % (self.request.registry.settings['admin_prefix'], newLetsencryptCertificate.id))
+            return HTTPSeeOther('%s/certificate/%s?is_renewal=True' % (self.request.registry.settings['admin_prefix'], newLetsencryptCertificate.id))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -523,9 +522,9 @@ class ViewAdmin(Handler):
                     }
         url_post_required = '%s/certificate/%s?operation=mark&result=post+required' % (
             self.request.registry.settings['admin_prefix'],
-            dbDomain.id,
+            dbServerCertificate.id,
         )
-        return HTTPFound(url_post_required)            
+        return HTTPSeeOther(url_post_required)            
 
     def _certificate_focus_mark__submit(self, dbServerCertificate):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
@@ -706,7 +705,7 @@ class ViewAdmin(Handler):
                 dbServerCertificate.id,
                 action,
             )
-            return HTTPFound(url_success)
+            return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -724,4 +723,4 @@ class ViewAdmin(Handler):
                 action,
                 e.message,
             )
-            raise HTTPFound(url_failure)
+            raise HTTPSeeOther(url_failure)
