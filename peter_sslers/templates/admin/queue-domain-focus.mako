@@ -54,6 +54,7 @@
                             </a>
                         % else:
                             <span class="label label-default">cancelled</span>
+                            <em>queue this domain again to activate it.</em>
                         % endif
                     </td>
                 </tr>

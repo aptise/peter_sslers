@@ -171,6 +171,10 @@ class Form_Domain_mark(_Form_Schema_Base):
     action = OneOf(('active', 'inactive', ))
 
 
+class Form_Domain_search(_Form_Schema_Base):
+    domain = UnicodeString(not_empty=True)
+
+
 class Form_PrivateKey_new__full(_Form_Schema_Base):
     private_key = UnicodeString(not_empty=False, if_missing=None)
     private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)

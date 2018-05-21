@@ -982,6 +982,13 @@ class FunctionalTests_Domain(AppTest):
         res_json = json.loads(res.body)
         assert res_json['result'] == 'success'
 
+    def test_search(self):
+        res = self.testapp.get('/.well-known/admin/domains/search', status=200)
+        res2 = self.testapp.post('/.well-known/admin/domains/search', {'domain': 'example.com'})
+
+        res = self.testapp.get('/.well-known/admin/domains/search.json', status=200)
+        res2 = self.testapp.post('/.well-known/admin/domains/search.json', {'domain': 'example.com'})
+
 
 class FunctionalTests_PrivateKeys(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_PrivateKeys"""

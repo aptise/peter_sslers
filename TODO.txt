@@ -14,7 +14,6 @@ tests
 	curl http://127.0.0.1:7201/.well-known/admin/queue-domains/process.json
 
 	
-
 * build authorization deactivate tool
 * migrate cert_subject hash and tracking to SAN
 * search expiring soon | note: isn't this the `/certificates/expiring` view?
@@ -24,7 +23,7 @@ tests
 * queue_renewal_focus_mark - return JSON
 * log pending validations
 * tests - api_events	
-
+* search for domain status -- is it enrolled, etc?
 
 
 

@@ -33,16 +33,11 @@
         <div class="col-sm-4">
             <h3>Enrolled Records</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/domains"
-                       title="${request.text_library.info_Domains[0]}"
+                <li><a href="${admin_prefix}/account-keys"
+                       title="${request.text_library.info_AccountKeys[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    domains</a></li>
-                <li><a href="${admin_prefix}/certificates"
-                       title="${request.text_library.info_Certificates[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificates</a></li>
+                    account-keys</a></li>
                 <li><a href="${admin_prefix}/certificate-requests"
                        title="${request.text_library.info_CertificateRequests[0]}"
                     >
@@ -50,44 +45,40 @@
                     certificate-requests
                     </a>
                     </li>
+                <li><a href="${admin_prefix}/certificates"
+                       title="${request.text_library.info_Certificates[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    certificates</a></li>
+                <li><a href="${admin_prefix}/domains"
+                       title="${request.text_library.info_Domains[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    domains</a></li>
                 <li><a href="${admin_prefix}/private-keys"
                        title="${request.text_library.info_PrivateKeys[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys</a></li>
-                <li><a href="${admin_prefix}/account-keys"
-                       title="${request.text_library.info_AccountKeys[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    account-keys</a></li>
-                <li><a href="${admin_prefix}/ca-certificates"
-                       title="${request.text_library.info_CACertificates[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    ca-certificates</a></li>
+            </ul>
+
+            <h3>Configuration</h3>
+            <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/acme-providers"
                        title="Acme Providers"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-providers</a></li>
+                <li><a href="${admin_prefix}/ca-certificates"
+                       title="${request.text_library.info_CACertificates[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    ca-certificates</a></li>
             </ul>
+
 
             <h3>Recordkeeping</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/unique-fqdn-sets"
-                       title="${request.text_library.info_UniqueFQDNs[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    unique-fqdn-sets</a></li>
-                <li><a href="${admin_prefix}/queue-renewals"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    queue-renewals</a></li>
-                <li><a href="${admin_prefix}/queue-domains"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    queue-domains</a></li>
-
                 <li><a href="${admin_prefix}/acme-event-logs"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -96,6 +87,19 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-challenge-logs</a></li>
+                <li><a href="${admin_prefix}/queue-domains"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    queue-domains</a></li>
+                <li><a href="${admin_prefix}/queue-renewals"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    queue-renewals</a></li>
+                <li><a href="${admin_prefix}/unique-fqdn-sets"
+                       title="${request.text_library.info_UniqueFQDNs[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    unique-fqdn-sets</a></li>
             </ul>
         </div>
         <div class="col-sm-4">
@@ -105,10 +109,18 @@
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     api : nginx/status.json</a></li>
             </ul>
+            <h4>Tools</h4>
+            <ul class="nav nav-pills nav-stacked">
+                <li><a href="${admin_prefix}/domains/search">
+                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                    search domains</a></li>
+            </ul>
             ${admin_partials.operations_options(enable_redis=enable_redis,
                                                 enable_nginx=enable_nginx,
                                                 as_list=True,
                                                 )}
+
+
         </div>
         <div class="col-sm-4">
             <h3>New Certificates</h3>

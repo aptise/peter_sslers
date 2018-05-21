@@ -16,7 +16,9 @@ import sqlalchemy
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import text as lib_text
 from ..lib.forms import Form_Domain_mark
+from ..lib.forms import Form_Domain_search
 from ..lib.handler import Handler, items_per_page
 
 
@@ -75,6 +77,73 @@ class ViewAdmin(Handler):
                 'expiring_days': expiring_days,
                 'pager': pager,
                 }
+
+    @view_config(route_name='admin:domains:search', renderer='/admin/domains-search.mako')
+    @view_config(route_name='admin:domains:search|json', renderer='json')
+    def domains_search(self):
+        self.search_results = None
+        if self.request.method == 'POST':
+            return self._domains_search__submit()
+        return self._domains_search__print()
+    
+    def _domains_search__print(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': ["""curl --form 'domain=example.com' %s/domains/search.json""" % self.request.admin_url,
+                                     ],
+                    'form_fields': {'domain': 'the domain',
+                                    },
+                    }
+        return render_to_response("/admin/domains-search.mako", {'search_results': self.search_results, 'sidenav_option': 'search',}, self.request)
+
+    def _domains_search__submit(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        try:
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_Domain_search,
+                                            validate_get=False
+                                            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            domain_name = formStash.results['domain']
+            dbDomain = lib_db.get.get__SslDomain__by_name(self.request.api_context, domain_name, preload=None, eagerload_web=False, active_only=False)
+            dbQueueDomainActive = lib_db.get.get__SslQueueDomain__by_name(self.request.api_context, domain_name, active_only=True)
+            dbQueueDomainsInactive = lib_db.get.get__SslQueueDomains__by_name(self.request.api_context, domain_name, active_only=False, inactive_only=True)
+
+            search_results = {'SslDomain': dbDomain,
+                              'SslQueueDomainActive': dbQueueDomainActive,
+                              'SslQueueDomainsInactive': dbQueueDomainsInactive,
+                              'query': domain_name,
+                              }
+            self.search_results = search_results
+            if wants_json:
+                return {'result': 'success',
+                        'query': domain_name,
+                        'search_results': {'SslDomain': dbDomain.as_json if dbDomain else None,
+                                           'SslQueueDomainActive': dbQueueDomainActive.as_json if dbQueueDomainActive else None,
+                                           'SslQueueDomainsInactive': [dbQueueDomainsInactive.as_json for q in dbQueueDomainsInactive],
+                                           }
+                        }
+            return self._domains_search__print()
+
+        except formhandling.FormInvalid as e:
+            formStash.set_error(field="Error_Main",
+                                message="There was an error with your form.",
+                                raise_FormInvalid=False,
+                                message_prepend=True
+                                )
+            if wants_json:
+                return {'result': 'error',
+                        'form_errors': formStash.errors,
+                        }
+            return formhandling.form_reprint(
+                self.request,
+                self._domains_search__print,
+                auto_error_formatter=lib_text.formatter_error,
+            )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

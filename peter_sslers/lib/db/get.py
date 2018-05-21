@@ -591,6 +591,17 @@ def get__SslQueueDomain__by_name(ctx, domain_name, active_only=True):
     return item
 
 
+def get__SslQueueDomains__by_name(ctx, domain_name, active_only=None, inactive_only=None):
+    q = ctx.dbSession.query(models.SslQueueDomain)\
+        .filter(sqlalchemy.func.lower(models.SslQueueDomain.domain_name) == sqlalchemy.func.lower(domain_name))
+    if active_only:
+        q = q.filter(models.SslQueueDomain.is_active.op('IS')(True))
+    elif inactive_only:
+        q = q.filter(models.SslQueueDomain.is_active.op('IS')(False))
+    items = q.all()
+    return items
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

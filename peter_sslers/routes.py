@@ -162,12 +162,14 @@ def _admin_views(config):
 
     # Domains
     config.add_route_7('admin:domains', '/domains')
-    config.add_route_7('admin:domains_paginated', '/domains/{@page}')
-    config.add_route_7('admin:domains:expiring', '/domains/expiring')
-    config.add_route_7('admin:domains:expiring_paginated', '/domains/expiring/{@page}')
     config.add_route_7('admin:domains|json', '/domains.json')
+    config.add_route_7('admin:domains:search', '/domains/search')
+    config.add_route_7('admin:domains:search|json', '/domains/search.json')
+    config.add_route_7('admin:domains_paginated', '/domains/{@page}')
     config.add_route_7('admin:domains_paginated|json', '/domains/{@page}.json')
+    config.add_route_7('admin:domains:expiring', '/domains/expiring')
     config.add_route_7('admin:domains:expiring|json', '/domains/expiring.json')
+    config.add_route_7('admin:domains:expiring_paginated', '/domains/expiring/{@page}')
     config.add_route_7('admin:domains:expiring_paginated|json', '/domains/expiring/{@page}.json')
     # json first otherwise we think it's the extension
     config.add_route_7('admin:domain:focus|json', '/domain/{domain_identifier}.json')
