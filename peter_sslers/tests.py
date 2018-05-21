@@ -417,6 +417,9 @@ class AppTest(AppTestCore):
 
 
 class FunctionalTests_Main(AppTest):
+    """
+    python -m unittest peter_sslers.tests.FunctionalTests_Main
+    """
 
     def test_root(self):
         res = self.testapp.get('/.well-known/admin', status=200)
@@ -426,6 +429,12 @@ class FunctionalTests_Main(AppTest):
 
     def test_help(self):
         res = self.testapp.get('/.well-known/admin/help', status=200)
+
+    def test_settings(self):
+        res = self.testapp.get('/.well-known/admin/settings', status=200)
+
+    def test_api_docs(self):
+        res = self.testapp.get('/.well-known/admin/api', status=200)
 
     def test_search(self):
         res = self.testapp.get('/.well-known/admin/search', status=200)

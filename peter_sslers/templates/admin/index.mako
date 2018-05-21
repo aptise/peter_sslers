@@ -131,12 +131,14 @@
                     >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                     New: ACME Automated</a></li>
-                <li>
-                    <a  href="${admin_prefix}/certificate-request/new-acme-flow"
-                        title="${request.text_library.info_CertificateRequest_new_AcmeFlow[0]}"
-                    >
-                    <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                    New: ACME Flow</a></li>
+                % if request.registry.settings['enable_acme_flow']:
+                    <li>
+                        <a  href="${admin_prefix}/certificate-request/new-acme-flow"
+                            title="${request.text_library.info_CertificateRequest_new_AcmeFlow[0]}"
+                        >
+                        <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                        New: ACME Flow</a></li>
+                % endif
             </ul>
 
             <h3>Existing Certificates</h3>

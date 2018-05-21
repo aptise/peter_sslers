@@ -115,6 +115,8 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:focus:acme-flow:manage', renderer='/admin/certificate_request-focus-AcmeFlow-manage.mako')
     def certificate_request_AcmeFlow_manage(self):
+        if not self.request.registry.settings['enable_acme_flow']:
+            raise HTTPNotFound('Acme-Flow is disabled on this system')
         dbCertificateRequest = self._certificate_request_focus()
         if not dbCertificateRequest.certificate_request_type_is('acme flow'):
             raise HTTPNotFound('Only availble for Acme Flow')
@@ -127,6 +129,9 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:focus:acme-flow:manage:domain', )
     def certificate_request_AcmeFlow_manage_domain(self):
+        if not self.request.registry.settings['enable_acme_flow']:
+            raise HTTPNotFound('Acme-Flow is disabled on this system')
+
         dbCertificateRequest = self._certificate_request_focus()
         if not dbCertificateRequest.certificate_request_type_is('acme flow'):
             raise HTTPNotFound('Only availble for Acme Flow')
@@ -208,6 +213,9 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:new:acme-flow')
     def certificate_request_new_AcmeFlow(self):
+        if not self.request.registry.settings['enable_acme_flow']:
+            raise HTTPNotFound('Acme-Flow is disabled on this system')
+
         if self.request.method == 'POST':
             return self._certificate_request_new_AcmeFlow__submit()
         return self._certificate_request_new_AcmeFlow__print()

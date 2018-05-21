@@ -4,7 +4,8 @@ documentation_grid = {
         'enable_nginx': {'docstring': 'Enables integration with Nginx webserver. This is automatically set if any nginx options are set.'},
         'enable_redis': {'docstring': 'Enables integration with Redis cache.'},
         'enable_views_admin': {'docstring': 'If `True`, then admin views are enabled. Otherwise they are disabled.'},
-        'enable_views_public': {'docstring': 'If `True`, then public views are enabled. Otherwise they are disabled.'}
+        'enable_views_public': {'docstring': 'If `True`, then public views are enabled. Otherwise they are disabled.'},
+        'enable_acme_flow': {'docstring': 'If `True`, then the `AcmeFlow` helper is enabled. Otherwise it is disabled.'},
     },
     'Views Configuration': {
         'admin_prefix': {'docstring': 'The URL prefix which the admin tool will appear under.',

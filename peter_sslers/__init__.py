@@ -115,6 +115,9 @@ def main(global_config, **settings):
     # this is an int
     set_int_setting(config.registry.settings, 'expiring_days', default=30)
 
+    # enable/disable the acme-flow system
+    set_bool_setting(config.registry.settings, 'enable_acme_flow')
+
     _enable_redis = set_bool_setting(config.registry.settings, 'enable_redis')
     if _enable_redis:
         # try to load, otherwise error out

@@ -79,6 +79,7 @@
 - tests - acme-events
 - function and tests - /domains/search
 - added lynx images
+- made acme-flow a configuration option
 
 
 
