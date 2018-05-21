@@ -11,6 +11,8 @@ What's in the box ?
 * ACME client for LetsEncrypt Certificate Authority
 * openresty LUA module for Dynamic SSL Certificate Handling on the Nginx webserver
 
+THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
+
 AMAZING, RIGHT?
 
 This package is *not* aimed at casual or single-site users.  This package is *not* aimed at novice users.
@@ -755,7 +757,14 @@ There is also a button under "operations" to probe LetsEncrypt's public website 
 What does it look like?
 ---------------
 
-It uses bootstrap.
+PeterSSLers was designed to be used on terminals, so it looks great on Lynx...
+
+![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/master/docs/images/lynx_01-admin_index.png)
+![Admin Index - Lynx](https://raw.github.com/aptise/peter_sslers/master/docs/images/lynx_02-api_docs.png)
+
+And most endpoints over JSON versions, so you can process everything that way
+
+But... This project uses bootstrap, so it looks fine on browsers!
 
 ![Admin Index](https://raw.github.com/aptise/peter_sslers/master/docs/images/01-admin_index.png)
 ![CSR: Automate 'manual': Enter Domains](https://raw.github.com/aptise/peter_sslers/master/docs/images/02-enter_domains.png)
