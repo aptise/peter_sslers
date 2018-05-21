@@ -124,7 +124,7 @@ class ViewAdmin(Handler):
                         'query': domain_name,
                         'search_results': {'SslDomain': dbDomain.as_json if dbDomain else None,
                                            'SslQueueDomainActive': dbQueueDomainActive.as_json if dbQueueDomainActive else None,
-                                           'SslQueueDomainsInactive': [dbQueueDomainsInactive.as_json for q in dbQueueDomainsInactive],
+                                           'SslQueueDomainsInactive': [q.as_json for q in dbQueueDomainsInactive],
                                            }
                         }
             return self._domains_search__print()

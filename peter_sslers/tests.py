@@ -1101,7 +1101,7 @@ class FunctionalTests_UniqueFQDNSets(AppTest):
         res = self.testapp.get('/.well-known/admin/private-key/%s/certificates' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/private-key/%s/certificates/1' % focus_id, status=200)
 
-    def test_manipulate():
+    def test_manipulate(self):
         focus_item = self._get_item()
         assert focus_item is not None
         focus_id = focus_item.id
