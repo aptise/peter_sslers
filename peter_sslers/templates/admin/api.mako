@@ -30,7 +30,6 @@
             <p>If not using scripts to access the API, you can use `curl`</p>
             <code>curl --form "domain_names=example.com" ${request.admin_url}/api/domain/enable</code>
             <hr/>
-
 <%
     api_docs = [
         {'endpoint': '/api/domain/enable',
@@ -113,16 +112,12 @@
          },
     ]
 %>
-
-            <h4>API Endpoints</h4>
+            <h4>Dedicated API Endpoints</h4>
             <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th>Endpoint</th>
-                        <th>About</th>
-                        <th>POST</th>
-                        <th>GET</th>
-                        <th>Args</th>
+                        <th>Details</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -130,24 +125,50 @@
                         <tr>
                             <td><code>${ep['endpoint']}</code></td>
                             <td>${ep['about']}</td>
+                        </tr>
+                        <tr>
+                            <td></td>
                             <td>
+                                <b>Get:</b>
+                                % if ep['GET'] is True:
+                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                % elif ep['GET'] is None:
+                                    <span class="label label-warning"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span></span>
+                                % endif
+                                <br/>
+                                <b>Post:</b>
                                 % if ep['POST']:
                                     <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
                                 % endif
-                            </td>
-                            <td>
-                                % if ep['GET']:
-                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                <br/>
+                                % if ep['args']:
+                                    <b>Args:</b>
+                                    ${ep['args']|n}
+                                    <br/>
+                                % endif
+                                % if ep.get('example') or ep.get('examples'):
+                                    <b>Examples:</b>
+                                    <br/>
+                                    % if ep.get('example'):
+                                        <code>${ep.get('example').replace('{ADMIN_PREFIX}', request.admin_url)}</code>
+                                    % endif
+                                    % if ep.get('examples'):
+                                        % for idx, example in enumerate(ep.get('examples')):
+                                            % if idx >= 1:
+                                                <hr/>
+                                            % endif
+                                            <code>${example.replace('{ADMIN_PREFIX}', request.admin_url)}</code>
+                                        % endfor
+                                    % endif
                                 % endif
                             </td>
-                            <td>${ep['args'] or """<em>None</em>"""|n}</td>
                         </tr>
                     % endfor
                 </tbody>
             </table>
-
 <%
-    api_docs_other = [
+api_docs_other = {
+    'account-key': [
         {'endpoint': '/account-keys.json',
          'about': """list account keys""",
          'POST': True,
@@ -220,8 +241,8 @@
          'args': """This route is self-documenting on GET requests""",
          'example': "curl --form 'action=active' http://127.0.0.1:7201/.well-known/admin/account-key/1/mark.json",
          },
-
-
+    ],
+    'acme-provider': [
         {'endpoint': '/acme-providers.json',
          'about': """list acme-providers""",
          'POST': True,
@@ -229,8 +250,8 @@
          'args': "",
          'example': "curl {ADMIN_PREFIX}/acme-providers.json",
          },
-
-
+    ],
+    'ca-certificate': [
         {'endpoint': '/ca-certificates.json',
          'about': """list ca-certificates""",
          'POST': True,
@@ -312,8 +333,8 @@
                       "curl --form 'isrgrootx1_file=@isrgrootx1.pem' --form 'le_x1_cross_signed_file=@lets-encrypt-x1-cross-signed.pem' --form 'le_x2_cross_signed_file=@lets-encrypt-x2-cross-signed.pem' --form 'le_x3_cross_signed_file=@lets-encrypt-x3-cross-signed.pem' --form 'le_x4_cross_signed_file=@lets-encrypt-x4-cross-signed.pem' --form 'le_x1_auth_file=@letsencryptauthorityx1' --form 'le_x2_auth_file=@letsencryptauthorityx2' {ADMIN_PREFIX}/ca-certificate/upload-bundle.json",
                       ]
          },
-
-
+    ],
+    'certificate': [
         {'endpoint': '/certificates.json',
          'about': """list certificates""",
          'POST': True,
@@ -342,7 +363,6 @@
          'args': "",
          'example': "curl {ADMIN_PREFIX}/certificates/expiring/1.json",
          },
-
         {'endpoint': '/certificate/{ID}.json',
          'about': """certficate as json""",
          'POST': True,
@@ -410,9 +430,8 @@
                       "curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' {ADMIN_PREFIX}/certificate/upload.json",
                       ]
          },
-
-
-
+    ],
+    'certificate-request': [
         {'endpoint': '/certificate-requests.json',
          'about': """list certificate-requests""",
          'POST': True,
@@ -464,7 +483,8 @@
          'args': "",
          "example": "curl http://127.0.0.1:7201/.well-known/admin/certificate-request/1/csr.pem.txt",
          },
-
+    ],
+    'domain': [
         {'endpoint': '/domains.json',
          'about': """list domains""",
          'POST': True,
@@ -530,8 +550,8 @@
          'args': """This route is self-documenting on GET requests""",
          'example': "curl --form 'action=active' {ADMIN_PREFIX}/domain/1/mark.json",
          },
-
-
+    ],
+    'private-key': [
         {'endpoint': '/private-keys.json',
          'about': """list keys""",
          'POST': True,
@@ -600,8 +620,8 @@
                       "curl --form 'private_key_file=@privkey1.pem' {ADMIN_PREFIX}/private-key/1/upload.json",
                       ],
          },
-
-
+    ],
+    'queue-domain': [
         {'endpoint': '/queue-domains.json',
          'about': """list domains in queue (unprocessed)""",
          'POST': True,
@@ -663,6 +683,8 @@
                       'curl --form "action=cancel" {ADMIN_PREFIX}/queue-domain/1/mark.json',
                       ]
          },
+    ],
+    'queue-renewal': [
 
         {'endpoint': '/queue-renewals.json',
          'about': """list renewals in queue (unprocessed)""",
@@ -723,6 +745,8 @@
                       ]
          },
 
+    ],
+    'unique-fqdn-set': [
         {'endpoint': '/unique-fqdn-sets.json',
          'about': """list as json""",
          'POST': True,
@@ -752,52 +776,70 @@
          'example': "curl {ADMIN_PREFIX}/unique-fqdn-set/1/calendar.json",
          },
     ]
+}
 %>
             <h4>JSON Capable Endpoints</h4>
+            <ul>
+                % for section in sorted(api_docs_other.keys()):            
+                    <li><a href="#${section}">${section}</a></li>
+                % endfor
+            </ul>
+            
             <table class="table table-striped table-condensed">
                 <thead>
                     <tr>
                         <th>Endpoint</th>
-                        <th>About</th>
-                        <th>POST</th>
-                        <th>GET</th>
-                        <th>Args</th>
+                        <th>Details</th>
                     </tr>
                 </thead>
                 <tbody>
-                    % for ep in api_docs_other:
+                    % for section in sorted(api_docs_other.keys()):
                         <tr>
-                            <td><code>${ep['endpoint']}</code></td>
-                            <td>${ep['about']}</td>
-                            <td>
-                                % if ep['POST']:
-                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
-                                % endif
-                            </td>
-                            <td>
-                                % if ep['GET'] is True:
-                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
-                                % elif ep['GET'] is None:
-                                    <span class="label label-warning"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span></span>
-                                % endif
-                            </td>
-                            <td>${ep['args'] or ""|n}</td>
+                            <th colspan="5"><a name="${section}"></a>${section}</th>
                         </tr>
-                        % if ep.get('example') or ep.get('examples'):
+                        % for ep in api_docs_other[section]:
+                            <tr>
+                                <td><code>${ep['endpoint']}</code></td>
+                                <td>${ep['about']}</td>
+                            </tr>
                             <tr>
                                 <td></td>
-                                <td colspan="4">
-                                    % if ep.get('example'):
-                                        <code>${ep.get('example').replace('{ADMIN_PREFIX}', request.admin_url)}</code>
+                                <td>
+                                    <b>Get:</b>
+                                    % if ep['GET'] is True:
+                                        <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                    % elif ep['GET'] is None:
+                                        <span class="label label-warning"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span></span>
                                     % endif
-                                    % if ep.get('examples'):
-                                        % for example in ep.get('examples'):
-                                            <code>${example.replace('{ADMIN_PREFIX}', request.admin_url)}</code><hr/>
-                                        % endfor
+                                    <br/>
+                                    <b>Post:</b>
+                                    % if ep['POST']:
+                                        <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                    % endif
+                                    <br/>
+                                    % if ep['args']:
+                                        <b>Args:</b>
+                                        ${ep['args']}
+                                        <br/>
+                                    % endif
+                                    % if ep.get('example') or ep.get('examples'):
+                                        <b>Examples:</b>
+                                        <br/>
+                                        % if ep.get('example'):
+                                            <code>${ep.get('example').replace('{ADMIN_PREFIX}', request.admin_url)}</code>
+                                        % endif
+                                        % if ep.get('examples'):
+                                            % for idx, example in enumerate(ep.get('examples')):
+                                                % if idx >= 1:
+                                                    <hr/>
+                                                % endif
+                                                <code>${example.replace('{ADMIN_PREFIX}', request.admin_url)}</code>
+                                            % endfor
+                                        % endif
                                     % endif
                                 </td>
                             </tr>
-                        % endif
+                        % endfor
                     % endfor
                 </tbody>
             </table>
