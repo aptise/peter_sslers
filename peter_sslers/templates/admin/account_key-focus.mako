@@ -114,8 +114,26 @@
                 <tr>
                     <th>acme_account_provider_id</th>
                     <td>
-                        ${SslAcmeAccountKey.acme_account_provider_id}
-                        ${SslAcmeAccountKey.acme_account_provider}
+                        <a
+                            class="label label-info"
+                            href="${admin_prefix}/acme-providers"
+                        >
+                            ${SslAcmeAccountKey.acme_account_provider_id}
+                            -
+                            ${SslAcmeAccountKey.acme_account_provider}
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Pending Authorizations?</th>
+                    <td>
+                        <a
+                            class="btn btn-xs btn-info"
+                            href="${admin_prefix}/acme-challenge-logs/filtered?account-key-id=${SslAcmeAccountKey.id}&status=pending"
+                        >
+                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                            SEARCH
+                        </a>
                     </td>
                 </tr>
                 <tr>

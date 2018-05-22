@@ -93,6 +93,7 @@
 * the queue-renewals works on fqdns, not just certificates
 * account-key auth can happen at any time; also via json
 * tests - api_events	
+* search for pending validations
 
 
 

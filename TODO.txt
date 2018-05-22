@@ -7,14 +7,14 @@ asap tasks
     @view_config(route_name='admin:queue_domains:process', renderer=None)
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
     def queue_domain_process(self):
-* search for pending validations
 * search expiring soon | note: isn't this the `/certificates/expiring` view?
-* build authorization deactivate tool
 * migrate cert_subject hash and tracking to SAN
 * log full actual results; if a queue fails log that data too
 * CSR should have domain[0] as subject if there are multiple domains | note: letsencrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
 
+* build authorization deactivate tool
+* limit pending requests to 7 days
 
 deferred tasks
 ---------------

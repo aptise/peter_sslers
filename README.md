@@ -38,7 +38,7 @@ Peter ships alongside a `lua` `opm` module for the `openresty` framework on the 
 
 The module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your openresty/nginx server via the `opm` package installer
 
-The `Pyramid` based application can function as a daemon or a commandline script.  Most pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window.
+The `Pyramid` based application can function as a daemon or a commandline script.  Most pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window. Don't want to do things manually? Ok - everything was built to be readable on commandline browsers... yes, this is actually developed-for and tested-with lynx.
 
 Do you like book-keeping?  Peter's `Pryamid` component logs everything into sql.  
 
@@ -55,7 +55,7 @@ Peter leverages the system's OpenSSL instead of using Python's modules. The reas
 
 ## Why?
 
-Most of us hate having to spend time on DevOps tasks.  Personally, I would rather spend time working on the Product or consumer sides.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just fixes or additions to the test-suite.
+Most of us hate having to spend time on DevOps tasks.  Personally, I would rather spend time working on the core product or consumer products.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
 
 ## Status
@@ -88,6 +88,7 @@ The "/tools" directory contains scripts useful for certificate operations.  Curr
 
 * an `invoke` script for some miscellaneous tasks
 * a sample `fake_server.py` that will spin up a server with routes that you can test against.  this will allow you to setup your integration without running peter_sslers
+* a sample `fake_boulder.py` that will spin up a fake boulder server that can be used as a certificate authority when testing
 
 ## The openresty package
 

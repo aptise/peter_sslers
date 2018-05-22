@@ -494,6 +494,15 @@ class FunctionalTests_AcmeChallengeLog(AppTest):
         res = self.testapp.get('/.well-known/admin/acme-challenge-log/%s' % focus_id, status=200)
 
 
+    def test_filter(self):
+    
+        dbAcmeAccountKey = self.ctx.dbSession.query(models.SslAcmeAccountKey).first()
+        res = self.testapp.get('/.well-known/admin/acme-challenge-logs/filtered', status=302)
+        res = self.testapp.get('/.well-known/admin/acme-challenge-logs/filtered?account-key-id=%s' % dbAcmeAccountKey.id, status=200)
+
+
+
+
 class FunctionalTests_AcmeProviders(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_AcmeProviders"""
     def test_list(self):

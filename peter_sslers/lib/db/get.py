@@ -55,9 +55,23 @@ def get__SslAcmeChallengeLogs__count(ctx):
     return counted
 
 
-def get__SslAcmeChallengeLogs__paginated(ctx, limit=None, offset=0):
+def get__SslAcmeChallengeLogs__paginated(
+    ctx,
+    limit=None,
+    offset=0,
+    acme_account_key_id=None,
+    pending_only=None,
+):
     dbSessionLogItem = get_dbSessionLogItem(ctx)
-    query = dbSessionLogItem.query(models.SslAcmeChallengeLog)\
+    query = dbSessionLogItem.query(models.SslAcmeChallengeLog)
+    if acme_account_key_id:
+        query = query.join(models.SslAcmeEventLog,
+                           models.SslAcmeChallengeLog.ssl_acme_event_log_id==models.SslAcmeEventLog.id
+                           )\
+            .filter(models.SslAcmeEventLog.ssl_acme_account_key_id==acme_account_key_id, )
+    if pending_only:
+        query = query.filter(models.SslAcmeChallengeLog.count_polled == 0, )
+    query = query\
         .order_by(models.SslAcmeChallengeLog.id.desc())\
         .limit(limit)\
         .offset(offset)

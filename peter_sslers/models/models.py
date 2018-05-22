@@ -404,6 +404,38 @@ class SslAcmeChallengeLog(Base):
                                          back_populates='acme_challenge_logs',
                                          uselist=False,
                                          )
+    
+    @property
+    def timestamp_created_isoformat(self):
+        if self.timestamp_created:
+            return self.timestamp_created.isoformat()
+        return None
+
+    @property
+    def timestamp_challenge_trigger_isoformat(self):
+        if self.timestamp_challenge_trigger:
+            return self.timestamp_challenge_trigger.isoformat()
+        return None
+
+    @property
+    def timestamp_challenge_pass_isoformat(self):
+        if self.timestamp_challenge_pass:
+            return self.timestamp_challenge_pass.isoformat()
+        return None    
+
+    @property
+    def as_json(self):
+        return {'id': self.id,
+                'timestamp_created': self.timestamp_created_isoformat,
+                'ssl_acme_event_log_id': self.ssl_acme_event_log_id,
+                'domain': self.domain,
+                'acme_challenge_type': self.acme_challenge_type,
+                'acme_challenge': self.acme_challenge,
+                'timestamp_challenge_trigger': self.timestamp_challenge_trigger_isoformat,
+                'timestamp_challenge_pass': self.timestamp_challenge_pass_isoformat,
+                'count_polled': self.count_polled,
+                'acme_challenge_fail_type': self.acme_challenge_fail_type,
+                }
 
 
 class SslAcmeAccountKey(Base):
@@ -462,7 +494,7 @@ class SslAcmeAccountKey(Base):
 
     @reify
     def acme_account_provider(self):
-        if self.acme_account_provider_id:
+        if self.acme_account_provider_id is not None:
             for provider_info in AcmeAccountProvider.registry.values():
                 if provider_info['id'] == self.acme_account_provider_id:
                     return provider_info['name']
