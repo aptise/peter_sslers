@@ -61,5 +61,5 @@ if __name__ == '__main__':
     config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)
 
     app = config.make_wsgi_app()
-    server = make_server('0.0.0.0', 7201, app)
+    server = make_server('127.0.0.1', 7201, app)
     server.serve_forever()

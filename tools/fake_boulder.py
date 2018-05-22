@@ -7,10 +7,14 @@ purpose:
 
 
 usage:
-    0. edit environment.ini and set the following:
+    1. edit environment.ini and set the following:
         certificate_authority = http://127.0.0.1:7202
         certificate_authority_testing = True
-    2. python fake_boulder.py
+    2. export OPENSSL_CA_DIR= /path/to/../../../fake_boulder_config
+    3. python fake_boulder.py
+        note this uses an openssl system running in `./fake_boulder_config` and will create/edit files in there
+        you can safely trash the generated certs
+    
 """
 
 
@@ -26,36 +30,15 @@ import pdb
 import json
 import tempfile
 import subprocess
+import os
 
 from peter_sslers.lib import cert_utils
 
 
-
 OPENSSL_BIN = 'openssl'
 
-'''
-$ openssl genrsa -des3 -out key_unprivate.pem.original 1024
-passphrase: 1234
-$ openssl rsa -in key_unprivate.pem.original -out key_unprivate.pem
-$ openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
-'''
-
-SIGNING_KEY = '''-----BEGIN RSA PRIVATE KEY-----
-MIICXQIBAAKBgQDINcYvy0Ukfu/q+Z9huH6K3gxtD1Dif8YrkdDfci8/P3F2muie
-+3QCJAfNIRiT2QUlbMeiM1ZdNmxAZG7LeMNZdc2Kmoryfq29EVtFkuT/+9lszHsk
-kxVGLXbAEkiBIgNHhi0OkK3We+JmvGUfrH6TZhN3Lxwm50jcLejLUwvYrwIDAQAB
-AoGAGW6jR0z18oXhaiLdeSdbg75jK7NnXe5HOR+jvc6ea9VeT2esJw3gFamICCmt
-GpLV0YQ488S7ssmIBMH9RQGJJul53byJNyifYs6SM+sFpF5teI7wTONoJonuqcpd
-R0skfXJ2kiQLsftm+a7UbfmyAxs9SUsZRY9KvZO2gVaOkxECQQDsv617oExX96Af
-+o0arIXIXzuD1kJgSkASDWYhcNVKoYf6h1/pAhNC+IVoMP3U+HQ7kOLHPSRuN1YI
-3OcbwKJnAkEA2H17gWmotWDMGbj1z3lZcwtGZZ2Z2dR3TEyL4RCxlCrXCl7YPeS2
-TdNOeCXWzmQt05DNCWsPH/lrYKtsv1Z6eQJAMkrdrZ912FIQP/rXsszndpNUb0M6
-wn3DcpJKGdyAUuRRoJTVeQgp01Y78NBHe9Bz0JuMsUp5zLgQnL1gkvKvDQJBAISw
-JEqlX+oLcg0x+Dc5wUFp37PYbLu+JYB2SiWf/bc6qqKIjzEgRTxeDvJE/utxK0VI
-suLa42JNlSqi5vw/HMECQQCg3DwzZz654K/j0ISX/sE10bVLUQbHQlhsQWRnuu1U
-Lw25TZFkNo2zXaq8FLYnD7E5GVKRF5CQP8s918u97H22
------END RSA PRIVATE KEY-----
-'''
+CAPATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fake_boulder_config')
+print "USING CAPATH : %s" % CAPATH
 
 
 # ==============================================================================
@@ -106,19 +89,19 @@ def sign_csr(csr_pem):
         _tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
         _tempfiles.append(_tmpfile_csr)
         
-        _tmpfile_key = cert_utils.new_pem_tempfile(SIGNING_KEY)
-        _tempfiles.append(_tmpfile_key)
-
-        proc = subprocess.Popen([OPENSSL_BIN, "x509", "-req", "-days", "365",
+        # openssl ca -batch -config ./openssl-ca-2.cnf -policy signing_policy -extensions signing_req -out mygenerated.pem -infiles a.csr
+        # openssl ca -batch -config ./openssl-ca-2.cnf -policy signing_policy -extensions signing_req -out mygenerated.pem -in a.csr
+        proc = subprocess.Popen([OPENSSL_BIN, 'ca', '-batch', '-config', '%s/%s' % (CAPATH, 'openssl-ca-2.cnf'),
+                                 '-policy', 'signing_policy',
+                                 '-extensions', 'signing_req',
+                                 '-notext',
+                                 '-out', _tmpfile_cert.name,
                                  "-in", _tmpfile_csr.name,
-                                 '-signkey', _tmpfile_key.name,
-                                 '-out', _tmpfile_cert.name
                                  ],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         foo, err = proc.communicate()
         _tmpfile_cert.seek(0)
         data = _tmpfile_cert.read()
-        print "Signed", data
         return data
     finally:
         for t in _tempfiles:
@@ -234,8 +217,8 @@ def acme_newcert(request):
     (csr_pem,
      domain_names
      ) = decrypt_acme_newcert(inbound)
-    signedcert = sign_csr(csr_pem)
-    signedcert_der = cert_utils.convert_pem_to_der(signedcert)
+    signedcert_pem = sign_csr(csr_pem)
+    signedcert_der = cert_utils.convert_pem_to_der(signedcert_pem)
 
     return Response(body=signedcert_der,
                     status_code=201,
@@ -311,5 +294,5 @@ if __name__ == '__main__':
     config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)
 
     app = config.make_wsgi_app()
-    server = make_server('0.0.0.0', 7202, app)
+    server = make_server('127.0.0.1', 7202, app)
     server.serve_forever()
