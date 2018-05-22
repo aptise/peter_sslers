@@ -598,9 +598,15 @@ class FunctionalTests_AccountKeys(AppTest):
     def tests_letsencrypt_api(self):
         # this hits LE
         res = self.testapp.get('/.well-known/admin/account-key/1/authenticate', status=303)
+        assert res.location == 'http://localhost/.well-known/admin/account-key/1?operation=authenticate&result=post+required'
+        res = self.testapp.post('/.well-known/admin/account-key/1/authenticate', {})
         assert res.location in ("""http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=existing-account""",
                                 """http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=new-account""",
                                 )
+
+        res = self.testapp.get('/.well-known/admin/account-key/1/authenticate.json', status=200)
+        res = self.testapp.post('/.well-known/admin/account-key/1/authenticate.json', {})
+        assert res.status == 200
 
 
 class FunctionalTests_CACertificate(AppTest):

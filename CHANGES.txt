@@ -91,6 +91,7 @@
 * install a separate acme-log database
 * fqdn renewal in addition to certificate renewal
 * the queue-renewals works on fqdns, not just certificates
+* account-key auth can happen at any time; also via json
 
 
 0.1.5

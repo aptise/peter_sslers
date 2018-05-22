@@ -60,6 +60,7 @@ def _admin_views(config):
     config.add_route_7('admin:account_key:focus:certificates', '/account-key/{@id}/certificates')
     config.add_route_7('admin:account_key:focus:certificates_paginated', '/account-key/{@id}/certificates/{@page}')
     config.add_route_7('admin:account_key:focus:authenticate', '/account-key/{@id}/authenticate')
+    config.add_route_7('admin:account_key:focus:authenticate|json', '/account-key/{@id}/authenticate.json')
     config.add_route_7('admin:account_key:focus:mark', '/account-key/{@id}/mark')
     config.add_route_7('admin:account_key:focus:mark|json', '/account-key/{@id}/mark.json')
     config.add_route_7('admin:account_key:upload', '/account-key/upload')

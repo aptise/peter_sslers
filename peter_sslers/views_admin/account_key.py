@@ -26,7 +26,7 @@ from ..lib.handler import Handler, items_per_page
 # ==============================================================================
 
 
-class ViewAdmin(Handler):
+class ViewAdmin_List(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -34,7 +34,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:account_keys_paginated', renderer='/admin/account_keys.mako')
     @view_config(route_name='admin:account_keys|json', renderer='json')
     @view_config(route_name='admin:account_keys_paginated|json', renderer='json')
-    def account_keys(self):
+    def list(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         items_count = lib_db.get.get__SslAcmeAccountKey__count(self.request.api_context)
         if wants_json:
@@ -56,110 +56,8 @@ class ViewAdmin(Handler):
                 'pager': pager,
                 }
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _account_key_focus(self, eagerload_web=False):
-        dbAcmeAccountKey = lib_db.get.get__SslAcmeAccountKey__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_web=eagerload_web, )
-        if not dbAcmeAccountKey:
-            raise HTTPNotFound('the key was not found')
-        return dbAcmeAccountKey
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:account_key:focus', renderer='/admin/account_key-focus.mako')
-    @view_config(route_name='admin:account_key:focus|json', renderer='json')
-    def account_key_focus(self):
-        wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbAcmeAccountKey = self._account_key_focus(eagerload_web=True)
-        if wants_json:
-            _prefix = "%s/account-key/%s" % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id)
-            return {"LetsEncryptAccountKey": dbAcmeAccountKey.as_json,
-                    "raw": {"pem.txt": "%s/key.pem.txt" % _prefix,
-                            "pem": "%s/key.pem" % _prefix,
-                            "der": "%s/key.key" % _prefix,
-                            }
-                    }
-        return {'project': 'peter_sslers',
-                'SslAcmeAccountKey': dbAcmeAccountKey
-                }
-
-    @view_config(route_name='admin:account_key:focus:raw', renderer='string')
-    def account_key_focus_raw(self):
-        dbAcmeAccountKey = self._account_key_focus()
-        if self.request.matchdict['format'] == 'pem':
-            self.request.response.content_type = 'application/x-pem-file'
-            return dbAcmeAccountKey.key_pem
-        elif self.request.matchdict['format'] == 'pem.txt':
-            return dbAcmeAccountKey.key_pem
-        elif self.request.matchdict['format'] == 'key':
-            self.request.response.content_type = 'application/pkcs8'
-            as_der = lib.cert_utils.convert_pem_to_der(pem_data=dbAcmeAccountKey.key_pem)
-            return as_der
-
-    @view_config(route_name='admin:account_key:focus:parse|json', renderer='json')
-    def account_key_focus_parse_json(self):
-        dbAcmeAccountKey = self._account_key_focus()
-        return {"%s" % dbAcmeAccountKey.id: lib.cert_utils.parse_key(key_pem=dbAcmeAccountKey.key_pem),
-                }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:account_key:focus:config|json', renderer='json')
-    def account_key_focus_config_json(self):
-        dbAcmeAccountKey = self._account_key_focus(eagerload_web=True)
-        return {'id': dbAcmeAccountKey.id,
-                'is_active': dbAcmeAccountKey.is_active,
-                'is_default': dbAcmeAccountKey.is_default,
-                }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:account_key:focus:authenticate', renderer=None)
-    def account_key_focus__authenticate(self):
-        """
-        this just hits the api, hoping we authenticate correctly.
-        """
-        dbAcmeAccountKey = self._account_key_focus()
-        # result is either: `new-account` or `existing-account`
-        # failing will raise an exception
-        result = lib_db.actions.do__SslAcmeAccountKey_authenticate(self.request.api_context, dbAcmeAccountKey)
-        return HTTPSeeOther('%s/account-key/%s?result=success&is_authenticated=%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, result))
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name='admin:account_key:focus:certificates', renderer='/admin/account_key-focus-certificates.mako')
-    @view_config(route_name='admin:account_key:focus:certificates_paginated', renderer='/admin/account_key-focus-certificates.mako')
-    def account_key_focus__certificates(self):
-        dbAcmeAccountKey = self._account_key_focus()
-        items_count = lib_db.get.get__SslServerCertificate__by_SslAcmeAccountKeyId__count(
-            self.request.api_context, dbAcmeAccountKey.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/account-key/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id))
-        items_paged = lib_db.get.get__SslServerCertificate__by_SslAcmeAccountKeyId__paginated(
-            self.request.api_context, dbAcmeAccountKey.id, limit=items_per_page, offset=offset)
-        return {'project': 'peter_sslers',
-                'SslAcmeAccountKey': dbAcmeAccountKey,
-                'SslServerCertificates_count': items_count,
-                'SslServerCertificates': items_paged,
-                'pager': pager,
-                }
-
-    @view_config(route_name='admin:account_key:focus:certificate_requests', renderer='/admin/account_key-focus-certificate_requests.mako')
-    @view_config(route_name='admin:account_key:focus:certificate_requests_paginated', renderer='/admin/account_key-focus-certificate_requests.mako')
-    def account_key_focus__certificate_requests(self):
-        dbAcmeAccountKey = self._account_key_focus()
-        items_count = lib_db.get.get__SslCertificateRequest__by_SslAcmeAccountKeyId__count(
-            self.request.api_context, dbAcmeAccountKey.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/account-key/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id))
-        items_paged = lib_db.get.get__SslCertificateRequest__by_SslAcmeAccountKeyId__paginated(
-            self.request.api_context, dbAcmeAccountKey.id, limit=items_per_page, offset=offset)
-        return {'project': 'peter_sslers',
-                'SslAcmeAccountKey': dbAcmeAccountKey,
-                'SslCertificateRequests_count': items_count,
-                'SslCertificateRequests': items_paged,
-                'pager': pager,
-                }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+class ViewAdmin_New(Handler):
 
     @view_config(route_name='admin:account_key:upload')
     @view_config(route_name='admin:account_key:upload|json', renderer="json")
@@ -219,7 +117,7 @@ class ViewAdmin(Handler):
                         'is_existing': False if _is_created else True,
                         }
 
-            return HTTPSeeOther('%s/account-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbAcmeAccountKey.id, ('&is_created=1' if _is_created else '&is_existing=1')))
+            return HTTPSeeOther('%s?result=success%s' % (self._focus_url, ('&is_created=1' if _is_created else '&is_existing=1')))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -237,33 +135,158 @@ class ViewAdmin(Handler):
                 auto_error_formatter=lib_text.formatter_error,
             )
 
+
+
+class ViewAdmin_Focus(Handler):
+
+    def _focus(self, eagerload_web=False):
+        dbAcmeAccountKey = lib_db.get.get__SslAcmeAccountKey__by_id(self.request.api_context, self.request.matchdict['id'], eagerload_web=eagerload_web, )
+        if not dbAcmeAccountKey:
+            raise HTTPNotFound('the key was not found')
+        self._focus_url = "%s/account-key/%s" % (self.request.admin_url, dbAcmeAccountKey.id)
+        return dbAcmeAccountKey
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:account_key:focus', renderer='/admin/account_key-focus.mako')
+    @view_config(route_name='admin:account_key:focus|json', renderer='json')
+    def focus(self):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        dbAcmeAccountKey = self._focus(eagerload_web=True)
+        if wants_json:
+            _prefix = "%s" % (self._focus_url)
+            return {"LetsEncryptAccountKey": dbAcmeAccountKey.as_json,
+                    "raw": {"pem.txt": "%s/key.pem.txt" % _prefix,
+                            "pem": "%s/key.pem" % _prefix,
+                            "der": "%s/key.key" % _prefix,
+                            }
+                    }
+        return {'project': 'peter_sslers',
+                'SslAcmeAccountKey': dbAcmeAccountKey
+                }
+
+    @view_config(route_name='admin:account_key:focus:raw', renderer='string')
+    def focus_raw(self):
+        dbAcmeAccountKey = self._focus()
+        if self.request.matchdict['format'] == 'pem':
+            self.request.response.content_type = 'application/x-pem-file'
+            return dbAcmeAccountKey.key_pem
+        elif self.request.matchdict['format'] == 'pem.txt':
+            return dbAcmeAccountKey.key_pem
+        elif self.request.matchdict['format'] == 'key':
+            self.request.response.content_type = 'application/pkcs8'
+            as_der = lib.cert_utils.convert_pem_to_der(pem_data=dbAcmeAccountKey.key_pem)
+            return as_der
+
+    @view_config(route_name='admin:account_key:focus:parse|json', renderer='json')
+    def focus_parse_json(self):
+        dbAcmeAccountKey = self._focus()
+        return {"%s" % dbAcmeAccountKey.id: lib.cert_utils.parse_key(key_pem=dbAcmeAccountKey.key_pem),
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:account_key:focus:config|json', renderer='json')
+    def focus_config_json(self):
+        dbAcmeAccountKey = self._focus(eagerload_web=True)
+        return {'id': dbAcmeAccountKey.id,
+                'is_active': dbAcmeAccountKey.is_active,
+                'is_default': dbAcmeAccountKey.is_default,
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:account_key:focus:authenticate', renderer=None)
+    @view_config(route_name='admin:account_key:focus:authenticate|json', renderer='json')
+    def focus__authenticate(self):
+        """
+        this just hits the api, hoping we authenticate correctly.
+        """
+        dbAcmeAccountKey = self._focus()
+        if self.request.method == 'POST':
+            return self._focus__authenticate__submit(dbAcmeAccountKey)
+        return self._focus__authenticate__print(dbAcmeAccountKey)
+
+    def _focus__authenticate__print(self, dbAcmeAccountKey):
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {'instructions': ["""curl -X POST %s/authenticate.json""" % self._focus_url,
+                                     ],
+                    }
+        url_post_required = '%s?operation=authenticate&result=post+required' % (self._focus_url, )
+        return HTTPSeeOther(url_post_required)
+
+
+    def _focus__authenticate__submit(self, dbAcmeAccountKey):
+        # result is either: `new-account` or `existing-account`
+        # failing will raise an exception
+        result = lib_db.actions.do__SslAcmeAccountKey_authenticate(self.request.api_context, dbAcmeAccountKey)
+        wants_json = True if self.request.matched_route.name.endswith('|json') else False
+        if wants_json:
+            return {"LetsEncryptAccountKey": dbAcmeAccountKey.as_json, }
+        return HTTPSeeOther('%s?result=success&is_authenticated=%s' % (self._focus_url, result))
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name='admin:account_key:focus:certificates', renderer='/admin/account_key-focus-certificates.mako')
+    @view_config(route_name='admin:account_key:focus:certificates_paginated', renderer='/admin/account_key-focus-certificates.mako')
+    def focus__certificates(self):
+        dbAcmeAccountKey = self._focus()
+        items_count = lib_db.get.get__SslServerCertificate__by_SslAcmeAccountKeyId__count(
+            self.request.api_context, dbAcmeAccountKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/certificates/{0}' % (self._focus_url))
+        items_paged = lib_db.get.get__SslServerCertificate__by_SslAcmeAccountKeyId__paginated(
+            self.request.api_context, dbAcmeAccountKey.id, limit=items_per_page, offset=offset)
+        return {'project': 'peter_sslers',
+                'SslAcmeAccountKey': dbAcmeAccountKey,
+                'SslServerCertificates_count': items_count,
+                'SslServerCertificates': items_paged,
+                'pager': pager,
+                }
+
+    @view_config(route_name='admin:account_key:focus:certificate_requests', renderer='/admin/account_key-focus-certificate_requests.mako')
+    @view_config(route_name='admin:account_key:focus:certificate_requests_paginated', renderer='/admin/account_key-focus-certificate_requests.mako')
+    def focus__certificate_requests(self):
+        dbAcmeAccountKey = self._focus()
+        items_count = lib_db.get.get__SslCertificateRequest__by_SslAcmeAccountKeyId__count(
+            self.request.api_context, dbAcmeAccountKey.id)
+        (pager, offset) = self._paginate(items_count, url_template='%s/certificate-requests/{0}' % (self._focus_url))
+        items_paged = lib_db.get.get__SslCertificateRequest__by_SslAcmeAccountKeyId__paginated(
+            self.request.api_context, dbAcmeAccountKey.id, limit=items_per_page, offset=offset)
+        return {'project': 'peter_sslers',
+                'SslAcmeAccountKey': dbAcmeAccountKey,
+                'SslCertificateRequests_count': items_count,
+                'SslCertificateRequests': items_paged,
+                'pager': pager,
+                }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:account_key:focus:mark', renderer=None)
     @view_config(route_name='admin:account_key:focus:mark|json', renderer='json')
-    def account_key_focus_mark(self):
-        dbAcmeAccountKey = self._account_key_focus()
+    def focus_mark(self):
+        dbAcmeAccountKey = self._focus()
         if self.request.method == 'POST':
-            return self._account_key_focus_mark__submit(dbAcmeAccountKey)
-        return self._account_key_focus_mark__print(dbAcmeAccountKey)
+            return self._focus_mark__submit(dbAcmeAccountKey)
+        return self._focus_mark__print(dbAcmeAccountKey)
 
-    def _account_key_focus_mark__print(self, dbAcmeAccountKey):
+    def _focus_mark__print(self, dbAcmeAccountKey):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
-            return {'instructions': ["""curl --form 'action=active' %s/account-key/1/mark.json""" % self.request.admin_url,
+            return {'instructions': ["""curl --form 'action=active' %s/mark.json""" % self._focus_url,
                                      ],
                     'form_fields': {'action': 'the intended action',
                                     },
                     'valid_options': {'action': ['default', 'active', 'inactive'],
                                       }
                     }
-        url_post_required = '%s/account-key/%s?operation=mark&result=post+required' % (
-            self.request.registry.settings['admin_prefix'],
-            dbAcmeAccountKey.id,
-        )
+        url_post_required = '%s?operation=mark&result=post+required' % (self._focus_url)
         return HTTPSeeOther(url_post_required)
 
-    def _account_key_focus_mark__submit(self, dbAcmeAccountKey):
+    def _focus_mark__submit(self, dbAcmeAccountKey):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result,
@@ -351,11 +374,7 @@ class ViewAdmin(Handler):
                 return {'result': 'success',
                         'SslAcmeAccountKey': dbAcmeAccountKey,
                         }
-            url_success = '%s/account-key/%s?operation=mark&action=%s&result=success' % (
-                self.request.registry.settings['admin_prefix'],
-                dbAcmeAccountKey.id,
-                action,
-            )
+            url_success = '%s?operation=mark&action=%s&result=success' % (_focus_url, action,)
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as e:
@@ -368,9 +387,8 @@ class ViewAdmin(Handler):
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
-            url_failure = '%s/account-key/%s?operation=mark&action=%s&result=error&error=%s' % (
-                self.request.registry.settings['admin_prefix'],
-                dbAcmeAccountKey.id,
+            url_failure = '%s/operation=mark&action=%s&result=error&error=%s' % (
+                self._focus_url,
                 action,
                 e.message,
             )

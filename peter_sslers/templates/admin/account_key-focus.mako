@@ -45,13 +45,11 @@
                 <tr>
                     <th>timestamp_last_authenticated</th>
                     <td><timestamp>${SslAcmeAccountKey.timestamp_last_authenticated  or ''}</timestamp>
-                        % if not SslAcmeAccountKey.timestamp_last_authenticated:
-                            <form action="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/authenticate" method="POST">
-                                <button class="btn btn-xs btn-primary" type="submit">
-                                    authenticate against LetsEncrypt
-                                </button>
-                            </form>
-                        % endif
+                        <form action="${admin_prefix}/account-key/${SslAcmeAccountKey.id}/authenticate" method="POST">
+                            <button class="btn btn-xs btn-primary" type="submit">
+                                authenticate against LetsEncrypt
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 <tr>

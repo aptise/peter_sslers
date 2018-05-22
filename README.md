@@ -69,7 +69,7 @@ The endpoint related to "requesting" domains and handling dynamic queues of new 
 
 * This package DOES NOT USE/KNOW/CARE ABOUT SECURITY.
 * This package manages PRIVATE SSL KEYS and makes them readable.
-* If you do not known / are not really awesome with basic network security PLEASE DO NOT USE THIS.
+* If you do not know / are not really awesome with basic network security PLEASE DO NOT USE THIS.
 
 
 # The Components

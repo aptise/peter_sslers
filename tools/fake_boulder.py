@@ -230,7 +230,7 @@ def acme_newcert(request):
 
        [DER-encoded certificate]
     """
-    inbound = request.POST.items()[0][0]
+    inbound = request.body
     (csr_pem,
      domain_names
      ) = decrypt_acme_newcert(inbound)
@@ -270,7 +270,7 @@ def acme_newreg(request):
       ]
     }
     """
-    inbound = request.POST.items()[0][0]
+    inbound = request.body
     inbound_json = json.loads(inbound)
     key = inbound_json["header"]["jwk"]
     body = json.dumps({"key": key,
