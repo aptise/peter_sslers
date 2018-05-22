@@ -10,8 +10,6 @@ usage:
     0. edit environment.ini and set the following:
         certificate_authority = http://127.0.0.1:7202
         certificate_authority_testing = True
-    1. make a folder "fake_boulder_cert/" and place a "cert.crt" in there (der, not pem)
-        this folder is ignored by the `.gitignore` file
     2. python fake_boulder.py
 """
 
@@ -33,7 +31,6 @@ from peter_sslers.lib import cert_utils
 
 
 
-CERTIFICATE = open('fake_boulder_cert/cert.crt').read()
 OPENSSL_BIN = 'openssl'
 
 '''
