@@ -578,7 +578,9 @@ class FunctionalTests_AccountKeys(AppTest):
         form['acme_account_provider_id'].force_value(str(DEFAULT_acme_account_provider_id))  # why aren't any valid options showing?'
         res2 = form.submit()
         assert res2.status_code == 303
-        assert res2.location == """http://localhost/.well-known/admin/account-key/2?result=success&is_created=1"""
+        assert res2.location in ("""http://localhost/.well-known/admin/account-key/2?result=success&is_created=1""",
+                                 """http://localhost:80/.well-known/admin/account-key/2?result=success&is_created=1""",
+                                 )
         res3 = self.testapp.get(res2.location, status=200)
 
         res = self.testapp.get('/.well-known/admin/account-key/upload.json', status=200)
@@ -789,7 +791,7 @@ class FunctionalTests_Certificate(AppTest):
         form['private_key_file'] = Upload(self._filepath_testfile(TEST_FILES['ServerCertificates']['SelfSigned'][_SelfSigned_id]['pkey']))
         res2 = form.submit()
         assert res2.status_code == 303
-        assert res2.location == """http://localhost/.well-known/admin/certificate/1"""
+        assert res2.location.startswith("""http://localhost/.well-known/admin/certificate/""")
 
         res = self.testapp.get('/.well-known/admin/certificate/upload.json', status=200)
         chain_filepath = self._filepath_testfile('lets-encrypt-x1-cross-signed.pem.txt')
@@ -802,9 +804,9 @@ class FunctionalTests_Certificate(AppTest):
         assert res2.status_code == 200
         res2_json = json.loads(res2.body)
         assert res2_json['result'] == 'success'
-        assert res2_json['certificate']['id'] == 2
         assert res2_json['certificate']['created'] is True
-        res3 = self.testapp.get('/.well-known/admin/certificate/2', status=200)
+        certificate_id = res2_json['certificate']['id']
+        res3 = self.testapp.get('/.well-known/admin/certificate/%s' % certificate_id, status=200)
 
     @unittest.skipUnless(RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api")
     def tests_letsencrypt_api(self):

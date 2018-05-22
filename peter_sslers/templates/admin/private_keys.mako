@@ -19,6 +19,12 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
+        <a  href="${admin_prefix}/private-key/upload"
+            title="${request.text_library.info_UploadPrivateKey[0]}"
+            class="btn btn-xs btn-primary"
+        >
+        <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+        Upload: Private Key</a>
         <a href="${admin_prefix}/private-keys.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json

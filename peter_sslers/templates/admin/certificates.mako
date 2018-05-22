@@ -22,6 +22,12 @@
       <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/certificates/expiring">Expiring Certificates</a></li>
     </ul>
     <p class="pull-right">
+        <a  href="${admin_prefix}/certificate/upload"
+            title="${request.text_library.info_UploadExistingCertificate[0]}"
+            class="btn btn-xs btn-primary"
+        >
+        <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+        Upload: Certificate (Existing)</a>
         % if sidenav_option == 'expiring' :
             <a href="${admin_prefix}/certificates/expiring.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>

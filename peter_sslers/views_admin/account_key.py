@@ -61,12 +61,12 @@ class ViewAdmin_New(Handler):
 
     @view_config(route_name='admin:account_key:upload')
     @view_config(route_name='admin:account_key:upload|json', renderer="json")
-    def account_key_upload(self):
+    def upload(self):
         if self.request.method == 'POST':
-            return self._account_key_upload__submit()
-        return self._account_key_upload__print()
+            return self._upload__submit()
+        return self._upload__print()
 
-    def _account_key_upload__print(self):
+    def _upload__print(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
             return {'instructions': ["""curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/account-key/upload.json""" % self.request.admin_url,
@@ -87,7 +87,7 @@ class ViewAdmin_New(Handler):
         providers = models.AcmeAccountProvider.registry.values()
         return render_to_response("/admin/account_key-upload.mako", {'AcmeAccountProviderOptions': providers}, self.request)
 
-    def _account_key_upload__submit(self):
+    def _upload__submit(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result,
@@ -116,8 +116,11 @@ class ViewAdmin_New(Handler):
                         'is_created': True if _is_created else False,
                         'is_existing': False if _is_created else True,
                         }
-
-            return HTTPSeeOther('%s?result=success%s' % (self._focus_url, ('&is_created=1' if _is_created else '&is_existing=1')))
+            return HTTPSeeOther('%s/account-key/%s?result=success%s' % (
+                self.request.admin_url,
+                dbAcmeAccountKey.id,
+                ('&is_created=1' if _is_created else '&is_existing=1')
+            ))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -131,7 +134,7 @@ class ViewAdmin_New(Handler):
                         }
             return formhandling.form_reprint(
                 self.request,
-                self._account_key_upload__print,
+                self._upload__print,
                 auto_error_formatter=lib_text.formatter_error,
             )
 

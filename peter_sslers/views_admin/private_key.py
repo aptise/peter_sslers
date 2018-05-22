@@ -296,10 +296,11 @@ class ViewAdmin_New(Handler):
     def _upload__print(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
-            return {'instructions': """curl --form 'private_key_file=@privkey1.pem' %s/upload.json""" % self._focus_url,
+            return {'instructions': """curl --form 'private_key_file=@privkey1.pem' %s/private-key/upload.json""" % (self.request.registry.settings['admin_prefix']),
                     'form_fields': {'private_key_file': 'required',
                                     },
                     }
+
         return render_to_response("/admin/private_key-upload.mako", {}, self.request)
 
     def _upload__submit(self):
@@ -324,7 +325,7 @@ class ViewAdmin_New(Handler):
                         'is_created': True if _is_created else False,
                         'SslPrivateKey': dbPrivateKey.as_json,
                         }
-            return HTTPSeeOther('%s?result=success%s' % (self._focus_url, ('&is_created=1' if _is_created else '')))
+            return HTTPSeeOther('%s/private-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id, ('&is_created=1' if _is_created else '')))
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",

@@ -114,7 +114,7 @@ class ViewFocus(Handler):
         if not dbQueueRenewal:
             raise HTTPNotFound('the item was not found')
         self._focus_item = dbQueueRenewal
-        self._focus_url = "%s/queue-renewal/%s" % (self.request.admin_url, dbQueueRenewal.item)
+        self._focus_url = "%s/queue-renewal/%s" % (self.request.admin_url, dbQueueRenewal.id)
         return dbQueueRenewal
 
     @view_config(route_name='admin:queue_renewal:focus', renderer='/admin/queue-renewal-focus.mako')
@@ -150,7 +150,7 @@ class ViewFocus(Handler):
                     'valid_options': {'action': ['cancel'],
                                       }
                     }
-        url_huh = '%s/%s?operation=mark&result=huh' % (self._focus_url)
+        url_huh = '%s?operation=mark&result=huh' % (self._focus_url)
         return HTTPSeeOther(url_huh)
 
     def _focus_mark__submit(self, dbRenewalQueueItem):

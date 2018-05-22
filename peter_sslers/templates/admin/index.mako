@@ -144,18 +144,6 @@
             <h3>Existing Certificates</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
-                    <a  href="${admin_prefix}/certificate/upload"
-                        title="${request.text_library.info_UploadExistingCertificate[0]}"
-                    >
-                    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-                    Upload: Existing Certificate</a></li>
-                <li>
-                    <a  href="${admin_prefix}/private-key/upload"
-                        title="${request.text_library.info_UploadPrivateKey[0]}"
-                    >
-                    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-                    Upload: Private Key</a></li>
-                <li>
                     <a  href="${admin_prefix}/account-key/upload"
                         title="${request.text_library.info_UploadAccountKey[0]}"
                     >
@@ -167,6 +155,18 @@
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: CA Certificate</a></li>
+                <li>
+                    <a  href="${admin_prefix}/certificate/upload"
+                        title="${request.text_library.info_UploadExistingCertificate[0]}"
+                    >
+                    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+                    Upload: Certificate (Existing)</a></li>
+                <li>
+                    <a  href="${admin_prefix}/private-key/upload"
+                        title="${request.text_library.info_UploadPrivateKey[0]}"
+                    >
+                    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+                    Upload: Private Key</a></li>
             </ul>
         </div>
     </div>

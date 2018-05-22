@@ -100,7 +100,7 @@ class ViewAdmin_Focus(Handler):
         # todo: post only?
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         dbCertificateRequest = self._focus()
-        if not dbCertificateRequest.type_is('acme flow'):
+        if not dbCertificateRequest.certificate_request_type_is('acme flow'):
             if wants_json:
                 return {"result": "error",
                         "error": "Only availble for Acme Flow",
@@ -136,7 +136,7 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
         if not self.request.registry.settings['enable_acme_flow']:
             raise HTTPNotFound('Acme-Flow is disabled on this system')
 
-        dbCertificateRequest = self._certificate_request_focus()
+        dbCertificateRequest = self._focus()
         if not dbCertificateRequest.certificate_request_type_is('acme flow'):
             raise HTTPNotFound('Only availble for Acme Flow')
         dbCertificateRequest2SslDomain = None

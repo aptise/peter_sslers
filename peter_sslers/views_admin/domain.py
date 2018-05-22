@@ -164,7 +164,7 @@ class ViewAdmin_Focus(Handler):
             raise HTTPNotFound('the domain was not found')
         self._focus_item = dbDomain
         self._focus_url = '%s/domain/%s' % (self.request.registry.settings['admin_prefix'], dbDomain.id, )
-        return
+        return dbDomain
 
     @view_config(route_name='admin:domain:focus', renderer='/admin/domain-focus.mako')
     @view_config(route_name='admin:domain:focus|json', renderer='json')
