@@ -14,16 +14,25 @@ from .. import cert_utils
 from .. import utils
 
 
+EVENTS_USE_ALT = True
+
+
 # ==============================================================================
+
+def get_dbSessionLogItem(ctx):
+    dbSession = ctx.dbSessionLogger if EVENTS_USE_ALT else ctx.dbSession
+    return dbSession
 
 
 def get__SslAcmeEventLogs__count(ctx):
-    counted = ctx.dbSession.query(models.SslAcmeEventLog).count()
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    counted = dbSessionLogItem.query(models.SslAcmeEventLog).count()
     return counted
 
 
 def get__SslAcmeEventLogs__paginated(ctx, limit=None, offset=0):
-    query = ctx.dbSession.query(models.SslAcmeEventLog)\
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    query = dbSessionLogItem.query(models.SslAcmeEventLog)\
         .order_by(models.SslAcmeEventLog.id.desc())\
         .limit(limit)\
         .offset(offset)
@@ -32,7 +41,8 @@ def get__SslAcmeEventLogs__paginated(ctx, limit=None, offset=0):
 
 
 def get__SslAcmeEventLog__by_id(ctx, id):
-    counted = ctx.dbSession.query(models.SslAcmeEventLog).get(id)
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    counted = dbSessionLogItem.query(models.SslAcmeEventLog).get(id)
     return counted
 
 
@@ -40,12 +50,14 @@ def get__SslAcmeEventLog__by_id(ctx, id):
 
 
 def get__SslAcmeChallengeLogs__count(ctx):
-    counted = ctx.dbSession.query(models.SslAcmeChallengeLog).count()
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    counted = dbSessionLogItem.query(models.SslAcmeChallengeLog).count()
     return counted
 
 
 def get__SslAcmeChallengeLogs__paginated(ctx, limit=None, offset=0):
-    query = ctx.dbSession.query(models.SslAcmeChallengeLog)\
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    query = dbSessionLogItem.query(models.SslAcmeChallengeLog)\
         .order_by(models.SslAcmeChallengeLog.id.desc())\
         .limit(limit)\
         .offset(offset)
@@ -54,7 +66,8 @@ def get__SslAcmeChallengeLogs__paginated(ctx, limit=None, offset=0):
 
 
 def get__SslAcmeChallengeLog__by_id(ctx, id):
-    counted = ctx.dbSession.query(models.SslAcmeChallengeLog).get(id)
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    counted = dbSessionLogItem.query(models.SslAcmeChallengeLog).get(id)
     return counted
 
 

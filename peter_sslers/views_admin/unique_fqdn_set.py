@@ -11,6 +11,7 @@ import datetime
 # pypi
 import pyramid_formencode_classic as formhandling
 import sqlalchemy
+import transaction
 
 # localapp
 from ..models import models
@@ -31,7 +32,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:unique_fqdn_sets_paginated', renderer='/admin/unique_fqdn_sets.mako')
     @view_config(route_name='admin:unique_fqdn_sets|json', renderer='json')
     @view_config(route_name='admin:unique_fqdn_sets_paginated|json', renderer='json')
-    def unique_fqdn_sets(self):
+    def list(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         items_count = lib_db.get.get__SslUniqueFQDNSet__count(self.request.api_context)
         if wants_json:
@@ -55,7 +56,7 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _unique_fqdn_set_focus(self):
+    def _focus(self):
         dbItem = lib_db.get.get__SslUniqueFQDNSet__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbItem:
             raise HTTPNotFound('the fqdn set was not found')
@@ -63,9 +64,9 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:unique_fqdn_set:focus', renderer='/admin/unique_fqdn_set-focus.mako')
     @view_config(route_name='admin:unique_fqdn_set:focus|json', renderer='json')
-    def unique_fqdn_set_focus(self):
+    def focus(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbFqdnSet = self._unique_fqdn_set_focus()
+        dbFqdnSet = self._focus()
         if wants_json:
             _prefix = "%s/unique-fqdn-set/%s" % (self.request.registry.settings['admin_prefix'], dbFqdnSet.id)
             return {"SslUniqueFQDNSet": dbFqdnSet.as_json,
@@ -78,9 +79,9 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:unique_fqdn_set:focus:calendar|json', renderer='json')
-    def unique_fqdn_set_focus__calendar(self):
+    def focus__calendar(self):
         rval = {}
-        dbUniqueFQDNSet = self._unique_fqdn_set_focus()
+        dbUniqueFQDNSet = self._focus()
         weekly_certs = self.request.api_context.dbSession.query(models.year_week(models.SslServerCertificate.timestamp_signed).label('week_num'),
                                                                 sqlalchemy.func.count(models.SslServerCertificate.id)
                                                                 )\
@@ -98,8 +99,8 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:unique_fqdn_set:focus:certificates', renderer='/admin/unique_fqdn_set-focus-certificates.mako')
     @view_config(route_name='admin:unique_fqdn_set:focus:certificates_paginated', renderer='/admin/unique_fqdn_set-focus-certificates.mako')
-    def unique_fqdn_set_focus__certificates(self):
-        dbUniqueFQDNSet = self._unique_fqdn_set_focus()
+    def focus__certificates(self):
+        dbUniqueFQDNSet = self._focus()
         items_count = lib_db.get.get__SslServerCertificate__by_SslUniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-set/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbUniqueFQDNSet.id))
@@ -114,8 +115,8 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:unique_fqdn_set:focus:certificate_requests', renderer='/admin/unique_fqdn_set-focus-certificate_requests.mako')
     @view_config(route_name='admin:unique_fqdn_set:focus:certificate_requests_paginated', renderer='/admin/unique_fqdn_set-focus-certificate_requests.mako')
-    def unique_fqdn_set_focus__certificate_requests(self):
-        dbUniqueFQDNSet = self._unique_fqdn_set_focus()
+    def focus__certificate_requests(self):
+        dbUniqueFQDNSet = self._focus()
         items_count = lib_db.get.get__SslCertificateRequest__by_SslUniqueFQDNSetId__count(self.request.api_context, dbUniqueFQDNSet.id)
         (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-set/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbUniqueFQDNSet.id))
         items_paged = lib_db.get.get__SslCertificateRequest__by_SslUniqueFQDNSetId__paginated(
@@ -131,9 +132,9 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:unique_fqdn_set:focus:renew:queue', renderer=None)
     @view_config(route_name='admin:unique_fqdn_set:focus:renew:queue|json', renderer='json')
-    def certificate_focus_renew_queue(self):
+    def focus_renew_queue(self):
         """this endpoint is for adding the certificate to the renewal queue immediately"""
-        dbUniqueFQDNSet = self._unique_fqdn_set_focus()
+        dbUniqueFQDNSet = self._focus()
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             # first check to see if this is already queued
@@ -165,7 +166,7 @@ class ViewAdmin(Handler):
                 dbUniqueFQDNSet.id,
                 dbQueue.id,
             )
-            raise HTTPSeeOther(url_success)
+            return HTTPSeeOther(url_success)
 
         except errors.DisplayableError as e:
             if wants_json:

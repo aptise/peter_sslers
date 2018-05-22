@@ -334,11 +334,12 @@ def do__CertificateRequest__AcmeAutomated(
         tmpfiles.append(tmpfile_signed_cert)
         cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
         if set(domain_names) != set(cert_domains):
-            if not acme_v1.TESTING_ENVIRONMENT:
-                log.error("set(domain_names) != set(cert_domains)")
-                log.error(domain_names)
-                log.error(cert_domains)
-                raise ValueError("this should not happen!")
+            # if not acme_v1.TESTING_ENVIRONMENT:
+            log.error("set(domain_names) != set(cert_domains)")
+            log.error(domain_names)
+            log.error(cert_domains)
+            # current version of fakeboulder will sign the csr and give us the right domains !
+            raise ValueError("this should not happen!")
 
         # these MUST commit
         with transaction.manager as tx:

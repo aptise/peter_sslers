@@ -748,6 +748,8 @@ Getting Started
 
 - $VENV/bin/initialize_peter_sslers_db example_development.ini
 
+- vi example_development.ini
+
 - $VENV/bin/pserve example_development.ini
 
 

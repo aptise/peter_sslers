@@ -16,6 +16,7 @@ import textwrap
 import sys
 import json
 import binascii
+import pdb
 
 
 # pypi
@@ -111,7 +112,7 @@ def parse_cert_domains(
 def parse_cert_domains__segmented(
     cert_path=None,
 ):
-    log.info("Parsing CERT...")
+    log.info("Parsing CERT... | parse_cert_domains__segmented")
     proc = subprocess.Popen([openssl_path, "x509", "-in", cert_path, "-noout", "-text"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
@@ -136,12 +137,17 @@ def parse_cert_domains__segmented(
 def parse_csr_domains(
     csr_path=None,
     submitted_domain_names=None,
+    is_der=None
 ):
     """checks found names against `submitted_domain_names`
     """
-    log.info("Parsing CSR...")
-    proc = subprocess.Popen([openssl_path, "req", "-in", csr_path, "-noout", "-text"],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    log.info("Parsing CSR... | parse_csr_domains")
+    if is_der:
+        proc = subprocess.Popen([openssl_path, "req", "-in", csr_path, '-inform', 'DER', "-noout", "-text"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        proc = subprocess.Popen([openssl_path, "req", "-in", csr_path, "-noout", "-text"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
     if proc.returncode != 0:
         raise IOError("Error loading {0}: {1}".format(csr_path, err))
@@ -376,6 +382,13 @@ def convert_der_to_pem(der_data=None):
     return as_pem
 
 
+def convert_der_to_pem__csr(der_data=None):
+    # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
+    as_pem = """-----BEGIN CERTIFICATE REQUEST-----\n{0}\n-----END CERTIFICATE REQUEST-----\n""".format(
+        "\n".join(textwrap.wrap(base64.b64encode(der_data).decode('utf8'), 64)))
+    return as_pem
+
+
 def convert_der_to_pem__rsakey(der_data=None):
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     """
@@ -395,9 +408,9 @@ def convert_pem_to_der(pem_data=None):
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     lines = [l.strip() for l in pem_data.strip().split('\n')]
     # remove the BEGIN CERT
-    if ('BEGIN CERTIFICATE' in lines[0]) or ('BEGIN RSA PRIVATE KEY' in lines[0]) or ('BEGIN PRIVATE KEY' in lines[0]):
+    if ('BEGIN CERTIFICATE' in lines[0]) or ('BEGIN RSA PRIVATE KEY' in lines[0]) or ('BEGIN PRIVATE KEY' in lines[0]) or ('BEGIN CERTIFICATE REQUEST' in lines[0]):
         lines = lines[1:]
-    if ('END CERTIFICATE' in lines[-1]) or ('END RSA PRIVATE KEY' in lines[-1]) or ('END PRIVATE KEY' in lines[-1]):
+    if ('END CERTIFICATE' in lines[-1]) or ('END RSA PRIVATE KEY' in lines[-1]) or ('END PRIVATE KEY' in lines[-1]) or ('END CERTIFICATE REQUEST' in lines[-1]):
         lines = lines[:-1]
     lines = ''.join(lines)
     result = base64.b64decode(lines)

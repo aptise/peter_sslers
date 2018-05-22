@@ -1434,6 +1434,11 @@ class SslUniqueFQDNSet(Base):
                                         back_populates='unique_fqdn_set',
                                         )
 
+    queue_renewal__active = sa.orm.relationship("SslQueueRenewal",
+                                                primaryjoin="and_(SslUniqueFQDNSet.id==SslQueueRenewal.ssl_unique_fqdn_set_id, SslQueueRenewal.is_active==True)",
+                                                back_populates='unique_fqdn_set',
+                                                )
+
     operations_object_events = sa.orm.relationship("SslOperationsObjectEvent",
                                                    primaryjoin="SslUniqueFQDNSet.id==SslOperationsObjectEvent.ssl_unique_fqdn_set_id",
                                                    back_populates="unique_fqdn_set"

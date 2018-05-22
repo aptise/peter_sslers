@@ -322,7 +322,7 @@ class ViewAdmin(Handler):
                 dbServerCertificate.id,
                 dbLetsencryptCertificateNew.id,
             )
-            raise HTTPSeeOther(url_success)
+            return HTTPSeeOther(url_success)
 
         except errors.DisplayableError as e:
             if wants_json:
@@ -374,7 +374,7 @@ class ViewAdmin(Handler):
                 dbServerCertificate.id,
                 dbQueue.id,
             )
-            raise HTTPSeeOther(url_success)
+            return HTTPSeeOther(url_success)
 
         except errors.DisplayableError as e:
             if wants_json:

@@ -334,7 +334,7 @@ class ViewAdmin(Handler):
             except (errors.AcmeCommunicationError,
                     errors.DomainVerificationError,
                     ) as e:
-                return HTTPSeeOther('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
+                return HTTPSeeOther('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message.replace('\n', '+').replace(' ', '+')))
             except Exception as exc:
                 if self.request.registry.settings['exception_redirect']:
                     return HTTPSeeOther('%s/certificate-requests?error=new-AcmeAutomated' % self.request.registry.settings['admin_prefix'])

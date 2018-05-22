@@ -37,6 +37,17 @@
                     </td>
                 </tr>
                 <tr>
+                    <th>account/provider</th>
+                    <td>
+                        via log event
+                        <a  class="label label-info"
+                            href="${admin_prefix}/account-keys/${SslAcmeChallengeLog.acme_event_log.ssl_acme_account_key_id}"
+                        >
+                            account-${SslAcmeChallengeLog.acme_event_log.ssl_acme_account_key_id}
+                        </a>
+                    </td>
+                </tr>
+                <tr>
                     <th>timestamp_created</th>
                     <td>${SslAcmeChallengeLog.timestamp_created}</td>
                 </tr>

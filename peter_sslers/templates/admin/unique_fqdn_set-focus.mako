@@ -179,7 +179,7 @@
                     <tr>
                         <th>Queue: Renewals</th>
                         <td>
-                            ${admin_partials.table_queue_renewal__list(SslUniqueFQDNSet.queue_renewal, show_certificate=True)}
+                            ${admin_partials.table_queue_renewal__list(SslUniqueFQDNSet.queue_renewal__active, show_certificate=True)}
                         </td>
                     </tr>
                 </tbody>

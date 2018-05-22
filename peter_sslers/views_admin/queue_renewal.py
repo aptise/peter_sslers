@@ -199,7 +199,6 @@ class ViewAdmin(Handler):
                                             event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
                                             dbQueueRenewal=dbRenewalQueueItem,
                                             )
-
             if wants_json:
                 return {'result': 'success',
                         'SslQueueRenewal': dbRenewalQueueItem.as_json,

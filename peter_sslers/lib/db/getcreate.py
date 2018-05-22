@@ -56,7 +56,7 @@ def getcreate__SslAcmeAccountKey(
                     )\
             .first()
         if not dbAcmeAccountKey:
-            if not acme_account_provider_id:
+            if acme_account_provider_id is None:
                 raise ValueError("no `acme_account_provider_id`. required if PEM key is uploaded.")
             try:
                 _tmpfile = cert_utils.new_pem_tempfile(key_pem)
@@ -123,7 +123,7 @@ def getcreate__SslAcmeAccountKey(
                     continue
                 if account_uri.startswith(acme_provider['endpoint']):
                     acme_account_provider_id = acme_provider['id']
-            if not acme_account_provider_id:
+            if acme_account_provider_id is None:
                 raise ValueError('could not derive an account')
         except KeyError:
             raise ValueError("could not parse an account")
