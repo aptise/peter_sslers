@@ -105,6 +105,7 @@ def main(global_config, **settings):
         certificate_authority_testing = set_bool_setting(config.registry.settings, 'certificate_authority_testing')
         if certificate_authority_testing:
             acme_v1.TESTING_ENVIRONMENT = True
+            models_models.TESTING_ENVIRONMENT = True
 
     if 'certificate_authority_agreement' in settings:
         acme_v1.CERTIFICATE_AUTHORITY_AGREEMENT = settings["certificate_authority_agreement"]
@@ -117,6 +118,17 @@ def main(global_config, **settings):
 
     # enable/disable the acme-flow system
     set_bool_setting(config.registry.settings, 'enable_acme_flow')
+
+
+    # Queue Domains Config
+    queue_domains_max_per_cert = set_int_setting(config.registry.settings, 'queue_domains_max_per_cert', default=100)
+    if queue_domains_max_per_cert > 100:
+        raise ValueError("The absolute max for `queue_domains_max_per_cert` is 100")
+    queue_domains_min_per_cert = set_int_setting(config.registry.settings, 'queue_domains_min_per_cert', default=1)
+    if queue_domains_min_per_cert < 1:
+        raise ValueError("The absolute min for `queue_domains_min_per_cert` is 1")
+    queue_domains_use_weekly_key = set_bool_setting(config.registry.settings, 'queue_domains_use_weekly_key')
+    #
 
     _enable_redis = set_bool_setting(config.registry.settings, 'enable_redis')
     if _enable_redis:
@@ -155,7 +167,7 @@ def main(global_config, **settings):
     config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)
     config.add_request_method(lambda request: request.registry.settings.get('admin_server', None) or request.environ['HTTP_HOST'], 'admin_server', reify=True)
     config.add_request_method(lambda request: datetime.datetime.utcnow(), 'a_timestamp', reify=True)
-    config.add_request_method(lambda request: ApiContext(timestamp=request.a_timestamp, dbSession=request.dbSession, dbSessionLogger=request.dbSessionLogger), 'api_context', reify=True)
+    config.add_request_method(lambda request: ApiContext(timestamp=request.a_timestamp, dbSession=request.dbSession, dbSessionLogger=request.dbSessionLogger, request=request), 'api_context', reify=True)
     config.add_request_method(lambda request: '<li>%s</li><li>Peter SSLers</li>' % request.active_domain_name, 'breadcrumb_prefix', reify=True)
     config.add_request_method(api_host, 'api_host', reify=True)
     config.add_request_method(admin_url, 'admin_url', reify=True)

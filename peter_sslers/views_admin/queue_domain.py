@@ -46,8 +46,12 @@ class ViewAdmin(Handler):
                                                                 'admin:queue_domains:all_paginated|json',
                                                                 ) else False
         sidenav_option = 'unprocessed'
+        unprocessed_only = True
+        show_all = None
         if wants_all:
             sidenav_option = 'all'
+            unprocessed_only = False
+            show_all = True
         if wants_json:
             if wants_all:
                 url_template = '%s/queue-domains/all/{0}.json' % self.request.registry.settings['admin_prefix']
@@ -58,10 +62,9 @@ class ViewAdmin(Handler):
                 url_template = '%s/queue-domains/all/{0}' % self.request.registry.settings['admin_prefix']
             else:
                 url_template = '%s/queue-domains/{0}' % self.request.registry.settings['admin_prefix']
-        show_processed = False if wants_all else True    
-        items_count = lib_db.get.get__SslQueueDomain__count(self.request.api_context, show_processed=show_processed)
+        items_count = lib_db.get.get__SslQueueDomain__count(self.request.api_context, show_all=show_all, unprocessed_only=unprocessed_only)
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__SslQueueDomain__paginated(self.request.api_context, show_processed=show_processed, limit=items_per_page, offset=offset)
+        items_paged = lib_db.get.get__SslQueueDomain__paginated(self.request.api_context, show_all=show_all, unprocessed_only=unprocessed_only, limit=items_per_page, offset=offset)
         if wants_json:
             _domains = {d.id: d.as_json for d in items_paged}
             return {'SslQueueDomains': _domains,
@@ -152,7 +155,9 @@ class ViewAdmin(Handler):
                 return {'result': 'success',
                         }
             return HTTPSeeOther("%s/queue-domains?processed=1" % self.request.registry.settings['admin_prefix'])
-        except (errors.DisplayableError, errors.DomainVerificationError) as e:
+        except (errors.DisplayableError,
+                errors.DomainVerificationError,
+                ) as e:
             # return, don't raise
             # we still commit the bookkeeping
             if wants_json:

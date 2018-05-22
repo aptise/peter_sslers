@@ -24,7 +24,7 @@ Coding Style:
         constraints
         properties/functions
 """
-
+TESTING_ENVIRONMENT = False
 
 # ==============================================================================
 
@@ -470,6 +470,8 @@ class SslAcmeAccountKey(Base):
 
     @reify
     def acme_account_provider_endpoint(self):
+        if TESTING_ENVIRONMENT:
+            return AcmeAccountProvider.registry[0]['endpoint']
         if self.acme_account_provider_id:
             for provider_info in AcmeAccountProvider.registry.values():
                 if provider_info['id'] == self.acme_account_provider_id:
@@ -1165,8 +1167,29 @@ class SslQueueRenewal(Base):
                                                    primaryjoin="SslQueueRenewal.id==SslOperationsObjectEvent.ssl_queue_renewal_id",
                                                    back_populates="queue_renewal"
                                                    )
+    @property
+    def renewal_AccountKey(self):
+        "returns a valid AccountKey or NONE"
+        if self.server_certificate:
+            if self.server_certificate.ssl_acme_account_key_id:
+                if self.server_certificate.acme_account_key.is_active:
+                    return self.server_certificate.acme_account_key
+        return None
 
+    @property
+    def renewal_PrivateKey(self):
+        "returns a valid Private or NONE"
+        if self.server_certificate:
+            if self.server_certificate.ssl_private_key_id__signed_by:
+                if self.server_certificate.private_key.is_active:
+                    return self.server_certificate.private_key
+        return None
 
+    @property
+    def domains_as_list(self):
+        return self.unique_fqdn_set.domains_as_list
+
+    
 class SslServerCertificate(Base):
     """
     A signed ServerCertificate.

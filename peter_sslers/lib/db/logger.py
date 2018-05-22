@@ -63,11 +63,11 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.flush()
         return sslAcmeEventLog
 
-    def log_event_certificate(self, sslAcmeEventLog, ssl_server_certificate_id):
+    def log_event_certificate(self, sslAcmeEventLog, dbServerCertificate):
         """
         Logs a challenge request
         """
-        sslAcmeEventLog.ssl_server_certificate_id = ssl_server_certificate_id
+        sslAcmeEventLog.ssl_server_certificate_id = dbServerCertificate.id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 

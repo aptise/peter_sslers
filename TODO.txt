@@ -8,8 +8,9 @@ asap tasks
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
     def queue_domain_process(self):
 * search for pending validations
+* install a separate acme-log database
+* update acme-challenge-log to track the account which polls it.
 
-	
 * build authorization deactivate tool
 * migrate cert_subject hash and tracking to SAN
 * search expiring soon | note: isn't this the `/certificates/expiring` view?
@@ -37,6 +38,8 @@ Long Term Questions:
 * decouple from openssl and use pure-python methods
 	- using the openssl was initial decision to have fewest python requirements possible
 	- if that happens, should requests be used?
+* remove pyramidtm? migrate to autocommit?  
+
 
 Additional Test coverage needed for
 -----------------------------------

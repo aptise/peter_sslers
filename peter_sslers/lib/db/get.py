@@ -551,29 +551,32 @@ def get__SslPrivateKey__default(ctx, active_only=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslQueueDomain__count(ctx, show_processed=False):
+def get__SslQueueDomain__count(ctx, show_all=None, unprocessed_only=None):
     q = ctx.dbSession.query(models.SslQueueDomain)
-    if not show_processed:
+    if unprocessed_only and show_all:
+        raise ValueError("conflicting arguments")
+    if unprocessed_only:
         q = q.filter(models.SslQueueDomain.timestamp_processed.op('IS')(None),  # noqa
                      )
     counted = q.count()
     return counted
 
 
-def get__SslQueueDomain__paginated(ctx, show_processed=False, eagerload_web=False, limit=None, offset=0):
+def get__SslQueueDomain__paginated(ctx, show_all=None, unprocessed_only=None, eagerload_web=None, limit=None, offset=0):
     q = ctx.dbSession.query(models.SslQueueDomain)
-    if not show_processed:
+    if unprocessed_only and show_all:
+        raise ValueError("conflicting arguments")
+    if unprocessed_only:
         q = q.filter(models.SslQueueDomain.timestamp_processed.op('IS')(None),  # noqa
                      )
-    else:
-        q = q.order_by(models.SslQueueDomain.id.desc())
+    q = q.order_by(models.SslQueueDomain.id.desc())
     q = q.limit(limit)\
         .offset(offset)
     items_paged = q.all()
     return items_paged
 
 
-def get__SslQueueDomain__by_id(ctx, set_id, eagerload_log=False):
+def get__SslQueueDomain__by_id(ctx, set_id, eagerload_log=None):
     q = ctx.dbSession.query(models.SslQueueDomain)\
         .filter(models.SslQueueDomain.id == set_id)
     if eagerload_log:

@@ -81,6 +81,12 @@
 - added lynx images
 - made acme-flow a configuration option
 - added `timestamp_revoked_upstream` to SslServerCertificate; set when the cert is reported/officially revoked.
+- added config option: queue_domains_max_per_cert
+- added config option: queue_domains_min_per_cert
+- added config option: queue_domains_use_weekly_key
+* audit /admin/queue-domains/process
+* audit /admin/queue-renewal/process
+
 
 
 0.1.5

@@ -37,10 +37,12 @@ def main(argv=sys.argv):
 
     engine = get_engine(settings)
     Base.metadata.create_all(engine)
-
+    if engine.name == 'sqlite':
+        engineLogger = get_engine(settings, prefix='sqlalchemy_logger.')
+        Base.metadata.create_all(engineLogger, tables=[models.SslAcmeEventLog.__table__, models.SslAcmeChallengeLog.__table__, ])
     session_factory = get_session_factory(engine)
 
-    with transaction.manager:
-        dbSession = get_tm_session(None, session_factory, transaction.manager)
-        # model = MyModel(name='one', value=1)
-        # dbSession.add(model)
+    # with transaction.manager:
+    #    dbSession = get_tm_session(None, session_factory, transaction.manager)
+    #    model = MyModel(name='one', value=1)
+    #    dbSession.add(model)

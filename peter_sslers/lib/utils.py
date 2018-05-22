@@ -31,6 +31,7 @@ class ApiContext(object):
 
     This implements an interface that guarantees several properties.  Substitutes may be used-
 
+    :request: - pyramid request object
     :timestamp: `datetime.datetime.utcnow()`
     :dbSession: - sqlalchemy `session` object
     :dbSessionLogger: - sqlalchemy `session` object with autocommit
@@ -41,8 +42,10 @@ class ApiContext(object):
     dbSession = None
     dbSessionLogger = None
     timestamp = None
+    request = None
 
-    def __init__(self, dbOperationsEvent=None, dbSession=None, dbSessionLogger=None, timestamp=None, ):
+    def __init__(self, request=None, dbOperationsEvent=None, dbSession=None, dbSessionLogger=None, timestamp=None, ):
+        self.request = request
         self.dbOperationsEvent = dbOperationsEvent
         self.dbSession = dbSession
         self.dbSessionLogger = dbSessionLogger
