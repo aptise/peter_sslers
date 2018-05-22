@@ -28,13 +28,13 @@ from ..lib.handler import Handler, items_per_page
 # ==============================================================================
 
 
-class ViewAdmin(Handler):
+class ViewAdmin_List(Handler):
 
     @view_config(route_name='admin:certificate_requests', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests_paginated', renderer='/admin/certificate_requests.mako')
     @view_config(route_name='admin:certificate_requests|json', renderer='json')
     @view_config(route_name='admin:certificate_requests_paginated|json', renderer='json')
-    def certificate_requests(self):
+    def list(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         items_count = lib_db.get.get__SslCertificateRequest__count(self.request.api_context)
         if wants_json:
@@ -56,19 +56,22 @@ class ViewAdmin(Handler):
                 'pager': pager,
                 }
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _certificate_request_focus(self):
+class ViewAdmin_Focus(Handler):
+
+    def _focus(self):
         dbCertificateRequest = lib_db.get.get__SslCertificateRequest__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbCertificateRequest:
             raise HTTPNotFound('the certificate was not found')
+        self._focus_item = dbCertificateRequest
+        self._focus_url = '%s/certificate-request/%s' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id)
         return dbCertificateRequest
 
     @view_config(route_name='admin:certificate_request:focus', renderer='/admin/certificate_request-focus.mako')
     @view_config(route_name='admin:certificate_request:focus|json', renderer='json')
-    def certificate_request_focus(self):
+    def focus(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbCertificateRequest = self._certificate_request_focus()
+        dbCertificateRequest = self._focus()
         if wants_json:
             return {'SslCertificateRequest': dbCertificateRequest.as_json_extended,
                     }
@@ -77,8 +80,8 @@ class ViewAdmin(Handler):
                 }
 
     @view_config(route_name='admin:certificate_request:focus:raw', renderer='string')
-    def certificate_request_focus_raw(self):
-        dbCertificateRequest = self._certificate_request_focus()
+    def focus_raw(self):
+        dbCertificateRequest = self._focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
             return dbCertificateRequest.csr_pem
@@ -93,11 +96,11 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:certificate_request:focus:acme-flow:deactivate')
     @view_config(route_name='admin:certificate_request:focus:acme-flow:deactivate|json', renderer="json")
-    def certificate_request_deactivate(self):
+    def deactivate(self):
         # todo: post only?
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbCertificateRequest = self._certificate_request_focus()
-        if not dbCertificateRequest.certificate_request_type_is('acme flow'):
+        dbCertificateRequest = self._focus()
+        if not dbCertificateRequest.type_is('acme flow'):
             if wants_json:
                 return {"result": "error",
                         "error": "Only availble for Acme Flow",
@@ -109,15 +112,16 @@ class ViewAdmin(Handler):
             return {"result": "success",
                     "SslCertificateRequest": dbCertificateRequest.as_json,
                     }
-        return HTTPSeeOther('%s/certificate-request/%s?result=success' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id))
+        return HTTPSeeOther('%s?result=success' % self._focus_url)
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
 
     @view_config(route_name='admin:certificate_request:focus:acme-flow:manage', renderer='/admin/certificate_request-focus-AcmeFlow-manage.mako')
-    def certificate_request_AcmeFlow_manage(self):
+    def manage_AcmeFlow(self):
         if not self.request.registry.settings['enable_acme_flow']:
             raise HTTPNotFound('Acme-Flow is disabled on this system')
-        dbCertificateRequest = self._certificate_request_focus()
+        dbCertificateRequest = self._focus()
         if not dbCertificateRequest.certificate_request_type_is('acme flow'):
             raise HTTPNotFound('Only availble for Acme Flow')
         return {'project': 'peter_sslers',
@@ -190,9 +194,8 @@ class ViewAdmin(Handler):
 
             self.request.api_context.dbSession.flush(objects=[self.db_SslCertificateRequest2SslDomain, ])
 
-            return HTTPSeeOther('%s/certificate-request/%s/acme-flow/manage/domain/%s?result=success' %
-                                (self.request.registry.settings['admin_prefix'],
-                                 self.db_SslCertificateRequest.id,
+            return HTTPSeeOther('%s/acme-flow/manage/domain/%s?result=success' %
+                                (self._focus_url,
                                  self.db_SslCertificateRequest2SslDomain.ssl_domain_id
                                  )
                                 )
@@ -209,25 +212,26 @@ class ViewAdmin(Handler):
                 auto_error_formatter=lib_text.formatter_error,
             )
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class ViewAdmin_New(Handler):
 
     @view_config(route_name='admin:certificate_request:new:acme-flow')
-    def certificate_request_new_AcmeFlow(self):
+    def new_AcmeFlow(self):
         if not self.request.registry.settings['enable_acme_flow']:
             raise HTTPNotFound('Acme-Flow is disabled on this system')
 
         if self.request.method == 'POST':
-            return self._certificate_request_new_AcmeFlow__submit()
-        return self._certificate_request_new_AcmeFlow__print()
+            return self._new_AcmeFlow__submit()
+        return self._new_AcmeFlow__print()
 
-    def _certificate_request_new_AcmeFlow__print(self):
+    def _new_AcmeFlow__print(self):
         self._load_AccountKeyDefault()
         return render_to_response("/admin/certificate_request-new-AcmeFlow.mako",
                                   {'dbAccountKeyDefault': self.dbAccountKeyDefault,
                                    },
                                   self.request)
 
-    def _certificate_request_new_AcmeFlow__submit(self):
+    def _new_AcmeFlow__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(self.request,
                                                              schema=Form_CertificateRequest_new_AcmeFlow,
@@ -258,21 +262,21 @@ class ViewAdmin(Handler):
                                 )
             return formhandling.form_reprint(
                 self.request,
-                self._certificate_request_new_AcmeFlow__print,
+                self._new_AcmeFlow__print,
                 auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:certificate_request:new:acme-automated')
-    def certificate_request_new_AcmeAutomated(self):
+    def new_AcmeAutomated(self):
         self._load_AccountKeyDefault()
         self._load_PrivateKeyDefault()
         if self.request.method == 'POST':
-            return self._certificate_request_new_AcmeAutomated__submit()
-        return self._certificate_request_new_AcmeAutomated__print()
+            return self._new_AcmeAutomated__submit()
+        return self._new_AcmeAutomated__print()
 
-    def _certificate_request_new_AcmeAutomated__print(self):
+    def _new_AcmeAutomated__print(self):
         active_ca = lib.acme_v1.CERTIFICATE_AUTHORITY
         providers = models.AcmeAccountProvider.registry.values()
         return render_to_response("/admin/certificate_request-new-AcmeAutomated.mako",
@@ -282,7 +286,7 @@ class ViewAdmin(Handler):
                                    'AcmeAccountProviderOptions': providers,
                                    }, self.request)
 
-    def _certificate_request_new_AcmeAutomated__submit(self):
+    def _new_AcmeAutomated__submit(self):
         try:
             (result,
              formStash
@@ -350,7 +354,7 @@ class ViewAdmin(Handler):
                                 )
             return formhandling.form_reprint(
                 self.request,
-                self._certificate_request_new_AcmeAutomated__print,
+                self._new_AcmeAutomated__print,
                 auto_error_formatter=lib_text.formatter_error,
             )
 

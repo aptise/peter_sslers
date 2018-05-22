@@ -85,12 +85,12 @@ class ViewAdmin_New(Handler):
 
     @view_config(route_name='admin:queue_domains:add')
     @view_config(route_name='admin:queue_domains:add|json', renderer='json')
-    def queue_domains_add(self):
+    def add(self):
         if self.request.method == 'POST':
-            return self._queue_domains_add__submit()
-        return self._queue_domains_add__print()
+            return self._add__submit()
+        return self._add__print()
 
-    def _queue_domains_add__print(self):
+    def _add__print(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
             return {'instructions': """POST `domain_names""",
@@ -99,7 +99,7 @@ class ViewAdmin_New(Handler):
                     }
         return render_to_response("/admin/queue-domains-add.mako", {}, self.request)
 
-    def _queue_domains_add__submit(self):
+    def _add__submit(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result, formStash) = formhandling.form_validate(self.request,
@@ -140,7 +140,7 @@ class ViewAdmin_New(Handler):
                         }
             return formhandling.form_reprint(
                 self.request,
-                self._queue_domains_add__print,
+                self._add__print,
                 auto_error_formatter=lib_text.formatter_error,
             )
 
@@ -148,7 +148,7 @@ class ViewAdmin_New(Handler):
 
     @view_config(route_name='admin:queue_domains:process', renderer=None)
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
-    def queue_domain_process(self):
+    def process(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             queue_results = lib_db.queues.queue_domains__process(self.request.api_context)
@@ -220,8 +220,8 @@ class ViewAdmin_Focus(Handler):
                                       }
                     }
         url_post_required = '%s?operation=mark&result=post+required' % (self._focus_url)
-        return HTTPSeeOther(url_post_required)            
-    
+        return HTTPSeeOther(url_post_required)
+
     def _focus_mark__submit(self, dbQueueDomain):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:

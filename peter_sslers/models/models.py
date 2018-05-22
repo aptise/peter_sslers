@@ -1093,7 +1093,6 @@ class SslQueueDomain(Base):
                 }
 
 
-
 class SslQueueRenewal(Base):
     """
     An item to be renewed.
@@ -1167,6 +1166,7 @@ class SslQueueRenewal(Base):
                                                    primaryjoin="SslQueueRenewal.id==SslOperationsObjectEvent.ssl_queue_renewal_id",
                                                    back_populates="queue_renewal"
                                                    )
+
     @property
     def renewal_AccountKey(self):
         "returns a valid AccountKey or NONE"
@@ -1189,7 +1189,7 @@ class SslQueueRenewal(Base):
     def domains_as_list(self):
         return self.unique_fqdn_set.domains_as_list
 
-    
+
 class SslServerCertificate(Base):
     """
     A signed ServerCertificate.
@@ -1326,13 +1326,13 @@ class SslServerCertificate(Base):
         if self.timestamp_signed:
             return self.timestamp_signed.isoformat()
         return None
-    
+
     @property
     def timestamp_revoked_upstream_isoformat(self):
         if self.timestamp_revoked_upstream:
             return self.timestamp_revoked_upstream.isoformat()
         return None
-    
+
     @property
     def config_payload(self):
         # the ids are strings so that the fullchain id can be split by a client without further processing

@@ -119,7 +119,6 @@ def main(global_config, **settings):
     # enable/disable the acme-flow system
     set_bool_setting(config.registry.settings, 'enable_acme_flow')
 
-
     # Queue Domains Config
     queue_domains_max_per_cert = set_int_setting(config.registry.settings, 'queue_domains_max_per_cert', default=100)
     if queue_domains_max_per_cert > 100:

@@ -14,7 +14,6 @@ usage:
     3. python fake_boulder.py
         note this uses an openssl system running in `./fake_boulder_config` and will create/edit files in there
         you can safely trash the generated certs
-    
 """
 
 
@@ -45,7 +44,7 @@ print "USING CAPATH : %s" % CAPATH
 
 
 def _unb64(b):
-	# http://letsencrypt.readthedocs.io/projects/acme/en/latest/_modules/acme/jose/b64.html#b64encode
+    # http://letsencrypt.readthedocs.io/projects/acme/en/latest/_modules/acme/jose/b64.html#b64encode
     data = b.encode('ascii')
     return base64.urlsafe_b64decode(data + b'=' * (4 - (len(data) % 4)))
 
@@ -65,14 +64,14 @@ def decrypt_acme_newcert(post_data):
         _tmpfile_der = tempfile.NamedTemporaryFile()
         _tmpfile_der.write(csr_der)
         _tmpfile_der.seek(0)
-        
+
         csr_pem = cert_utils.convert_der_to_pem__csr(csr_der)
-        
-        #if False:
+
+        # if False:
         #    proc = subprocess.Popen([OPENSSL_BIN, "req", "-in", _tmpfile_der.name, '-inform', 'DER', "-noout", "-text"],
         #                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         #    csr_decoded, err = proc.communicate()
-        #else:
+        # else:
         domain_names = cert_utils.parse_csr_domains(_tmpfile_der.name, is_der=True)
         return (csr_pem, domain_names)
     finally:
@@ -88,7 +87,7 @@ def sign_csr(csr_pem):
 
         _tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
         _tempfiles.append(_tmpfile_csr)
-        
+
         # openssl ca -batch -config ./openssl-ca-2.cnf -policy signing_policy -extensions signing_req -out mygenerated.pem -infiles a.csr
         # openssl ca -batch -config ./openssl-ca-2.cnf -policy signing_policy -extensions signing_req -out mygenerated.pem -in a.csr
         proc = subprocess.Popen([OPENSSL_BIN, 'ca', '-batch', '-config', '%s/%s' % (CAPATH, 'openssl-ca-2.cnf'),
@@ -109,7 +108,8 @@ def sign_csr(csr_pem):
 
 
 def directory(request):
-    return Response(body='''{"123123123": "https://community.letsencrypt.org/t/adding-random-entries-to-the-directory/33417","key-change": "http://127.0.0.1:7202/acme/key-change","meta": {"caaIdentities": ["letsencrypt.org"],"terms-of-service": "https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf","website": "https://letsencrypt.org/docs/staging-environment/"},"new-authz": "http://127.0.0.1:7202/acme/new-authz","new-cert": "http://127.0.0.1:7202/acme/new-cert","new-reg": "http://127.0.0.1:7202/acme/new-reg","revoke-cert": "http://127.0.0.1:7202/acme/revoke-cert"}''',
+    return Response(
+        body='''{"123123123": "https://community.letsencrypt.org/t/adding-random-entries-to-the-directory/33417","key-change": "http://127.0.0.1:7202/acme/key-change","meta": {"caaIdentities": ["letsencrypt.org"],"terms-of-service": "https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf","website": "https://letsencrypt.org/docs/staging-environment/"},"new-authz": "http://127.0.0.1:7202/acme/new-authz","new-cert": "http://127.0.0.1:7202/acme/new-cert","new-reg": "http://127.0.0.1:7202/acme/new-reg","revoke-cert": "http://127.0.0.1:7202/acme/revoke-cert"}''',
         status_code=200,
         headers = {'Replay-Nonce': '123123_123123_',
                    'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ def acme_newauthz(request):
                "combinations": [[0], [1]]
              }
     """
-    return Response(body='''{"challenges": [{"type": "http-01", "token": "123123123-12312", "uri": "http://127.0.0.1:7202/acme/CHALLENGE"}]}''', 
+    return Response(body='''{"challenges": [{"type": "http-01", "token": "123123123-12312", "uri": "http://127.0.0.1:7202/acme/CHALLENGE"}]}''',
                     status_code=201,
                     )
 
@@ -234,7 +234,7 @@ def acme_newreg(request):
     """
     https://tools.ietf.org/html/draft-ietf-acme-acme-03#section-6.2
     IN
-    {"header": {"alg": "RS256", "jwk": {"e": "AQAB", "kty": "RSA", "n": ""}}, "protected": "", "payload": "", "signature": ""}	
+    {"header": {"alg": "RS256", "jwk": {"e": "AQAB", "kty": "RSA", "n": ""}}, "protected": "", "payload": "", "signature": ""}
 
     OUT
     HTTP/1.1 201 Created
@@ -258,10 +258,9 @@ def acme_newreg(request):
     key = inbound_json["header"]["jwk"]
     body = json.dumps({"key": key,
                        "status": "good",
-                       "contact": [
-                         "mailto:cert-admin@example.com",
-                         "tel:+12025551212"
-                       ],
+                       "contact": ["mailto:cert-admin@example.com",
+                                   "tel:+12025551212"
+                                   ],
                        })
     return Response(body=body,
                     status_code=201,

@@ -237,7 +237,7 @@ class AppTest(AppTestCore):
                         selfsigned_1-server.crt
                     PrivateKey
                         selfsigned_1-server.key
-                    
+
                     AcmeEventLog
                     AcmeChallengeLog
                 """
@@ -344,7 +344,7 @@ class AppTest(AppTestCore):
                 )
                 self.ctx.dbSession.commit()
 
-                #AcmeEventLog
+                # AcmeEventLog
                 sslAcmeEventLog = models.models.SslAcmeEventLog()
                 sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
                 sslAcmeEventLog.acme_event_id = models.models.AcmeEvent.from_string('v1|/acme/new-reg')
@@ -352,7 +352,7 @@ class AppTest(AppTestCore):
                 self.ctx.dbSession.flush()
                 self.ctx.dbSession.commit()
 
-                #AcmeChallengeLog
+                # AcmeChallengeLog
                 sslAcmeChallengeLog = models.models.SslAcmeChallengeLog()
                 sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
                 sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
@@ -370,7 +370,7 @@ class AppTest(AppTestCore):
                     ['queue.example.com', ],
                 )
                 self.ctx.dbSession.commit()
-                
+
                 # renew a csr
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
@@ -756,10 +756,9 @@ class FunctionalTests_Certificate(AppTest):
 
         res = self.testapp.get('/.well-known/admin/certificate/%s/renew/quick' % focus_id, status=303)
         res = self.testapp.get('/.well-known/admin/certificate/%s/renew/quick.json' % focus_id, status=200)
-        
+
         res = self.testapp.get('/.well-known/admin/certificate/%s/renew/custom' % focus_id, status=200)
         res = self.testapp.get('/.well-known/admin/certificate/%s/renew/custom.json' % focus_id, status=200)
-
 
     def test_manipulate(self):
         focus_item = self._get_item()
@@ -943,7 +942,6 @@ class FunctionalTests_Domain(AppTest):
         # json paginated
         res = self.testapp.get('/.well-known/admin/domains/1.json', status=200)
         res = self.testapp.get('/.well-known/admin/domains/expiring/1.json', status=200)
-
 
     def test_focus(self):
         focus_item = self._get_item()

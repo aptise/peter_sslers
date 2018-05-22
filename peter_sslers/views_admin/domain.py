@@ -25,7 +25,7 @@ from ..lib.handler import Handler, items_per_page
 # ==============================================================================
 
 
-class ViewAdmin(Handler):
+class ViewAdmin_List(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -37,7 +37,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:domains_paginated|json', renderer='json')
     @view_config(route_name='admin:domains:expiring|json', renderer='json')
     @view_config(route_name='admin:domains:expiring_paginated|json', renderer='json')
-    def domains(self):
+    def list(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         expiring_days = self.request.registry.settings['expiring_days']
         if self.request.matched_route.name in ('admin:domains:expiring',
@@ -78,15 +78,18 @@ class ViewAdmin(Handler):
                 'pager': pager,
                 }
 
+
+class ViewAdmin_Search(Handler):
+
     @view_config(route_name='admin:domains:search', renderer='/admin/domains-search.mako')
     @view_config(route_name='admin:domains:search|json', renderer='json')
-    def domains_search(self):
+    def search(self):
         self.search_results = None
         if self.request.method == 'POST':
-            return self._domains_search__submit()
-        return self._domains_search__print()
-    
-    def _domains_search__print(self):
+            return self._search__submit()
+        return self._search__print()
+
+    def _search__print(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
             return {'instructions': ["""curl --form 'domain=example.com' %s/domains/search.json""" % self.request.admin_url,
@@ -94,9 +97,12 @@ class ViewAdmin(Handler):
                     'form_fields': {'domain': 'the domain',
                                     },
                     }
-        return render_to_response("/admin/domains-search.mako", {'search_results': self.search_results, 'sidenav_option': 'search',}, self.request)
+        return render_to_response("/admin/domains-search.mako",
+                                  {'search_results': self.search_results, 'sidenav_option': 'search', },
+                                  self.request
+                                  )
 
-    def _domains_search__submit(self):
+    def _search__submit(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result,
@@ -127,7 +133,7 @@ class ViewAdmin(Handler):
                                            'SslQueueDomainsInactive': [q.as_json for q in dbQueueDomainsInactive],
                                            }
                         }
-            return self._domains_search__print()
+            return self._search__print()
 
         except formhandling.FormInvalid as e:
             formStash.set_error(field="Error_Main",
@@ -141,13 +147,14 @@ class ViewAdmin(Handler):
                         }
             return formhandling.form_reprint(
                 self.request,
-                self._domains_search__print,
+                self._search__print,
                 auto_error_formatter=lib_text.formatter_error,
             )
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _domain_focus(self, eagerload_web=False):
+class ViewAdmin_Focus(Handler):
+
+    def _focus(self, eagerload_web=False):
         domain_identifier = self.request.matchdict['domain_identifier'].strip()
         if domain_identifier.isdigit():
             dbDomain = lib_db.get.get__SslDomain__by_id(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
@@ -155,13 +162,15 @@ class ViewAdmin(Handler):
             dbDomain = lib_db.get.get__SslDomain__by_name(self.request.api_context, domain_identifier, preload=True, eagerload_web=eagerload_web)
         if not dbDomain:
             raise HTTPNotFound('the domain was not found')
-        return dbDomain
+        self._focus_item = dbDomain
+        self._focus_url = '%s/domain/%s' % (self.request.registry.settings['admin_prefix'], dbDomain.id, )
+        return
 
     @view_config(route_name='admin:domain:focus', renderer='/admin/domain-focus.mako')
     @view_config(route_name='admin:domain:focus|json', renderer='json')
-    def domain_focus(self):
+    def focus(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbDomain = self._domain_focus(eagerload_web=True)
+        dbDomain = self._focus(eagerload_web=True)
         if wants_json:
             return {'SslDomain': dbDomain.as_json,
                     }
@@ -171,22 +180,22 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:domain:focus:nginx_cache_expire', renderer=None)
     @view_config(route_name='admin:domain:focus:nginx_cache_expire|json', renderer='json')
-    def domain_focus_nginx_expire(self):
+    def focus_nginx_expire(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbDomain = self._domain_focus(eagerload_web=True)
+        dbDomain = self._focus(eagerload_web=True)
         if not self.request.registry.settings['enable_nginx']:
-            raise HTTPSeeOther('%s/domain/%s?error=no_nginx' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
+            raise HTTPSeeOther('%s?error=no_nginx' % self._focus_url)
         success, dbEvent = lib.utils.nginx_expire_cache(self.request, self.request.api_context, dbDomains=[dbDomain, ])
         if wants_json:
             return {'result': 'success',
                     'operations_event': {'id': dbEvent.id,
                                          },
                     }
-        return HTTPSeeOther('%s/domain/%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self.request.registry.settings['admin_prefix'], dbDomain.id, dbEvent.id))
+        return HTTPSeeOther('%s?operation=nginx_cache_expire&result=success&event.id=%s' % (self._focus_url, dbEvent.id))
 
     @view_config(route_name='admin:domain:focus:config|json', renderer='json')
-    def domain_focus_config_json(self):
-        dbDomain = self._domain_focus()
+    def focus_config_json(self):
+        dbDomain = self._focus()
         rval = {'domain': {'id': str(dbDomain.id),
                            'domain_name': dbDomain.domain_name,
                            'is_active': dbDomain.is_active,
@@ -210,10 +219,10 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:domain:focus:certificates', renderer='/admin/domain-focus-certificates.mako')
     @view_config(route_name='admin:domain:focus:certificates_paginated', renderer='/admin/domain-focus-certificates.mako')
-    def domain_focus__certificates(self):
-        dbDomain = self._domain_focus()
+    def focus__certificates(self):
+        dbDomain = self._focus()
         items_count = lib_db.get.get__SslServerCertificate__by_SslDomainId__count(self.request.api_context, dbDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificates/{0}' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
+        (pager, offset) = self._paginate(items_count, url_template='%s/certificates/{0}' % self._focus_url)
         items_paged = lib_db.get.get__SslServerCertificate__by_SslDomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -225,10 +234,10 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:domain:focus:certificate_requests', renderer='/admin/domain-focus-certificate_requests.mako')
     @view_config(route_name='admin:domain:focus:certificate_requests_paginated', renderer='/admin/domain-focus-certificate_requests.mako')
-    def domain_focus__certificate_requests(self):
-        dbDomain = self._domain_focus()
+    def focus__certificate_requests(self):
+        dbDomain = self._focus()
         items_count = lib_db.get.get__SslCertificateRequest__by_SslDomainId__count(self.request.api_context, dbDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/certificate-requests/{0}' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
+        (pager, offset) = self._paginate(items_count, url_template='%s/certificate-requests/{0}' % self._focus_url)
         items_paged = lib_db.get.get__SslCertificateRequest__by_SslDomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -241,9 +250,9 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name='admin:domain:focus:calendar|json', renderer='json')
-    def domain_focus__calendar(self):
+    def focus__calendar(self):
         rval = {}
-        dbDomain = self._domain_focus()
+        dbDomain = self._focus()
         weekly_certs = self.request.api_context.dbSession.query(models.year_week(models.SslServerCertificate.timestamp_signed).label('week_num'),
                                                                 sqlalchemy.func.count(models.SslServerCertificate.id)
                                                                 )\
@@ -264,10 +273,10 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:domain:focus:unique_fqdn_sets', renderer='/admin/domain-focus-unique_fqdn_sets.mako')
     @view_config(route_name='admin:domain:focus:unique_fqdn_sets_paginated', renderer='/admin/domain-focus-unique_fqdn_sets.mako')
-    def domain_focus__unique_fqdns(self):
-        dbDomain = self._domain_focus()
+    def focus__unique_fqdns(self):
+        dbDomain = self._focus()
         items_count = lib_db.get.get__SslUniqueFQDNSet__by_SslDomainId__count(self.request.api_context, dbDomain.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/domain/%s/unique-fqdn-sets/{0}' % (self.request.registry.settings['admin_prefix'], dbDomain.id))
+        (pager, offset) = self._paginate(items_count, url_template='%s/unique-fqdn-sets/{0}' % self._focus_url)
         items_paged = lib_db.get.get__SslUniqueFQDNSet__by_SslDomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -281,13 +290,13 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:domain:focus:mark', renderer=None)
     @view_config(route_name='admin:domain:focus:mark|json', renderer='json')
-    def domain_focus_mark(self):
-        dbDomain = self._domain_focus()
+    def focus_mark(self):
+        dbDomain = self._focus()
         if self.request.method == 'POST':
-            return self._domain_focus_mark__submit(dbDomain)
-        return self._domain_focus_mark__print(dbDomain)
-    
-    def _domain_focus_mark__print(self, dbDomain):
+            return self._focus_mark__submit(dbDomain)
+        return self._focus_mark__print(dbDomain)
+
+    def _focus_mark__print(self, dbDomain):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
             return {'instructions': ["""curl --form 'action=active' %s/domain/1/mark.json""" % self.request.admin_url,
@@ -297,13 +306,10 @@ class ViewAdmin(Handler):
                     'valid_options': {'action': ['active', 'inactive'],
                                       }
                     }
-        url_post_required = '%s/domain/%s?operation=mark&result=post+required' % (
-            self.request.registry.settings['admin_prefix'],
-            dbDomain.id,
-        )
-        return HTTPSeeOther(url_post_required)    
+        url_post_required = '%s?operation=mark&result=post+required' % (self._focus_url, )
+        return HTTPSeeOther(url_post_required)
 
-    def _domain_focus_mark__submit(self, dbDomain):
+    def _focus_mark__submit(self, dbDomain):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         action = '!MISSING or !INVALID'
         try:
@@ -363,17 +369,13 @@ class ViewAdmin(Handler):
                                     )
 
             self.request.api_context.dbSession.flush(objects=[dbOperationsEvent, dbDomain])
-            
+
             if wants_json:
                 return {'result': 'success',
                         'SslDomain': dbDomain.as_json,
                         }
 
-            url_success = '%s/domain/%s?operation=mark&action=%s&result=success' % (
-                self.request.registry.settings['admin_prefix'],
-                dbDomain.id,
-                action,
-            )
+            url_success = '%s?operation=mark&action=%s&result=success' % (self._focus_url, action, )
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as e:
@@ -386,9 +388,8 @@ class ViewAdmin(Handler):
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
-            url_failure = '%s/domain/%s?operation=mark&action=%s&result=error&error=%s' % (
-                self.request.registry.settings['admin_prefix'],
-                dbDomain.id,
+            url_failure = '%s?operation=mark&action=%s&result=error&error=%s' % (
+                self._focus_url,
                 action,
                 e.message,
             )

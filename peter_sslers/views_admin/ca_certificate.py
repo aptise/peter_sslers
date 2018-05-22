@@ -25,13 +25,13 @@ from ..lib.handler import Handler, items_per_page
 # ==============================================================================
 
 
-class ViewAdmin(Handler):
+class ViewAdmin_List(Handler):
 
     @view_config(route_name='admin:ca_certificates', renderer='/admin/ca_certificates.mako')
     @view_config(route_name='admin:ca_certificates_paginated', renderer='/admin/ca_certificates.mako')
     @view_config(route_name='admin:ca_certificates|json', renderer='json')
     @view_config(route_name='admin:ca_certificates_paginated|json', renderer='json')
-    def ca_certificates(self):
+    def list(self):
         items_count = lib_db.get.get__SslCaCertificate__count(self.request.api_context)
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
@@ -53,19 +53,22 @@ class ViewAdmin(Handler):
                 'pager': pager,
                 }
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _ca_certificate_focus(self):
+class ViewAdmin_Focus(Handler):
+
+    def _focus(self):
         dbCaCertificate = lib_db.get.get__SslCaCertificate__by_id(self.request.api_context, self.request.matchdict['id'])
         if not dbCaCertificate:
             raise HTTPNotFound('the cert was not found')
+        self.focus_item = dbCaCertificate
+        self.focus_url = '%s/ca-certificate/%s' % (self.request.registry.settings['admin_prefix'], self.focus_item.id)
         return dbCaCertificate
 
     @view_config(route_name='admin:ca_certificate:focus', renderer='/admin/ca_certificate-focus.mako')
     @view_config(route_name='admin:ca_certificate:focus|json', renderer='json')
-    def ca_certificate_focus(self):
+    def focus(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbCaCertificate = self._ca_certificate_focus()
+        dbCaCertificate = self._focus()
         items_count = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__count(
             self.request.api_context, dbCaCertificate.id)
         items_paged = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__paginated(
@@ -81,8 +84,8 @@ class ViewAdmin(Handler):
                 }
 
     @view_config(route_name='admin:ca_certificate:focus:raw', renderer='string')
-    def ca_certificate_focus_raw(self):
-        dbCaCertificate = self._ca_certificate_focus()
+    def focus_raw(self):
+        dbCaCertificate = self._focus()
         if self.request.matchdict['format'] == 'pem':
             self.request.response.content_type = 'application/x-pem-file'
             return dbCaCertificate.cert_pem
@@ -100,9 +103,9 @@ class ViewAdmin(Handler):
         return 'chain.?'
 
     @view_config(route_name='admin:ca_certificate:focus:parse|json', renderer='json')
-    def ca_certificate_focus_parse_json(self):
+    def focus_parse_json(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbCaCertificate = self._ca_certificate_focus()
+        dbCaCertificate = self._focus()
         return {"%s" % dbCaCertificate.id: lib.cert_utils.parse_cert(cert_pem=dbCaCertificate.cert_pem),
                 }
 
@@ -110,11 +113,11 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:ca_certificate:focus:certificates_signed', renderer='/admin/ca_certificate-focus-certificates_signed.mako')
     @view_config(route_name='admin:ca_certificate:focus:certificates_signed_paginated', renderer='/admin/ca_certificate-focus-certificates_signed.mako')
-    def ca_certificate_focus__certificates_signed(self):
-        dbCaCertificate = self._ca_certificate_focus()
+    def focus__certificates_signed(self):
+        dbCaCertificate = self._focus()
         items_count = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__count(
             self.request.api_context, dbCaCertificate.id)
-        (pager, offset) = self._paginate(items_count, url_template='%s/ca-certificate/%s/certificates-signed/{0}' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id))
+        (pager, offset) = self._paginate(items_count, url_template='%s/certificates-signed/{0}' % self.focus_url)
         items_paged = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__paginated(
             self.request.api_context, dbCaCertificate.id, limit=items_per_page, offset=offset)
         return {'project': 'peter_sslers',
@@ -124,16 +127,17 @@ class ViewAdmin(Handler):
                 'pager': pager,
                 }
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class ViewAdmin_New(Handler):
 
     @view_config(route_name='admin:ca_certificate:upload')
     @view_config(route_name='admin:ca_certificate:upload|json', renderer='json')
-    def ca_certificate_upload(self):
+    def upload(self):
         if self.request.method == 'POST':
-            return self._ca_certificate_upload__submit()
-        return self._ca_certificate_upload__print()
+            return self._upload__submit()
+        return self._upload__print()
 
-    def _ca_certificate_upload__print(self):
+    def _upload__print(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
             return {'instructions': """curl --form 'chain_file=@chain1.pem' --form %s/ca-certificate/upload.json""" % self.request.admin_url,
@@ -142,7 +146,7 @@ class ViewAdmin(Handler):
                     }
         return render_to_response("/admin/ca_certificate-upload.mako", {}, self.request)
 
-    def _ca_certificate_upload__submit(self):
+    def _upload__submit(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result, formStash) = formhandling.form_validate(self.request,
@@ -182,7 +186,7 @@ class ViewAdmin(Handler):
                         }
             return formhandling.form_reprint(
                 self.request,
-                self._ca_certificate_upload__print,
+                self._upload__print,
                 auto_error_formatter=lib_text.formatter_error,
             )
 
@@ -190,12 +194,12 @@ class ViewAdmin(Handler):
 
     @view_config(route_name='admin:ca_certificate:upload_bundle')
     @view_config(route_name='admin:ca_certificate:upload_bundle|json', renderer='json')
-    def ca_certificate_upload_bundle(self):
+    def upload_bundle(self):
         if self.request.method == 'POST':
-            return self._ca_certificate_upload_bundle__submit()
-        return self._ca_certificate_upload_bundle__print()
+            return self._upload_bundle__submit()
+        return self._upload_bundle__print()
 
-    def _ca_certificate_upload_bundle__print(self):
+    def _upload_bundle__print(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
             _instructions = ["curl --form 'isrgrootx1_file=@isrgrootx1.pem'", ]
@@ -218,7 +222,7 @@ class ViewAdmin(Handler):
                                    },
                                   self.request)
 
-    def _ca_certificate_upload_bundle__submit(self):
+    def _upload_bundle__submit(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result, formStash) = formhandling.form_validate(self.request,
@@ -278,6 +282,6 @@ class ViewAdmin(Handler):
                         }
             return formhandling.form_reprint(
                 self.request,
-                self._ca_certificate_upload_bundle__print,
+                self._upload_bundle__print,
                 auto_error_formatter=lib_text.formatter_error,
             )

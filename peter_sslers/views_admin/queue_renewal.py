@@ -109,18 +109,18 @@ class ViewList(Handler):
 
 class ViewFocus(Handler):
 
-    def _queue_renewal_focus(self):
+    def _focus(self):
         dbQueueRenewal = lib_db.get.get__SslQueueRenewal__by_id(self.request.api_context, self.request.matchdict['id'], load_events=True)
         if not dbQueueRenewal:
             raise HTTPNotFound('the item was not found')
         self._focus_item = dbQueueRenewal
-        self._focus_url =  "%s/queue-renewal/%s" % (self.request.admin_url, dbQueueRenewal.item)
+        self._focus_url = "%s/queue-renewal/%s" % (self.request.admin_url, dbQueueRenewal.item)
         return dbQueueRenewal
 
     @view_config(route_name='admin:queue_renewal:focus', renderer='/admin/queue-renewal-focus.mako')
     @view_config(route_name='admin:queue_renewal:focus|json', renderer='json')
-    def queue_renewal_focus(self):
-        dbRenewalQueueItem = self._queue_renewal_focus()
+    def focus(self):
+        dbRenewalQueueItem = self._focus()
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
             return {'status': 'success',
@@ -134,13 +134,13 @@ class ViewFocus(Handler):
 
     @view_config(route_name='admin:queue_renewal:focus:mark')
     @view_config(route_name='admin:queue_renewal:focus:mark|json', renderer='json')
-    def queue_renewal_focus_mark(self):
-        dbRenewalQueueItem = self._queue_renewal_focus()
+    def focus_mark(self):
+        dbRenewalQueueItem = self._focus()
         if self.request.method == 'POST':
-            return self._queue_renewal_focus_mark__submit(dbRenewalQueueItem)
-        return self._queue_renewal_focus_mark__print(dbRenewalQueueItem)
+            return self._focus_mark__submit(dbRenewalQueueItem)
+        return self._focus_mark__print(dbRenewalQueueItem)
 
-    def _queue_renewal_focus_mark__print(self, dbRenewalQueueItem):
+    def _focus_mark__print(self, dbRenewalQueueItem):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
             return {'instructions': ["""curl --form 'action=active' %s/mark.json""" % self._focus_url,
@@ -153,7 +153,7 @@ class ViewFocus(Handler):
         url_huh = '%s/%s?operation=mark&result=huh' % (self._focus_url)
         return HTTPSeeOther(url_huh)
 
-    def _queue_renewal_focus_mark__submit(self, dbRenewalQueueItem):
+    def _focus_mark__submit(self, dbRenewalQueueItem):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
             (result,

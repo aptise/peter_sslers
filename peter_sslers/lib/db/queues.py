@@ -115,7 +115,7 @@ def _get_default_AccountKey(ctx):
     if not dbAccountKeyDefault:
         raise ValueError("Could not load a default AccountKey.")
     return dbAccountKeyDefault
-    
+
 
 def _get_default_PrivateKey(ctx):
     # raises an error if we fail
@@ -165,7 +165,7 @@ def queue_domains__process(
         )
         if len(items_paged) < min_domains:
             raise errors.DisplayableError("Not enough domains to issue. Only found `%s`, need `%s`." % (len(items_paged), min_domains))
-            
+
         event_payload_dict = utils.new_event_payload_dict()
         event_payload_dict['batch_size'] = len(items_paged)
         event_payload_dict['status'] = 'attempt'

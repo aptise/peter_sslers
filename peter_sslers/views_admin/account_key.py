@@ -136,7 +136,6 @@ class ViewAdmin_New(Handler):
             )
 
 
-
 class ViewAdmin_Focus(Handler):
 
     def _focus(self, eagerload_web=False):
@@ -216,7 +215,6 @@ class ViewAdmin_Focus(Handler):
         url_post_required = '%s?operation=authenticate&result=post+required' % (self._focus_url, )
         return HTTPSeeOther(url_post_required)
 
-
     def _focus__authenticate__submit(self, dbAcmeAccountKey):
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
@@ -259,9 +257,6 @@ class ViewAdmin_Focus(Handler):
                 'SslCertificateRequests': items_paged,
                 'pager': pager,
                 }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -374,7 +369,7 @@ class ViewAdmin_Focus(Handler):
                 return {'result': 'success',
                         'SslAcmeAccountKey': dbAcmeAccountKey,
                         }
-            url_success = '%s?operation=mark&action=%s&result=success' % (_focus_url, action,)
+            url_success = '%s?operation=mark&action=%s&result=success' % (self._focus_url, action,)
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as e:
