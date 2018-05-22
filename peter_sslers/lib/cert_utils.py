@@ -113,6 +113,7 @@ def parse_cert_domains__segmented(
     cert_path=None,
 ):
     log.info("Parsing CERT... | parse_cert_domains__segmented")
+    # openssl x509 -in MYCERT -noout -text
     proc = subprocess.Popen([openssl_path, "x509", "-in", cert_path, "-noout", "-text"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
@@ -146,6 +147,7 @@ def parse_csr_domains(
         proc = subprocess.Popen([openssl_path, "req", "-in", csr_path, '-inform', 'DER', "-noout", "-text"],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
+        # openssl req -in MYCSR -noout -text
         proc = subprocess.Popen([openssl_path, "req", "-in", csr_path, "-noout", "-text"],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()

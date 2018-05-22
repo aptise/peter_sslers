@@ -25,7 +25,7 @@ from ..lib.handler import Handler, items_per_page
 # ==============================================================================
 
 
-class ViewAdmin(Handler):
+class ViewList(Handler):
     """
     note-
     if a renewal fails, the record is marked with the following:
@@ -49,7 +49,7 @@ class ViewAdmin(Handler):
     @view_config(route_name='admin:queue_renewals:all_paginated|json', renderer='json')
     @view_config(route_name='admin:queue_renewals:active_failures|json', renderer='json')
     @view_config(route_name='admin:queue_renewals:active_failures_paginated|json', renderer='json')
-    def queue_renewals(self):
+    def list(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         get_kwargs = {}
         url_template = None
@@ -106,13 +106,16 @@ class ViewAdmin(Handler):
                 'continue_processing': continue_processing,
                 }
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class ViewFocus(Handler):
 
     def _queue_renewal_focus(self):
-        item = lib_db.get.get__SslQueueRenewal__by_id(self.request.api_context, self.request.matchdict['id'], load_events=True)
-        if not item:
+        dbQueueRenewal = lib_db.get.get__SslQueueRenewal__by_id(self.request.api_context, self.request.matchdict['id'], load_events=True)
+        if not dbQueueRenewal:
             raise HTTPNotFound('the item was not found')
-        return item
+        self._focus_item = dbQueueRenewal
+        self._focus_url =  "%s/queue-renewal/%s" % (self.request.admin_url, dbQueueRenewal.item)
+        return dbQueueRenewal
 
     @view_config(route_name='admin:queue_renewal:focus', renderer='/admin/queue-renewal-focus.mako')
     @view_config(route_name='admin:queue_renewal:focus|json', renderer='json')
@@ -140,17 +143,14 @@ class ViewAdmin(Handler):
     def _queue_renewal_focus_mark__print(self, dbRenewalQueueItem):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         if wants_json:
-            return {'instructions': ["""curl --form 'action=active' %s/queue-renewal/1/mark.json""" % self.request.admin_url,
+            return {'instructions': ["""curl --form 'action=active' %s/mark.json""" % self._focus_url,
                                      ],
                     'form_fields': {'action': 'the intended action',
                                     },
                     'valid_options': {'action': ['cancel'],
                                       }
                     }
-        url_huh = '%s/queue-renewal/%s?operation=mark&result=huh' % (
-            self.request.registry.settings['admin_prefix'],
-            dbRenewalQueueItem.id,
-        )
+        url_huh = '%s/%s?operation=mark&result=huh' % (self._focus_url)
         return HTTPSeeOther(url_huh)
 
     def _queue_renewal_focus_mark__submit(self, dbRenewalQueueItem):
@@ -204,10 +204,7 @@ class ViewAdmin(Handler):
                         'SslQueueRenewal': dbRenewalQueueItem.as_json,
                         }
 
-            url_post_required = '%s/queue-renewal/%s?operation=mark&result=success' % (
-                self.request.registry.settings['admin_prefix'],
-                dbRenewalQueueItem.id,
-            )
+            url_post_required = '/%s?operation=mark&result=success' % (self._focus_url, )
             return HTTPSeeOther(url_post_required)
 
         except formhandling.FormInvalid as e:
@@ -220,9 +217,8 @@ class ViewAdmin(Handler):
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
-            url_failure = '%s/queue-renewal/%s?operation=mark&action=%s&result=error&error=%s' % (
-                self.request.registry.settings['admin_prefix'],
-                dbRenewalQueueItem.id,
+            url_failure = '%s?operation=mark&action=%s&result=error&error=%s' % (
+                self._focus_url,
                 action,
                 e.message,
             )
