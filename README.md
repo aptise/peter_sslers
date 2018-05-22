@@ -727,7 +727,10 @@ If running tests against the LetsEncrypt test API, there are some extra configur
 Gotchas
 -------
 
-This requires a relatively new version of openssl to handle multiple-domain certificates.
+1. This requires a relatively new version of openssl to handle multiple-domain certificates.
+2. When using sqlite, two databases/database files are required. one is dedicated to handling the logging.  This is because of how sqlite locks the database file during certain operations.  A future version of this library will not use the pyramid_tm transaction manager and avoid this scenario.
+
+
 
 
 ToDo
