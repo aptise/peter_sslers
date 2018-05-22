@@ -8,9 +8,6 @@ asap tasks
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
     def queue_domain_process(self):
 * search for pending validations
-* install a separate acme-log database
-* update acme-challenge-log to track the account which polls it.
-
 * build authorization deactivate tool
 * migrate cert_subject hash and tracking to SAN
 * search expiring soon | note: isn't this the `/certificates/expiring` view?
@@ -20,17 +17,15 @@ asap tasks
 * tests - api_events	
 
 
-
 deferred tasks
 ---------------
-* migrate certificate renewal to fqdn renewal
 * take into account the validity of existing LetsEncrypt authz and challenges when requesting certs
 * create tool for exporting and deleting the logs
 * finish rate limit calendars
 * upload CERT/Chains for 'flow' CSR | once the flow is finished, upload a cert into it.
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
-* the queue-renewals update script could work on fqdns, not just certificates
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
+
 * deprecate the AcmeFlow helper (preferred) OR give it json endpoints.
 
 Long Term Questions:

@@ -86,7 +86,11 @@
 - added config option: queue_domains_use_weekly_key
 * audit /admin/queue-domains/process
 * audit /admin/queue-renewal/process
-
+- fakeboulder will parse/sign the csr
+* acme-challenge-log tracks the account which requested the authz via the acme_log_event item; surfaced the account info on challenges
+* install a separate acme-log database
+* fqdn renewal in addition to certificate renewal
+* the queue-renewals works on fqdns, not just certificates
 
 
 0.1.5
