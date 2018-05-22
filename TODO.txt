@@ -14,7 +14,6 @@ asap tasks
 * log full actual results; if a queue fails log that data too
 * CSR should have domain[0] as subject if there are multiple domains | note: letsencrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
-* tests - api_events	
 
 
 deferred tasks
@@ -25,7 +24,6 @@ deferred tasks
 * upload CERT/Chains for 'flow' CSR | once the flow is finished, upload a cert into it.
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
-
 * deprecate the AcmeFlow helper (preferred) OR give it json endpoints.
 
 Long Term Questions:
