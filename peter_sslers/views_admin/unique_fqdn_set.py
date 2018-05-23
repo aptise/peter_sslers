@@ -161,7 +161,7 @@ class ViewAdmin(Handler):
                 return {"status": "success",
                         "queue_item": dbQueue.id,
                         }
-            url_success = '%s/unique-fqdn-set/%s?operation=renewal&renewal_type=queue&success=%s' % (
+            url_success = '%s/unique-fqdn-set/%s?operation=renewal&renewal_type=queue&success=%s&result=success' % (
                 self.request.registry.settings['admin_prefix'],
                 dbUniqueFQDNSet.id,
                 dbQueue.id,
@@ -173,7 +173,7 @@ class ViewAdmin(Handler):
                 return {"status": "error",
                         "error": e.message
                         }
-            url_failure = '%s/unique-fqdn-set/%s?operation=renewal&renewal_type=queue&error=%s' % (
+            url_failure = '%s/unique-fqdn-set/%s?operation=renewal&renewal_type=queue&error=%s&result=error' % (
                 self.request.registry.settings['admin_prefix'],
                 dbUniqueFQDNSet.id,
                 e.message.replace(' ', '+'),

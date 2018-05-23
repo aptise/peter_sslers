@@ -17,9 +17,9 @@ import tempfile
 import textwrap
 import time
 try:
-    from urllib.request import urlopen  # Python 3
+    from urllib.request import urlopen, Request  # Python 3
 except ImportError:
-    from urllib2 import urlopen  # Python 2
+    from urllib2 import urlopen, Request  # Python 2
 
 # pypi
 from dateutil import parser as dateutil_parser
@@ -43,20 +43,21 @@ TESTING_ENVIRONMENT = False
 # ==============================================================================
 
 
-def my_urlopen(url, *args):
+# helper function base64 encode for jose spec
+def _b64(b):
+    return base64.urlsafe_b64encode(b).decode("utf8").replace("=", "")
+
+
+def url_request(url, post_data=None):
+    headers = {"Content-Type": "application/jose+json", "User-Agent": "peter_sslers"}
     if TESTING_ENVIRONMENT:
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        resp = urlopen(url, *args, context=ctx)
+        resp = urlopen(Request(url, data=post_data, headers=headers), context=ctx)
     else:
-        resp = urlopen(url, *args)
+        resp = urlopen(Request(url, data=post_data, headers=headers))
     return resp
-
-
-# helper function base64 encode for jose spec
-def _b64(b):
-    return base64.urlsafe_b64encode(b).decode("utf8").replace("=", "")
 
 
 # helper function make signed requests
@@ -66,7 +67,7 @@ def _send_signed_request(url, payload, account_key_path, header, acmeAccountKey)
     ca_endpoint = acmeAccountKey.acme_account_provider_endpoint
     if not ca_endpoint:
         raise ValueError("no CERTIFICATE_AUTHORITY for this account!")
-    resp_directory = my_urlopen(ca_endpoint + "/directory")
+    resp_directory = url_request(ca_endpoint + "/directory")
     protected["nonce"] = resp_directory.headers["Replay-Nonce"]
     protected64 = _b64(json.dumps(protected).encode("utf8"))
     proc = subprocess.Popen([cert_utils.openssl_path, "dgst", "-sha256", "-sign", account_key_path],
@@ -80,7 +81,7 @@ def _send_signed_request(url, payload, account_key_path, header, acmeAccountKey)
                        "signature": _b64(out),
                        })
     try:
-        resp = my_urlopen(url, data.encode("utf8"))
+        resp = url_request(url, post_data=data.encode("utf8"))
         return resp.getcode(), resp.read(), resp.info()
     except IOError as e:
         return getattr(e, "code", None), getattr(e, "read", e.__str__)(), None

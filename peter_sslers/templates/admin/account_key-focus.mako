@@ -31,6 +31,7 @@
 
 
 <%block name="content_main">
+    ${admin_partials.handle_querystring_result()}
     <div class="row">
         <div class="col-sm-12">
             <table class="table">

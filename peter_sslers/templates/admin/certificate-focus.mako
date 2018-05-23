@@ -61,6 +61,7 @@
 
 <%block name="content_main">
     <div class="row">
+        ${admin_partials.handle_querystring_result()}
         <div class="col-sm-9">
             <table class="table">
                 <tr>

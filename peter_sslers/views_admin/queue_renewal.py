@@ -204,7 +204,7 @@ class ViewFocus(Handler):
                         'SslQueueRenewal': dbRenewalQueueItem.as_json,
                         }
 
-            url_post_required = '/%s?operation=mark&result=success' % (self._focus_url, )
+            url_post_required = '%s?operation=mark&result=success' % (self._focus_url, )
             return HTTPSeeOther(url_post_required)
 
         except formhandling.FormInvalid as e:

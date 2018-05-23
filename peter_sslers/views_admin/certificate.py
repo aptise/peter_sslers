@@ -321,7 +321,7 @@ class ViewAdmin_Focus(Handler):
                 return {"status": "success",
                         "certificate_new.id": dbLetsencryptCertificateNew.id,
                         }
-            url_success = '%s?operation=renewal&renewal_type=quick&success=%s' % (
+            url_success = '%s?operation=renewal&renewal_type=quick&success=%s&result=success' % (
                 self._focus_url,
                 dbLetsencryptCertificateNew.id,
             )
@@ -332,7 +332,7 @@ class ViewAdmin_Focus(Handler):
                 return {"status": "error",
                         "error": e.message
                         }
-            url_failure = '%s?operation=renewal&renewal_type=quick&error=%s' % (
+            url_failure = '%s?operation=renewal&renewal_type=quick&error=%s&result=error' % (
                 self._focus_url,
                 e.message,
             )
@@ -371,7 +371,7 @@ class ViewAdmin_Focus(Handler):
                 return {"status": "success",
                         "queue_item": dbQueue.id,
                         }
-            url_success = '%s?operation=renewal&renewal_type=queue&success=%s' % (
+            url_success = '%s?operation=renewal&renewal_type=queue&success=%s&result=success' % (
                 self._focus_url,
                 dbQueue.id,
             )
@@ -382,7 +382,7 @@ class ViewAdmin_Focus(Handler):
                 return {"status": "error",
                         "error": e.message
                         }
-            url_failure = '%s?operation=renewal&renewal_type=queue&error=%s' % (
+            url_failure = '%s?operation=renewal&renewal_type=queue&error=%s&result=error' % (
                 self._focus_url,
                 e.message,
             )

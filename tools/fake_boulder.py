@@ -36,8 +36,12 @@ from peter_sslers.lib import cert_utils
 
 OPENSSL_BIN = 'openssl'
 
-CAPATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fake_boulder_config')
-print "USING CAPATH : %s" % CAPATH
+# originally this figured out the path to the ca... but that's actually needed by openssl as an environment variable
+# so let's just use that...
+OPENSSL_CA_DIR = os.getenv('OPENSSL_CA_DIR', None)
+if not OPENSSL_CA_DIR:
+    raise ValueError("You MUST set the environment variable `OPENSSL_CA_DIR`")
+CAPATH = OPENSSL_CA_DIR
 
 
 # ==============================================================================
@@ -214,12 +218,15 @@ def acme_newcert(request):
        [DER-encoded certificate]
     """
     inbound = request.body
+    if not inbound:
+        return Response(body='', status_code=500)
     (csr_pem,
      domain_names
      ) = decrypt_acme_newcert(inbound)
     signedcert_pem = sign_csr(csr_pem)
+    if not signedcert_pem:
+        raise ValueError("could not generate a cert")
     signedcert_der = cert_utils.convert_pem_to_der(signedcert_pem)
-
     return Response(body=signedcert_der,
                     status_code=201,
                     headers = {'Link': '<https://acme-v01.api.letsencrypt.org/acme/issuer-cert>;rel="up";title="issuer"',

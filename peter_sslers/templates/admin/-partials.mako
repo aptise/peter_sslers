@@ -1028,3 +1028,17 @@
         % endif
     </p>
 </%def>
+
+
+<%def name="handle_querystring_result()">
+    <% result =  request.params.get('result', '') %>
+    % if result == 'success':
+        <div class="alert alert-success">
+            The operation `${request.params.get('operation')}` was successful.
+        </div>
+    % elif result == 'error':
+        <div class="alert alert-danger">
+            The operation `${request.params.get('operation')}` was not successful.
+        </div>
+    % endif
+</%def>
