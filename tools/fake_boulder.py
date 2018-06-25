@@ -1,3 +1,4 @@
+from __future__ import print_function
 """
 fake_boulder
 
@@ -260,15 +261,18 @@ def acme_newreg(request):
       ]
     }
     """
-    inbound = request.body
-    inbound_json = json.loads(inbound)
-    key = inbound_json["header"]["jwk"]
-    body = json.dumps({"key": key,
-                       "status": "good",
-                       "contact": ["mailto:cert-admin@example.com",
-                                   "tel:+12025551212"
-                                   ],
-                       })
+    try:
+        inbound = request.body
+        inbound_json = json.loads(inbound)
+        key = inbound_json["header"]["jwk"]
+        body = json.dumps({"key": key,
+                           "status": "good",
+                           "contact": ["mailto:cert-admin@example.com",
+                                       "tel:+12025551212"
+                                       ],
+                           })
+    except:
+        raise ValueError("invalid input")
     return Response(body=body,
                     status_code=201,
                     headers = {'Link': '<https://127.0.0.1/acme/terms>;rel="terms-of-service"',
@@ -278,7 +282,7 @@ def acme_newreg(request):
 
 
 if __name__ == '__main__':
-    print "running test server..."
+    print("running test server...")
     config = Configurator()
     config.include('pyramid_debugtoolbar')
 
