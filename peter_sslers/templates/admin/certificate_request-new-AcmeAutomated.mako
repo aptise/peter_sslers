@@ -36,7 +36,7 @@
                 method="POST"
                 enctype="multipart/form-data"
             >
-                <% form = request.formhandling.get_form(request) %>
+                <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
                 <h3>LetsEncrypt Account</h3>

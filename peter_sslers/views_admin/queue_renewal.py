@@ -10,7 +10,6 @@ import datetime
 import json
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 import transaction
 
@@ -18,6 +17,7 @@ import transaction
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import formhandling
 from ..lib.forms import Form_QueueRenewal_mark
 from ..lib.handler import Handler, items_per_page
 

@@ -9,13 +9,13 @@ from pyramid.httpexceptions import HTTPSeeOther
 import json
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.forms import Form_AccountKey_new__file
 from ..lib.forms import Form_AccountKey_mark
@@ -135,7 +135,6 @@ class ViewAdmin_New(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._upload__print,
-                auto_error_formatter=lib_text.formatter_error,
             )
 
 

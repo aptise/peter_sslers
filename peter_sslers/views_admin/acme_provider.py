@@ -7,7 +7,6 @@ from pyramid.renderers import render, render_to_response
 import datetime
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp

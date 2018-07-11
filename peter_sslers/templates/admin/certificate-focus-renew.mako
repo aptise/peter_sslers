@@ -30,7 +30,7 @@
                   action="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/custom"
                   enctype="multipart/form-data"
             >
-                <% form = request.formhandling.get_form(request) %>
+                <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
                 <h3>Custom Renewal</h3>

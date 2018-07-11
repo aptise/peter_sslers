@@ -9,13 +9,13 @@ from pyramid.httpexceptions import HTTPSeeOther
 import datetime
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_search
@@ -148,7 +148,6 @@ class ViewAdmin_Search(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._search__print,
-                auto_error_formatter=lib_text.formatter_error,
             )
 
 

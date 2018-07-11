@@ -11,8 +11,8 @@ with open(os.path.join(here, 'CHANGES.txt')) as f:
 requires = [
     'pyramid',
     'pyramid_mako',
-    'pyramid_debugtoolbar',
-    'pyramid_formencode_classic>=0.1.10',
+    'pyramid_debugtoolbar>=4.4',
+    'pyramid_formencode_classic>=0.2.2',
     'pyramid_tm',
     'SQLAlchemy',
     'transaction',
@@ -21,13 +21,13 @@ requires = [
     'python-dateutil',
     'formencode',
     'pypages',
-    'pyramid_route_7',
+    'pyramid_route_7>=0.0.3',
     'requests',
     'redis',
 ]
 
 setup(name='peter_sslers',
-      version='0.2.0-DEV',
+      version='0.2.1',
       description='peter_sslers',
       long_description=README + '\n\n' + CHANGES,
       classifiers=["Programming Language :: Python",

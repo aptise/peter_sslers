@@ -8,7 +8,6 @@ from pyramid.httpexceptions import HTTPSeeOther
 import datetime
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 import transaction
 import json
@@ -17,6 +16,7 @@ import json
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
+from ..lib import formhandling
 from ..lib.forms import Form_API_Domain_enable
 from ..lib.forms import Form_API_Domain_disable
 from ..lib.forms import Form_API_Domain_certificate_if_needed

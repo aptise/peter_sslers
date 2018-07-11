@@ -24,7 +24,7 @@
                 action="${admin_prefix}/queue-domains/add"
                 method="POST"
             >
-                <% form = request.formhandling.get_form(request) %>
+                <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
                 ${admin_partials.formgroup__domain_names()}

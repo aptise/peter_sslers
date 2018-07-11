@@ -1,7 +1,15 @@
-0.2
+0.2.x
 2018-unreleased
 ---
 
+
+0.2.1
+2018.07.11
+---
+- now requiring pyramid_formencode_classic==0.2.2
+-- this inherently requires formencode v2.0.0a1
+- now requiring pyramid_debugtoolbar>=4.4
+- made a formhandling custom library
 
 
 0.2.0

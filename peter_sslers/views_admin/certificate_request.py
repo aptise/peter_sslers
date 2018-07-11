@@ -9,19 +9,19 @@ from pyramid.httpexceptions import HTTPSeeOther
 import datetime
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
-from ..lib import text as lib_text
-from ..lib import form_utils as form_utils
-from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
 from ..lib import errors
+from ..lib import form_utils as form_utils
+from ..lib import formhandling
+from ..lib import text as lib_text
 from ..lib.forms import Form_CertificateRequest_AcmeFlow_manage_domain
 from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated
+from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
 from ..lib.handler import Handler, items_per_page
 
 
@@ -172,10 +172,12 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
 
     def _certificate_request_AcmeFlow_manage_domain__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CertificateRequest_AcmeFlow_manage_domain,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_CertificateRequest_AcmeFlow_manage_domain,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -209,7 +211,6 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
             return formhandling.form_reprint(
                 self.request,
                 self._certificate_request_AcmeFlow_manage_domain__print,
-                auto_error_formatter=lib_text.formatter_error,
             )
 
 
@@ -233,10 +234,12 @@ class ViewAdmin_New(Handler):
 
     def _new_AcmeFlow__submit(self):
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_CertificateRequest_new_AcmeFlow,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_CertificateRequest_new_AcmeFlow,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -263,7 +266,6 @@ class ViewAdmin_New(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._new_AcmeFlow__print,
-                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -294,7 +296,6 @@ class ViewAdmin_New(Handler):
                                             schema=Form_CertificateRequest_new_AcmeAutomated,
                                             validate_get=False
                                             )
-            formStash.html_error_main_template = lib_text.TEMPLATE_FORMSTASH_ERRORS
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -355,7 +356,6 @@ class ViewAdmin_New(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._new_AcmeAutomated__print,
-                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

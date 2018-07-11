@@ -9,7 +9,6 @@ from pyramid.httpexceptions import HTTPSeeOther
 import datetime
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 import transaction
 

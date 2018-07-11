@@ -1,15 +1,5 @@
 import formencode
 
-TEMPLATE_FORMSTASH_ERRORS = """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">%(error)s</span></div></div>"""
-
-
-def formatter_error(error):
-    """
-    Formatter that escapes the error, wraps the error in a span with
-    class ``error-message``, and doesn't add a ``<br>``
-    """
-    return '<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">%s</span></div></div>\n' % formencode.rewritingparser.html_quote(error)
-
 
 # these should be tuples of ('Short', 'Long')
 

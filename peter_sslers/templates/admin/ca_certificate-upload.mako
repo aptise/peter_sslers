@@ -30,7 +30,7 @@
                 method="POST"
                 enctype="multipart/form-data"
             >
-                <% form = request.formhandling.get_form(request) %>
+                <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
                 ${admin_partials.formgroup__chain_file(show_text=show_text)}

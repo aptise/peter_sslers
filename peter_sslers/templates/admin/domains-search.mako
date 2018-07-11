@@ -29,7 +29,7 @@
             This will seach registered and queued domains to determine if they are enrolled.
             </p>
             <form action="${admin_prefix}/domains/search" method="POST">
-                <% form = request.formhandling.get_form(request) %>
+                <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
                 <div class="form-group">
                     <label for="domain">Domain Name</label>

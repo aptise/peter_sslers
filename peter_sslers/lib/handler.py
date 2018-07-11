@@ -2,7 +2,6 @@
 from pyramid.httpexceptions import HTTPFound
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import pypages
 
 # localapp
@@ -27,7 +26,6 @@ class Handler(object):
 
     def __init__(self, request):
         self.request = request
-        self.request.formhandling = formhandling
         self.request.text_library = text
 
     def _paginate(self, collection_count, items_per_page=items_per_page, url_template=None):

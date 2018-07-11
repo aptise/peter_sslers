@@ -81,7 +81,7 @@
                 %>
                 % if updates_allowed:
                     <form action="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${SslCertificateRequest2SslDomain.ssl_domain_id}" method="POST">
-                        <% form = request.formhandling.get_form(request) %>
+                        <% form = request.pyramid_formencode_classic.get_form() %>
                         ${form.html_error_main_fillable()|n}
                 % endif
 

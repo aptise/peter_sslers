@@ -9,20 +9,20 @@ from pyramid.httpexceptions import HTTPNotFound
 import datetime
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
-from ..lib import text as lib_text
-from ..lib import form_utils as form_utils
-from ..lib.forms import Form_Certificate_Upload__file
-from ..lib.forms import Form_Certificate_Renewal_Custom
-from ..lib.forms import Form_Certificate_mark
-from ..lib.handler import Handler, items_per_page
 from ..lib import errors
+from ..lib import form_utils as form_utils
+from ..lib import formhandling
+from ..lib import text as lib_text
+from ..lib.forms import Form_Certificate_mark
+from ..lib.forms import Form_Certificate_Renewal_Custom
+from ..lib.forms import Form_Certificate_Upload__file
+from ..lib.handler import Handler, items_per_page
 
 
 # ==============================================================================
@@ -103,10 +103,12 @@ class ViewAdmin_New(Handler):
     def _upload__submit(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_Certificate_Upload__file,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_Certificate_Upload__file,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -165,7 +167,6 @@ class ViewAdmin_New(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._upload__print,
-                auto_error_formatter=lib_text.formatter_error,
             )
 
 
@@ -504,7 +505,6 @@ class ViewAdmin_Focus(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._focus_renew_custom__print,
-                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

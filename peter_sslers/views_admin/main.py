@@ -11,7 +11,6 @@ except ImportError:
     from urllib.parse import urlencode
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp

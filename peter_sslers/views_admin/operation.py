@@ -9,7 +9,6 @@ import datetime
 
 # pypi
 import pypages
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 
 # localapp

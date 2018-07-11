@@ -10,7 +10,6 @@ import datetime
 import json
 
 # pypi
-import pyramid_formencode_classic as formhandling
 import sqlalchemy
 import transaction
 
@@ -18,10 +17,11 @@ import transaction
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
-from ..lib import text as lib_text
-from ..lib.forms import Form_QueueDomains_add
-from ..lib.forms import Form_QueueDomain_mark
 from ..lib import errors
+from ..lib import formhandling
+from ..lib import text as lib_text
+from ..lib.forms import Form_QueueDomain_mark
+from ..lib.forms import Form_QueueDomains_add
 from ..lib.handler import Handler, items_per_page
 
 
@@ -102,10 +102,12 @@ class ViewAdmin_New(Handler):
     def _add__submit(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
         try:
-            (result, formStash) = formhandling.form_validate(self.request,
-                                                             schema=Form_QueueDomains_add,
-                                                             validate_get=False
-                                                             )
+            (result,
+             formStash
+             ) = formhandling.form_validate(self.request,
+                                            schema=Form_QueueDomains_add,
+                                            validate_get=False
+                                            )
             if not result:
                 raise formhandling.FormInvalid()
 
@@ -141,7 +143,6 @@ class ViewAdmin_New(Handler):
             return formhandling.form_reprint(
                 self.request,
                 self._add__print,
-                auto_error_formatter=lib_text.formatter_error,
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
