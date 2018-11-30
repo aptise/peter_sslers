@@ -1009,13 +1009,6 @@
                     Flush Nginx Cache - JSON
                 </a>
             </li>
-            <li>
-                <a  href="${admin_prefix}/api/nginx/status.json"
-                >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    Nginx Status (JSON)
-                </a>
-            </li>
         % endif
     </ul>
 </%def>
