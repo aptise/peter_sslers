@@ -775,8 +775,64 @@ after running the server, in another window...
 There is also a button under "operations" to probe LetsEncrypt's public website and update your certs with data.
 
 
+How to check if it's working?
+-----------------------------
+
+The Lua script for SSL certificate handling makes a handful of DEBUG and NOTICE calls during certain actions. Nginx typically ignores DEBUG unless you build enable it at configuration/build time.
+
+After querying the server, you can check the Redis server directly to see if keys are being set.  Assuming Redis is configured to use 127.0.0.1:6379:9
+
+	workstation username$ redis-cli
+	127.0.0.1:6379> select 9
+	OK
+	127.0.0.1:6379[9]> keys *
+	
+This should then show a bunch of keys.  If not, you have a problem.
+
+You can also query nginx directly for status. Please note, the status route is configurable:
+
+	https://example.com/.peter_sslers/nginx/shared_cache/status
+
+The payload might look like:
+
+	{
+		"servers_status": {
+			"errors": [],
+			"success": [
+				"http://127.0.0.1"
+			],
+			"servers": {
+				"http://127.0.0.1": {
+					"note": "This is a max(1024) listening of keys in the ngx.shared.DICT `cert_cache`. This does not show the worker's own LRU cache, or Redis.",
+					"keys": {
+						"valid": [
+							"example.com"
+						],
+						"invalid": [
+							"127.0.0.1"
+						]
+					},
+					"config": {
+						"expiries": {
+							"resty.lrucache": 15,
+							"ngx.shared.cert_cache": 45
+						},
+						"maxitems": {
+							"resty.lrucache": 200
+						}
+					},
+					"result": "success"
+				}
+			}
+		},
+		"result": "success"
+	}
+
+If you start to see valid/invalid keys disappear it is often because the `expiries` or `maxitems` have removed them from the cache.
+
+
 What does it look like?
----------------
+-----------------------
 
 PeterSSLers was designed to be used on terminals, so it looks great on Lynx...
 
