@@ -435,7 +435,7 @@
                 </tr>
                 % if request.registry.settings['enable_nginx']:
                     <tr>
-                        <th>nginx cache</th>
+                        <th>Nginx cache</th>
                         <td>
                             <span class="btn-group">
                                 <a  class="btn btn-xs btn-primary"

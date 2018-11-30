@@ -118,7 +118,7 @@
                         class="btn btn-xs btn-primary"
                     >
                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                        Flush nginx Cache
+                        Flush Nginx Cache
                     </a>
                     <a  href="${admin_prefix}/api/nginx/cache-flush.json"
                         class="btn btn-xs btn-primary"

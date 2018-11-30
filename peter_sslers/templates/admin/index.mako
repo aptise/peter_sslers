@@ -168,6 +168,19 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: Private Key</a></li>
             </ul>
+
+            <h3>System Info</h3>
+            <em>Detailed information is available on the "Settings" page.</em>
+            <table class="table table-striped table-condensed">
+                <tr>
+                    <th>enable_nginx</th>
+                    <td>${request.registry.settings['enable_nginx']}</td>
+                </tr>
+                <tr>
+                    <th>enable_redis</th>
+                    <td>${request.registry.settings['enable_redis']}</td>
+                </tr>
+            </table>
         </div>
     </div>
 </%block>

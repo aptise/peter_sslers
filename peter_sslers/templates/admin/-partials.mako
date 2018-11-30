@@ -952,7 +952,7 @@
                 <a  href="${admin_prefix}/operations/nginx"
                 >
                 <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-                Operations Log: nginx</a></li>
+                Operations Log: Nginx</a></li>
         % endif
         <li class="${'active' if active =='/operations/ca-certificate-probes' else ''}">
             <a  href="${admin_prefix}/operations/ca-certificate-probes"
@@ -978,6 +978,45 @@
             >
              <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
              Update Recents</a></li>
+        % if enable_redis:
+            <li>
+                <a  href="${admin_prefix}/api/redis/prime"
+                >
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Prime Redis Cache
+                </a>
+            </li>
+            <li>
+                <a  href="${admin_prefix}/api/redis/prime.json"
+                >
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Prime Redis Cache - JSON
+                </a>
+            </li>
+        % endif
+        % if enable_nginx:
+            <li>
+                <a  href="${admin_prefix}/api/nginx/cache-flush"
+                >
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Flush Nginx Cache
+                </a>
+            </li>
+            <li>
+                <a  href="${admin_prefix}/api/nginx/cache-flush.json"
+                >
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                    Flush Nginx Cache - JSON
+                </a>
+            </li>
+            <li>
+                <a  href="${admin_prefix}/api/nginx/status.json"
+                >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    Nginx Status (JSON)
+                </a>
+            </li>
+        % endif
     </ul>
 </%def>
 
