@@ -107,7 +107,7 @@ class ViewAdmin(Handler):
                     'domains': api_results,
                     }
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -154,7 +154,7 @@ class ViewAdmin(Handler):
                     'domains': api_results,
                     }
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -214,10 +214,12 @@ class ViewAdmin(Handler):
                     'domains': api_results,
                     }
 
-        except (formhandling.FormInvalid, errors.DisplayableError) as e:
+        except (formhandling.FormInvalid,
+                errors.DisplayableError,
+                ) as exc:
             message = "There was an error with your form."
-            if isinstance(e, errors.DisplayableError):
-                message += " " + e.message
+            if isinstance(exc, errors.DisplayableError):
+                message += " " + exc.message
             formStash.set_error(field="Error_Main",
                                 message=message,
                                 raise_FormInvalid=False,
@@ -447,11 +449,11 @@ class ViewAdmin(Handler):
                 return {'result': 'success',
                         }
             return HTTPSeeOther("%s/queue-renewals?update=1" % self.request.registry.settings['admin_prefix'])
-        except Exception as e:
+        except Exception as exc:
             transaction.abort()
             if wants_json:
                 return {'result': 'error',
-                        'error': e.message,
+                        'error': exc.message,
                         }
             raise
 
@@ -470,10 +472,10 @@ class ViewAdmin(Handler):
             if queue_results:
                 queue_results = json.dumps(queue_results)
             return HTTPSeeOther("%s/queue-renewals?process=1&results=%s" % (self.request.registry.settings['admin_prefix'], queue_results))
-        except Exception as e:
+        except Exception as exc:
             transaction.abort()
             if wants_json:
                 return {'result': 'error',
-                        'error': e.message,
+                        'error': exc.message,
                         }
             raise

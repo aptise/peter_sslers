@@ -17,17 +17,16 @@ def formatter_error(error):
     return (TEMPLATE_FORMSTASH_ERRORS % {'error': formencode.rewritingparser.html_quote(error)}) + "\n"
 
 
-
 def form_reprint(request, form_print_method, **kwargs):
     """
     overwrite the `pyramid_formencode_classic` version
-    
+
     between `form_reprint` and `form_validate` some correlated magic happens:
-    
+
     1. `form_validate` sets the formStash to render the 'main' error with a special attribute:
         formStash.html_error_placeholder_template = '<form:error name="%s" format="main"/>'
         formStash.html_error_placeholder_form_template = '<form:error name="%(field)s" format="main" data-formencode-form="%(form)s"/>'
-    
+
     2. `form_reprint` registers a special error formatter for 'main'
     """
     kwargs['force_defaults'] = False
@@ -48,8 +47,8 @@ def form_reprint(request, form_print_method, **kwargs):
     if 'auto_error_formatter' not in kwargs:
         # wait what? why?
         # by default we handle our own formatters.
-        kwargs['auto_error_formatter'] = formatter_error        
-    
+        kwargs['auto_error_formatter'] = formatter_error
+
     return pyramid_formencode_classic.form_reprint(
         request,
         form_print_method,
@@ -62,7 +61,7 @@ def form_validate(request, **kwargs):
     kwargs
         things of interest...
         is_unicode_params - webob 1.x+ transfers to unicode.
-    
+
     see `form_reprint` for why some of the following are set.
     """
     if 'is_unicode_params' not in kwargs:

@@ -202,7 +202,7 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
                                  )
                                 )
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -257,7 +257,7 @@ class ViewAdmin_New(Handler):
 
             return HTTPSeeOther('%s/certificate-request/%s/acme-flow/manage' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id))
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -301,7 +301,7 @@ class ViewAdmin_New(Handler):
 
             try:
                 domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
-            except ValueError as e:
+            except ValueError as exc:
                 formStash.set_error(field='domain_names',
                                     message="invalid domain names detected",
                                     raise_FormInvalid=True,
@@ -338,8 +338,8 @@ class ViewAdmin_New(Handler):
                 )
             except (errors.AcmeCommunicationError,
                     errors.DomainVerificationError,
-                    ) as e:
-                return HTTPSeeOther('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message.replace('\n', '+').replace(' ', '+')))
+                    ) as exc:
+                return HTTPSeeOther('%s/certificate-requests?error=new-AcmeAutomated&message=%s' % (self.request.registry.settings['admin_prefix'], exc.message.replace('\n', '+').replace(' ', '+')))
             except Exception as exc:
                 if self.request.registry.settings['exception_redirect']:
                     return HTTPSeeOther('%s/certificate-requests?error=new-AcmeAutomated' % self.request.registry.settings['admin_prefix'])
@@ -347,7 +347,7 @@ class ViewAdmin_New(Handler):
 
             return HTTPSeeOther('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificate.id))
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,

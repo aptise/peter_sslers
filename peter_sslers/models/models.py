@@ -404,7 +404,7 @@ class SslAcmeChallengeLog(Base):
                                          back_populates='acme_challenge_logs',
                                          uselist=False,
                                          )
-    
+
     @property
     def timestamp_created_isoformat(self):
         if self.timestamp_created:
@@ -421,7 +421,7 @@ class SslAcmeChallengeLog(Base):
     def timestamp_challenge_pass_isoformat(self):
         if self.timestamp_challenge_pass:
             return self.timestamp_challenge_pass.isoformat()
-        return None    
+        return None
 
     @property
     def as_json(self):

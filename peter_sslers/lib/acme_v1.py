@@ -83,8 +83,8 @@ def _send_signed_request(url, payload, account_key_path, header, acmeAccountKey)
     try:
         resp = url_request(url, post_data=data.encode("utf8"))
         return resp.getcode(), resp.read(), resp.info()
-    except IOError as e:
-        return getattr(e, "code", None), getattr(e, "read", e.__str__)(), None
+    except IOError as exc:
+        return getattr(exc, "code", None), getattr(exc, "read", exc.__str__)(), None
 
 
 def account_key__header_thumbprint(
@@ -209,10 +209,10 @@ def acme_verify_domains(
                 handle_keyauth_cleanup(domain, token, keyauthorization)
                 acmeLogger.log_challenge_error(sslAcmeChallengeLog, 'pretest-1')
                 raise errors.DomainVerificationError("Wrote keyauth challenge, but couldn't download {0}".format(wellknown_url))
-            except ssl.CertificateError as e:
+            except ssl.CertificateError as exc:
                 acmeLogger.log_challenge_error(sslAcmeChallengeLog, 'pretest-2')
-                if e.message.startswith('hostname') and ("doesn't match" in e.message):
-                    raise errors.DomainVerificationError("Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(wellknown_url, e.message))
+                if exc.message.startswith('hostname') and ("doesn't match" in exc.message):
+                    raise errors.DomainVerificationError("Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(wellknown_url, exc.message))
                 raise
 
         # note the challenge
@@ -237,9 +237,9 @@ def acme_verify_domains(
                 acmeLogger.log_challenge_polled(sslAcmeChallengeLog)
                 resp = urlopen(challenge["uri"])
                 challenge_status = json.loads(resp.read().decode("utf8"))
-            except IOError as e:
+            except IOError as exc:
                 acmeLogger.log_challenge_error(sslAcmeChallengeLog, 'fail-1')
-                raise errors.AcmeCommunicationError("Error checking challenge: {0} {1}".format(e.code, json.loads(e.read().decode("utf8"))))
+                raise errors.AcmeCommunicationError("Error checking challenge: {0} {1}".format(exc.code, json.loads(exc.read().decode("utf8"))))
             if challenge_status["status"] == "pending":
                 time.sleep(2)
             elif challenge_status["status"] == "valid":

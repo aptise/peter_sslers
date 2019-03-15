@@ -135,7 +135,7 @@ class ViewAdmin_Search(Handler):
                         }
             return self._search__print()
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -377,7 +377,7 @@ class ViewAdmin_Focus(Handler):
             url_success = '%s?operation=mark&action=%s&result=success' % (self._focus_url, action, )
             return HTTPSeeOther(url_success)
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -390,6 +390,6 @@ class ViewAdmin_Focus(Handler):
             url_failure = '%s?operation=mark&action=%s&result=error&error=%s' % (
                 self._focus_url,
                 action,
-                e.message,
+                exc.message,
             )
             raise HTTPSeeOther(url_failure)

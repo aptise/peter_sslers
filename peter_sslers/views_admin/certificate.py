@@ -154,7 +154,7 @@ class ViewAdmin_New(Handler):
                         }
             return HTTPSeeOther('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id))
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -315,8 +315,8 @@ class ViewAdmin_Focus(Handler):
                 )
             except (errors.AcmeCommunicationError,
                     errors.DomainVerificationError,
-                    ) as e:
-                raise errors.DisplayableError(e.message)
+                    ) as exc:
+                raise errors.DisplayableError(exc.message)
 
             if wants_json:
                 return {"status": "success",
@@ -328,14 +328,14 @@ class ViewAdmin_Focus(Handler):
             )
             return HTTPSeeOther(url_success)
 
-        except errors.DisplayableError as e:
+        except errors.DisplayableError as exc:
             if wants_json:
                 return {"status": "error",
-                        "error": e.message
+                        "error": exc.message
                         }
             url_failure = '%s?operation=renewal&renewal_type=quick&error=%s&result=error' % (
                 self._focus_url,
-                e.message,
+                exc.message,
             )
             raise HTTPSeeOther(url_failure)
 
@@ -378,14 +378,14 @@ class ViewAdmin_Focus(Handler):
             )
             return HTTPSeeOther(url_success)
 
-        except errors.DisplayableError as e:
+        except errors.DisplayableError as exc:
             if wants_json:
                 return {"status": "error",
-                        "error": e.message
+                        "error": exc.message
                         }
             url_failure = '%s?operation=renewal&renewal_type=queue&error=%s&result=error' % (
                 self._focus_url,
-                e.message,
+                exc.message,
             )
             raise HTTPSeeOther(url_failure)
 
@@ -487,8 +487,8 @@ class ViewAdmin_Focus(Handler):
                 )
             except (errors.AcmeCommunicationError,
                     errors.DomainVerificationError,
-                    ) as e:
-                return HTTPSeeOther('%s/certificate-requests?result=error&error=renew-acme-automated&message=%s' % (self.request.registry.settings['admin_prefix'], e.message))
+                    ) as exc:
+                return HTTPSeeOther('%s/certificate-requests?result=error&error=renew-acme-automated&message=%s' % (self.request.registry.settings['admin_prefix'], exc.message))
             except Exception as exc:
                 if self.request.registry.settings['exception_redirect']:
                     return HTTPSeeOther('%s/certificate-requests?result=error&error=renew-acme-automated' % self.request.registry.settings['admin_prefix'])
@@ -496,7 +496,7 @@ class ViewAdmin_Focus(Handler):
 
             return HTTPSeeOther('%s/certificate/%s?is_renewal=True' % (self.request.registry.settings['admin_prefix'], newLetsencryptCertificate.id))
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -707,7 +707,7 @@ class ViewAdmin_Focus(Handler):
             url_success = '%s?operation=mark&action=%s&result=success' % (self._focus_url.id, action, )
             return HTTPSeeOther(url_success)
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -720,6 +720,6 @@ class ViewAdmin_Focus(Handler):
             url_failure = '%s?operation=mark&action=%s&result=error&error=%s' % (
                 self._focus_url,
                 action,
-                e.message,
+                exc.message,
             )
             raise HTTPSeeOther(url_failure)

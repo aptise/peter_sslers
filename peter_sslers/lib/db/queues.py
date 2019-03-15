@@ -240,9 +240,9 @@ def queue_domains__process(
             dbOperationsEvent.set_event_payload(event_payload_dict)
             ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
-        except errors.DomainVerificationError as e:
+        except errors.DomainVerificationError as exc:
             event_payload_dict['status'] = 'error - DomainVerificationError'
-            event_payload_dict['error'] = e.message
+            event_payload_dict['error'] = exc.message
             dbOperationsEvent.set_event_payload(event_payload_dict)
             ctx.dbSession.flush(objects=[dbOperationsEvent, ])
 
@@ -411,7 +411,7 @@ def queue_renewals__process(ctx):
                 else:
                     raise ValueError("what happened?")
 
-            except Exception as e:
+            except Exception as exc:
 
                 if dbOperationsEvent not in ctx.dbSession:
                     dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
@@ -427,10 +427,10 @@ def queue_renewals__process(ctx):
                                   dbQueueRenewal=dbQueueRenewal,
                                   )
                 rval['count_fail'] += 1
-                if isinstance(e, errors.DomainVerificationError):
-                    rval['failures'][dbQueueRenewal.id] = e.message
-                elif isinstance(e, errors.DomainVerificationError):
-                    rval['failures'][dbQueueRenewal.id] = e.message
+                if isinstance(exc, errors.DomainVerificationError):
+                    rval['failures'][dbQueueRenewal.id] = exc.message
+                elif isinstance(exc, errors.DomainVerificationError):
+                    rval['failures'][dbQueueRenewal.id] = exc.message
                 else:
                     raise
         event_payload_dict['rval'] = rval

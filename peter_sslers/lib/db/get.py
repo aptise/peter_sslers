@@ -66,9 +66,9 @@ def get__SslAcmeChallengeLogs__paginated(
     query = dbSessionLogItem.query(models.SslAcmeChallengeLog)
     if acme_account_key_id:
         query = query.join(models.SslAcmeEventLog,
-                           models.SslAcmeChallengeLog.ssl_acme_event_log_id==models.SslAcmeEventLog.id
+                           models.SslAcmeChallengeLog.ssl_acme_event_log_id == models.SslAcmeEventLog.id
                            )\
-            .filter(models.SslAcmeEventLog.ssl_acme_account_key_id==acme_account_key_id, )
+            .filter(models.SslAcmeEventLog.ssl_acme_account_key_id == acme_account_key_id, )
     if pending_only:
         query = query.filter(models.SslAcmeChallengeLog.count_polled == 0, )
     query = query\

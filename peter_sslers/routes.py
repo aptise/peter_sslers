@@ -28,6 +28,7 @@ def includeme(config):
         config.include(_admin_views, route_prefix=route_prefix)
         config.add_route_7('admin', route_prefix)
 
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -101,7 +102,6 @@ def _admin_views(config):
 
     config.add_route_7('admin:acme_challenge_log:filtered', '/acme-challenge-logs/filtered')
     config.add_route_7('admin:acme_challenge_log:filtered|json', '/acme-challenge-logs/filtered.json')
-
 
     # CertificateAuthority Certificates
     config.add_route_7('admin:ca_certificates', '/ca-certificates')

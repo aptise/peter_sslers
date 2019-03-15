@@ -424,10 +424,10 @@ def probe_cert__format(filepath):
     try:
         validate_cert__pem_filepath(filepath)
         return "pem"
-    except errors.OpenSslError_InvalidCertificate as e:
+    except errors.OpenSslError_InvalidCertificate as exc:
         validate_cert__der_filepath(filepath)
         return "der"
-    except errors.OpenSslError_InvalidCertificate as e:
+    except errors.OpenSslError_InvalidCertificate as exc:
         raise errors.OpenSslError_InvalidCertificate("not PEM or DER")
 
 
@@ -563,7 +563,7 @@ def convert_lejson(pkey_jsons, to='pem'):
         validate_key__pem(as_pem)
         return as_pem
 
-    except Exception as e:
+    except Exception as exc:
         raise
     finally:
         for t in tmpfiles:

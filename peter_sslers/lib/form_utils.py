@@ -155,7 +155,7 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
         if seek_selected == 'private_key_file':
             try:
                 private_key_pem = formStash.results['private_key_file'].file.read()
-            except Exception as e:
+            except Exception as exc:
                 # we'll still error out...'
                 pass
             if not private_key_pem:

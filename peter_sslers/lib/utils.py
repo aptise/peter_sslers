@@ -184,11 +184,11 @@ def nginx_flush_cache(request, ctx):
                                        'text': response.content,
                                        }
                           }
-        except Exception as e:
+        except Exception as exc:
             rval['errors'].append(_server)
             status = {'status': 'error',
                       'error': 'Exception',
-                      'Exception': "%s" % e.message,  # this could be an object
+                      'Exception': "%s" % exc.message,  # this could be an object
                       }
         rval['servers'][_server] = status
     dbEvent = lib.db.logger.log__SslOperationsEvent(ctx,
@@ -220,11 +220,11 @@ def nginx_status(request, ctx):
                                        'text': response.content,
                                        }
                           }
-        except Exception as e:
+        except Exception as exc:
             rval['errors'].append(_server)
             status = {'status': 'error',
                       'error': 'Exception',
-                      'Exception': "%s" % e.message,  # this could be an object
+                      'Exception': "%s" % exc.message,  # this could be an object
                       }
         rval['servers'][_server] = status
     return rval
@@ -254,7 +254,7 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
                 else:
                     # log the url?
                     domain_ids['failure'].add(domain.id)
-            except Exception as e:
+            except Exception as exc:
                 # log the url?
                 domain_ids['failure'].add(domain.id)
 
@@ -317,13 +317,13 @@ def prime_redis_domain(request, dbDomain):
                 dbServerCertificate = redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts)
                 redis_prime_logic__style_1_PrivateKey(redis_client, dbServerCertificate.private_key, redis_timeouts)
                 redis_prime_logic__style_1_CACertificate(redis_client, dbServerCertificate.certificate_upchain, redis_timeouts)
-            except Exception as e:
-                warnings.warn(e.message)
+            except Exception as exc:
+                warnings.warn(exc.message)
                 return False
         elif prime_style == '2':
             is_primed = redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts)
 
-    except Exception as e:
+    except Exception as exc:
         raise
         return False
 

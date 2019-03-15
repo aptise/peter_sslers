@@ -35,7 +35,7 @@ def db_log_cleanup__tween_factory(handler, registry):
                     logging.getLogger(l).propagate = False
             response = handler(request)
             return response
-        except Exception as e:
+        except Exception as exc:
             raise
     return db_log_cleanup__tween
 

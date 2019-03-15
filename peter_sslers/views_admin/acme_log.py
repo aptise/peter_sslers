@@ -48,7 +48,6 @@ class ViewAdmin_AcmeEventLog(Handler):
                 }
 
 
-
 class ViewAdmin_AcmeChallengeLog(Handler):
 
     @view_config(route_name='admin:acme_challenge_log', renderer='/admin/acme_challenge_log.mako')
@@ -76,12 +75,11 @@ class ViewAdmin_AcmeChallengeLog(Handler):
                 'SslAcmeChallengeLog': item,
                 }
 
-
     @view_config(route_name='admin:acme_challenge_log:filtered', renderer='/admin/acme_challenge_log-filtered.mako')
     @view_config(route_name='admin:acme_challenge_log:filtered|json', renderer='json')
     def acme_challenge_log_filtered(self):
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
-        dbAcmeAccountKey = None    
+        dbAcmeAccountKey = None
         try:
             acme_account_key_id = int(self.request.params.get('account-key-id', 0))
             dbAcmeAccountKey = lib_db.get.get__SslAcmeAccountKey__by_id(self.request.api_context, acme_account_key_id, eagerload_web=False, )
@@ -93,7 +91,7 @@ class ViewAdmin_AcmeChallengeLog(Handler):
                         'error': 'invalid or no account-key-id submitted',
                         }
             return HTTPFound("%s/acme-challenge-logs" % self.request.admin_url)
-        
+
         items_paged = lib_db.get.get__SslAcmeChallengeLogs__paginated(
             self.request.api_context,
             limit=None,
@@ -113,5 +111,3 @@ class ViewAdmin_AcmeChallengeLog(Handler):
                 'SslAcmeAccountKey': dbAcmeAccountKey,
                 'SslAcmeChallengeLogs': items_paged,
                 }
-
-

@@ -374,7 +374,7 @@ def do__CertificateRequest__AcmeAutomated(
         # don't commit here, as that will trigger an error on object refresh
         return dbServerCertificate
 
-    except Exception as e:
+    except Exception as exc:
         if dbCertificateRequest:
             dbCertificateRequest.is_active = False
             dbCertificateRequest.is_error = True
@@ -857,7 +857,7 @@ def api_domains__certificate_if_needed(
                 _logger_args['event_status_id'] = models.SslOperationsObjectEventStatus.from_string('api_domains__certificate_if_needed__certificate_new_success')
                 _logger_args['dbServerCertificate'] = _dbServerCertificate
 
-            except errors.DomainVerificationError as e:
+            except errors.DomainVerificationError as exc:
                 _result['certificate.status'] = 'fail'
                 _result['ssl_server_certificate.id'] = None
 

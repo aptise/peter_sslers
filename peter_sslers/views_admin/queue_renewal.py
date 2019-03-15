@@ -87,7 +87,7 @@ class ViewList(Handler):
                 items_remaining = int(_results.get('count_remaining', 0))
                 if items_remaining:
                     continue_processing = True
-            except Exception as e:
+            except Exception as exc:
                 # this could be a json or int() error
                 pass
         if wants_json:
@@ -207,7 +207,7 @@ class ViewFocus(Handler):
             url_post_required = '%s?operation=mark&result=success' % (self._focus_url, )
             return HTTPSeeOther(url_post_required)
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -220,6 +220,6 @@ class ViewFocus(Handler):
             url_failure = '%s?operation=mark&action=%s&result=error&error=%s' % (
                 self._focus_url,
                 action,
-                e.message,
+                exc.message,
             )
             raise HTTPSeeOther(url_failure)

@@ -385,13 +385,13 @@ class AppTest(AppTestCore):
                                                                  )
                 self.ctx.dbSession.commit()
 
-            except Exception as e:
+            except Exception as exc:
                 print ""
                 print ""
                 print ""
                 print "EXCEPTION IN SETUP"
                 print ""
-                print e
+                print exc
                 print ""
                 print ""
                 print ""
@@ -493,14 +493,10 @@ class FunctionalTests_AcmeChallengeLog(AppTest):
         focus_id = focus_item.id
         res = self.testapp.get('/.well-known/admin/acme-challenge-log/%s' % focus_id, status=200)
 
-
     def test_filter(self):
-    
         dbAcmeAccountKey = self.ctx.dbSession.query(models.SslAcmeAccountKey).first()
         res = self.testapp.get('/.well-known/admin/acme-challenge-logs/filtered', status=302)
         res = self.testapp.get('/.well-known/admin/acme-challenge-logs/filtered?account-key-id=%s' % dbAcmeAccountKey.id, status=200)
-
-
 
 
 class FunctionalTests_AcmeProviders(AppTest):

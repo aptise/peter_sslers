@@ -130,7 +130,7 @@ class ViewAdmin_New(Handler):
             results_json = json.dumps(queue_results)
             return HTTPSeeOther('%s/queue-domains?result=success&is_created=1&results=%s' % (self.request.registry.settings['admin_prefix'], results_json))
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -159,20 +159,20 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther("%s/queue-domains?processed=1" % self.request.registry.settings['admin_prefix'])
         except (errors.DisplayableError,
                 errors.DomainVerificationError,
-                ) as e:
+                ) as exc:
             # return, don't raise
             # we still commit the bookkeeping
             if wants_json:
                 return {'result': 'error',
-                        'error': e.message,
+                        'error': exc.message,
                         }
-            return HTTPSeeOther("%s/queue-domains?processed=0&error=%s" % (self.request.registry.settings['admin_prefix'], e.message))
-        except Exception as e:
-            print e
+            return HTTPSeeOther("%s/queue-domains?processed=0&error=%s" % (self.request.registry.settings['admin_prefix'], exc.message))
+        except Exception as exc:
+            print exc
             transaction.abort()
             if wants_json:
                 return {'result': 'error',
-                        'error': e.message,
+                        'error': exc.message,
                         }
             raise
 
@@ -277,7 +277,7 @@ class ViewAdmin_Focus(Handler):
             url_success = '%s?operation=mark&action=%s&result=success' % (self._focus_url, action, )
             return HTTPSeeOther(url_success)
 
-        except formhandling.FormInvalid as e:
+        except formhandling.FormInvalid as exc:
             formStash.set_error(field="Error_Main",
                                 message="There was an error with your form.",
                                 raise_FormInvalid=False,
@@ -287,5 +287,5 @@ class ViewAdmin_Focus(Handler):
                 return {'result': 'error',
                         'form_errors': formStash.errors,
                         }
-            url_failure = '%s?operation=mark&action=%s&result=error&error=%s' % (self._focus_url, action, e.message, )
+            url_failure = '%s?operation=mark&action=%s&result=error&error=%s' % (self._focus_url, action, exc.message, )
             raise HTTPSeeOther(url_failure)
