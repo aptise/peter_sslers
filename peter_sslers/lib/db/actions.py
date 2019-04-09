@@ -413,7 +413,7 @@ def operations_deactivate_expired(ctx):
 
     # deactivate expired certificates
     expired_certs = ctx.dbSession.query(models.SslServerCertificate)\
-        .filter(models.SslServerCertificate.is_active is True,  # noqa
+        .filter(models.SslServerCertificate.is_active.is_(True),
                 models.SslServerCertificate.timestamp_expires < ctx.timestamp,
                 )\
         .all()
@@ -477,7 +477,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
         .join(models.SslServerCertificate,
               models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id == models.SslServerCertificate.ssl_unique_fqdn_set_id
               )\
-        .filter(models.SslServerCertificate.is_active == True,  # noqa
+        .filter(models.SslServerCertificate.is_active.is_(True),
                 )\
         .group_by(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id)
     q_inner = q_inner.subquery()
@@ -493,7 +493,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
                 .join(models.SslUniqueFQDNSet2SslDomain,
                       models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
                       )\
-                .filter(models.SslServerCertificate.is_active == True,  # noqa
+                .filter(models.SslServerCertificate.is_active.is_(True),
                         models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == _domain_id,
                         models.SslServerCertificate.id.notin_(_q_ids__latest_single),
                         models.SslServerCertificate.id.notin_(_q_ids__latest_multi),
@@ -529,8 +529,8 @@ def operations_update_recents(ctx):
         .join(models.SslUniqueFQDNSet2SslDomain,
               models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
         )\
-        .filter(models.SslServerCertificate.is_active == True,  # noqa
-                models.SslServerCertificate.is_single_domain_cert == True,  # noqa
+        .filter(models.SslServerCertificate.is_active.is_(True),
+                models.SslServerCertificate.is_single_domain_cert.is_(True),
                 models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == models.SslDomain.id,
                 )\
         .order_by(models.SslServerCertificate.timestamp_expires.desc())\
@@ -548,8 +548,8 @@ def operations_update_recents(ctx):
         .join(models.SslUniqueFQDNSet2SslDomain,
               models.SslServerCertificate.ssl_unique_fqdn_set_id == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
         )\
-        .filter(models.SslServerCertificate.is_active == True,  # noqa
-                models.SslServerCertificate.is_single_domain_cert == False,  # noqa
+        .filter(models.SslServerCertificate.is_active.is_(True),
+                models.SslServerCertificate.is_single_domain_cert.is_(False),
                 models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == models.SslDomain.id,
                 )\
         .order_by(models.SslServerCertificate.timestamp_expires.desc())\

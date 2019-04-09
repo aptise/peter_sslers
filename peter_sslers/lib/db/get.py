@@ -328,10 +328,10 @@ def _SslDomain_inject_exipring_days(ctx, q, expiring_days, order=False):
         .outerjoin(SslServerCertificateSingle,
                    models.SslDomain.ssl_server_certificate_id__latest_single == SslServerCertificateSingle.id
                    )\
-        .filter(sqlalchemy.or_(sqlalchemy.and_(SslServerCertificateMulti.is_active == True,  # noqa
+        .filter(sqlalchemy.or_(sqlalchemy.and_(SslServerCertificateMulti.is_active.is_(True),
                                                SslServerCertificateMulti.timestamp_expires <= _until,
                                                ),
-                               sqlalchemy.and_(SslServerCertificateSingle.is_active == True,  # noqa
+                               sqlalchemy.and_(SslServerCertificateSingle.is_active.is_(True),
                                                SslServerCertificateSingle.timestamp_expires <= _until,
                                                ),
                                )
@@ -721,30 +721,47 @@ def get__SslQueueRenewal__by_SslUniqueFQDNSetId__active(ctx, set_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslServerCertificate__count(ctx, expiring_days=None):
+def get__SslServerCertificate__count(ctx, expiring_days=None, is_active=None):
     q = ctx.dbSession.query(models.SslServerCertificate)
-    if expiring_days:
-        _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
-        q = q.filter(models.SslServerCertificate.is_active == True,  # noqa
-                     models.SslServerCertificate.timestamp_expires <= _until,
-                     )
+    if is_active is not None:
+        if is_active is True:
+            q = q.filter(models.SslServerCertificate.is_active.is_(True),
+                         )
+        elif is_active is False:
+            q = q.filter(models.SslServerCertificate.is_active.is_(False),
+                         )
+    else:
+        if expiring_days:
+            _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
+            q = q.filter(models.SslServerCertificate.is_active.is_(True),
+                         models.SslServerCertificate.timestamp_expires <= _until,
+                         )
     counted = q.count()
     return counted
 
 
-def get__SslServerCertificate__paginated(ctx, expiring_days=None, eagerload_web=False, limit=None, offset=0):
+def get__SslServerCertificate__paginated(ctx, expiring_days=None, is_active=None, eagerload_web=False, limit=None, offset=0):
     q = ctx.dbSession.query(models.SslServerCertificate)
     if eagerload_web:
         q = q.options(sqlalchemy.orm.joinedload('unique_fqdn_set').joinedload('to_domains').joinedload('domain'),
                       )
-    if expiring_days:
-        _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
-        q = q.filter(models.SslServerCertificate.is_active == True,  # noqa
-                     models.SslServerCertificate.timestamp_expires <= _until,
-                     )\
-            .order_by(models.SslServerCertificate.timestamp_expires.asc())
+    if is_active is not None:
+        if is_active is True:
+            q = q.filter(models.SslServerCertificate.is_active.is_(True),
+                         )
+        elif is_active is False:
+            q = q.filter(models.SslServerCertificate.is_active.is_(False),
+                         )
+        q = q.order_by(models.SslServerCertificate.timestamp_expires.asc())
     else:
-        q = q.order_by(models.SslServerCertificate.id.desc())
+        if expiring_days:
+            _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
+            q = q.filter(models.SslServerCertificate.is_active.is_(True),
+                         models.SslServerCertificate.timestamp_expires <= _until,
+                         )\
+                .order_by(models.SslServerCertificate.timestamp_expires.asc())
+        else:
+            q = q.order_by(models.SslServerCertificate.id.desc())
     q = q.limit(limit)\
         .offset(offset)
     items_paged = q.all()

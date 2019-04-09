@@ -19,6 +19,8 @@
 <%block name="page_header_nav">
     <ul class="nav nav-pills nav-stacked">
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/certificates">All Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'active_only' else ''}"><a href="${admin_prefix}/certificates/active">Active Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'inactive_only' else ''}"><a href="${admin_prefix}/certificates/inactive">Inactive Certificates</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/certificates/expiring">Expiring Certificates</a></li>
     </ul>
     <p class="pull-right">
@@ -30,6 +32,16 @@
         Upload: Certificate (Existing)</a>
         % if sidenav_option == 'expiring' :
             <a href="${admin_prefix}/certificates/expiring.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % elif sidenav_option == 'active_only' :
+            <a href="${admin_prefix}/certificates/active.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % elif sidenav_option == 'inactive_only' :
+            <a href="${admin_prefix}/certificates/inactive.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
@@ -46,9 +58,17 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if expiring_days:
-                <p>Certificates that will be expiring within `${expiring_days}` days.
+            % if sidenav_option == 'active_only' :
+                <p>Active Certificates.
                 </p>
+            % elif sidenav_option == 'inactive_only' :
+                <p>Inactive Certificates.
+                </p>
+            % else:
+                % if expiring_days:
+                    <p>Certificates that will be expiring within `${expiring_days}` days.
+                    </p>
+                % endif
             % endif
 
             % if SslServerCertificates:

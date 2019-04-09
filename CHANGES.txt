@@ -1,6 +1,9 @@
 0.2.x
-2018-unreleased
+2019-unreleased
 ---
+- fixed some sql comparisons that compiled oddly in sqlite
+- added route: /admin/certificates/active
+- added route: /admin/certificates/inactive
 
 
 0.2.1

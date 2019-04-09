@@ -33,12 +33,20 @@ class ViewAdmin_List(Handler):
 
     @view_config(route_name='admin:certificates', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates_paginated', renderer='/admin/certificates.mako')
+    @view_config(route_name='admin:certificates:active', renderer='/admin/certificates.mako')
+    @view_config(route_name='admin:certificates:active_paginated', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates:expiring', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates:expiring_paginated', renderer='/admin/certificates.mako')
+    @view_config(route_name='admin:certificates:inactive', renderer='/admin/certificates.mako')
+    @view_config(route_name='admin:certificates:inactive_paginated', renderer='/admin/certificates.mako')
     @view_config(route_name='admin:certificates|json', renderer='json')
     @view_config(route_name='admin:certificates_paginated|json', renderer='json')
+    @view_config(route_name='admin:certificates:active|json', renderer='json')
+    @view_config(route_name='admin:certificates:active_paginated|json', renderer='json')
     @view_config(route_name='admin:certificates:expiring|json', renderer='json')
     @view_config(route_name='admin:certificates:expiring_paginated|json', renderer='json')
+    @view_config(route_name='admin:certificates:inactive|json', renderer='json')
+    @view_config(route_name='admin:certificates:inactive_paginated|json', renderer='json')
     def list(self):
         expiring_days = self.request.registry.settings['expiring_days']
         wants_json = True if self.request.matched_route.name.endswith('|json') else False
@@ -54,6 +62,30 @@ class ViewAdmin_List(Handler):
             items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context, expiring_days=expiring_days)
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, expiring_days=expiring_days, limit=items_per_page, offset=offset)
+        elif self.request.matched_route.name in ('admin:certificates:active',
+                                                 'admin:certificates:active_paginated',
+                                                 'admin:certificates:active|json',
+                                                 'admin:certificates:active_paginated|json',
+                                                 ):
+            sidenav_option = 'active_only'
+            url_template = '%s/certificates/active/{0}' % self.request.registry.settings['admin_prefix']
+            if wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context, is_active=True)
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, is_active=True, limit=items_per_page, offset=offset)
+        elif self.request.matched_route.name in ('admin:certificates:inactive',
+                                                 'admin:certificates:inactive_paginated',
+                                                 'admin:certificates:inactive|json',
+                                                 'admin:certificates:inactive_paginated|json',
+                                                 ):
+            sidenav_option = 'inactive_only'
+            url_template = '%s/certificates/active/{0}' % self.request.registry.settings['admin_prefix']
+            if wants_json:
+                url_template = "%s.json" % url_template
+            items_count = lib_db.get.get__SslServerCertificate__count(self.request.api_context, is_active=False)
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__SslServerCertificate__paginated(self.request.api_context, is_active=False, limit=items_per_page, offset=offset)
         else:
             sidenav_option = 'all'
             url_template = '%s/certificates/{0}' % self.request.registry.settings['admin_prefix']
