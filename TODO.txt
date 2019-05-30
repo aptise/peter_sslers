@@ -2,7 +2,9 @@ Not Finished Yet
 ===============
 asap tasks
 ---------------
-
+* ensure correct usage of `requests`
+	- currently using `.content`, which is raw bytes
+	- usually one uses `.text`, which is `.content` that is decoded
 * ensure self-documenting endpoints POST on mako
     @view_config(route_name='admin:queue_domains:process', renderer=None)
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
