@@ -22,20 +22,28 @@ items_per_page = 50
 class Handler(object):
     """core response class
     """
+
     request = None
 
     def __init__(self, request):
         self.request = request
         self.request.text_library = text
 
-    def _paginate(self, collection_count, items_per_page=items_per_page, url_template=None):
-        page_requested = 1 if 'page' not in self.request.matchdict else int(self.request.matchdict['page'])
-        pager = pypages.Paginator(collection_count,
-                                  per_page=items_per_page,
-                                  current=page_requested,
-                                  start=None,
-                                  range_num=10
-                                  )
+    def _paginate(
+        self, collection_count, items_per_page=items_per_page, url_template=None
+    ):
+        page_requested = (
+            1
+            if "page" not in self.request.matchdict
+            else int(self.request.matchdict["page"])
+        )
+        pager = pypages.Paginator(
+            collection_count,
+            per_page=items_per_page,
+            current=page_requested,
+            start=None,
+            range_num=10,
+        )
         pager.template = url_template
         if page_requested == 0:
             raise HTTPFound(pager.template.format(1))
@@ -48,19 +56,27 @@ class Handler(object):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _ensure_nginx(self):
-        if not self.request.registry.settings['enable_nginx']:
-            raise HTTPFound('%s?error=no_nginx' % self.request.registry.settings['admin_prefix'])
+        if not self.request.registry.settings["enable_nginx"]:
+            raise HTTPFound(
+                "%s?error=no_nginx" % self.request.registry.settings["admin_prefix"]
+            )
 
     def _ensure_redis(self):
-        if not self.request.registry.settings['enable_redis']:
-            raise HTTPFound('%s?error=no_redis' % self.request.registry.settings['admin_prefix'])
+        if not self.request.registry.settings["enable_redis"]:
+            raise HTTPFound(
+                "%s?error=no_redis" % self.request.registry.settings["admin_prefix"]
+            )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _load_AccountKeyDefault(self):
-        self.dbAccountKeyDefault = db.get.get__SslAcmeAccountKey__default(self.request.api_context, active_only=True)
+        self.dbAccountKeyDefault = db.get.get__SslAcmeAccountKey__default(
+            self.request.api_context, active_only=True
+        )
         return self.dbAccountKeyDefault
 
     def _load_PrivateKeyDefault(self):
-        self.dbPrivateKeyDefault = db.get.get__SslPrivateKey__default(self.request.api_context, active_only=True)
+        self.dbPrivateKeyDefault = db.get.get__SslPrivateKey__default(
+            self.request.api_context, active_only=True
+        )
         return self.dbPrivateKeyDefault

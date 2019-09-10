@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import logging
+
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())
 log.setLevel(logging.INFO)
@@ -12,6 +13,7 @@ import re
 import subprocess
 import tempfile
 import textwrap
+
 # needed for conversion...
 import sys
 import json
@@ -47,16 +49,26 @@ def new_pem_tempfile(pem_data):
 
 
 def new_csr_for_domain_names(
-    domain_names,
-    private_key_path=None,
-    tmpfiles_tracker=None,
+    domain_names, private_key_path=None, tmpfiles_tracker=None
 ):
-    max_domains_certificate = lib.letsencrypt_info.LIMITS['names/certificate']['limit']
+    max_domains_certificate = lib.letsencrypt_info.LIMITS["names/certificate"]["limit"]
 
     _csr_subject = "/CN=%s" % domain_names[0]
     if len(domain_names) == 1:
-        proc = subprocess.Popen([openssl_path, "req", "-new", "-sha256", "-key", private_key_path, "-subj", _csr_subject],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(
+            [
+                openssl_path,
+                "req",
+                "-new",
+                "-sha256",
+                "-key",
+                private_key_path,
+                "-subj",
+                _csr_subject,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         csr_text, err = proc.communicate()
         if err:
             raise errors.OpenSslError_CsrGeneration("could not create a CSR")
@@ -75,7 +87,9 @@ def new_csr_for_domain_names(
         _csr_subject = "/"
 
         # generate the [SAN]
-        _csr_san = "[SAN]\nsubjectAltName=" + ",".join(["DNS:%s" % d for d in domain_names])
+        _csr_san = "[SAN]\nsubjectAltName=" + ",".join(
+            ["DNS:%s" % d for d in domain_names]
+        )
 
         # store some data in a tempfile
         tmpfile_csr_san = tempfile.NamedTemporaryFile()
@@ -86,8 +100,13 @@ def new_csr_for_domain_names(
         tmpfiles_tracker.append(tmpfile_csr_san)
 
         # note that we use /bin/cat (!)
-        _command = """%s req -new -sha256 -key %s -subj "%s" -reqexts SAN -config < /bin/cat %s""" % (openssl_path, private_key_path, _csr_subject, tmpfile_csr_san.name)
-        proc = subprocess.Popen(_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        _command = (
+            """%s req -new -sha256 -key %s -subj "%s" -reqexts SAN -config < /bin/cat %s"""
+            % (openssl_path, private_key_path, _csr_subject, tmpfile_csr_san.name)
+        )
+        proc = subprocess.Popen(
+            _command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         csr_text, err = proc.communicate()
         if err:
             raise errors.OpenSslError_CsrGeneration("could not create a CSR")
@@ -95,27 +114,29 @@ def new_csr_for_domain_names(
         csr_text = cleanup_pem_text(csr_text)
 
     else:
-        raise ValueError("LetsEncrypt can only allow `%s` domains per certificate" % max_domains_certificate)
+        raise ValueError(
+            "LetsEncrypt can only allow `%s` domains per certificate"
+            % max_domains_certificate
+        )
 
     return csr_text
 
 
-def parse_cert_domains(
-    cert_path=None,
-):
+def parse_cert_domains(cert_path=None,):
     subject_domain, san_domains = parse_cert_domains__segmented(cert_path=cert_path)
     if subject_domain is not None and subject_domain not in san_domains:
         san_domains.insert(0, subject_domain)
     return san_domains
 
 
-def parse_cert_domains__segmented(
-    cert_path=None,
-):
+def parse_cert_domains__segmented(cert_path=None,):
     log.info("Parsing CERT... | parse_cert_domains__segmented")
     # openssl x509 -in MYCERT -noout -text
-    proc = subprocess.Popen([openssl_path, "x509", "-in", cert_path, "-noout", "-text"],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [openssl_path, "x509", "-in", cert_path, "-noout", "-text"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     out, err = proc.communicate()
     if proc.returncode != 0:
         raise IOError("Error loading {0}: {1}".format(cert_path, err))
@@ -127,7 +148,11 @@ def parse_cert_domains__segmented(
     _common_name = re.search(r"Subject:.*? CN=([^\s,;/]+)", out.decode("utf8"))
     if _common_name is not None:
         subject_domain = _common_name.group(1).lower()
-    _subject_alt_names = re.search(r"X509v3 Subject Alternative Name: \n +([^\n]+)\n", out.decode("utf8"), re.MULTILINE | re.DOTALL)
+    _subject_alt_names = re.search(
+        r"X509v3 Subject Alternative Name: \n +([^\n]+)\n",
+        out.decode("utf8"),
+        re.MULTILINE | re.DOTALL,
+    )
     if _subject_alt_names is not None:
         for _san in _subject_alt_names.group(1).split(", "):
             if _san.startswith("DNS:"):
@@ -135,21 +160,23 @@ def parse_cert_domains__segmented(
     return subject_domain, list(san_domains)
 
 
-def parse_csr_domains(
-    csr_path=None,
-    submitted_domain_names=None,
-    is_der=None
-):
+def parse_csr_domains(csr_path=None, submitted_domain_names=None, is_der=None):
     """checks found names against `submitted_domain_names`
     """
     log.info("Parsing CSR... | parse_csr_domains")
     if is_der:
-        proc = subprocess.Popen([openssl_path, "req", "-in", csr_path, '-inform', 'DER', "-noout", "-text"],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(
+            [openssl_path, "req", "-in", csr_path, "-inform", "DER", "-noout", "-text"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
     else:
         # openssl req -in MYCSR -noout -text
-        proc = subprocess.Popen([openssl_path, "req", "-in", csr_path, "-noout", "-text"],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(
+            [openssl_path, "req", "-in", csr_path, "-noout", "-text"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
     out, err = proc.communicate()
     if proc.returncode != 0:
         raise IOError("Error loading {0}: {1}".format(csr_path, err))
@@ -157,7 +184,11 @@ def parse_csr_domains(
     common_name = re.search(r"Subject:.*? CN=([^\s,;/]+)", out.decode("utf8"))
     if common_name is not None:
         found_domains.add(common_name.group(1))
-    subject_alt_names = re.search(r"X509v3 Subject Alternative Name: \n +([^\n]+)\n", out.decode("utf8"), re.MULTILINE | re.DOTALL)
+    subject_alt_names = re.search(
+        r"X509v3 Subject Alternative Name: \n +([^\n]+)\n",
+        out.decode("utf8"),
+        re.MULTILINE | re.DOTALL,
+    )
     if subject_alt_names is not None:
         for san in subject_alt_names.group(1).split(", "):
             if san.startswith("DNS:"):
@@ -197,8 +228,11 @@ def validate_key__pem(key_pem):
 
 def validate_key__pem_filepath(pem_filepath):
     # openssl rsa -in {KEY} -check
-    proc = subprocess.Popen([openssl_path, "rsa", "-in", pem_filepath],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [openssl_path, "rsa", "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidKey(err)
@@ -207,8 +241,11 @@ def validate_key__pem_filepath(pem_filepath):
 
 def validate_csr__pem_filepath(pem_filepath):
     # openssl req -text -noout -verify -in {CSR}
-    proc = subprocess.Popen([openssl_path, "req", "-text", "-noout", "-verify", "-in", pem_filepath],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [openssl_path, "req", "-text", "-noout", "-verify", "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCSR(err)
@@ -217,8 +254,20 @@ def validate_csr__pem_filepath(pem_filepath):
 
 def validate_cert__pem_filepath(pem_filepath):
     # openssl x509 -in {CERTIFICATE} -inform pem -noout -text
-    proc = subprocess.Popen([openssl_path, "x509", "-in", pem_filepath, "-inform", "pem", "-noout", "-text"],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [
+            openssl_path,
+            "x509",
+            "-in",
+            pem_filepath,
+            "-inform",
+            "pem",
+            "-noout",
+            "-text",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCertificate(err)
@@ -227,8 +276,20 @@ def validate_cert__pem_filepath(pem_filepath):
 
 def validate_cert__der_filepath(der_filepath):
     # openssl x509 -in {CERTIFICATE} -inform der -noout -text
-    proc = subprocess.Popen([openssl_path, "x509", "-in", der_filepath, "-inform", "der", "-noout", "-text"],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [
+            openssl_path,
+            "x509",
+            "-in",
+            der_filepath,
+            "-inform",
+            "der",
+            "-noout",
+            "-text",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCertificate(err)
@@ -255,30 +316,51 @@ def _cleanup_md5(data):
 
 def modulus_md5_key__pem_filepath(pem_filepath):
     # openssl rsa -noout -modulus -in {KEY} | openssl md5
-    proc_modulus = subprocess.Popen([openssl_path, "rsa", "-noout", "-modulus", "-in", pem_filepath],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    proc_md5 = subprocess.Popen([openssl_path, "md5"],
-                                stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc_modulus = subprocess.Popen(
+        [openssl_path, "rsa", "-noout", "-modulus", "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    proc_md5 = subprocess.Popen(
+        [openssl_path, "md5"],
+        stdin=proc_modulus.stdout,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc_md5.communicate()
     return _cleanup_md5(data)
 
 
 def modulus_md5_csr__pem_filepath(pem_filepath):
     # openssl req -noout -modulus -in {CSR} | openssl md5
-    proc_modulus = subprocess.Popen([openssl_path, "req", "-noout", "-modulus", "-in", pem_filepath],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    proc_md5 = subprocess.Popen([openssl_path, "md5"],
-                                stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc_modulus = subprocess.Popen(
+        [openssl_path, "req", "-noout", "-modulus", "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    proc_md5 = subprocess.Popen(
+        [openssl_path, "md5"],
+        stdin=proc_modulus.stdout,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc_md5.communicate()
     return _cleanup_md5(data)
 
 
 def modulus_md5_cert__pem_filepath(pem_filepath):
     # openssl x509 -noout -modulus -in {CERT} | openssl md5
-    proc_modulus = subprocess.Popen([openssl_path, "x509", "-noout", "-modulus", "-in", pem_filepath],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    proc_md5 = subprocess.Popen([openssl_path, "md5"],
-                                stdin=proc_modulus.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc_modulus = subprocess.Popen(
+        [openssl_path, "x509", "-noout", "-modulus", "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    proc_md5 = subprocess.Popen(
+        [openssl_path, "md5"],
+        stdin=proc_modulus.stdout,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc_md5.communicate()
     return _cleanup_md5(data)
 
@@ -298,11 +380,21 @@ def cert_single_op__pem_filepath(pem_filepath, single_op):
                X509v3 Subject Key Identifier:
                    {VALUE}
     """
-    if single_op not in ('-issuer_hash', '-issuer', '-subject_hash', '-subject', '-startdate', '-enddate'):
-        raise ValueError('invalid `single_op`')
+    if single_op not in (
+        "-issuer_hash",
+        "-issuer",
+        "-subject_hash",
+        "-subject",
+        "-startdate",
+        "-enddate",
+    ):
+        raise ValueError("invalid `single_op`")
 
-    proc = subprocess.Popen([openssl_path, "x509", "-noout", single_op, "-in", pem_filepath],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [openssl_path, "x509", "-noout", single_op, "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCertificate(err)
@@ -318,11 +410,14 @@ def key_single_op__pem_filepath(pem_filepath, single_op):
         openssl rsa -noout -text -in {KEY}
 
     """
-    if single_op not in ('-check', '-modulus', '-text'):
-        raise ValueError('invalid `single_op`')
+    if single_op not in ("-check", "-modulus", "-text"):
+        raise ValueError("invalid `single_op`")
 
-    proc = subprocess.Popen([openssl_path, "rsa", "-noout", single_op, "-in", pem_filepath],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [openssl_path, "rsa", "-noout", single_op, "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCertificate(err)
@@ -332,13 +427,16 @@ def key_single_op__pem_filepath(pem_filepath, single_op):
 
 def parse_enddate_cert__pem_filepath(pem_filepath):
     # openssl x509 -enddate -noout -in {CERT}
-    proc = subprocess.Popen([openssl_path, "x509", "-enddate", "-noout", "-in", pem_filepath],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [openssl_path, "x509", "-enddate", "-noout", "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCertificate(err)
-    if data[:9] != 'notAfter=':
-        raise errors.OpenSslError_InvalidCertificate('unexpected format')
+    if data[:9] != "notAfter=":
+        raise errors.OpenSslError_InvalidCertificate("unexpected format")
     data_date = data[9:]
     date = dateutil_parser.parse(data_date)
     date = date.replace(tzinfo=None)
@@ -347,13 +445,16 @@ def parse_enddate_cert__pem_filepath(pem_filepath):
 
 def parse_startdate_cert__pem_filepath(pem_filepath):
     # openssl x509 -startdate -noout -in {CERT}
-    proc = subprocess.Popen([openssl_path, "x509", "-startdate", "-noout", "-in", pem_filepath],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [openssl_path, "x509", "-startdate", "-noout", "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidCertificate(err)
-    if data[:10] != 'notBefore=':
-        raise errors.OpenSslError_InvalidCertificate('unexpected format')
+    if data[:10] != "notBefore=":
+        raise errors.OpenSslError_InvalidCertificate("unexpected format")
     data_date = data[10:]
     date = dateutil_parser.parse(data_date)
     date = date.replace(tzinfo=None)
@@ -369,8 +470,20 @@ def verify_partial_chain__paths(pem_filepath_chain=None, pem_filepath_cert=None)
     #TODO This may not be working correctly.  Needs more testing.
     """
     raise NotImplementedError()
-    proc = subprocess.Popen([openssl_path, "verify", "-partial_chain", "-CAfile", pem_filepath_chain, "-CApath", '-', pem_filepath_cert],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [
+            openssl_path,
+            "verify",
+            "-partial_chain",
+            "-CAfile",
+            pem_filepath_chain,
+            "-CApath",
+            "-",
+            pem_filepath_cert,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     data, err = proc.communicate()
     if not data:
         return False
@@ -380,14 +493,16 @@ def verify_partial_chain__paths(pem_filepath_chain=None, pem_filepath_cert=None)
 def convert_der_to_pem(der_data=None):
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     as_pem = """-----BEGIN CERTIFICATE-----\n{0}\n-----END CERTIFICATE-----\n""".format(
-        "\n".join(textwrap.wrap(base64.b64encode(der_data).decode('utf8'), 64)))
+        "\n".join(textwrap.wrap(base64.b64encode(der_data).decode("utf8"), 64))
+    )
     return as_pem
 
 
 def convert_der_to_pem__csr(der_data=None):
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     as_pem = """-----BEGIN CERTIFICATE REQUEST-----\n{0}\n-----END CERTIFICATE REQUEST-----\n""".format(
-        "\n".join(textwrap.wrap(base64.b64encode(der_data).decode('utf8'), 64)))
+        "\n".join(textwrap.wrap(base64.b64encode(der_data).decode("utf8"), 64))
+    )
     return as_pem
 
 
@@ -402,19 +517,30 @@ def convert_der_to_pem__rsakey(der_data=None):
     as_pem = generated
     """
     as_pem = """-----BEGIN RSA PRIVATE KEY-----\n{0}\n-----END RSA PRIVATE KEY-----\n""".format(
-        "\n".join(textwrap.wrap(base64.b64encode(der_data).decode('utf8'), 64)))
+        "\n".join(textwrap.wrap(base64.b64encode(der_data).decode("utf8"), 64))
+    )
     return as_pem
 
 
 def convert_pem_to_der(pem_data=None):
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
-    lines = [l.strip() for l in pem_data.strip().split('\n')]
+    lines = [l.strip() for l in pem_data.strip().split("\n")]
     # remove the BEGIN CERT
-    if ('BEGIN CERTIFICATE' in lines[0]) or ('BEGIN RSA PRIVATE KEY' in lines[0]) or ('BEGIN PRIVATE KEY' in lines[0]) or ('BEGIN CERTIFICATE REQUEST' in lines[0]):
+    if (
+        ("BEGIN CERTIFICATE" in lines[0])
+        or ("BEGIN RSA PRIVATE KEY" in lines[0])
+        or ("BEGIN PRIVATE KEY" in lines[0])
+        or ("BEGIN CERTIFICATE REQUEST" in lines[0])
+    ):
         lines = lines[1:]
-    if ('END CERTIFICATE' in lines[-1]) or ('END RSA PRIVATE KEY' in lines[-1]) or ('END PRIVATE KEY' in lines[-1]) or ('END CERTIFICATE REQUEST' in lines[-1]):
+    if (
+        ("END CERTIFICATE" in lines[-1])
+        or ("END RSA PRIVATE KEY" in lines[-1])
+        or ("END PRIVATE KEY" in lines[-1])
+        or ("END CERTIFICATE REQUEST" in lines[-1])
+    ):
         lines = lines[:-1]
-    lines = ''.join(lines)
+    lines = "".join(lines)
     result = base64.b64decode(lines)
     return result
 
@@ -444,9 +570,9 @@ def parse_key(key_pem=None, pem_filepath=None):
             pem_filepath = tmpfile_pem.name
 
         rval = {}
-        rval['modulus'] = key_single_op__pem_filepath(pem_filepath, '-modulus')
-        rval['check'] = key_single_op__pem_filepath(pem_filepath, '-check')
-        rval['text'] = key_single_op__pem_filepath(pem_filepath, '-text')
+        rval["modulus"] = key_single_op__pem_filepath(pem_filepath, "-modulus")
+        rval["check"] = key_single_op__pem_filepath(pem_filepath, "-check")
+        rval["text"] = key_single_op__pem_filepath(pem_filepath, "-text")
         return rval
     except Exception as exc:
         raise
@@ -468,14 +594,20 @@ def parse_cert(cert_pem=None, pem_filepath=None):
             pem_filepath = tmpfile_pem.name
 
         rval = {}
-        rval['issuer_hash'] = cert_single_op__pem_filepath(pem_filepath, '-issuer_hash')
-        rval['issuer'] = cert_single_op__pem_filepath(pem_filepath, '-issuer')
-        rval['subject_hash'] = cert_single_op__pem_filepath(pem_filepath, '-subject_hash')
-        rval['subject'] = cert_single_op__pem_filepath(pem_filepath, '-subject')
-        rval['startdate'] = cert_single_op__pem_filepath(pem_filepath, '-startdate')
-        rval['enddate'] = cert_single_op__pem_filepath(pem_filepath, '-enddate')
-        rval['parse_enddate_cert__pem_filepath'] = str(parse_enddate_cert__pem_filepath(pem_filepath))
-        rval['parse_startdate_cert__pem_filepath'] = str(parse_startdate_cert__pem_filepath(pem_filepath))
+        rval["issuer_hash"] = cert_single_op__pem_filepath(pem_filepath, "-issuer_hash")
+        rval["issuer"] = cert_single_op__pem_filepath(pem_filepath, "-issuer")
+        rval["subject_hash"] = cert_single_op__pem_filepath(
+            pem_filepath, "-subject_hash"
+        )
+        rval["subject"] = cert_single_op__pem_filepath(pem_filepath, "-subject")
+        rval["startdate"] = cert_single_op__pem_filepath(pem_filepath, "-startdate")
+        rval["enddate"] = cert_single_op__pem_filepath(pem_filepath, "-enddate")
+        rval["parse_enddate_cert__pem_filepath"] = str(
+            parse_enddate_cert__pem_filepath(pem_filepath)
+        )
+        rval["parse_startdate_cert__pem_filepath"] = str(
+            parse_startdate_cert__pem_filepath(pem_filepath)
+        )
 
         return rval
     except Exception as exc:
@@ -487,8 +619,9 @@ def parse_cert(cert_pem=None, pem_filepath=None):
 
 def new_private_key():
     # openssl genrsa 4096 > domain.key
-    proc = subprocess.Popen([openssl_path, "genrsa", "4096"],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [openssl_path, "genrsa", "4096"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
     data, err = proc.communicate()
     if not data:
         raise errors.OpenSslError_InvalidKey(err)
@@ -509,31 +642,31 @@ def convert_jwk_to_ans1(pkey_jsons):
     def enc(data):
         missing_padding = 4 - len(data) % 4
         if missing_padding:
-            data += b'=' * missing_padding
-        return '0x' + binascii.hexlify(base64.b64decode(data, b'-_')).upper()
+            data += b"=" * missing_padding
+        return "0x" + binascii.hexlify(base64.b64decode(data, b"-_")).upper()
 
     for k, v in pkey.items():
-        if k == 'kty':
+        if k == "kty":
             continue
         pkey[k] = enc(v.encode())
 
     converted = []
     converted.append("asn1=SEQUENCE:private_key\n[private_key]\nversion=INTEGER:0")
-    converted.append("n=INTEGER:{}".format(pkey[u'n']))
-    converted.append("e=INTEGER:{}".format(pkey[u'e']))
-    converted.append("d=INTEGER:{}".format(pkey[u'd']))
-    converted.append("p=INTEGER:{}".format(pkey[u'p']))
-    converted.append("q=INTEGER:{}".format(pkey[u'q']))
-    converted.append("dp=INTEGER:{}".format(pkey[u'dp']))
-    converted.append("dq=INTEGER:{}".format(pkey[u'dq']))
-    converted.append("qi=INTEGER:{}".format(pkey[u'qi']))
+    converted.append("n=INTEGER:{}".format(pkey[u"n"]))
+    converted.append("e=INTEGER:{}".format(pkey[u"e"]))
+    converted.append("d=INTEGER:{}".format(pkey[u"d"]))
+    converted.append("p=INTEGER:{}".format(pkey[u"p"]))
+    converted.append("q=INTEGER:{}".format(pkey[u"q"]))
+    converted.append("dp=INTEGER:{}".format(pkey[u"dp"]))
+    converted.append("dq=INTEGER:{}".format(pkey[u"dq"]))
+    converted.append("qi=INTEGER:{}".format(pkey[u"qi"]))
     converted.append("")  # trailing newline
-    converted = '\n'.join(converted)
+    converted = "\n".join(converted)
 
     return converted
 
 
-def convert_lejson(pkey_jsons, to='pem'):
+def convert_lejson(pkey_jsons, to="pem"):
     """
     input is a json string
     much work from https://gist.github.com/JonLundy/f25c99ee0770e19dc595
@@ -550,11 +683,22 @@ def convert_lejson(pkey_jsons, to='pem'):
         tmpfile_ans1 = new_pem_tempfile(ans1)
         tmpfiles.append(tmpfile_ans1)
 
-        tmpfile_der = new_pem_tempfile('')
+        tmpfile_der = new_pem_tempfile("")
         tmpfiles.append(tmpfile_der)
 
-        proc = subprocess.Popen([openssl_path, "asn1parse", "-noout", "-out", tmpfile_der.name, "-genconf", tmpfile_ans1.name],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(
+            [
+                openssl_path,
+                "asn1parse",
+                "-noout",
+                "-out",
+                tmpfile_der.name,
+                "-genconf",
+                tmpfile_ans1.name,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         generated, err = proc.communicate()
         if err:
             raise ValueError(err)
