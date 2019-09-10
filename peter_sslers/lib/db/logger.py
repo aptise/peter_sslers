@@ -1,5 +1,6 @@
 # logging
 import logging
+
 log = logging.getLogger(__name__)
 
 # pypi
@@ -14,7 +15,6 @@ from .. import utils
 
 
 class AcmeLogger(object):
-
     def __init__(self, ctx, dbAccountKey=None, dbCertificateRequest=None):
         self.ctx = ctx
         self.dbAccountKey = dbAccountKey
@@ -27,7 +27,7 @@ class AcmeLogger(object):
         """
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-reg')
+        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string("v1|/acme/new-reg")
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
         return sslAcmeEventLog
@@ -38,7 +38,9 @@ class AcmeLogger(object):
         """
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-authz')
+        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
+            "v1|/acme/new-authz"
+        )
         sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
         sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
@@ -56,7 +58,9 @@ class AcmeLogger(object):
     def log_new_cert(self):
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string('v1|/acme/new-cert')
+        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
+            "v1|/acme/new-cert"
+        )
         sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
         sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
@@ -100,12 +104,16 @@ class AcmeLogger(object):
         """
         Logs a challenge as error
         """
-        if failtype in ('pretest-1', 'pretest-2'):
-            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string('setup-prevalidation')
+        if failtype in ("pretest-1", "pretest-2"):
+            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string(
+                "setup-prevalidation"
+            )
             self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
             self.ctx.dbSessionLogger.flush()
-        elif failtype in ('fail-1', 'fail-2'):
-            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string('upstream-validation')
+        elif failtype in ("fail-1", "fail-2"):
+            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string(
+                "upstream-validation"
+            )
             self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
             self.ctx.dbSessionLogger.flush()
 
@@ -116,7 +124,7 @@ class AcmeLogger(object):
 def log__SslOperationsEvent(
     ctx,
     event_type_id,
-    event_payload_dict = None,
+    event_payload_dict=None,
     dbOperationsEvent_child_of=None,
     timestamp_event=None,
 ):
@@ -139,9 +147,11 @@ def log__SslOperationsEvent(
     dbOperationsEvent.timestamp_event = timestamp_event
     dbOperationsEvent.set_event_payload(event_payload_dict)
     if dbOperationsEvent_child_of:
-        dbOperationsEvent.ssl_operations_event_id__child_of = dbOperationsEvent_child_of.id
+        dbOperationsEvent.ssl_operations_event_id__child_of = (
+            dbOperationsEvent_child_of.id
+        )
     ctx.dbSession.add(dbOperationsEvent)
-    ctx.dbSession.flush(objects=[dbOperationsEvent, ])
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
 
     # shortcut!
     # if there isn't a global dbOperationsEvent, set it!
@@ -190,7 +200,7 @@ def _log_object_event(
         dbOperationsObjectEvent.ssl_queue_domain_id = dbQueueDomain.id
 
     ctx.dbSession.add(dbOperationsObjectEvent)
-    ctx.dbSession.flush(objects=[dbOperationsObjectEvent, ])
+    ctx.dbSession.flush(objects=[dbOperationsObjectEvent])
 
     return dbOperationsObjectEvent
 
@@ -198,7 +208,4 @@ def _log_object_event(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-__all__ = ('AcmeLogger',
-           'log__SslOperationsEvent',
-           '_log_object_event',
-           )
+__all__ = ("AcmeLogger", "log__SslOperationsEvent", "_log_object_event")

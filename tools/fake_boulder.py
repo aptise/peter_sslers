@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 """
 fake_boulder
 
@@ -35,11 +36,11 @@ import os
 from peter_sslers.lib import cert_utils
 
 
-OPENSSL_BIN = 'openssl'
+OPENSSL_BIN = "openssl"
 
 # originally this figured out the path to the ca... but that's actually needed by openssl as an environment variable
 # so let's just use that...
-OPENSSL_CA_DIR = os.getenv('OPENSSL_CA_DIR', None)
+OPENSSL_CA_DIR = os.getenv("OPENSSL_CA_DIR", None)
 if not OPENSSL_CA_DIR:
     raise ValueError("You MUST set the environment variable `OPENSSL_CA_DIR`")
 CAPATH = OPENSSL_CA_DIR
@@ -50,16 +51,16 @@ CAPATH = OPENSSL_CA_DIR
 
 def _unb64(b):
     # http://letsencrypt.readthedocs.io/projects/acme/en/latest/_modules/acme/jose/b64.html#b64encode
-    data = b.encode('ascii')
-    return base64.urlsafe_b64decode(data + b'=' * (4 - (len(data) % 4)))
+    data = b.encode("ascii")
+    return base64.urlsafe_b64decode(data + b"=" * (4 - (len(data) % 4)))
 
 
 def decrypt_acme_newcert(post_data):
     as_json = json.loads(post_data)
-    payload = as_json['payload']
+    payload = as_json["payload"]
     payload_unb64 = _unb64(payload)
     payload_unb64_json = json.loads(payload_unb64)
-    csr_der_b64 = payload_unb64_json['csr']
+    csr_der_b64 = payload_unb64_json["csr"]
     csr_der = _unb64(csr_der_b64)
 
     _tmpfile_der = None
@@ -87,7 +88,7 @@ def sign_csr(csr_pem):
     _tempfiles = []
     try:
         # store some data in a tempfile
-        _tmpfile_cert = cert_utils.new_pem_tempfile('')
+        _tmpfile_cert = cert_utils.new_pem_tempfile("")
         _tempfiles.append(_tmpfile_cert)
 
         _tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
@@ -95,14 +96,26 @@ def sign_csr(csr_pem):
 
         # openssl ca -batch -config ./openssl-ca-2.cnf -policy signing_policy -extensions signing_req -out mygenerated.pem -infiles a.csr
         # openssl ca -batch -config ./openssl-ca-2.cnf -policy signing_policy -extensions signing_req -out mygenerated.pem -in a.csr
-        proc = subprocess.Popen([OPENSSL_BIN, 'ca', '-batch', '-config', '%s/%s' % (CAPATH, 'openssl-ca-2.cnf'),
-                                 '-policy', 'signing_policy',
-                                 '-extensions', 'signing_req',
-                                 '-notext',
-                                 '-out', _tmpfile_cert.name,
-                                 "-in", _tmpfile_csr.name,
-                                 ],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(
+            [
+                OPENSSL_BIN,
+                "ca",
+                "-batch",
+                "-config",
+                "%s/%s" % (CAPATH, "openssl-ca-2.cnf"),
+                "-policy",
+                "signing_policy",
+                "-extensions",
+                "signing_req",
+                "-notext",
+                "-out",
+                _tmpfile_cert.name,
+                "-in",
+                _tmpfile_csr.name,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         foo, err = proc.communicate()
         _tmpfile_cert.seek(0)
         data = _tmpfile_cert.read()
@@ -114,11 +127,9 @@ def sign_csr(csr_pem):
 
 def directory(request):
     return Response(
-        body='''{"123123123": "https://community.letsencrypt.org/t/adding-random-entries-to-the-directory/33417","key-change": "http://127.0.0.1:7202/acme/key-change","meta": {"caaIdentities": ["letsencrypt.org"],"terms-of-service": "https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf","website": "https://letsencrypt.org/docs/staging-environment/"},"new-authz": "http://127.0.0.1:7202/acme/new-authz","new-cert": "http://127.0.0.1:7202/acme/new-cert","new-reg": "http://127.0.0.1:7202/acme/new-reg","revoke-cert": "http://127.0.0.1:7202/acme/revoke-cert"}''',
+        body="""{"123123123": "https://community.letsencrypt.org/t/adding-random-entries-to-the-directory/33417","key-change": "http://127.0.0.1:7202/acme/key-change","meta": {"caaIdentities": ["letsencrypt.org"],"terms-of-service": "https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf","website": "https://letsencrypt.org/docs/staging-environment/"},"new-authz": "http://127.0.0.1:7202/acme/new-authz","new-cert": "http://127.0.0.1:7202/acme/new-cert","new-reg": "http://127.0.0.1:7202/acme/new-reg","revoke-cert": "http://127.0.0.1:7202/acme/revoke-cert"}""",
         status_code=200,
-        headers = {'Replay-Nonce': '123123_123123_',
-                   'Content-Type': 'application/json',
-                   },
+        headers={"Replay-Nonce": "123123_123123_", "Content-Type": "application/json"},
     )
 
 
@@ -158,9 +169,10 @@ def acme_newauthz(request):
                "combinations": [[0], [1]]
              }
     """
-    return Response(body='''{"challenges": [{"type": "http-01", "token": "123123123-12312", "uri": "http://127.0.0.1:7202/acme/CHALLENGE"}]}''',
-                    status_code=201,
-                    )
+    return Response(
+        body="""{"challenges": [{"type": "http-01", "token": "123123123-12312", "uri": "http://127.0.0.1:7202/acme/CHALLENGE"}]}""",
+        status_code=201,
+    )
 
 
 def acme_CHALLENGE(request):
@@ -194,9 +206,7 @@ def acme_CHALLENGE(request):
            }
 
     """
-    return Response(body='''{"status": "valid"}''',
-                    status_code=202,
-                    )
+    return Response(body="""{"status": "valid"}""", status_code=202)
 
 
 def acme_newcert(request):
@@ -220,22 +230,24 @@ def acme_newcert(request):
     """
     inbound = request.body
     if not inbound:
-        return Response(body='', status_code=500)
-    (csr_pem,
-     domain_names
-     ) = decrypt_acme_newcert(inbound)
+        return Response(body="", status_code=500)
+    (csr_pem, domain_names) = decrypt_acme_newcert(inbound)
     signedcert_pem = sign_csr(csr_pem)
     if not signedcert_pem:
         raise ValueError("could not generate a cert")
     signedcert_der = cert_utils.convert_pem_to_der(signedcert_pem)
-    return Response(body=signedcert_der,
-                    status_code=201,
-                    headers = {'Link': '<https://acme-v01.api.letsencrypt.org/acme/issuer-cert>;rel="up";title="issuer"',
-                               'Date': datetime.datetime.utcnow().isoformat(),
-                               'Expires': (datetime.datetime.utcnow() + datetime.timedelta(days=90)).isoformat(),
-                               'Content-Type': 'application/pkix-cert',
-                               },
-                    )
+    return Response(
+        body=signedcert_der,
+        status_code=201,
+        headers={
+            "Link": '<https://acme-v01.api.letsencrypt.org/acme/issuer-cert>;rel="up";title="issuer"',
+            "Date": datetime.datetime.utcnow().isoformat(),
+            "Expires": (
+                datetime.datetime.utcnow() + datetime.timedelta(days=90)
+            ).isoformat(),
+            "Content-Type": "application/pkix-cert",
+        },
+    )
 
 
 def acme_newreg(request):
@@ -265,44 +277,51 @@ def acme_newreg(request):
         inbound = request.body
         inbound_json = json.loads(inbound)
         key = inbound_json["header"]["jwk"]
-        body = json.dumps({"key": key,
-                           "status": "good",
-                           "contact": ["mailto:cert-admin@example.com",
-                                       "tel:+12025551212"
-                                       ],
-                           })
+        body = json.dumps(
+            {
+                "key": key,
+                "status": "good",
+                "contact": ["mailto:cert-admin@example.com", "tel:+12025551212"],
+            }
+        )
     except:
         raise ValueError("invalid input")
-    return Response(body=body,
-                    status_code=201,
-                    headers = {'Link': '<https://127.0.0.1/acme/terms>;rel="terms-of-service"',
-                               'Date': datetime.datetime.utcnow().isoformat(),
-                               },
-                    )
+    return Response(
+        body=body,
+        status_code=201,
+        headers={
+            "Link": '<https://127.0.0.1/acme/terms>;rel="terms-of-service"',
+            "Date": datetime.datetime.utcnow().isoformat(),
+        },
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("running test server...")
     config = Configurator()
-    config.include('pyramid_debugtoolbar')
+    config.include("pyramid_debugtoolbar")
 
-    config.add_route('/directory', '/directory')
-    config.add_view(directory, route_name='/directory')
+    config.add_route("/directory", "/directory")
+    config.add_view(directory, route_name="/directory")
 
-    config.add_route('/acme/new-authz', '/acme/new-authz')
-    config.add_view(acme_newauthz, route_name='/acme/new-authz')
+    config.add_route("/acme/new-authz", "/acme/new-authz")
+    config.add_view(acme_newauthz, route_name="/acme/new-authz")
 
-    config.add_route('/acme/CHALLENGE', '/acme/CHALLENGE')
-    config.add_view(acme_CHALLENGE, route_name='/acme/CHALLENGE')
+    config.add_route("/acme/CHALLENGE", "/acme/CHALLENGE")
+    config.add_view(acme_CHALLENGE, route_name="/acme/CHALLENGE")
 
-    config.add_route('/acme/new-cert', '/acme/new-cert')
-    config.add_view(acme_newcert, route_name='/acme/new-cert')
+    config.add_route("/acme/new-cert", "/acme/new-cert")
+    config.add_view(acme_newcert, route_name="/acme/new-cert")
 
-    config.add_route('/acme/new-reg', '/acme/new-reg')
-    config.add_view(acme_newreg, route_name='/acme/new-reg')
+    config.add_route("/acme/new-reg", "/acme/new-reg")
+    config.add_view(acme_newreg, route_name="/acme/new-reg")
 
-    config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)
+    config.add_request_method(
+        lambda request: request.environ["HTTP_HOST"].split(":")[0],
+        "active_domain_name",
+        reify=True,
+    )
 
     app = config.make_wsgi_app()
-    server = make_server('127.0.0.1', 7202, app)
+    server = make_server("127.0.0.1", 7202, app)
     server.serve_forever()

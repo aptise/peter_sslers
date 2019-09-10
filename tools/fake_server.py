@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 """
 fake_server
 
@@ -26,40 +28,48 @@ from pyramid.response import Response
 
 
 def hello_world(request):
-    print('Incoming request')
-    return Response('<body><h1>Hello World!</h1></body>')
+    print("Incoming request")
+    return Response("<body><h1>Hello World!</h1></body>")
 
 
 def public_challenge(request):
-    print('Incoming request')
-    return Response('<body><h1>public_challenge</h1>%s</body>' % request.matchdict['challenge'])
+    print("Incoming request")
+    return Response(
+        "<body><h1>public_challenge</h1>%s</body>" % request.matchdict["challenge"]
+    )
 
 
 def public_whoami(request):
-    print('Incoming request - public_whoami')
-    return Response('<body><h1>public_whoami</h1>%s</body>' % request.active_domain_name)
+    print("Incoming request - public_whoami")
+    return Response(
+        "<body><h1>public_whoami</h1>%s</body>" % request.active_domain_name
+    )
 
 
 def admin(request):
-    print('Incoming request - admin')
-    return Response('<body><h1>admin</h1>%s</body>' % request.active_domain_name)
+    print("Incoming request - admin")
+    return Response("<body><h1>admin</h1>%s</body>" % request.active_domain_name)
 
 
-if __name__ == '__main__':
-    print "running test server..."
+if __name__ == "__main__":
+    print("running test server...")
     config = Configurator()
-    config.add_route('hello', '/')
-    config.add_route('public_challenge', '/.well-known/acme-challenge/{challenge}')
-    config.add_route('public_whoami', '/.well-known/public/whoami')
-    config.add_route('admin', '/.well-known/admin')
+    config.add_route("hello", "/")
+    config.add_route("public_challenge", "/.well-known/acme-challenge/{challenge}")
+    config.add_route("public_whoami", "/.well-known/public/whoami")
+    config.add_route("admin", "/.well-known/admin")
 
-    config.add_view(hello_world, route_name='hello')
-    config.add_view(public_challenge, route_name='public_challenge')
-    config.add_view(public_whoami, route_name='public_whoami')
-    config.add_view(admin, route_name='admin')
+    config.add_view(hello_world, route_name="hello")
+    config.add_view(public_challenge, route_name="public_challenge")
+    config.add_view(public_whoami, route_name="public_whoami")
+    config.add_view(admin, route_name="admin")
 
-    config.add_request_method(lambda request: request.environ['HTTP_HOST'].split(':')[0], 'active_domain_name', reify=True)
+    config.add_request_method(
+        lambda request: request.environ["HTTP_HOST"].split(":")[0],
+        "active_domain_name",
+        reify=True,
+    )
 
     app = config.make_wsgi_app()
-    server = make_server('127.0.0.1', 7201, app)
+    server = make_server("127.0.0.1", 7201, app)
     server.serve_forever()

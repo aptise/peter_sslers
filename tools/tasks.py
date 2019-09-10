@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from invoke import Collection, run, task
 
 import os
@@ -8,41 +10,48 @@ import pprint
 
 # ==============================================================================
 
-_le_archive_filename_templates = {'certificate': 'cert%d.pem',
-                                  'chain': 'chain%d.pem',
-                                  'fullchain': 'fullchain%d.pem',
-                                  'private_key': 'privkey%d.pem',
-                                  }
-_le_live_filenames = {'certificate': 'cert.pem',
-                      'chain': 'chain.pem',
-                      'fullchain': 'fullchain.pem',
-                      'private_key': 'privkey.pem',
-                      }
-_le_account_filenames = ['private_key.json',
-                         'meta.json',
-                         'regr.json',
-                         ]
+_le_archive_filename_templates = {
+    "certificate": "cert%d.pem",
+    "chain": "chain%d.pem",
+    "fullchain": "fullchain%d.pem",
+    "private_key": "privkey%d.pem",
+}
+_le_live_filenames = {
+    "certificate": "cert.pem",
+    "chain": "chain.pem",
+    "fullchain": "fullchain.pem",
+    "private_key": "privkey.pem",
+}
+_le_account_filenames = ["private_key.json", "meta.json", "regr.json"]
 
 
 def upload_fileset(server_url_root, fset):
     """actually uploads a fileset"""
-    if server_url_root[-1] == '/':
+    if server_url_root[-1] == "/":
         server_url_root = server_url_root[:-1]
-    url = '%s/certificate/upload.json' % server_url_root
+    url = "%s/certificate/upload.json" % server_url_root
 
-    proc = subprocess.Popen(['curl',
-                             "--form", "private_key_file=@%s" % fset['private_key'],
-                             "--form", "certificate_file=@%s" % fset['certificate'],
-                             "--form", "chain_file=@%s" % fset['chain'],
-                             url
-                             ],
-                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [
+            "curl",
+            "--form",
+            "private_key_file=@%s" % fset["private_key"],
+            "--form",
+            "certificate_file=@%s" % fset["certificate"],
+            "--form",
+            "chain_file=@%s" % fset["chain"],
+            url,
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     json_response, err = proc.communicate()
     try:
         if not json_response:
             raise ValueError("error")
         json_response = json.loads(json_response)
-        if ('result' not in json_response) or (json_response['result'] != 'success'):
+        if ("result" not in json_response) or (json_response["result"] != "success"):
             pprint.pprint(json_response)
             raise ValueError("error!")
         else:
@@ -53,23 +62,31 @@ def upload_fileset(server_url_root, fset):
 
 def upload_account(server_url_root, fset):
     """actually uploads an account fileset"""
-    if server_url_root[-1] == '/':
+    if server_url_root[-1] == "/":
         server_url_root = server_url_root[:-1]
-    url = '%s/account-key/upload.json' % server_url_root
+    url = "%s/account-key/upload.json" % server_url_root
 
-    proc = subprocess.Popen(['curl',
-                             "--form", "account_key_file_le_pkey=@%s" % fset['private_key.json'],
-                             "--form", "account_key_file_le_meta=@%s" % fset['meta.json'],
-                             "--form", "account_key_file_le_reg=@%s" % fset['regr.json'],
-                             url
-                             ],
-                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [
+            "curl",
+            "--form",
+            "account_key_file_le_pkey=@%s" % fset["private_key.json"],
+            "--form",
+            "account_key_file_le_meta=@%s" % fset["meta.json"],
+            "--form",
+            "account_key_file_le_reg=@%s" % fset["regr.json"],
+            url,
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     json_response, err = proc.communicate()
     try:
         if not json_response:
             raise ValueError("error")
         json_response = json.loads(json_response)
-        if ('result' not in json_response) or (json_response['result'] != 'success'):
+        if ("result" not in json_response) or (json_response["result"] != "success"):
             pprint.pprint(json_response)
             raise ValueError("error!")
         else:
@@ -78,9 +95,12 @@ def upload_account(server_url_root, fset):
         raise
 
 
-@task(help={'archive_path': "Path to letsencrypt archive files.",
-            'server_url_root': "URL of server to post to, do not include `.well-known`",
-            })
+@task(
+    help={
+        "archive_path": "Path to letsencrypt archive files.",
+        "server_url_root": "URL of server to post to, do not include `.well-known`",
+    }
+)
 def import_letsencrypt_certs_archive(c, archive_path, server_url_root):
     """imports the entire letescrypt archive on `archive_path`
     HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC
@@ -91,15 +111,15 @@ def import_letsencrypt_certs_archive(c, archive_path, server_url_root):
     """
     if not archive_path:
         raise ValueError("missing `archive-path`")
-        
-    if server_url_root[:4] != 'http':
+
+    if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
     if not os.path.isdir(archive_path):
         raise ValueError("`%s` is not a directory" % archive_path)
 
     # grab all the directories
-    dirs = [i for i in os.listdir(archive_path) if i[0] != '.']
+    dirs = [i for i in os.listdir(archive_path) if i[0] != "."]
 
     # empty queue
     filesets = []
@@ -108,7 +128,7 @@ def import_letsencrypt_certs_archive(c, archive_path, server_url_root):
         dpath = os.path.join(archive_path, d)
         if not os.path.isdir(dpath):
             raise ValueError("`%s` is not a directory" % dpath)
-        dfiles = [f for f in os.listdir(dpath) if f[0] != '.']
+        dfiles = [f for f in os.listdir(dpath) if f[0] != "."]
         # ensure we have the right files in here...
         if not dfiles:
             # no files, GREAT!
@@ -122,7 +142,10 @@ def import_letsencrypt_certs_archive(c, archive_path, server_url_root):
             for (ftype, ftemplate) in _le_archive_filename_templates.items():
                 fpath = os.path.join(dpath, ftemplate % i)
                 if not os.path.exists(fpath):
-                    raise ValueError("`%s` does not look to be a letsencrypt directory; expected %s" % (dpath, fpath))
+                    raise ValueError(
+                        "`%s` does not look to be a letsencrypt directory; expected %s"
+                        % (dpath, fpath)
+                    )
                 fset[ftype] = fpath
             filesets.append(fset)
 
@@ -134,11 +157,16 @@ def import_letsencrypt_certs_archive(c, archive_path, server_url_root):
     return
 
 
-@task(help={'domain_certs_path': "Path to letsencrypt archive files for a domain.",
-            'certificate_version': "digit. the certificate version you want.",
-            'server_url_root': "URL of server to post to, do not include `.well-known`",
-            })
-def import_letsencrypt_cert_version(c, domain_certs_path, certificate_version, server_url_root):
+@task(
+    help={
+        "domain_certs_path": "Path to letsencrypt archive files for a domain.",
+        "certificate_version": "digit. the certificate version you want.",
+        "server_url_root": "URL of server to post to, do not include `.well-known`",
+    }
+)
+def import_letsencrypt_cert_version(
+    c, domain_certs_path, certificate_version, server_url_root
+):
     """imports the archive path for a version
 
     eg, if a folder has a family of certs numbered like this:
@@ -158,12 +186,12 @@ def import_letsencrypt_cert_version(c, domain_certs_path, certificate_version, s
         raise ValueError("missing `certificate-version must be a digit`")
     certificate_version = int(certificate_version)
 
-    if server_url_root[:4] != 'http':
+    if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
     if not os.path.isdir(domain_certs_path):
         raise ValueError("`%s` is not a directory" % domain_certs_path)
-        
+
     _missing_files = []
     _fileset = {}
     for (ftype, ftemplate) in _le_archive_filename_templates.items():
@@ -174,15 +202,20 @@ def import_letsencrypt_cert_version(c, domain_certs_path, certificate_version, s
         else:
             _fileset[ftype] = fpath
     if _missing_files:
-        raise ValueError("Missing files in `%s`: %s" % (domain_certs_path, ','.join(_missing_files)))
+        raise ValueError(
+            "Missing files in `%s`: %s" % (domain_certs_path, ",".join(_missing_files))
+        )
 
     upload_fileset(server_url_root, _fileset)
     return
 
 
-@task(help={'cert_path': "Path to cert folder.",
-            'server_url_root': "URL of server to post to, do not include `.well-known`",
-            })
+@task(
+    help={
+        "cert_path": "Path to cert folder.",
+        "server_url_root": "URL of server to post to, do not include `.well-known`",
+    }
+)
 def import_letsencrypt_cert_plain(c, cert_path, server_url_root):
     """imports the certificate for a folder, given an unversioned content structure:
 
@@ -197,12 +230,12 @@ def import_letsencrypt_cert_plain(c, cert_path, server_url_root):
     if not cert_path:
         raise ValueError("missing `cert-path`")
 
-    if server_url_root[:4] != 'http':
+    if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
     if not os.path.isdir(cert_path):
         raise ValueError("`%s` is not a directory" % cert_path)
-        
+
     _missing_files = []
     _fileset = {}
     for (ftype, fname) in _le_live_filenames.items():
@@ -212,15 +245,20 @@ def import_letsencrypt_cert_plain(c, cert_path, server_url_root):
         else:
             _fileset[ftype] = fpath
     if _missing_files:
-        raise ValueError("Missing files in `%s`: %s" % (cert_path, ','.join(_missing_files)))
+        raise ValueError(
+            "Missing files in `%s`: %s" % (cert_path, ",".join(_missing_files))
+        )
 
     upload_fileset(server_url_root, _fileset)
     return
 
 
-@task(help={'live_path': "Path to letsencrypt live files. should be `/etc/letsencrypt/live`",
-            'server_url_root': "URL of server to post to, do not include `.well-known`",
-            })
+@task(
+    help={
+        "live_path": "Path to letsencrypt live files. should be `/etc/letsencrypt/live`",
+        "server_url_root": "URL of server to post to, do not include `.well-known`",
+    }
+)
 def import_letsencrypt_certs_live(c, live_path, server_url_root):
     """imports the letsencrypt live archive  in /etc/letsencrypt/live
 
@@ -230,14 +268,14 @@ def import_letsencrypt_certs_live(c, live_path, server_url_root):
     if not live_path:
         raise ValueError("missing `live-path`")
 
-    if server_url_root[:4] != 'http':
+    if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
     if not os.path.isdir(live_path):
         raise ValueError("`%s` is not a directory" % live_path)
-        
+
     # grab all the directories
-    dirs = [i for i in os.listdir(live_path) if i[0] != '.']
+    dirs = [i for i in os.listdir(live_path) if i[0] != "."]
 
     # empty queue
     filesets = []
@@ -246,7 +284,7 @@ def import_letsencrypt_certs_live(c, live_path, server_url_root):
         dpath = os.path.join(live_path, d)
         if not os.path.isdir(dpath):
             raise ValueError("`%s` is not a directory" % dpath)
-        dfiles = [f for f in os.listdir(dpath) if f[0] != '.']
+        dfiles = [f for f in os.listdir(dpath) if f[0] != "."]
         # ensure we have the right files in here...
         if len(dfiles) != 4:
             raise ValueError("`%s` does not look to be a letsencrypt directory" % dpath)
@@ -255,7 +293,10 @@ def import_letsencrypt_certs_live(c, live_path, server_url_root):
         for (ftype, fname) in _le_live_filenames.items():
             fpath = os.path.join(dpath, fname)
             if not os.path.exists(fpath):
-                raise ValueError("`%s` does not look to be a letsencrypt directory; expected %s" % (dpath, fpath))
+                raise ValueError(
+                    "`%s` does not look to be a letsencrypt directory; expected %s"
+                    % (dpath, fpath)
+                )
             fset[ftype] = fpath
         filesets.append(fset)
 
@@ -271,22 +312,30 @@ def import_letsencrypt_certs_live(c, live_path, server_url_root):
 
 
 def _accountPath_to_fileSet(account_path):
-    dfiles = [f for f in os.listdir(account_path) if f[0] != '.']
+    dfiles = [f for f in os.listdir(account_path) if f[0] != "."]
     # ensure we have the right files in here...
     if len(dfiles) != 3:
-        raise ValueError("`%s` does not look to be a letsencrypt account directory" % account_path)
+        raise ValueError(
+            "`%s` does not look to be a letsencrypt account directory" % account_path
+        )
     fset = {}
     for fname in _le_account_filenames:
         fpath = os.path.join(account_path, fname)
         if not os.path.exists(fpath):
-            raise ValueError("`%s` does not look to be a letsencrypt account directory; expected %s" % (account_path, fname))
+            raise ValueError(
+                "`%s` does not look to be a letsencrypt account directory; expected %s"
+                % (account_path, fname)
+            )
         fset[fname] = fpath
     return fset
 
 
-@task(help={'account_path': "Path to letsencrypt account files. should be `/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`",
-            'server_url_root': "URL of server to post to, do not include `.well-known`",
-            })
+@task(
+    help={
+        "account_path": "Path to letsencrypt account files. should be `/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`",
+        "server_url_root": "URL of server to post to, do not include `.well-known`",
+    }
+)
 def import_letsencrypt_account(c, account_path, server_url_root):
     """imports a specific letsencrypt account
 
@@ -296,20 +345,23 @@ def import_letsencrypt_account(c, account_path, server_url_root):
     if not account_path:
         raise ValueError("missing `account-path`")
 
-    if server_url_root[:4] != 'http':
+    if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
     if not os.path.isdir(account_path):
         raise ValueError("`%s` is not a directory" % account_path)
-    
+
     fset = _accountPath_to_fileSet(account_path)
     upload_account(server_url_root, fset)
     return
 
 
-@task(help={'server_accounts_path': "Path to letsencrypt server account files. should be `/etc/letsencrypt/accounts/{SERVER}`",
-            'server_url_root': "URL of server to post to, do not include `.well-known`",
-            })
+@task(
+    help={
+        "server_accounts_path": "Path to letsencrypt server account files. should be `/etc/letsencrypt/accounts/{SERVER}`",
+        "server_url_root": "URL of server to post to, do not include `.well-known`",
+    }
+)
 def import_letsencrypt_accounts_server(c, accounts_path_server, server_url_root):
     """imports all accounts for a given letsencrypt server
 
@@ -319,20 +371,23 @@ def import_letsencrypt_accounts_server(c, accounts_path_server, server_url_root)
     if not accounts_path_server:
         raise ValueError("missing `accounts-path-server`")
 
-    if server_url_root[:4] != 'http':
+    if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
     if not os.path.isdir(accounts_path_server):
         raise ValueError("`%s` is not a directory" % accounts_path_server)
-        
-    dfiles = [f for f in os.listdir(accounts_path_server) if f[0] != '.']
-    # ensure we have the right files in here...
-    if (len(dfiles) != 1) or ('directory' not in dfiles):
-        raise ValueError("`%s` does not look to be a letsencrypt server account directory" % accounts_path_server)
 
-    dpath_directory = os.path.join(accounts_path_server, 'directory')
-    account_directories = [f for f in os.listdir(dpath_directory) if f[0] != '.']
-    if (not account_directories):
+    dfiles = [f for f in os.listdir(accounts_path_server) if f[0] != "."]
+    # ensure we have the right files in here...
+    if (len(dfiles) != 1) or ("directory" not in dfiles):
+        raise ValueError(
+            "`%s` does not look to be a letsencrypt server account directory"
+            % accounts_path_server
+        )
+
+    dpath_directory = os.path.join(accounts_path_server, "directory")
+    account_directories = [f for f in os.listdir(dpath_directory) if f[0] != "."]
+    if not account_directories:
         raise ValueError("`%s` does not have any accounts" % dpath_directory)
 
     filesets = []
@@ -348,9 +403,12 @@ def import_letsencrypt_accounts_server(c, accounts_path_server, server_url_root)
     return
 
 
-@task(help={'accounts_all_path': "Path to letsencrypt server account files. should be `/etc/letsencrypt/accounts`",
-            'server_url_root': "URL of server to post to, do not include `.well-known`",
-            })
+@task(
+    help={
+        "accounts_all_path": "Path to letsencrypt server account files. should be `/etc/letsencrypt/accounts`",
+        "server_url_root": "URL of server to post to, do not include `.well-known`",
+    }
+)
 def import_letsencrypt_accounts_all(c, accounts_all_path, server_url_root):
     """imports all accounts for a letsencrypt install
 
@@ -360,26 +418,29 @@ def import_letsencrypt_accounts_all(c, accounts_all_path, server_url_root):
     if not accounts_all_path:
         raise ValueError("missing `accounts-all-path`")
 
-    if server_url_root[:4] != 'http':
+    if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
     if not os.path.isdir(accounts_all_path):
         raise ValueError("`%s` is not a directory" % accounts_all_path)
 
-    serverNames = [f for f in os.listdir(accounts_all_path) if f[0] != '.']
+    serverNames = [f for f in os.listdir(accounts_all_path) if f[0] != "."]
     # ensure we have the right files in here...
-    if (not len(serverNames)) or (not all([True if d.startswith('acme-') else False
-                                           for d in serverNames
-                                           ])):
-        raise ValueError("`%s` does not look to be a letsencrypt accounts directory" % accounts_all_path)
-        
+    if (not len(serverNames)) or (
+        not all([True if d.startswith("acme-") else False for d in serverNames])
+    ):
+        raise ValueError(
+            "`%s` does not look to be a letsencrypt accounts directory"
+            % accounts_all_path
+        )
+
     filesets = []
 
     for sname in serverNames:
-        accounts_path_server =  os.path.join(accounts_all_path, sname)
-        dpath_directory = os.path.join(accounts_path_server, 'directory')
-        account_directories = [f for f in os.listdir(dpath_directory) if f[0] != '.']
-        if (not account_directories):
+        accounts_path_server = os.path.join(accounts_all_path, sname)
+        dpath_directory = os.path.join(accounts_path_server, "directory")
+        account_directories = [f for f in os.listdir(dpath_directory) if f[0] != "."]
+        if not account_directories:
             raise ValueError("`%s` does not have any accounts" % dpath_directory)
 
         for account_hash in account_directories:
@@ -389,7 +450,7 @@ def import_letsencrypt_accounts_all(c, accounts_all_path, server_url_root):
 
     if not filesets:
         raise ValueError("no filesets detected")
-    
+
     for fset in filesets:
         upload_account(server_url_root, fset)
     return
@@ -398,12 +459,12 @@ def import_letsencrypt_accounts_all(c, accounts_all_path, server_url_root):
 # ==============================================================================
 
 
-namespace = Collection(import_letsencrypt_certs_archive,
-                       import_letsencrypt_certs_live,
-                       import_letsencrypt_cert_version,
-                       import_letsencrypt_cert_plain,
-
-                       import_letsencrypt_account,
-                       import_letsencrypt_accounts_server,
-                       import_letsencrypt_accounts_all,
-                       )
+namespace = Collection(
+    import_letsencrypt_certs_archive,
+    import_letsencrypt_certs_live,
+    import_letsencrypt_cert_version,
+    import_letsencrypt_cert_plain,
+    import_letsencrypt_account,
+    import_letsencrypt_accounts_server,
+    import_letsencrypt_accounts_all,
+)

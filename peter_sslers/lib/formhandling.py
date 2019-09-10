@@ -1,7 +1,9 @@
-import pyramid_formencode_classic
-from pyramid_formencode_classic.exceptions import *
-from pyramid_formencode_classic.formatters import *
+# pypi
 import formencode.rewritingparser
+import pyramid_formencode_classic
+from pyramid_formencode_classic.exceptions import *  # noqa
+from pyramid_formencode_classic.formatters import *  # noqa
+from six import PY2
 
 
 # ==============================================================================
@@ -14,7 +16,10 @@ def formatter_error(error):
     """
     custom error formatter
     """
-    return (TEMPLATE_FORMSTASH_ERRORS % {'error': formencode.rewritingparser.html_quote(error)}) + "\n"
+    return (
+        TEMPLATE_FORMSTASH_ERRORS
+        % {"error": formencode.rewritingparser.html_quote(error)}
+    ) + "\n"
 
 
 def form_reprint(request, form_print_method, **kwargs):
@@ -29,31 +34,28 @@ def form_reprint(request, form_print_method, **kwargs):
 
     2. `form_reprint` registers a special error formatter for 'main'
     """
-    kwargs['force_defaults'] = False
+    kwargs["force_defaults"] = False
+    kwargs["data_formencode_ignore"] = True
 
     # regular error formatters
-    error_formatters = {'main': formatter_error, }
+    error_formatters = {"main": formatter_error}
     # override the default?
-    if 'default_error_formatter' in kwargs:
-        default_formatter = kwargs.pop('default_error_formatter')
-        error_formatters['default'] = default_formatter
+    if "default_error_formatter" in kwargs:
+        default_formatter = kwargs.pop("default_error_formatter")
+        error_formatters["default"] = default_formatter
     # override the main?
-    if 'main_error_formatter' in kwargs:
-        main_formatter = kwargs.pop('main_error_formatter')
-        error_formatters['main'] = main_formatter
+    if "main_error_formatter" in kwargs:
+        main_formatter = kwargs.pop("main_error_formatter")
+        error_formatters["main"] = main_formatter
     # pass it in
-    kwargs['error_formatters'] = error_formatters
+    kwargs["error_formatters"] = error_formatters
 
-    if 'auto_error_formatter' not in kwargs:
+    if "auto_error_formatter" not in kwargs:
         # wait what? why?
         # by default we handle our own formatters.
-        kwargs['auto_error_formatter'] = formatter_error
+        kwargs["auto_error_formatter"] = formatter_error
 
-    return pyramid_formencode_classic.form_reprint(
-        request,
-        form_print_method,
-        **kwargs
-    )
+    return pyramid_formencode_classic.form_reprint(request, form_print_method, **kwargs)
 
 
 def form_validate(request, **kwargs):
@@ -64,17 +66,21 @@ def form_validate(request, **kwargs):
 
     see `form_reprint` for why some of the following are set.
     """
-    if 'is_unicode_params' not in kwargs:
-        kwargs['is_unicode_params'] = True
-    (result,
-     formStash
-     ) = pyramid_formencode_classic.form_validate(
-        request,
-        **kwargs
-    )
+    if "is_unicode_params" not in kwargs:
+        kwargs["is_unicode_params"] = True
+    if "error_main" not in kwargs:
+        kwargs["error_main"] = "There was an error with your form."
+    (result, formStash) = pyramid_formencode_classic.form_validate(request, **kwargs)
+    if not result:
+        if PY2:
+            # there is an issue in formencode under Python2
+            # see: https://github.com/formencode/formencode/issues/132
+            for (k, v) in formStash.errors.items():
+                if " (not u'" in v:
+                    formStash.errors[k] = v.replace(" (not u'", " (not '")
     formStash.html_error_main_template = TEMPLATE_FORMSTASH_ERRORS
     formStash.html_error_placeholder_template = '<form:error name="%s" format="main"/>'
-    formStash.html_error_placeholder_form_template = '<form:error name="%(field)s" format="main" data-formencode-form="%(form)s"/>'
-    return (result,
-            formStash
-            )
+    formStash.html_error_placeholder_form_template = (
+        '<form:error name="%(field)s" format="main" data-formencode-form="%(form)s"/>'
+    )
+    return (result, formStash)
