@@ -576,6 +576,7 @@ def operations_update_recents(ctx):
     """
     # first the single
     # _t_domain = models.SslDomain.__table__.alias('domain')
+
     _q_sub = (
         ctx.dbSession.query(models.SslServerCertificate.id)
         .join(

@@ -12,7 +12,7 @@ requires = [
     "formencode",
     "pypages",
     "pyramid_debugtoolbar>=4.4",
-    "pyramid_formencode_classic>=0.4.0",
+    "pyramid_formencode_classic >=0.4.0, <0.5.0",
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
     "pyramid_tm",

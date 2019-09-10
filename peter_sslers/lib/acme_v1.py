@@ -59,8 +59,8 @@ def url_request(url, post_data=None):
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         resp = urlopen(Request(url, data=post_data, headers=headers), context=ctx)
-    else:
-        resp = urlopen(Request(url, data=post_data, headers=headers))
+        return resp
+    resp = urlopen(Request(url, data=post_data, headers=headers))
     return resp
 
 

@@ -1,10 +1,10 @@
 0.3.0
-2019-unreleased
+2019.09.10
+- requires pyramid_formencode_classic>=0.4.0
 ---
 - fixed some sql comparisons that compiled oddly in sqlite
 - added route: /admin/certificates/active
 - added route: /admin/certificates/inactive
-- requires pyramid_formencode_classic>=0.4.0
 
 
 0.2.1
