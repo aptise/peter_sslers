@@ -179,33 +179,37 @@ class ViewAdmin_Focus(Handler):
 
             if action == 'active':
                 if dbPrivateKey.is_active:
-                    formStash.set_error(field='action',
-                                        message="Already activated",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already activated",
+                                          )
+
                 if dbPrivateKey.is_compromised:
-                    formStash.set_error(field='action',
-                                        message="Can not activate a compromised key",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Can not activate a compromised key",
+                                          )
+
                 dbPrivateKey.is_active = True
                 event_status = 'private_key__mark__active'
 
             elif action == 'inactive':
                 if not dbPrivateKey.is_active:
-                    formStash.set_error(field='action',
-                                        message="Already deactivated",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already deactivated",
+                                          )
+
                 dbPrivateKey.is_active = False
                 event_status = 'private_key__mark__inactive'
 
             elif action == 'compromised':
                 if dbPrivateKey.is_compromised:
-                    formStash.set_error(field='action',
-                                        message="Already compromised",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already compromised",
+                                          )
+
                 dbPrivateKey.is_active = False
                 dbPrivateKey.is_compromised = True
                 if dbPrivateKey.is_default:
@@ -216,15 +220,17 @@ class ViewAdmin_Focus(Handler):
 
             elif action == 'default':
                 if dbPrivateKey.is_default:
-                    formStash.set_error(field='action',
-                                        message="Already default",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already default",
+                                          )
+
                 if not dbPrivateKey.is_active:
-                    formStash.set_error(field='action',
-                                        message="Key not active",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Key not active",
+                                          )
+
                 formerDefaultKey = lib_db.get.get__SslPrivateKey__default(self.request.api_context)
                 if formerDefaultKey:
                     formerDefaultKey.is_default = False
@@ -234,10 +240,10 @@ class ViewAdmin_Focus(Handler):
                 event_status = 'private_key__mark__default'
 
             else:
-                    formStash.set_error(field='action',
-                                        message="invalid `action`",
-                                        raise_FormInvalid=True,
-                                        )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field='action',
+                                      message="invalid `action`",
+                                      )
 
             self.request.api_context.dbSession.flush(objects=[dbPrivateKey, ])
 
@@ -267,11 +273,6 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
@@ -328,11 +329,6 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther('%s/private-key/%s?result=success%s' % (self.request.registry.settings['admin_prefix'], dbPrivateKey.id, ('&is_created=1' if _is_created else '')))
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             return formhandling.form_reprint(
                 self.request,
                 self._upload__print,

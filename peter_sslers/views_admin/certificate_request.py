@@ -203,11 +203,6 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
                                 )
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             return formhandling.form_reprint(
                 self.request,
                 self._certificate_request_AcmeFlow_manage_domain__print,
@@ -258,11 +253,6 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther('%s/certificate-request/%s/acme-flow/manage' % (self.request.registry.settings['admin_prefix'], dbCertificateRequest.id))
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             return formhandling.form_reprint(
                 self.request,
                 self._new_AcmeFlow__print,
@@ -302,15 +292,16 @@ class ViewAdmin_New(Handler):
             try:
                 domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             except ValueError as exc:
-                formStash.set_error(field='domain_names',
-                                    message="invalid domain names detected",
-                                    raise_FormInvalid=True,
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field='domain_names',
+                                      message="invalid domain names detected",
+                                      )
+
             if not domain_names:
-                formStash.set_error(field='domain_names',
-                                    message="invalid or no valid domain names detected",
-                                    raise_FormInvalid=True,
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field='domain_names',
+                                      message="invalid or no valid domain names detected",
+                                      )
 
             accountKeySelection = form_utils.parse_AccountKeySelection(
                 self.request,
@@ -348,11 +339,6 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbLetsencryptCertificate.id))
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             return formhandling.form_reprint(
                 self.request,
                 self._new_AcmeAutomated__print,

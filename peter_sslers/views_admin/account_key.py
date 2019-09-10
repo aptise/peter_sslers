@@ -123,11 +123,6 @@ class ViewAdmin_New(Handler):
             ))
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
@@ -307,33 +302,29 @@ class ViewAdmin_Focus(Handler):
 
             if action == 'active':
                 if dbAcmeAccountKey.is_active:
-                    formStash.set_error(field='Error_Main',
-                                        message='Already activated',
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_form()` will raise `FormInvalid()`
+                    formStash.fatal_form("Already activated")
+
                 dbAcmeAccountKey.is_active = True
                 event_status = 'acme_account_key__mark__active'
 
             elif action == 'inactive':
                 if dbAcmeAccountKey.is_default:
-                    formStash.set_error(field='Error_Main',
-                                        message='You can not deactivate the default. Make another key default first.',
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_form()` will raise `FormInvalid()`
+                    formStash.fatal_form("You can not deactivate the default. Make another key default first.")
+
                 if not dbAcmeAccountKey.is_active:
-                    formStash.set_error(field='Error_Main',
-                                        message='Already deactivated.',
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_form()` will raise `FormInvalid()`
+                    formStash.fatal_form("Already deactivated.")
+
                 dbAcmeAccountKey.is_active = False
                 event_status = 'acme_account_key__mark__inactive'
 
             elif action == 'default':
                 if dbAcmeAccountKey.is_default:
-                    formStash.set_error(field='Error_Main',
-                                        message='Already default.',
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_form()` will raise `FormInvalid()`
+                    formStash.fatal_form("Already default.")
+
                 formerDefaultKey = lib_db.get.get__SslAcmeAccountKey__default(self.request.api_context)
                 if formerDefaultKey:
                     formerDefaultKey.is_default = False
@@ -343,10 +334,10 @@ class ViewAdmin_Focus(Handler):
                 event_status = 'acme_account_key__mark__default'
 
             else:
-                formStash.set_error(field='action',
-                                    message='invalid option',
-                                    raise_FormInvalid=True,
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field='action',
+                                      message='invalid option',
+                                      )
 
             self.request.api_context.dbSession.flush(objects=[dbAcmeAccountKey, ])
 
@@ -375,11 +366,6 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,

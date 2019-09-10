@@ -1,7 +1,9 @@
-import pyramid_formencode_classic
-from pyramid_formencode_classic.exceptions import *
-from pyramid_formencode_classic.formatters import *
+# pypi
 import formencode.rewritingparser
+import pyramid_formencode_classic
+from pyramid_formencode_classic.exceptions import *  # noqa
+from pyramid_formencode_classic.formatters import *  # noqa
+from six import PY2
 
 
 # ==============================================================================
@@ -30,6 +32,7 @@ def form_reprint(request, form_print_method, **kwargs):
     2. `form_reprint` registers a special error formatter for 'main'
     """
     kwargs['force_defaults'] = False
+    kwargs['data_formencode_ignore'] = True
 
     # regular error formatters
     error_formatters = {'main': formatter_error, }
@@ -66,12 +69,21 @@ def form_validate(request, **kwargs):
     """
     if 'is_unicode_params' not in kwargs:
         kwargs['is_unicode_params'] = True
+    if 'error_main' not in kwargs:
+        kwargs['error_main'] = "There was an error with your form."
     (result,
      formStash
      ) = pyramid_formencode_classic.form_validate(
         request,
         **kwargs
     )
+    if not result:
+        if PY2:
+            # there is an issue in formencode under Python2 
+            # see: https://github.com/formencode/formencode/issues/132
+            for (k, v) in formStash.errors.items():
+                if " (not u'" in v:
+                    formStash.errors[k] = v.replace( " (not u'",  " (not '")
     formStash.html_error_main_template = TEMPLATE_FORMSTASH_ERRORS
     formStash.html_error_placeholder_template = '<form:error name="%s" format="main"/>'
     formStash.html_error_placeholder_form_template = '<form:error name="%(field)s" format="main" data-formencode-form="%(form)s"/>'

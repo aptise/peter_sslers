@@ -174,19 +174,20 @@ class ViewFocus(Handler):
             event_status = False
             if action == 'cancel':
                 if not dbRenewalQueueItem.is_active:
-                    formStash.set_error(field='action',
-                                        message="Already cancelled",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already cancelled",
+                                          )
+
                 dbRenewalQueueItem.is_active = False
                 dbRenewalQueueItem.timestamp_processed = self.request.api_context.timestamp
                 event_status = 'queue_renewal__mark__cancelled'
                 self.request.api_context.dbSession.flush(objects=[dbRenewalQueueItem, ])
             else:
-                formStash.set_error(field='action',
-                                    message="invalid action",
-                                    raise_FormInvalid=True,
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field='action',
+                                      message="invalid action",
+                                      )
 
             # bookkeeping
             dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
@@ -208,11 +209,6 @@ class ViewFocus(Handler):
             return HTTPSeeOther(url_post_required)
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,

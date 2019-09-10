@@ -177,11 +177,6 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther('%s/ca-certificate/%s?result=success&is_created=%s' % (self.request.registry.settings['admin_prefix'], dbCaCertificate.id, (1 if cacert_is_created else 0)))
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
@@ -236,10 +231,8 @@ class ViewAdmin_New(Handler):
                 raise formhandling.FormInvalid()
             has_uploads = [i for i in formStash.results.values() if i is not None]
             if not has_uploads:
-                formStash.set_error(field="Error_Main",
-                                    message="Nothing uploaded!",
-                                    raise_FormInvalid=True,
-                                    )
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form("Nothing uploaded!")
 
             bundle_data = {'isrgrootx1_pem': None,
                            }
@@ -274,11 +267,6 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther('%s/ca-certificates?uploaded=1' % self.request.registry.settings['admin_prefix'])
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,

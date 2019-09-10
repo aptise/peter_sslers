@@ -113,11 +113,10 @@ class ViewAdmin_New(Handler):
 
             domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
-                formStash.set_error(field="domain_names",
-                                    message="Found no domain names",
-                                    raise_FormInvalid=True,
-                                    message_prepend=True
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field="domain_names",
+                                      message="Found no domain names",
+                                      )
 
             queue_results = lib_db.queues.queue_domains__add(self.request.api_context,
                                                              domain_names,
@@ -131,11 +130,6 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther('%s/queue-domains?result=success&is_created=1&results=%s' % (self.request.registry.settings['admin_prefix'], results_json))
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
@@ -251,10 +245,11 @@ class ViewAdmin_Focus(Handler):
             event_status = False
             if action == 'cancel':
                 if not dbQueueDomain.is_active:
-                    formStash.set_error(field='action',
-                                        message="Already cancelled",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already cancelled",
+                                          )
+
                 lib_db.queues.dequeue_QueuedDomain(self.request.api_context,
                                                    dbQueueDomain,
                                                    dbOperationsEvent=dbOperationsEvent,
@@ -262,10 +257,10 @@ class ViewAdmin_Focus(Handler):
                                                    action='de-queued'
                                                    )
             else:
-                formStash.set_error(field='action',
-                                    message="invalid `action",
-                                    raise_FormInvalid=True,
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field='action',
+                                      message="invalid `action",
+                                      )
 
             self.request.api_context.dbSession.flush(objects=[dbQueueDomain, dbOperationsEvent])
 
@@ -278,11 +273,6 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,

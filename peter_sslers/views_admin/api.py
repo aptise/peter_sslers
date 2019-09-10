@@ -95,11 +95,10 @@ class ViewAdmin(Handler):
 
             domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
-                formStash.set_error(field="domain_names",
-                                    message="Found no domain names",
-                                    raise_FormInvalid=True,
-                                    message_prepend=True
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field="domain_names",
+                                      message="Found no domain names",
+                                      )
             api_results = lib_db.actions.api_domains__enable(self.request.api_context,
                                                              domain_names,
                                                              )
@@ -108,11 +107,6 @@ class ViewAdmin(Handler):
                     }
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             return {'result': 'error',
                     'form_errors': formStash.errors,
                     }
@@ -144,22 +138,17 @@ class ViewAdmin(Handler):
 
             domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
-                formStash.set_error(field="domain_names",
-                                    message="Found no domain names",
-                                    raise_FormInvalid=True,
-                                    message_prepend=True
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field="domain_names",
+                                      message="Found no domain names",
+                                      )
+
             api_results = lib_db.actions.api_domains__disable(self.request.api_context, domain_names)
             return {'result': 'success',
                     'domains': api_results,
                     }
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             return {'result': 'error',
                     'form_errors': formStash.errors,
                     }
@@ -192,17 +181,17 @@ class ViewAdmin(Handler):
 
             domain_names = lib.utils.domains_from_string(formStash.results['domain_names'])
             if not domain_names:
-                formStash.set_error(field="domain_names",
-                                    message="Found no domain names",
-                                    raise_FormInvalid=True,
-                                    message_prepend=True
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field="domain_names",
+                                      message="Found no domain names",
+                                      )
+
             if len(domain_names) != 1:
-                formStash.set_error(field="domain_names",
-                                    message="This endpoint currently supports only 1 domain name",
-                                    raise_FormInvalid=True,
-                                    message_prepend=True
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field="domain_names",
+                                      message="This endpoint currently supports only 1 domain name",
+                                      )
+
             account_key_pem = None
             if formStash.results['account_key_file_pem'] is not None:
                 account_key_pem = formStash.results['account_key_file_pem'].file.read()
@@ -220,11 +209,6 @@ class ViewAdmin(Handler):
             message = "There was an error with your form."
             if isinstance(exc, errors.DisplayableError):
                 message += " " + exc.message
-            formStash.set_error(field="Error_Main",
-                                message=message,
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             return {'result': 'error',
                     'form_errors': formStash.errors,
                     }

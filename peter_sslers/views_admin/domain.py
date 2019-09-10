@@ -136,11 +136,6 @@ class ViewAdmin_Search(Handler):
             return self._search__print()
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
@@ -337,10 +332,9 @@ class ViewAdmin_Focus(Handler):
 
             if action == 'active':
                 if dbDomain.is_active:
-                    formStash.set_error(field='Error_Main',
-                                        message='Already active.',
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_form()` will raise `FormInvalid()`
+                    formStash.fatal_form('Already active.')
+
                 lib_db.actions.enable_Domain(self.request.api_context,
                                              dbDomain,
                                              dbOperationsEvent=dbOperationsEvent,
@@ -350,10 +344,9 @@ class ViewAdmin_Focus(Handler):
 
             elif action == 'inactive':
                 if not dbDomain.is_active:
-                    formStash.set_error(field='Error_Main',
-                                        message='Already inactive.',
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_form()` will raise `FormInvalid()`
+                    formStash.fatal_form('Already inactive.')
+
                 lib_db.actions.disable_Domain(self.request.api_context,
                                               dbDomain,
                                               dbOperationsEvent=dbOperationsEvent,
@@ -362,10 +355,10 @@ class ViewAdmin_Focus(Handler):
                                               )
 
             else:
-                formStash.set_error(field='action',
-                                    message='invalid option.',
-                                    raise_FormInvalid=True,
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field='action',
+                                      message='invalid option.',
+                                      )
 
             self.request.api_context.dbSession.flush(objects=[dbOperationsEvent, dbDomain])
 
@@ -378,11 +371,6 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,

@@ -187,11 +187,6 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther('%s/certificate/%s' % (self.request.registry.settings['admin_prefix'], dbServerCertificate.id))
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
@@ -529,11 +524,6 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther('%s/certificate/%s?is_renewal=True' % (self.request.registry.settings['admin_prefix'], newLetsencryptCertificate.id))
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             return formhandling.form_reprint(
                 self.request,
                 self._focus_renew_custom__print,
@@ -587,21 +577,24 @@ class ViewAdmin_Focus(Handler):
 
             if action == 'active':
                 if dbServerCertificate.is_active:
-                    formStash.set_error(field='action',
-                                        message="Already active",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already active",
+                                          )
+
                 # is_deactivated is our manual toggle;
                 if not dbServerCertificate.is_deactivated:
-                    formStash.set_error(field='action',
-                                        message="Certificate was not manually deactivated",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Certificate was not manually deactivated",
+                                          )
+
                 if dbServerCertificate.is_revoked:
-                    formStash.set_error(field='action',
-                                        message="Certificate is revoked. You must unrevoke first",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Certificate is revoked. You must unrevoke first",
+                                          )
+
                 # now make it active!
                 dbServerCertificate.is_active = True
                 # unset the manual toggle
@@ -613,15 +606,17 @@ class ViewAdmin_Focus(Handler):
 
             elif action == 'inactive':
                 if not dbServerCertificate.is_active:
-                    formStash.set_error(field='action',
-                                        message="Already inactive",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already inactive",
+                                          )
+
                 if dbServerCertificate.is_deactivated:
-                    formStash.set_error(field='action',
-                                        message="Already deactivated",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already deactivated",
+                                          )
+
                 # deactivate it
                 dbServerCertificate.is_active = False
                 dbServerCertificate.is_auto_renew = False
@@ -634,10 +629,11 @@ class ViewAdmin_Focus(Handler):
 
             elif action == 'revoked':
                 if dbServerCertificate.is_revoked:
-                    formStash.set_error(field='action',
-                                        message="Already revoked",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already revoked",
+                                          )
+
                 # mark revoked
                 dbServerCertificate.is_revoked = True
                 # deactivate it
@@ -653,15 +649,17 @@ class ViewAdmin_Focus(Handler):
 
             elif action == 'renew_auto':
                 if not dbServerCertificate.is_active:
-                    formStash.set_error(field='action',
-                                        message="Certificate must be `active`",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Certificate must be `active`",
+                                          )
+
                 if dbServerCertificate.is_auto_renew:
-                    formStash.set_error(field='action',
-                                        message="Already set to auto-renew",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already set to auto-renew",
+                                          )
+
                 # set the renewal
                 dbServerCertificate.is_auto_renew = True
                 # cleanup options
@@ -669,15 +667,17 @@ class ViewAdmin_Focus(Handler):
 
             elif action == 'renew_manual':
                 if not dbServerCertificate.is_active:
-                    formStash.set_error(field='action',
-                                        message="certificate must be `active`",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="certificate must be `active`",
+                                          )
+
                 if not dbServerCertificate.is_auto_renew:
-                    formStash.set_error(field='action',
-                                        message="Already set to manual renewal",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Already set to manual renewal",
+                                          )
+
                 # unset the renewal
                 dbServerCertificate.is_auto_renew = False
                 # cleanup options
@@ -685,10 +685,11 @@ class ViewAdmin_Focus(Handler):
 
             elif action == 'unrevoke':
                 if not dbServerCertificate.is_revoked:
-                    formStash.set_error(field='action',
-                                        message="Certificate is not revoked",
-                                        raise_FormInvalid=True,
-                                        )
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(field='action',
+                                          message="Certificate is not revoked",
+                                          )
+
                 # unset the revoke
                 dbServerCertificate.is_revoked = False
                 # lead is_active and is_deactivated as-is
@@ -698,10 +699,10 @@ class ViewAdmin_Focus(Handler):
                 event_status = 'certificate__mark__unrevoked'
 
             else:
-                formStash.set_error(field='action',
-                                    message="invalid option",
-                                    raise_FormInvalid=True,
-                                    )
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field='action',
+                                      message="invalid option",
+                                      )
 
             self.request.api_context.dbSession.flush(objects=[dbServerCertificate, ])
 
@@ -740,11 +741,6 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            formStash.set_error(field="Error_Main",
-                                message="There was an error with your form.",
-                                raise_FormInvalid=False,
-                                message_prepend=True
-                                )
             if wants_json:
                 return {'result': 'error',
                         'form_errors': formStash.errors,
