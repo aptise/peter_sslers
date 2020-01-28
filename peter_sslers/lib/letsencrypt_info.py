@@ -15,15 +15,34 @@ from . import utils
 
 
 # updated ratelimits are published at:
-# https://community.letsencrypt.org/t/rate-limits-for-lets-encrypt/6769
+# https://letsencrypt.org/docs/rate-limits/
+# last checked on 2020/01/27
 
-# last checked on 2016/04/01
 LIMITS = {
     "names/certificate": {"limit": 100},
-    "certificates/domain": {"limit": 20, "timeframe": "1 week"},
-    "certificates/fqdn": {"limit": 5, "timeframe": "1 week"},
-    "registrations/ip_address": {"limit": 500, "timeframe": "3 hours"},
+    "certificates/domain": {
+        "limit": 50,
+        "timeframe": "1 week",
+        "includes_renewals": False,
+    },
+    "certificates/fqdn": {"limit": 5, "timeframe": "1 week"},  # duplicates
+    "registrations/ip_address": {"limit": 10, "timeframe": "3 hours"},
+    "registrations/ip_range": {
+        "limit": 500,
+        "timeframe": "3 hours",
+        "range": "IPv6 /48",
+    },
+    "new_orders": {"limit": 300, "timeframe": "3 hours", "acme-v2-only": True},
     "pending_authorizations/account": {"limit": 300, "timeframe": "1 week"},
+    "failed_validation/account/hostname": {"limit": 5, "timeframe": "1 hour"},
+    "endpoints": {
+        "new-reg": {"overall_requests": 20, "timeframe": "1 second",},
+        "new-authz": {"overall_requests": 20, "timeframe": "1 second",},
+        "new-cert": {"overall_requests": 20, "timeframe": "1 second",},
+        "/directory": {"overall_requests": 40, "timeframe": "1 second",},
+        "/acme": {"overall_requests": 40, "timeframe": "1 second",},
+        "/acme/*": {"overall_requests": 40, "timeframe": "1 second",},
+    },
 }
 
 
@@ -91,6 +110,27 @@ CA_CERTS_DATA = [
         "is_cross_signed_authority_certificate": True,
         "formfield_base": "le_x4_cross_signed",
     },
+    
+    
+    
+
+    {
+        "name": "Fake LE Root X1",
+        "url_pem": "https://letsencrypt.org/certs/fakelerootx1.pem",
+        "is_ca_certificate": True,
+        "formfield_base": "fakelerootx1",
+    }
+    {
+        "name": "Fake LE Intermediate X1",
+        "url_pem": "https://letsencrypt.org/certs/fakeleintermediatex1.pem",
+        "le_authority_name": "Fake LE Intermediate X1",
+        "is_authority_certificate": True,
+        "is_cross_signed_authority_certificate": False,
+        "formfield_base": "fakeleintermediatex1",
+
+    }
+    
+    
 ]
 
 

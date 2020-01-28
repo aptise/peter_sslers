@@ -33,7 +33,7 @@ documentation_grid = {
     },
     "Certificate Configuration": {
         "certificate_authority": {
-            "docstring": "The url of the ACME certificate authority.",
+            "docstring": "The url of the ACME certificate authority or the string 'custom' (or 'pebble').",
             "default": "`https://acme-staging.api.letsencrypt.org`",
             "default-notes": "The default is set in `lib.acme_v1`.",
             "show_on_settings": True,
@@ -48,6 +48,12 @@ documentation_grid = {
             "docstring": "The URL of the TOS agreement for the Certificate Authority.",
             "default": "None",
             "default-notes": "The default is set in `lib.acme_v1`. You MUST set this in settings to opt-in with a valid agreement. such as: `certificate_authority_agreement=https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf`",
+            "show_on_settings": True,
+        },
+        "certificate_authority_endpoint": {
+            "docstring": "The URL of the endpoint if `certificate_authority='custom'`.",
+            "default": "None",
+            "default-notes": "This must be supplied if the `certificate_authority` is set to `custom` or `pebble`.",
             "show_on_settings": True,
         },
         "expiring_days": {

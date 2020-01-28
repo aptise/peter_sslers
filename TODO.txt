@@ -28,7 +28,7 @@ deferred tasks
 * deprecate the AcmeFlow helper (preferred) OR give it json endpoints.
 * acme2 support
 ** served as fullchain, must split out.
-
+* migrate testing away from `setup.py`
 
 
 

@@ -225,7 +225,10 @@ def queue_domains__process(ctx, dbAccountKey=None, dbPrivateKey=None):
         # generate domains
         domainObjects = []
         for qDomain in items_paged:
-            domainObject, _is_created = lib.db.getcreate.getcreate__SslDomain__by_domainName(
+            (
+                domainObject,
+                _is_created,
+            ) = lib.db.getcreate.getcreate__SslDomain__by_domainName(
                 ctx, qDomain.domain_name, is_from_queue_domain=True
             )
             domainObjects.append(domainObject)

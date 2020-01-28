@@ -598,9 +598,10 @@ def getcreate__SslServerCertificate__by_pem_text(
                 getcreate__SslDomain__by_domainName(ctx, _domain_name)[0]
                 for _domain_name in certificate_domain_names
             ]
-            dbUniqueFqdnSet, is_created_fqdn = getcreate__SslUniqueFQDNSet__by_domainObjects(
-                ctx, dbDomainObjects
-            )
+            (
+                dbUniqueFqdnSet,
+                is_created_fqdn,
+            ) = getcreate__SslUniqueFQDNSet__by_domainObjects(ctx, dbDomainObjects)
             dbServerCertificate.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
 
             if len(certificate_domain_names) == 1:

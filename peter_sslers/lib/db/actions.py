@@ -99,7 +99,10 @@ def ca_certificate_probe(ctx):
             ctx, c["cert_pem"]
         )
         if not dbCACertificate:
-            dbCACertificate, _is_created = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+            (
+                dbCACertificate,
+                _is_created,
+            ) = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(
                 ctx, c["cert_pem"], c["name"]
             )
             if _is_created:
@@ -256,7 +259,10 @@ def do__CertificateRequest__AcmeAutomated(
 
         if dbPrivateKey is None:
             private_key_pem = cert_utils.cleanup_pem_text(private_key_pem)
-            dbPrivateKey, _is_created = lib.db.getcreate.getcreate__SslPrivateKey__by_pem_text(
+            (
+                dbPrivateKey,
+                _is_created,
+            ) = lib.db.getcreate.getcreate__SslPrivateKey__by_pem_text(
                 ctx, private_key_pem
             )
         else:
@@ -1061,7 +1067,10 @@ def upload__SslCaCertificateBundle__by_pem_text(ctx, bundle_data):
                     ]
                 break
 
-        dbCACertificate, is_created = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+        (
+            dbCACertificate,
+            is_created,
+        ) = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(
             ctx,
             cert_pem_text,
             cert_name,

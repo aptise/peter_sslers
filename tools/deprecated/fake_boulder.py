@@ -4,9 +4,10 @@ from __future__ import print_function
 fake_boulder
 
 purpose:
-    this spins up a server with some simple routes for testing client development
+    this spins up a server with some simple routes for testing ACME V1 client development
     this crafts endpoints for success
 
+    for ACME V2 support, please use pebble (https://github.com/letsencrypt/pebble)
 
 usage:
     1. edit environment.ini and set the following:

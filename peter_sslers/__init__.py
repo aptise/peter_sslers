@@ -84,11 +84,11 @@ def main(global_config, **settings):
         ca_submitted = settings["certificate_authority"]
 
         # handle custom endpoints
-        if ca_submitted == "custom":
+        if ca_submitted in ("custom", "pebble"):
             ca_submitted_endpoint = settings["certificate_authority_endpoint"]
             if not ca_submitted_endpoint:
                 raise ValueError(
-                    "`certificate_authority_endpoint` required when `certificate_authority=custom`"
+                    "`certificate_authority_endpoint` required when `certificate_authority=custom` or `certificate_authority=pebble`"
                 )
             if not ca_submitted_endpoint.startswith(
                 "http://"
@@ -100,8 +100,14 @@ def main(global_config, **settings):
                 "endpoint"
             ] = ca_submitted_endpoint
             ca_submitted_protocol = settings["certificate_authority_protocol"]
-            if ca_submitted_protocol not in ("acme-v1", "acme-v2"):
-                raise ValueError("`ca_submitted_protocol` is not acme-v1 or acme-v2")
+            # if ca_submitted_protocol not in ("acme-v1", "acme-v2"):
+            #    raise ValueError(
+            #        "`ca_submitted_protocol` is not `acme-v1` or `acme-v2`"
+            #    )
+            if ca_submitted_protocol != "acme-v2":
+                raise ValueError(
+                    "`ca_submitted_protocol` is not `acme-v2`"
+                )
             models_models.AcmeAccountProvider.registry[0][
                 "protocol"
             ] = ca_submitted_protocol

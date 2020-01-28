@@ -8,7 +8,7 @@ Peter SSLers *or how i stopped worrying and learned to love the ssl certificate*
 What's in the box ?
 
 * SSL Certificate Manager
-* ACME v1 client for LetsEncrypt Certificate Authority
+* ACME v2 client for LetsEncrypt Certificate Authority
 * OpenResty Lua module for Dynamic SSL Certificate Handling on the Nginx webserver
 
 THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
@@ -19,9 +19,9 @@ This package is *not* aimed at casual or single-site users.  This package is *no
 
 Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
 
-Peter combines an ACME v1 client designed to operate against the LetsEncrypt v1 service, alongside tools designed to manage & deploy certificates.
+Peter combines an ACME v2 client designed to operate against the LetsEncrypt service, alongside tools designed to manage & deploy certificates.
 
-ACME v2 support is being worked on.
+The client supported ACME v1 until version `0.4.0`. Only ACME v2 is currently supported.
 
 Peter's core tool is a lightweight database-backed `Pyramid` application that can:
 
@@ -53,6 +53,8 @@ Peter offers several commandline tools -- so spinning up a tool "webserver" mode
 SqlAlchemy is the backing database library, so virtually any database can be used (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but the package has been tested against PostgreSQL.  SQLite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
 
 Peter leverages the system's OpenSSL instead of using Python's modules. The reason is to minimize the amount of downloads/packages.
+
+Although Python2 is no longer supported by Python, Python2 and Python3 are targeted platforms for this library.
 
 
 ## Why?
@@ -108,7 +110,7 @@ The source and docs are available on github https://github.com/aptise/peter_ssle
 This handles several types of certificate requests
 
 1. Upload an existing Certificate Request and Certificate for tracking
-2. Have the built-in ACME-v1 client generate a Certificate Request and handle the challeges (Acme-Automated)
+2. Have the built-in ACME-v2 client generate a Certificate Request and handle the challeges (Acme-Automated)
 3. Use an external tool to generate the certificate request, use PeterSSLers via HTML/API to manage the challenges (Acme-Flow)
 
 ## Input
@@ -310,8 +312,9 @@ These are documented at-length on the in-app settings page.
 * `openssl_path` - the full path to your openssl binary (default `openssl`)
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
 
-* `certificate_authority` - the LetsEncrypt certificate authority. by default we use their staging URL. you will have to manually put in the real URL as defined on their docs.
+* `certificate_authority` - the LetsEncrypt certificate authority. by default we use their staging URL. you will have to manually put in the real URL as defined on their docs.  you can also use the string "pebble" or "custom" to enable local testing.
 * `certificate_authority_agreement` - the LetsEncrypt agreement URL used when creating new accounts.  Everything will probably fail if you don't include this argument.
+* `certificate_authority_endpoint` - if `certificate_authority=custom` or `certificate_authority=pebble`, you must supply a url for the endpoint
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?

@@ -7,10 +7,10 @@ For (most) testing and (all) development you need to follow a few initial steps.
 
 It should look something like this:
 
-	certificate_authority = custom 
+	certificate_authority = custom  # "custom" or "pebble"
 	certificate_authority_testing = True
-	certificate_authority_endpoint = http://127.0.0.1:7202
-	certificate_authority_protocol = acme-v1
+	certificate_authority_endpoint = http://127.0.0.1:14000
+	certificate_authority_protocol = acme-v2
 
 This above enables the acme-provider for a 'custom' CA and injects the protocol and endpoint into it.
 It also enables the "TESTING" flag, which disables SSL checking on acme payloads.
@@ -19,29 +19,49 @@ It also enables the "TESTING" flag, which disables SSL checking on acme payloads
 
 3. Run a custom CA for testing
 
-This is slightly different for acme v1 and acme v2
+## ACME v2 Testing
 
-## Acme v1
-
-Use tools/fake_boulder.py to spin up a fake acme-v1 server.
-The script has documentation in it, regarding how to set things up.
-At this time this README was written, fake_boulder.py handles uses openssl's "ca" mode to sign certificates.
-This requires environment variabels to be set, and  will write copies of the generated certificates.
-
-
-
-## Acme v2
-
-You can test against the Pebble project, which is an existing acme-v2 test server
+You can test against the Pebble project, which is an existing acme-v2 test server maintained by letsencrypt.
 
 Install pebble
 
-	https://github.com/letsencrypt/pebble
-	install go
-	export GOPATH=/Users/{username}/go
-	export PATH="$PATH:/Users/{username}/go/bin"
+Follow the instructions on https://github.com/letsencrypt/pebble ; this will require you to install `go`.
 
-Run pebble to always validate
+> 1. [Set up Go](https://golang.org/doc/install) and your `$GOPATH`
+> 2. `go get -u github.com/letsencrypt/pebble/...`
+> 3. `cd $GOPATH/src/github.com/letsencrypt/pebble && go install ./...`
+> 4. `pebble -h`
+
+As a precaution, copy the pebble config file:
+
+    cp ./test/config/pebble-config.json ./test/config/pebble-config.dist.json
+
+The edit it to see the configuration
+
+	vi ./test/config/pebble-config.json
+
+Which should look something like this...
+
+	"pebble": {
+	  "listenAddress": "0.0.0.0:14000",
+	  "managementListenAddress": "0.0.0.0:15000",
+	  "certificate": "test/certs/localhost/cert.pem",
+	  "privateKey": "test/certs/localhost/key.pem",
+	  "httpPort": 5002,
+	  "tlsPort": 5001,
+	  "ocspResponderURL": "",
+	  "externalAccountBindingRequired": false
+	}
+
+
+Good to go?  Ok, run pebble!
+
+    pebble -config ./test/config/pebble-config.json
+
+To have all challenge POST requests succeed without performing any validation run:
 
 	PEBBLE_VA_ALWAYS_VALID=1 pebble
 
+## ACME v1 Testing
+
+ACME v1 is no longer supported in peter_sslers.
