@@ -8,8 +8,8 @@ import datetime
 
 from . import lib
 from .models import models as models_models
-from .lib import acme_v1
-from .lib import cert_utils
+from ..lib import acme_v1
+from ..lib import cert_utils
 from .lib.config_utils import set_bool_setting
 from .lib.config_utils import set_int_setting
 from .lib.utils import ApiContext
@@ -82,9 +82,11 @@ def main(global_config, **settings):
     ca_selected = None
     if "certificate_authority" in settings:
         ca_submitted = settings["certificate_authority"]
+        if ca_submitted == "pebble":
+            ca_submitted = "custom"
 
         # handle custom endpoints
-        if ca_submitted in ("custom", "pebble"):
+        if ca_submitted == "custom":
             ca_submitted_endpoint = settings["certificate_authority_endpoint"]
             if not ca_submitted_endpoint:
                 raise ValueError(
@@ -105,9 +107,7 @@ def main(global_config, **settings):
             #        "`ca_submitted_protocol` is not `acme-v1` or `acme-v2`"
             #    )
             if ca_submitted_protocol != "acme-v2":
-                raise ValueError(
-                    "`ca_submitted_protocol` is not `acme-v2`"
-                )
+                raise ValueError("`ca_submitted_protocol` is not `acme-v2`")
             models_models.AcmeAccountProvider.registry[0][
                 "protocol"
             ] = ca_submitted_protocol
@@ -119,6 +119,9 @@ def main(global_config, **settings):
                 ca_selected = ca_record
                 break
     if not ca_selected:
+        import pdb
+
+        pdb.set_trace()
         raise ValueError("invalid `certificate_authority`")
     # okay stash this
     acme_v1.CERTIFICATE_AUTHORITY = ca_record["endpoint"]

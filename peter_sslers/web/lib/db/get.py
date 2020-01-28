@@ -10,9 +10,10 @@ import datetime
 import sqlalchemy
 
 # localapp
-from ...models import models
-from .. import cert_utils
 from .. import utils
+from ...models import models
+from ....lib import cert_utils
+from ....lib import utils as lib_utils
 
 
 EVENTS_USE_ALT = True
@@ -172,7 +173,7 @@ def get__SslCaCertificate__by_id(ctx, cert_id):
 
 def get__SslCaCertificate__by_pem_text(ctx, cert_pem):
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
-    cert_pem_md5 = utils.md5_text(cert_pem)
+    cert_pem_md5 = lib_utils.md5_text(cert_pem)
     dbCertificate = (
         ctx.dbSession.query(models.SslCaCertificate)
         .filter(
@@ -222,7 +223,7 @@ def get__SslCertificateRequest__by_id(ctx, certificate_request_id):
 
 def get__SslCertificateRequest__by_pem_text(ctx, csr_pem):
     csr_pem = cert_utils.cleanup_pem_text(csr_pem)
-    csr_pem_md5 = utils.md5_text(csr_pem)
+    csr_pem_md5 = lib_utils.md5_text(csr_pem)
     dbCertificateRequest = (
         ctx.dbSession.query(models.SslCertificateRequest)
         .filter(

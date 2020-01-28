@@ -22,7 +22,7 @@ def includeme(config):
         )
         config.add_route_7("public_whoami", "/.well-known/public/whoami")
 
-        config.scan("peter_sslers.views_public")
+        config.scan("peter_sslers.web.views_public")
 
     # admin
     if enable_views_admin:
@@ -563,4 +563,4 @@ def _admin_views(config):
         "/unique-fqdn-set/{@id}/renew/queue.json",
     )
 
-    config.scan("peter_sslers.views_admin")
+    config.scan("peter_sslers.web.views_admin")

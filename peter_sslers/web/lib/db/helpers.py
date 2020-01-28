@@ -4,7 +4,7 @@ import logging
 log = logging.getLogger(__name__)
 
 # localapp
-from .. import cert_utils
+from ....lib import cert_utils
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

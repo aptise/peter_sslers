@@ -13,8 +13,9 @@ import transaction
 # localapp
 from ...models import models
 from ... import lib
-from .. import errors
 from .. import utils
+from ....lib import errors
+from ....lib import utils as lib_utils
 
 # local
 from .logger import log__SslOperationsEvent
@@ -63,7 +64,7 @@ def queue_domains__add(ctx, domain_names):
         event_payload_dict,
     )
 
-    domain_names = utils.domains_from_list(domain_names)
+    domain_names = lib_utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:

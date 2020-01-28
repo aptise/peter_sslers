@@ -9,6 +9,7 @@ import transaction
 from webtest import TestApp
 from webtest import Upload
 from webtest.http import StopableWSGIServer
+import sqlalchemy
 
 # stdlib
 import datetime
@@ -20,13 +21,14 @@ import unittest
 import re
 
 # local
-from . import main
-from . import models
-from . import lib
+from .web import main
+from .web import models
+from .web import lib
+from .web.lib import db  # lib.db doesn't work
+
 from .lib import acme_v1  # for override
 from .lib import cert_utils  # for override
-from .lib import db  # lib.db doesn't work
-import sqlalchemy
+from .lib import utils as lib_utils
 
 
 # ==============================================================================
@@ -229,12 +231,12 @@ class UnitTestOpenSSL(AppTestCore):
     def test_modulus_PrivateKey(self):
         for pkey_set_id, set_data in TEST_FILES["PrivateKey"].items():
             pem_filepath = self._filepath_testfile(set_data["file"])
-            _computed_modulus_md5 = lib.cert_utils.modulus_md5_key__pem_filepath(
+            _computed_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(
                 pem_filepath
             )
             _expected_modulus_md5 = set_data["key_pem_modulus_md5"]
             assert _computed_modulus_md5 == _expected_modulus_md5
-            _computed_md5 = lib.utils.md5_text(self._filedata_testfile(pem_filepath))
+            _computed_md5 = lib_utils.md5_text(self._filedata_testfile(pem_filepath))
             _expected_md5 = set_data["key_pem_md5"]
             assert _computed_md5 == _expected_md5
 

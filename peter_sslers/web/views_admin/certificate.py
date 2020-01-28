@@ -15,7 +15,6 @@ import sqlalchemy
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
-from ..lib import errors
 from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib import text as lib_text
@@ -23,6 +22,9 @@ from ..lib.forms import Form_Certificate_mark
 from ..lib.forms import Form_Certificate_Renewal_Custom
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.handler import Handler, items_per_page
+from ...lib import errors
+from ...lib import cert_utils
+from ...lib import letsencrypt_info
 
 
 # ==============================================================================
@@ -308,7 +310,7 @@ class ViewAdmin_Focus(Handler):
         dbServerCertificate = self._focus()
         return {
             "%s"
-            % dbServerCertificate.id: lib.cert_utils.parse_cert(
+            % dbServerCertificate.id: cert_utils.parse_cert(
                 cert_pem=dbServerCertificate.cert_pem
             )
         }
@@ -322,7 +324,7 @@ class ViewAdmin_Focus(Handler):
         elif self.request.matchdict["format"] == "pem.txt":
             return dbServerCertificate.certificate_upchain.cert_pem
         elif self.request.matchdict["format"] in ("cer", "crt", "der"):
-            as_der = lib.cert_utils.convert_pem_to_der(
+            as_der = cert_utils.convert_pem_to_der(
                 pem_data=dbServerCertificate.certificate_upchain.cert_pem
             )
             response = Response()
@@ -353,7 +355,7 @@ class ViewAdmin_Focus(Handler):
         elif self.request.matchdict["format"] == "pem.txt":
             return dbServerCertificate.private_key.key_pem
         elif self.request.matchdict["format"] == "key":
-            as_der = lib.cert_utils.convert_pem_to_der(
+            as_der = cert_utils.convert_pem_to_der(
                 pem_data=dbServerCertificate.private_key.key_pem
             )
             response = Response()
@@ -371,7 +373,7 @@ class ViewAdmin_Focus(Handler):
         elif self.request.matchdict["format"] == "pem.txt":
             return dbServerCertificate.cert_pem
         elif self.request.matchdict["format"] == "crt":
-            as_der = lib.cert_utils.convert_pem_to_der(
+            as_der = cert_utils.convert_pem_to_der(
                 pem_data=dbServerCertificate.cert_pem
             )
             response = Response()

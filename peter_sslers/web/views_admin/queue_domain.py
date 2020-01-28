@@ -17,12 +17,13 @@ import transaction
 from ..models import models
 from .. import lib
 from ..lib import db as lib_db
-from ..lib import errors
 from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.forms import Form_QueueDomain_mark
 from ..lib.forms import Form_QueueDomains_add
 from ..lib.handler import Handler, items_per_page
+from ...lib import utils as lib_utils
+from ...lib import errors
 
 
 # ==============================================================================
@@ -150,7 +151,7 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib.utils.domains_from_string(
+            domain_names = lib_utils.domains_from_string(
                 formStash.results["domain_names"]
             )
             if not domain_names:

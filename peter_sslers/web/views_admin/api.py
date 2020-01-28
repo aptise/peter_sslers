@@ -21,7 +21,8 @@ from ..lib.forms import Form_API_Domain_enable
 from ..lib.forms import Form_API_Domain_disable
 from ..lib.forms import Form_API_Domain_certificate_if_needed
 from ..lib.handler import Handler, items_per_page
-from ..lib import errors
+from ...lib import errors
+from ...lib import utils as lib_utils
 
 
 # ==============================================================================
@@ -103,7 +104,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib.utils.domains_from_string(
+            domain_names = lib_utils.domains_from_string(
                 formStash.results["domain_names"]
             )
             if not domain_names:
@@ -141,7 +142,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib.utils.domains_from_string(
+            domain_names = lib_utils.domains_from_string(
                 formStash.results["domain_names"]
             )
             if not domain_names:
@@ -185,7 +186,7 @@ class ViewAdmin(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib.utils.domains_from_string(
+            domain_names = lib_utils.domains_from_string(
                 formStash.results["domain_names"]
             )
             if not domain_names:

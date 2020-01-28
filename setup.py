@@ -21,7 +21,7 @@ requires = [
     "redis",
     "requests",
     "six",
-    "SQLAlchemy",
+    "SQLAlchemy>=1.4.0",  # scalar_subquery API change
     "transaction",
     "waitress",
     "zope.sqlalchemy",
@@ -50,7 +50,7 @@ setup(
     install_requires=requires,
     entry_points="""\
       [paste.app_factory]
-      main = peter_sslers:main
+      main = peter_sslers.web:main
       [console_scripts]
       initialize_peter_sslers_db = peter_sslers.scripts.initializedb:main
       """,

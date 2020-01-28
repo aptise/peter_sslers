@@ -14,12 +14,14 @@ from zope.sqlalchemy import mark_changed
 # localapp
 from ...models import models
 from ... import lib
-from .. import acme_v1
-from .. import cert_utils
-from .. import letsencrypt_info
-from .. import errors
+from ....lib import acme_v1
+from ....lib import cert_utils
+from ....lib import letsencrypt_info
+from ....lib import errors
+from ....lib import utils as lib_utils
 from .. import events
 from .. import utils
+
 
 # local
 from .logger import AcmeLogger
@@ -597,8 +599,7 @@ def operations_update_recents(ctx):
         )
         .order_by(models.SslServerCertificate.timestamp_expires.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         models.SslDomain.__table__.update().values(
@@ -622,8 +623,7 @@ def operations_update_recents(ctx):
         )
         .order_by(models.SslServerCertificate.timestamp_expires.desc())
         .limit(1)
-        .subquery()
-        .as_scalar()
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         models.SslDomain.__table__.update().values(
@@ -654,8 +654,7 @@ def operations_update_recents(ctx):
                 == SslServerCertificate2.ssl_ca_certificate_id__upchain,
             )
         )
-        .subquery()
-        .as_scalar()
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         models.SslCaCertificate.__table__.update().values(
@@ -686,8 +685,7 @@ def operations_update_recents(ctx):
                 == SslServerCertificate2.ssl_private_key_id__signed_by,
             )
         )
-        .subquery()
-        .as_scalar()
+        .scalar_subquery()
     )
     ctx.dbSession.execute(
         models.SslPrivateKey.__table__.update().values(count_active_certificates=_q_sub)
@@ -699,8 +697,7 @@ def operations_update_recents(ctx):
         _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(models.SslCertificateRequest.id))\
             .filter(models.SslCertificateRequest.ssl_acme_account_key_id == models.SslAcmeAccountKey.id,
                     )\
-            .subquery()\
-            .as_scalar()
+            .scalar_subquery()
         ctx.dbSession.execute(models.SslAcmeAccountKey.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
@@ -711,13 +708,11 @@ def operations_update_recents(ctx):
         _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(models.SslCertificateRequest.id))\
             .filter(models.SslCertificateRequest.ssl_private_key_id__signed_by == models.SslPrivateKey.id,
                     )\
-            .subquery()\
-            .as_scalar()
+            .scalar_subquery()
         _q_sub_iss = ctx.dbSession.query(sqlalchemy.func.count(models.SslServerCertificate.id))\
             .filter(models.SslServerCertificate.ssl_private_key_id__signed_by == models.SslPrivateKey.id,
                     )\
-            .subquery()\
-            .as_scalar()
+            .scalar_subquery()
 
         ctx.dbSession.execute(models.SslPrivateKey.__table__
                               .update()
@@ -784,7 +779,7 @@ def api_domains__disable(ctx, domain_names):
     """
     disables domains
     """
-    domain_names = utils.domains_from_list(domain_names)
+    domain_names = lib_utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
 
     # bookkeeping
@@ -886,7 +881,7 @@ def api_domains__certificate_if_needed(
         if not dbPrivateKey:
             raise errors.DisplayableError("Could not grab a PrivateKey")
 
-    domain_names = utils.domains_from_list(domain_names)
+    domain_names = lib_utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:

@@ -20,6 +20,7 @@ from ..lib import text as lib_text
 from ..lib.forms import Form_PrivateKey_mark
 from ..lib.forms import Form_PrivateKey_new__file
 from ..lib.handler import Handler, items_per_page
+from ...lib import cert_utils
 
 
 # ==============================================================================
@@ -116,7 +117,7 @@ class ViewAdmin_Focus(Handler):
             return dbPrivateKey.key_pem
         elif self.request.matchdict["format"] == "key":
             self.request.response.content_type = "application/pkcs8"
-            as_der = lib.cert_utils.convert_pem_to_der(pem_data=dbPrivateKey.key_pem)
+            as_der = cert_utils.convert_pem_to_der(pem_data=dbPrivateKey.key_pem)
             return as_der
 
     @view_config(route_name="admin:private_key:focus:parse|json", renderer="json")
@@ -124,7 +125,7 @@ class ViewAdmin_Focus(Handler):
         dbPrivateKey = self._focus()
         return {
             "%s"
-            % dbPrivateKey.id: lib.cert_utils.parse_key(key_pem=dbPrivateKey.key_pem)
+            % dbPrivateKey.id: cert_utils.parse_key(key_pem=dbPrivateKey.key_pem)
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

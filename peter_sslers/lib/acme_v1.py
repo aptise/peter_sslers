@@ -31,8 +31,6 @@ from dateutil import parser as dateutil_parser
 # localapp
 from . import cert_utils
 from . import errors
-from . import utils
-from . import letsencrypt_info
 
 
 # ==============================================================================
@@ -58,6 +56,7 @@ def url_request(url, post_data=None):
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
+        print(url)
         resp = urlopen(Request(url, data=post_data, headers=headers), context=ctx)
         return resp
     resp = urlopen(Request(url, data=post_data, headers=headers))

@@ -110,16 +110,12 @@ CA_CERTS_DATA = [
         "is_cross_signed_authority_certificate": True,
         "formfield_base": "le_x4_cross_signed",
     },
-    
-    
-    
-
     {
         "name": "Fake LE Root X1",
         "url_pem": "https://letsencrypt.org/certs/fakelerootx1.pem",
         "is_ca_certificate": True,
         "formfield_base": "fakelerootx1",
-    }
+    },
     {
         "name": "Fake LE Intermediate X1",
         "url_pem": "https://letsencrypt.org/certs/fakeleintermediatex1.pem",
@@ -127,10 +123,7 @@ CA_CERTS_DATA = [
         "is_authority_certificate": True,
         "is_cross_signed_authority_certificate": False,
         "formfield_base": "fakeleintermediatex1",
-
-    }
-    
-    
+    },
 ]
 
 

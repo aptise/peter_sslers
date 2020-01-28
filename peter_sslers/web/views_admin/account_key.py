@@ -21,6 +21,7 @@ from ..lib.forms import Form_AccountKey_new__file
 from ..lib.forms import Form_AccountKey_mark
 from ..lib.form_utils import AccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
+from ...lib import cert_utils
 
 
 # ==============================================================================
@@ -209,7 +210,7 @@ class ViewAdmin_Focus(Handler):
             return dbAcmeAccountKey.key_pem
         elif self.request.matchdict["format"] == "key":
             self.request.response.content_type = "application/pkcs8"
-            as_der = lib.cert_utils.convert_pem_to_der(
+            as_der = cert_utils.convert_pem_to_der(
                 pem_data=dbAcmeAccountKey.key_pem
             )
             return as_der
@@ -219,7 +220,7 @@ class ViewAdmin_Focus(Handler):
         dbAcmeAccountKey = self._focus()
         return {
             "%s"
-            % dbAcmeAccountKey.id: lib.cert_utils.parse_key(
+            % dbAcmeAccountKey.id: cert_utils.parse_key(
                 key_pem=dbAcmeAccountKey.key_pem
             )
         }

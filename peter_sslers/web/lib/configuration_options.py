@@ -35,19 +35,19 @@ documentation_grid = {
         "certificate_authority": {
             "docstring": "The url of the ACME certificate authority or the string 'custom' (or 'pebble').",
             "default": "`https://acme-staging.api.letsencrypt.org`",
-            "default-notes": "The default is set in `lib.acme_v1`.",
+            "default-notes": "The default is set in `lib.acme_v2`.",
             "show_on_settings": True,
         },
         "certificate_authority_testing": {
             "docstring": "True/False if the CA is testing. This will disable SSL verification if True.",
             "default": "",
-            "default-notes": "The default is set in `lib.acme_v1`.",
+            "default-notes": "The default is set in `lib.acme_v2`.",
             "show_on_settings": True,
         },
         "certificate_authority_agreement": {
             "docstring": "The URL of the TOS agreement for the Certificate Authority.",
             "default": "None",
-            "default-notes": "The default is set in `lib.acme_v1`. You MUST set this in settings to opt-in with a valid agreement. such as: `certificate_authority_agreement=https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf`",
+            "default-notes": "The default is set in `lib.acme_v2`. You MUST set this in settings to opt-in with a valid agreement. such as: `certificate_authority_agreement=https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf`",
             "show_on_settings": True,
         },
         "certificate_authority_endpoint": {
