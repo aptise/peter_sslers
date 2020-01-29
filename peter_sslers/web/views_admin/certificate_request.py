@@ -336,7 +336,7 @@ class ViewAdmin_New(Handler):
         return self._new_AcmeAutomated__print()
 
     def _new_AcmeAutomated__print(self):
-        active_ca = lib.acme_v1.CERTIFICATE_AUTHORITY
+        active_ca = lib.acme_v2.CERTIFICATE_AUTHORITY
         providers = models.AcmeAccountProvider.registry.values()
         return render_to_response(
             "/admin/certificate_request-new-AcmeAutomated.mako",
@@ -394,7 +394,7 @@ class ViewAdmin_New(Handler):
             private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash)
 
             try:
-                dbLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated(
+                dbLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated__acmeV2(
                     self.request.api_context,
                     domain_names,
                     dbAccountKey=accountKeySelection.SslAcmeAccountKey,

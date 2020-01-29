@@ -18,7 +18,6 @@ import textwrap
 import sys
 import json
 import binascii
-import pdb
 
 
 # pypi

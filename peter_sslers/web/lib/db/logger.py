@@ -20,22 +20,75 @@ class AcmeLogger(object):
         self.dbAccountKey = dbAccountKey
         self.dbCertificateRequest = dbCertificateRequest
 
-    def log_registration(self):
+    def log_registration(self, version):
         """
         logs a call to v1|/acme/new-reg
         TODO: update with result?
         """
+        if version not in ("v1", "v2"):
+            raise ValueError("invalid version: %s" % version)
+
+        if version == "v1":
+            acme_event_id = models.AcmeEvent.from_string("v1|/acme/new-reg")
+        elif version == "v2":
+            acme_event_id = models.AcmeEvent.from_string("v2|newAccount")
+
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string("v1|/acme/new-reg")
+        sslAcmeEventLog.acme_event_id = acme_event_id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
         return sslAcmeEventLog
 
-    def log_new_authz(self, domain):
+    def log_newOrder(self, version):
         """
-        Logs a newauthz and the challenge option
+        v2 New Order
         """
+        if version != "v2":
+            raise ValueError("invalid version: %s" % version)
+
+        acme_event_id = models.AcmeEvent.from_string("v2|newOrder")
+
+        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        sslAcmeEventLog.acme_event_id = acme_event_id
+        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
+        self.ctx.dbSessionLogger.flush()
+        return sslAcmeEventLog
+
+    def log_new_authorization(self, version, domain):
+        """
+        Logs a new authorization and creates a challenge object
+        """
+        if version != "v2":
+            raise ValueError("invalid version: %s" % version)
+
+        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
+            "v2|-authorization"
+        )
+        sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
+        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
+        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
+        self.ctx.dbSessionLogger.flush()
+
+        sslAcmeChallengeLog = models.SslAcmeChallengeLog()
+        sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
+        sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
+        sslAcmeChallengeLog.domain = domain
+        sslAcmeChallengeLog.ssl_acme_account_key_id = self.dbAccountKey.id
+        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        self.ctx.dbSessionLogger.flush()
+        return (sslAcmeEventLog, sslAcmeChallengeLog)
+
+    def log_new_authz(self, version, domain):
+        """
+        Logs a newauthz and creates a challenge object
+        """
+        if version != "v1":
+            raise ValueError("invalid version: %s" % version)
+
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
@@ -66,6 +119,20 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
         return sslAcmeEventLog
+
+    def log_order_finalize(self, version):
+        if version != "v2":
+            raise ValueError("invalid version: %s" % version)
+
+        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
+            "v2|-order-finalize"
+        )
+        sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
+        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
+        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
+        self.ctx.dbSessionLogger.flush()
 
     def log_event_certificate(self, sslAcmeEventLog, dbServerCertificate):
         """

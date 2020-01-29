@@ -425,7 +425,7 @@ class ViewAdmin_Focus(Handler):
 
     @view_config(route_name="admin:certificate:focus:renew:quick", renderer=None)
     @view_config(route_name="admin:certificate:focus:renew:quick|json", renderer="json")
-    def focus_renew_quick(self):
+    def focus_renew_quick__acmeA1(self):
         """this endpoint is for immediately renewing the certificate acme-auto protocol"""
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
@@ -447,7 +447,7 @@ class ViewAdmin_Focus(Handler):
                 )
 
             try:
-                dbLetsencryptCertificateNew = lib_db.actions.do__CertificateRequest__AcmeAutomated(
+                dbLetsencryptCertificateNew = lib_db.actions.do__CertificateRequest__AcmeAutomated__acmeV2(
                     self.request.api_context,
                     None,  # domain_names, handle via the certificate...
                     dbAccountKey=dbServerCertificate.acme_account_key,
@@ -641,7 +641,7 @@ class ViewAdmin_Focus(Handler):
                     event_payload_dict,
                 )
 
-                newLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated(
+                newLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated__acmeV2(
                     self.request.api_context,
                     domain_names=dbServerCertificate.domains_as_list,
                     dbAccountKey=accountKeySelection.SslAcmeAccountKey,

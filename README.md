@@ -314,7 +314,8 @@ These are documented at-length on the in-app settings page.
 
 * `certificate_authority` - the LetsEncrypt certificate authority. by default we use their staging URL. you will have to manually put in the real URL as defined on their docs.  you can also use the string "pebble" or "custom" to enable local testing.
 * `certificate_authority_agreement` - the LetsEncrypt agreement URL used when creating new accounts.  Everything will probably fail if you don't include this argument.
-* `certificate_authority_endpoint` - if `certificate_authority=custom` or `certificate_authority=pebble`, you must supply a url for the endpoint
+* `certificate_authority_endpoint` - acmev1; if `certificate_authority=custom` or `certificate_authority=pebble`, you must supply a url for the endpoint
+* `certificate_authority_directory` - acmev2; if `certificate_authority=custom` or `certificate_authority=pebble`, you must supply a url for the directory endpoint
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?

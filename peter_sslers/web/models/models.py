@@ -264,11 +264,13 @@ class AcmeAccountProvider:
             "endpoint": None,
             "is_default": None,
             "protocol": None,
+            "directory": None,
         },
         1: {
             "id": 1,
             "name": "letsencrypt-v1",
             "endpoint": "https://acme-v01.api.letsencrypt.org",
+            "directory": None,
             "is_default": None,
             "protocol": "acme-v1",
         },
@@ -276,6 +278,7 @@ class AcmeAccountProvider:
             "id": 2,
             "name": "letsencrypt-v1-staging",
             "endpoint": "https://acme-staging.api.letsencrypt.org",
+            "directory": None,
             "is_default": None,
             "protocol": "acme-v1",
         },
@@ -283,6 +286,7 @@ class AcmeAccountProvider:
             "id": 3,
             "name": "letsencrypt-v2",
             "endpoint": "https://acme-v02.api.letsencrypt.org",
+            "directory": "https://acme-v02.api.letsencrypt.org/directory",
             "is_default": None,
             "protocol": "acme-v2",
         },
@@ -290,6 +294,7 @@ class AcmeAccountProvider:
             "id": 4,
             "name": "letsencrypt-v2-staging",
             "endpoint": "https://acme-staging-v02.api.letsencrypt.org",
+            "directory": "https://acme-staging-v02.api.letsencrypt.org/directory",
             "is_default": None,
             "protocol": "acme-v2",
         },
@@ -321,6 +326,10 @@ class AcmeEvent(_mixin_mapping):
         1: "v1|/acme/new-reg",  # account create
         2: "v1|/acme/new-authz",  # cert-request
         3: "v1|/acme/new-cert",  # cert-issue
+        4: "v2|newAccount",  # account create
+        5: "v2|newOrder",
+        6: "v2|-authorization",  # not an endpoint name, but element of an order
+        7: "v2|-order-finalize",  #
     }
 
 
@@ -519,6 +528,16 @@ class SslAcmeAccountKey(Base):
             for provider_info in AcmeAccountProvider.registry.values():
                 if provider_info["id"] == self.acme_account_provider_id:
                     return provider_info["endpoint"]
+        return None
+
+    @reify
+    def acme_account_provider_directory(self):
+        if TESTING_ENVIRONMENT:
+            return AcmeAccountProvider.registry[0]["directory"]
+        if self.acme_account_provider_id:
+            for provider_info in AcmeAccountProvider.registry.values():
+                if provider_info["id"] == self.acme_account_provider_id:
+                    return provider_info["directory"]
         return None
 
     @property

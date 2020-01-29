@@ -10,6 +10,7 @@ It should look something like this:
 	certificate_authority = custom  # "custom" or "pebble"
 	certificate_authority_testing = True
 	certificate_authority_endpoint = http://127.0.0.1:14000
+	certificate_authority_directory = http://127.0.0.1:14000/dir
 	certificate_authority_protocol = acme-v2
 
 This above enables the acme-provider for a 'custom' CA and injects the protocol and endpoint into it.

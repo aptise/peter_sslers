@@ -124,8 +124,7 @@ class ViewAdmin_Focus(Handler):
     def focus_parse_json(self):
         dbPrivateKey = self._focus()
         return {
-            "%s"
-            % dbPrivateKey.id: cert_utils.parse_key(key_pem=dbPrivateKey.key_pem)
+            "%s" % dbPrivateKey.id: cert_utils.parse_key(key_pem=dbPrivateKey.key_pem)
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -5,6 +5,7 @@ log = logging.getLogger(__name__)
 
 # stdlib
 import datetime
+import pdb
 
 # pypi
 import sqlalchemy
@@ -14,7 +15,7 @@ from zope.sqlalchemy import mark_changed
 # localapp
 from ...models import models
 from ... import lib
-from ....lib import acme_v1
+from ....lib import acme_v2
 from ....lib import cert_utils
 from ....lib import letsencrypt_info
 from ....lib import errors
@@ -143,11 +144,15 @@ def ca_certificate_probe(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def do__SslAcmeAccountKey_authenticate(ctx, dbAcmeAccountKey, account_key_path=None):
+def do__SslAcmeAccountKey_authenticate_acmeV1(
+    ctx, dbAcmeAccountKey, account_key_path=None
+):
     """
     Authenticates the AccountKey against the LetsEncrypt ACME servers
     2016.06.04 - dbOperationsEvent compliant
     """
+    from ....lib import acme_v1
+
     _tmpfile = None
     try:
         if account_key_path is None:
@@ -189,7 +194,7 @@ def do__SslAcmeAccountKey_authenticate(ctx, dbAcmeAccountKey, account_key_path=N
             _tmpfile.close()
 
 
-def do__CertificateRequest__AcmeAutomated(
+def do__CertificateRequest__AcmeAutomated__acmeV1(
     ctx,
     domain_names,
     dbAccountKey=None,
@@ -219,6 +224,8 @@ def do__CertificateRequest__AcmeAutomated(
     /usr/local/opt/openssl/bin/openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <
 
     """
+    from ....lib import acme_v1
+
     if not dbAccountKey:
         raise ValueError("Must submit `dbAccountKey`")
 
@@ -309,7 +316,7 @@ def do__CertificateRequest__AcmeAutomated(
             log.info("-process_keyauth_cleanup %s", domain)
 
         # ######################################################################
-        # THIS BLOCK IS FROM acme-tiny
+        # THIS BLOCK IS FROM acme-tiny v1
 
         # pull domains from csr
         csr_domains = cert_utils.parse_csr_domains(
@@ -325,7 +332,7 @@ def do__CertificateRequest__AcmeAutomated(
 
         # register the account / ensure that it is registered
         if not dbAccountKey.timestamp_last_authenticated:
-            do__SslAcmeAccountKey_authenticate(
+            do__SslAcmeAccountKey_authenticate_acmeV1(
                 ctx, dbAccountKey, account_key_path=tmpfile_account.name
             )
 
@@ -373,6 +380,299 @@ def do__CertificateRequest__AcmeAutomated(
         cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
         if set(domain_names) != set(cert_domains):
             # if not acme_v1.TESTING_ENVIRONMENT:
+            log.error("set(domain_names) != set(cert_domains)")
+            log.error(domain_names)
+            log.error(cert_domains)
+            # current version of fakeboulder will sign the csr and give us the right domains !
+            raise ValueError("this should not happen!")
+
+        # these MUST commit
+        with transaction.manager as tx:
+            dbServerCertificate = lib.db.create.create__SslServerCertificate(
+                ctx,
+                timestamp_signed=datetime_signed,
+                timestamp_expires=datetime_expires,
+                is_active=True,
+                cert_pem=cert_pem,
+                chained_pem=chained_pem,
+                chain_name=chain_url,
+                dbCertificateRequest=dbCertificateRequest,
+                dbAcmeAccountKey=dbAccountKey,
+                dbPrivateKey=dbPrivateKey,
+                dbDomains=[v[0] for v in dbDomainObjects.values()],
+                dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
+            )
+            if dbServerCertificate__renewal_of:
+                dbServerCertificate__renewal_of.is_auto_renew = False
+                dbServerCertificate__renewal_of.is_renewed = True
+                ctx.dbSession.flush(objects=[dbServerCertificate__renewal_of])
+            if dbQueueRenewal__of:
+                dbQueueRenewal__of.timestamp_processed = ctx.timestamp
+                dbQueueRenewal__of.process_result = True
+                dbQueueRenewal__of.is_active = False
+                ctx.dbSession.flush(objects=[dbQueueRenewal__of])
+            # update the logger
+            acmeLogger.log_event_certificate(acmeLoggedEvent, dbServerCertificate)
+
+        log.debug("mark_changed(ctx.dbSession) - is this necessary?")
+        mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
+        # don't commit here, as that will trigger an error on object refresh
+        return dbServerCertificate
+
+    except Exception as exc:
+        if dbCertificateRequest:
+            dbCertificateRequest.is_active = False
+            dbCertificateRequest.is_error = True
+            ctx.dbSession.flush(objects=[dbCertificateRequest])
+            log.debug("mark_changed(ctx.dbSession) - is this necessary?")
+            mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
+            transaction.commit()
+        raise
+
+    finally:
+        # cleanup tmpfiles
+        for tf in tmpfiles:
+            tf.close()
+
+
+def do__SslAcmeAccountKey_authenticate_acmeV2(
+    ctx, dbAcmeAccountKey, account_key_path=None,
+):
+    """
+    2020.01.28 - new; ported from `do__SslAcmeAccountKey_authenticate_acmeV1`
+    """
+    _tmpfile = None
+    try:
+        if account_key_path is None:
+            _tmpfile = cert_utils.new_pem_tempfile(dbAcmeAccountKey.key_pem)
+            account_key_path = _tmpfile.name
+
+        acmeLogger = AcmeLogger(ctx)
+
+        # create account, update contact details (if any), and set the global key identifier
+        # result is either: `new-account` or `existing-account`
+        # failing will raise an exception
+        authenticatedUser = acme_v2.AuthenticatedUser(
+            acmeLogger=acmeLogger,
+            acmeAccountKey=dbAcmeAccountKey,
+            account_key_path=account_key_path,
+        )
+        authenticatedUser.authenticate()
+        
+        
+        return authenticatedUser
+        
+    finally:
+        if _tmpfile:
+            _tmpfile.close()
+
+
+def do__CertificateRequest__AcmeAutomated__acmeV2(
+    ctx,
+    domain_names,
+    dbAccountKey=None,
+    dbPrivateKey=None,
+    private_key_pem=None,
+    dbServerCertificate__renewal_of=None,
+    dbQueueRenewal__of=None,
+):
+    """
+    2020.01.28 - new; ported from `do__CertificateRequest__AcmeAutomated__acmeV1`
+    """
+    if not dbAccountKey:
+        raise ValueError("Must submit `dbAccountKey`")
+
+    if not any((dbPrivateKey, private_key_pem)) or all((dbPrivateKey, private_key_pem)):
+        raise ValueError(
+            "Submit one and only one of: `dbPrivateKey`, `private_key_pem`"
+        )
+
+    if domain_names is None:
+        if not dbServerCertificate__renewal_of:
+            raise ValueError("`domain_names` must be provided unless this is a renewal")
+        domain_names = dbServerCertificate__renewal_of.domains_as_list
+
+    # bookkeeping
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__SslOperationsEvent(
+        ctx,
+        models.SslOperationsEventType.from_string("certificate_request__do__automated"),
+    )
+
+    tmpfiles = []
+    dbCertificateRequest = None
+    dbServerCertificate = None
+    try:
+
+        # we should have cleaned this up before, but just be safe
+        domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
+        domain_names = set(domain_names)
+        if not domain_names:
+            raise ValueError("no domain names!")
+        # we need a list
+        domain_names = list(domain_names)
+
+        # pull the pem out of the account_key
+        account_key_pem = dbAccountKey.key_pem
+
+        # we need to use tmpfiles on the disk
+        tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
+        tmpfiles.append(tmpfile_account)
+
+        if dbPrivateKey is None:
+            private_key_pem = cert_utils.cleanup_pem_text(private_key_pem)
+            (
+                dbPrivateKey,
+                _is_created,
+            ) = lib.db.getcreate.getcreate__SslPrivateKey__by_pem_text(
+                ctx, private_key_pem
+            )
+        else:
+            private_key_pem = dbPrivateKey.key_pem
+
+        # we need to use tmpfiles on the disk
+        tmpfile_pkey = cert_utils.new_pem_tempfile(private_key_pem)
+        tmpfiles.append(tmpfile_pkey)
+
+        # make the CSR
+        csr_pem = cert_utils.new_csr_for_domain_names(
+            domain_names, private_key_path=tmpfile_pkey.name, tmpfiles_tracker=tmpfiles
+        )
+        tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
+        tmpfiles.append(tmpfile_csr)
+
+        # these MUST commit
+        with transaction.manager as tx:
+            (
+                dbCertificateRequest,
+                dbDomainObjects,
+            ) = lib.db.create.create__SslCertificateRequest(
+                ctx,
+                csr_pem,
+                certificate_request_type_id=models.SslCertificateRequestType.ACME_AUTOMATED,
+                dbAccountKey=dbAccountKey,
+                dbPrivateKey=dbPrivateKey,
+                dbServerCertificate__issued=None,
+                dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
+                domain_names=domain_names,
+            )
+
+        def process_keyauth_challenge(domain, token, keyauthorization):
+            log.info("-process_keyauth_challenge %s", domain)
+            with transaction.manager as tx:
+                (dbDomain, dbCertificateRequest2D) = dbDomainObjects[domain]
+                dbCertificateRequest2D.challenge_key = token
+                dbCertificateRequest2D.challenge_text = keyauthorization
+                ctx.dbSession.flush(objects=[dbCertificateRequest2D])
+
+        def process_keyauth_cleanup(domain, token, keyauthorization):
+            log.info("-process_keyauth_cleanup %s", domain)
+
+        # scope this
+        account_key_path = tmpfile_account.name
+
+        # ######################################################################
+        # THIS BLOCK IS FROM acme-tiny v2
+
+        # pull domains from csr
+        csr_domains = cert_utils.parse_csr_domains(
+            csr_path=tmpfile_csr.name, submitted_domain_names=domain_names
+        )
+        if set(csr_domains) != set(domain_names):
+            raise ValueError("Did not make a valid set")
+
+        accountkey_jwk, accountkey_thumbprint, alg = acme_v2.account_key__parse(
+            account_key_path=account_key_path
+        )
+
+        # parse account key to get public key
+
+        # register the account / ensure that it is registered
+        account = None
+        acme_account_headers = None
+        
+        authenticatedUser = do__SslAcmeAccountKey_authenticate_acmeV2(
+            ctx,
+            dbAccountKey,
+            account_key_path=account_key_path,
+        )
+        
+        
+        
+        if (not dbAccountKey.timestamp_last_authenticated) or True:
+            account, acme_account_headers = do__SslAcmeAccountKey_authenticate_acmeV2(
+                ctx,
+                dbAccountKey,
+                account_key_path=account_key_path,
+                directory_payload=directory_payload,
+            )
+        if not acme_account_headers:
+            raise ValueError("xxx")
+
+        acmeLogger = AcmeLogger(
+            ctx, dbAccountKey=dbAccountKey, dbCertificateRequest=dbCertificateRequest
+        )
+
+        # new order:
+        acme_order_object, acme_order_headers = acme_v2.acme_new_order(
+            acmeLogger=acmeLogger,
+            account_key_path=account_key_path,
+            acmeAccountKey=dbAccountKey,
+            acme_account_headers=acme_account_headers,
+            directory_payload=directory_payload,
+            accountkey_jwk=accountkey_jwk,
+            alg=alg,
+            csr_domains=csr_domains,
+        )
+
+        # verify the domains
+        acme_v2.acme_handle_order_authorizations(
+            acmeLogger=acmeLogger,
+            account_key_path=account_key_path,
+            acmeAccountKey=dbAccountKey,
+            acme_account_headers=acme_account_headers,
+            accountkey_thumbprint=accountkey_thumbprint,
+            directory_payload=directory_payload,
+            accountkey_jwk=accountkey_jwk,
+            alg=alg,
+            handle_keyauth_challenge=process_keyauth_challenge,
+            handle_keyauth_cleanup=process_keyauth_cleanup,
+            acme_order_object=acme_order_object,
+        )
+
+        # sign it
+        (
+            cert_pem,
+            chained_pem,
+            chain_url,
+            datetime_signed,
+            datetime_expires,
+            acmeLoggedEvent,
+        ) = acme_v2.acme_finalize_order(
+            acmeLogger=acmeLogger,
+            account_key_path=account_key_path,
+            acmeAccountKey=dbAccountKey,
+            acme_account_headers=acme_account_headers,
+            directory_payload=directory_payload,
+            accountkey_jwk=accountkey_jwk,
+            alg=alg,
+            csr_path=tmpfile_csr.name,
+            acme_order_object=acme_order_object,
+            acme_order_headers=acme_order_headers,
+        )
+        #
+        # end acme-tiny
+        # ######################################################################
+
+        # let's make sure have the right domains in the cert!!
+        # this only happens on development during tests when we use a single cert
+        # for all requests...
+        # so we don't need to handle this or save it
+        tmpfile_signed_cert = cert_utils.new_pem_tempfile(cert_pem)
+        tmpfiles.append(tmpfile_signed_cert)
+        cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
+        if set(domain_names) != set(cert_domains):
+            # if not acme_v2.TESTING_ENVIRONMENT:
             log.error("set(domain_names) != set(cert_domains)")
             log.error(domain_names)
             log.error(cert_domains)
@@ -964,7 +1264,7 @@ def api_domains__certificate_if_needed(
             _logger_args["dbServerCertificate"] = _dbServerCertificate
         else:
             try:
-                _dbServerCertificate = do__CertificateRequest__AcmeAutomated(
+                _dbServerCertificate = do__CertificateRequest__AcmeAutomated__acmeV2(
                     ctx,
                     domain_names,
                     dbAccountKey=dbAccountKey,

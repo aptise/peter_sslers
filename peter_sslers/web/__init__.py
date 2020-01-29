@@ -8,7 +8,7 @@ import datetime
 
 from . import lib
 from .models import models as models_models
-from ..lib import acme_v1
+from ..lib import acme_v2
 from ..lib import cert_utils
 from .lib.config_utils import set_bool_setting
 from .lib.config_utils import set_int_setting
@@ -85,8 +85,12 @@ def main(global_config, **settings):
         if ca_submitted == "pebble":
             ca_submitted = "custom"
 
+        # certificate_authority_directory
+
         # handle custom endpoints
         if ca_submitted == "custom":
+
+            # core endpoint, v1
             ca_submitted_endpoint = settings["certificate_authority_endpoint"]
             if not ca_submitted_endpoint:
                 raise ValueError(
@@ -101,6 +105,20 @@ def main(global_config, **settings):
             models_models.AcmeAccountProvider.registry[0][
                 "endpoint"
             ] = ca_submitted_endpoint
+
+            # directory url, v2
+            ca_submitted_directory = settings.get("certificate_authority_directory")
+            if ca_submitted_directory:
+                if not ca_submitted_directory.startswith(
+                    "http://"
+                ) and not ca_submitted_directory.startswith("https://"):
+                    raise ValueError(
+                        "`certificate_authority_directory` does not look like a URL"
+                    )
+                models_models.AcmeAccountProvider.registry[0][
+                    "directory"
+                ] = ca_submitted_directory
+
             ca_submitted_protocol = settings["certificate_authority_protocol"]
             # if ca_submitted_protocol not in ("acme-v1", "acme-v2"):
             #    raise ValueError(
@@ -119,12 +137,10 @@ def main(global_config, **settings):
                 ca_selected = ca_record
                 break
     if not ca_selected:
-        import pdb
-
-        pdb.set_trace()
         raise ValueError("invalid `certificate_authority`")
+
     # okay stash this
-    acme_v1.CERTIFICATE_AUTHORITY = ca_record["endpoint"]
+    acme_v2.CERTIFICATE_AUTHORITY = ca_record["endpoint"]
     config.registry.settings["CERTIFICATE_AUTHORITY"] = ca_selected
 
     if "certificate_authority_testing" in settings:
@@ -132,11 +148,11 @@ def main(global_config, **settings):
             config.registry.settings, "certificate_authority_testing"
         )
         if certificate_authority_testing:
-            acme_v1.TESTING_ENVIRONMENT = True
+            acme_v2.TESTING_ENVIRONMENT = True
             models_models.TESTING_ENVIRONMENT = True
 
     if "certificate_authority_agreement" in settings:
-        acme_v1.CERTIFICATE_AUTHORITY_AGREEMENT = settings[
+        acme_v2.CERTIFICATE_AUTHORITY_AGREEMENT = settings[
             "certificate_authority_agreement"
         ]
 

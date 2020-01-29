@@ -210,9 +210,7 @@ class ViewAdmin_Focus(Handler):
             return dbAcmeAccountKey.key_pem
         elif self.request.matchdict["format"] == "key":
             self.request.response.content_type = "application/pkcs8"
-            as_der = cert_utils.convert_pem_to_der(
-                pem_data=dbAcmeAccountKey.key_pem
-            )
+            as_der = cert_utils.convert_pem_to_der(pem_data=dbAcmeAccountKey.key_pem)
             return as_der
 
     @view_config(route_name="admin:account_key:focus:parse|json", renderer="json")
@@ -269,7 +267,7 @@ class ViewAdmin_Focus(Handler):
     def _focus__authenticate__submit(self, dbAcmeAccountKey):
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
-        result = lib_db.actions.do__SslAcmeAccountKey_authenticate(
+        result = lib_db.actions.do__SslAcmeAccountKey_authenticate_acmeV2(
             self.request.api_context, dbAcmeAccountKey
         )
         wants_json = (

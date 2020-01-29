@@ -97,8 +97,11 @@ def _send_signed_request(url, payload, account_key_path, header, acmeAccountKey)
         return getattr(exc, "code", None), getattr(exc, "read", exc.__str__)(), None
 
 
+# ------------------------------------------------------------------------------
+
+
 def account_key__header_thumbprint(account_key_path=None):
-    log.info("Parsing account key...")
+    log.info("acme_v1 Parsing account key...")
     proc = subprocess.Popen(
         [cert_utils.openssl_path, "rsa", "-in", account_key_path, "-noout", "-text"],
         stdin=subprocess.PIPE,
@@ -137,13 +140,15 @@ def acme_register_account(
     acmeLogger=None,  # an instance of AcmeLogger
     acmeAccountKey=None,
 ):
-    log.info("Registering account...")
+    log.info("acme_v1 Registering account...")
 
     ca_endpoint = acmeAccountKey.acme_account_provider_endpoint
     if not ca_endpoint:
         raise ValueError("no CERTIFICATE_AUTHORITY for this account!")
 
-    acmeLogger.log_registration()  # log this to the db
+    # log the event to the db
+    acmeLogger.log_registration("v1")
+
     code, result, headers = _send_signed_request(
         ca_endpoint + "/acme/new-reg",
         {"resource": "new-reg", "agreement": CERTIFICATE_AUTHORITY_AGREEMENT},
@@ -152,10 +157,10 @@ def acme_register_account(
         acmeAccountKey,
     )
     if code == 201:
-        log.info("Registered!")
+        log.info("acme_v1 Registered!")
         return "new-account"
     elif code == 409:
-        log.info("Already registered!")
+        log.info("acme_v1 Already registered!")
         return "existing-account"
     raise errors.AcmeCommunicationError(
         "Error registering: {0} {1}".format(code, result)
@@ -165,8 +170,8 @@ def acme_register_account(
 def acme_verify_domains(
     csr_domains=None,
     account_key_path=None,
-    handle_keyauth_challenge=None,
-    handle_keyauth_cleanup=None,
+    handle_keyauth_challenge=None,  # callable; expects (domain, token, keyauthorization)
+    handle_keyauth_cleanup=None,  # callable; expects (domain, token, keyauthorization)
     thumbprint=None,
     header=None,
     acmeLogger=None,  # an instance of AcmeLogger
@@ -174,7 +179,7 @@ def acme_verify_domains(
 ):
     """
     """
-    log.info("acme_verify_domains...")
+    log.info("acme_v1 acme_verify_domains...")
 
     ca_endpoint = acmeAccountKey.acme_account_provider_endpoint
     if not ca_endpoint:
@@ -182,12 +187,13 @@ def acme_verify_domains(
 
     # verify each domain
     for domain in csr_domains:
-        log.info("Verifying {0}...".format(domain))
+        log.info("acme_v1 Verifying {0}...".format(domain))
+
+        (sslAcmeEventLog_new_authz, sslAcmeChallengeLog) = acmeLogger.log_new_authz(
+            "v1", domain=domain
+        )  # log this to the db
 
         # get new challenge
-        (sslAcmeEventLog_new_authz, sslAcmeChallengeLog) = acmeLogger.log_new_authz(
-            domain=domain
-        )  # log this to the db
         code, result, headers = _send_signed_request(
             ca_endpoint + "/acme/new-authz",
             {"resource": "new-authz", "identifier": {"type": "dns", "value": domain}},
@@ -200,7 +206,7 @@ def acme_verify_domains(
                 "Error requesting challenges: {0} {1}".format(code, result)
             )
 
-        # make the challenge file
+        # make the challenge
         challenge = [
             c
             for c in json.loads(result.decode("utf8"))["challenges"]
@@ -248,6 +254,7 @@ def acme_verify_domains(
 
         # note the challenge
         acmeLogger.log_challenge_trigger(sslAcmeChallengeLog)
+
         # if all challenges are active, trigger validation from LetsEncrypt
         code, result, headers = _send_signed_request(
             challenge["uri"],
@@ -278,7 +285,7 @@ def acme_verify_domains(
             if challenge_status["status"] == "pending":
                 time.sleep(2)
             elif challenge_status["status"] == "valid":
-                log.info("{0} verified!".format(domain))
+                log.info("acme_v1 {0} verified!".format(domain))
                 handle_keyauth_cleanup(domain, token, keyauthorization)
                 break
             else:
@@ -298,7 +305,7 @@ def acme_sign_certificate(
     acmeAccountKey=None,
 ):
     # get the new certificate
-    log.info("Signing certificate...")
+    log.info("acme_v1 Signing certificate...")
     ca_endpoint = acmeAccountKey.acme_account_provider_endpoint
     if not ca_endpoint:
         raise ValueError("no CERTIFICATE_AUTHORITY for this account!")
@@ -323,7 +330,7 @@ def acme_sign_certificate(
         )
 
     # format as PEM
-    log.info("Certificate signed!")
+    log.info("acme_v1 Certificate signed!")
     cert_pem_text = """-----BEGIN CERTIFICATE-----\n{0}\n-----END CERTIFICATE-----\n""".format(
         "\n".join(textwrap.wrap(base64.b64encode(result).decode("utf8"), 64))
     )

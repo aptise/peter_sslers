@@ -26,14 +26,13 @@ from .web import models
 from .web import lib
 from .web.lib import db  # lib.db doesn't work
 
-from .lib import acme_v1  # for override
 from .lib import cert_utils  # for override
 from .lib import utils as lib_utils
 
 
 # ==============================================================================
 
-DEFAULT_acme_account_provider = "letsencrypt-v1-staging"
+DEFAULT_acme_account_provider = "letsencrypt-v2-staging"
 
 """
 queue tests:

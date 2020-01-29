@@ -126,9 +126,7 @@ class ViewAdmin_Focus(Handler):
         elif self.request.matchdict["format"] == "pem.txt":
             return dbCaCertificate.cert_pem
         elif self.request.matchdict["format"] in ("cer", "crt", "der"):
-            as_der = cert_utils.convert_pem_to_der(
-                pem_data=dbCaCertificate.cert_pem
-            )
+            as_der = cert_utils.convert_pem_to_der(pem_data=dbCaCertificate.cert_pem)
             response = Response()
             if self.request.matchdict["format"] in ("crt", "der"):
                 response.content_type = "application/x-x509-ca-cert"
