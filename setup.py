@@ -10,6 +10,7 @@ with open(os.path.join(here, "CHANGES.txt")) as f:
 
 requires = [
     "formencode",
+    "pyopenssl",  # import OpenSSL
     "pypages",
     "pyramid_debugtoolbar>=4.4",
     "pyramid_formencode_classic >=0.4.0, <0.5.0",
@@ -21,7 +22,7 @@ requires = [
     "redis",
     "requests",
     "six",
-    "SQLAlchemy>=1.4.0",  # scalar_subquery API change
+    "SQLAlchemy>=1.3.0",  # scalar_subquery API change
     "transaction",
     "waitress",
     "zope.sqlalchemy",

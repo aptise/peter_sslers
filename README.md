@@ -52,7 +52,8 @@ Peter offers several commandline tools -- so spinning up a tool "webserver" mode
 
 SqlAlchemy is the backing database library, so virtually any database can be used (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but the package has been tested against PostgreSQL.  SQLite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
 
-Peter leverages the system's OpenSSL instead of using Python's modules. The reason is to minimize the amount of downloads/packages.
+Peter tries to leverage the system's OpenSSL instead of using Python's modules whenever possible. The reason is to minimize the amount of downloads/packages.
+
 
 Although Python2 is no longer supported by Python, Python2 and Python3 are targeted platforms for this library.
 

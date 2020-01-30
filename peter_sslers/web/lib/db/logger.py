@@ -139,6 +139,7 @@ class AcmeLogger(object):
         sslAcmeEventLog.ssl_certificate_request_id = dbCertificateRequest.id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
+        return sslAcmeEventLog
 
     def log_event_certificate(self, sslAcmeEventLog, dbServerCertificate):
         """

@@ -117,7 +117,7 @@ class ViewAdmin(Handler):
         dbUniqueFQDNSet = self._focus()
         weekly_certs = (
             self.request.api_context.dbSession.query(
-                models.year_week(models.SslServerCertificate.timestamp_signed).label(
+                model_utils.year_week(models.SslServerCertificate.timestamp_signed).label(
                     "week_num"
                 ),
                 sqlalchemy.func.count(models.SslServerCertificate.id),

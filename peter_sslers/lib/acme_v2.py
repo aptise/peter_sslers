@@ -147,12 +147,9 @@ class AcmeOrder(object):
     api_object = None
     response_headers = None
     dbCertificateRequest = None
-    
+
     def __init__(
-        self,
-        api_object=None,
-        response_headers=None,
-        dbCertificateRequest=None
+        self, api_object=None, response_headers=None, dbCertificateRequest=None
     ):
         self.api_object = api_object
         self.response_headers = response_headers
@@ -221,7 +218,13 @@ class AuthenticatedUser(object):
         protected64 = _b64(json.dumps(protected).encode("utf8"))
         protected_input = "{0}.{1}".format(protected64, payload64).encode("utf8")
         proc = subprocess.Popen(
-            [cert_utils.openssl_path, "dgst", "-sha256", "-sign", self.account_key_path],
+            [
+                cert_utils.openssl_path,
+                "dgst",
+                "-sha256",
+                "-sign",
+                self.account_key_path,
+            ],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -248,10 +251,7 @@ class AuthenticatedUser(object):
         while _result is None or _result["status"] in _pending_statuses:
             assert time.time() - _t0 < 3600, "Polling timeout"  # 1 hour timeout
             time.sleep(0 if _result is None else 2)
-            _result, _, _ = self._send_signed_request(
-                _url,
-                payload=None,
-            )
+            _result, _, _ = self._send_signed_request(_url, payload=None,)
         return _result
 
     def authenticate(self, app_ctx, contact=None):
@@ -366,8 +366,7 @@ class AuthenticatedUser(object):
                 code,
                 acme_account_headers,
             ) = self._send_signed_request(
-                self.acme_directory["newAccount"],
-                payload=payload_registration
+                self.acme_directory["newAccount"], payload=payload_registration
             )
             self._api_account_object = acme_account_object
             self._api_account_headers = acme_account_headers
@@ -379,8 +378,7 @@ class AuthenticatedUser(object):
             raise ValueError("todo: log this")
             payload_contact = {"contact": contact}
             (acme_account_object, _, _) = self._send_signed_request(
-                acme_account_headers["Location"],
-                payload=payload_contact,
+                acme_account_headers["Location"], payload=payload_contact,
             )
             self._api_account_object = acme_account_object
             log.info(
@@ -405,9 +403,7 @@ class AuthenticatedUser(object):
         )
 
     def acme_new_order(
-        self,
-        csr_domains=None,
-        dbCertificateRequest=None,
+        self, csr_domains=None, dbCertificateRequest=None,
     ):
         """
         https://tools.ietf.org/html/rfc8555#section-7.4
@@ -485,21 +481,16 @@ class AuthenticatedUser(object):
         payload_order = {
             "identifiers": [{"type": "dns", "value": d} for d in csr_domains]
         }
-        (acme_order_object,
-         _code,
-         acme_order_headers
-         ) = self._send_signed_request(
-            self.acme_directory["newOrder"],
-            payload=payload_order,
+        (acme_order_object, _code, acme_order_headers) = self._send_signed_request(
+            self.acme_directory["newOrder"], payload=payload_order,
         )
         log.info("acme_v2 Order created!")
-        acmeOrder = AcmeOrder(api_object=acme_order_object,
-                              response_headers=acme_order_headers,
-                              dbCertificateRequest=dbCertificateRequest
-                              )
+        acmeOrder = AcmeOrder(
+            api_object=acme_order_object,
+            response_headers=acme_order_headers,
+            dbCertificateRequest=dbCertificateRequest,
+        )
         return acmeOrder
-
-
 
     def acme_handle_order_authorizations(
         self,
@@ -514,11 +505,8 @@ class AuthenticatedUser(object):
 
             # in v1, we know the domain before the authorization request
             # in v2, we hit an order's authorization url to get the domain
-            (authorization_response,
-             _,
-             _) = self._send_signed_request(
-                authorization_url,
-                payload=None,
+            (authorization_response, _, _) = self._send_signed_request(
+                authorization_url, payload=None,
             )
             domain = authorization_response["identifier"]["value"]
             log.info("acme_v2 Verifying {0}...".format(domain))
@@ -532,7 +520,9 @@ class AuthenticatedUser(object):
 
             # find the http-01 challenge and write the challenge file
             challenge = [
-                c for c in authorization_response["challenges"] if c["type"] == "http-01"
+                c
+                for c in authorization_response["challenges"]
+                if c["type"] == "http-01"
             ][0]
             token = re.sub(r"[^A-Za-z0-9_\-]", "_", challenge["token"])
             keyauthorization = "{0}.{1}".format(token, self.accountkey_thumbprint)
@@ -549,7 +539,9 @@ class AuthenticatedUser(object):
             # check that the file is in place
             try:
                 if TESTING_ENVIRONMENT:
-                    log.debug("TESTING_ENVIRONMENT, not ensuring the challenge is readable")
+                    log.debug(
+                        "TESTING_ENVIRONMENT, not ensuring the challenge is readable"
+                    )
                 else:
                     try:
                         resp = urlopen(wellknown_url)
@@ -557,14 +549,18 @@ class AuthenticatedUser(object):
                         assert resp_data == keyauthorization
                     except (IOError, AssertionError):
                         handle_keyauth_cleanup(domain, token, keyauthorization)
-                        self.acmeLogger.log_challenge_error(sslAcmeChallengeLog, "pretest-1")
+                        self.acmeLogger.log_challenge_error(
+                            sslAcmeChallengeLog, "pretest-1"
+                        )
                         raise errors.DomainVerificationError(
                             "Wrote keyauth challenge, but couldn't download {0}".format(
                                 wellknown_url
                             )
                         )
                     except ssl.CertificateError as exc:
-                        self.acmeLogger.log_challenge_error(sslAcmeChallengeLog, "pretest-2")
+                        self.acmeLogger.log_challenge_error(
+                            sslAcmeChallengeLog, "pretest-2"
+                        )
                         if exc.message.startswith("hostname") and (
                             "doesn't match" in exc.message
                         ):
@@ -587,16 +583,13 @@ class AuthenticatedUser(object):
             try:
                 # TODO- check rfc
                 challenge_payload = {}
-                if challenge['status'] == 'valid':
+                if challenge["status"] == "valid":
                     challenge_payload = None
-                (challenge_response,
-                 _,
-                 _) = self._send_signed_request(
-                    challenge["url"],
-                    payload=challenge_payload,
+                (challenge_response, _, _) = self._send_signed_request(
+                    challenge["url"], payload=challenge_payload,
                 )
             except Exception as exc:
-                print ("check rfc")
+                print("check rfc")
                 pdb.set_trace()
 
             log.info("checking domain {0}".format(domain))
@@ -611,7 +604,9 @@ class AuthenticatedUser(object):
             elif authorization_response["status"] != "valid":
                 self.acmeLogger.log_challenge_error(sslAcmeChallengeLog, "fail-2")
                 raise errors.DomainVerificationError(
-                    "{0} challenge did not pass: {1}".format(domain, authorization_response)
+                    "{0} challenge did not pass: {1}".format(
+                        domain, authorization_response
+                    )
                 )
 
             # log this
@@ -623,7 +618,6 @@ class AuthenticatedUser(object):
     def acme_finalize_order(
         self,
         acmeOrder=None,  # acme server api response, `AcmeOrder` object
-
         # function specific
         csr_path=None,
     ):
@@ -638,15 +632,14 @@ class AuthenticatedUser(object):
         )
         csr_der, err = proc.communicate()
 
-        acmeLoggedEvent = self.acmeLogger.log_order_finalize("v2", acmeOrder.dbCertificateRequest)  # log this to the db
+        acmeLoggedEvent = self.acmeLogger.log_order_finalize(
+            "v2", acmeOrder.dbCertificateRequest
+        )  # log this to the db
 
         payload_finalize = {"csr": _b64(csr_der)}
         try:
-            (finalize_response,
-             _,
-             _) = self._send_signed_request(
-                acmeOrder.api_object["finalize"],
-                payload=payload_finalize,
+            (finalize_response, _, _) = self._send_signed_request(
+                acmeOrder.api_object["finalize"], payload=payload_finalize,
             )
         except Exception as exc:
             pdb.set_trace()
@@ -665,29 +658,21 @@ class AuthenticatedUser(object):
             )
 
         # download the certificate
-        (certificate_pem,
-         _,
-         certificate_headers) = self._send_signed_request(
-            acme_order_finalized["certificate"],
-            None
+        # ACME-V2 furnishes a FULLCHAIN (certificate_pem + chain_pem)
+        (fullchain_pem, _, certificate_headers) = self._send_signed_request(
+            acme_order_finalized["certificate"], None
         )
 
         log.info("acme_v2 Certificate signed!")
 
-        '''
-        datetime_signed = dateutil_parser.parse(certificate_headers["Date"])
-        datetime_expires = dateutil_parser.parse(certificate_headers["Expires"])
-
-        # we need to make these naive
-        datetime_signed = datetime_signed.replace(tzinfo=None)
-        datetime_expires = datetime_expires.replace(tzinfo=None)
+        """
 
         # return signed certificate!
         # openssl x509 -inform der -in issuer-cert -out issuer-cert.pem
-        '''
+        """
 
         return (
-            certificate_pem,
+            fullchain_pem,
             acmeLoggedEvent,
         )
 

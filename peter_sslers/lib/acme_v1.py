@@ -318,7 +318,9 @@ def acme_sign_certificate(
     )
     csr_der, err = proc.communicate()
 
-    acmeLoggedEvent = acmeLogger.log_new_cert('v1', dbCertificateRequest)  # log this to the db
+    acmeLoggedEvent = acmeLogger.log_new_cert(
+        "v1", dbCertificateRequest
+    )  # log this to the db
     code, result, headers = _send_signed_request(
         ca_endpoint + "/acme/new-cert",
         {"resource": "new-cert", "csr": _b64(csr_der)},

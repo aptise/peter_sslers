@@ -51,7 +51,7 @@ class SslAcmeEventLog(Base):
     @reify
     def acme_event(self):
         if self.acme_event_id:
-            return AcmeEvent.as_string(self.acme_event_id)
+            return model_utils.AcmeEvent.as_string(self.acme_event_id)
         return None
 
     acme_challenge_logs = sa.orm.relationship(

@@ -8,6 +8,7 @@ import datetime
 import pdb
 
 # pypi
+from dateutil import parser as dateutil_parser
 import sqlalchemy
 import transaction
 from zope.sqlalchemy import mark_changed
@@ -22,6 +23,7 @@ from ....lib import cert_utils
 from ....lib import letsencrypt_info
 from ....lib import errors
 from ....lib import utils as lib_utils
+from ....lib import utils_certbot as certbot_utils
 from ....model import utils as model_utils
 
 # local
@@ -601,8 +603,7 @@ def do__CertificateRequest__AcmeV2_Automated(
         acmeLogger = AcmeLogger(ctx, dbAccountKey=dbAccountKey)
 
         acmeOrder = authenticatedUser.acme_new_order(
-            csr_domains=csr_domains,
-            dbCertificateRequest=dbCertificateRequest,
+            csr_domains=csr_domains, dbCertificateRequest=dbCertificateRequest,
         )
 
         handled = authenticatedUser.acme_handle_order_authorizations(
@@ -612,11 +613,8 @@ def do__CertificateRequest__AcmeV2_Automated(
         )
 
         # sign and download
-        (certificate_pem,
-         acmeLoggedEvent
-         ) = authenticatedUser.acme_finalize_order(
-            acmeOrder=acmeOrder,
-            csr_path=tmpfile_csr.name,
+        (fullchain_pem, acmeLoggedEvent) = authenticatedUser.acme_finalize_order(
+            acmeOrder=acmeOrder, csr_path=tmpfile_csr.name,
         )
 
         # verify the domains
@@ -624,26 +622,49 @@ def do__CertificateRequest__AcmeV2_Automated(
         # end acme-tiny
         # ######################################################################
 
+        (certificate_pem, chain_pem) = certbot_utils.cert_and_chain_from_fullchain(
+            fullchain_pem
+        )
+
+        (certificate_pem, chained_pem) = certbot_utils.cert_and_chain_from_fullchain(
+            fullchain_pem
+        )
+
         # let's make sure have the right domains in the cert!!
         # this only happens on development during tests when we use a single cert
         # for all requests...
         # so we don't need to handle this or save it
         tmpfile_signed_cert = cert_utils.new_pem_tempfile(certificate_pem)
         tmpfiles.append(tmpfile_signed_cert)
-        cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
-        
-        pdb.set_trace()
-        
 
-        raise ValueError("keep porting!")
-        
+        # some checking!
+        cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
         if set(domain_names) != set(cert_domains):
             # if not acme_v2.TESTING_ENVIRONMENT:
             log.error("set(domain_names) != set(cert_domains)")
             log.error(domain_names)
             log.error(cert_domains)
             # current version of fakeboulder will sign the csr and give us the right domains !
-            raise ValueError("this should not happen!")
+            raise ValueError(
+                "Certificate Domains do not match the CSR! this should never happen!"
+            )
+
+        # ok, now pull the dates off the cert
+        cert_dates = cert_utils.parse_cert__dates(pem_filepath=tmpfile_signed_cert.name)
+
+        datetime_signed = cert_dates["startdate"]
+        if not datetime_signed.startswith("notBefore="):
+            raise ValueError("unexpected notBefore: %s" % datetime_signed)
+        datetime_signed = datetime_signed[10:]
+        datetime_signed = dateutil_parser.parse(datetime_signed)
+        datetime_signed = datetime_signed.replace(tzinfo=None)
+
+        datetime_expires = cert_dates["enddate"]
+        if not datetime_expires.startswith("notAfter="):
+            raise ValueError("unexpected notAfter: %s" % datetime_expires)
+        datetime_expires = datetime_expires[9:]
+        datetime_expires = dateutil_parser.parse(datetime_expires)
+        datetime_expires = datetime_signed.replace(tzinfo=None)
 
         # these MUST commit
         with transaction.manager as tx:
@@ -652,9 +673,9 @@ def do__CertificateRequest__AcmeV2_Automated(
                 timestamp_signed=datetime_signed,
                 timestamp_expires=datetime_expires,
                 is_active=True,
-                cert_pem=cert_pem,
+                cert_pem=certificate_pem,
                 chained_pem=chained_pem,
-                chain_name=chain_url,
+                chain_name=None,
                 dbCertificateRequest=dbCertificateRequest,
                 dbAcmeAccountKey=dbAccountKey,
                 dbPrivateKey=dbPrivateKey,

@@ -19,7 +19,6 @@ import sys
 import json
 import binascii
 
-
 # pypi
 from dateutil import parser as dateutil_parser
 
@@ -34,11 +33,10 @@ from .. import lib
 openssl_path = "openssl"
 openssl_path_conf = "/etc/ssl/openssl.cnf"
 
-ACME_VERSION = 'v2'
+ACME_VERSION = "v2"
 openssl_version = None
 _RE_openssl_version = re.compile("OpenSSL ((\d+\.\d+\.\d+)\w*) ", re.I)
-openssl_behavior = None  # 'a' or 'b'
-
+_openssl_behavior = None  # 'a' or 'b'
 
 
 # ==============================================================================
@@ -46,15 +44,10 @@ openssl_behavior = None  # 'a' or 'b'
 
 def check_openssl_version(replace=False):
     global openssl_version
-    global openssl_behavior
+    global _openssl_behavior
     if (openssl_version is None) or replace:
         proc = subprocess.Popen(
-            [
-                openssl_path,
-                "version",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            [openssl_path, "version",], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         version_text, err = proc.communicate()
         if err:
@@ -67,12 +60,12 @@ def check_openssl_version(replace=False):
             raise ValueError("could not regex OpenSSL version")
         # m.groups == ('1.0.2g', '1.0.2')
         v = m.groups()[1]
-        v = v.split('.')
+        v = [int(i) for i in v.split(".")]
         openssl_version = v
-        openssl_behavior = 'a'
+        _openssl_behavior = "a"  # default to old behavior
         # OpenSSL 1.1.1 doesn't need a tempfile for SANs
         if (v[0] >= 1) and (v[1] >= 1) and (v[2] >= 1):
-            openssl_behavior = 'b'
+            _openssl_behavior = "b"
     return openssl_version
 
 
@@ -92,44 +85,70 @@ def new_csr_for_domain_names(
         check_openssl_version()
 
     max_domains_certificate = lib.letsencrypt_info.LIMITS["names/certificate"]["limit"]
-    
-    _generator = None
-    if ACME_VERSION == 'v1':
+    if len(domain_names) > max_domains_certificate:
+        raise errors.OpenSslError_CsrGeneration(
+            "LetsEncrypt can only allow `%s` domains per certificate"
+            % max_domains_certificate
+        )
+
+    _acme_generator_strategy = None
+    if ACME_VERSION == "v1":
         if len(domain_names) == 1:
-            _generator = 1
+            _acme_generator_strategy = 1
         else:
-            _generator = 2
-    elif ACME_VERSION == 'v2':
-        _generator = 2
-    
-    if _generator == '1'
+            _acme_generator_strategy = 2
+    elif ACME_VERSION == "v2":
+        _acme_generator_strategy = 2
+
+    if _acme_generator_strategy == 1:
+        """
+        This is the ACME-V1 method for single domain certificates
+        * the certificate's subject is `/CN=yourdomain`
+        """
         _csr_subject = "/CN=%s" % domain_names[0]
+        proc = subprocess.Popen(
+            [
+                openssl_path,
+                "req",
+                "-new",
+                "-sha256",
+                "-key",
+                private_key_path,
+                "-subj",
+                _csr_subject,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        csr_text, err = proc.communicate()
+        if err:
+            raise errors.OpenSslError_CsrGeneration("could not create a CSR")
 
-    
-    
+    elif _acme_generator_strategy == 2:
+        """
+        This is the ACME-V2 method for single domain certificates. It works on ACME-V1.
+        * the certificate's subject is `/`
+        * all domains appear in subjectAltName
+        """
 
-    _csr_subject = "/CN=%s" % domain_names[0]
-    if len(domain_names) == 1:
-        if ACME_VERSION == 'v1':
-            proc = subprocess.Popen(
-                [
-                    openssl_path,
-                    "req",
-                    "-new",
-                    "-sha256",
-                    "-key",
-                    private_key_path,
-                    "-subj",
-                    _csr_subject,
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+        # getting subprocess to work right is a pain, because we need to chain a bunch of commands
+        # to get around this, we'll do two things:
+        # 1. cat the [SAN] and openssl path file onto a tempfile
+        # 2. use shell=True
+
+        domain_names = sorted(domain_names)
+
+        # the subject should be /, which will become the serial number
+        # see https://community.letsencrypt.org/t/certificates-with-serialnumber-in-subject/11891
+        _csr_subject = "/"
+
+        if _openssl_behavior == "a":
+            # earlier OpenSSL versions require us to pop in the subjectAltName via a cat'd file
+
+            # generate the [SAN]
+            _csr_san = "[SAN]\nsubjectAltName=" + ",".join(
+                ["DNS:%s" % d for d in domain_names]
             )
-            csr_text, err = proc.communicate()
-            if err:
-                raise errors.OpenSslError_CsrGeneration("could not create a CSR")
-        else:
-            _csr_san = "[SAN]\nsubjectAltName=DNS:%s" % domain_names[0]
 
             # store some data in a tempfile
             tmpfile_csr_san = tempfile.NamedTemporaryFile()
@@ -147,57 +166,37 @@ def new_csr_for_domain_names(
             proc = subprocess.Popen(
                 _command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
+
             csr_text, err = proc.communicate()
             if err:
                 raise errors.OpenSslError_CsrGeneration("could not create a CSR")
-
             csr_text = cleanup_pem_text(csr_text)
 
-    elif len(domain_names) <= max_domains_certificate:
+        elif _openssl_behavior == "b":
+            # new OpenSSL versions support passing in the `subjectAltName` via the commandline
 
-        # getting subprocess to work right is a pain, because we need to chain a bunch of commands
-        # to get around this, we'll do two things:
-        # 1. cat the [SAN] and openssl path file onto a tempfile
-        # 2. use shell=True
+            # generate the [SAN]
+            _csr_san = "subjectAltName = " + ", ".join(
+                ["DNS:%s" % d for d in domain_names]
+            )
 
-        domain_names = sorted(domain_names)
+            # note that we use /bin/cat (!)
+            _command = """%s req -new -sha256 -key %s -subj "/" -addext %s""" % (
+                openssl_path,
+                private_key_path,
+                _csr_san,
+            )
+            proc = subprocess.Popen(
+                _command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
 
-        # the subject should be /, which will become the serial number
-        # see https://community.letsencrypt.org/t/certificates-with-serialnumber-in-subject/11891
-        _csr_subject = "/"
-
-        # generate the [SAN]
-        _csr_san = "[SAN]\nsubjectAltName=" + ",".join(
-            ["DNS:%s" % d for d in domain_names]
-        )
-
-        # store some data in a tempfile
-        tmpfile_csr_san = tempfile.NamedTemporaryFile()
-        tmpfile_csr_san.write(open(openssl_path_conf).read())
-        tmpfile_csr_san.write("\n\n")
-        tmpfile_csr_san.write(_csr_san)
-        tmpfile_csr_san.seek(0)
-        tmpfiles_tracker.append(tmpfile_csr_san)
-
-        # note that we use /bin/cat (!)
-        _command = (
-            """%s req -new -sha256 -key %s -subj "%s" -reqexts SAN -config < /bin/cat %s"""
-            % (openssl_path, private_key_path, _csr_subject, tmpfile_csr_san.name)
-        )
-        proc = subprocess.Popen(
-            _command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        csr_text, err = proc.communicate()
-        if err:
-            raise errors.OpenSslError_CsrGeneration("could not create a CSR")
-
-        csr_text = cleanup_pem_text(csr_text)
+            csr_text, err = proc.communicate()
+            if err:
+                raise errors.OpenSslError_CsrGeneration("could not create a CSR")
+            csr_text = cleanup_pem_text(csr_text)
 
     else:
-        raise ValueError(
-            "LetsEncrypt can only allow `%s` domains per certificate"
-            % max_domains_certificate
-        )
+        raise errors.OpenSslError_CsrGeneration("invalid ACME generator")
 
     return csr_text
 
@@ -643,9 +642,7 @@ def parse_key(key_pem=None, pem_filepath=None):
 
     tmpfile_pem = None
     try:
-        if pem_filepath:
-            raise NotImplemented
-        else:
+        if not pem_filepath:
             tmpfile_pem = new_pem_tempfile(key_pem)
             pem_filepath = tmpfile_pem.name
 
@@ -667,9 +664,7 @@ def parse_cert(cert_pem=None, pem_filepath=None):
 
     tmpfile_pem = None
     try:
-        if pem_filepath:
-            raise NotImplemented
-        else:
+        if not pem_filepath:
             tmpfile_pem = new_pem_tempfile(cert_pem)
             pem_filepath = tmpfile_pem.name
 
@@ -689,6 +684,26 @@ def parse_cert(cert_pem=None, pem_filepath=None):
             parse_startdate_cert__pem_filepath(pem_filepath)
         )
 
+        return rval
+    except Exception as exc:
+        raise
+    finally:
+        if tmpfile_pem:
+            tmpfile_pem.close()
+
+
+def parse_cert__dates(cert_pem=None, pem_filepath=None):
+    if not any((cert_pem, pem_filepath)) or all((cert_pem, pem_filepath)):
+        raise ValueError("only submit `cert_pem` OR `pem_filepath`")
+    tmpfile_pem = None
+    try:
+        if not pem_filepath:
+            tmpfile_pem = new_pem_tempfile(cert_pem)
+            pem_filepath = tmpfile_pem.name
+
+        rval = {}
+        rval["startdate"] = cert_single_op__pem_filepath(pem_filepath, "-startdate")
+        rval["enddate"] = cert_single_op__pem_filepath(pem_filepath, "-enddate")
         return rval
     except Exception as exc:
         raise
