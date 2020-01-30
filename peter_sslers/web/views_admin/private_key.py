@@ -21,6 +21,8 @@ from ..lib.forms import Form_PrivateKey_mark
 from ..lib.forms import Form_PrivateKey_new__file
 from ..lib.handler import Handler, items_per_page
 from ...lib import cert_utils
+from ...lib import utils as lib_utils
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -228,8 +230,10 @@ class ViewAdmin_Focus(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
-            event_type = models.SslOperationsEventType.from_string("private_key__mark")
-            event_payload_dict = lib.utils.new_event_payload_dict()
+            event_type = model_utils.SslOperationsEventType.from_string(
+                "private_key__mark"
+            )
+            event_payload_dict = lib_utils.new_event_payload_dict()
             event_payload_dict["ssl_private_key.id"] = dbPrivateKey.id
             event_payload_dict["action"] = formStash.results["action"]
 
@@ -267,7 +271,7 @@ class ViewAdmin_Focus(Handler):
                 dbPrivateKey.is_compromised = True
                 if dbPrivateKey.is_default:
                     dbPrivateKey.is_default = False
-                event_type = models.SslOperationsEventType.from_string(
+                event_type = model_utils.SslOperationsEventType.from_string(
                     "private_key__revoke"
                 )
                 marked_comprimised = True
@@ -307,7 +311,7 @@ class ViewAdmin_Focus(Handler):
             lib_db.logger._log_object_event(
                 self.request.api_context,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=models.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                     event_status
                 ),
                 dbPrivateKey=dbPrivateKey,

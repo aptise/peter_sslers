@@ -13,11 +13,13 @@ import sqlalchemy
 import transaction
 
 # localapp
-from ..models import models
 from .. import lib
+from ...lib import errors
+from ...lib import utils as lib_utils
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
-from ...lib import errors
+from ..models import models
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -221,10 +223,10 @@ class ViewAdmin(Handler):
                 )
 
             # okay, we're good to go...'
-            event_type = models.SslOperationsEventType.from_string(
+            event_type = model_utils.SslOperationsEventType.from_string(
                 "queue_renewal__update"
             )
-            event_payload_dict = lib.utils.new_event_payload_dict()
+            event_payload_dict = lib_utils.new_event_payload_dict()
             dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )

@@ -22,6 +22,8 @@ from ..lib.forms import Form_AccountKey_mark
 from ..lib.form_utils import AccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
 from ...lib import cert_utils
+from ...lib import utils as lib_utils
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -106,12 +108,12 @@ class ViewAdmin_New(Handler):
                 "valid_options": {
                     "acme_account_provider_id": {
                         v["id"]: v["name"]
-                        for v in models.AcmeAccountProvider.registry.values()
+                        for v in model_utils.AcmeAccountProvider.registry.values()
                     }
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
-        providers = models.AcmeAccountProvider.registry.values()
+        providers = model_utils.AcmeAccountProvider.registry.values()
         return render_to_response(
             "/admin/account_key-upload.mako",
             {"AcmeAccountProviderOptions": providers},
@@ -267,7 +269,7 @@ class ViewAdmin_Focus(Handler):
     def _focus__authenticate__submit(self, dbAcmeAccountKey):
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
-        result = lib_db.actions.do__SslAcmeAccountKey_authenticate_acmeV2(
+        result = lib_db.actions.do__SslAcmeAccountKey_AcmeV2_authenticate(
             self.request.api_context, dbAcmeAccountKey
         )
         wants_json = (
@@ -381,10 +383,10 @@ class ViewAdmin_Focus(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
-            event_type = models.SslOperationsEventType.from_string(
+            event_type = model_utils.SslOperationsEventType.from_string(
                 "acme_account_key__mark"
             )
-            event_payload_dict = lib.utils.new_event_payload_dict()
+            event_payload_dict = lib_utils.new_event_payload_dict()
             event_payload_dict["account_key_id"] = dbAcmeAccountKey.id
             event_payload_dict["action"] = formStash.results["action"]
 
@@ -444,7 +446,7 @@ class ViewAdmin_Focus(Handler):
             lib_db.logger._log_object_event(
                 self.request.api_context,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=models.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                     event_status
                 ),
                 dbAcmeAccountKey=dbAcmeAccountKey,
@@ -453,7 +455,7 @@ class ViewAdmin_Focus(Handler):
                 lib_db.logger._log_object_event(
                     self.request.api_context,
                     dbOperationsEvent=dbOperationsEvent,
-                    event_status_id=models.SslOperationsObjectEventStatus.from_string(
+                    event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                         event_alt[0]
                     ),
                     dbAcmeAccountKey=event_alt[1],

@@ -12,6 +12,8 @@ import requests
 
 from .. import lib
 from .. import models
+from ...lib import utils as lib_utils
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -50,13 +52,6 @@ class ApiContext(object):
         self.dbSession = dbSession
         self.dbSessionLogger = dbSessionLogger
         self.timestamp = timestamp
-
-
-# ------------------------------------------------------------------------------
-
-
-def new_event_payload_dict():
-    return {"v": 1}
 
 
 # ------------------------------------------------------------------------------
@@ -167,7 +162,8 @@ def nginx_flush_cache(request, ctx):
             }
         rval["servers"][_server] = status
     dbEvent = lib.db.logger.log__SslOperationsEvent(
-        ctx, models.SslOperationsEventType.from_string("operations__nginx_cache_flush")
+        ctx,
+        model_utils.SslOperationsEventType.from_string("operations__nginx_cache_flush"),
     )
     return True, dbEvent, rval
 
@@ -234,14 +230,16 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
                 # log the url?
                 domain_ids["failure"].add(domain.id)
 
-    event_payload_dict = new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     event_payload_dict["ssl_domain_ids"] = {
         "success": list(domain_ids["success"]),
         "failure": list(domain_ids["failure"]),
     }
     dbEvent = lib.db.logger.log__SslOperationsEvent(
         ctx,
-        models.SslOperationsEventType.from_string("operations__nginx_cache_expire"),
+        model_utils.SslOperationsEventType.from_string(
+            "operations__nginx_cache_expire"
+        ),
         event_payload_dict,
     )
     return True, dbEvent

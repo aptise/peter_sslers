@@ -25,6 +25,8 @@ from ..lib.handler import Handler, items_per_page
 from ...lib import errors
 from ...lib import cert_utils
 from ...lib import letsencrypt_info
+from ...lib import utils as lib_utils
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -447,7 +449,7 @@ class ViewAdmin_Focus(Handler):
                 )
 
             try:
-                dbLetsencryptCertificateNew = lib_db.actions.do__CertificateRequest__AcmeAutomated__acmeV2(
+                dbLetsencryptCertificateNew = lib_db.actions.do__CertificateRequest__AcmeV2_Automated(
                     self.request.api_context,
                     None,  # domain_names, handle via the certificate...
                     dbAccountKey=dbServerCertificate.acme_account_key,
@@ -503,10 +505,10 @@ class ViewAdmin_Focus(Handler):
                 )
 
             # okay, we're good to go...'
-            event_type = models.SslOperationsEventType.from_string(
+            event_type = model_utils.SslOperationsEventType.from_string(
                 "queue_renewal__update"
             )
-            event_payload_dict = lib.utils.new_event_payload_dict()
+            event_payload_dict = lib_utils.new_event_payload_dict()
             dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )
@@ -552,7 +554,7 @@ class ViewAdmin_Focus(Handler):
         return self._focus_renew_custom__print()
 
     def _focus_renew_custom__print(self):
-        providers = models.AcmeAccountProvider.registry.values()
+        providers = model_utils.AcmeAccountProvider.registry.values()
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
@@ -633,15 +635,17 @@ class ViewAdmin_Focus(Handler):
             )
 
             try:
-                event_payload_dict = lib.utils.new_event_payload_dict()
+                event_payload_dict = lib_utils.new_event_payload_dict()
                 event_payload_dict["ssl_server_certificate.id"] = dbServerCertificate.id
                 dbEvent = lib_db.logger.log__SslOperationsEvent(
                     self.request.api_context,
-                    models.SslOperationsEventType.from_string("certificate__renew"),
+                    model_utils.SslOperationsEventType.from_string(
+                        "certificate__renew"
+                    ),
                     event_payload_dict,
                 )
 
-                newLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated__acmeV2(
+                newLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeV2_Automated(
                     self.request.api_context,
                     domain_names=dbServerCertificate.domains_as_list,
                     dbAccountKey=accountKeySelection.SslAcmeAccountKey,
@@ -724,10 +728,12 @@ class ViewAdmin_Focus(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
-            event_payload_dict = lib.utils.new_event_payload_dict()
+            event_payload_dict = lib_utils.new_event_payload_dict()
             event_payload_dict["ssl_server_certificate.id"] = dbServerCertificate.id
             event_payload_dict["action"] = action
-            event_type = models.SslOperationsEventType.from_string("certificate__mark")
+            event_type = model_utils.SslOperationsEventType.from_string(
+                "certificate__mark"
+            )
 
             update_recents = False
             deactivated = False
@@ -864,7 +870,7 @@ class ViewAdmin_Focus(Handler):
             lib_db.logger._log_object_event(
                 self.request.api_context,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=models.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                     event_status
                 ),
                 dbServerCertificate=dbServerCertificate,

@@ -14,6 +14,7 @@ from .. import utils
 from ...models import models
 from ....lib import cert_utils
 from ....lib import utils as lib_utils
+from ....model import utils as model_utils
 
 
 EVENTS_USE_ALT = True
@@ -407,7 +408,7 @@ def _SslDomain_inject_exipring_days(ctx, q, expiring_days, order=False):
     )
     if order:
         q = q.order_by(
-            models.min_date(
+            model_utils.min_date(
                 SslServerCertificateMulti.timestamp_expires,
                 SslServerCertificateSingle.timestamp_expires,
             ).asc()
@@ -620,7 +621,7 @@ def get__SslOperationsEvent__certificate_probe__count(ctx):
         ctx.dbSession.query(models.SslOperationsEvent)
         .filter(
             models.SslOperationsEvent.ssl_operations_event_type_id
-            == models.SslOperationsEventType.from_string("ca_certificate__probe")
+            == model_utils.SslOperationsEventType.from_string("ca_certificate__probe")
         )
         .count()
     )
@@ -633,7 +634,7 @@ def get__SslOperationsEvent__certificate_probe__paginated(ctx, limit=None, offse
         .order_by(models.SslOperationsEvent.id.desc())
         .filter(
             models.SslOperationsEvent.ssl_operations_event_type_id
-            == models.SslOperationsEventType.from_string("ca_certificate__probe")
+            == model_utils.SslOperationsEventType.from_string("ca_certificate__probe")
         )
         .limit(limit)
         .offset(offset)

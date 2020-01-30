@@ -13,6 +13,8 @@ import transaction
 from zope.sqlalchemy import mark_changed
 
 # localapp
+from .. import events
+from .. import utils
 from ...models import models
 from ... import lib
 from ....lib import acme_v2
@@ -20,9 +22,7 @@ from ....lib import cert_utils
 from ....lib import letsencrypt_info
 from ....lib import errors
 from ....lib import utils as lib_utils
-from .. import events
-from .. import utils
-
+from ....model import utils as model_utils
 
 # local
 from .logger import AcmeLogger
@@ -41,7 +41,7 @@ def disable_Domain(
     event_status="domain__mark__inactive",
     action="deactivated",
 ):
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     event_payload_dict["ssl_domain.id"] = dbDomain.id
     event_payload_dict["action"] = action
     dbDomain.is_active = False
@@ -50,7 +50,9 @@ def disable_Domain(
     _log_object_event(
         ctx,
         dbOperationsEvent=dbOperationsEvent,
-        event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
+        event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+            event_status
+        ),
         dbDomain=dbDomain,
     )
     return True
@@ -63,7 +65,7 @@ def enable_Domain(
     event_status="domain__mark__active",
     action="activated",
 ):
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     event_payload_dict["ssl_domain.id"] = dbDomain.id
     event_payload_dict["action"] = action
     dbDomain.is_active = True
@@ -72,7 +74,9 @@ def enable_Domain(
     _log_object_event(
         ctx,
         dbOperationsEvent=dbOperationsEvent,
-        event_status_id=models.SslOperationsObjectEventStatus.from_string(event_status),
+        event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+            event_status
+        ),
         dbDomain=dbDomain,
     )
     return True
@@ -88,9 +92,9 @@ def ca_certificate_probe(ctx):
     """
 
     # create a bookkeeping object
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
-        ctx, models.SslOperationsEventType.from_string("ca_certificate__probe")
+        ctx, model_utils.SslOperationsEventType.from_string("ca_certificate__probe")
     )
 
     certs = letsencrypt_info.probe_letsencrypt_certificates()
@@ -144,7 +148,7 @@ def ca_certificate_probe(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def do__SslAcmeAccountKey_authenticate_acmeV1(
+def do__SslAcmeAccountKey_AcmeV1_authenticate(
     ctx, dbAcmeAccountKey, account_key_path=None
 ):
     """
@@ -164,7 +168,7 @@ def do__SslAcmeAccountKey_authenticate_acmeV1(
             account_key_path=account_key_path
         )
 
-        acmeLogger = AcmeLogger(ctx)
+        acmeLogger = AcmeLogger(ctx, dbAccountKey=dbAcmeAccountKey)
 
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
@@ -180,11 +184,13 @@ def do__SslAcmeAccountKey_authenticate_acmeV1(
         ctx.dbSession.flush(objects=[dbAcmeAccountKey])
 
         # log this
-        event_payload_dict = utils.new_event_payload_dict()
+        event_payload_dict = lib_utils.new_event_payload_dict()
         event_payload_dict["ssl_acme_account_key.id"] = dbAcmeAccountKey.id
         dbOperationsEvent = log__SslOperationsEvent(
             ctx,
-            models.SslOperationsEventType.from_string("acme_account_key__authenticate"),
+            model_utils.SslOperationsEventType.from_string(
+                "acme_account_key__authenticate"
+            ),
             event_payload_dict,
         )
         return result
@@ -194,7 +200,7 @@ def do__SslAcmeAccountKey_authenticate_acmeV1(
             _tmpfile.close()
 
 
-def do__CertificateRequest__AcmeAutomated__acmeV1(
+def do__CertificateRequest__AcmeV1_Automated(
     ctx,
     domain_names,
     dbAccountKey=None,
@@ -240,10 +246,12 @@ def do__CertificateRequest__AcmeAutomated__acmeV1(
         domain_names = dbServerCertificate__renewal_of.domains_as_list
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        models.SslOperationsEventType.from_string("certificate_request__do__automated"),
+        model_utils.SslOperationsEventType.from_string(
+            "certificate_request__do__automated"
+        ),
     )
 
     tmpfiles = []
@@ -332,7 +340,7 @@ def do__CertificateRequest__AcmeAutomated__acmeV1(
 
         # register the account / ensure that it is registered
         if not dbAccountKey.timestamp_last_authenticated:
-            do__SslAcmeAccountKey_authenticate_acmeV1(
+            do__SslAcmeAccountKey_AcmeV1_authenticate(
                 ctx, dbAccountKey, account_key_path=tmpfile_account.name
             )
 
@@ -350,6 +358,7 @@ def do__CertificateRequest__AcmeAutomated__acmeV1(
             header=header,
             acmeLogger=acmeLogger,
             acmeAccountKey=dbAccountKey,
+            dbCertificateRequest=dbCertificateRequest,
         )
 
         # sign it
@@ -366,6 +375,7 @@ def do__CertificateRequest__AcmeAutomated__acmeV1(
             header=header,
             acmeLogger=acmeLogger,
             acmeAccountKey=dbAccountKey,
+            dbCertificateRequest=dbCertificateRequest,
         )
         #
         # end acme-tiny
@@ -435,11 +445,11 @@ def do__CertificateRequest__AcmeAutomated__acmeV1(
             tf.close()
 
 
-def do__SslAcmeAccountKey_authenticate_acmeV2(
+def do__SslAcmeAccountKey_AcmeV2_authenticate(
     ctx, dbAcmeAccountKey, account_key_path=None,
 ):
     """
-    2020.01.28 - new; ported from `do__SslAcmeAccountKey_authenticate_acmeV1`
+    2020.01.28 - new; ported from `do__SslAcmeAccountKey_AcmeV1_authenticate`
     """
     _tmpfile = None
     try:
@@ -447,7 +457,7 @@ def do__SslAcmeAccountKey_authenticate_acmeV2(
             _tmpfile = cert_utils.new_pem_tempfile(dbAcmeAccountKey.key_pem)
             account_key_path = _tmpfile.name
 
-        acmeLogger = AcmeLogger(ctx)
+        acmeLogger = AcmeLogger(ctx, dbAccountKey=dbAcmeAccountKey)
 
         # create account, update contact details (if any), and set the global key identifier
         # result is either: `new-account` or `existing-account`
@@ -456,18 +466,18 @@ def do__SslAcmeAccountKey_authenticate_acmeV2(
             acmeLogger=acmeLogger,
             acmeAccountKey=dbAcmeAccountKey,
             account_key_path=account_key_path,
+            log__SslOperationsEvent=log__SslOperationsEvent,
         )
-        authenticatedUser.authenticate()
-        
-        
+        authenticatedUser.authenticate(ctx)
+
         return authenticatedUser
-        
+
     finally:
         if _tmpfile:
             _tmpfile.close()
 
 
-def do__CertificateRequest__AcmeAutomated__acmeV2(
+def do__CertificateRequest__AcmeV2_Automated(
     ctx,
     domain_names,
     dbAccountKey=None,
@@ -477,7 +487,7 @@ def do__CertificateRequest__AcmeAutomated__acmeV2(
     dbQueueRenewal__of=None,
 ):
     """
-    2020.01.28 - new; ported from `do__CertificateRequest__AcmeAutomated__acmeV1`
+    2020.01.28 - new; ported from `do__CertificateRequest__AcmeV1_Automated`
     """
     if not dbAccountKey:
         raise ValueError("Must submit `dbAccountKey`")
@@ -493,10 +503,12 @@ def do__CertificateRequest__AcmeAutomated__acmeV2(
         domain_names = dbServerCertificate__renewal_of.domains_as_list
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        models.SslOperationsEventType.from_string("certificate_request__do__automated"),
+        model_utils.SslOperationsEventType.from_string(
+            "certificate_request__do__automated"
+        ),
     )
 
     tmpfiles = []
@@ -581,85 +593,33 @@ def do__CertificateRequest__AcmeAutomated__acmeV2(
         if set(csr_domains) != set(domain_names):
             raise ValueError("Did not make a valid set")
 
-        accountkey_jwk, accountkey_thumbprint, alg = acme_v2.account_key__parse(
-            account_key_path=account_key_path
-        )
-
-        # parse account key to get public key
-
         # register the account / ensure that it is registered
-        account = None
-        acme_account_headers = None
-        
-        authenticatedUser = do__SslAcmeAccountKey_authenticate_acmeV2(
-            ctx,
-            dbAccountKey,
-            account_key_path=account_key_path,
-        )
-        
-        
-        
-        if (not dbAccountKey.timestamp_last_authenticated) or True:
-            account, acme_account_headers = do__SslAcmeAccountKey_authenticate_acmeV2(
-                ctx,
-                dbAccountKey,
-                account_key_path=account_key_path,
-                directory_payload=directory_payload,
-            )
-        if not acme_account_headers:
-            raise ValueError("xxx")
-
-        acmeLogger = AcmeLogger(
-            ctx, dbAccountKey=dbAccountKey, dbCertificateRequest=dbCertificateRequest
+        authenticatedUser = do__SslAcmeAccountKey_AcmeV2_authenticate(
+            ctx, dbAccountKey, account_key_path=account_key_path,
         )
 
-        # new order:
-        acme_order_object, acme_order_headers = acme_v2.acme_new_order(
-            acmeLogger=acmeLogger,
-            account_key_path=account_key_path,
-            acmeAccountKey=dbAccountKey,
-            acme_account_headers=acme_account_headers,
-            directory_payload=directory_payload,
-            accountkey_jwk=accountkey_jwk,
-            alg=alg,
+        acmeLogger = AcmeLogger(ctx, dbAccountKey=dbAccountKey)
+
+        acmeOrder = authenticatedUser.acme_new_order(
             csr_domains=csr_domains,
+            dbCertificateRequest=dbCertificateRequest,
+        )
+
+        handled = authenticatedUser.acme_handle_order_authorizations(
+            acmeOrder=acmeOrder,
+            handle_keyauth_challenge=process_keyauth_challenge,
+            handle_keyauth_cleanup=process_keyauth_cleanup,
+        )
+
+        # sign and download
+        (certificate_pem,
+         acmeLoggedEvent
+         ) = authenticatedUser.acme_finalize_order(
+            acmeOrder=acmeOrder,
+            csr_path=tmpfile_csr.name,
         )
 
         # verify the domains
-        acme_v2.acme_handle_order_authorizations(
-            acmeLogger=acmeLogger,
-            account_key_path=account_key_path,
-            acmeAccountKey=dbAccountKey,
-            acme_account_headers=acme_account_headers,
-            accountkey_thumbprint=accountkey_thumbprint,
-            directory_payload=directory_payload,
-            accountkey_jwk=accountkey_jwk,
-            alg=alg,
-            handle_keyauth_challenge=process_keyauth_challenge,
-            handle_keyauth_cleanup=process_keyauth_cleanup,
-            acme_order_object=acme_order_object,
-        )
-
-        # sign it
-        (
-            cert_pem,
-            chained_pem,
-            chain_url,
-            datetime_signed,
-            datetime_expires,
-            acmeLoggedEvent,
-        ) = acme_v2.acme_finalize_order(
-            acmeLogger=acmeLogger,
-            account_key_path=account_key_path,
-            acmeAccountKey=dbAccountKey,
-            acme_account_headers=acme_account_headers,
-            directory_payload=directory_payload,
-            accountkey_jwk=accountkey_jwk,
-            alg=alg,
-            csr_path=tmpfile_csr.name,
-            acme_order_object=acme_order_object,
-            acme_order_headers=acme_order_headers,
-        )
         #
         # end acme-tiny
         # ######################################################################
@@ -668,9 +628,15 @@ def do__CertificateRequest__AcmeAutomated__acmeV2(
         # this only happens on development during tests when we use a single cert
         # for all requests...
         # so we don't need to handle this or save it
-        tmpfile_signed_cert = cert_utils.new_pem_tempfile(cert_pem)
+        tmpfile_signed_cert = cert_utils.new_pem_tempfile(certificate_pem)
         tmpfiles.append(tmpfile_signed_cert)
         cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
+        
+        pdb.set_trace()
+        
+
+        raise ValueError("keep porting!")
+        
         if set(domain_names) != set(cert_domains):
             # if not acme_v2.TESTING_ENVIRONMENT:
             log.error("set(domain_names) != set(cert_domains)")
@@ -737,11 +703,13 @@ def operations_deactivate_expired(ctx):
     2016.06.04 - dbOperationsEvent compliant
     """
     # create an event first
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__SslOperationsEvent(
         ctx,
-        models.SslOperationsEventType.from_string("certificate__deactivate_expired"),
+        model_utils.SslOperationsEventType.from_string(
+            "certificate__deactivate_expired"
+        ),
         event_payload_dict,
     )
 
@@ -794,11 +762,11 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
         raise ValueError("MUST run `operations_update_recents` first")
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__SslOperationsEvent(
         ctx,
-        models.SslOperationsEventType.from_string("deactivate_duplicate"),
+        model_utils.SslOperationsEventType.from_string("deactivate_duplicate"),
         event_payload_dict,
     )
 
@@ -1043,7 +1011,8 @@ def operations_update_recents(ctx):
 
     # bookkeeping, doing this will mark the session as changed!
     dbOperationsEvent = log__SslOperationsEvent(
-        ctx, models.SslOperationsEventType.from_string("operations__update_recents")
+        ctx,
+        model_utils.SslOperationsEventType.from_string("operations__update_recents"),
     )
 
     # mark the session changed
@@ -1062,10 +1031,10 @@ def api_domains__enable(ctx, domain_names):
     """this is just a proxy around queue_domains__add"""
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        models.SslOperationsEventType.from_string("api_domains__enable"),
+        model_utils.SslOperationsEventType.from_string("api_domains__enable"),
         event_payload_dict,
     )
     results = lib.db.queues.queue_domains__add(ctx, domain_names)
@@ -1083,10 +1052,10 @@ def api_domains__disable(ctx, domain_names):
     results = {d: None for d in domain_names}
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        models.SslOperationsEventType.from_string("api_domains__disable"),
+        model_utils.SslOperationsEventType.from_string("api_domains__disable"),
         event_payload_dict,
     )
 
@@ -1153,10 +1122,12 @@ def api_domains__certificate_if_needed(
         2017: 'api_domains__certificate_if_needed__certificate_new_fail',
     """
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        models.SslOperationsEventType.from_string("api_domains__certificate_if_needed"),
+        model_utils.SslOperationsEventType.from_string(
+            "api_domains__certificate_if_needed"
+        ),
         event_payload_dict,
     )
 
@@ -1207,7 +1178,7 @@ def api_domains__certificate_if_needed(
 
                 _logger_args[
                     "event_status_id"
-                ] = models.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.SslOperationsObjectEventStatus.from_string(
                     "api_domains__certificate_if_needed__domain_activate"
                 )
                 _logger_args["dbDomain"] = _dbDomain
@@ -1221,7 +1192,7 @@ def api_domains__certificate_if_needed(
 
                 _logger_args[
                     "event_status_id"
-                ] = models.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.SslOperationsObjectEventStatus.from_string(
                     "api_domains__certificate_if_needed__domain_exists"
                 )
                 _logger_args["dbDomain"] = _dbDomain
@@ -1237,7 +1208,7 @@ def api_domains__certificate_if_needed(
             _result["ssl_domain.id"] = _dbDomain.id
             _logger_args[
                 "event_status_id"
-            ] = models.SslOperationsObjectEventStatus.from_string(
+            ] = model_utils.SslOperationsObjectEventStatus.from_string(
                 "api_domains__certificate_if_needed__domain_new"
             )
             _logger_args["dbDomain"] = _dbDomain
@@ -1258,13 +1229,13 @@ def api_domains__certificate_if_needed(
             _result["ssl_server_certificate.id"] = _dbServerCertificate.id
             _logger_args[
                 "event_status_id"
-            ] = models.SslOperationsObjectEventStatus.from_string(
+            ] = model_utils.SslOperationsObjectEventStatus.from_string(
                 "api_domains__certificate_if_needed__certificate_exists"
             )
             _logger_args["dbServerCertificate"] = _dbServerCertificate
         else:
             try:
-                _dbServerCertificate = do__CertificateRequest__AcmeAutomated__acmeV2(
+                _dbServerCertificate = do__CertificateRequest__AcmeV2_Automated(
                     ctx,
                     domain_names,
                     dbAccountKey=dbAccountKey,
@@ -1275,7 +1246,7 @@ def api_domains__certificate_if_needed(
 
                 _logger_args[
                     "event_status_id"
-                ] = models.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.SslOperationsObjectEventStatus.from_string(
                     "api_domains__certificate_if_needed__certificate_new_success"
                 )
                 _logger_args["dbServerCertificate"] = _dbServerCertificate
@@ -1286,7 +1257,7 @@ def api_domains__certificate_if_needed(
 
                 _logger_args[
                     "event_status_id"
-                ] = models.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.SslOperationsObjectEventStatus.from_string(
                     "api_domains__certificate_if_needed__certificate_new_fail"
                 )
                 _logger_args["dbServerCertificate"] = None
@@ -1333,10 +1304,10 @@ def upload__SslCaCertificateBundle__by_pem_text(ctx, bundle_data):
     2016.06.04 - dbOperationsEvent compliant
     """
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        models.SslOperationsEventType.from_string("ca_certificate__upload_bundle"),
+        model_utils.SslOperationsEventType.from_string("ca_certificate__upload_bundle"),
         event_payload_dict,
     )
     results = {}

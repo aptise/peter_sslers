@@ -9,6 +9,7 @@ from ... import lib  # from . import db?
 from .. import utils
 from ....lib import cert_utils
 from ....lib import utils as lib_utils
+from ....model import utils as model_utils
 
 # local
 from .logger import log__SslOperationsEvent
@@ -40,15 +41,15 @@ def create__SslCertificateRequest(
 
     _event_type_id = None
     if certificate_request_type_id == models.SslCertificateRequestType.ACME_FLOW:
-        _event_type_id = models.SslOperationsEventType.from_string(
+        _event_type_id = model_utils.SslOperationsEventType.from_string(
             "certificate_request__new__flow"
         )
     elif certificate_request_type_id == models.SslCertificateRequestType.ACME_AUTOMATED:
-        _event_type_id = models.SslOperationsEventType.from_string(
+        _event_type_id = model_utils.SslOperationsEventType.from_string(
             "certificate_request__new__automated"
         )
 
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx, _event_type_id)
 
     # if there is a csr_pem; extract the domains
@@ -137,7 +138,7 @@ def create__SslCertificateRequest(
         _log_object_event(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
-            event_status_id=models.SslOperationsObjectEventStatus.from_string(
+            event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                 "certificate_request__insert"
             ),
             dbCertificateRequest=dbCertificateRequest,
@@ -223,7 +224,7 @@ def create__SslCertificateRequest(
         _log_object_event(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
-            event_status_id=models.SslOperationsObjectEventStatus.from_string(
+            event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                 "certificate_request__insert"
             ),
             dbCertificateRequest=dbCertificateRequest,
@@ -312,9 +313,9 @@ def create__SslServerCertificate(
     ssl_ca_certificate_id__upchain = dbCACertificate.id
 
     # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict = lib_utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
-        ctx, models.SslOperationsEventType.from_string("certificate__insert")
+        ctx, model_utils.SslOperationsEventType.from_string("certificate__insert")
     )
 
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
@@ -385,7 +386,7 @@ def create__SslServerCertificate(
         _log_object_event(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
-            event_status_id=models.SslOperationsObjectEventStatus.from_string(
+            event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                 "certificate__insert"
             ),
             dbServerCertificate=dbServerCertificate,
@@ -446,7 +447,7 @@ def _create__SslQueueRenewal(ctx, serverCertificate):
     _log_object_event(
         ctx,
         dbOperationsEvent=ctx.dbOperationsEvent,
-        event_status_id=models.SslOperationsObjectEventStatus.from_string(
+        event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
             "queue_renewal__insert"
         ),
         dbQueueRenewal=dbQueueRenewal,
@@ -481,7 +482,7 @@ def _create__SslQueueRenewal_fqdns(ctx, ssl_unique_fqdn_set_id):
     _log_object_event(
         ctx,
         dbOperationsEvent=ctx.dbOperationsEvent,
-        event_status_id=models.SslOperationsObjectEventStatus.from_string(
+        event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
             "queue_renewal__insert"
         ),
         dbQueueRenewal=dbQueueRenewal,

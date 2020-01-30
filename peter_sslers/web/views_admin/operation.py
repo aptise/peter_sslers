@@ -16,6 +16,8 @@ from ..models import models
 from .. import lib
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
+from ...lib import utils as lib_utils
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -27,7 +29,9 @@ class ViewAdminOperations(Handler):
         event_type_id = None
         if event_type:
             try:
-                event_type_id = models.SslOperationsEventType.from_string(event_type)
+                event_type_id = model_utils.SslOperationsEventType.from_string(
+                    event_type
+                )
             except AttributeError:
                 event_type = None
         return (event_type, event_type_id)
@@ -38,7 +42,9 @@ class ViewAdminOperations(Handler):
         event_type = self.request.params.get("event_type", None)
         if event_type:
             try:
-                event_type_id = models.SslOperationsEventType.from_string(event_type)
+                event_type_id = model_utils.SslOperationsEventType.from_string(
+                    event_type
+                )
             except AttributeError:
                 event_type = None
                 event_type_id = None
@@ -165,7 +171,9 @@ class ViewAdminOperations(Handler):
         items_count = lib_db.get.get__SslOperationsEvent__count(
             self.request.api_context,
             event_type_ids=(
-                models.SslOperationsEventType.from_string("operations__redis_prime"),
+                model_utils.SslOperationsEventType.from_string(
+                    "operations__redis_prime"
+                ),
             ),
         )
         (pager, offset) = self._paginate(
@@ -177,7 +185,9 @@ class ViewAdminOperations(Handler):
         items_paged = lib_db.get.get__SslOperationsEvent__paginated(
             self.request.api_context,
             event_type_ids=(
-                models.SslOperationsEventType.from_string("operations__redis_prime"),
+                model_utils.SslOperationsEventType.from_string(
+                    "operations__redis_prime"
+                ),
             ),
             limit=_items_per_page,
             offset=offset,
@@ -205,8 +215,12 @@ class ViewAdminOperations(Handler):
 
         _items_per_page = 25
         _event_type_ids = (
-            models.SslOperationsEventType.from_string("operations__nginx_cache_expire"),
-            models.SslOperationsEventType.from_string("operations__nginx_cache_flush"),
+            model_utils.SslOperationsEventType.from_string(
+                "operations__nginx_cache_expire"
+            ),
+            model_utils.SslOperationsEventType.from_string(
+                "operations__nginx_cache_flush"
+            ),
         )
         items_count = lib_db.get.get__SslOperationsEvent__count(
             self.request.api_context, event_type_ids=_event_type_ids

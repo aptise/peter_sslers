@@ -24,6 +24,7 @@ from ..lib.forms import Form_QueueDomains_add
 from ..lib.handler import Handler, items_per_page
 from ...lib import utils as lib_utils
 from ...lib import errors
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -275,8 +276,10 @@ class ViewAdmin_Focus(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
-            event_type = models.SslOperationsEventType.from_string("queue_domain__mark")
-            event_payload_dict = lib.utils.new_event_payload_dict()
+            event_type = model_utils.SslOperationsEventType.from_string(
+                "queue_domain__mark"
+            )
+            event_payload_dict = lib_utils.new_event_payload_dict()
             event_payload_dict["ssl_queue_domain.id"] = dbQueueDomain.id
             event_payload_dict["action"] = formStash.results["action"]
 

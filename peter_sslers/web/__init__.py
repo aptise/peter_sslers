@@ -13,6 +13,7 @@ from ..lib import cert_utils
 from .lib.config_utils import set_bool_setting
 from .lib.config_utils import set_int_setting
 from .lib.utils import ApiContext
+from ..model import utils as model_utils
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -102,7 +103,7 @@ def main(global_config, **settings):
                 raise ValueError(
                     "`certificate_authority_endpoint` does not look like a URL"
                 )
-            models_models.AcmeAccountProvider.registry[0][
+            model_utils.AcmeAccountProvider.registry[0][
                 "endpoint"
             ] = ca_submitted_endpoint
 
@@ -115,7 +116,7 @@ def main(global_config, **settings):
                     raise ValueError(
                         "`certificate_authority_directory` does not look like a URL"
                     )
-                models_models.AcmeAccountProvider.registry[0][
+                model_utils.AcmeAccountProvider.registry[0][
                     "directory"
                 ] = ca_submitted_directory
 
@@ -126,12 +127,12 @@ def main(global_config, **settings):
             #    )
             if ca_submitted_protocol != "acme-v2":
                 raise ValueError("`ca_submitted_protocol` is not `acme-v2`")
-            models_models.AcmeAccountProvider.registry[0][
+            model_utils.AcmeAccountProvider.registry[0][
                 "protocol"
             ] = ca_submitted_protocol
 
         # register the selected endpoint
-        for (ca_id, ca_record) in models_models.AcmeAccountProvider.registry.items():
+        for (ca_id, ca_record) in model_utils.AcmeAccountProvider.registry.items():
             if ca_record["name"] == ca_submitted:
                 ca_record["is_default"] = True
                 ca_selected = ca_record

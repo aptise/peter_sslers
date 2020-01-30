@@ -12,6 +12,7 @@ import sqlalchemy
 # localapp
 from ..models import models
 from ..lib.handler import Handler
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -26,7 +27,7 @@ class ViewAdmin(Handler):
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
-        acmeProviders = models.AcmeAccountProvider.registry.values()
+        acmeProviders = model_utils.AcmeAccountProvider.registry.values()
         if wants_json:
             return {"AcmeProviders": acmeProviders}
         return {"project": "peter_sslers", "AcmeProviders": acmeProviders}

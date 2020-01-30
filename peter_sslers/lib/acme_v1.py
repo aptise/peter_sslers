@@ -176,6 +176,7 @@ def acme_verify_domains(
     header=None,
     acmeLogger=None,  # an instance of AcmeLogger
     acmeAccountKey=None,
+    dbCertificateRequest=None,
 ):
     """
     """
@@ -190,7 +191,7 @@ def acme_verify_domains(
         log.info("acme_v1 Verifying {0}...".format(domain))
 
         (sslAcmeEventLog_new_authz, sslAcmeChallengeLog) = acmeLogger.log_new_authz(
-            "v1", domain=domain
+            "v1", dbCertificateRequest, domain=domain
         )  # log this to the db
 
         # get new challenge
@@ -303,6 +304,7 @@ def acme_sign_certificate(
     header=None,
     acmeLogger=None,  # an instance of AcmeLogger
     acmeAccountKey=None,
+    dbCertificateRequest=None,
 ):
     # get the new certificate
     log.info("acme_v1 Signing certificate...")
@@ -316,7 +318,7 @@ def acme_sign_certificate(
     )
     csr_der, err = proc.communicate()
 
-    acmeLoggedEvent = acmeLogger.log_new_cert()  # log this to the db
+    acmeLoggedEvent = acmeLogger.log_new_cert('v1', dbCertificateRequest)  # log this to the db
     code, result, headers = _send_signed_request(
         ca_endpoint + "/acme/new-cert",
         {"resource": "new-cert", "csr": _b64(csr_der)},

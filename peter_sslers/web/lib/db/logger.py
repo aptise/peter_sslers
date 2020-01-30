@@ -9,16 +9,17 @@ import datetime
 # localapp
 from ...models import models
 from .. import utils
+from ....lib import utils as lib_utils
+from ....model import utils as model_utils
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 class AcmeLogger(object):
-    def __init__(self, ctx, dbAccountKey=None, dbCertificateRequest=None):
+    def __init__(self, ctx, dbAccountKey=None):
         self.ctx = ctx
         self.dbAccountKey = dbAccountKey
-        self.dbCertificateRequest = dbCertificateRequest
 
     def log_registration(self, version):
         """
@@ -29,9 +30,9 @@ class AcmeLogger(object):
             raise ValueError("invalid version: %s" % version)
 
         if version == "v1":
-            acme_event_id = models.AcmeEvent.from_string("v1|/acme/new-reg")
+            acme_event_id = model_utils.AcmeEvent.from_string("v1|/acme/new-reg")
         elif version == "v2":
-            acme_event_id = models.AcmeEvent.from_string("v2|newAccount")
+            acme_event_id = model_utils.AcmeEvent.from_string("v2|newAccount")
 
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
@@ -40,23 +41,25 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.flush()
         return sslAcmeEventLog
 
-    def log_newOrder(self, version):
+    def log_newOrder(self, version, dbCertificateRequest):
         """
         v2 New Order
         """
         if version != "v2":
             raise ValueError("invalid version: %s" % version)
 
-        acme_event_id = models.AcmeEvent.from_string("v2|newOrder")
+        acme_event_id = model_utils.AcmeEvent.from_string("v2|newOrder")
 
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         sslAcmeEventLog.acme_event_id = acme_event_id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
+        sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
+        sslAcmeEventLog.ssl_certificate_request_id = dbCertificateRequest.id
         self.ctx.dbSessionLogger.flush()
         return sslAcmeEventLog
 
-    def log_new_authorization(self, version, domain):
+    def log_new_authorization(self, version, dbCertificateRequest, domain):
         """
         Logs a new authorization and creates a challenge object
         """
@@ -65,11 +68,11 @@ class AcmeLogger(object):
 
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
+        sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-authorization"
         )
         sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
-        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
+        sslAcmeEventLog.ssl_certificate_request_id = dbCertificateRequest.id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 
@@ -82,7 +85,7 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.flush()
         return (sslAcmeEventLog, sslAcmeChallengeLog)
 
-    def log_new_authz(self, version, domain):
+    def log_new_authz(self, version, dbCertificateRequest, domain):
         """
         Logs a newauthz and creates a challenge object
         """
@@ -91,11 +94,11 @@ class AcmeLogger(object):
 
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
+        sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v1|/acme/new-authz"
         )
         sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
-        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
+        sslAcmeEventLog.ssl_certificate_request_id = dbCertificateRequest.id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 
@@ -108,29 +111,32 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.flush()
         return (sslAcmeEventLog, sslAcmeChallengeLog)
 
-    def log_new_cert(self):
+    def log_new_cert(self, dbCertificateRequest, version):
+        if version not in ("v1", "v2"):
+            raise ValueError("invalid version: %s" % version)
+
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
+        sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v1|/acme/new-cert"
         )
         sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
-        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
+        sslAcmeEventLog.ssl_certificate_request_id = dbCertificateRequest.id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
         return sslAcmeEventLog
 
-    def log_order_finalize(self, version):
+    def log_order_finalize(self, version, dbCertificateRequest):
         if version != "v2":
             raise ValueError("invalid version: %s" % version)
 
         sslAcmeEventLog = models.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
+        sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-order-finalize"
         )
         sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
-        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
+        sslAcmeEventLog.ssl_certificate_request_id = dbCertificateRequest.id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 
@@ -172,13 +178,13 @@ class AcmeLogger(object):
         Logs a challenge as error
         """
         if failtype in ("pretest-1", "pretest-2"):
-            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string(
+            sslAcmeChallengeLog.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "setup-prevalidation"
             )
             self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
             self.ctx.dbSessionLogger.flush()
         elif failtype in ("fail-1", "fail-2"):
-            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string(
+            sslAcmeChallengeLog.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "upstream-validation"
             )
             self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
@@ -206,7 +212,7 @@ def log__SslOperationsEvent(
     dbOperationsEvent_child_of = dbOperationsEvent_child_of or ctx.dbOperationsEvent
 
     if event_payload_dict is None:
-        event_payload_dict = utils.new_event_payload_dict()
+        event_payload_dict = lib_utils.new_event_payload_dict()
 
     # bookkeeping
     dbOperationsEvent = models.SslOperationsEvent()

@@ -24,6 +24,7 @@ from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
 from ..lib.handler import Handler, items_per_page
 from ...lib import utils as lib_utils
 from ...lib import errors
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -337,7 +338,7 @@ class ViewAdmin_New(Handler):
 
     def _new_AcmeAutomated__print(self):
         active_ca = lib.acme_v2.CERTIFICATE_AUTHORITY
-        providers = models.AcmeAccountProvider.registry.values()
+        providers = model_utils.AcmeAccountProvider.registry.values()
         return render_to_response(
             "/admin/certificate_request-new-AcmeAutomated.mako",
             {
@@ -394,7 +395,7 @@ class ViewAdmin_New(Handler):
             private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash)
 
             try:
-                dbLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeAutomated__acmeV2(
+                dbLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeV2_Automated(
                     self.request.api_context,
                     domain_names,
                     dbAccountKey=accountKeySelection.SslAcmeAccountKey,

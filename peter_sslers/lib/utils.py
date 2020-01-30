@@ -37,3 +37,10 @@ def domains_from_string(text):
 
 def md5_text(text):
     return hashlib.md5(text).hexdigest()
+
+
+# ------------------------------------------------------------------------------
+
+
+def new_event_payload_dict():
+    return {"v": 1}

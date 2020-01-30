@@ -23,6 +23,7 @@ from ..lib.forms import Form_API_Domain_certificate_if_needed
 from ..lib.handler import Handler, items_per_page
 from ...lib import errors
 from ...lib import utils as lib_utils
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -367,12 +368,12 @@ class ViewAdmin(Handler):
                     break
                 offset += limit
 
-        event_payload_dict = lib.utils.new_event_payload_dict()
+        event_payload_dict = lib_utils.new_event_payload_dict()
         event_payload_dict["prime_style"] = prime_style
         event_payload_dict["total_primed"] = total_primed
         dbEvent = lib_db.logger.log__SslOperationsEvent(
             self.request.api_context,
-            models.SslOperationsEventType.from_string("operations__redis_prime"),
+            model_utils.SslOperationsEventType.from_string("operations__redis_prime"),
             event_payload_dict,
         )
         if wants_json:

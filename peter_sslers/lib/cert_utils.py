@@ -34,8 +34,46 @@ from .. import lib
 openssl_path = "openssl"
 openssl_path_conf = "/etc/ssl/openssl.cnf"
 
+ACME_VERSION = 'v2'
+openssl_version = None
+_RE_openssl_version = re.compile("OpenSSL ((\d+\.\d+\.\d+)\w*) ", re.I)
+openssl_behavior = None  # 'a' or 'b'
+
+
 
 # ==============================================================================
+
+
+def check_openssl_version(replace=False):
+    global openssl_version
+    global openssl_behavior
+    if (openssl_version is None) or replace:
+        proc = subprocess.Popen(
+            [
+                openssl_path,
+                "version",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        version_text, err = proc.communicate()
+        if err:
+            raise errors.OpenSslError("could not check version")
+        # version_text will be something like "OpenSSL 1.0.2g  1 Mar 2016\n"
+        # version_text.strip().split(' ')[1] == '1.0.2g'
+        # but... regex!
+        m = _RE_openssl_version.search(version_text)
+        if not m:
+            raise ValueError("could not regex OpenSSL version")
+        # m.groups == ('1.0.2g', '1.0.2')
+        v = m.groups()[1]
+        v = v.split('.')
+        openssl_version = v
+        openssl_behavior = 'a'
+        # OpenSSL 1.1.1 doesn't need a tempfile for SANs
+        if (v[0] >= 1) and (v[1] >= 1) and (v[2] >= 1):
+            openssl_behavior = 'b'
+    return openssl_version
 
 
 def new_pem_tempfile(pem_data):
@@ -50,27 +88,70 @@ def new_pem_tempfile(pem_data):
 def new_csr_for_domain_names(
     domain_names, private_key_path=None, tmpfiles_tracker=None
 ):
+    if openssl_version is None:
+        check_openssl_version()
+
     max_domains_certificate = lib.letsencrypt_info.LIMITS["names/certificate"]["limit"]
+    
+    _generator = None
+    if ACME_VERSION == 'v1':
+        if len(domain_names) == 1:
+            _generator = 1
+        else:
+            _generator = 2
+    elif ACME_VERSION == 'v2':
+        _generator = 2
+    
+    if _generator == '1'
+        _csr_subject = "/CN=%s" % domain_names[0]
+
+    
+    
 
     _csr_subject = "/CN=%s" % domain_names[0]
     if len(domain_names) == 1:
-        proc = subprocess.Popen(
-            [
-                openssl_path,
-                "req",
-                "-new",
-                "-sha256",
-                "-key",
-                private_key_path,
-                "-subj",
-                _csr_subject,
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        csr_text, err = proc.communicate()
-        if err:
-            raise errors.OpenSslError_CsrGeneration("could not create a CSR")
+        if ACME_VERSION == 'v1':
+            proc = subprocess.Popen(
+                [
+                    openssl_path,
+                    "req",
+                    "-new",
+                    "-sha256",
+                    "-key",
+                    private_key_path,
+                    "-subj",
+                    _csr_subject,
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            csr_text, err = proc.communicate()
+            if err:
+                raise errors.OpenSslError_CsrGeneration("could not create a CSR")
+        else:
+            _csr_san = "[SAN]\nsubjectAltName=DNS:%s" % domain_names[0]
+
+            # store some data in a tempfile
+            tmpfile_csr_san = tempfile.NamedTemporaryFile()
+            tmpfile_csr_san.write(open(openssl_path_conf).read())
+            tmpfile_csr_san.write("\n\n")
+            tmpfile_csr_san.write(_csr_san)
+            tmpfile_csr_san.seek(0)
+            tmpfiles_tracker.append(tmpfile_csr_san)
+
+            # note that we use /bin/cat (!)
+            _command = (
+                """%s req -new -sha256 -key %s -subj "/" -reqexts SAN -config < /bin/cat %s"""
+                % (openssl_path, private_key_path, tmpfile_csr_san.name)
+            )
+            proc = subprocess.Popen(
+                _command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            csr_text, err = proc.communicate()
+            if err:
+                raise errors.OpenSslError_CsrGeneration("could not create a CSR")
+
+            csr_text = cleanup_pem_text(csr_text)
 
     elif len(domain_names) <= max_domains_certificate:
 

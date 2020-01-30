@@ -28,6 +28,7 @@ from .web.lib import db  # lib.db doesn't work
 
 from .lib import cert_utils  # for override
 from .lib import utils as lib_utils
+from .model import utils as model_utils
 
 
 # ==============================================================================
@@ -77,7 +78,7 @@ DISABLE_UNWRITTEN_TESTS = True
 
 
 DEFAULT_acme_account_provider_id = None
-for pvd in models.models.AcmeAccountProvider.registry.values():
+for pvd in model_utils.AcmeAccountProvider.registry.values():
     if pvd["name"] == DEFAULT_acme_account_provider:
         DEFAULT_acme_account_provider_id = pvd["id"]
         break
@@ -409,7 +410,7 @@ class AppTest(AppTestCore):
                 # AcmeEventLog
                 sslAcmeEventLog = models.models.SslAcmeEventLog()
                 sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-                sslAcmeEventLog.acme_event_id = models.models.AcmeEvent.from_string(
+                sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
                     "v1|/acme/new-reg"
                 )
                 self.ctx.dbSession.add(sslAcmeEventLog)
@@ -435,10 +436,10 @@ class AppTest(AppTestCore):
                 # renew a csr
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
-                event_type = models.models.SslOperationsEventType.from_string(
+                event_type = model_utils.SslOperationsEventType.from_string(
                     "queue_renewal__update"
                 )
-                event_payload_dict = lib.utils.new_event_payload_dict()
+                event_payload_dict = lib_utils.new_event_payload_dict()
                 dbOperationsEvent = lib.db.logger.log__SslOperationsEvent(
                     self.ctx, event_type, event_payload_dict
                 )

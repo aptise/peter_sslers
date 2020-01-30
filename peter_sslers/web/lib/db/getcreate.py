@@ -12,6 +12,7 @@ from ... import lib
 from .. import utils
 from ....lib import cert_utils
 from ....lib import utils as lib_utils
+from ....model import utils as model_utils
 
 # local
 from .get import get__SslCaCertificate__by_pem_text
@@ -84,10 +85,12 @@ def getcreate__SslAcmeAccountKey(
             finally:
                 _tmpfile.close()
 
-            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict = lib_utils.new_event_payload_dict()
             dbOperationsEvent = log__SslOperationsEvent(
                 ctx,
-                models.SslOperationsEventType.from_string("acme_account_key__insert"),
+                model_utils.SslOperationsEventType.from_string(
+                    "acme_account_key__insert"
+                ),
             )
 
             dbAcmeAccountKey = models.SslAcmeAccountKey()
@@ -108,7 +111,7 @@ def getcreate__SslAcmeAccountKey(
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=models.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                     "acme_account_key__insert"
                 ),
                 dbAcmeAccountKey=dbAcmeAccountKey,
@@ -132,7 +135,7 @@ def getcreate__SslAcmeAccountKey(
         # derive the api server
         try:
             account_uri = le_reg_json["uri"]
-            for acme_provider in models.AcmeAccountProvider.registry.values():
+            for acme_provider in model_utils.AcmeAccountProvider.registry.values():
                 if not acme_provider["endpoint"]:
                     # the custom might not be enabled...
                     continue
@@ -171,10 +174,12 @@ def getcreate__SslAcmeAccountKey(
             finally:
                 _tmpfile.close()
 
-            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict = lib_utils.new_event_payload_dict()
             dbOperationsEvent = log__SslOperationsEvent(
                 ctx,
-                models.SslOperationsEventType.from_string("acme_account_key__insert"),
+                model_utils.SslOperationsEventType.from_string(
+                    "acme_account_key__insert"
+                ),
             )
 
             dbAcmeAccountKey = models.SslAcmeAccountKey()
@@ -197,7 +202,7 @@ def getcreate__SslAcmeAccountKey(
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=models.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                     "acme_account_key__insert"
                 ),
                 dbAcmeAccountKey=dbAcmeAccountKey,
@@ -238,9 +243,12 @@ def getcreate__SslCaCertificate__by_pem_text(
             )
 
             # bookkeeping
-            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict = lib_utils.new_event_payload_dict()
             dbOperationsEvent = log__SslOperationsEvent(
-                ctx, models.SslOperationsEventType.from_string("ca_certificate__insert")
+                ctx,
+                model_utils.SslOperationsEventType.from_string(
+                    "ca_certificate__insert"
+                ),
             )
 
             dbCACertificate = models.SslCaCertificate()
@@ -289,7 +297,7 @@ def getcreate__SslCaCertificate__by_pem_text(
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=models.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                     "ca_certificate__insert"
                 ),
                 dbCACertificate=dbCACertificate,
@@ -354,9 +362,9 @@ def getcreate__SslDomain__by_domainName(ctx, domain_name, is_from_queue_domain=N
     is_created = False
     dbDomain = get__SslDomain__by_name(ctx, domain_name, preload=False)
     if not dbDomain:
-        event_payload_dict = utils.new_event_payload_dict()
+        event_payload_dict = lib_utils.new_event_payload_dict()
         dbOperationsEvent = log__SslOperationsEvent(
-            ctx, models.SslOperationsEventType.from_string("domain__insert")
+            ctx, model_utils.SslOperationsEventType.from_string("domain__insert")
         )
         dbDomain = models.SslDomain()
         dbDomain.domain_name = domain_name
@@ -374,7 +382,7 @@ def getcreate__SslDomain__by_domainName(ctx, domain_name, is_from_queue_domain=N
         _log_object_event(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
-            event_status_id=models.SslOperationsObjectEventStatus.from_string(
+            event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                 "domain__insert"
             ),
             dbDomain=dbDomain,
@@ -418,12 +426,12 @@ def getcreate__SslPrivateKey__by_pem_text(ctx, key_pem, is_autogenerated_key=Non
         finally:
             _tmpfile.close()
 
-        event_payload_dict = utils.new_event_payload_dict()
-        _event_type_id = models.SslOperationsEventType.from_string(
+        event_payload_dict = lib_utils.new_event_payload_dict()
+        _event_type_id = model_utils.SslOperationsEventType.from_string(
             "private_key__insert"
         )
         if is_autogenerated_key:
-            _event_type_id = models.SslOperationsEventType.from_string(
+            _event_type_id = model_utils.SslOperationsEventType.from_string(
                 "private_key__insert_autogenerated"
             )
         dbOperationsEvent = log__SslOperationsEvent(ctx, _event_type_id)
@@ -446,7 +454,7 @@ def getcreate__SslPrivateKey__by_pem_text(ctx, key_pem, is_autogenerated_key=Non
         _log_object_event(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
-            event_status_id=models.SslOperationsObjectEventStatus.from_string(
+            event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                 "private_key__insert"
             ),
             dbPrivateKey=dbPrivateKey,
@@ -523,9 +531,10 @@ def getcreate__SslServerCertificate__by_pem_text(
             cert_utils.validate_cert__pem_filepath(_tmpfileCert.name)
 
             # bookkeeping
-            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict = lib_utils.new_event_payload_dict()
             dbOperationsEvent = log__SslOperationsEvent(
-                ctx, models.SslOperationsEventType.from_string("certificate__insert")
+                ctx,
+                model_utils.SslOperationsEventType.from_string("certificate__insert"),
             )
 
             dbServerCertificate = models.SslServerCertificate()
@@ -622,7 +631,7 @@ def getcreate__SslServerCertificate__by_pem_text(
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=models.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                     "certificate__insert"
                 ),
                 dbServerCertificate=dbServerCertificate,
@@ -658,9 +667,9 @@ def getcreate__SslUniqueFQDNSet__by_domainObjects(ctx, domainObjects):
     )
 
     if not dbUniqueFQDNSet:
-        event_payload_dict = utils.new_event_payload_dict()
+        event_payload_dict = lib_utils.new_event_payload_dict()
         dbOperationsEvent = log__SslOperationsEvent(
-            ctx, models.SslOperationsEventType.from_string("unqiue_fqdn__insert")
+            ctx, model_utils.SslOperationsEventType.from_string("unqiue_fqdn__insert")
         )
 
         dbUniqueFQDNSet = models.SslUniqueFQDNSet()
@@ -685,7 +694,7 @@ def getcreate__SslUniqueFQDNSet__by_domainObjects(ctx, domainObjects):
         _log_object_event(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
-            event_status_id=models.SslOperationsObjectEventStatus.from_string(
+            event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
                 "unqiue_fqdn__insert"
             ),
             dbUniqueFQDNSet=dbUniqueFQDNSet,

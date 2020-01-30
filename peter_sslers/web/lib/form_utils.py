@@ -1,5 +1,6 @@
 from . import db as lib_db
 from ..models import models
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -78,7 +79,7 @@ class AccountKeyUploadParser(object):
 
             if (
                 acme_account_provider_id
-                not in models.AcmeAccountProvider.registry.keys()
+                not in model_utils.AcmeAccountProvider.registry.keys()
             ):
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(

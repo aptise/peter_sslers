@@ -20,6 +20,8 @@ from ..lib import text as lib_text
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_search
 from ..lib.handler import Handler, items_per_page
+from ...lib import utils as lib_utils
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -441,8 +443,8 @@ class ViewAdmin_Focus(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
-            event_type = models.SslOperationsEventType.from_string("domain__mark")
-            event_payload_dict = lib.utils.new_event_payload_dict()
+            event_type = model_utils.SslOperationsEventType.from_string("domain__mark")
+            event_payload_dict = lib_utils.new_event_payload_dict()
             event_payload_dict["domain_id"] = dbDomain.id
             event_payload_dict["action"] = action
             event_status = False
