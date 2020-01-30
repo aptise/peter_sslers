@@ -157,6 +157,7 @@ def do__SslAcmeAccountKey_AcmeV1_authenticate(
     Authenticates the AccountKey against the LetsEncrypt ACME servers
     2016.06.04 - dbOperationsEvent compliant
     """
+    raise ValueError("ACME v1 is no longer supported")
     from ....lib import acme_v1
 
     _tmpfile = None
@@ -232,6 +233,7 @@ def do__CertificateRequest__AcmeV1_Automated(
     /usr/local/opt/openssl/bin/openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <
 
     """
+    raise ValueError("ACME v1 is no longer supported")
     from ....lib import acme_v1
 
     if not dbAccountKey:
