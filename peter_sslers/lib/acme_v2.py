@@ -499,12 +499,14 @@ class AuthenticatedUser(object):
         handle_keyauth_cleanup=None,  # callable; expects (domain, token, keyauthorization)
     ):
         log.info("acme_v2 acme_handle_order_authorizations...")
-        
-        pdb.set_trace()
-
+       
+        _order_status = acmeOrder.api_object["status"]
+        if _order_status != "pending":
+            raise ValueError("unsure how to handle this status: `%s`" % _order_status)
+            
         # verify each domain
         for authorization_url in acmeOrder.api_object["authorizations"]:
-
+        
             # in v1, we know the domain before the authorization request
             # in v2, we hit an order's authorization url to get the domain
             (authorization_response, _, _) = self._send_signed_request(
@@ -512,6 +514,67 @@ class AuthenticatedUser(object):
             )
             domain = authorization_response["identifier"]["value"]
             log.info("acme_v2 Verifying {0}...".format(domain))
+            
+            """
+            https://tools.ietf.org/html/rfc8555#section-7.1.4
+
+                status (required, string):  The status of this authorization.
+                    Possible values are "pending", "valid", "invalid", "deactivated",
+                    "expired", and "revoked".  See Section 7.1.6.
+
+            https://tools.ietf.org/html/rfc8555#page-31
+
+               Authorization objects are created in the "pending" state.  If one of
+               the challenges listed in the authorization transitions to the "valid"
+               state, then the authorization also changes to the "valid" state.  If
+               the client attempts to fulfill a challenge and fails, or if there is
+               an error while the authorization is still pending, then the
+               authorization transitions to the "invalid" state.  Once the
+               authorization is in the "valid" state, it can expire ("expired"), be
+               deactivated by the client ("deactivated", see Section 7.5.2), or
+               revoked by the server ("revoked").
+
+            Therefore:
+
+                "pending"
+                    newly created
+                "valid"
+                    one or more challenges is valid
+                "invalid"
+                    a challenge failed
+                "deactivated"
+                    deactivated by the client
+                "expired"
+                    a valid challenge has expired
+                "revoked"
+                    revoked by the server
+            """
+            _authorization_status = authorization_response["status"]
+            _todo_complete_challenge = None
+            if _authorization_status == 'pending':
+                # we need to run the authorization
+                _todo_complete_challenge = True
+            elif _authorization_status == 'valid':
+                # noting to do, one or more challenges is valid
+                _todo_complete_challenge = False
+            elif _authorization_status == "invalid":
+                # this failed once, we need to auth again?
+                _todo_complete_challenge = True
+            elif _authorization_status == "deactivated":
+                # this has been removed from the order?
+                _todo_complete_challenge = False
+            elif _authorization_status == "expired":
+                # this passed once, BUT we need to auth again
+                _todo_complete_challenge = True
+            elif _authorization_status == "expired":
+                # this failed once, we need to auth again?
+                _todo_complete_challenge = True
+            else:
+                raise ValueError("unexpected authorization status: `%s`" % _authorization_status)
+            
+            if not _todo_complete_challenge:
+                # short-circuit out of completing the challenge
+                continue
 
             (
                 sslAcmeEventLog_new_authorization,
@@ -521,94 +584,145 @@ class AuthenticatedUser(object):
             )  # log this to the db
 
             # find the http-01 challenge and write the challenge file
-            challenge = [
-                c
-                for c in authorization_response["challenges"]
-                if c["type"] == "http-01"
-            ][0]
-            token = re.sub(r"[^A-Za-z0-9_\-]", "_", challenge["token"])
-            keyauthorization = "{0}.{1}".format(token, self.accountkey_thumbprint)
-
-            # update the challenge
-            sslAcmeChallengeLog.set__challenge("http-01", keyauthorization)
-
-            # update the db; this should be integrated with the above
-            wellknown_path = handle_keyauth_challenge(domain, token, keyauthorization)
-            wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
-                domain, token
-            )
-
-            # check that the file is in place
             try:
-                if TESTING_ENVIRONMENT:
-                    log.debug(
-                        "TESTING_ENVIRONMENT, not ensuring the challenge is readable"
-                    )
-                else:
-                    try:
-                        resp = urlopen(wellknown_url)
-                        resp_data = resp.read().decode("utf8").strip()
-                        assert resp_data == keyauthorization
-                    except (IOError, AssertionError):
-                        handle_keyauth_cleanup(domain, token, keyauthorization)
-                        self.acmeLogger.log_challenge_error(
-                            sslAcmeChallengeLog, "pretest-1"
+                challenge = [
+                    c
+                    for c in authorization_response["challenges"]
+                    if c["type"] == "http-01"
+                ][0]
+            except Exception as exc:
+                raise ValueError("could not find a challenge")
+
+            """
+            https://tools.ietf.org/html/rfc8555#section-8
+            
+                status (required, string):  The status of this challenge.  Possible
+                   values are "pending", "processing", "valid", and "invalid" (see
+                   Section 7.1.6).
+            
+            https://tools.ietf.org/html/rfc8555#section-7.1.6
+
+                Challenge objects are created in the "pending" state.  They
+                transition to the "processing" state when the client responds to the
+                challenge (see Section 7.5.1) and the server begins attempting to
+                validate that the client has completed the challenge.  Note that
+                within the "processing" state, the server may attempt to validate the
+                challenge multiple times (see Section 8.2).  Likewise, client
+                requests for retries do not cause a state change.  If validation is
+                successful, the challenge moves to the "valid" state; if there is an
+                error, the challenge moves to the "invalid" state.
+
+            Therefore:
+            
+                "pending"
+                    newly created
+                "processing"
+                    the client has responded to the challenge
+                "valid"
+                    the ACME server has validated the challenge
+                "invalid"
+                    the ACME server encountered an error when validating
+            """
+            _challenge_status = challenge["status"]
+            _todo_complete_challenge = None
+            
+            if _challenge_status == "pending":
+                _todo_complete_challenge = True
+            elif _challenge_status == "processing":
+                # we may need to trigger again?
+                _todo_complete_challenge = True
+            elif _challenge_status == "valid":
+                # already completed
+                _todo_complete_challenge = False
+            elif _challenge_status == "invalid":
+                # we may need to trigger again?
+                _todo_complete_challenge = True
+            else:
+                raise ValueError("unexpected challenge status: `%s`" % _challenge_status)
+
+            if _todo_complete_challenge:
+                token = re.sub(r"[^A-Za-z0-9_\-]", "_", challenge["token"])
+                keyauthorization = "{0}.{1}".format(token, self.accountkey_thumbprint)
+
+                # update the challenge
+                sslAcmeChallengeLog.set__challenge("http-01", keyauthorization)
+
+                # update the db; this should be integrated with the above
+                wellknown_path = handle_keyauth_challenge(domain, token, keyauthorization)
+                wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
+                    domain, token
+                )
+
+                # check that the file is in place
+                try:
+                    if TESTING_ENVIRONMENT:
+                        log.debug(
+                            "TESTING_ENVIRONMENT, not ensuring the challenge is readable"
                         )
-                        raise errors.DomainVerificationError(
-                            "Wrote keyauth challenge, but couldn't download {0}".format(
-                                wellknown_url
+                    else:
+                        try:
+                            resp = urlopen(wellknown_url)
+                            resp_data = resp.read().decode("utf8").strip()
+                            assert resp_data == keyauthorization
+                        except (IOError, AssertionError):
+                            handle_keyauth_cleanup(domain, token, keyauthorization)
+                            self.acmeLogger.log_challenge_error(
+                                sslAcmeChallengeLog, "pretest-1"
                             )
-                        )
-                    except ssl.CertificateError as exc:
-                        self.acmeLogger.log_challenge_error(
-                            sslAcmeChallengeLog, "pretest-2"
-                        )
-                        if exc.message.startswith("hostname") and (
-                            "doesn't match" in exc.message
-                        ):
                             raise errors.DomainVerificationError(
-                                "Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(
-                                    wellknown_url, exc.message
+                                "Wrote keyauth challenge, but couldn't download {0}".format(
+                                    wellknown_url
                                 )
                             )
-                        raise
-            except (AssertionError, ValueError) as e:
-                raise ValueError(
-                    "Wrote file to {0}, but couldn't download {1}: {2}".format(
-                        wellknown_path, wellknown_url, e
+                        except ssl.CertificateError as exc:
+                            self.acmeLogger.log_challenge_error(
+                                sslAcmeChallengeLog, "pretest-2"
+                            )
+                            if exc.message.startswith("hostname") and (
+                                "doesn't match" in exc.message
+                            ):
+                                raise errors.DomainVerificationError(
+                                    "Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(
+                                        wellknown_url, exc.message
+                                    )
+                                )
+                            raise
+                except (AssertionError, ValueError) as e:
+                    raise ValueError(
+                        "Wrote file to {0}, but couldn't download {1}: {2}".format(
+                            wellknown_path, wellknown_url, e
+                        )
                     )
-                )
 
-            # note the challenge
-            self.acmeLogger.log_challenge_trigger(sslAcmeChallengeLog)
+                # note the challenge
+                self.acmeLogger.log_challenge_trigger(sslAcmeChallengeLog)
 
-            # if the challenge is already valid, we don't need to tell the server we're ready
-            if challenge["status"] != "valid":
-                challenge_payload = {}
+                # if we had a 'valid' challenge, the payload would be `None`
+                # to trigger a GET-as-POST functionality
                 (challenge_response, _, _) = self._send_signed_request(
-                    challenge["url"], payload=challenge_payload,
+                    challenge["url"], payload={},
                 )
 
-            # todo - would an accepted challenge require this?
-            log.info("checking domain {0}".format(domain))
-            authorization_response = self._poll_until_not(
-                authorization_url,
-                ["pending"],
-                "checking challenge status for {0}".format(domain),
-            )
-            if authorization_response["status"] == "valid":
-                log.info("acme_v2 {0} verified!".format(domain))
-                handle_keyauth_cleanup(domain, token, keyauthorization)
-            elif authorization_response["status"] != "valid":
-                self.acmeLogger.log_challenge_error(sslAcmeChallengeLog, "fail-2")
-                raise errors.DomainVerificationError(
-                    "{0} challenge did not pass: {1}".format(
-                        domain, authorization_response
+                # todo - would an accepted challenge require this?
+                log.info("checking domain {0}".format(domain))
+                authorization_response = self._poll_until_not(
+                    authorization_url,
+                    ["pending"],
+                    "checking challenge status for {0}".format(domain),
+                )
+                if authorization_response["status"] == "valid":
+                    log.info("acme_v2 {0} verified!".format(domain))
+                    handle_keyauth_cleanup(domain, token, keyauthorization)
+                elif authorization_response["status"] != "valid":
+                    self.acmeLogger.log_challenge_error(sslAcmeChallengeLog, "fail-2")
+                    raise errors.DomainVerificationError(
+                        "{0} challenge did not pass: {1}".format(
+                            domain, authorization_response
+                        )
                     )
-                )
 
-            # log this
-            self.acmeLogger.log_challenge_pass(sslAcmeChallengeLog)
+                # log this
+                self.acmeLogger.log_challenge_pass(sslAcmeChallengeLog)
 
         # no more domains!
         return True

@@ -608,16 +608,72 @@ def do__CertificateRequest__AcmeV2_Automated(
             csr_domains=csr_domains, dbCertificateRequest=dbCertificateRequest,
         )
 
-        handled = authenticatedUser.acme_handle_order_authorizations(
-            acmeOrder=acmeOrder,
-            handle_keyauth_challenge=process_keyauth_challenge,
-            handle_keyauth_cleanup=process_keyauth_cleanup,
-        )
 
-        # sign and download
-        (fullchain_pem, acmeLoggedEvent) = authenticatedUser.acme_finalize_order(
-            acmeOrder=acmeOrder, csr_path=tmpfile_csr.name,
-        )
+        """ 
+            # https://tools.ietf.org/html/rfc8555#section-7.1.3
+
+            status (required, string):
+                The status of this order.  
+                Possible values are" "pending", "ready", "processing", "valid", and "invalid".  See Section 7.1.6.
+
+            # https://tools.ietf.org/html/rfc8555#page-48
+
+               o  "invalid": The certificate will not be issued.  Consider this
+                  order process abandoned.
+
+               o  "pending": The server does not believe that the client has
+                  fulfilled the requirements.  Check the "authorizations" array for
+                  entries that are still pending.
+
+               o  "ready": The server agrees that the requirements have been
+                  fulfilled, and is awaiting finalization.  Submit a finalization
+                  request.
+
+               o  "processing": The certificate is being issued.  Send a POST-as-GET
+                  request after the time given in the Retry-After header field of
+                  the response, if any.
+
+               o  "valid": The server has issued the certificate and provisioned its
+                  URL to the "certificate" field of the order.  Download the
+                  certificate.
+        """
+        _todo_finalize_order = None
+        _order_status = acmeOrder.api_object["status"]
+        if _order_status == "pending":
+            _handled = authenticatedUser.acme_handle_order_authorizations(
+                acmeOrder=acmeOrder,
+                handle_keyauth_challenge=process_keyauth_challenge,
+                handle_keyauth_cleanup=process_keyauth_cleanup,
+            )
+            if not _handled:
+                raise ValueError("Order Authorizations failed")
+            _todo_finalize_order = True
+        else:
+            if _order_status == "invalid":
+                # order abandoned
+                raise ValueError("Order Abandoned")
+            elif _order_status == "ready":
+                # requirements/challenges fulfilled
+                _todo_finalize_order = True
+            elif _order_status == "processing":
+                # The certificate is being issued.
+                # Send a POST-as-GET request after the time given in the Retry-After header field of the response, if any.
+                # TODO: Post-as-GET this semi-completed order
+                raise ValueError("todo: download")
+            elif _order_status == "valid":
+                # The server has issued the certificate and provisioned its URL to the "certificate" field of the order
+                # TODO: download the url of this order
+                raise ValueError("todo: download")
+            else:
+                raise ValueError("unsure how to handle this status: `%s`" % _order_status)
+
+        if _todo_finalize_order:
+            # sign and download
+            (fullchain_pem, acmeLoggedEvent) = authenticatedUser.acme_finalize_order(
+                acmeOrder=acmeOrder, csr_path=tmpfile_csr.name,
+            )
+        else:
+            pdb.set_trace()
 
         # verify the domains
         #

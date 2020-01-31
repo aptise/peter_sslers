@@ -243,6 +243,30 @@ class UnitTestOpenSSL(AppTestCore):
             assert _computed_md5 == _expected_md5
 
 
+class UnitTestCSR(AppTestCore):
+    """python -m unittest peter_sslers.tests.UnitTestCSR"""
+    
+    def test_AcmeV2_Automated(self):
+        """
+        test some flows that trigger different challenge/auth scenarios
+        """
+        raise ValueError("test this")
+        ctx = ''
+        domain_names = TEST_FILES["CertificateRequests"]["1"]["domains"]
+        dbAccountKey=None,
+        dbPrivateKey=None,
+        private_key_pem=None,
+        result = lib.db.actions.do__CertificateRequest__AcmeV2_Automated(
+            ctx,
+            domain_names,
+            dbAccountKey=None,
+            dbPrivateKey=None,
+            private_key_pem=None,
+            dbServerCertificate__renewal_of=None,
+            dbQueueRenewal__of=None,
+        )
+
+
 class AppTest(AppTestCore):
 
     _ctx = None
