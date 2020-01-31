@@ -22,12 +22,14 @@ import re
 
 # local
 from .web import main
-from .web import models
 from .web import lib
 from .web.lib import db  # lib.db doesn't work
 
 from .lib import cert_utils  # for override
 from .lib import utils as lib_utils
+
+from .model import meta as model_meta
+from .model import objects as model_objects
 from .model import utils as model_utils
 
 
@@ -254,9 +256,9 @@ class AppTest(AppTestCore):
             print("INITIALIZING DB")
             engine = self.testapp.app.registry["dbSession_factory"]().bind
 
-            models.meta.Base.metadata.drop_all(engine)
+            model_meta.Base.metadata.drop_all(engine)
             engine.execute("VACUUM")
-            models.meta.Base.metadata.create_all(engine)
+            model_meta.Base.metadata.create_all(engine)
 
             try:
                 """
@@ -401,14 +403,14 @@ class AppTest(AppTestCore):
                 ) = db.getcreate.getcreate__SslCertificateRequest__by_pem_text(
                     self.ctx,
                     csr_pem,
-                    certificate_request_type_id=models.SslCertificateRequestType.ACME_FLOW,
+                    certificate_request_type_id=model_objects.SslCertificateRequestType.ACME_FLOW,
                     dbAccountKey=_key_account1,
                     dbPrivateKey=_key_private1,
                 )
                 self.ctx.dbSession.commit()
 
                 # AcmeEventLog
-                sslAcmeEventLog = models.models.SslAcmeEventLog()
+                sslAcmeEventLog = model_objects.SslAcmeEventLog()
                 sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
                 sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
                     "v1|/acme/new-reg"
@@ -418,7 +420,7 @@ class AppTest(AppTestCore):
                 self.ctx.dbSession.commit()
 
                 # AcmeChallengeLog
-                sslAcmeChallengeLog = models.models.SslAcmeChallengeLog()
+                sslAcmeChallengeLog = model_objects.SslAcmeChallengeLog()
                 sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
                 sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
                 sslAcmeChallengeLog.domain = "example.com"
@@ -519,7 +521,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
 
     def _get_item(self):
         # grab an event
-        focus_item = self.ctx.dbSession.query(models.models.SslAcmeEventLog).first()
+        focus_item = self.ctx.dbSession.query(model_objects.SslAcmeEventLog).first()
         return focus_item
 
     def test_list(self):
@@ -543,7 +545,7 @@ class FunctionalTests_AcmeChallengeLog(AppTest):
 
     def _get_item(self):
         # grab a event
-        focus_item = self.ctx.dbSession.query(models.models.SslAcmeChallengeLog).first()
+        focus_item = self.ctx.dbSession.query(model_objects.SslAcmeChallengeLog).first()
         return focus_item
 
     def test_list(self):
@@ -562,7 +564,9 @@ class FunctionalTests_AcmeChallengeLog(AppTest):
         )
 
     def test_filter(self):
-        dbAcmeAccountKey = self.ctx.dbSession.query(models.SslAcmeAccountKey).first()
+        dbAcmeAccountKey = self.ctx.dbSession.query(
+            model_objects.SslAcmeAccountKey
+        ).first()
         res = self.testapp.get(
             "/.well-known/admin/acme-challenge-logs/filtered", status=302
         )
@@ -594,9 +598,9 @@ class FunctionalTests_AccountKeys(AppTest):
     def _get_item(self):
         # grab a Key
         focus_item = (
-            self.ctx.dbSession.query(models.SslAcmeAccountKey)
-            .filter(models.SslAcmeAccountKey.is_active.op("IS")(True))
-            .order_by(models.SslAcmeAccountKey.id.asc())
+            self.ctx.dbSession.query(model_objects.SslAcmeAccountKey)
+            .filter(model_objects.SslAcmeAccountKey.is_active.op("IS")(True))
+            .order_by(model_objects.SslAcmeAccountKey.id.asc())
             .first()
         )
         return focus_item
@@ -920,9 +924,9 @@ class FunctionalTests_Certificate(AppTest):
     def _get_item(self):
         # grab a certificate
         focus_item = (
-            self.ctx.dbSession.query(models.SslServerCertificate)
-            .filter(models.SslServerCertificate.is_active.op("IS")(True))
-            .order_by(models.SslServerCertificate.id.asc())
+            self.ctx.dbSession.query(model_objects.SslServerCertificate)
+            .filter(model_objects.SslServerCertificate.is_active.op("IS")(True))
+            .order_by(model_objects.SslServerCertificate.id.asc())
             .first()
         )
         return focus_item
@@ -1156,9 +1160,9 @@ class FunctionalTests_CertificateRequest(AppTest):
     def _get_item(self):
         # grab a certificate
         focus_item = (
-            self.ctx.dbSession.query(models.SslCertificateRequest)
-            .filter(models.SslCertificateRequest.is_active.op("IS")(True))
-            .order_by(models.SslCertificateRequest.id.asc())
+            self.ctx.dbSession.query(model_objects.SslCertificateRequest)
+            .filter(model_objects.SslCertificateRequest.is_active.op("IS")(True))
+            .order_by(model_objects.SslCertificateRequest.id.asc())
             .first()
         )
         return focus_item
@@ -1299,9 +1303,9 @@ class FunctionalTests_Domain(AppTest):
     def _get_item(self):
         # grab a certificate
         focus_item = (
-            self.ctx.dbSession.query(models.SslDomain)
-            .filter(models.SslDomain.is_active.op("IS")(True))
-            .order_by(models.SslDomain.id.asc())
+            self.ctx.dbSession.query(model_objects.SslDomain)
+            .filter(model_objects.SslDomain.is_active.op("IS")(True))
+            .order_by(model_objects.SslDomain.id.asc())
             .first()
         )
         return focus_item
@@ -1438,9 +1442,9 @@ class FunctionalTests_PrivateKeys(AppTest):
     def _get_item(self):
         # grab a Key
         focus_item = (
-            self.ctx.dbSession.query(models.SslPrivateKey)
-            .filter(models.SslPrivateKey.is_active.op("IS")(True))
-            .order_by(models.SslPrivateKey.id.asc())
+            self.ctx.dbSession.query(model_objects.SslPrivateKey)
+            .filter(model_objects.SslPrivateKey.is_active.op("IS")(True))
+            .order_by(model_objects.SslPrivateKey.id.asc())
             .first()
         )
         return focus_item
@@ -1547,8 +1551,8 @@ class FunctionalTests_UniqueFQDNSets(AppTest):
     def _get_item(self):
         # grab a Key
         focus_item = (
-            self.ctx.dbSession.query(models.SslUniqueFQDNSet)
-            .order_by(models.SslUniqueFQDNSet.id.asc())
+            self.ctx.dbSession.query(model_objects.SslUniqueFQDNSet)
+            .order_by(model_objects.SslUniqueFQDNSet.id.asc())
             .first()
         )
         return focus_item
@@ -1614,8 +1618,8 @@ class FunctionalTests_QueueDomains(AppTest):
     def _get_item(self):
         # grab an item
         focus_item = (
-            self.ctx.dbSession.query(models.SslQueueDomain)
-            .order_by(models.SslQueueDomain.id.asc())
+            self.ctx.dbSession.query(model_objects.SslQueueDomain)
+            .order_by(model_objects.SslQueueDomain.id.asc())
             .first()
         )
         return focus_item
@@ -1700,8 +1704,8 @@ class FunctionalTests_QueueRenewal(AppTest):
     def _get_item(self):
         # grab an item
         focus_item = (
-            self.ctx.dbSession.query(models.SslQueueRenewal)
-            .order_by(models.SslQueueRenewal.id.asc())
+            self.ctx.dbSession.query(model_objects.SslQueueRenewal)
+            .order_by(model_objects.SslQueueRenewal.id.asc())
             .first()
         )
         return focus_item
@@ -1798,8 +1802,8 @@ class FunctionalTests_Operations(AppTest):
         res = self.testapp.get("/.well-known/admin/operations/object-log/1", status=200)
 
         focus_item = (
-            self.ctx.dbSession.query(models.SslOperationsEvent)
-            .order_by(models.SslOperationsEvent.id.asc())
+            self.ctx.dbSession.query(model_objects.SslOperationsEvent)
+            .order_by(model_objects.SslOperationsEvent.id.asc())
             .limit(1)
             .one()
         )
@@ -1808,8 +1812,8 @@ class FunctionalTests_Operations(AppTest):
         )
 
         focus_item_event = (
-            self.ctx.dbSession.query(models.SslOperationsObjectEvent)
-            .order_by(models.SslOperationsObjectEvent.id.asc())
+            self.ctx.dbSession.query(model_objects.SslOperationsObjectEvent)
+            .order_by(model_objects.SslOperationsObjectEvent.id.asc())
             .limit(1)
             .one()
         )

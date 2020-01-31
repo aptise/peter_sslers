@@ -10,9 +10,12 @@ from pyramid.paster import get_appsettings, setup_logging
 
 from pyramid.scripts.common import parse_vars
 
-from ..models.meta import Base
+from ...model.meta import Base
+from ...model import objects as model_objects
 from ..models import get_engine, get_session_factory, get_tm_session
-from ..models import models
+
+
+# ==============================================================================
 
 
 def usage(argv):
@@ -40,8 +43,8 @@ def main(argv=sys.argv):
         Base.metadata.create_all(
             engineLogger,
             tables=[
-                models.SslAcmeEventLog.__table__,
-                models.SslAcmeChallengeLog.__table__,
+                model_objects.SslAcmeEventLog.__table__,
+                model_objects.SslAcmeChallengeLog.__table__,
             ],
         )
     session_factory = get_session_factory(engine)

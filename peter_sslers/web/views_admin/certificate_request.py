@@ -12,7 +12,6 @@ import datetime
 import sqlalchemy
 
 # localapp
-from ..models import models
 from .. import lib
 from ..lib import db as lib_db
 from ..lib import form_utils as form_utils
@@ -25,6 +24,7 @@ from ..lib.handler import Handler, items_per_page
 from ...lib import utils as lib_utils
 from ...lib import errors
 from ...model import utils as model_utils
+from ...model import objects as model_objects
 
 
 # ==============================================================================
@@ -311,7 +311,7 @@ class ViewAdmin_New(Handler):
             ) = lib_db.create.create__SslCertificateRequest(
                 self.request.api_context,
                 csr_pem=None,
-                certificate_request_type_id=models.SslCertificateRequestType.ACME_FLOW,
+                certificate_request_type_id=model_objects.SslCertificateRequestType.ACME_FLOW,
                 domain_names=domain_names,
             )
 

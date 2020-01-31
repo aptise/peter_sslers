@@ -7,12 +7,12 @@ import logging
 import datetime
 
 from . import lib
-from .models import models as models_models
 from ..lib import acme_v2
 from ..lib import cert_utils
 from .lib.config_utils import set_bool_setting
 from .lib.config_utils import set_int_setting
 from .lib.utils import ApiContext
+from ..model import objects as model_objects
 from ..model import utils as model_utils
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -150,7 +150,7 @@ def main(global_config, **settings):
         )
         if certificate_authority_testing:
             acme_v2.TESTING_ENVIRONMENT = True
-            models_models.TESTING_ENVIRONMENT = True
+            model_objects.TESTING_ENVIRONMENT = True
 
     if "certificate_authority_agreement" in settings:
         acme_v2.CERTIFICATE_AUTHORITY_AGREEMENT = settings[

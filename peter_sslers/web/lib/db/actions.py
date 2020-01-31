@@ -16,7 +16,6 @@ from zope.sqlalchemy import mark_changed
 # localapp
 from .. import events
 from .. import utils
-from ...models import models
 from ... import lib
 from ....lib import acme_v2
 from ....lib import cert_utils
@@ -25,6 +24,7 @@ from ....lib import errors
 from ....lib import utils as lib_utils
 from ....lib import utils_certbot as certbot_utils
 from ....model import utils as model_utils
+from ....model import objects as model_objects
 
 # local
 from .logger import AcmeLogger
@@ -308,7 +308,7 @@ def do__CertificateRequest__AcmeV1_Automated(
             ) = lib.db.create.create__SslCertificateRequest(
                 ctx,
                 csr_pem,
-                certificate_request_type_id=models.SslCertificateRequestType.ACME_AUTOMATED,
+                certificate_request_type_id=model_objects.SslCertificateRequestType.ACME_AUTOMATED,
                 dbAccountKey=dbAccountKey,
                 dbPrivateKey=dbPrivateKey,
                 dbServerCertificate__issued=None,
@@ -565,7 +565,7 @@ def do__CertificateRequest__AcmeV2_Automated(
             ) = lib.db.create.create__SslCertificateRequest(
                 ctx,
                 csr_pem,
-                certificate_request_type_id=models.SslCertificateRequestType.ACME_AUTOMATED,
+                certificate_request_type_id=model_objects.SslCertificateRequestType.ACME_AUTOMATED,
                 dbAccountKey=dbAccountKey,
                 dbPrivateKey=dbPrivateKey,
                 dbServerCertificate__issued=None,
@@ -743,10 +743,10 @@ def operations_deactivate_expired(ctx):
 
     # deactivate expired certificates
     expired_certs = (
-        ctx.dbSession.query(models.SslServerCertificate)
+        ctx.dbSession.query(model_objects.SslServerCertificate)
         .filter(
-            models.SslServerCertificate.is_active.is_(True),
-            models.SslServerCertificate.timestamp_expires < ctx.timestamp,
+            model_objects.SslServerCertificate.is_active.is_(True),
+            model_objects.SslServerCertificate.timestamp_expires < ctx.timestamp,
         )
         .all()
     )
@@ -794,18 +794,24 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     )
 
     _q_ids__latest_single = (
-        ctx.dbSession.query(models.SslDomain.ssl_server_certificate_id__latest_single)
+        ctx.dbSession.query(
+            model_objects.SslDomain.ssl_server_certificate_id__latest_single
+        )
         .distinct()
         .filter(
-            models.SslDomain.ssl_server_certificate_id__latest_single != None  # noqa
+            model_objects.SslDomain.ssl_server_certificate_id__latest_single
+            != None  # noqa
         )
         .subquery()
     )
     _q_ids__latest_multi = (
-        ctx.dbSession.query(models.SslDomain.ssl_server_certificate_id__latest_multi)
+        ctx.dbSession.query(
+            model_objects.SslDomain.ssl_server_certificate_id__latest_multi
+        )
         .distinct()
         .filter(
-            models.SslDomain.ssl_server_certificate_id__latest_single != None  # noqa
+            model_objects.SslDomain.ssl_server_certificate_id__latest_single
+            != None  # noqa
         )
         .subquery()
     )
@@ -813,18 +819,18 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     # now grab the domains with many certs...
     q_inner = (
         ctx.dbSession.query(
-            models.SslUniqueFQDNSet2SslDomain.ssl_domain_id,
+            model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id,
             sqlalchemy.func.count(
-                models.SslUniqueFQDNSet2SslDomain.ssl_domain_id
+                model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id
             ).label("counted"),
         )
         .join(
-            models.SslServerCertificate,
-            models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
-            == models.SslServerCertificate.ssl_unique_fqdn_set_id,
+            model_objects.SslServerCertificate,
+            model_objects.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
+            == model_objects.SslServerCertificate.ssl_unique_fqdn_set_id,
         )
-        .filter(models.SslServerCertificate.is_active.is_(True))
-        .group_by(models.SslUniqueFQDNSet2SslDomain.ssl_domain_id)
+        .filter(model_objects.SslServerCertificate.is_active.is_(True))
+        .group_by(model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id)
     )
     q_inner = q_inner.subquery()
     q_domains = ctx.dbSession.query(q_inner).filter(q_inner.c.counted >= 2)
@@ -835,19 +841,20 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
         _turned_off = []
         for _domain_id in domain_ids_with_multiple_active_certs:
             domain_certs = (
-                ctx.dbSession.query(models.SslServerCertificate)
+                ctx.dbSession.query(model_objects.SslServerCertificate)
                 .join(
-                    models.SslUniqueFQDNSet2SslDomain,
-                    models.SslServerCertificate.ssl_unique_fqdn_set_id
-                    == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+                    model_objects.SslUniqueFQDNSet2SslDomain,
+                    model_objects.SslServerCertificate.ssl_unique_fqdn_set_id
+                    == model_objects.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
                 )
                 .filter(
-                    models.SslServerCertificate.is_active.is_(True),
-                    models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == _domain_id,
-                    models.SslServerCertificate.id.notin_(_q_ids__latest_single),
-                    models.SslServerCertificate.id.notin_(_q_ids__latest_multi),
+                    model_objects.SslServerCertificate.is_active.is_(True),
+                    model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id
+                    == _domain_id,
+                    model_objects.SslServerCertificate.id.notin_(_q_ids__latest_single),
+                    model_objects.SslServerCertificate.id.notin_(_q_ids__latest_multi),
                 )
-                .order_by(models.SslServerCertificate.timestamp_expires.desc())
+                .order_by(model_objects.SslServerCertificate.timestamp_expires.desc())
                 .all()
             )
             if len(domain_certs) > 1:
@@ -874,138 +881,142 @@ def operations_update_recents(ctx):
     2016.06.04 - dbOperationsEvent compliant
     """
     # first the single
-    # _t_domain = models.SslDomain.__table__.alias('domain')
+    # _t_domain = model_objects.SslDomain.__table__.alias('domain')
 
     _q_sub = (
-        ctx.dbSession.query(models.SslServerCertificate.id)
+        ctx.dbSession.query(model_objects.SslServerCertificate.id)
         .join(
-            models.SslUniqueFQDNSet2SslDomain,
-            models.SslServerCertificate.ssl_unique_fqdn_set_id
-            == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+            model_objects.SslUniqueFQDNSet2SslDomain,
+            model_objects.SslServerCertificate.ssl_unique_fqdn_set_id
+            == model_objects.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
         )
         .filter(
-            models.SslServerCertificate.is_active.is_(True),
-            models.SslServerCertificate.is_single_domain_cert.is_(True),
-            models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == models.SslDomain.id,
+            model_objects.SslServerCertificate.is_active.is_(True),
+            model_objects.SslServerCertificate.is_single_domain_cert.is_(True),
+            model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id
+            == model_objects.SslDomain.id,
         )
-        .order_by(models.SslServerCertificate.timestamp_expires.desc())
+        .order_by(model_objects.SslServerCertificate.timestamp_expires.desc())
         .limit(1)
         .scalar_subquery()
     )
     ctx.dbSession.execute(
-        models.SslDomain.__table__.update().values(
+        model_objects.SslDomain.__table__.update().values(
             ssl_server_certificate_id__latest_single=_q_sub
         )
     )
 
     # then the multiple
-    # _t_domain = models.SslDomain.__table__.alias('domain')
+    # _t_domain = model_objects.SslDomain.__table__.alias('domain')
     _q_sub = (
-        ctx.dbSession.query(models.SslServerCertificate.id)
+        ctx.dbSession.query(model_objects.SslServerCertificate.id)
         .join(
-            models.SslUniqueFQDNSet2SslDomain,
-            models.SslServerCertificate.ssl_unique_fqdn_set_id
-            == models.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+            model_objects.SslUniqueFQDNSet2SslDomain,
+            model_objects.SslServerCertificate.ssl_unique_fqdn_set_id
+            == model_objects.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
         )
         .filter(
-            models.SslServerCertificate.is_active.is_(True),
-            models.SslServerCertificate.is_single_domain_cert.is_(False),
-            models.SslUniqueFQDNSet2SslDomain.ssl_domain_id == models.SslDomain.id,
+            model_objects.SslServerCertificate.is_active.is_(True),
+            model_objects.SslServerCertificate.is_single_domain_cert.is_(False),
+            model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id
+            == model_objects.SslDomain.id,
         )
-        .order_by(models.SslServerCertificate.timestamp_expires.desc())
+        .order_by(model_objects.SslServerCertificate.timestamp_expires.desc())
         .limit(1)
         .scalar_subquery()
     )
     ctx.dbSession.execute(
-        models.SslDomain.__table__.update().values(
+        model_objects.SslDomain.__table__.update().values(
             ssl_server_certificate_id__latest_multi=_q_sub
         )
     )
 
     # update the count of active certs
-    SslServerCertificate1 = sqlalchemy.orm.aliased(models.SslServerCertificate)
-    SslServerCertificate2 = sqlalchemy.orm.aliased(models.SslServerCertificate)
+    SslServerCertificate1 = sqlalchemy.orm.aliased(model_objects.SslServerCertificate)
+    SslServerCertificate2 = sqlalchemy.orm.aliased(model_objects.SslServerCertificate)
     _q_sub = (
-        ctx.dbSession.query(sqlalchemy.func.count(models.SslDomain.id))
+        ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslDomain.id))
         .outerjoin(
             SslServerCertificate1,
-            models.SslDomain.ssl_server_certificate_id__latest_single
+            model_objects.SslDomain.ssl_server_certificate_id__latest_single
             == SslServerCertificate1.id,
         )
         .outerjoin(
             SslServerCertificate2,
-            models.SslDomain.ssl_server_certificate_id__latest_multi
+            model_objects.SslDomain.ssl_server_certificate_id__latest_multi
             == SslServerCertificate2.id,
         )
         .filter(
             sqlalchemy.or_(
-                models.SslCaCertificate.id
+                model_objects.SslCaCertificate.id
                 == SslServerCertificate1.ssl_ca_certificate_id__upchain,
-                models.SslCaCertificate.id
+                model_objects.SslCaCertificate.id
                 == SslServerCertificate2.ssl_ca_certificate_id__upchain,
             )
         )
         .scalar_subquery()
     )
     ctx.dbSession.execute(
-        models.SslCaCertificate.__table__.update().values(
+        model_objects.SslCaCertificate.__table__.update().values(
             count_active_certificates=_q_sub
         )
     )
 
     # update the count of active PrivateKeys
-    SslServerCertificate1 = sqlalchemy.orm.aliased(models.SslServerCertificate)
-    SslServerCertificate2 = sqlalchemy.orm.aliased(models.SslServerCertificate)
+    SslServerCertificate1 = sqlalchemy.orm.aliased(model_objects.SslServerCertificate)
+    SslServerCertificate2 = sqlalchemy.orm.aliased(model_objects.SslServerCertificate)
     _q_sub = (
-        ctx.dbSession.query(sqlalchemy.func.count(models.SslDomain.id))
+        ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslDomain.id))
         .outerjoin(
             SslServerCertificate1,
-            models.SslDomain.ssl_server_certificate_id__latest_single
+            model_objects.SslDomain.ssl_server_certificate_id__latest_single
             == SslServerCertificate1.id,
         )
         .outerjoin(
             SslServerCertificate2,
-            models.SslDomain.ssl_server_certificate_id__latest_multi
+            model_objects.SslDomain.ssl_server_certificate_id__latest_multi
             == SslServerCertificate2.id,
         )
         .filter(
             sqlalchemy.or_(
-                models.SslPrivateKey.id
+                model_objects.SslPrivateKey.id
                 == SslServerCertificate1.ssl_private_key_id__signed_by,
-                models.SslPrivateKey.id
+                model_objects.SslPrivateKey.id
                 == SslServerCertificate2.ssl_private_key_id__signed_by,
             )
         )
         .scalar_subquery()
     )
     ctx.dbSession.execute(
-        models.SslPrivateKey.__table__.update().values(count_active_certificates=_q_sub)
+        model_objects.SslPrivateKey.__table__.update().values(
+            count_active_certificates=_q_sub
+        )
     )
 
     # the following works, but this is currently tracked
     """
         # update the counts on Account Keys
-        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(models.SslCertificateRequest.id))\
-            .filter(models.SslCertificateRequest.ssl_acme_account_key_id == models.SslAcmeAccountKey.id,
+        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslCertificateRequest.id))\
+            .filter(model_objects.SslCertificateRequest.ssl_acme_account_key_id == model_objects.SslAcmeAccountKey.id,
                     )\
             .scalar_subquery()
-        ctx.dbSession.execute(models.SslAcmeAccountKey.__table__
+        ctx.dbSession.execute(model_objects.SslAcmeAccountKey.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
                                       # count_certificates_issued=_q_sub_iss,
                                       )
                               )
         # update the counts on Private Keys
-        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(models.SslCertificateRequest.id))\
-            .filter(models.SslCertificateRequest.ssl_private_key_id__signed_by == models.SslPrivateKey.id,
+        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslCertificateRequest.id))\
+            .filter(model_objects.SslCertificateRequest.ssl_private_key_id__signed_by == model_objects.SslPrivateKey.id,
                     )\
             .scalar_subquery()
-        _q_sub_iss = ctx.dbSession.query(sqlalchemy.func.count(models.SslServerCertificate.id))\
-            .filter(models.SslServerCertificate.ssl_private_key_id__signed_by == models.SslPrivateKey.id,
+        _q_sub_iss = ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslServerCertificate.id))\
+            .filter(model_objects.SslServerCertificate.ssl_private_key_id__signed_by == model_objects.SslPrivateKey.id,
                     )\
             .scalar_subquery()
 
-        ctx.dbSession.execute(models.SslPrivateKey.__table__
+        ctx.dbSession.execute(model_objects.SslPrivateKey.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
                                       count_certificates_issued=_q_sub_iss,

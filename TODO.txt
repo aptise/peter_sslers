@@ -1,7 +1,22 @@
 Not Finished Yet
 ===============
+
+Almost done:
+------------
+* acme2 support  [2020.01.30]
+** served as fullchain, must split out.
+
+* move more files to /lib from the pyramid app. these have some pyramid specific items in them, which must be refactored out
+** /web/lib/db
+** /web/lib/events
+** /web/lib/utils
+
+
 asap tasks
 ---------------
+
+
+
 * ensure correct usage of `requests`
 	- currently using `.content`, which is raw bytes
 	- usually one uses `.text`, which is `.content` that is decoded
@@ -27,13 +42,7 @@ deferred tasks
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
 * deprecate the AcmeFlow helper (preferred) OR give it json endpoints.
 * migrate testing away from `setup.py`
-
 * Acme2 -  remove PyOpenSSL - used to split fullchain 
-
-Almost done:
-------------
-* acme2 support  [2020.01.30]
-** served as fullchain, must split out.
 
 
 

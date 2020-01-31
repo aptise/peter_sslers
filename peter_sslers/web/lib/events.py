@@ -3,7 +3,6 @@ import datetime
 import logging
 import math
 
-from ..models import models
 from .. import lib
 
 # setup logging

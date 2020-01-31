@@ -8,7 +8,7 @@ from pyramid.decorator import reify
 
 # localapp
 from .meta import Base
-from ...model import utils as model_utils
+from . import utils as model_utils
 
 
 # ==============================================================================

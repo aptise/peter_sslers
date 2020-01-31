@@ -7,10 +7,10 @@ log = logging.getLogger(__name__)
 import datetime
 
 # localapp
-from ...models import models
 from .. import utils
 from ....lib import utils as lib_utils
 from ....model import utils as model_utils
+from ....model import objects as model_objects
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -34,7 +34,7 @@ class AcmeLogger(object):
         elif version == "v2":
             acme_event_id = model_utils.AcmeEvent.from_string("v2|newAccount")
 
-        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog = model_objects.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         sslAcmeEventLog.acme_event_id = acme_event_id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
@@ -50,7 +50,7 @@ class AcmeLogger(object):
 
         acme_event_id = model_utils.AcmeEvent.from_string("v2|newOrder")
 
-        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog = model_objects.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         sslAcmeEventLog.acme_event_id = acme_event_id
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
@@ -66,7 +66,7 @@ class AcmeLogger(object):
         if version != "v2":
             raise ValueError("invalid version: %s" % version)
 
-        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog = model_objects.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-authorization"
@@ -76,7 +76,7 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 
-        sslAcmeChallengeLog = models.SslAcmeChallengeLog()
+        sslAcmeChallengeLog = model_objects.SslAcmeChallengeLog()
         sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
         sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
         sslAcmeChallengeLog.domain = domain
@@ -92,7 +92,7 @@ class AcmeLogger(object):
         if version != "v1":
             raise ValueError("invalid version: %s" % version)
 
-        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog = model_objects.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v1|/acme/new-authz"
@@ -102,7 +102,7 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 
-        sslAcmeChallengeLog = models.SslAcmeChallengeLog()
+        sslAcmeChallengeLog = model_objects.SslAcmeChallengeLog()
         sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
         sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
         sslAcmeChallengeLog.domain = domain
@@ -115,7 +115,7 @@ class AcmeLogger(object):
         if version not in ("v1", "v2"):
             raise ValueError("invalid version: %s" % version)
 
-        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog = model_objects.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v1|/acme/new-cert"
@@ -130,7 +130,7 @@ class AcmeLogger(object):
         if version != "v2":
             raise ValueError("invalid version: %s" % version)
 
-        sslAcmeEventLog = models.SslAcmeEventLog()
+        sslAcmeEventLog = model_objects.SslAcmeEventLog()
         sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-order-finalize"
@@ -216,7 +216,7 @@ def log__SslOperationsEvent(
         event_payload_dict = lib_utils.new_event_payload_dict()
 
     # bookkeeping
-    dbOperationsEvent = models.SslOperationsEvent()
+    dbOperationsEvent = model_objects.SslOperationsEvent()
     dbOperationsEvent.ssl_operations_event_type_id = event_type_id
     dbOperationsEvent.timestamp_event = timestamp_event
     dbOperationsEvent.set_event_payload(event_payload_dict)
@@ -250,7 +250,7 @@ def _log_object_event(
     dbQueueDomain=None,
 ):
     """additional logging for objects"""
-    dbOperationsObjectEvent = models.SslOperationsObjectEvent()
+    dbOperationsObjectEvent = model_objects.SslOperationsObjectEvent()
     dbOperationsObjectEvent.ssl_operations_event_id = dbOperationsEvent.id
     dbOperationsObjectEvent.ssl_operations_object_event_status_id = event_status_id
 

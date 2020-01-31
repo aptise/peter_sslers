@@ -12,7 +12,6 @@ import datetime
 import sqlalchemy
 
 # localapp
-from ..models import models
 from .. import lib
 from ..lib import db as lib_db
 from ..lib import form_utils as form_utils

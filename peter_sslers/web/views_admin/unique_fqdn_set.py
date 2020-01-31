@@ -18,8 +18,8 @@ from ...lib import errors
 from ...lib import utils as lib_utils
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
-from ..models import models
 from ...model import utils as model_utils
+from ...model import objects as model_objects
 
 
 # ==============================================================================
@@ -117,13 +117,14 @@ class ViewAdmin(Handler):
         dbUniqueFQDNSet = self._focus()
         weekly_certs = (
             self.request.api_context.dbSession.query(
-                model_utils.year_week(models.SslServerCertificate.timestamp_signed).label(
-                    "week_num"
-                ),
-                sqlalchemy.func.count(models.SslServerCertificate.id),
+                model_utils.year_week(
+                    model_objects.SslServerCertificate.timestamp_signed
+                ).label("week_num"),
+                sqlalchemy.func.count(model_objects.SslServerCertificate.id),
             )
             .filter(
-                models.SslServerCertificate.ssl_unique_fqdn_set_id == dbUniqueFQDNSet.id
+                model_objects.SslServerCertificate.ssl_unique_fqdn_set_id
+                == dbUniqueFQDNSet.id
             )
             .group_by("week_num")
             .order_by(sqlalchemy.asc("week_num"))

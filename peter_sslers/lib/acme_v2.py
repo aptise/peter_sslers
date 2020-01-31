@@ -499,6 +499,8 @@ class AuthenticatedUser(object):
         handle_keyauth_cleanup=None,  # callable; expects (domain, token, keyauthorization)
     ):
         log.info("acme_v2 acme_handle_order_authorizations...")
+        
+        pdb.set_trace()
 
         # verify each domain
         for authorization_url in acmeOrder.api_object["authorizations"]:
@@ -580,18 +582,14 @@ class AuthenticatedUser(object):
             # note the challenge
             self.acmeLogger.log_challenge_trigger(sslAcmeChallengeLog)
 
-            try:
-                # TODO- check rfc
+            # if the challenge is already valid, we don't need to tell the server we're ready
+            if challenge["status"] != "valid":
                 challenge_payload = {}
-                if challenge["status"] == "valid":
-                    challenge_payload = None
                 (challenge_response, _, _) = self._send_signed_request(
                     challenge["url"], payload=challenge_payload,
                 )
-            except Exception as exc:
-                print("check rfc")
-                pdb.set_trace()
 
+            # todo - would an accepted challenge require this?
             log.info("checking domain {0}".format(domain))
             authorization_response = self._poll_until_not(
                 authorization_url,

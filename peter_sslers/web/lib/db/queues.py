@@ -11,12 +11,12 @@ import datetime
 import transaction
 
 # localapp
-from ...models import models
 from ... import lib
 from .. import utils
 from ....lib import errors
 from ....lib import utils as lib_utils
 from ....model import utils as model_utils
+from ....model import objects as model_objects
 
 # local
 from .logger import log__SslOperationsEvent
@@ -110,7 +110,7 @@ def queue_domains__add(ctx, domain_names):
                 _result = "already_queued"
 
             else:
-                _dbQueueDomain = models.SslQueueDomain()
+                _dbQueueDomain = model_objects.SslQueueDomain()
                 _dbQueueDomain.domain_name = domain_name
                 _dbQueueDomain.timestamp_entered = _timestamp
                 _dbQueueDomain.ssl_operations_event_id__created = dbOperationsEvent.id
@@ -334,19 +334,23 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
             _expiring_days = 28
             _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
             _subquery_already_queued = (
-                ctx.dbSession.query(models.SslQueueRenewal.ssl_server_certificate_id)
+                ctx.dbSession.query(
+                    model_objects.SslQueueRenewal.ssl_server_certificate_id
+                )
                 .filter(
-                    models.SslQueueRenewal.timestamp_processed.op("IS")(None),
-                    models.SslQueueRenewal.process_result.op("IS NOT")(True),
+                    model_objects.SslQueueRenewal.timestamp_processed.op("IS")(None),
+                    model_objects.SslQueueRenewal.process_result.op("IS NOT")(True),
                 )
                 .subquery()
             )
-            _core_query = ctx.dbSession.query(models.SslServerCertificate).filter(
-                models.SslServerCertificate.is_active.op("IS")(True),
-                models.SslServerCertificate.is_auto_renew.op("IS")(True),
-                models.SslServerCertificate.is_renewed.op("IS NOT")(True),
-                models.SslServerCertificate.timestamp_expires <= _until,
-                models.SslServerCertificate.id.notin_(_subquery_already_queued),
+            _core_query = ctx.dbSession.query(
+                model_objects.SslServerCertificate
+            ).filter(
+                model_objects.SslServerCertificate.is_active.op("IS")(True),
+                model_objects.SslServerCertificate.is_auto_renew.op("IS")(True),
+                model_objects.SslServerCertificate.is_renewed.op("IS NOT")(True),
+                model_objects.SslServerCertificate.timestamp_expires <= _until,
+                model_objects.SslServerCertificate.id.notin_(_subquery_already_queued),
             )
             results = _core_query.all()
             for cert in results:

@@ -4,12 +4,12 @@ import logging
 log = logging.getLogger(__name__)
 
 # localapp
-from ...models import models
 from ... import lib  # from . import db?
 from .. import utils
 from ....lib import cert_utils
 from ....lib import utils as lib_utils
 from ....model import utils as model_utils
+from ....model import objects as model_objects
 
 # local
 from .logger import log__SslOperationsEvent
@@ -34,17 +34,20 @@ def create__SslCertificateRequest(
     2016.06.04 - dbOperationsEvent compliant
     """
     if certificate_request_type_id not in (
-        models.SslCertificateRequestType.ACME_FLOW,
-        models.SslCertificateRequestType.ACME_AUTOMATED,
+        model_objects.SslCertificateRequestType.ACME_FLOW,
+        model_objects.SslCertificateRequestType.ACME_AUTOMATED,
     ):
         raise ValueError("Invalid `certificate_request_type_id`")
 
     _event_type_id = None
-    if certificate_request_type_id == models.SslCertificateRequestType.ACME_FLOW:
+    if certificate_request_type_id == model_objects.SslCertificateRequestType.ACME_FLOW:
         _event_type_id = model_utils.SslOperationsEventType.from_string(
             "certificate_request__new__flow"
         )
-    elif certificate_request_type_id == models.SslCertificateRequestType.ACME_AUTOMATED:
+    elif (
+        certificate_request_type_id
+        == model_objects.SslCertificateRequestType.ACME_AUTOMATED
+    ):
         _event_type_id = model_utils.SslOperationsEventType.from_string(
             "certificate_request__new__automated"
         )
@@ -80,7 +83,7 @@ def create__SslCertificateRequest(
         finally:
             _tmpfile.close()
 
-    if certificate_request_type_id == models.SslCertificateRequestType.ACME_FLOW:
+    if certificate_request_type_id == model_objects.SslCertificateRequestType.ACME_FLOW:
         if domain_names is None:
             if csr_pem is None:
                 raise ValueError(
@@ -111,11 +114,11 @@ def create__SslCertificateRequest(
             ctx, dbDomainObjects
         )
 
-        dbCertificateRequest = models.SslCertificateRequest()
+        dbCertificateRequest = model_objects.SslCertificateRequest()
         dbCertificateRequest.is_active = True
         dbCertificateRequest.csr_pem = csr_pem
         dbCertificateRequest.certificate_request_type_id = (
-            models.SslCertificateRequestType.ACME_FLOW
+            model_objects.SslCertificateRequestType.ACME_FLOW
         )
         dbCertificateRequest.timestamp_started = ctx.timestamp
         dbCertificateRequest.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
@@ -145,7 +148,7 @@ def create__SslCertificateRequest(
         )
 
         for dbDomain in dbDomainObjects:
-            dbCertificateRequest2D = models.SslCertificateRequest2SslDomain()
+            dbCertificateRequest2D = model_objects.SslCertificateRequest2SslDomain()
             dbCertificateRequest2D.ssl_certificate_request_id = dbCertificateRequest.id
             dbCertificateRequest2D.ssl_domain_id = dbDomain.id
             ctx.dbSession.add(dbCertificateRequest2D)
@@ -195,7 +198,7 @@ def create__SslCertificateRequest(
         )
 
         # build the cert
-        dbCertificateRequest = models.SslCertificateRequest()
+        dbCertificateRequest = model_objects.SslCertificateRequest()
         dbCertificateRequest.is_active = True
         dbCertificateRequest.certificate_request_type_id = certificate_request_type_id
         dbCertificateRequest.timestamp_started = t_now
@@ -254,7 +257,9 @@ def create__SslCertificateRequest(
         for _domain_name in dbDomainObjects.keys():
             dbDomain = dbDomainObjects[_domain_name]
 
-            dbCertificateRequest2SslDomain = models.SslCertificateRequest2SslDomain()
+            dbCertificateRequest2SslDomain = (
+                model_objects.SslCertificateRequest2SslDomain()
+            )
             dbCertificateRequest2SslDomain.ssl_certificate_request_id = (
                 dbCertificateRequest.id
             )
@@ -333,7 +338,7 @@ def create__SslServerCertificate(
             ctx, dbDomains
         )
 
-        dbServerCertificate = models.SslServerCertificate()
+        dbServerCertificate = model_objects.SslServerCertificate()
         _certificate_parse_to_record(_tmpfileCert, dbServerCertificate)
 
         # we don't need these anymore, because we're parsing the cert
@@ -430,7 +435,7 @@ def _create__SslQueueRenewal(ctx, serverCertificate):
     if not ctx.dbOperationsEvent:
         raise ValueError("This must happen WITHIN an operations event")
 
-    dbQueueRenewal = models.SslQueueRenewal()
+    dbQueueRenewal = model_objects.SslQueueRenewal()
     dbQueueRenewal.timestamp_entered = ctx.timestamp
     dbQueueRenewal.timestamp_processed = None
     dbQueueRenewal.ssl_server_certificate_id = serverCertificate.id
@@ -465,7 +470,7 @@ def _create__SslQueueRenewal_fqdns(ctx, ssl_unique_fqdn_set_id):
     if not ctx.dbOperationsEvent:
         raise ValueError("This must happen WITHIN an operations event")
 
-    dbQueueRenewal = models.SslQueueRenewal()
+    dbQueueRenewal = model_objects.SslQueueRenewal()
     dbQueueRenewal.timestamp_entered = ctx.timestamp
     dbQueueRenewal.timestamp_processed = None
     dbQueueRenewal.ssl_server_certificate_id = None

@@ -12,7 +12,6 @@ import pypages
 import sqlalchemy
 
 # localapp
-from ..models import models
 from .. import lib
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page

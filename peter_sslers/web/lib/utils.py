@@ -11,7 +11,6 @@ except ImportError:
 import requests
 
 from .. import lib
-from .. import models
 from ...lib import utils as lib_utils
 from ...model import utils as model_utils
 

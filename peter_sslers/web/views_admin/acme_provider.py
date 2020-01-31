@@ -10,7 +10,6 @@ import datetime
 import sqlalchemy
 
 # localapp
-from ..models import models
 from ..lib.handler import Handler
 from ...model import utils as model_utils
 
