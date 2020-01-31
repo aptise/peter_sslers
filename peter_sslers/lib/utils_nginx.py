@@ -10,50 +10,14 @@ except ImportError:
     pass
 import requests
 
-from .. import lib
-from ...lib import utils as lib_utils
-from ...model import utils as model_utils
+# local
+from ..web import lib
+from . import utils as lib_utils
+from ..model import utils as model_utils
 
 
 # ==============================================================================
 
-
-class ApiContext(object):
-    """
-    A context object
-    API Calls can rely on this object to assist in logging.
-
-    This implements an interface that guarantees several properties.  Substitutes may be used-
-
-    :request: - pyramid request object
-    :timestamp: `datetime.datetime.utcnow()`
-    :dbSession: - sqlalchemy `session` object
-    :dbSessionLogger: - sqlalchemy `session` object with autocommit
-    :dbOperationsEvent: - a topline SslOperationsEvent object for this request, if any
-    """
-
-    dbOperationsEvent = None
-    dbSession = None
-    dbSessionLogger = None
-    timestamp = None
-    request = None
-
-    def __init__(
-        self,
-        request=None,
-        dbOperationsEvent=None,
-        dbSession=None,
-        dbSessionLogger=None,
-        timestamp=None,
-    ):
-        self.request = request
-        self.dbOperationsEvent = dbOperationsEvent
-        self.dbSession = dbSession
-        self.dbSessionLogger = dbSessionLogger
-        self.timestamp = timestamp
-
-
-# ------------------------------------------------------------------------------
 
 
 def redis_default_connection(request, url=None, redis_client=Redis, **redis_options):

@@ -3,12 +3,15 @@ import datetime
 import logging
 import math
 
-from .. import lib
-
 # setup logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())
 log.setLevel(logging.INFO)
+
+
+# local
+from ..web import lib
+
 
 
 # ==============================================================================

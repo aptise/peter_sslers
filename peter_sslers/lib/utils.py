@@ -44,3 +44,44 @@ def md5_text(text):
 
 def new_event_payload_dict():
     return {"v": 1}
+
+
+# ------------------------------------------------------------------------------
+
+
+class ApiContext(object):
+    """
+    A context object
+    API Calls can rely on this object to assist in logging.
+
+    This implements an interface that guarantees several properties.  Substitutes may be used-
+
+    :request: - pyramid request object
+    :timestamp: `datetime.datetime.utcnow()`
+    :dbSession: - sqlalchemy `session` object
+    :dbSessionLogger: - sqlalchemy `session` object with autocommit
+    :dbOperationsEvent: - a topline SslOperationsEvent object for this request, if any
+    """
+
+    dbOperationsEvent = None
+    dbSession = None
+    dbSessionLogger = None
+    timestamp = None
+    request = None
+
+    def __init__(
+        self,
+        request=None,
+        dbOperationsEvent=None,
+        dbSession=None,
+        dbSessionLogger=None,
+        timestamp=None,
+    ):
+        self.request = request
+        self.dbOperationsEvent = dbOperationsEvent
+        self.dbSession = dbSession
+        self.dbSessionLogger = dbSessionLogger
+        self.timestamp = timestamp
+
+
+# ------------------------------------------------------------------------------

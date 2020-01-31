@@ -498,7 +498,7 @@ class AppTest(AppTestCore):
             dbSessionLogger_factory = self.testapp.app.registry[
                 "dbSessionLogger_factory"
             ]
-            self._ctx = lib.utils.ApiContext(
+            self._ctx = lib_utils.ApiContext(
                 dbSession=dbSession_factory(),
                 dbSessionLogger=dbSessionLogger_factory(),
                 timestamp=datetime.datetime.utcnow(),

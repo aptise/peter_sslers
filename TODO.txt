@@ -8,7 +8,6 @@ Almost done:
 
 * move more files to /lib from the pyramid app. these have some pyramid specific items in them, which must be refactored out
 ** /web/lib/db
-** /web/lib/events
 ** /web/lib/utils
 
 

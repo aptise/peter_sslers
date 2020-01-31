@@ -14,12 +14,12 @@ import transaction
 from zope.sqlalchemy import mark_changed
 
 # localapp
-from .. import events
 from .. import utils
 from ... import lib
 from ....lib import acme_v2
 from ....lib import cert_utils
 from ....lib import letsencrypt_info
+from ....lib import events
 from ....lib import errors
 from ....lib import utils as lib_utils
 from ....lib import utils_certbot as certbot_utils
