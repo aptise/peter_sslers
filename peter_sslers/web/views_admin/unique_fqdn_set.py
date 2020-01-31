@@ -14,12 +14,12 @@ import transaction
 
 # localapp
 from .. import lib
-from ...lib import errors
-from ...lib import utils as lib_utils
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
 from ...model import utils as model_utils
 from ...model import objects as model_objects
+from ...lib import errors
+from ...lib import utils
 
 
 # ==============================================================================
@@ -227,7 +227,7 @@ class ViewAdmin(Handler):
             event_type = model_utils.SslOperationsEventType.from_string(
                 "queue_renewal__update"
             )
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )

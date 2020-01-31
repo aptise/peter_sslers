@@ -26,7 +26,7 @@ from .web import lib
 from .web.lib import db  # lib.db doesn't work
 
 from .lib import cert_utils  # for override
-from .lib import utils as lib_utils
+from .lib import utils
 
 from .model import meta as model_meta
 from .model import objects as model_objects
@@ -238,24 +238,24 @@ class UnitTestOpenSSL(AppTestCore):
             )
             _expected_modulus_md5 = set_data["key_pem_modulus_md5"]
             assert _computed_modulus_md5 == _expected_modulus_md5
-            _computed_md5 = lib_utils.md5_text(self._filedata_testfile(pem_filepath))
+            _computed_md5 = utils.md5_text(self._filedata_testfile(pem_filepath))
             _expected_md5 = set_data["key_pem_md5"]
             assert _computed_md5 == _expected_md5
 
 
 class UnitTestCSR(AppTestCore):
     """python -m unittest peter_sslers.tests.UnitTestCSR"""
-    
+
     def test_AcmeV2_Automated(self):
         """
         test some flows that trigger different challenge/auth scenarios
         """
         raise ValueError("test this")
-        ctx = ''
+        ctx = ""
         domain_names = TEST_FILES["CertificateRequests"]["1"]["domains"]
-        dbAccountKey=None,
-        dbPrivateKey=None,
-        private_key_pem=None,
+        dbAccountKey = (None,)
+        dbPrivateKey = (None,)
+        private_key_pem = (None,)
         result = lib.db.actions.do__CertificateRequest__AcmeV2_Automated(
             ctx,
             domain_names,
@@ -465,7 +465,7 @@ class AppTest(AppTestCore):
                 event_type = model_utils.SslOperationsEventType.from_string(
                     "queue_renewal__update"
                 )
-                event_payload_dict = lib_utils.new_event_payload_dict()
+                event_payload_dict = utils.new_event_payload_dict()
                 dbOperationsEvent = lib.db.logger.log__SslOperationsEvent(
                     self.ctx, event_type, event_payload_dict
                 )
@@ -498,7 +498,7 @@ class AppTest(AppTestCore):
             dbSessionLogger_factory = self.testapp.app.registry[
                 "dbSessionLogger_factory"
             ]
-            self._ctx = lib_utils.ApiContext(
+            self._ctx = utils.ApiContext(
                 dbSession=dbSession_factory(),
                 dbSessionLogger=dbSessionLogger_factory(),
                 timestamp=datetime.datetime.utcnow(),

@@ -19,7 +19,7 @@ from ..lib import db as lib_db
 from ..lib import formhandling
 from ..lib.forms import Form_QueueRenewal_mark
 from ..lib.handler import Handler, items_per_page
-from ...lib import utils as lib_utils
+from ...lib import utils
 from ...model import utils as model_utils
 
 
@@ -233,7 +233,7 @@ class ViewFocus(Handler):
             event_type = model_utils.SslOperationsEventType.from_string(
                 "queue_renewal__mark"
             )
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["ssl_queue_renewal.id"] = dbRenewalQueueItem.id
             event_payload_dict["action"] = formStash.results["action"]
 

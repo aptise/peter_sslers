@@ -15,7 +15,6 @@ import sqlalchemy
 from .. import lib
 from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
-from ...lib import utils as lib_utils
 from ...model import utils as model_utils
 
 

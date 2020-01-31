@@ -21,8 +21,8 @@ from ....lib import cert_utils
 from ....lib import letsencrypt_info
 from ....lib import events
 from ....lib import errors
-from ....lib import utils as lib_utils
-from ....lib import utils_certbot as certbot_utils
+from ....lib import utils
+from ....lib import utils_certbot as utils_certbot
 from ....model import utils as model_utils
 from ....model import objects as model_objects
 
@@ -43,7 +43,7 @@ def disable_Domain(
     event_status="domain__mark__inactive",
     action="deactivated",
 ):
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["ssl_domain.id"] = dbDomain.id
     event_payload_dict["action"] = action
     dbDomain.is_active = False
@@ -67,7 +67,7 @@ def enable_Domain(
     event_status="domain__mark__active",
     action="activated",
 ):
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["ssl_domain.id"] = dbDomain.id
     event_payload_dict["action"] = action
     dbDomain.is_active = True
@@ -94,7 +94,7 @@ def ca_certificate_probe(ctx):
     """
 
     # create a bookkeeping object
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx, model_utils.SslOperationsEventType.from_string("ca_certificate__probe")
     )
@@ -187,7 +187,7 @@ def do__SslAcmeAccountKey_AcmeV1_authenticate(
         ctx.dbSession.flush(objects=[dbAcmeAccountKey])
 
         # log this
-        event_payload_dict = lib_utils.new_event_payload_dict()
+        event_payload_dict = utils.new_event_payload_dict()
         event_payload_dict["ssl_acme_account_key.id"] = dbAcmeAccountKey.id
         dbOperationsEvent = log__SslOperationsEvent(
             ctx,
@@ -250,7 +250,7 @@ def do__CertificateRequest__AcmeV1_Automated(
         domain_names = dbServerCertificate__renewal_of.domains_as_list
 
     # bookkeeping
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
         model_utils.SslOperationsEventType.from_string(
@@ -507,7 +507,7 @@ def do__CertificateRequest__AcmeV2_Automated(
         domain_names = dbServerCertificate__renewal_of.domains_as_list
 
     # bookkeeping
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
         model_utils.SslOperationsEventType.from_string(
@@ -608,7 +608,6 @@ def do__CertificateRequest__AcmeV2_Automated(
             csr_domains=csr_domains, dbCertificateRequest=dbCertificateRequest,
         )
 
-
         """ 
             # https://tools.ietf.org/html/rfc8555#section-7.1.3
 
@@ -665,7 +664,9 @@ def do__CertificateRequest__AcmeV2_Automated(
                 # TODO: download the url of this order
                 raise ValueError("todo: download")
             else:
-                raise ValueError("unsure how to handle this status: `%s`" % _order_status)
+                raise ValueError(
+                    "unsure how to handle this status: `%s`" % _order_status
+                )
 
         if _todo_finalize_order:
             # sign and download
@@ -680,11 +681,11 @@ def do__CertificateRequest__AcmeV2_Automated(
         # end acme-tiny
         # ######################################################################
 
-        (certificate_pem, chain_pem) = certbot_utils.cert_and_chain_from_fullchain(
+        (certificate_pem, chain_pem) = utils_certbot.cert_and_chain_from_fullchain(
             fullchain_pem
         )
 
-        (certificate_pem, chained_pem) = certbot_utils.cert_and_chain_from_fullchain(
+        (certificate_pem, chained_pem) = utils_certbot.cert_and_chain_from_fullchain(
             fullchain_pem
         )
 
@@ -782,7 +783,7 @@ def operations_deactivate_expired(ctx):
     2016.06.04 - dbOperationsEvent compliant
     """
     # create an event first
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__SslOperationsEvent(
         ctx,
@@ -841,7 +842,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
         raise ValueError("MUST run `operations_update_recents` first")
 
     # bookkeeping
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__SslOperationsEvent(
         ctx,
@@ -1121,7 +1122,7 @@ def api_domains__enable(ctx, domain_names):
     """this is just a proxy around queue_domains__add"""
 
     # bookkeeping
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
         model_utils.SslOperationsEventType.from_string("api_domains__enable"),
@@ -1138,11 +1139,11 @@ def api_domains__disable(ctx, domain_names):
     """
     disables domains
     """
-    domain_names = lib_utils.domains_from_list(domain_names)
+    domain_names = utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
 
     # bookkeeping
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
         model_utils.SslOperationsEventType.from_string("api_domains__disable"),
@@ -1212,7 +1213,7 @@ def api_domains__certificate_if_needed(
         2017: 'api_domains__certificate_if_needed__certificate_new_fail',
     """
     # bookkeeping
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
         model_utils.SslOperationsEventType.from_string(
@@ -1242,7 +1243,7 @@ def api_domains__certificate_if_needed(
         if not dbPrivateKey:
             raise errors.DisplayableError("Could not grab a PrivateKey")
 
-    domain_names = lib_utils.domains_from_list(domain_names)
+    domain_names = utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:
@@ -1394,7 +1395,7 @@ def upload__SslCaCertificateBundle__by_pem_text(ctx, bundle_data):
     2016.06.04 - dbOperationsEvent compliant
     """
     # bookkeeping
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
         model_utils.SslOperationsEventType.from_string("ca_certificate__upload_bundle"),

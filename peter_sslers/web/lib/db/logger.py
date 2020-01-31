@@ -7,8 +7,7 @@ log = logging.getLogger(__name__)
 import datetime
 
 # localapp
-from .. import utils
-from ....lib import utils as lib_utils
+from ....lib import utils
 from ....model import utils as model_utils
 from ....model import objects as model_objects
 
@@ -213,7 +212,7 @@ def log__SslOperationsEvent(
     dbOperationsEvent_child_of = dbOperationsEvent_child_of or ctx.dbOperationsEvent
 
     if event_payload_dict is None:
-        event_payload_dict = lib_utils.new_event_payload_dict()
+        event_payload_dict = utils.new_event_payload_dict()
 
     # bookkeeping
     dbOperationsEvent = model_objects.SslOperationsEvent()

@@ -14,7 +14,7 @@ import transaction
 from ... import lib
 from .. import utils
 from ....lib import errors
-from ....lib import utils as lib_utils
+from ....lib import utils
 from ....model import utils as model_utils
 from ....model import objects as model_objects
 
@@ -33,7 +33,7 @@ def dequeue_QueuedDomain(
     event_status="queue_domain__mark__cancelled",
     action="de-queued",
 ):
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["ssl_queue_domain.id"] = dbQueueDomain.id
     event_payload_dict["action"] = action
     dbQueueDomain.is_active = False
@@ -60,14 +60,14 @@ def queue_domains__add(ctx, domain_names):
     2016.06.04 - dbOperationsEvent compliant
     """
     # bookkeeping
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
         model_utils.SslOperationsEventType.from_string("queue_domain__add"),
         event_payload_dict,
     )
 
-    domain_names = lib_utils.domains_from_list(domain_names)
+    domain_names = utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:
@@ -193,7 +193,7 @@ def queue_domains__process(ctx, dbAccountKey=None, dbPrivateKey=None):
                 % (len(items_paged), min_domains)
             )
 
-        event_payload_dict = lib_utils.new_event_payload_dict()
+        event_payload_dict = utils.new_event_payload_dict()
         event_payload_dict["batch_size"] = len(items_paged)
         event_payload_dict["status"] = "attempt"
         event_payload_dict["queue_domain_ids"] = ",".join(
@@ -319,7 +319,7 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
         event_type = model_utils.SslOperationsEventType.from_string(
             "queue_renewal__update"
         )
-        event_payload_dict = lib_utils.new_event_payload_dict()
+        event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__SslOperationsEvent(ctx, event_type, event_payload_dict)
         if fqdns_ids_only:
             for fqdns_id in fqdns_ids_only:
@@ -391,7 +391,7 @@ def queue_renewals__process(ctx):
     event_type = model_utils.SslOperationsEventType.from_string(
         "queue_renewal__process"
     )
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx, event_type, event_payload_dict)
     items_count = lib.db.get.get__SslQueueRenewal__count(ctx, unprocessed_only=True)
     rval["count_total"] = items_count

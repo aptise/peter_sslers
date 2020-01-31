@@ -21,7 +21,7 @@ from ..lib.forms import Form_AccountKey_mark
 from ..lib.form_utils import AccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
 from ...lib import cert_utils
-from ...lib import utils as lib_utils
+from ...lib import utils
 from ...model import utils as model_utils
 
 
@@ -385,7 +385,7 @@ class ViewAdmin_Focus(Handler):
             event_type = model_utils.SslOperationsEventType.from_string(
                 "acme_account_key__mark"
             )
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["account_key_id"] = dbAcmeAccountKey.id
             event_payload_dict["action"] = formStash.results["action"]
 

@@ -6,14 +6,13 @@ from sqlalchemy import engine_from_config
 import logging
 import datetime
 
-from . import lib
 from ..lib import acme_v2
 from ..lib import cert_utils
 from ..lib.utils import ApiContext
-from .lib.config_utils import set_bool_setting
-from .lib.config_utils import set_int_setting
 from ..model import objects as model_objects
 from ..model import utils as model_utils
+from .lib.config_utils import set_bool_setting
+from .lib.config_utils import set_int_setting
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

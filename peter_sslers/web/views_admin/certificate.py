@@ -24,7 +24,8 @@ from ..lib.handler import Handler, items_per_page
 from ...lib import errors
 from ...lib import cert_utils
 from ...lib import letsencrypt_info
-from ...lib import utils as lib_utils
+from ...lib import utils
+from ...lib import utils_nginx
 from ...model import utils as model_utils
 
 
@@ -412,7 +413,7 @@ class ViewAdmin_Focus(Handler):
         ]
 
         # this will generate it's own log__SslOperationsEvent
-        success, dbEvent = lib.utils.nginx_expire_cache(
+        success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=dbDomains
         )
         if wants_json:
@@ -507,7 +508,7 @@ class ViewAdmin_Focus(Handler):
             event_type = model_utils.SslOperationsEventType.from_string(
                 "queue_renewal__update"
             )
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )
@@ -634,7 +635,7 @@ class ViewAdmin_Focus(Handler):
             )
 
             try:
-                event_payload_dict = lib_utils.new_event_payload_dict()
+                event_payload_dict = utils.new_event_payload_dict()
                 event_payload_dict["ssl_server_certificate.id"] = dbServerCertificate.id
                 dbEvent = lib_db.logger.log__SslOperationsEvent(
                     self.request.api_context,
@@ -727,7 +728,7 @@ class ViewAdmin_Focus(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["ssl_server_certificate.id"] = dbServerCertificate.id
             event_payload_dict["action"] = action
             event_type = model_utils.SslOperationsEventType.from_string(

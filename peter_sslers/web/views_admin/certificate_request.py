@@ -21,7 +21,7 @@ from ..lib.forms import Form_CertificateRequest_AcmeFlow_manage_domain
 from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated
 from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
 from ..lib.handler import Handler, items_per_page
-from ...lib import utils as lib_utils
+from ...lib import utils
 from ...lib import errors
 from ...model import utils as model_utils
 from ...model import objects as model_objects
@@ -300,9 +300,7 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib_utils.domains_from_string(
-                formStash.results["domain_names"]
-            )
+            domain_names = utils.domains_from_string(formStash.results["domain_names"])
             if not domain_names:
                 raise ValueError("missing valid domain names")
             (
@@ -361,7 +359,7 @@ class ViewAdmin_New(Handler):
                 raise formhandling.FormInvalid()
 
             try:
-                domain_names = lib_utils.domains_from_string(
+                domain_names = utils.domains_from_string(
                     formStash.results["domain_names"]
                 )
             except ValueError as exc:

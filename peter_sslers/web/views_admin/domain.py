@@ -19,7 +19,8 @@ from ..lib import text as lib_text
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_search
 from ..lib.handler import Handler, items_per_page
-from ...lib import utils as lib_utils
+from ...lib import utils
+from ...lib import utils_nginx
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 
@@ -247,7 +248,7 @@ class ViewAdmin_Focus(Handler):
         dbDomain = self._focus(eagerload_web=True)
         if not self.request.registry.settings["enable_nginx"]:
             raise HTTPSeeOther("%s?error=no_nginx" % self._focus_url)
-        success, dbEvent = lib.utils.nginx_expire_cache(
+        success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=[dbDomain]
         )
         if wants_json:
@@ -446,7 +447,7 @@ class ViewAdmin_Focus(Handler):
 
             action = formStash.results["action"]
             event_type = model_utils.SslOperationsEventType.from_string("domain__mark")
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["domain_id"] = dbDomain.id
             event_payload_dict["action"] = action
             event_status = False

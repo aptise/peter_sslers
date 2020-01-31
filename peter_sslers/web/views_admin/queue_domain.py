@@ -21,7 +21,7 @@ from ..lib import text as lib_text
 from ..lib.forms import Form_QueueDomain_mark
 from ..lib.forms import Form_QueueDomains_add
 from ..lib.handler import Handler, items_per_page
-from ...lib import utils as lib_utils
+from ...lib import utils
 from ...lib import errors
 from ...model import utils as model_utils
 
@@ -151,9 +151,7 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            domain_names = lib_utils.domains_from_string(
-                formStash.results["domain_names"]
-            )
+            domain_names = utils.domains_from_string(formStash.results["domain_names"])
             if not domain_names:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
@@ -278,7 +276,7 @@ class ViewAdmin_Focus(Handler):
             event_type = model_utils.SslOperationsEventType.from_string(
                 "queue_domain__mark"
             )
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["ssl_queue_domain.id"] = dbQueueDomain.id
             event_payload_dict["action"] = formStash.results["action"]
 

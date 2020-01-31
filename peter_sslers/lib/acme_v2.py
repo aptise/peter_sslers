@@ -499,14 +499,14 @@ class AuthenticatedUser(object):
         handle_keyauth_cleanup=None,  # callable; expects (domain, token, keyauthorization)
     ):
         log.info("acme_v2 acme_handle_order_authorizations...")
-       
+
         _order_status = acmeOrder.api_object["status"]
         if _order_status != "pending":
             raise ValueError("unsure how to handle this status: `%s`" % _order_status)
-            
+
         # verify each domain
         for authorization_url in acmeOrder.api_object["authorizations"]:
-        
+
             # in v1, we know the domain before the authorization request
             # in v2, we hit an order's authorization url to get the domain
             (authorization_response, _, _) = self._send_signed_request(
@@ -514,7 +514,7 @@ class AuthenticatedUser(object):
             )
             domain = authorization_response["identifier"]["value"]
             log.info("acme_v2 Verifying {0}...".format(domain))
-            
+
             """
             https://tools.ietf.org/html/rfc8555#section-7.1.4
 
@@ -551,10 +551,10 @@ class AuthenticatedUser(object):
             """
             _authorization_status = authorization_response["status"]
             _todo_complete_challenge = None
-            if _authorization_status == 'pending':
+            if _authorization_status == "pending":
                 # we need to run the authorization
                 _todo_complete_challenge = True
-            elif _authorization_status == 'valid':
+            elif _authorization_status == "valid":
                 # noting to do, one or more challenges is valid
                 _todo_complete_challenge = False
             elif _authorization_status == "invalid":
@@ -570,8 +570,10 @@ class AuthenticatedUser(object):
                 # this failed once, we need to auth again?
                 _todo_complete_challenge = True
             else:
-                raise ValueError("unexpected authorization status: `%s`" % _authorization_status)
-            
+                raise ValueError(
+                    "unexpected authorization status: `%s`" % _authorization_status
+                )
+
             if not _todo_complete_challenge:
                 # short-circuit out of completing the challenge
                 continue
@@ -625,7 +627,7 @@ class AuthenticatedUser(object):
             """
             _challenge_status = challenge["status"]
             _todo_complete_challenge = None
-            
+
             if _challenge_status == "pending":
                 _todo_complete_challenge = True
             elif _challenge_status == "processing":
@@ -638,7 +640,9 @@ class AuthenticatedUser(object):
                 # we may need to trigger again?
                 _todo_complete_challenge = True
             else:
-                raise ValueError("unexpected challenge status: `%s`" % _challenge_status)
+                raise ValueError(
+                    "unexpected challenge status: `%s`" % _challenge_status
+                )
 
             if _todo_complete_challenge:
                 token = re.sub(r"[^A-Za-z0-9_\-]", "_", challenge["token"])
@@ -648,7 +652,9 @@ class AuthenticatedUser(object):
                 sslAcmeChallengeLog.set__challenge("http-01", keyauthorization)
 
                 # update the db; this should be integrated with the above
-                wellknown_path = handle_keyauth_challenge(domain, token, keyauthorization)
+                wellknown_path = handle_keyauth_challenge(
+                    domain, token, keyauthorization
+                )
                 wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
                     domain, token
                 )

@@ -4,12 +4,13 @@ import logging
 log = logging.getLogger(__name__)
 
 # localapp
-from ... import lib  # from . import db?
 from .. import utils
 from ....lib import cert_utils
-from ....lib import utils as lib_utils
+from ....lib import utils
 from ....model import utils as model_utils
 from ....model import objects as model_objects
+
+from ... import lib  # from . import db?
 
 # local
 from .logger import log__SslOperationsEvent
@@ -52,7 +53,7 @@ def create__SslCertificateRequest(
             "certificate_request__new__automated"
         )
 
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx, _event_type_id)
 
     # if there is a csr_pem; extract the domains
@@ -70,7 +71,7 @@ def create__SslCertificateRequest(
             _csr_domain_names = cert_utils.parse_csr_domains(
                 csr_path=_tmpfile.name, submitted_domain_names=domain_names
             )
-            csr_domain_names = lib_utils.domains_from_list(_csr_domain_names)
+            csr_domain_names = utils.domains_from_list(_csr_domain_names)
             if len(csr_domain_names) != len(_csr_domain_names):
                 raise ValueError(
                     "One or more of the domain names in the CSR are not allowed (%s)"
@@ -97,7 +98,7 @@ def create__SslCertificateRequest(
                         "Must submit `csr_pem` that matches submitted `domain_names`"
                     )
             else:
-                domain_names = lib_utils.domains_from_list(domain_names)
+                domain_names = utils.domains_from_list(domain_names)
 
         if not domain_names:
             raise ValueError("We have no domains")
@@ -171,7 +172,7 @@ def create__SslCertificateRequest(
         t_now = ctx.timestamp
 
         csr_pem = cert_utils.cleanup_pem_text(csr_pem)
-        csr_pem_md5 = lib_utils.md5_text(csr_pem)
+        csr_pem_md5 = utils.md5_text(csr_pem)
 
         # store the csr_text in a tmpfile
         _tmpfile = cert_utils.new_pem_tempfile(csr_pem)
@@ -203,7 +204,7 @@ def create__SslCertificateRequest(
         dbCertificateRequest.certificate_request_type_id = certificate_request_type_id
         dbCertificateRequest.timestamp_started = t_now
         dbCertificateRequest.csr_pem = csr_pem
-        dbCertificateRequest.csr_pem_md5 = lib_utils.md5_text(csr_pem)
+        dbCertificateRequest.csr_pem_md5 = utils.md5_text(csr_pem)
         dbCertificateRequest.csr_pem_modulus_md5 = csr_pem_modulus_md5
         dbCertificateRequest.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
         dbCertificateRequest.ssl_operations_event_id__created = dbOperationsEvent.id
@@ -318,7 +319,7 @@ def create__SslServerCertificate(
     ssl_ca_certificate_id__upchain = dbCACertificate.id
 
     # bookkeeping
-    event_payload_dict = lib_utils.new_event_payload_dict()
+    event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx, model_utils.SslOperationsEventType.from_string("certificate__insert")
     )
@@ -347,7 +348,7 @@ def create__SslServerCertificate(
 
         dbServerCertificate.is_active = is_active
         dbServerCertificate.cert_pem = cert_pem
-        dbServerCertificate.cert_pem_md5 = lib_utils.md5_text(cert_pem)
+        dbServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
         if dbCertificateRequest:
             dbCertificateRequest.is_active = False
             dbServerCertificate.ssl_certificate_request_id = dbCertificateRequest.id

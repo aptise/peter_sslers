@@ -20,7 +20,7 @@ from ..lib.forms import Form_PrivateKey_mark
 from ..lib.forms import Form_PrivateKey_new__file
 from ..lib.handler import Handler, items_per_page
 from ...lib import cert_utils
-from ...lib import utils as lib_utils
+from ...lib import utils
 from ...model import utils as model_utils
 
 
@@ -232,7 +232,7 @@ class ViewAdmin_Focus(Handler):
             event_type = model_utils.SslOperationsEventType.from_string(
                 "private_key__mark"
             )
-            event_payload_dict = lib_utils.new_event_payload_dict()
+            event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["ssl_private_key.id"] = dbPrivateKey.id
             event_payload_dict["action"] = formStash.results["action"]
 
