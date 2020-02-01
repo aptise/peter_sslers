@@ -1,4 +1,4 @@
-from . import db as lib_db
+from ...lib import db as lib_db
 from ...model import utils as model_utils
 
 

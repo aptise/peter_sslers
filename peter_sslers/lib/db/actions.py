@@ -14,17 +14,16 @@ import transaction
 from zope.sqlalchemy import mark_changed
 
 # localapp
+from ... import lib  # Todo: only here for `lib.db`
+from .. import acme_v2
+from .. import cert_utils
+from .. import letsencrypt_info
+from .. import events
+from .. import errors
 from .. import utils
-from ... import lib
-from ....lib import acme_v2
-from ....lib import cert_utils
-from ....lib import letsencrypt_info
-from ....lib import events
-from ....lib import errors
-from ....lib import utils
-from ....lib import utils_certbot as utils_certbot
-from ....model import utils as model_utils
-from ....model import objects as model_objects
+from .. import utils_certbot as utils_certbot
+from ...model import utils as model_utils
+from ...model import objects as model_objects
 
 # local
 from .logger import AcmeLogger
@@ -158,7 +157,7 @@ def do__SslAcmeAccountKey_AcmeV1_authenticate(
     2016.06.04 - dbOperationsEvent compliant
     """
     raise ValueError("ACME v1 is no longer supported")
-    from ....lib import acme_v1
+    from .. import acme_v1
 
     _tmpfile = None
     try:
@@ -234,7 +233,7 @@ def do__CertificateRequest__AcmeV1_Automated(
 
     """
     raise ValueError("ACME v1 is no longer supported")
-    from ....lib import acme_v1
+    from .. import acme_v1
 
     if not dbAccountKey:
         raise ValueError("Must submit `dbAccountKey`")
@@ -657,7 +656,7 @@ def do__CertificateRequest__AcmeV2_Automated(
             elif _order_status == "processing":
                 # The certificate is being issued.
                 # Send a POST-as-GET request after the time given in the Retry-After header field of the response, if any.
-                # TODO: Post-as-GET this semi-completed order
+                # TODO: Post-as-GET this semi-completed order
                 raise ValueError("todo: download")
             elif _order_status == "valid":
                 # The server has issued the certificate and provisioned its URL to the "certificate" field of the order

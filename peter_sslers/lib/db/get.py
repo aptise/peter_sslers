@@ -10,10 +10,10 @@ import datetime
 import sqlalchemy
 
 # localapp
-from ....lib import cert_utils
-from ....lib import utils
-from ....model import utils as model_utils
-from ....model import objects as model_objects
+from .. import cert_utils
+from .. import utils
+from ...model import utils as model_utils
+from ...model import objects as model_objects
 
 
 EVENTS_USE_ALT = True

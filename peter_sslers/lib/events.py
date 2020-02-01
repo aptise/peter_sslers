@@ -10,7 +10,7 @@ log.setLevel(logging.INFO)
 
 
 # local
-from ..web import lib
+from .. import lib
 
 
 # ==============================================================================

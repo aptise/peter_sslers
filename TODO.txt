@@ -4,11 +4,11 @@ Not Finished Yet
 Almost done:
 ------------
 * acme2 support  [2020.01.30]
-** served as fullchain, must split out.
+* these tests fail on a full suite, but pass individually.
+	test_focus (peter_sslers.tests.FunctionalTests_Certificate) ... FAIL
+	test_manipulate (peter_sslers.tests.FunctionalTests_Certificate) ... FAIL
+* a few pyramid-centric lines of code exist in the global lib. they have to do with 'request.registry.settings.
 
-* move more files to /lib from the pyramid app. these have some pyramid specific items in them, which must be refactored out
-** /web/lib/db
-** /web/lib/utils
 
 
 asap tasks

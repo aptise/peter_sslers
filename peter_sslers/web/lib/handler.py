@@ -6,7 +6,7 @@ import pypages
 
 # localapp
 from . import text
-from . import db
+from ...lib import db
 
 
 # ==============================================================================

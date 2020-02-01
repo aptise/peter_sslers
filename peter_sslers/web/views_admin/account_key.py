@@ -13,7 +13,6 @@ import sqlalchemy
 
 # localapp
 from .. import lib
-from ..lib import db as lib_db
 from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.forms import Form_AccountKey_new__file
@@ -21,6 +20,7 @@ from ..lib.forms import Form_AccountKey_mark
 from ..lib.form_utils import AccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
 from ...lib import cert_utils
+from ...lib import db as lib_db
 from ...lib import utils
 from ...model import utils as model_utils
 

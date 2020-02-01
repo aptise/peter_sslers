@@ -22,10 +22,8 @@ import re
 
 # local
 from .web import main
-from .web import lib
-from .web.lib import db  # lib.db doesn't work
-
-from .lib import cert_utils  # for override
+from .lib import cert_utils
+from .lib import db
 from .lib import utils
 
 from .model import meta as model_meta
@@ -256,7 +254,7 @@ class UnitTestCSR(AppTestCore):
         dbAccountKey = (None,)
         dbPrivateKey = (None,)
         private_key_pem = (None,)
-        result = lib.db.actions.do__CertificateRequest__AcmeV2_Automated(
+        result = db.actions.do__CertificateRequest__AcmeV2_Automated(
             ctx,
             domain_names,
             dbAccountKey=None,
@@ -456,7 +454,7 @@ class AppTest(AppTestCore):
                 # queue a domain
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
-                lib.db.queues.queue_domains__add(self.ctx, ["queue.example.com"])
+                db.queues.queue_domains__add(self.ctx, ["queue.example.com"])
                 self.ctx.dbSession.commit()
 
                 # renew a csr
@@ -466,10 +464,10 @@ class AppTest(AppTestCore):
                     "queue_renewal__update"
                 )
                 event_payload_dict = utils.new_event_payload_dict()
-                dbOperationsEvent = lib.db.logger.log__SslOperationsEvent(
+                dbOperationsEvent = db.logger.log__SslOperationsEvent(
                     self.ctx, event_type, event_payload_dict
                 )
-                dbQueue = lib.db.create._create__SslQueueRenewal(self.ctx, _cert_1)
+                dbQueue = db.create._create__SslQueueRenewal(self.ctx, _cert_1)
                 self.ctx.dbSession.commit()
 
             except Exception as exc:

@@ -10,9 +10,8 @@ from pyramid.view import view_config
 import datetime
 
 # localapp
-from .. import lib
-from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
+from ...lib import db as lib_db
 
 
 # ==============================================================================

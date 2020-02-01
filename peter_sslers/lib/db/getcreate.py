@@ -9,10 +9,10 @@ import json
 # localapp
 from .. import utils
 from ... import lib
-from ....lib import cert_utils
-from ....lib import utils
-from ....model import utils as model_utils
-from ....model import objects as model_objects
+from .. import cert_utils
+from .. import utils
+from ...model import utils as model_utils
+from ...model import objects as model_objects
 
 # local
 from .get import get__SslCaCertificate__by_pem_text

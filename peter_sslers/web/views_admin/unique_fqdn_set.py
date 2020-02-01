@@ -14,10 +14,10 @@ import transaction
 
 # localapp
 from .. import lib
-from ..lib import db as lib_db
 from ..lib.handler import Handler, items_per_page
 from ...model import utils as model_utils
 from ...model import objects as model_objects
+from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
 

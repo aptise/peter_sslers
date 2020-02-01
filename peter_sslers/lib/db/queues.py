@@ -12,11 +12,10 @@ import transaction
 
 # localapp
 from ... import lib
+from .. import errors
 from .. import utils
-from ....lib import errors
-from ....lib import utils
-from ....model import utils as model_utils
-from ....model import objects as model_objects
+from ...model import utils as model_utils
+from ...model import objects as model_objects
 
 # local
 from .logger import log__SslOperationsEvent
@@ -150,6 +149,11 @@ def _get_default_AccountKey(ctx):
 def _get_default_PrivateKey(ctx):
     # raises an error if we fail
     # which private-key should we use?
+
+    if not ctx.request:
+        # ToDo: refactor `ctx.request.registry.settings`
+        raise ValueError("must be invoked within Pyramid")
+
     use_weekly_key = ctx.request.registry.settings["queue_domains_use_weekly_key"]
     if use_weekly_key:
         dbPrivateKey = lib.db.get.get__SslPrivateKey__current_week(ctx)
@@ -172,6 +176,10 @@ def queue_domains__process(ctx, dbAccountKey=None, dbPrivateKey=None):
     * if there are more than 100, should we process them, or return that info in json?
 
     """
+    if not ctx.request:
+        # ToDo: refactor `ctx.request.registry.settings`
+        raise ValueError("must be invoked within Pyramid")
+
     if dbAccountKey is None:
         # raises an error if we fail
         dbAccountKey = _get_default_AccountKey(ctx)

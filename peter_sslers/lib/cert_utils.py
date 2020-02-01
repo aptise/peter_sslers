@@ -25,7 +25,9 @@ from dateutil import parser as dateutil_parser
 # localapp
 from . import errors
 from . import utils
-from .. import lib
+from .. import (
+    lib,
+)  # only here to access `lib.letsencrypt_info` without a circular import
 
 # ==============================================================================
 

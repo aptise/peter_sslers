@@ -8,7 +8,7 @@ Peter SSLers *or how i stopped worrying and learned to love the ssl certificate*
 What's in the box ?
 
 * SSL Certificate Manager
-* ACME v2 client for LetsEncrypt Certificate Authority
+* ACME V2 Client for LetsEncrypt Certificate Authority
 * OpenResty Lua module for Dynamic SSL Certificate Handling on the Nginx webserver
 
 THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
@@ -19,9 +19,12 @@ This package is *not* aimed at casual or single-site users.  This package is *no
 
 Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
 
-Peter combines an ACME v2 client designed to operate against the LetsEncrypt service, alongside tools designed to manage & deploy certificates.
+Peter combines an ACME V2 Client designed to operate against the LetsEncrypt service, alongside tools designed to manage & deploy certificates.
 
-The client supported ACME v1 until version `0.4.0`. Only ACME v2 is currently supported.
+The client supported ACME v1 until version `0.4.0`. 
+
+**Only ACME V2 is now supported.**
+**Only LetsEncrypt is supported as a target ACME Server.**
 
 Peter's core tool is a lightweight database-backed `Pyramid` application that can:
 

@@ -7,9 +7,9 @@ log = logging.getLogger(__name__)
 import datetime
 
 # localapp
-from ....lib import utils
-from ....model import utils as model_utils
-from ....model import objects as model_objects
+from .. import utils
+from ...model import utils as model_utils
+from ...model import objects as model_objects
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

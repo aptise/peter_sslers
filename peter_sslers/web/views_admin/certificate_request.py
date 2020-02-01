@@ -13,7 +13,6 @@ import sqlalchemy
 
 # localapp
 from .. import lib
-from ..lib import db as lib_db
 from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib import text as lib_text
@@ -21,8 +20,9 @@ from ..lib.forms import Form_CertificateRequest_AcmeFlow_manage_domain
 from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated
 from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
 from ..lib.handler import Handler, items_per_page
-from ...lib import utils
+from ...lib import db as lib_db
 from ...lib import errors
+from ...lib import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 
