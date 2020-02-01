@@ -8,6 +8,7 @@ Almost done:
 	test_focus (peter_sslers.tests.FunctionalTests_Certificate) ... FAIL
 	test_manipulate (peter_sslers.tests.FunctionalTests_Certificate) ... FAIL
 * a few pyramid-centric lines of code exist in the global lib. they have to do with 'request.registry.settings.
+* Python3 tests
 
 
 
