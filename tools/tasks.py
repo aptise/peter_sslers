@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from invoke import Collection, run, task
+from invoke import Collection, task
 
 import os
 import os.path
