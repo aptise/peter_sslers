@@ -390,6 +390,7 @@ def do__CertificateRequest__AcmeV1_Automated(
         # so we don't need to handle this or save it
         tmpfile_signed_cert = cert_utils.new_pem_tempfile(cert_pem)
         tmpfiles.append(tmpfile_signed_cert)
+
         cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
         if set(domain_names) != set(cert_domains):
             # if not acme_v1.TESTING_ENVIRONMENT:

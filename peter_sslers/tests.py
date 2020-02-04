@@ -212,7 +212,7 @@ class AppTestCore(unittest.TestCase):
         return data
 
     def setUp(self):
-        settings = get_appsettings("test.ini", name="main")
+        settings = get_appsettings("test.ini", name="main")  # this can cause an unclosed resource
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
         if False:
             settings["sqlalchemy.url"] = "sqlite://"
@@ -225,46 +225,6 @@ class AppTestCore(unittest.TestCase):
     def tearDown(self):
         if self.testapp_http is not None:
             self.testapp_http.shutdown()
-
-
-class UnitTestOpenSSL(AppTestCore):
-    """python -m unittest peter_sslers.tests.UnitTestOpenSSL"""
-
-    def test_modulus_PrivateKey(self):
-        for pkey_set_id, set_data in TEST_FILES["PrivateKey"].items():
-            pem_filepath = self._filepath_testfile(set_data["file"])
-            _computed_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(
-                pem_filepath
-            )
-            _expected_modulus_md5 = set_data["key_pem_modulus_md5"]
-            assert _computed_modulus_md5 == _expected_modulus_md5
-            _computed_md5 = utils.md5_text(self._filedata_testfile(pem_filepath))
-            _expected_md5 = set_data["key_pem_md5"]
-            assert _computed_md5 == _expected_md5
-
-
-class UnitTestCSR(AppTestCore):
-    """python -m unittest peter_sslers.tests.UnitTestCSR"""
-
-    def test_AcmeV2_Automated(self):
-        """
-        test some flows that trigger different challenge/auth scenarios
-        """
-        raise ValueError("test this")
-        ctx = ""
-        domain_names = TEST_FILES["CertificateRequests"]["1"]["domains"]
-        dbAccountKey = (None,)
-        dbPrivateKey = (None,)
-        private_key_pem = (None,)
-        result = db.actions.do__CertificateRequest__AcmeV2_Automated(
-            ctx,
-            domain_names,
-            dbAccountKey=None,
-            dbPrivateKey=None,
-            private_key_pem=None,
-            dbServerCertificate__renewal_of=None,
-            dbQueueRenewal__of=None,
-        )
 
 
 class AppTest(AppTestCore):
@@ -505,6 +465,46 @@ class AppTest(AppTestCore):
             )
         return self._ctx
 
+
+class UnitTestOpenSSL(AppTestCore):
+    """python -m unittest peter_sslers.tests.UnitTestOpenSSL"""
+
+    def test_modulus_PrivateKey(self):
+        for pkey_set_id, set_data in TEST_FILES["PrivateKey"].items():
+            pem_filepath = self._filepath_testfile(set_data["file"])
+            _computed_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(
+                pem_filepath
+            )
+            _expected_modulus_md5 = set_data["key_pem_modulus_md5"]
+            assert _computed_modulus_md5 == _expected_modulus_md5
+            _computed_md5 = utils.md5_text(self._filedata_testfile(pem_filepath))
+            _expected_md5 = set_data["key_pem_md5"]
+            assert _computed_md5 == _expected_md5
+
+
+class UnitTestCSR(AppTestCore):
+    """python -m unittest peter_sslers.tests.UnitTestCSR"""
+
+    def test_AcmeV2_Automated(self):
+        """
+        test some flows that trigger different challenge/auth scenarios
+        """
+        raise ValueError("test this")
+        ctx = ""
+        domain_names = TEST_FILES["CertificateRequests"]["1"]["domains"]
+        dbAccountKey = (None,)
+        dbPrivateKey = (None,)
+        private_key_pem = (None,)
+        result = db.actions.do__CertificateRequest__AcmeV2_Automated(
+            ctx,
+            domain_names,
+            dbAccountKey=None,
+            dbPrivateKey=None,
+            private_key_pem=None,
+            dbServerCertificate__renewal_of=None,
+            dbQueueRenewal__of=None,
+        )
+        
 
 class FunctionalTests_Main(AppTest):
     """
@@ -976,8 +976,10 @@ class FunctionalTests_Certificate(AppTest):
     def test_focus(self):
         focus_item = self._get_item()
         if focus_item is None:
-            pdb.set_trace()
-        assert focus_item is not None
+            raise ValueError("""This test currently fails when the ENTIRE SUITE is run """
+                             """because `FunctionalTests_API.tests_manipulate` will """
+                             """deactivate the certificate. Try running this test or """
+                             """this tests's class directly to ensure a pass.""")
         focus_id = focus_item.id
 
         res = self.testapp.get(
@@ -1849,8 +1851,12 @@ class FunctionalTests_Operations(AppTest):
         )
 
 
-class FunctionalTests_API(AppTest):
-    """python -m unittest peter_sslers.tests.FunctionalTests_API"""
+class ZZZ_FunctionalTests_API(AppTest):
+    """python -m unittest peter_sslers.tests.ZZZ_FunctionalTests_API"""
+    """this is prefixed `ZZZ_` so it runs last. 
+    When run, some API endpoints will deactivate the test certificates – which will
+    cause other tests to fail.
+    """
 
     def tests_passive(self):
         res = self.testapp.get("/.well-known/admin/api", status=200)

@@ -28,7 +28,7 @@ class OnlyOneOf(FormValidator):
         "invalid": _("You may submit only one of these linked fields."),
     }
 
-    def _to_python(self, value_dict, state):
+    def _convert_to_python(self, value_dict, state):
         is_empty = self.field_is_empty
         presence = [not is_empty(value_dict.get(field)) for field in self.only_one_ofs]
         total_present = presence.count(True)
