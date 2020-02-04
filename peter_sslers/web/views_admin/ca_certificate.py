@@ -9,6 +9,7 @@ from pyramid.httpexceptions import HTTPSeeOther
 import datetime
 
 # pypi
+import six
 import sqlalchemy
 
 # localapp
@@ -213,6 +214,10 @@ class ViewAdmin_New(Handler):
                 raise formhandling.FormInvalid()
 
             chain_pem = formStash.results["chain_file"].file.read()
+            if six.PY3:
+                if not isinstance(chain_pem, str):
+                    chain_pem = chain_pem.decode("utf8")
+
             chain_file_name = formStash.results["chain_file_name"] or "manual upload"
             (
                 dbCaCertificate,
@@ -310,20 +315,33 @@ class ViewAdmin_New(Handler):
                 bundle_data["isrgrootx1_pem"] = formStash.results[
                     "isrgrootx1_file"
                 ].file.read()
+                if six.PY3:
+                    if not isinstance(bundle_data["isrgrootx1_pem"], str):
+                        bundle_data["isrgrootx1_pem"] = bundle_data[
+                            "isrgrootx1_pem"
+                        ].decode("utf8")
 
             for xi in letsencrypt_info.CA_CROSS_SIGNED_X:
-                bundle_data["le_%s_cross_signed_pem" % xi] = None
+                _bd_key = "le_%s_cross_signed_pem" % xi
+                bundle_data[_bd_key] = None
                 if formStash.results["le_%s_cross_signed_file" % xi] is not None:
-                    bundle_data["le_%s_cross_signed_pem" % xi] = formStash.results[
+                    bundle_data[_bd_key] = formStash.results[
                         "le_%s_cross_signed_file" % xi
                     ].file.read()
+                    if six.PY3:
+                        if not isinstance(bundle_data[_bd_key], str):
+                            bundle_data[_bd_key] = bundle_data[_bd_key].decode("utf8")
 
             for xi in letsencrypt_info.CA_AUTH_X:
-                bundle_data["le_%s_auth_pem" % xi] = None
+                _bd_key = "le_%s_auth_pem" % xi
+                bundle_data[_bd_key] = None
                 if formStash.results["le_%s_auth_file" % xi] is not None:
-                    bundle_data["le_%s_auth_pem" % xi] = formStash.results[
+                    bundle_data[_bd_key] = formStash.results[
                         "le_%s_auth_file" % xi
                     ].file.read()
+                    if six.PY3:
+                        if not isinstance(bundle_data[_bd_key], str):
+                            bundle_data[_bd_key] = bundle_data[_bd_key].decode("utf8")
 
             bundle_data = dict([i for i in bundle_data.items() if i[1]])
 

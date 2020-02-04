@@ -294,7 +294,7 @@ def do__CertificateRequest__AcmeV1_Automated(
 
         # make the CSR
         csr_pem = cert_utils.new_csr_for_domain_names(
-            domain_names, private_key_path=tmpfile_pkey.name, tmpfiles_tracker=tmpfiles
+            domain_names, private_key_path=tmpfile_pkey.name
         )
         tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
         tmpfiles.append(tmpfile_csr)
@@ -551,7 +551,7 @@ def do__CertificateRequest__AcmeV2_Automated(
 
         # make the CSR
         csr_pem = cert_utils.new_csr_for_domain_names(
-            domain_names, private_key_path=tmpfile_pkey.name, tmpfiles_tracker=tmpfiles
+            domain_names, private_key_path=tmpfile_pkey.name
         )
         tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
         tmpfiles.append(tmpfile_csr)
@@ -954,8 +954,10 @@ def operations_update_recents(ctx):
         )
         .order_by(model_objects.SslServerCertificate.timestamp_expires.desc())
         .limit(1)
-        .scalar_subquery()
+        .subquery()
+        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
+
     ctx.dbSession.execute(
         model_objects.SslDomain.__table__.update().values(
             ssl_server_certificate_id__latest_single=_q_sub
@@ -979,7 +981,8 @@ def operations_update_recents(ctx):
         )
         .order_by(model_objects.SslServerCertificate.timestamp_expires.desc())
         .limit(1)
-        .scalar_subquery()
+        .subquery()
+        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
         model_objects.SslDomain.__table__.update().values(
@@ -1010,7 +1013,8 @@ def operations_update_recents(ctx):
                 == SslServerCertificate2.ssl_ca_certificate_id__upchain,
             )
         )
-        .scalar_subquery()
+        .subquery()
+        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
         model_objects.SslCaCertificate.__table__.update().values(
@@ -1041,7 +1045,8 @@ def operations_update_recents(ctx):
                 == SslServerCertificate2.ssl_private_key_id__signed_by,
             )
         )
-        .scalar_subquery()
+        .subquery()
+        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
         model_objects.SslPrivateKey.__table__.update().values(
@@ -1055,7 +1060,7 @@ def operations_update_recents(ctx):
         _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslCertificateRequest.id))\
             .filter(model_objects.SslCertificateRequest.ssl_acme_account_key_id == model_objects.SslAcmeAccountKey.id,
                     )\
-            .scalar_subquery()
+            .subquery().as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
         ctx.dbSession.execute(model_objects.SslAcmeAccountKey.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
@@ -1066,11 +1071,11 @@ def operations_update_recents(ctx):
         _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslCertificateRequest.id))\
             .filter(model_objects.SslCertificateRequest.ssl_private_key_id__signed_by == model_objects.SslPrivateKey.id,
                     )\
-            .scalar_subquery()
+            .subquery().as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
         _q_sub_iss = ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslServerCertificate.id))\
             .filter(model_objects.SslServerCertificate.ssl_private_key_id__signed_by == model_objects.SslPrivateKey.id,
                     )\
-            .scalar_subquery()
+            .subquery().as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
 
         ctx.dbSession.execute(model_objects.SslPrivateKey.__table__
                               .update()

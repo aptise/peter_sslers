@@ -1,10 +1,15 @@
 from __future__ import print_function
 
+# stdlib
+import json
 import os
 import os.path
-import subprocess
-import json
 import pprint
+import six
+import subprocess
+
+# pypi
+import psutil
 
 
 # ==============================================================================
@@ -31,25 +36,27 @@ def upload_fileset(server_url_root, fset):
         server_url_root = server_url_root[:-1]
     url = "%s/certificate/upload.json" % server_url_root
 
-    proc = subprocess.Popen(
-        [
-            "curl",
-            "--form",
-            "private_key_file=@%s" % fset["private_key"],
-            "--form",
-            "certificate_file=@%s" % fset["certificate"],
-            "--form",
-            "chain_file=@%s" % fset["chain"],
-            url,
-        ],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    json_response, err = proc.communicate()
     try:
+        proc = psutil.Popen(
+            [
+                "curl",
+                "--form",
+                "private_key_file=@%s" % fset["private_key"],
+                "--form",
+                "certificate_file=@%s" % fset["certificate"],
+                "--form",
+                "chain_file=@%s" % fset["chain"],
+                url,
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        json_response, err = proc.communicate()
         if not json_response:
             raise ValueError("error")
+        if six.PY3:
+            json_response = json_response.decode("utf8")
         json_response = json.loads(json_response)
         if ("result" not in json_response) or (json_response["result"] != "success"):
             pprint.pprint(json_response)
@@ -58,6 +65,8 @@ def upload_fileset(server_url_root, fset):
             print("success | %s" % json_response)
     except Exception as exc:
         raise
+    finally:
+        proc.kill()
 
 
 def upload_account(server_url_root, fset):
@@ -66,25 +75,27 @@ def upload_account(server_url_root, fset):
         server_url_root = server_url_root[:-1]
     url = "%s/account-key/upload.json" % server_url_root
 
-    proc = subprocess.Popen(
-        [
-            "curl",
-            "--form",
-            "account_key_file_le_pkey=@%s" % fset["private_key.json"],
-            "--form",
-            "account_key_file_le_meta=@%s" % fset["meta.json"],
-            "--form",
-            "account_key_file_le_reg=@%s" % fset["regr.json"],
-            url,
-        ],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    json_response, err = proc.communicate()
     try:
+        proc = psutil.Popen(
+            [
+                "curl",
+                "--form",
+                "account_key_file_le_pkey=@%s" % fset["private_key.json"],
+                "--form",
+                "account_key_file_le_meta=@%s" % fset["meta.json"],
+                "--form",
+                "account_key_file_le_reg=@%s" % fset["regr.json"],
+                url,
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        json_response, err = proc.communicate()
         if not json_response:
             raise ValueError("error")
+        if six.PY3:
+            json_response = json_response.decode("utf8")
         json_response = json.loads(json_response)
         if ("result" not in json_response) or (json_response["result"] != "success"):
             pprint.pprint(json_response)
@@ -93,6 +104,8 @@ def upload_account(server_url_root, fset):
             print("success | %s" % json_response)
     except Exception as exc:
         raise
+    finally:
+        proc.kill()
 
 
 def import_letsencrypt_certs_archive(archive_path, server_url_root):

@@ -227,7 +227,7 @@ class ViewAdminMain(Handler):
                     )
 
         query_args = urlencode(q_query_args)
-        for k in results.keys():
+        for k in list(results.keys()):
             if results[k]["count"] and results[k]["items"]:
                 if (len(results[k]["items"]) + offset) < results[k]["count"]:
                     results[k]["next"] = "%s/search?show_only=%s&%s" % (

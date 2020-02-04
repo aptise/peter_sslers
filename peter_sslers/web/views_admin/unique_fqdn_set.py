@@ -255,13 +255,13 @@ class ViewAdmin(Handler):
 
         except errors.DisplayableError as exc:
             if wants_json:
-                return {"status": "error", "error": exc.message}
+                return {"status": "error", "error": str(exc)}
             url_failure = (
                 "%s/unique-fqdn-set/%s?operation=renewal&renewal_type=queue&error=%s&result=error"
                 % (
                     self.request.registry.settings["admin_prefix"],
                     dbUniqueFQDNSet.id,
-                    exc.message.replace(" ", "+"),
+                    str(exc).replace(" ", "+"),
                 )
             )
             raise HTTPSeeOther(url_failure)

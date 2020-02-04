@@ -336,7 +336,7 @@ class ViewAdmin_New(Handler):
 
     def _new_AcmeAutomated__print(self):
         active_ca = lib.acme_v2.CERTIFICATE_AUTHORITY
-        providers = model_utils.AcmeAccountProvider.registry.values()
+        providers = list(model_utils.AcmeAccountProvider.registry.values())
         return render_to_response(
             "/admin/certificate_request-new-AcmeAutomated.mako",
             {
@@ -407,7 +407,7 @@ class ViewAdmin_New(Handler):
                     "%s/certificate-requests?error=new-AcmeAutomated&message=%s"
                     % (
                         self.request.registry.settings["admin_prefix"],
-                        exc.message.replace("\n", "+").replace(" ", "+"),
+                        str(exc).replace("\n", "+").replace(" ", "+"),
                     )
                 )
             except Exception as exc:

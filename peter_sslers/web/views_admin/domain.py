@@ -506,6 +506,6 @@ class ViewAdmin_Focus(Handler):
             url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,
                 action,
-                exc.message,
+                str(exc),
             )
             raise HTTPSeeOther(url_failure)

@@ -9,6 +9,7 @@ from pyramid.httpexceptions import HTTPNotFound
 import datetime
 
 # pypi
+import six
 import sqlalchemy
 
 # localapp
@@ -220,6 +221,9 @@ class ViewAdmin_New(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formStash.results["private_key_file"].file.read()
+            if six.PY3:
+                if not isinstance(private_key_pem, str):
+                    private_key_pem = private_key_pem.decode("utf8")
             (
                 dbPrivateKey,
                 pkey_is_created,
@@ -228,6 +232,9 @@ class ViewAdmin_New(Handler):
             )
 
             chain_pem = formStash.results["chain_file"].file.read()
+            if six.PY3:
+                if not isinstance(chain_pem, str):
+                    chain_pem = chain_pem.decode("utf8")
             (
                 dbCaCertificate,
                 cacert_is_created,
@@ -236,6 +243,9 @@ class ViewAdmin_New(Handler):
             )
 
             certificate_pem = formStash.results["certificate_file"].file.read()
+            if six.PY3:
+                if not isinstance(certificate_pem, str):
+                    certificate_pem = certificate_pem.decode("utf8")
             (
                 dbServerCertificate,
                 cert_is_created,
@@ -460,7 +470,7 @@ class ViewAdmin_Focus(Handler):
                 errors.AcmeCommunicationError,
                 errors.DomainVerificationError,
             ) as exc:
-                raise errors.DisplayableError(exc.message)
+                raise errors.DisplayableError(str(exc))
 
             if wants_json:
                 return {
@@ -475,10 +485,10 @@ class ViewAdmin_Focus(Handler):
 
         except errors.DisplayableError as exc:
             if wants_json:
-                return {"status": "error", "error": exc.message}
+                return {"status": "error", "error": str(exc)}
             url_failure = (
                 "%s?operation=renewal&renewal_type=quick&error=%s&result=error"
-                % (self._focus_url, exc.message)
+                % (self._focus_url, str(exc))
             )
             raise HTTPSeeOther(url_failure)
 
@@ -532,10 +542,10 @@ class ViewAdmin_Focus(Handler):
 
         except errors.DisplayableError as exc:
             if wants_json:
-                return {"status": "error", "error": exc.message}
+                return {"status": "error", "error": str(exc)}
             url_failure = (
                 "%s?operation=renewal&renewal_type=queue&error=%s&result=error"
-                % (self._focus_url, exc.message)
+                % (self._focus_url, str(exc))
             )
             raise HTTPSeeOther(url_failure)
 
@@ -554,7 +564,7 @@ class ViewAdmin_Focus(Handler):
         return self._focus_renew_custom__print()
 
     def _focus_renew_custom__print(self):
-        providers = model_utils.AcmeAccountProvider.registry.values()
+        providers = list(model_utils.AcmeAccountProvider.registry.values())
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
@@ -658,7 +668,7 @@ class ViewAdmin_Focus(Handler):
             ) as exc:
                 return HTTPSeeOther(
                     "%s/certificate-requests?result=error&error=renew-acme-automated&message=%s"
-                    % (self.request.registry.settings["admin_prefix"], exc.message)
+                    % (self.request.registry.settings["admin_prefix"], str(exc))
                 )
             except Exception as exc:
                 if self.request.registry.settings["exception_redirect"]:
@@ -907,6 +917,6 @@ class ViewAdmin_Focus(Handler):
             url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,
                 action,
-                exc.message,
+                str(exc),
             )
             raise HTTPSeeOther(url_failure)

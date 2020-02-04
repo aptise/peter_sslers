@@ -3,6 +3,10 @@ unreleased (2020-01-23)
 - implement ACME v2
 - removed support for ACME v1
 - added `pyproject.yaml`
+- Python3 support
+	- most file usage moved to context managers
+	- subprocess.Popen replaced now wrapped in context manager
+	- subprocess.Popen replaced with psutil.Popen, which provides a contextmanger on python2
 
 
 0.3.0

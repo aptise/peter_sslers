@@ -3,6 +3,9 @@ import hashlib
 import logging
 import re
 
+# pypi
+import six
+
 
 # ==============================================================================
 
@@ -36,6 +39,9 @@ def domains_from_string(text):
 
 
 def md5_text(text):
+    if six.PY3:
+        if isinstance(text, str):
+            text = text.encode()
     return hashlib.md5(text).hexdigest()
 
 

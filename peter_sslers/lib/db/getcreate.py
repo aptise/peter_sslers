@@ -80,8 +80,7 @@ def getcreate__SslAcmeAccountKey(
                 key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(
                     _tmpfile.name
                 )
-            except Exception as exc:
-                raise
+
             finally:
                 _tmpfile.close()
 

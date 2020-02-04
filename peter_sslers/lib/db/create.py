@@ -254,7 +254,7 @@ def create__SslCertificateRequest(
         ctx.dbSession.flush(objects=[dbPrivateKey])
 
         # we'll use this tuple in a bit...
-        for _domain_name in dbDomainObjects.keys():
+        for _domain_name in list(dbDomainObjects.keys()):
             dbDomain = dbDomainObjects[_domain_name]
 
             dbCertificateRequest2SslDomain = (

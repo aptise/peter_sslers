@@ -197,15 +197,15 @@ class ViewAdmin_New(Handler):
             # return, don't raise
             # we still commit the bookkeeping
             if wants_json:
-                return {"result": "error", "error": exc.message}
+                return {"result": "error", "error": str(exc)}
             return HTTPSeeOther(
                 "%s/queue-domains?processed=0&error=%s"
-                % (self.request.registry.settings["admin_prefix"], exc.message)
+                % (self.request.registry.settings["admin_prefix"], str(exc))
             )
         except Exception as exc:
             transaction.abort()
             if wants_json:
-                return {"result": "error", "error": exc.message}
+                return {"result": "error", "error": str(exc)}
             raise
 
 
@@ -321,6 +321,6 @@ class ViewAdmin_Focus(Handler):
             url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,
                 action,
-                exc.message,
+                str(exc),
             )
             raise HTTPSeeOther(url_failure)

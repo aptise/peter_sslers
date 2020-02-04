@@ -19,22 +19,27 @@ usage:
         you can safely trash the generated certs
 """
 
+# stdlib
+import base64
+import binascii
+import datetime
+import json
+import os
+import pdb
+import subprocess
+import tempfile
+import textwrap
 
+# pypi
 from wsgiref.simple_server import make_server
 from pyramid.config import Configurator
 from pyramid.response import Response
+import psutil
 
-import datetime
-import base64
-import binascii
-import textwrap
-import pdb
-import json
-import tempfile
-import subprocess
-import os
-
+# local
 from peter_sslers.lib import cert_utils
+
+# ==============================================================================
 
 
 OPENSSL_BIN = "openssl"

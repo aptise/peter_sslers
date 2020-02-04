@@ -74,7 +74,7 @@ def form_validate(request, **kwargs):
         if PY2:
             # there is an issue in formencode under Python2
             # see: https://github.com/formencode/formencode/issues/132
-            for (k, v) in formStash.errors.items():
+            for (k, v) in list(formStash.errors.items()):
                 if " (not u'" in v:
                     formStash.errors[k] = v.replace(" (not u'", " (not '")
     formStash.html_error_main_template = TEMPLATE_FORMSTASH_ERRORS

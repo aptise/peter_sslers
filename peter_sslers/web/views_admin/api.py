@@ -6,11 +6,12 @@ from pyramid.httpexceptions import HTTPSeeOther
 
 # stdlib
 import datetime
+import json
 
 # pypi
+import six
 import sqlalchemy
 import transaction
-import json
 
 # localapp
 from .. import lib
@@ -201,6 +202,10 @@ class ViewAdmin(Handler):
             account_key_pem = None
             if formStash.results["account_key_file_pem"] is not None:
                 account_key_pem = formStash.results["account_key_file_pem"].file.read()
+                if six.PY3:
+                    if not isinstance(account_key_pem, str):
+                        account_key_pem = account_key_pem.decode("utf8")
+
             api_results = lib_db.actions.api_domains__certificate_if_needed(
                 self.request.api_context, domain_names, account_key_pem=account_key_pem
             )
@@ -209,7 +214,7 @@ class ViewAdmin(Handler):
         except (formhandling.FormInvalid, errors.DisplayableError) as exc:
             message = "There was an error with your form."
             if isinstance(exc, errors.DisplayableError):
-                message += " " + exc.message
+                message += " " + str(exc)
             return {"result": "error", "form_errors": formStash.errors}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -475,7 +480,7 @@ class ViewAdmin(Handler):
         except Exception as exc:
             transaction.abort()
             if wants_json:
-                return {"result": "error", "error": exc.message}
+                return {"result": "error", "error": str(exc)}
             raise
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -501,5 +506,5 @@ class ViewAdmin(Handler):
         except Exception as exc:
             transaction.abort()
             if wants_json:
-                return {"result": "error", "error": exc.message}
+                return {"result": "error", "error": str(exc)}
             raise

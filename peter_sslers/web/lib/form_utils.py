@@ -1,3 +1,7 @@
+# pypi
+import six
+
+# local
 from ...lib import db as lib_db
 from ...model import utils as model_utils
 
@@ -107,6 +111,10 @@ class AccountKeyUploadParser(object):
                 "account_key_file_le_reg"
             ].file.read()
 
+        if six.PY3:
+            for (k, v) in list(getcreate_args.items()):
+                if isinstance(v, bytes):
+                    getcreate_args[k] = v.decode("utf8")
         self.getcreate_args = getcreate_args
 
 

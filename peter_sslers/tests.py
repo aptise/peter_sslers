@@ -15,10 +15,10 @@ import sqlalchemy
 import datetime
 import json
 import os
-import pdb
 import sys
 import unittest
 import re
+from io import open  # overwrite `open` in Python2
 
 # local
 from .web import main
@@ -207,7 +207,9 @@ class AppTestCore(unittest.TestCase):
         return os.path.join(self._data_root, filename)
 
     def _filedata_testfile(self, filename):
-        return open(os.path.join(self._data_root, filename), "r").read()
+        with open(os.path.join(self._data_root, filename), "rt", encoding="utf-8") as f:
+            data = f.read()
+        return data
 
     def setUp(self):
         settings = get_appsettings("test.ini", name="main")
@@ -973,6 +975,8 @@ class FunctionalTests_Certificate(AppTest):
 
     def test_focus(self):
         focus_item = self._get_item()
+        if focus_item is None:
+            pdb.set_trace()
         assert focus_item is not None
         focus_id = focus_item.id
 

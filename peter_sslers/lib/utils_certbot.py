@@ -16,6 +16,6 @@ def cert_and_chain_from_fullchain(fullchain_pem):
     """
     cert = crypto.dump_certificate(
         crypto.FILETYPE_PEM, crypto.load_certificate(crypto.FILETYPE_PEM, fullchain_pem)
-    ).decode()
+    ).decode("utf8")
     chain = fullchain_pem[len(cert) :].lstrip()
     return (cert, chain)

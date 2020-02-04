@@ -118,13 +118,13 @@ def PrivateKey_compromised(ctx, privateKey, dbOperationsEvent=None):
             dbQueue = lib.db.create._create__SslQueueRenewal(ctx, serverCertificate)
 
     # okay, now try to requeue items
-    revoked_fqdns_ids = revoked_fqdn_ids_2_certs.keys()
+    revoked_fqdns_ids = list(revoked_fqdn_ids_2_certs.keys())
     result = lib.db.queues.queue_renewals__update(ctx, fqdns_ids_only=revoked_fqdns_ids)
 
     event_payload = dbOperationsEvent.event_payload_json
     event_payload["revoked.certificates"] = {
-        "active": revoked_certificates["active"].keys(),
-        "inactive": revoked_certificates["inactive"].keys(),
+        "active": list(revoked_certificates["active"].keys()),
+        "inactive": list(revoked_certificates["inactive"].keys()),
     }
     event_payload["revoked.fqdns_ids"] = revoked_fqdns_ids
     dbOperationsEvent.set_event_payload(event_payload)

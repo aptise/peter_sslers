@@ -131,7 +131,9 @@ def main(global_config, **settings):
             ] = ca_submitted_protocol
 
         # register the selected endpoint
-        for (ca_id, ca_record) in model_utils.AcmeAccountProvider.registry.items():
+        for (ca_id, ca_record) in list(
+            model_utils.AcmeAccountProvider.registry.items()
+        ):
             if ca_record["name"] == ca_submitted:
                 ca_record["is_default"] = True
                 ca_selected = ca_record

@@ -112,7 +112,7 @@ class ViewAdmin_New(Handler):
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
-        providers = model_utils.AcmeAccountProvider.registry.values()
+        providers = list(model_utils.AcmeAccountProvider.registry.values())
         return render_to_response(
             "/admin/account_key-upload.mako",
             {"AcmeAccountProviderOptions": providers},
@@ -473,6 +473,6 @@ class ViewAdmin_Focus(Handler):
             url_failure = "%s/operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,
                 action,
-                exc.message,
+                str(exc),
             )
             raise HTTPSeeOther(url_failure)

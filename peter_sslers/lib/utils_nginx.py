@@ -59,7 +59,7 @@ def nginx_flush_cache(request, ctx):
             status = {
                 "status": "error",
                 "error": "Exception",
-                "Exception": "%s" % exc.message,  # this could be an object
+                "Exception": "%s" % str(exc),  # this could be an object
             }
         rval["servers"][_server] = status
     dbEvent = lib.db.logger.log__SslOperationsEvent(
@@ -99,7 +99,7 @@ def nginx_status(request, ctx):
             status = {
                 "status": "error",
                 "error": "Exception",
-                "Exception": "%s" % exc.message,  # this could be an object
+                "Exception": "%s" % str(exc),  # this could be an object
             }
         rval["servers"][_server] = status
     return rval

@@ -57,6 +57,7 @@ Which should look something like this...
 
 Good to go?  Ok, run pebble!
 
+	cd $GOPATH/src/github.com/letsencrypt/pebble
     pebble -config ./test/config/pebble-config.json
 
 To have all challenge POST requests succeed without performing any validation run:

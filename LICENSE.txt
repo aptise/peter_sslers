@@ -10,7 +10,9 @@ pryramid_redis_sessions is released under the FreeBSD license and Copyright (c) 
 This also includes the bootstrap library [http://getbootstrap.com]
 bootstrap is Licensed under the MIT license and Copyright 2011-2015 Twitter, Inc.
 
+
 --------------------------------------------------------------------------------
+
 
 Copyright (c) 2015, Jonathan Vanasco <jonathan@findmeon.com>
 

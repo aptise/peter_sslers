@@ -12,17 +12,20 @@ import base64
 import binascii
 import hashlib
 import json
+import pdb
 import re
+import six
 import ssl
 import subprocess
 import time
-import pdb
 
 try:
     from urllib.request import urlopen, Request  # Python 3
 except ImportError:
     from urllib2 import urlopen, Request  # Python 2
 
+# pupi
+import psutil
 
 # localapp
 from . import cert_utils
@@ -116,16 +119,18 @@ def acme_directory_get(acmeAccountKey=None):
 
 def account_key__parse(account_key_path=None):
     log.info("acme_v2 Parsing account key...")
-    proc = subprocess.Popen(
-        [cert_utils.openssl_path, "rsa", "-in", account_key_path, "-noout", "-text"],
+    with psutil.Popen(
+        [cert_utils.openssl_path, "rsa", "-in", account_key_path, "-noout", "-text",],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-    )
-    out, err = proc.communicate()
+    ) as proc:
+        out, err = proc.communicate()
+        if six.PY3:
+            out = out.decode("utf8")
     pub_pattern = r"modulus:[\s]+?00:([a-f0-9\:\s]+?)\npublicExponent: ([0-9]+)"
     pub_hex, pub_exp = re.search(
-        pub_pattern, out.decode("utf8"), re.MULTILINE | re.DOTALL
+        pub_pattern, out, re.MULTILINE | re.DOTALL
     ).groups()
     pub_exp = "{0:x}".format(int(pub_exp))
     pub_exp = "0{0}".format(pub_exp) if len(pub_exp) % 2 else pub_exp
@@ -217,7 +222,7 @@ class AuthenticatedUser(object):
         )
         protected64 = _b64(json.dumps(protected).encode("utf8"))
         protected_input = "{0}.{1}".format(protected64, payload64).encode("utf8")
-        proc = subprocess.Popen(
+        with psutil.Popen(
             [
                 cert_utils.openssl_path,
                 "dgst",
@@ -228,10 +233,10 @@ class AuthenticatedUser(object):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        )
-        out, err = proc.communicate(protected_input)
-        if proc.returncode != 0:
-            raise IOError("_send_signed_request\n{1}".format(err))
+        ) as proc:
+            out, err = proc.communicate(protected_input)
+            if proc.returncode != 0:
+                raise IOError("_send_signed_request\n{1}".format(err))
         data = json.dumps(
             {"protected": protected64, "payload": payload64, "signature": _b64(out)}
         )
@@ -684,12 +689,12 @@ class AuthenticatedUser(object):
                             self.acmeLogger.log_challenge_error(
                                 sslAcmeChallengeLog, "pretest-2"
                             )
-                            if exc.message.startswith("hostname") and (
-                                "doesn't match" in exc.message
+                            if str(exc).startswith("hostname") and (
+                                "doesn't match" in str(exc)
                             ):
                                 raise errors.DomainVerificationError(
                                     "Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(
-                                        wellknown_url, exc.message
+                                        wellknown_url, str(exc)
                                     )
                                 )
                             raise
@@ -743,12 +748,14 @@ class AuthenticatedUser(object):
         log.info("acme_v2 acme_finalize_order")
 
         # convert the certificate to a DER
-        proc = subprocess.Popen(
+        with psutil.Popen(
             [cert_utils.openssl_path, "req", "-in", csr_path, "-outform", "DER"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        )
-        csr_der, err = proc.communicate()
+        ) as proc:
+            csr_der, err = proc.communicate()
+            if six.PY3:
+                csr_der = csr_der.decode("utf8")
 
         acmeLoggedEvent = self.acmeLogger.log_order_finalize(
             "v2", acmeOrder.dbCertificateRequest

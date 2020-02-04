@@ -377,7 +377,9 @@ class SslCertificateRequest(Base):
         sa.Integer, sa.ForeignKey("ssl_private_key.id"), nullable=True
     )
     ssl_server_certificate_id__renewal_of = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True
+        sa.Integer,
+        sa.ForeignKey("ssl_server_certificate.id", use_alter=True),
+        nullable=True,
     )
     ssl_unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False
@@ -1158,8 +1160,11 @@ class SslServerCertificate(Base):
     )
 
     # tracking
+    # `use_alter=True` is needed for setup/drop
     ssl_certificate_request_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_certificate_request.id"), nullable=True
+        sa.Integer,
+        sa.ForeignKey("ssl_certificate_request.id", use_alter=True),
+        nullable=True,
     )
     ssl_server_certificate_id__renewal_of = sa.Column(
         sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True
