@@ -55,6 +55,6 @@ setup(
       [paste.app_factory]
       main = peter_sslers.web:main
       [console_scripts]
-      initialize_peter_sslers_db = peter_sslers.scripts.initializedb:main
+      initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
       """,
 )

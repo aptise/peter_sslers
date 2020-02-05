@@ -269,12 +269,12 @@ def get__SslCertificateRequest__by_SslDomainId__count(ctx, domain_id):
     counted = (
         ctx.dbSession.query(model_objects.SslCertificateRequest)
         .join(
-            model_objects.SslCertificateRequest2SslDomain,
+            model_objects.SslCertificateRequest2Domain,
             model_objects.SslCertificateRequest.id
-            == model_objects.SslCertificateRequest2SslDomain.ssl_certificate_request_id,
+            == model_objects.SslCertificateRequest2Domain.ssl_certificate_request_id,
         )
         .filter(
-            model_objects.SslCertificateRequest2SslDomain.ssl_domain_id == domain_id
+            model_objects.SslCertificateRequest2Domain.ssl_domain_id == domain_id
         )
         .count()
     )
@@ -287,12 +287,12 @@ def get__SslCertificateRequest__by_SslDomainId__paginated(
     items_paged = (
         ctx.dbSession.query(model_objects.SslCertificateRequest)
         .join(
-            model_objects.SslCertificateRequest2SslDomain,
+            model_objects.SslCertificateRequest2Domain,
             model_objects.SslCertificateRequest.id
-            == model_objects.SslCertificateRequest2SslDomain.ssl_certificate_request_id,
+            == model_objects.SslCertificateRequest2Domain.ssl_certificate_request_id,
         )
         .filter(
-            model_objects.SslCertificateRequest2SslDomain.ssl_domain_id == domain_id
+            model_objects.SslCertificateRequest2Domain.ssl_domain_id == domain_id
         )
         .order_by(model_objects.SslCertificateRequest.id.desc())
         .limit(limit)
@@ -362,21 +362,21 @@ def get__SslCertificateRequest__by_SslUniqueFQDNSetId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslCertificateRequest2SslDomain__challenged(ctx, challenge, domain_name):
+def get__SslCertificateRequest2Domain__challenged(ctx, challenge, domain_name):
     active_request = (
-        ctx.dbSession.query(model_objects.SslCertificateRequest2SslDomain)
+        ctx.dbSession.query(model_objects.SslCertificateRequest2Domain)
         .join(
             model_objects.SslDomain,
-            model_objects.SslCertificateRequest2SslDomain.ssl_domain_id
+            model_objects.SslCertificateRequest2Domain.ssl_domain_id
             == model_objects.SslDomain.id,
         )
         .join(
             model_objects.SslCertificateRequest,
-            model_objects.SslCertificateRequest2SslDomain.ssl_certificate_request_id
+            model_objects.SslCertificateRequest2Domain.ssl_certificate_request_id
             == model_objects.SslCertificateRequest.id,
         )
         .filter(
-            model_objects.SslCertificateRequest2SslDomain.challenge_key == challenge,
+            model_objects.SslCertificateRequest2Domain.challenge_key == challenge,
             sqlalchemy.func.lower(model_objects.SslDomain.domain_name)
             == sqlalchemy.func.lower(domain_name),
             model_objects.SslCertificateRequest.is_active.op("IS")(True),

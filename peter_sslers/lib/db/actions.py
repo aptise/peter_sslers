@@ -307,7 +307,7 @@ def do__CertificateRequest__AcmeV1_Automated(
             ) = lib.db.create.create__SslCertificateRequest(
                 ctx,
                 csr_pem,
-                certificate_request_type_id=model_objects.SslCertificateRequestType.ACME_AUTOMATED,
+                certificate_request_source_id=model_utils.SslCertificateRequestSource.ACME_AUTOMATED,
                 dbAccountKey=dbAccountKey,
                 dbPrivateKey=dbPrivateKey,
                 dbServerCertificate__issued=None,
@@ -565,7 +565,7 @@ def do__CertificateRequest__AcmeV2_Automated(
             ) = lib.db.create.create__SslCertificateRequest(
                 ctx,
                 csr_pem,
-                certificate_request_type_id=model_objects.SslCertificateRequestType.ACME_AUTOMATED,
+                certificate_request_source_id=model_utils.SslCertificateRequestSource.ACME_AUTOMATED,
                 dbAccountKey=dbAccountKey,
                 dbPrivateKey=dbPrivateKey,
                 dbServerCertificate__issued=None,

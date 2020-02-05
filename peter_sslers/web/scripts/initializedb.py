@@ -39,12 +39,13 @@ def main(argv=sys.argv):
     engine = get_engine(settings)
     Base.metadata.create_all(engine)
     if engine.name == "sqlite":
+        # these tables are set to a separate database for logging
         engineLogger = get_engine(settings, prefix="sqlalchemy_logger.")
         Base.metadata.create_all(
             engineLogger,
             tables=[
                 model_objects.SslAcmeEventLog.__table__,
-                model_objects.SslAcmeChallenge.__table__,
+                model_objects.SslAcmeChallengePoll.__table__,
             ],
         )
     session_factory = get_session_factory(engine)

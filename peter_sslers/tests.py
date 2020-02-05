@@ -387,7 +387,7 @@ class AppTest(AppTestCore):
                 ) = db.getcreate.getcreate__SslCertificateRequest__by_pem_text(
                     self.ctx,
                     csr_pem,
-                    certificate_request_type_id=model_objects.SslCertificateRequestType.ACME_FLOW,
+                    certificate_request_source_id=model_utils.SslCertificateRequestSource.ACME_FLOW,
                     dbAccountKey=_key_account1,
                     dbPrivateKey=_key_private1,
                 )

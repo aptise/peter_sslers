@@ -56,9 +56,9 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>certificate_request_type</th>
+                    <th>certificate_request_source</th>
                     <td>
-                        <span class="label label-default">${SslCertificateRequest.certificate_request_type}</span>
+                        <span class="label label-default">${SslCertificateRequest.certificate_request_source}</span>
                     </td>
                 </tr>
                 <tr>
@@ -164,14 +164,14 @@
                 <tr>
                     <th>domains</th>
                     <td>
-                        ${admin_partials.table_SslCertificateRequest2SslDomain(SslCertificateRequest.to_domains,
-                                                                               request_inactive = (False if SslCertificateRequest.is_active else True),
-                                                                               perspective='certificate_request')}
+                        ${admin_partials.table_SslCertificateRequest2Domain(SslCertificateRequest.to_domains,
+                                                                            request_inactive = (False if SslCertificateRequest.is_active else True),
+                                                                            perspective='certificate_request')}
                     </td>
                 </tr>
             </table>
 
-            % if SslCertificateRequest.is_active and SslCertificateRequest.certificate_request_type_is('acme flow'):
+            % if SslCertificateRequest.is_active and SslCertificateRequest.certificate_request_source_is('acme flow'):
                 <a
                     href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage"
                     class="btn btn-info"

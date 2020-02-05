@@ -141,7 +141,7 @@ class ViewAdmin_Focus(Handler):
             True if self.request.matched_route.name.endswith("|json") else False
         )
         dbCertificateRequest = self._focus()
-        if not dbCertificateRequest.certificate_request_type_is("acme flow"):
+        if not dbCertificateRequest.certificate_request_source_is("acme flow"):
             if wants_json:
                 return {"result": "error", "error": "Only availble for Acme Flow"}
             raise HTTPNotFound("Only availble for Acme Flow")
@@ -164,12 +164,12 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
         if not self.request.registry.settings["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
         dbCertificateRequest = self._focus()
-        if not dbCertificateRequest.certificate_request_type_is("acme flow"):
+        if not dbCertificateRequest.certificate_request_source_is("acme flow"):
             raise HTTPNotFound("Only availble for Acme Flow")
         return {
             "project": "peter_sslers",
             "SslCertificateRequest": dbCertificateRequest,
-            "SslCertificateRequest2SslDomain": None,
+            "SslCertificateRequest2Domain": None,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -180,7 +180,7 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
             raise HTTPNotFound("Acme-Flow is disabled on this system")
 
         dbCertificateRequest = self._focus()
-        if not dbCertificateRequest.certificate_request_type_is("acme flow"):
+        if not dbCertificateRequest.certificate_request_source_is("acme flow"):
             raise HTTPNotFound("Only availble for Acme Flow")
         dbCertificateRequest2SslDomain = None
 
@@ -210,7 +210,7 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
             raise HTTPNotFound("invalid domain for certificate request")
 
         self.db_SslCertificateRequest = dbCertificateRequest
-        self.db_SslCertificateRequest2SslDomain = dbCertificateRequest2SslDomain
+        self.db_SslCertificateRequest2Domain = dbCertificateRequest2SslDomain
 
         if self.request.method == "POST":
             return self._certificate_request_AcmeFlow_manage_domain__submit()
@@ -221,7 +221,7 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
             "/admin/certificate_request-focus-AcmeFlow-manage.mako",
             {
                 "SslCertificateRequest": self.db_SslCertificateRequest,
-                "SslCertificateRequest2SslDomain": self.db_SslCertificateRequest2SslDomain,
+                "SslCertificateRequest2Domain": self.db_SslCertificateRequest2Domain,
             },
             self.request,
         )
@@ -236,17 +236,17 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
             if not result:
                 raise formhandling.FormInvalid()
 
-            if self.db_SslCertificateRequest2SslDomain.timestamp_verified:
+            if self.db_SslCertificateRequest2Domain.timestamp_verified:
                 raise ValueError("You can not edit the challenge of a verified item")
 
             changed = False
             for attribute in ("challenge_key", "challenge_text"):
                 submitted_value = formStash.results[attribute]
                 if submitted_value != getattr(
-                    self.db_SslCertificateRequest2SslDomain, attribute
+                    self.db_SslCertificateRequest2Domain, attribute
                 ):
                     setattr(
-                        self.db_SslCertificateRequest2SslDomain,
+                        self.db_SslCertificateRequest2Domain,
                         attribute,
                         submitted_value,
                     )
@@ -256,14 +256,14 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
                 raise ValueError("No changes!")
 
             self.request.api_context.dbSession.flush(
-                objects=[self.db_SslCertificateRequest2SslDomain]
+                objects=[self.db_SslCertificateRequest2Domain]
             )
 
             return HTTPSeeOther(
                 "%s/acme-flow/manage/domain/%s?result=success"
                 % (
                     self._focus_url,
-                    self.db_SslCertificateRequest2SslDomain.ssl_domain_id,
+                    self.db_SslCertificateRequest2Domain.ssl_domain_id,
                 )
             )
 
@@ -310,7 +310,7 @@ class ViewAdmin_New(Handler):
             ) = lib_db.create.create__SslCertificateRequest(
                 self.request.api_context,
                 csr_pem=None,
-                certificate_request_type_id=model_objects.SslCertificateRequestType.ACME_FLOW,
+                certificate_request_source_id=model_utils.SslCertificateRequestSource.ACME_FLOW,
                 domain_names=domain_names,
             )
 

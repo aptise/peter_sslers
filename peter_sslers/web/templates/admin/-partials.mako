@@ -90,7 +90,7 @@
                     </span>
                 </td>
                 <td>
-                    <span class="label label-defaul">${to_cr.certificate_request.certificate_request_type}</span>
+                    <span class="label label-defaul">${to_cr.certificate_request.certificate_request_source}</span>
                 </td>
                 <td><timestamp>${to_cr.timestamp_verified or ''}</timestamp></td>
                 <td><code>${to_cr.challenge_key or ''}</code></td>
@@ -195,7 +195,7 @@
                         csr-${certificate_request.id}</a>
                 </td>
                 <td>
-                    <span class="label label-default">${certificate_request.certificate_request_type}</span>
+                    <span class="label label-default">${certificate_request.certificate_request_source}</span>
                 </td>
                 <td>
                     <span class="label label-${'success' if certificate_request.is_active else 'warning'}">
@@ -288,7 +288,7 @@
 </%def>
 
 
-<%def name="table_SslCertificateRequest2SslDomain(lcr2mds, request_inactive=None, current_domain_id=None, perspective=None)">
+<%def name="table_SslCertificateRequest2Domain(lcr2mds, request_inactive=None, current_domain_id=None, perspective=None)">
     % if perspective == 'certificate_request':
         <table class="table table-striped table-condensed">
             <thead>
@@ -415,7 +415,7 @@
         </table>
 
     % else:
-        <!-- table_SslCertificateRequest2SslDomain missing perspective -->
+        <!-- table_SslCertificateRequest2Domain missing perspective -->
     % endif
 </%def>
 

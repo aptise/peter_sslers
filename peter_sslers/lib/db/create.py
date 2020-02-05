@@ -34,19 +34,19 @@ def create__SslCertificateRequest(
     2016.06.04 - dbOperationsEvent compliant
     """
     if certificate_request_type_id not in (
-        model_objects.SslCertificateRequestType.ACME_FLOW,
-        model_objects.SslCertificateRequestType.ACME_AUTOMATED,
+        model_utils.SslCertificateRequestSource.ACME_FLOW,
+        model_utils.SslCertificateRequestSource.ACME_AUTOMATED,
     ):
         raise ValueError("Invalid `certificate_request_type_id`")
 
     _event_type_id = None
-    if certificate_request_type_id == model_objects.SslCertificateRequestType.ACME_FLOW:
+    if certificate_request_type_id == model_utils.SslCertificateRequestSource.ACME_FLOW:
         _event_type_id = model_utils.SslOperationsEventType.from_string(
             "certificate_request__new__flow"
         )
     elif (
         certificate_request_type_id
-        == model_objects.SslCertificateRequestType.ACME_AUTOMATED
+        == model_utils.SslCertificateRequestSource.ACME_AUTOMATED
     ):
         _event_type_id = model_utils.SslOperationsEventType.from_string(
             "certificate_request__new__automated"
@@ -83,7 +83,7 @@ def create__SslCertificateRequest(
         finally:
             _tmpfile.close()
 
-    if certificate_request_type_id == model_objects.SslCertificateRequestType.ACME_FLOW:
+    if certificate_request_type_id == model_utils.SslCertificateRequestSource.ACME_FLOW:
         if domain_names is None:
             if csr_pem is None:
                 raise ValueError(
@@ -118,9 +118,9 @@ def create__SslCertificateRequest(
         dbCertificateRequest.is_active = True
         dbCertificateRequest.csr_pem = csr_pem
         dbCertificateRequest.certificate_request_type_id = (
-            model_objects.SslCertificateRequestType.ACME_FLOW
+            model_utils.SslCertificateRequestSource.ACME_FLOW
         )
-        dbCertificateRequest.timestamp_started = ctx.timestamp
+        dbCertificateRequest.timestamp_created = ctx.timestamp
         dbCertificateRequest.ssl_unique_fqdn_set_id = dbUniqueFqdnSet.id
         dbCertificateRequest.ssl_operations_event_id__created = dbOperationsEvent.id
 
@@ -148,7 +148,7 @@ def create__SslCertificateRequest(
         )
 
         for dbDomain in dbDomainObjects:
-            dbCertificateRequest2D = model_objects.SslCertificateRequest2SslDomain()
+            dbCertificateRequest2D = model_objects.SslCertificateRequest2Domain()
             dbCertificateRequest2D.ssl_certificate_request_id = dbCertificateRequest.id
             dbCertificateRequest2D.ssl_domain_id = dbDomain.id
             ctx.dbSession.add(dbCertificateRequest2D)
@@ -258,7 +258,7 @@ def create__SslCertificateRequest(
             dbDomain = dbDomainObjects[_domain_name]
 
             dbCertificateRequest2SslDomain = (
-                model_objects.SslCertificateRequest2SslDomain()
+                model_objects.SslCertificateRequest2Domain()
             )
             dbCertificateRequest2SslDomain.ssl_certificate_request_id = (
                 dbCertificateRequest.id

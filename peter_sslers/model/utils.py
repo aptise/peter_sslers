@@ -297,14 +297,28 @@ class AcmeEvent(_mixin_mapping):
     """
 
     _mapping = {
-        1: "v1|/acme/new-reg",  # account create
-        2: "v1|/acme/new-authz",  # cert-request
-        3: "v1|/acme/new-cert",  # cert-issue
+        # 1: "v1|/acme/new-reg",  # account create
+        # 2: "v1|/acme/new-authz",  # cert-request
+        # 3: "v1|/acme/new-cert",  # cert-issue
         4: "v2|newAccount",  # account create
         5: "v2|newOrder",
         6: "v2|-authorization",  # not an endpoint name, but element of an order
-        7: "v2|-order-finalize",  #
+        7: "v2|-challenge-trigger",  # not an endpoint name, but element of an order
+        8: "v2|-order-finalize",
     }
+
+
+class SslCertificateRequestSource(object):
+    """
+    How was the CertificateRequest generated?
+    - RECORDED - just records the CSR; uploaded into our system
+    - ACME_FLOW - Creates a flow
+    - ACME_AUTOMATED = acting as the full LE Client
+    """
+
+    RECORDED = 1
+    ACME_FLOW = 2
+    ACME_AUTOMATED = 3
 
 
 class _mixin_SslOperationsEventType(object):

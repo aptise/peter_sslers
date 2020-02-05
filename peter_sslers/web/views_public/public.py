@@ -28,7 +28,7 @@ class ViewPublic(Handler):
     @view_config(route_name="public_challenge", renderer="string")
     def public_challenge(self):
         challenge = self.request.matchdict["challenge"]
-        activeRequest = lib_db.get.get__SslCertificateRequest2SslDomain__challenged(
+        activeRequest = lib_db.get.get__SslCertificateRequest2Domain__challenged(
             self.request.api_context, challenge, self.request.active_domain_name
         )
         # this will log a tuple of (csr_id, domain_id) for activeRequest
