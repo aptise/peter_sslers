@@ -8,6 +8,7 @@ from pyramid.view import view_config
 
 # stdlib
 import datetime
+import pdb
 
 # localapp
 from ..lib.handler import Handler, items_per_page

@@ -75,14 +75,14 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 
-        sslAcmeChallengeLog = model_objects.SslAcmeChallengeLog()
-        sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
-        sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
-        sslAcmeChallengeLog.domain = domain
-        sslAcmeChallengeLog.ssl_acme_account_key_id = self.dbAccountKey.id
-        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        sslAcmeChallenge = model_objects.SslAcmeChallenge()
+        sslAcmeChallenge.timestamp_created = datetime.datetime.utcnow()
+        sslAcmeChallenge.ssl_acme_event_log_id = sslAcmeEventLog.id
+        sslAcmeChallenge.domain = domain
+        sslAcmeChallenge.ssl_acme_account_key_id = self.dbAccountKey.id
+        self.ctx.dbSessionLogger.add(sslAcmeChallenge)
         self.ctx.dbSessionLogger.flush()
-        return (sslAcmeEventLog, sslAcmeChallengeLog)
+        return (sslAcmeEventLog, sslAcmeChallenge)
 
     def log_new_authz(self, version, dbCertificateRequest, domain):
         """
@@ -101,14 +101,14 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 
-        sslAcmeChallengeLog = model_objects.SslAcmeChallengeLog()
-        sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
-        sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
-        sslAcmeChallengeLog.domain = domain
-        sslAcmeChallengeLog.ssl_acme_account_key_id = self.dbAccountKey.id
-        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        sslAcmeChallenge = model_objects.SslAcmeChallenge()
+        sslAcmeChallenge.timestamp_created = datetime.datetime.utcnow()
+        sslAcmeChallenge.ssl_acme_event_log_id = sslAcmeEventLog.id
+        sslAcmeChallenge.domain = domain
+        sslAcmeChallenge.ssl_acme_account_key_id = self.dbAccountKey.id
+        self.ctx.dbSessionLogger.add(sslAcmeChallenge)
         self.ctx.dbSessionLogger.flush()
-        return (sslAcmeEventLog, sslAcmeChallengeLog)
+        return (sslAcmeEventLog, sslAcmeChallenge)
 
     def log_new_cert(self, dbCertificateRequest, version):
         if version not in ("v1", "v2"):
@@ -148,46 +148,46 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.add(sslAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 
-    def log_challenge_trigger(self, sslAcmeChallengeLog):
+    def log_challenge_trigger(self, sslAcmeChallenge):
         """
         Logs a challenge request
         """
-        sslAcmeChallengeLog.timestamp_challenge_trigger = datetime.datetime.utcnow()
-        sslAcmeChallengeLog.count_polled = 0
-        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        sslAcmeChallenge.timestamp_challenge_trigger = datetime.datetime.utcnow()
+        sslAcmeChallenge.count_polled = 0
+        self.ctx.dbSessionLogger.add(sslAcmeChallenge)
         self.ctx.dbSessionLogger.flush()
 
-    def log_challenge_polled(self, sslAcmeChallengeLog):
+    def log_challenge_polled(self, sslAcmeChallenge):
         """
         Logs a challenge poll
         """
-        sslAcmeChallengeLog.count_polled += 1
-        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        sslAcmeChallenge.count_polled += 1
+        self.ctx.dbSessionLogger.add(sslAcmeChallenge)
         self.ctx.dbSessionLogger.flush()
 
-    def log_challenge_pass(self, sslAcmeChallengeLog):
+    def log_challenge_pass(self, sslAcmeChallenge):
         """
         Logs a challenge as passed
         """
-        sslAcmeChallengeLog.timestamp_challenge_pass = datetime.datetime.utcnow()
-        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+        sslAcmeChallenge.timestamp_challenge_pass = datetime.datetime.utcnow()
+        self.ctx.dbSessionLogger.add(sslAcmeChallenge)
         self.ctx.dbSessionLogger.flush()
 
-    def log_challenge_error(self, sslAcmeChallengeLog, failtype):
+    def log_challenge_error(self, sslAcmeChallenge, failtype):
         """
         Logs a challenge as error
         """
         if failtype in ("pretest-1", "pretest-2"):
-            sslAcmeChallengeLog.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
+            sslAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "setup-prevalidation"
             )
-            self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+            self.ctx.dbSessionLogger.add(sslAcmeChallenge)
             self.ctx.dbSessionLogger.flush()
         elif failtype in ("fail-1", "fail-2"):
-            sslAcmeChallengeLog.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
+            sslAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "upstream-validation"
             )
-            self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
+            self.ctx.dbSessionLogger.add(sslAcmeChallenge)
             self.ctx.dbSessionLogger.flush()
 
 

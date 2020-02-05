@@ -74,7 +74,7 @@ class ViewAdmin_AcmeChallengeLog(Handler):
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
-        items_count = lib_db.get.get__SslAcmeChallengeLogs__count(
+        items_count = lib_db.get.get__SslAcmeChallenges__count(
             self.request.api_context
         )
         (pager, offset) = self._paginate(
@@ -82,18 +82,18 @@ class ViewAdmin_AcmeChallengeLog(Handler):
             url_template="%s/acme-challenge-logs/{0}"
             % self.request.registry.settings["admin_prefix"],
         )
-        items_paged = lib_db.get.get__SslAcmeChallengeLogs__paginated(
+        items_paged = lib_db.get.get__SslAcmeChallenges__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
-        return {"project": "peter_sslers", "SslAcmeChallengeLogs": items_paged}
+        return {"project": "peter_sslers", "SslAcmeChallenges": items_paged}
 
     def _acme_challenge_log_focus(self):
-        dbSslAcmeChallengeLog = lib_db.get.get__SslAcmeChallengeLog__by_id(
+        dbSslAcmeChallenge = lib_db.get.get__SslAcmeChallenge__by_id(
             self.request.api_context, self.request.matchdict["id"]
         )
-        if not dbSslAcmeChallengeLog:
+        if not dbSslAcmeChallenge:
             raise HTTPNotFound("the log was not found")
-        return dbSslAcmeChallengeLog
+        return dbSslAcmeChallenge
 
     @view_config(
         route_name="admin:acme_challenge_log:focus",
@@ -104,7 +104,7 @@ class ViewAdmin_AcmeChallengeLog(Handler):
             True if self.request.matched_route.name.endswith("|json") else False
         )
         item = self._acme_challenge_log_focus()
-        return {"project": "peter_sslers", "SslAcmeChallengeLog": item}
+        return {"project": "peter_sslers", "SslAcmeChallenge": item}
 
     @view_config(
         route_name="admin:acme_challenge_log:filtered",
@@ -131,7 +131,7 @@ class ViewAdmin_AcmeChallengeLog(Handler):
                 }
             return HTTPFound("%s/acme-challenge-logs" % self.request.admin_url)
 
-        items_paged = lib_db.get.get__SslAcmeChallengeLogs__paginated(
+        items_paged = lib_db.get.get__SslAcmeChallenges__paginated(
             self.request.api_context,
             limit=None,
             offset=0,
@@ -142,7 +142,7 @@ class ViewAdmin_AcmeChallengeLog(Handler):
             rval = {
                 "filtered_status": "Pending",
                 "SslAcmeAccountKey": dbAcmeAccountKey.as_json,
-                "SslAcmeChallengeLogs": [i.as_json for i in items_paged],
+                "SslAcmeChallenges": [i.as_json for i in items_paged],
             }
             del rval["SslAcmeAccountKey"]["key_pem"]
             return rval
@@ -150,5 +150,5 @@ class ViewAdmin_AcmeChallengeLog(Handler):
             "project": "peter_sslers",
             "filtered_status": "Pending",
             "SslAcmeAccountKey": dbAcmeAccountKey,
-            "SslAcmeChallengeLogs": items_paged,
+            "SslAcmeChallenges": items_paged,
         }

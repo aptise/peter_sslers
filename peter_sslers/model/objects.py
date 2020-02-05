@@ -55,19 +55,19 @@ class SslAcmeEventLog(Base):
         return None
 
     acme_challenge_logs = sa.orm.relationship(
-        "SslAcmeChallengeLog",
-        primaryjoin="SslAcmeEventLog.id==SslAcmeChallengeLog.ssl_acme_event_log_id",
-        order_by="SslAcmeChallengeLog.id.asc()",
+        "SslAcmeChallenge",
+        primaryjoin="SslAcmeEventLog.id==SslAcmeChallenge.ssl_acme_event_log_id",
+        order_by="SslAcmeChallenge.id.asc()",
         back_populates="acme_event_log",
     )
 
 
-class SslAcmeChallengeLog(Base):
+class SslAcmeChallenge(Base):
     """
     log acme requests
     """
 
-    __tablename__ = "ssl_acme_challenge_log"
+    __tablename__ = "ssl_acme_challenge"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     ssl_acme_event_log_id = sa.Column(
@@ -78,6 +78,9 @@ class SslAcmeChallengeLog(Base):
         sa.Integer, nullable=True
     )  # http01, but we won't know util after we ping for a domain
     acme_challenge = sa.Column(sa.Unicode(255), nullable=True)
+
+
+
     timestamp_challenge_trigger = sa.Column(sa.DateTime, nullable=True)
     count_polled = sa.Column(sa.Integer, nullable=True, default=0)
     timestamp_challenge_pass = sa.Column(sa.DateTime, nullable=True)
@@ -106,7 +109,7 @@ class SslAcmeChallengeLog(Base):
 
     acme_event_log = sa.orm.relationship(
         "SslAcmeEventLog",
-        primaryjoin="SslAcmeChallengeLog.ssl_acme_event_log_id==SslAcmeEventLog.id",
+        primaryjoin="SslAcmeChallenge.ssl_acme_event_log_id==SslAcmeEventLog.id",
         back_populates="acme_challenge_logs",
         uselist=False,
     )

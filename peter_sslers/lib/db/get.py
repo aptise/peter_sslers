@@ -54,39 +54,39 @@ def get__SslAcmeEventLog__by_id(ctx, id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslAcmeChallengeLogs__count(ctx):
+def get__SslAcmeChallenges__count(ctx):
     dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.SslAcmeChallengeLog).count()
+    counted = dbSessionLogItem.query(model_objects.SslAcmeChallenge).count()
     return counted
 
 
-def get__SslAcmeChallengeLogs__paginated(
+def get__SslAcmeChallenges__paginated(
     ctx, limit=None, offset=0, acme_account_key_id=None, pending_only=None
 ):
     dbSessionLogItem = get_dbSessionLogItem(ctx)
-    query = dbSessionLogItem.query(model_objects.SslAcmeChallengeLog)
+    query = dbSessionLogItem.query(model_objects.SslAcmeChallenge)
     if acme_account_key_id:
         query = query.join(
             model_objects.SslAcmeEventLog,
-            model_objects.SslAcmeChallengeLog.ssl_acme_event_log_id
+            model_objects.SslAcmeChallenge.ssl_acme_event_log_id
             == model_objects.SslAcmeEventLog.id,
         ).filter(
             model_objects.SslAcmeEventLog.ssl_acme_account_key_id == acme_account_key_id
         )
     if pending_only:
-        query = query.filter(model_objects.SslAcmeChallengeLog.count_polled == 0)
+        query = query.filter(model_objects.SslAcmeChallenge.count_polled == 0)
     query = (
-        query.order_by(model_objects.SslAcmeChallengeLog.id.desc())
+        query.order_by(model_objects.SslAcmeChallenge.id.desc())
         .limit(limit)
         .offset(offset)
     )
-    dnSslAcmeChallengeLogs = query.all()
-    return dnSslAcmeChallengeLogs
+    dnSslAcmeChallenges = query.all()
+    return dnSslAcmeChallenges
 
 
-def get__SslAcmeChallengeLog__by_id(ctx, id):
+def get__SslAcmeChallenge__by_id(ctx, id):
     dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.SslAcmeChallengeLog).get(id)
+    counted = dbSessionLogItem.query(model_objects.SslAcmeChallenge).get(id)
     return counted
 
 

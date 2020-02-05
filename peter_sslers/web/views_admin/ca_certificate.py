@@ -214,6 +214,7 @@ class ViewAdmin_New(Handler):
                 raise formhandling.FormInvalid()
 
             chain_pem = formStash.results["chain_file"].file.read()
+            formStash.results["chain_file"].file.close()
             if six.PY3:
                 if not isinstance(chain_pem, str):
                     chain_pem = chain_pem.decode("utf8")
@@ -315,6 +316,7 @@ class ViewAdmin_New(Handler):
                 bundle_data["isrgrootx1_pem"] = formStash.results[
                     "isrgrootx1_file"
                 ].file.read()
+                formStash.results["isrgrootx1_file"].file.close()
                 if six.PY3:
                     if not isinstance(bundle_data["isrgrootx1_pem"], str):
                         bundle_data["isrgrootx1_pem"] = bundle_data[
@@ -328,6 +330,7 @@ class ViewAdmin_New(Handler):
                     bundle_data[_bd_key] = formStash.results[
                         "le_%s_cross_signed_file" % xi
                     ].file.read()
+                    formStash.results["le_%s_cross_signed_file" % xi].file.close()
                     if six.PY3:
                         if not isinstance(bundle_data[_bd_key], str):
                             bundle_data[_bd_key] = bundle_data[_bd_key].decode("utf8")
@@ -339,6 +342,7 @@ class ViewAdmin_New(Handler):
                     bundle_data[_bd_key] = formStash.results[
                         "le_%s_auth_file" % xi
                     ].file.read()
+                    formStash.results["le_%s_auth_file" % xi].file.close()
                     if six.PY3:
                         if not isinstance(bundle_data[_bd_key], str):
                             bundle_data[_bd_key] = bundle_data[_bd_key].decode("utf8")

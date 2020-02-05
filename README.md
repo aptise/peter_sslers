@@ -15,7 +15,7 @@ THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SE
 
 AMAZING, RIGHT?
 
-This package is *not* aimed at casual or single-site users.  This package is *not* aimed at novice users.
+This package is *not* aimed at casual or single-site users. This package is *not* aimed at novice users.
 
 Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
 
@@ -43,17 +43,17 @@ Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the 
 
 The module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your OpenResty/Nginx server via the `opm` package installer
 
-The `Pyramid` based application can function as a daemon or a commandline script.  Most pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window. Don't want to do things manually? Ok - everything was built to be readable on commandline browsers... yes, this is actually developed-for and tested-with lynx.
+The `Pyramid` based application can function as a daemon or a commandline script. Most pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window. Don't want to do things manually? Ok - everything was built to be readable on commandline browsers... yes, this is actually developed-for and tested-with lynx.
 
-Do you like book-keeping?  Peter's `Pryamid` component logs everything into sql.  
+Do you like book-keeping?  Peter's `Pryamid` component logs everything into sql.
 
 Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable within Peter as well.
 
-Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool).  Peter is a honeybadger, he don't care.  He just takes what he wants.
+Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool). Peter is a honeybadger, he don't care. He just takes what he wants.
 
 Peter offers several commandline tools -- so spinning up a tool "webserver" mode may not be necessary at all -- or might only be needed for brief periods of time.
 
-SqlAlchemy is the backing database library, so virtually any database can be used (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but the package has been tested against PostgreSQL.  SQLite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
+SqlAlchemy is the backing database library, so virtually any database can be used (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but the package has been tested against PostgreSQL. SQLite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
 
 Peter tries to leverage the system's OpenSSL instead of using Python's modules whenever possible. The reason is to minimize the amount of downloads/packages.
 
@@ -63,7 +63,7 @@ Although Python2 is no longer supported by Python, Python2 and Python3 are targe
 
 ## Why?
 
-Most of us hate having to spend time on DevOps tasks.  Personally, I would rather spend time working on the core product or consumer products.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just fixes or additions to the test-suite.
+Most of us hate having to spend time on DevOps tasks. Personally, I would rather spend time working on the core product or consumer products. This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting. This is pre-release and still being worked on as it fixes new issues on a production system. PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
 
 ## Status
@@ -84,19 +84,18 @@ The endpoint related to "requesting" domains and handling dynamic queues of new 
 
 ## "Peter SSLers" - a Pyramid Application
 
-"Peter SSLers" is the core toolkit.  It is a `Pyramid` application that can be spun up as a webserver or used via a commandline interface.  Peter is your friend and handles all of the Certificate Management and translation functions for you.  He's a bit eccentric, but basically a good guy.
+"Peter SSLers" is the core toolkit. It is a `Pyramid` application that can be spun up as a webserver or used via a commandline interface. Peter is your friend and handles all of the Certificate Management and translation functions for you. He's a bit eccentric, but basically a good guy.
 
 ## "SSL Minnow" - The Datastore
 
-By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`.  It is the backing datastore for SSL Certificates and the operations log.  Your data is ONLY saved to the SSL Minnow - not to the filesystem like other LE clients - so you should be careful with it.  If the Minnow would be lost, it can not be recovered.  Be a good skipper, or your three hour tour could end up taking many years and might involve the Harlem Globetrotters.
+By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`. It is the backing datastore for SSL Certificates and the operations log. Your data is ONLY saved to the SSL Minnow - not to the filesystem like other LE clients - so you should be careful with it. If the Minnow would be lost, it can not be recovered. Be a good skipper, or your three hour tour could end up taking many years and might involve the Harlem Globetrotters.
 
 ## "Tools"
 
-The "/tools" directory contains scripts useful for certificate operations.  Currently this includes:
+The "/tools" directory contains scripts useful for certificate operations. Currently this includes:
 
 * an `invoke` script for some miscellaneous tasks
-* a sample `fake_server.py` that will spin up a server with routes that you can test against.  this will allow you to setup your integration without running peter_sslers
-* a sample `fake_boulder.py` that will spin up a fake boulder server that can be used as a certificate authority when testing
+* a sample `fake_server.py` that will spin up a server with routes that you can test against. this will allow you to setup your integration without running peter_sslers
 
 ## The OpenResty package
 

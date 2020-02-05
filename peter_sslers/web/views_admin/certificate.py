@@ -221,6 +221,7 @@ class ViewAdmin_New(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formStash.results["private_key_file"].file.read()
+            formStash.results["private_key_file"].file.close()
             if six.PY3:
                 if not isinstance(private_key_pem, str):
                     private_key_pem = private_key_pem.decode("utf8")
@@ -232,6 +233,7 @@ class ViewAdmin_New(Handler):
             )
 
             chain_pem = formStash.results["chain_file"].file.read()
+            formStash.results["chain_file"].file.close()
             if six.PY3:
                 if not isinstance(chain_pem, str):
                     chain_pem = chain_pem.decode("utf8")
@@ -243,6 +245,7 @@ class ViewAdmin_New(Handler):
             )
 
             certificate_pem = formStash.results["certificate_file"].file.read()
+            formStash.results["certificate_file"].file.close()
             if six.PY3:
                 if not isinstance(certificate_pem, str):
                     certificate_pem = certificate_pem.decode("utf8")

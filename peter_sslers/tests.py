@@ -404,12 +404,12 @@ class AppTest(AppTestCore):
                 self.ctx.dbSession.commit()
 
                 # AcmeChallengeLog
-                sslAcmeChallengeLog = model_objects.SslAcmeChallengeLog()
-                sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
-                sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
-                sslAcmeChallengeLog.domain = "example.com"
-                sslAcmeChallengeLog.ssl_acme_account_key_id = _key_account1.id
-                self.ctx.dbSession.add(sslAcmeChallengeLog)
+                sslAcmeChallenge = model_objects.SslAcmeChallenge()
+                sslAcmeChallenge.timestamp_created = datetime.datetime.utcnow()
+                sslAcmeChallenge.ssl_acme_event_log_id = sslAcmeEventLog.id
+                sslAcmeChallenge.domain = "example.com"
+                sslAcmeChallenge.ssl_acme_account_key_id = _key_account1.id
+                self.ctx.dbSession.add(sslAcmeChallenge)
                 self.ctx.dbSession.flush()
                 self.ctx.dbSession.commit()
 
@@ -569,7 +569,7 @@ class FunctionalTests_AcmeChallengeLog(AppTest):
 
     def _get_item(self):
         # grab a event
-        focus_item = self.ctx.dbSession.query(model_objects.SslAcmeChallengeLog).first()
+        focus_item = self.ctx.dbSession.query(model_objects.SslAcmeChallenge).first()
         return focus_item
 
     def test_list(self):

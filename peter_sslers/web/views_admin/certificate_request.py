@@ -20,6 +20,7 @@ from ..lib.forms import Form_CertificateRequest_AcmeFlow_manage_domain
 from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated
 from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
 from ..lib.handler import Handler, items_per_page
+from ...lib import acme_v2
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -335,7 +336,7 @@ class ViewAdmin_New(Handler):
         return self._new_AcmeAutomated__print()
 
     def _new_AcmeAutomated__print(self):
-        active_ca = lib.acme_v2.CERTIFICATE_AUTHORITY
+        active_ca = acme_v2.CERTIFICATE_AUTHORITY
         providers = list(model_utils.AcmeAccountProvider.registry.values())
         return render_to_response(
             "/admin/certificate_request-new-AcmeAutomated.mako",

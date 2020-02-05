@@ -99,17 +99,21 @@ class AccountKeyUploadParser(object):
             self.account_key_pem = getcreate_args["key_pem"] = formStash.results[
                 "account_key_file_pem"
             ].file.read()
+            formStash.results["account_key_file_pem"].file.close()
         else:
             # note that we use `jsonS` to indicate a string
             self.le_meta_jsons = getcreate_args["le_meta_jsons"] = formStash.results[
                 "account_key_file_le_meta"
             ].file.read()
+            formStash.results["account_key_file_le_meta"].file.close()
             self.le_pkey_jsons = getcreate_args["le_pkey_jsons"] = formStash.results[
                 "account_key_file_le_pkey"
             ].file.read()
+            formStash.results["account_key_file_le_pkey"].file.close()
             self.le_reg_jsons = getcreate_args["le_reg_jsons"] = formStash.results[
                 "account_key_file_le_reg"
             ].file.read()
+            formStash.results["account_key_file_le_reg"].file.close()
 
         if six.PY3:
             for (k, v) in list(getcreate_args.items()):
@@ -187,6 +191,7 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
         if seek_selected == "private_key_file":
             try:
                 private_key_pem = formStash.results["private_key_file"].file.read()
+                formStash.results["private_key_file"].file.close()
             except Exception as exc:
                 # we'll still error out...'
                 pass
@@ -223,12 +228,16 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
     # handle the best-option now
     if formStash.results["private_key_file"] is not None:
         private_key_pem = formStash.results["private_key_file"].file.read()
+        formStash.results["private_key_file"].file.close()
     else:
         private_key_pem_md5 = None
         field_source = None
-        if formStash.results["private_key_existing"] is not None:
+        if formStash.results["private_key_existing"]:
             private_key_pem_md5 = formStash.results["private_key_existing"]
             field_source = "private_key_existing"
+        elif formStash.results["private_key_default"]:
+            private_key_pem_md5 = formStash.results["private_key_default"]
+            field_source = "private_key_default"
         if not private_key_pem_md5:
             raise ValueError("form validation should prevent this condition")
         dbPrivateKey = lib_db.get.get__SslPrivateKey__by_pemMd5(

@@ -44,7 +44,7 @@ def main(argv=sys.argv):
             engineLogger,
             tables=[
                 model_objects.SslAcmeEventLog.__table__,
-                model_objects.SslAcmeChallengeLog.__table__,
+                model_objects.SslAcmeChallenge.__table__,
             ],
         )
     session_factory = get_session_factory(engine)

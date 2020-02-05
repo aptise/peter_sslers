@@ -585,7 +585,7 @@ class AuthenticatedUser(object):
 
             (
                 sslAcmeEventLog_new_authorization,
-                sslAcmeChallengeLog,
+                sslAcmeChallenge,
             ) = self.acmeLogger.log_new_authorization(
                 "v2", acmeOrder.dbCertificateRequest, domain=domain
             )  # log this to the db
@@ -654,7 +654,7 @@ class AuthenticatedUser(object):
                 keyauthorization = "{0}.{1}".format(token, self.accountkey_thumbprint)
 
                 # update the challenge
-                sslAcmeChallengeLog.set__challenge("http-01", keyauthorization)
+                sslAcmeChallenge.set__challenge("http-01", keyauthorization)
 
                 # update the db; this should be integrated with the above
                 wellknown_path = handle_keyauth_challenge(
@@ -678,7 +678,7 @@ class AuthenticatedUser(object):
                         except (IOError, AssertionError):
                             handle_keyauth_cleanup(domain, token, keyauthorization)
                             self.acmeLogger.log_challenge_error(
-                                sslAcmeChallengeLog, "pretest-1"
+                                sslAcmeChallenge, "pretest-1"
                             )
                             raise errors.DomainVerificationError(
                                 "Wrote keyauth challenge, but couldn't download {0}".format(
@@ -687,7 +687,7 @@ class AuthenticatedUser(object):
                             )
                         except ssl.CertificateError as exc:
                             self.acmeLogger.log_challenge_error(
-                                sslAcmeChallengeLog, "pretest-2"
+                                sslAcmeChallenge, "pretest-2"
                             )
                             if str(exc).startswith("hostname") and (
                                 "doesn't match" in str(exc)
@@ -706,7 +706,7 @@ class AuthenticatedUser(object):
                     )
 
                 # note the challenge
-                self.acmeLogger.log_challenge_trigger(sslAcmeChallengeLog)
+                self.acmeLogger.log_challenge_trigger(sslAcmeChallenge)
 
                 # if we had a 'valid' challenge, the payload would be `None`
                 # to trigger a GET-as-POST functionality
@@ -725,7 +725,7 @@ class AuthenticatedUser(object):
                     log.info("acme_v2 {0} verified!".format(domain))
                     handle_keyauth_cleanup(domain, token, keyauthorization)
                 elif authorization_response["status"] != "valid":
-                    self.acmeLogger.log_challenge_error(sslAcmeChallengeLog, "fail-2")
+                    self.acmeLogger.log_challenge_error(sslAcmeChallenge, "fail-2")
                     raise errors.DomainVerificationError(
                         "{0} challenge did not pass: {1}".format(
                             domain, authorization_response
@@ -733,7 +733,7 @@ class AuthenticatedUser(object):
                     )
 
                 # log this
-                self.acmeLogger.log_challenge_pass(sslAcmeChallengeLog)
+                self.acmeLogger.log_challenge_pass(sslAcmeChallenge)
 
         # no more domains!
         return True
