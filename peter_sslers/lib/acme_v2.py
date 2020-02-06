@@ -616,24 +616,24 @@ class AuthenticatedUser(object):
             (authorization_response, _, _) = self._send_signed_request(
                 authorization_url, payload=None,
             )
-            dbAuthorization = handle_discovered_auth(
+            dbAcmeAuthorization = handle_discovered_auth(
                 authorization_url, authorization_response
             )
             _response_domain = authorization_response["identifier"]["value"]
-            if dbAuthorization.domain.domain_name != _response_domain:
+            if dbAcmeAuthorization.domain.domain_name != _response_domain:
                 raise ValueError("mismatch on a domain name")
 
             # once we inspect the url, we have the domain
             # the domain is in our `authorization_response`
-            # but also on our `dbAuthorization` object
+            # but also on our `dbAcmeAuthorization` object
             log.info(
                 "acme_v2 Handling Authorization for {0}...".format(
-                    dbAuthorization.domain.domain_name
+                    dbAcmeAuthorization.domain.domain_name
                 )
             )
 
             dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-                "v2"
+                "v2", dbAcmeAuthorization=dbAcmeAuthorization
             )  # log this to the db
 
             _authorization_status = authorization_response["status"]
@@ -668,7 +668,7 @@ class AuthenticatedUser(object):
             # like such: acme_challenge = get_authorization_challenge(authorization_response, http01=True)
             # however, the call to `process_discovered_auth` should have updated the challenge object already
 
-            _challenge_status = dbAuthorization.acme_challenge_http01.status
+            _challenge_status = dbAcmeAuthorization.acme_challenge_http01.status
 
             if _challenge_status == "pending":
                 _todo_complete_challenge_http01 = True
@@ -688,24 +688,24 @@ class AuthenticatedUser(object):
 
             if _todo_complete_challenge_http01:
                 keyauthorization = create_challenge_keyauthorization(
-                    dbAuthorization.acme_challenge_http01.token,
+                    dbAcmeAuthorization.acme_challenge_http01.token,
                     self.accountkey_thumbprint,
                 )
                 if (
-                    dbAuthorization.acme_challenge_http01.keyauthorization
+                    dbAcmeAuthorization.acme_challenge_http01.keyauthorization
                     != keyauthorization
                 ):
                     raise ValueError("This should never happen!")
 
                 # update the db; this should be integrated with the above
                 wellknown_path = handle_keyauth_challenge(
-                    dbAuthorization.domain.domain_name,
-                    dbAuthorization.acme_challenge_http01.token,
-                    dbAuthorization.acme_challenge_http01.keyauthorization,
+                    dbAcmeAuthorization.domain.domain_name,
+                    dbAcmeAuthorization.acme_challenge_http01.token,
+                    dbAcmeAuthorization.acme_challenge_http01.keyauthorization,
                 )
                 wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
-                    dbAuthorization.domain.domain_name,
-                    dbAuthorization.acme_challenge_http01.token,
+                    dbAcmeAuthorization.domain.domain_name,
+                    dbAcmeAuthorization.acme_challenge_http01.token,
                 )
 
                 print(wellknown_path)
@@ -725,12 +725,14 @@ class AuthenticatedUser(object):
                             assert resp_data == keyauthorization
                         except (IOError, AssertionError):
                             handle_keyauth_cleanup(
-                                dbAuthorization.domain.domain_name,
+                                dbAcmeAuthorization.domain.domain_name,
                                 token,
                                 keyauthorization,
                             )
                             self.acmeLogger.log_challenge_error(
-                                "v2", dbAuthorization.acme_challenge_http01, "pretest-1"
+                                "v2",
+                                dbAcmeAuthorization.acme_challenge_http01,
+                                "pretest-1",
                             )
                             raise errors.DomainVerificationError(
                                 "Wrote keyauth challenge, but couldn't download {0}".format(
@@ -739,7 +741,9 @@ class AuthenticatedUser(object):
                             )
                         except ssl.CertificateError as exc:
                             self.acmeLogger.log_challenge_error(
-                                "v2", dbAuthorization.acme_challenge_http01, "pretest-2"
+                                "v2",
+                                dbAcmeAuthorization.acme_challenge_http01,
+                                "pretest-2",
                             )
                             if str(exc).startswith("hostname") and (
                                 "doesn't match" in str(exc)
@@ -759,48 +763,50 @@ class AuthenticatedUser(object):
 
                 # note the challenge
                 self.acmeLogger.log_challenge_trigger(
-                    "v2", dbAuthorization.acme_challenge_http01
+                    "v2", dbAcmeAuthorization.acme_challenge_http01
                 )
 
                 # if we had a 'valid' challenge, the payload would be `None`
                 # to trigger a GET-as-POST functionality
                 (challenge_response, _, _) = self._send_signed_request(
-                    challenge["url"], payload={},
+                    dbAcmeAuthorization.acme_challenge_http01.challenge_url, payload={},
                 )
 
                 # todo - would an accepted challenge require this?
                 log.info(
-                    "checking domain {0}".format(dbAuthorization.domain.domain_name)
+                    "checking domain {0}".format(dbAcmeAuthorization.domain.domain_name)
                 )
                 authorization_response = self._poll_until_not(
                     authorization_url,
                     ["pending"],
                     "checking challenge status for {0}".format(
-                        dbAuthorization.domain.domain_name
+                        dbAcmeAuthorization.domain.domain_name
                     ),
                 )
                 if authorization_response["status"] == "valid":
                     log.info(
                         "acme_v2 {0} verified!".format(
-                            dbAuthorization.domain.domain_name
+                            dbAcmeAuthorization.domain.domain_name
                         )
                     )
                     handle_keyauth_cleanup(
-                        dbAuthorization.domain.domain_name, token, keyauthorization
+                        dbAcmeAuthorization.domain.domain_name, token, keyauthorization
                     )
                 elif authorization_response["status"] != "valid":
+
                     self.acmeLogger.log_challenge_error(
-                        "v2", dbAuthorization.acme_challenge_http01, "fail-2"
+                        "v2", dbAcmeAuthorization.acme_challenge_http01, "fail-2"
                     )
                     raise errors.DomainVerificationError(
                         "{0} challenge did not pass: {1}".format(
-                            dbAuthorization.domain.domain_name, authorization_response
+                            dbAcmeAuthorization.domain.domain_name,
+                            authorization_response,
                         )
                     )
 
                 # log this
                 self.acmeLogger.log_challenge_pass(
-                    "v2", dbAuthorization.acme_challenge_http01
+                    "v2", dbAcmeAuthorization.acme_challenge_http01
                 )
 
         # no more domains!

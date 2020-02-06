@@ -241,10 +241,10 @@ def getcreate__AcmeAuthorization(
         wildcard (optional, boolean)
     """
     is_created = False
-    dbAuthorization = get__AcmeAuthorization__by_authorization_url(
+    dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
         ctx, authorization_url
     )
-    if not dbAuthorization:
+    if not dbAcmeAuthorization:
         timestamp_expires = authorization_payload.get("expires")
         if timestamp_expires:
             timestamp_expires = dateutil_parser.parse(timestamp_expires)
@@ -261,15 +261,15 @@ def getcreate__AcmeAuthorization(
 
         authorization_status = authorization_payload["status"]
         #
-        dbAuthorization = model_objects.AcmeAuthorization()
-        dbAuthorization.authorization_url = authorization_url
-        dbAuthorization.timestamp_created = ctx.timestamp
-        dbAuthorization.domain_id = dbDomain.id
-        dbAuthorization.timestamp_expires = timestamp_expires
-        dbAuthorization.status = authorization_status
-        dbAuthorization.timestamp_updated = ctx.timestamp
-        ctx.dbSession.add(dbAuthorization)
-        ctx.dbSession.flush(objects=[dbAuthorization])
+        dbAcmeAuthorization = model_objects.AcmeAuthorization()
+        dbAcmeAuthorization.authorization_url = authorization_url
+        dbAcmeAuthorization.timestamp_created = ctx.timestamp
+        dbAcmeAuthorization.domain_id = dbDomain.id
+        dbAcmeAuthorization.timestamp_expires = timestamp_expires
+        dbAcmeAuthorization.status = authorization_status
+        dbAcmeAuthorization.timestamp_updated = ctx.timestamp
+        ctx.dbSession.add(dbAcmeAuthorization)
+        ctx.dbSession.flush(objects=[dbAcmeAuthorization])
         is_created = True
 
     # should we handle the challenge here too?
@@ -285,7 +285,7 @@ def getcreate__AcmeAuthorization(
     if not dbChallenge:
         challenge_token = acme_challenge["token"]
         dbChallenge = model_objects.AcmeChallenge()
-        dbChallenge.acme_authorization_id = dbAuthorization.id
+        dbChallenge.acme_authorization_id = dbAcmeAuthorization.id
         dbChallenge.challenge_url = challenge_url
         dbChallenge.timestamp_created = ctx.timestamp
         dbChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
@@ -309,7 +309,7 @@ def getcreate__AcmeAuthorization(
             ctx.dbSession.add(dbChallenge)
             ctx.dbSession.flush(objects=[dbChallenge])
 
-    return dbAuthorization, is_created
+    return dbAcmeAuthorization, is_created
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

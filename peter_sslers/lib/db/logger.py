@@ -85,11 +85,12 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.flush()
         return dbAcmeEventLog
 
-    def log_authorization_request(self, acme_version):
+    def log_authorization_request(self, acme_version, dbAcmeAuthorization):
         """
         Logs a new authorization and creates a challenge object
 
         :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeAuthorization: (required) The :class:`model.objects.AcmeAuthorization` we fetched
         """
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
@@ -100,6 +101,7 @@ class AcmeLogger(object):
             "v2|-authorization-request"
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
         self.ctx.dbSessionLogger.add(dbAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
@@ -121,17 +123,26 @@ class AcmeLogger(object):
             "v2|-challenge-trigger"
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
-        dbAcmeEventLog.acme_challenge_id = self.dbAcmeChallenge.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
+        dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
         self.ctx.dbSessionLogger.add(dbAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
         return dbAcmeEventLog
 
-    def log_challenge_error(self, dbAcmeChallenge, failtype):
+    # ==========================================================================
+
+    def log_challenge_error(self, acme_version, dbAcmeChallenge, failtype):
         """
         Logs a challenge as error
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
+        :param failtype: (required) A string from :class:`model_utils.AcmeChallengeFailType`
         """
-        pdb.set_trace()
+        raise ValueError("not compaitible with current api")
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
         if failtype in ("pretest-1", "pretest-2"):
             dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "setup-prevalidation"
@@ -144,8 +155,8 @@ class AcmeLogger(object):
             )
             self.ctx.dbSessionLogger.add(dbAcmeChallenge)
             self.ctx.dbSessionLogger.flush()
-
-    # ==========================================================================
+        else:
+            raise ValueError("unknown `failtype")
 
     def log_new_cert(self, dbCertificateRequest, version):
         if version not in ("v1", "v2"):

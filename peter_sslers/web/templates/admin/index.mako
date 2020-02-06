@@ -88,6 +88,14 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-event-logs</a></li>
+                <li><a href="${admin_prefix}/acme-challenge-unknown-polls"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-challenge-unknown-polls</a></li>
+
+
+
+
                 <li><a href="${admin_prefix}/acme-challenge-logs"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>

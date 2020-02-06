@@ -47,12 +47,16 @@ class ViewPublic(Handler):
             ),
         )
         if dbAcmeChallenge:
-            log_verification = True if "test" not in self.request.params else False
-            if log_verification:
-                lib_db.create.create__AcmeChallengePoll(
-                    self.request.api_context,
-                    dbAcmeChallenge=dbAcmeChallenge,
-                    remote_ip_address=self.request.environ["REMOTE_ADDR"],
-                )
+            lib_db.create.create__AcmeChallengePoll(
+                self.request.api_context,
+                dbAcmeChallenge=dbAcmeChallenge,
+                remote_ip_address=self.request.environ["REMOTE_ADDR"],
+            )
             return dbAcmeChallenge.keyauthorization
+        lib_db.create.create__AcmeChallengeUnknownPoll(
+            self.request.api_context,
+            domain=self.request.active_domain_name,
+            challenge=challenge,
+            remote_ip_address=self.request.environ["REMOTE_ADDR"],
+        )
         return "ERROR"

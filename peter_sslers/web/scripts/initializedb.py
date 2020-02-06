@@ -46,6 +46,7 @@ def main(argv=sys.argv):
             tables=[
                 model_objects.AcmeEventLog.__table__,
                 model_objects.AcmeChallengePoll.__table__,
+                model_objects.AcmeChallengeUnknownPoll.__table__,
             ],
         )
     session_factory = get_session_factory(engine)

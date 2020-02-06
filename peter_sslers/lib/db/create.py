@@ -15,6 +15,8 @@ from ... import lib  # from . import db?
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
 from .helpers import _certificate_parse_to_record
+from .get import get_dbSessionLogItem
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -57,10 +59,11 @@ def create__AcmeChallenge(*args, **kwargs):
 
 def create__AcmeChallengePoll(ctx, dbAcmeChallenge=None, remote_ip_address=None):
     """
-    Create a new Certificate Signing Request (CSR)
+    Create a new AcmeChallengePoll - this is a log
     
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param dbAcmeChallenge: (required) The challenge which was polled
+    :param remote_ip_address: (required) The remote ip address (string)
     """
     dbAcmeChallengePoll = model_objects.AcmeChallengePoll()
     dbAcmeChallengePoll.acme_challenge_id = dbAcmeChallenge.id
@@ -69,6 +72,28 @@ def create__AcmeChallengePoll(ctx, dbAcmeChallenge=None, remote_ip_address=None)
     ctx.dbSession.add(dbAcmeChallengePoll)
     ctx.dbSession.flush(objects=[dbAcmeChallengePoll])
     return dbAcmeChallengePoll
+
+
+def create__AcmeChallengeUnknownPoll(
+    ctx, domain=None, challenge=None, remote_ip_address=None
+):
+    """
+    Create a new AcmeChallengeUnknownPoll - this is an unknown polling
+    
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param domain: (required) domain (string)
+    :param challenge: (required) challenge (string)
+    :param remote_ip_address: (required) remote_ip_address (string)
+    """
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    dbAcmeChallengeUnknownPoll = model_objects.AcmeChallengeUnknownPoll()
+    dbAcmeChallengeUnknownPoll.domain = domain
+    dbAcmeChallengeUnknownPoll.challenge = challenge
+    dbAcmeChallengeUnknownPoll.timestamp_polled = ctx.timestamp
+    dbAcmeChallengeUnknownPoll.remote_ip_address = remote_ip_address
+    dbSessionLogItem.add(dbAcmeChallengeUnknownPoll)
+    dbSessionLogItem.flush(objects=[dbAcmeChallengeUnknownPoll])
+    return dbAcmeChallengeUnknownPoll
 
 
 def create__CertificateRequest(

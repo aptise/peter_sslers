@@ -3,6 +3,11 @@ import formencode
 
 # these should be tuples of ('Short', 'Long')
 
+
+info_AcmeChallengeUnknownPolls = [
+    "AcmeChallengeUnknownPoll",
+    "A challenge which has been polled, but not set up",
+]
 info_AcmeOrders = [
     "A LetsEncrypt ACME Order",
     "An ACME order is essentially a Certificate Signing Request.",

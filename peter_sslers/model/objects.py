@@ -44,6 +44,9 @@ class AcmeEventLog(Base):
     acme_account_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
     )
+    acme_authorization_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True
+    )
     acme_challenge_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=True
     )
@@ -93,6 +96,20 @@ class AcmeChallengePoll(Base):
         uselist=False,
         back_populates="acme_challenge_polls",
     )
+
+
+class AcmeChallengeUnknownPoll(Base):
+    """
+    log polls of non-existant ace challenges
+    """
+
+    __tablename__ = "acme_challenge_unknown_poll"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    domain = sa.Column(sa.Unicode(255), nullable=False)
+    challenge = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_polled = sa.Column(sa.DateTime, nullable=False)
+    remote_ip_address = sa.Column(sa.Unicode(255), nullable=False)
 
 
 # ==============================================================================
@@ -458,7 +475,7 @@ class AcmeChallenge(Base):
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
 
     #
-    # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAuthorization.acme_challenge_http01.token)
+    # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http01.token)
     # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
     keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
 

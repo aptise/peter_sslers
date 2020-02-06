@@ -344,12 +344,12 @@ def do__CertificateRequest__AcmeV2_Automated(
             """
             log.info("-process_discovered_auth %s", authorization_url)
             (
-                dbAuthorization,
+                dbAcmeAuthorization,
                 _is_created,
             ) = lib.db.getcreate.getcreate__AcmeAuthorization(
                 ctx, authorization_url, authorization_response, authenticatedUser
             )
-            return dbAuthorization
+            return dbAcmeAuthorization
 
         def process_keyauth_challenge(domain, token, keyauthorization):
             """

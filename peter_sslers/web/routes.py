@@ -163,6 +163,22 @@ def _admin_views(config):
         "admin:acme_challenge_log:filtered|json", "/acme-challenge-logs/filtered.json"
     )
 
+    # !!!: AcmeChallenge Poll
+    config.add_route_7("admin:acme_challenge_poll", "/acme-challenge-polls")
+    config.add_route_7(
+        "admin:acme_challenge_poll_paginated", "/acme-challenge-polls/{@page}"
+    )
+    config.add_route_7("admin:acme_challenge_poll:focus", "/acme-challenge-poll/{@id}")
+
+    # !!!: AcmeChallengeUnknown Poll
+    config.add_route_7(
+        "admin:acme_challenge_unknown_poll", "/acme-challenge-unknown-polls"
+    )
+    config.add_route_7(
+        "admin:acme_challenge_unknown_poll_paginated",
+        "/acme-challenge-unknown-polls/{@page}",
+    )
+
     # !!!: CertificateAuthority Certificates
     config.add_route_7("admin:ca_certificates", "/ca-certificates")
     config.add_route_7("admin:ca_certificates_paginated", "/ca-certificates/{@page}")

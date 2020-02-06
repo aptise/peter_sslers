@@ -47,8 +47,8 @@ def get__AcmeEventLogs__paginated(ctx, limit=None, offset=0):
 
 def get__AcmeEventLog__by_id(ctx, id):
     dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.AcmeEventLog).get(id)
-    return counted
+    item = dbSessionLogItem.query(model_objects.AcmeEventLog).get(id)
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -84,8 +84,37 @@ def get__AcmeChallenges__paginated(
 
 def get__AcmeChallenge__by_id(ctx, id):
     dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.AcmeChallenge).get(id)
+    item = dbSessionLogItem.query(model_objects.AcmeChallenge).get(id)
+    return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmeChallengeUnknownPolls__count(ctx):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    counted = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll).count()
     return counted
+
+
+def get__AcmeChallengeUnknownPolls__paginated(
+    ctx, limit=None, offset=0,
+):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    query = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll)
+    query = (
+        query.order_by(model_objects.AcmeChallengeUnknownPoll.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dnAcmeChallengeUnknownPolls = query.all()
+    return dnAcmeChallengeUnknownPolls
+
+
+def get__AcmeChallengeUnknownPoll__by_id(ctx, id):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    item = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll).get(id)
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
