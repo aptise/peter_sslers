@@ -72,7 +72,7 @@ class ViewAdmin(Handler):
         count_deactivated_expired = operations_event.event_payload_json[
             "count_deactivated"
         ]
-        rval["SslServerCertificate"] = {"expired": count_deactivated_expired}
+        rval["ServerCertificate"] = {"expired": count_deactivated_expired}
 
         rval["result"] = "success"
         rval["operations_event"] = operations_event.id
@@ -201,8 +201,9 @@ class ViewAdmin(Handler):
 
             account_key_pem = None
             if formStash.results["account_key_file_pem"] is not None:
-                with formStash.results["account_key_file_pem"] as field:
-                    account_key_pem = field.file.read()
+                account_key_pem = formhandling.slurp_file_field(
+                    formStash, "account_key_file_pem"
+                )
                 if six.PY3:
                     if not isinstance(account_key_pem, str):
                         account_key_pem = account_key_pem.decode("utf8")
@@ -262,7 +263,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_certs = lib_db.get.get__SslCaCertificate__paginated(
+                active_certs = lib_db.get.get__CaCertificate__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -285,7 +286,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_keys = lib_db.get.get__SslPrivateKey__paginated(
+                active_keys = lib_db.get.get__PrivateKey__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -309,7 +310,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_domains = lib_db.get.get__SslDomain__paginated(
+                active_domains = lib_db.get.get__Domain__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
@@ -348,7 +349,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_domains = lib_db.get.get__SslDomain__paginated(
+                active_domains = lib_db.get.get__Domain__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,

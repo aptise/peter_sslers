@@ -32,31 +32,32 @@ TESTING_ENVIRONMENT = False
 # ==============================================================================
 
 
-class SslAcmeEventLog(Base):
+class AcmeEventLog(Base):
     """
     log acme requests
     """
 
-    __tablename__ = "ssl_acme_event_log"
+    __tablename__ = "acme_event_log"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_event = sa.Column(sa.DateTime, nullable=False)
     acme_event_id = sa.Column(sa.Integer, nullable=False)  # AcmeEvent
-    ssl_acme_account_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_account_key.id"), nullable=True
-    )  # no account key on new-reg
-    ssl_certificate_request_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_certificate_request.id"), nullable=True
-    )  # no account key on new-reg
-    ssl_server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True
-    )  # no account key on new-reg
+    acme_account_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
+    )
+    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
+    certificate_request_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+    )
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     #     acme_challenges = sa_orm_relationship(
-    #         "SslAcmeChallenge",
-    #         primaryjoin="SslAcmeEventLog.id==SslAcmeChallenge.ssl_acme_event_log_id",
-    #         order_by="SslAcmeChallenge.id.asc()",
+    #         "AcmeChallenge",
+    #         primaryjoin="AcmeEventLog.id==AcmeChallenge.acme_event_log_id",
+    #         order_by="AcmeChallenge.id.asc()",
     #         back_populates="acme_event_log",
     #     )
 
@@ -69,23 +70,23 @@ class SslAcmeEventLog(Base):
         return None
 
 
-class SslAcmeChallengePoll(Base):
+class AcmeChallengePoll(Base):
     """
     log ACME Challenge polls
     """
 
-    __tablename__ = "ssl_acme_challenge_poll"
+    __tablename__ = "acme_challenge_poll"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    ssl_acme_challenge_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_challenge.id"), nullable=False
+    acme_challenge_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=False
     )
     timestamp_polled = sa.Column(sa.DateTime, nullable=False)
     remote_ip_address = sa.Column(sa.Unicode(255), nullable=False)
 
     acme_challenge = sa_orm_relationship(
-        "SslAcmeChallenge",
-        primaryjoin="SslAcmeChallengePoll.ssl_acme_challenge_id==SslAcmeChallenge.id",
+        "AcmeChallenge",
+        primaryjoin="AcmeChallengePoll.acme_challenge_id==AcmeChallenge.id",
         uselist=False,
         back_populates="acme_challenge_polls",
     )
@@ -94,13 +95,13 @@ class SslAcmeChallengePoll(Base):
 # ==============================================================================
 
 
-class SslAcmeAccountKey(Base):
+class AcmeAccountKey(Base):
     """
     Represents a registered account with the LetsEncrypt Service.
     This is used for authentication to the LE API, it is not tied to any certificates.
     """
 
-    __tablename__ = "ssl_acme_account_key"
+    __tablename__ = "acme_account_key"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_first_seen = sa.Column(sa.DateTime, nullable=False)
     key_pem = sa.Column(sa.Text, nullable=True)
@@ -114,37 +115,37 @@ class SslAcmeAccountKey(Base):
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_default = sa.Column(sa.Boolean, nullable=True, default=None)
     acme_account_provider_id = sa.Column(sa.Integer, nullable=False)
-    ssl_operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
     letsencrypt_data = sa.Column(sa.Text, nullable=True)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_orders = sa_orm_relationship(
-        "SslAcmeOrder",
-        primaryjoin="SslAcmeAccountKey.id==SslAcmeOrder.ssl_acme_account_key_id",
-        order_by="SslAcmeOrder.id.desc()",
+        "AcmeOrder",
+        primaryjoin="AcmeAccountKey.id==AcmeOrder.acme_account_key_id",
+        order_by="AcmeOrder.id.desc()",
         uselist=True,
         back_populates="acme_account_key",
     )
 
     server_certificates__issued = sa_orm_relationship(
-        "SslServerCertificate",
-        primaryjoin="SslAcmeAccountKey.id==SslServerCertificate.ssl_acme_account_key_id",
-        order_by="SslServerCertificate.id.desc()",
+        "ServerCertificate",
+        primaryjoin="AcmeAccountKey.id==ServerCertificate.acme_account_key_id",
+        order_by="ServerCertificate.id.desc()",
         back_populates="acme_account_key",
     )
 
     operations_object_events = sa_orm_relationship(
-        "SslOperationsObjectEvent",
-        primaryjoin="SslAcmeAccountKey.id==SslOperationsObjectEvent.ssl_acme_account_key_id",
+        "OperationsObjectEvent",
+        primaryjoin="AcmeAccountKey.id==OperationsObjectEvent.acme_account_key_id",
         back_populates="acme_account_key",
     )
 
     operations_event__created = sa_orm_relationship(
         "SslOperationsEvent",
-        primaryjoin="SslAcmeAccountKey.ssl_operations_event_id__created==SslOperationsEvent.id",
+        primaryjoin="AcmeAccountKey.operations_event_id__created==SslOperationsEvent.id",
         uselist=False,
     )
 
@@ -204,7 +205,7 @@ class SslAcmeAccountKey(Base):
         }
 
 
-class SslAcmeOrder(Base):
+class AcmeOrder(Base):
     """
     ACME Order Object [https://tools.ietf.org/html/rfc8555#section-7.1.3]
 
@@ -216,122 +217,120 @@ class SslAcmeOrder(Base):
         Certificate (Signed Certificate)
     """
 
-    __tablename__ = "ssl_acme_order"
+    __tablename__ = "acme_order"
 
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
 
-    ssl_acme_event_log_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_event_log.id"), nullable=False
+    acme_event_log_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_event_log.id"), nullable=False
     )  # When was this created?  AcmeEvent['v2|newOrder']
 
     timestamp_finalized = sa.Column(sa.DateTime, nullable=True)
 
-    ssl_acme_account_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_account_key.id"), nullable=True
+    acme_account_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
     )
-    ssl_certificate_request_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_certificate_request.id"), nullable=True
+    certificate_request_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
     )
-    ssl_server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_account_key = sa_orm_relationship(
-        "SslAcmeAccountKey",
-        primaryjoin="SslAcmeOrder.ssl_acme_account_key_id==SslAcmeAccountKey.id",
+        "AcmeAccountKey",
+        primaryjoin="AcmeOrder.acme_account_key_id==AcmeAccountKey.id",
         uselist=False,
         back_populates="acme_orders",
     )
 
     certificate_request = sa_orm_relationship(
-        "SslCertificateRequest",
-        primaryjoin="SslAcmeOrder.ssl_certificate_request_id==SslCertificateRequest.id",
+        "CertificateRequest",
+        primaryjoin="AcmeOrder.certificate_request_id==CertificateRequest.id",
         uselist=False,
         back_populates="acme_orders",
     )
 
     server_certificate = sa_orm_relationship(
-        "SslServerCertificate",
-        primaryjoin="SslAcmeOrder.ssl_server_certificate_id==SslServerCertificate.id",
+        "ServerCertificate",
+        primaryjoin="AcmeOrder.server_certificate_id==ServerCertificate.id",
         uselist=False,
         back_populates="acme_orders",
     )
 
     # authorizations
     to_acme_authorizations = sa_orm_relationship(
-        "SslAcmeOrder2AcmeAuthorization",
-        primaryjoin="SslAcmeOrder.id==SslAcmeOrder2AcmeAuthorization.ssl_acme_order_id",
+        "AcmeOrder2AcmeAuthorization",
+        primaryjoin="AcmeOrder.id==AcmeOrder2AcmeAuthorization.acme_order_id",
         uselist=False,
         back_populates="acme_order",
     )
 
     # identifiers
     to_domains = sa_orm_relationship(
-        "SslAcmeOrder2Domain",
-        primaryjoin="SslAcmeOrder.id==SslAcmeOrder2Domain.ssl_acme_order_id",
+        "AcmeOrder2Domain",
+        primaryjoin="AcmeOrder.id==AcmeOrder2Domain.acme_order_id",
         uselist=False,
         back_populates="acme_order",
     )
 
 
-class SslAcmeOrder2Domain(Base):
-    __tablename__ = "ssl_acme_order_2_domain"
+class AcmeOrder2Domain(Base):
+    __tablename__ = "acme_order_2_domain"
 
-    ssl_acme_order_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_order.id"), primary_key=True
+    acme_order_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), primary_key=True
     )
-    ssl_domain_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_domain.id"), primary_key=True
-    )
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), primary_key=True)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_order = sa_orm_relationship(
-        "SslAcmeOrder",
-        primaryjoin="SslAcmeOrder2Domain.ssl_acme_order_id==SslAcmeOrder.id",
+        "AcmeOrder",
+        primaryjoin="AcmeOrder2Domain.acme_order_id==AcmeOrder.id",
         uselist=False,
         back_populates="to_domains",
     )
 
     domain = sa_orm_relationship(
-        "SslDomain",
-        primaryjoin="SslAcmeOrder2Domain.ssl_domain_id==SslDomain.id",
+        "Domain",
+        primaryjoin="AcmeOrder2Domain.domain_id==Domain.id",
         uselist=False,
         back_populates="to_acme_orders",
     )
 
 
-class SslAcmeOrder2AcmeAuthorization(Base):
-    __tablename__ = "ssl_acme_order_2_acme_authorization"
+class AcmeOrder2AcmeAuthorization(Base):
+    __tablename__ = "acme_order_2_acme_authorization"
 
-    ssl_acme_order_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_order.id"), primary_key=True
+    acme_order_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), primary_key=True
     )
-    ssl_acme_authorization_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_authorization.id"), primary_key=True
+    acme_authorization_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_authorization.id"), primary_key=True
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_order = sa_orm_relationship(
-        "SslAcmeOrder",
-        primaryjoin="SslAcmeOrder2AcmeAuthorization.ssl_acme_order_id==SslAcmeOrder.id",
+        "AcmeOrder",
+        primaryjoin="AcmeOrder2AcmeAuthorization.acme_order_id==AcmeOrder.id",
         uselist=True,
         back_populates="to_acme_authorizations",
     )
 
     acme_authorization = sa_orm_relationship(
-        "SslAcmeAuthorization",
-        primaryjoin="SslAcmeOrder2AcmeAuthorization.ssl_acme_authorization_id==SslAcmeAuthorization.id",
+        "AcmeAuthorization",
+        primaryjoin="AcmeOrder2AcmeAuthorization.acme_authorization_id==AcmeAuthorization.id",
         uselist=True,
         back_populates="to_acme_orders",
     )
 
 
-class SslAcmeAuthorization(Base):
+class AcmeAuthorization(Base):
     """
     ACME Authorization Object [https://tools.ietf.org/html/rfc8555#section-7.1.4]
 
@@ -354,48 +353,48 @@ class SslAcmeAuthorization(Base):
     Additionally, these are our fields:
         authorization_url - our unique-ish way to track this
         timestamp_created
-        ssl_domain_id - `identifer`
+        domain_id - `identifer`
         timestamp_expires - `expires`
         status - `status`
         timestamp_updated - last time we updated this object
     """
 
-    __tablename__ = "ssl_acme_authorization"
+    __tablename__ = "acme_authorization"
     id = sa.Column(sa.Integer, primary_key=True)
     authorization_url = sa.Column(sa.Unicode(255), nullable=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    ssl_domain_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_domain.id"), nullable=False
-    )
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
     timestamp_expires = sa.Column(sa.DateTime, nullable=True)
     status = sa.Column(sa.Unicode(32), nullable=False)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+    wildcard = sa.Column(sa.Boolean, nullable=True, default=None)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     domain = sa_orm_relationship(
-        "SslDomain",
-        primaryjoin="SslAcmeAuthorization.ssl_domain_id==SslDomain.id",
+        "Domain",
+        primaryjoin="AcmeAuthorization.domain_id==Domain.id",
         uselist=False,
         back_populates="acme_authorizations",
     )
 
     to_acme_orders = sa_orm_relationship(
-        "SslAcmeOrder2AcmeAuthorization",
-        primaryjoin="SslAcmeAuthorization.id==SslAcmeOrder2AcmeAuthorization.ssl_acme_authorization_id",
+        "AcmeOrder2AcmeAuthorization",
+        primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
         uselist=False,
         back_populates="acme_authorization",
     )
 
-    acme_challenge = sa_orm_relationship(
-        "SslAcmeChallenge",
-        primaryjoin="SslAcmeAuthorization.id==SslAcmeChallenge.ssl_acme_authorization_id",
+    acme_challenge_http01 = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
+        % model_utils.AcmeChallengeType.from_string("http-01"),
         uselist=False,
         back_populates="acme_authorization",
     )
 
 
-class SslAcmeChallenge(Base):
+class AcmeChallenge(Base):
     """
     ACME Challenge Objects [https://tools.ietf.org/html/rfc8555#section-8]
     
@@ -439,14 +438,12 @@ class SslAcmeChallenge(Base):
          "token": "LoqXcYV8q5ONbJQxbmR7SCTNo3tiAXDfowyjxAjEuX0"
        }
 
-
-
     """
 
-    __tablename__ = "ssl_acme_challenge"
+    __tablename__ = "acme_challenge"
     id = sa.Column(sa.Integer, primary_key=True)
-    ssl_acme_authorization_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_authorization.id"), nullable=False
+    acme_authorization_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=False
     )
     challenge_url = sa.Column(sa.Unicode(255), nullable=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
@@ -457,44 +454,42 @@ class SslAcmeChallenge(Base):
     token = sa.Column(sa.Unicode(255), nullable=False)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
 
+    #
+    # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAuthorization.acme_challenge_http01.token)
+    # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
+    keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     #     acme_event_log = sa_orm_relationship(
-    #         "SslAcmeEventLog",
-    #         primaryjoin="SslAcmeChallenge.ssl_acme_event_log_id==SslAcmeEventLog.id",
+    #         "AcmeEventLog",
+    #         primaryjoin="AcmeChallenge.acme_event_log_id==AcmeEventLog.id",
     #         uselist=False,
     #         back_populates="acme_challenges",
     #     )
 
     acme_challenge_polls = sa_orm_relationship(
-        "SslAcmeChallengePoll",
-        primaryjoin="SslAcmeChallenge.id==SslAcmeChallengePoll.ssl_acme_challenge_id",
+        "AcmeChallengePoll",
+        primaryjoin="AcmeChallenge.id==AcmeChallengePoll.acme_challenge_id",
         uselist=True,
         back_populates="acme_challenge",
     )
 
     acme_authorization = sa_orm_relationship(
-        "SslAcmeAuthorization",
-        primaryjoin="SslAcmeChallenge.ssl_acme_authorization_id==SslAcmeAuthorization.id",
+        "AcmeAuthorization",
+        primaryjoin="AcmeChallenge.acme_authorization_id==AcmeAuthorization.id",
         uselist=False,
-        back_populates="to_acme_challenges",
+        back_populates="acme_challenge_http01",
     )
 
     if False:
         # migrate to fqdns
         to_certificate_requests = sa_orm_relationship(
-            "SslCertificateRequest2Domain",
-            primaryjoin="SslAcmeChallenge.id==SslCertificateRequest2Domain.ssl_acme_challenge_id",
+            "CertificateRequest2Domain",
+            primaryjoin="AcmeChallenge.id==CertificateRequest2Domain.acme_challenge_id",
             uselist=False,
             back_populates="acme_challenge",
         )
-
-    acme_authorization = sa_orm_relationship(
-        "SslAcmeAuthorization",
-        primaryjoin="SslAcmeChallenge.ssl_acme_authorization_id==SslAcmeAuthorization.id",
-        uselist=False,
-        back_populates="acme_challenge",
-    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -529,20 +524,20 @@ class SslAcmeChallenge(Base):
             "status": self.status,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
-            # "ssl_acme_event_log_id": self.ssl_acme_event_log_id,
+            # "acme_event_log_id": self.acme_event_log_id,
         }
 
 
 # ==============================================================================
 
 
-class SslCaCertificate(Base):
+class CaCertificate(Base):
     """
     These are trusted "Certificate Authority" Certificates from LetsEncrypt that are used to sign server certificates.
     These are directly tied to a ServerCertificate and are needed to create a "fullchain" certificate for most deployments.
     """
 
-    __tablename__ = "ssl_ca_certificate"
+    __tablename__ = "ca_certificate"
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.Unicode(255), nullable=False)
     le_authority_name = sa.Column(sa.Unicode(255), nullable=True)
@@ -552,7 +547,7 @@ class SslCaCertificate(Base):
         sa.Boolean, nullable=True, default=None
     )
     id_cross_signed_of = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_ca_certificate.id"), nullable=True
+        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
     )
     timestamp_first_seen = sa.Column(sa.DateTime, nullable=False)
     cert_pem = sa.Column(sa.Text, nullable=False)
@@ -565,21 +560,21 @@ class SslCaCertificate(Base):
     cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
-    ssl_operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     operations_event__created = sa_orm_relationship(
         "SslOperationsEvent",
-        primaryjoin="SslCaCertificate.ssl_operations_event_id__created==SslOperationsEvent.id",
+        primaryjoin="CaCertificate.operations_event_id__created==SslOperationsEvent.id",
         uselist=False,
     )
 
     operations_object_events = sa_orm_relationship(
-        "SslOperationsObjectEvent",
-        primaryjoin="SslCaCertificate.id==SslOperationsObjectEvent.ssl_ca_certificate_id",
+        "OperationsObjectEvent",
+        primaryjoin="CaCertificate.id==OperationsObjectEvent.ca_certificate_id",
         back_populates="ca_certificate",
     )
 
@@ -623,79 +618,76 @@ class SslCaCertificate(Base):
         }
 
 
-class SslCertificateRequest(Base):
+class CertificateRequest(Base):
     """
     A CertificateRequest is submitted to the LetsEncrypt signing authority.
     In goes your hope, out comes your dreams.
 
-    The domains will be stored in the SslUniqueFQDNSet table
-    * SslUniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
+    The domains will be stored in the UniqueFQDNSet table
+    * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
     """
 
-    __tablename__ = "ssl_certificate_request"
+    __tablename__ = "certificate_request"
     id = sa.Column(sa.Integer, primary_key=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-
     # ???: deprecation candidate: `is_error`
     # is_error = sa.Column(sa.Boolean, nullable=True, default=None)
-
-    certificate_request_type_id = sa.Column(
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    certificate_request_source_id = sa.Column(
         sa.Integer, nullable=False
-    )  # see SslCertificateRequestType
+    )  # see CertificateRequestSource
 
     csr_pem = sa.Column(sa.Text, nullable=True)
     csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
     csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
 
-    ssl_operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    ssl_private_key_id__signed_by = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_private_key.id"), nullable=True
+    private_key_id__signed_by = sa.Column(
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
-    ssl_unique_fqdn_set_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False
-    )
-    ssl_server_certificate_id__renewal_of = sa.Column(
+    server_certificate_id__renewal_of = sa.Column(
         sa.Integer,
-        sa.ForeignKey("ssl_server_certificate.id", use_alter=True),
+        sa.ForeignKey("server_certificate.id", use_alter=True),
         nullable=True,
+    )
+    unique_fqdn_set_id = sa.Column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_orders = sa_orm_relationship(
-        "SslAcmeOrder",
-        primaryjoin="SslCertificateRequest.id==SslAcmeOrder.ssl_certificate_request_id",
+        "AcmeOrder",
+        primaryjoin="CertificateRequest.id==AcmeOrder.certificate_request_id",
         uselist=True,
         back_populates="certificate_request",
     )
 
     operations_object_events = sa_orm_relationship(
-        "SslOperationsObjectEvent",
-        primaryjoin="SslCertificateRequest.id==SslOperationsObjectEvent.ssl_certificate_request_id",
+        "OperationsObjectEvent",
+        primaryjoin="CertificateRequest.id==OperationsObjectEvent.certificate_request_id",
         back_populates="certificate_request",
     )
 
     private_key__signed_by = sa_orm_relationship(
-        "SslPrivateKey",
-        primaryjoin="SslCertificateRequest.ssl_private_key_id__signed_by==SslPrivateKey.id",
+        "PrivateKey",
+        primaryjoin="CertificateRequest.private_key_id__signed_by==PrivateKey.id",
         back_populates="certificate_requests",
         uselist=False,
     )
 
     server_certificate = sa_orm_relationship(
-        "SslServerCertificate",
-        primaryjoin="SslCertificateRequest.id==SslServerCertificate.ssl_certificate_request_id",
+        "ServerCertificate",
+        primaryjoin="CertificateRequest.id==ServerCertificate.certificate_request_id",
         back_populates="certificate_request",
         uselist=False,
     )
 
     server_certificate__renewal_of = sa_orm_relationship(
-        "SslServerCertificate",
-        primaryjoin="SslCertificateRequest.ssl_server_certificate_id__renewal_of==SslServerCertificate.id",
+        "ServerCertificate",
+        primaryjoin="CertificateRequest.server_certificate_id__renewal_of==ServerCertificate.id",
         back_populates="certificate_request__renewals",
         uselist=False,
     )
@@ -703,14 +695,14 @@ class SslCertificateRequest(Base):
     if False:
         # TODO: migrate through the Unique FQDNS
         to_domains = sa_orm_relationship(
-            "SslCertificateRequest2SslDomain",
-            primaryjoin="SslCertificateRequest.id==SslCertificateRequest2SslDomain.ssl_certificate_request_id",
+            "CertificateRequest2Domain",
+            primaryjoin="CertificateRequest.id==CertificateRequest2Domain.certificate_request_id",
             back_populates="certificate_request",
         )
 
     unique_fqdn_set = sa_orm_relationship(
-        "SslUniqueFQDNSet",
-        primaryjoin="SslCertificateRequest.ssl_unique_fqdn_set_id==SslUniqueFQDNSet.id",
+        "UniqueFQDNSet",
+        primaryjoin="CertificateRequest.unique_fqdn_set_id==UniqueFQDNSet.id",
         uselist=False,
         back_populates="certificate_requests",
     )
@@ -739,17 +731,17 @@ class SslCertificateRequest(Base):
     def certificate_request_source(self):
         if (
             self.certificate_request_source_id
-            == model_utils.SslCertificateRequestSource.RECORDED
+            == model_utils.CertificateRequestSource.RECORDED
         ):
             return "Recorded"
         elif (
             self.certificate_request_source_id
-            == model_utils.SslCertificateRequestSource.ACME_FLOW
+            == model_utils.CertificateRequestSource.ACME_FLOW
         ):
             return "Acme Flow"
         elif (
             self.certificate_request_source_id
-            == model_utils.SslCertificateRequestSource.ACME_AUTOMATED
+            == model_utils.CertificateRequestSource.ACME_AUTOMATED
         ):
             return "Acme Automated"
         raise ValueError("invalid `self.certificate_request_source_id`")
@@ -757,17 +749,17 @@ class SslCertificateRequest(Base):
     def certificate_request_source_is(self, check):
         if (check.lower() == "recorded") and (
             self.certificate_request_source_id
-            == model_utils.SslCertificateRequestSource.RECORDED
+            == model_utils.CertificateRequestSource.RECORDED
         ):
             return True
         elif (check.lower() == "acme flow") and (
             self.certificate_request_source_id
-            == model_utils.SslCertificateRequestSource.ACME_FLOW
+            == model_utils.CertificateRequestSource.ACME_FLOW
         ):
             return True
         elif (check.lower() == "acme automated") and (
             self.certificate_request_source_id
-            == model_utils.SslCertificateRequestSource.ACME_AUTOMATED
+            == model_utils.CertificateRequestSource.ACME_AUTOMATED
         ):
             return True
         return False
@@ -797,7 +789,7 @@ class SslCertificateRequest(Base):
         return None
 
     @property
-    def ssl_server_certificate_id__issued(self):
+    def server_certificate_id__issued(self):
         if self.server_certificate:
             return self.server_certificate.id
         return None
@@ -813,10 +805,10 @@ class SslCertificateRequest(Base):
             "certificate_request_source": self.certificate_request_source,
             "timestamp_started": self.timestamp_started_isoformat,
             "timestamp_finished": self.timestamp_finished_isoformat,
-            "ssl_acme_account_key_id": self.ssl_acme_account_key_id,
-            "ssl_private_key_id__signed_by": self.ssl_private_key_id__signed_by,
-            "ssl_server_certificate_id__renewal_of": self.ssl_server_certificate_id__renewal_of,
-            "ssl_unique_fqdn_set_id": self.ssl_unique_fqdn_set_id,
+            "acme_account_key_id": self.acme_account_key_id,
+            "private_key_id__signed_by": self.private_key_id__signed_by,
+            "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
 
     @property
@@ -830,22 +822,22 @@ class SslCertificateRequest(Base):
             "certificate_request_source": self.certificate_request_source,
             "timestamp_started": self.timestamp_started_isoformat,
             "timestamp_finished": self.timestamp_finished_isoformat,
-            "ssl_acme_account_key_id": self.ssl_acme_account_key_id,
-            "ssl_private_key_id__signed_by": self.ssl_private_key_id__signed_by,
-            "ssl_server_certificate_id__renewal_of": self.ssl_server_certificate_id__renewal_of,
-            "ssl_unique_fqdn_set_id": self.ssl_unique_fqdn_set_id,
+            "acme_account_key_id": self.acme_account_key_id,
+            "private_key_id__signed_by": self.private_key_id__signed_by,
+            "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "domains": self.domains_as_list,
             "csr_pem": self.csr_pem,
-            "ssl_server_certificate_id__issued": self.ssl_server_certificate_id__issued,
+            "server_certificate_id__issued": self.server_certificate_id__issued,
         }
 
 
-class SslDomain(Base):
+class Domain(Base):
     """
     A Fully Qualified Domain
     """
 
-    __tablename__ = "ssl_domain"
+    __tablename__ = "domain"
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
@@ -855,63 +847,63 @@ class SslDomain(Base):
         sa.Boolean, nullable=True, default=None
     )  # ???: deprecation candidate
 
-    ssl_operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    ssl_server_certificate_id__latest_single = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True
+    server_certificate_id__latest_single = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
-    ssl_server_certificate_id__latest_multi = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True
+    server_certificate_id__latest_multi = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_authorizations = sa_orm_relationship(
-        "SslAcmeAuthorization",
-        primaryjoin="SslDomain.id==SslAcmeAuthorization.ssl_domain_id",
-        order_by="SslAcmeAuthorization.id.desc()",
+        "AcmeAuthorization",
+        primaryjoin="Domain.id==AcmeAuthorization.domain_id",
+        order_by="AcmeAuthorization.id.desc()",
         uselist=True,
         back_populates="domain",
     )
 
     operations_object_events = sa_orm_relationship(
-        "SslOperationsObjectEvent",
-        primaryjoin="SslDomain.id==SslOperationsObjectEvent.ssl_domain_id",
+        "OperationsObjectEvent",
+        primaryjoin="Domain.id==OperationsObjectEvent.domain_id",
         back_populates="domain",
     )
 
     server_certificate__latest_single = sa_orm_relationship(
-        "SslServerCertificate",
-        primaryjoin="SslDomain.ssl_server_certificate_id__latest_single==SslServerCertificate.id",
+        "ServerCertificate",
+        primaryjoin="Domain.server_certificate_id__latest_single==ServerCertificate.id",
         uselist=False,
     )
 
     server_certificate__latest_multi = sa_orm_relationship(
-        "SslServerCertificate",
-        primaryjoin="SslDomain.ssl_server_certificate_id__latest_multi==SslServerCertificate.id",
+        "ServerCertificate",
+        primaryjoin="Domain.server_certificate_id__latest_multi==ServerCertificate.id",
         uselist=False,
+    )
+
+    to_acme_orders = sa_orm_relationship(
+        "AcmeOrder2Domain",
+        primaryjoin="Domain.id==AcmeOrder2Domain.domain_id",
+        uselist=True,
+        back_populates="domain",
     )
 
     if False:
         # TODO: migrate through the Unique FQDNS
         to_certificate_requests = sa_orm_relationship(
-            "SslCertificateRequest2SslDomain",
-            primaryjoin="SslDomain.id==SslCertificateRequest2SslDomain.ssl_domain_id",
+            "CertificateRequest2Domain",
+            primaryjoin="Domain.id==CertificateRequest2Domain.domain_id",
             back_populates="domain",
-            order_by="SslCertificateRequest2SslDomain.ssl_certificate_request_id.desc()",
+            order_by="CertificateRequest2Domain.certificate_request_id.desc()",
         )
 
     to_fqdns = sa_orm_relationship(
-        "SslUniqueFQDNSet2SslDomain",
-        primaryjoin="SslDomain.id==SslUniqueFQDNSet2SslDomain.ssl_domain_id",
-        back_populates="domain",
-    )
-
-    to_acme_orders = sa_orm_relationship(
-        "SslAcmeOrder2Domain",
-        primaryjoin="SslDomain.id==SslAcmeOrder2Domain.ssl_domain_id",
-        uselist=True,
+        "UniqueFQDNSet2Domain",
+        primaryjoin="Domain.id==UniqueFQDNSet2Domain.domain_id",
         back_populates="domain",
     )
 
@@ -926,27 +918,27 @@ class SslDomain(Base):
             "certificate__latest_multi": {},
             "certificate__latest_single": {},
         }
-        if self.ssl_server_certificate_id__latest_multi:
+        if self.server_certificate_id__latest_multi:
             payload["certificate__latest_multi"] = {
-                "id": self.ssl_server_certificate_id__latest_multi,
+                "id": self.server_certificate_id__latest_multi,
                 "timestamp_expires": self.server_certificate__latest_multi.timestamp_expires_isoformat,
                 "expiring_days": self.server_certificate__latest_multi.expiring_days,
             }
-        if self.ssl_server_certificate_id__latest_single:
+        if self.server_certificate_id__latest_single:
             payload["certificate__latest_single"] = {
-                "id": self.ssl_server_certificate_id__latest_single,
+                "id": self.server_certificate_id__latest_single,
                 "timestamp_expires": self.server_certificate__latest_single.timestamp_expires_isoformat,
                 "expiring_days": self.server_certificate__latest_single.expiring_days,
             }
         return payload
 
 
-class SslPrivateKey(Base):
+class PrivateKey(Base):
     """
     These keys are used to sign CertificateRequests and are the PrivateKey component to a ServerCertificate.
     """
 
-    __tablename__ = "ssl_private_key"
+    __tablename__ = "private_key"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_first_seen = sa.Column(sa.DateTime, nullable=False)
     key_pem = sa.Column(sa.Text, nullable=True)
@@ -960,36 +952,36 @@ class SslPrivateKey(Base):
     count_certificates_issued = sa.Column(sa.Integer, nullable=True, default=0)
     timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True)
     timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True)
-    ssl_operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
     is_default = sa.Column(sa.Boolean, nullable=True, default=None)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     certificate_requests = sa_orm_relationship(
-        "SslCertificateRequest",
-        primaryjoin="SslPrivateKey.id==SslCertificateRequest.ssl_private_key_id__signed_by",
-        order_by="SslCertificateRequest.id.desc()",
+        "CertificateRequest",
+        primaryjoin="PrivateKey.id==CertificateRequest.private_key_id__signed_by",
+        order_by="CertificateRequest.id.desc()",
         back_populates="private_key__signed_by",
     )
 
     server_certificates = sa_orm_relationship(
-        "SslServerCertificate",
-        primaryjoin="SslPrivateKey.id==SslServerCertificate.ssl_private_key_id__signed_by",
-        order_by="SslServerCertificate.id.desc()",
+        "ServerCertificate",
+        primaryjoin="PrivateKey.id==ServerCertificate.private_key_id__signed_by",
+        order_by="ServerCertificate.id.desc()",
         back_populates="private_key",
     )
 
     operations_object_events = sa_orm_relationship(
-        "SslOperationsObjectEvent",
-        primaryjoin="SslPrivateKey.id==SslOperationsObjectEvent.ssl_private_key_id",
+        "OperationsObjectEvent",
+        primaryjoin="PrivateKey.id==OperationsObjectEvent.private_key_id",
         back_populates="private_key",
     )
 
     operations_event__created = sa_orm_relationship(
         "SslOperationsEvent",
-        primaryjoin="SslPrivateKey.ssl_operations_event_id__created==SslOperationsEvent.id",
+        primaryjoin="PrivateKey.operations_event_id__created==SslOperationsEvent.id",
         uselist=False,
     )
 
@@ -1032,16 +1024,16 @@ class SslPrivateKey(Base):
         }
 
 
-class SslServerCertificate(Base):
+class ServerCertificate(Base):
     """
     A signed Server Certificate.
     To install on a webserver, must be paired with the PrivateKey and Trusted CA Certificate.
 
     The domains will be stored in:
-    * SslUniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
+    * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
     """
 
-    __tablename__ = "ssl_server_certificate"
+    __tablename__ = "server_certificate"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_signed = sa.Column(sa.DateTime, nullable=False)
     timestamp_expires = sa.Column(sa.DateTime, nullable=False)
@@ -1061,8 +1053,8 @@ class SslServerCertificate(Base):
         sa.Boolean, nullable=True, default=None
     )  # used to determine is_active toggling. this will set 'is_deactivated'
     is_auto_renew = sa.Column(sa.Boolean, nullable=False, default=True)
-    ssl_unique_fqdn_set_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=False
+    unique_fqdn_set_id = sa.Column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
     is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
     timestamp_revoked_upstream = sa.Column(
@@ -1070,84 +1062,84 @@ class SslServerCertificate(Base):
     )  # if set, the cert was reported revoked upstream and this is FINAL
 
     # this is the LetsEncrypt key
-    ssl_ca_certificate_id__upchain = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_ca_certificate.id"), nullable=False
+    ca_certificate_id__upchain = sa.Column(
+        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=False
     )
 
     # this is the private key
-    ssl_private_key_id__signed_by = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_private_key.id"), nullable=False
+    private_key_id__signed_by = sa.Column(
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
 
     # this is the account key, if a LetsEncrypt issue.  this could be null
-    ssl_acme_account_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_account_key.id"), nullable=True
+    acme_account_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
     )
 
     # tracking
     # `use_alter=True` is needed for setup/drop
-    ssl_certificate_request_id = sa.Column(
+    certificate_request_id = sa.Column(
         sa.Integer,
-        sa.ForeignKey("ssl_certificate_request.id", use_alter=True),
+        sa.ForeignKey("certificate_request.id", use_alter=True),
         nullable=True,
     )
-    ssl_server_certificate_id__renewal_of = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True
+    server_certificate_id__renewal_of = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
-    ssl_operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_account_key = sa_orm_relationship(
-        "SslAcmeAccountKey",
-        primaryjoin="SslServerCertificate.ssl_acme_account_key_id==SslAcmeAccountKey.id",
+        "AcmeAccountKey",
+        primaryjoin="ServerCertificate.acme_account_key_id==AcmeAccountKey.id",
         back_populates="server_certificates__issued",
         uselist=False,
     )
 
     acme_orders = sa_orm_relationship(
-        "SslAcmeOrder",
-        primaryjoin="SslServerCertificate.id==SslAcmeOrder.ssl_server_certificate_id",
+        "AcmeOrder",
+        primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id",
         uselist=True,
         back_populates="server_certificate",
     )
 
     certificate_request = sa_orm_relationship(
-        "SslCertificateRequest",
-        primaryjoin="SslServerCertificate.ssl_certificate_request_id==SslCertificateRequest.id",
+        "CertificateRequest",
+        primaryjoin="ServerCertificate.certificate_request_id==CertificateRequest.id",
         back_populates="server_certificate",
         uselist=False,
     )
 
     certificate_request__renewals = sa_orm_relationship(
-        "SslCertificateRequest",
-        primaryjoin="SslServerCertificate.id==SslCertificateRequest.ssl_server_certificate_id__renewal_of",
+        "CertificateRequest",
+        primaryjoin="ServerCertificate.id==CertificateRequest.server_certificate_id__renewal_of",
         back_populates="server_certificate__renewal_of",
     )
 
     certificate_upchain = sa_orm_relationship(
-        "SslCaCertificate",
-        primaryjoin="SslServerCertificate.ssl_ca_certificate_id__upchain==SslCaCertificate.id",
+        "CaCertificate",
+        primaryjoin="ServerCertificate.ca_certificate_id__upchain==CaCertificate.id",
         uselist=False,
     )
 
     operations_event__created = sa_orm_relationship(
         "SslOperationsEvent",
-        primaryjoin="SslServerCertificate.ssl_operations_event_id__created==SslOperationsEvent.id",
+        primaryjoin="ServerCertificate.operations_event_id__created==SslOperationsEvent.id",
         uselist=False,
     )
 
     operations_object_events = sa_orm_relationship(
-        "SslOperationsObjectEvent",
-        primaryjoin="SslServerCertificate.id==SslOperationsObjectEvent.ssl_server_certificate_id",
+        "OperationsObjectEvent",
+        primaryjoin="ServerCertificate.id==OperationsObjectEvent.server_certificate_id",
         back_populates="server_certificate",
     )
 
     private_key = sa_orm_relationship(
-        "SslPrivateKey",
-        primaryjoin="SslServerCertificate.ssl_private_key_id__signed_by==SslPrivateKey.id",
+        "PrivateKey",
+        primaryjoin="ServerCertificate.private_key_id__signed_by==PrivateKey.id",
         back_populates="server_certificates",
         uselist=False,
     )
@@ -1156,13 +1148,13 @@ class SslServerCertificate(Base):
     if False:
         queue_renewal = sa_orm_relationship(
             "SslQueueRenewal",
-            primaryjoin="SslServerCertificate.id==SslQueueRenewal.ssl_server_certificate_id",
+            primaryjoin="ServerCertificate.id==SslQueueRenewal.server_certificate_id",
             back_populates="server_certificate",
         )
 
     unique_fqdn_set = sa_orm_relationship(
-        "SslUniqueFQDNSet",
-        primaryjoin="SslServerCertificate.ssl_unique_fqdn_set_id==SslUniqueFQDNSet.id",
+        "UniqueFQDNSet",
+        primaryjoin="ServerCertificate.unique_fqdn_set_id==UniqueFQDNSet.id",
         uselist=False,
         back_populates="server_certificates",
     )
@@ -1267,7 +1259,7 @@ class SslServerCertificate(Base):
     @property
     def can_renew_letsencrypt(self):
         """only allow renew of LE certificates"""
-        if self.ssl_acme_account_key_id:
+        if self.acme_account_key_id:
             return True
         return False
 
@@ -1293,15 +1285,15 @@ class SslServerCertificate(Base):
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
             "cert_pem": self.cert_pem,
             "cert_pem_md5": self.cert_pem_md5,
-            "ssl_unique_fqdn_set_id": self.ssl_unique_fqdn_set_id,
-            "ssl_ca_certificate_id__upchain": self.ssl_ca_certificate_id__upchain,
-            "ssl_private_key_id__signed_by": self.ssl_private_key_id__signed_by,
-            "ssl_acme_account_key_id": self.ssl_acme_account_key_id,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
+            "ca_certificate_id__upchain": self.ca_certificate_id__upchain,
+            "private_key_id__signed_by": self.private_key_id__signed_by,
+            "acme_account_key_id": self.acme_account_key_id,
             "domains_as_list": self.domains_as_list,
         }
 
 
-class SslUniqueFQDNSet(Base):
+class UniqueFQDNSet(Base):
     """
     There is a ratelimit in effect from LetsEncrypt for unique sets of fully-qualified domain names
 
@@ -1312,31 +1304,31 @@ class SslUniqueFQDNSet(Base):
 
     # note: RATELIMIT.FQDN
 
-    __tablename__ = "ssl_unique_fqdn_set"
+    __tablename__ = "unique_fqdn_set"
     id = sa.Column(sa.Integer, primary_key=True)
     domain_ids_string = sa.Column(sa.Text, nullable=False)
     timestamp_first_seen = sa.Column(sa.DateTime, nullable=False)
-    ssl_operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=False
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     to_domains = sa_orm_relationship(
-        "SslUniqueFQDNSet2SslDomain",
-        primaryjoin="SslUniqueFQDNSet.id==SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id",
+        "UniqueFQDNSet2Domain",
+        primaryjoin="UniqueFQDNSet.id==UniqueFQDNSet2Domain.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
 
     server_certificates = sa_orm_relationship(
-        "SslServerCertificate",
-        primaryjoin="SslUniqueFQDNSet.id==SslServerCertificate.ssl_unique_fqdn_set_id",
+        "ServerCertificate",
+        primaryjoin="UniqueFQDNSet.id==ServerCertificate.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
 
     certificate_requests = sa_orm_relationship(
-        "SslCertificateRequest",
-        primaryjoin="SslUniqueFQDNSet.id==SslCertificateRequest.ssl_unique_fqdn_set_id",
+        "CertificateRequest",
+        primaryjoin="UniqueFQDNSet.id==CertificateRequest.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
 
@@ -1344,25 +1336,25 @@ class SslUniqueFQDNSet(Base):
     if False:
         queue_renewal = sa_orm_relationship(
             "SslQueueRenewal",
-            primaryjoin="SslUniqueFQDNSet.id==SslQueueRenewal.ssl_unique_fqdn_set_id",
+            primaryjoin="UniqueFQDNSet.id==SslQueueRenewal.unique_fqdn_set_id",
             back_populates="unique_fqdn_set",
         )
 
         queue_renewal__active = sa_orm_relationship(
             "SslQueueRenewal",
-            primaryjoin="and_(SslUniqueFQDNSet.id==SslQueueRenewal.ssl_unique_fqdn_set_id, SslQueueRenewal.is_active==True)",
+            primaryjoin="and_(UniqueFQDNSet.id==SslQueueRenewal.unique_fqdn_set_id, SslQueueRenewal.is_active==True)",
             back_populates="unique_fqdn_set",
         )
 
     operations_object_events = sa_orm_relationship(
-        "SslOperationsObjectEvent",
-        primaryjoin="SslUniqueFQDNSet.id==SslOperationsObjectEvent.ssl_unique_fqdn_set_id",
+        "OperationsObjectEvent",
+        primaryjoin="UniqueFQDNSet.id==OperationsObjectEvent.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
 
     operations_event__created = sa_orm_relationship(
         "SslOperationsEvent",
-        primaryjoin="SslUniqueFQDNSet.ssl_operations_event_id__created==SslOperationsEvent.id",
+        primaryjoin="UniqueFQDNSet.operations_event_id__created==SslOperationsEvent.id",
         uselist=False,
     )
 
@@ -1395,33 +1387,31 @@ class SslUniqueFQDNSet(Base):
         }
 
 
-class SslUniqueFQDNSet2SslDomain(Base):
+class UniqueFQDNSet2Domain(Base):
     """
     association table
     """
 
     # note: RATELIMIT.FQDN
 
-    __tablename__ = "ssl_unique_fqdn_set_2_ssl_domain"
-    ssl_unique_fqdn_set_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), primary_key=True
+    __tablename__ = "unique_fqdn_set_2_domain"
+    unique_fqdn_set_id = sa.Column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), primary_key=True
     )
-    ssl_domain_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_domain.id"), primary_key=True
-    )
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), primary_key=True)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     unique_fqdn_set = sa_orm_relationship(
-        "SslUniqueFQDNSet",
-        primaryjoin="SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id==SslUniqueFQDNSet.id",
+        "UniqueFQDNSet",
+        primaryjoin="UniqueFQDNSet2Domain.unique_fqdn_set_id==UniqueFQDNSet.id",
         uselist=False,
         back_populates="to_domains",
     )
 
     domain = sa_orm_relationship(
-        "SslDomain",
-        primaryjoin="SslUniqueFQDNSet2SslDomain.ssl_domain_id==SslDomain.id",
+        "Domain",
+        primaryjoin="UniqueFQDNSet2Domain.domain_id==Domain.id",
         uselist=False,
     )
 
@@ -1434,35 +1424,35 @@ class SslOperationsEvent(Base, model_utils._mixin_SslOperationsEventType):
     Certain events are tracked for bookkeeping
     """
 
-    __tablename__ = "ssl_operations_event"
+    __tablename__ = "operations_event"
     id = sa.Column(sa.Integer, primary_key=True)
-    ssl_operations_event_type_id = sa.Column(
+    operations_event_type_id = sa.Column(
         sa.Integer, nullable=False
     )  # references SslOperationsEventType
     timestamp_event = sa.Column(sa.DateTime, nullable=True)
     event_payload = sa.Column(sa.Text, nullable=False)
-    ssl_operations_event_id__child_of = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=True
+    operations_event_id__child_of = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=True
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     object_events = sa_orm_relationship(
-        "SslOperationsObjectEvent",
-        primaryjoin="SslOperationsEvent.id==SslOperationsObjectEvent.ssl_operations_event_id",
+        "OperationsObjectEvent",
+        primaryjoin="SslOperationsEvent.id==OperationsObjectEvent.operations_event_id",
         back_populates="operations_event",
     )
 
     children = sa_orm_relationship(
         "SslOperationsEvent",
-        primaryjoin="SslOperationsEvent.id==SslOperationsEvent.ssl_operations_event_id__child_of",
-        remote_side="SslOperationsEvent.ssl_operations_event_id__child_of",
+        primaryjoin="SslOperationsEvent.id==SslOperationsEvent.operations_event_id__child_of",
+        remote_side="SslOperationsEvent.operations_event_id__child_of",
         back_populates="parent",
     )
 
     parent = sa_orm_relationship(
         "SslOperationsEvent",
-        primaryjoin="SslOperationsEvent.ssl_operations_event_id__child_of==SslOperationsEvent.id",
+        primaryjoin="SslOperationsEvent.operations_event_id__child_of==SslOperationsEvent.id",
         uselist=False,
         back_populates="children",
         remote_side="SslOperationsEvent.id",
@@ -1482,111 +1472,111 @@ class SslOperationsEvent(Base, model_utils._mixin_SslOperationsEventType):
         self.event_payload = json.dumps(payload_dict)
 
 
-class SslOperationsObjectEvent(Base):
+class OperationsObjectEvent(Base):
     """Domains updates are noted here
     """
 
-    __tablename__ = "ssl_operations_object_event"
+    __tablename__ = "operations_object_event"
     id = sa.Column(sa.Integer, primary_key=True)
-    ssl_operations_event_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_operations_event.id"), nullable=True
+    operations_event_id = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=True
     )
-    ssl_operations_object_event_status_id = sa.Column(
+    operations_object_event_status_id = sa.Column(
         sa.Integer, nullable=False
-    )  # references SslOperationsObjectEventStatus
+    )  # references OperationsObjectEventStatus
 
-    ssl_ca_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_ca_certificate.id"), nullable=True
+    ca_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
     )
-    ssl_certificate_request_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_certificate_request.id"), nullable=True
+    certificate_request_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
     )
-    ssl_domain_id = sa.Column(sa.Integer, sa.ForeignKey("ssl_domain.id"), nullable=True)
-    ssl_acme_account_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_acme_account_key.id"), nullable=True
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
+    acme_account_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
     )
-    ssl_private_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_private_key.id"), nullable=True
+    private_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
     if False:
         # TODO: Queue
-        ssl_queue_domain_id = sa.Column(
-            sa.Integer, sa.ForeignKey("ssl_queue_domain.id"), nullable=True
+        queue_domain_id = sa.Column(
+            sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
         )
-        ssl_queue_renewal_id = sa.Column(
-            sa.Integer, sa.ForeignKey("ssl_queue_renewal.id"), nullable=True
+        queue_renewal_id = sa.Column(
+            sa.Integer, sa.ForeignKey("queue_renewal.id"), nullable=True
         )
-    ssl_server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_server_certificate.id"), nullable=True
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
-    ssl_unique_fqdn_set_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=True
+    unique_fqdn_set_id = sa.Column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
     )
 
     # TODO: Queue
     """
-        CASE WHEN ssl_queue_domain_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END
         +
-        CASE WHEN ssl_queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END
         +
     """
     check1 = sa.CheckConstraint(
         """(
-        CASE WHEN ssl_ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END
         +
-        CASE WHEN ssl_certificate_request_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END
         +
-        CASE WHEN ssl_domain_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN domain_id IS NOT NULL THEN 1 ELSE 0 END
         +
-        CASE WHEN ssl_acme_account_key_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN acme_account_key_id IS NOT NULL THEN 1 ELSE 0 END
         +
-        CASE WHEN ssl_private_key_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END
         +
-        CASE WHEN ssl_server_certificate_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END
         +
-        CASE WHEN ssl_unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END
+        CASE WHEN unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END
     ) = 1""",
         name="check1",
     )
 
     operations_event = sa_orm_relationship(
         "SslOperationsEvent",
-        primaryjoin="SslOperationsObjectEvent.ssl_operations_event_id==SslOperationsEvent.id",
+        primaryjoin="OperationsObjectEvent.operations_event_id==SslOperationsEvent.id",
         uselist=False,
         back_populates="object_events",
     )
 
     ca_certificate = sa_orm_relationship(
-        "SslCaCertificate",
-        primaryjoin="SslOperationsObjectEvent.ssl_ca_certificate_id==SslCaCertificate.id",
+        "CaCertificate",
+        primaryjoin="OperationsObjectEvent.ca_certificate_id==CaCertificate.id",
         uselist=False,
         back_populates="operations_object_events",
     )
 
     certificate_request = sa_orm_relationship(
-        "SslCertificateRequest",
-        primaryjoin="SslOperationsObjectEvent.ssl_certificate_request_id==SslCertificateRequest.id",
+        "CertificateRequest",
+        primaryjoin="OperationsObjectEvent.certificate_request_id==CertificateRequest.id",
         uselist=False,
         back_populates="operations_object_events",
     )
 
     domain = sa_orm_relationship(
-        "SslDomain",
-        primaryjoin="SslOperationsObjectEvent.ssl_domain_id==SslDomain.id",
+        "Domain",
+        primaryjoin="OperationsObjectEvent.domain_id==Domain.id",
         uselist=False,
         back_populates="operations_object_events",
     )
 
     acme_account_key = sa_orm_relationship(
-        "SslAcmeAccountKey",
-        primaryjoin="SslOperationsObjectEvent.ssl_acme_account_key_id==SslAcmeAccountKey.id",
+        "AcmeAccountKey",
+        primaryjoin="OperationsObjectEvent.acme_account_key_id==AcmeAccountKey.id",
         uselist=False,
         back_populates="operations_object_events",
     )
 
     private_key = sa_orm_relationship(
-        "SslPrivateKey",
-        primaryjoin="SslOperationsObjectEvent.ssl_private_key_id==SslPrivateKey.id",
+        "PrivateKey",
+        primaryjoin="OperationsObjectEvent.private_key_id==PrivateKey.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -1595,27 +1585,27 @@ class SslOperationsObjectEvent(Base):
         # TODO: Queue
         queue_domain = sa_orm_relationship(
             "SslQueueDomain",
-            primaryjoin="SslOperationsObjectEvent.ssl_queue_domain_id==SslQueueDomain.id",
+            primaryjoin="OperationsObjectEvent.queue_domain_id==SslQueueDomain.id",
             uselist=False,
             back_populates="operations_object_events",
         )
         queue_renewal = sa_orm_relationship(
             "SslQueueRenewal",
-            primaryjoin="SslOperationsObjectEvent.ssl_queue_renewal_id==SslQueueRenewal.id",
+            primaryjoin="OperationsObjectEvent.queue_renewal_id==SslQueueRenewal.id",
             uselist=False,
             back_populates="operations_object_events",
         )
 
     server_certificate = sa_orm_relationship(
-        "SslServerCertificate",
-        primaryjoin="SslOperationsObjectEvent.ssl_server_certificate_id==SslServerCertificate.id",
+        "ServerCertificate",
+        primaryjoin="OperationsObjectEvent.server_certificate_id==ServerCertificate.id",
         uselist=False,
         back_populates="operations_object_events",
     )
 
     unique_fqdn_set = sa_orm_relationship(
-        "SslUniqueFQDNSet",
-        primaryjoin="SslOperationsObjectEvent.ssl_unique_fqdn_set_id==SslUniqueFQDNSet.id",
+        "UniqueFQDNSet",
+        primaryjoin="OperationsObjectEvent.unique_fqdn_set_id==UniqueFQDNSet.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -1624,8 +1614,8 @@ class SslOperationsObjectEvent(Base):
 
     @property
     def event_status_text(self):
-        return model_utils.SslOperationsObjectEventStatus.as_string(
-            self.ssl_operations_object_event_status_id
+        return model_utils.OperationsObjectEventStatus.as_string(
+            self.operations_object_event_status_id
         )
 
 
@@ -1634,55 +1624,50 @@ class SslOperationsObjectEvent(Base):
 
 # !!!: Advanced Relationships Below
 
-# note: SslAcmeAccountKey.certificate_requests__5
-SslAcmeAccountKey.certificate_requests__5 = sa_orm_relationship(
-    SslCertificateRequest,
-    primaryjoin="SslAcmeAccountKey.id == SslAcmeOrder.ssl_acme_account_key_id",
+# note: AcmeAccountKey.certificate_requests__5
+AcmeAccountKey.certificate_requests__5 = sa_orm_relationship(
+    CertificateRequest,
+    primaryjoin="AcmeAccountKey.id == AcmeOrder.acme_account_key_id",
     secondary=(
-        """join(SslAcmeOrder,
-                SslCertificateRequest,
-                SslAcmeOrder.ssl_certificate_request_id == SslCertificateRequest.id
+        """join(AcmeOrder,
+                CertificateRequest,
+                AcmeOrder.certificate_request_id == CertificateRequest.id
                 )"""
     ),
     secondaryjoin=(
         sa.and_(
-            SslCertificateRequest.id
-            == sa.orm.foreign(SslAcmeOrder.ssl_certificate_request_id),
-            SslCertificateRequest.id.in_(
-                sa.select([SslCertificateRequest.id])
-                .where(
-                    SslCertificateRequest.id == SslAcmeOrder.ssl_certificate_request_id
-                )
-                .where(SslAcmeOrder.ssl_acme_account_key_id == SslAcmeAccountKey.id)
-                .order_by(SslCertificateRequest.id.desc())
+            CertificateRequest.id == sa.orm.foreign(AcmeOrder.certificate_request_id),
+            CertificateRequest.id.in_(
+                sa.select([CertificateRequest.id])
+                .where(CertificateRequest.id == AcmeOrder.certificate_request_id)
+                .where(AcmeOrder.acme_account_key_id == AcmeAccountKey.id)
+                .order_by(CertificateRequest.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=SslCertificateRequest.id.desc(),
+    order_by=CertificateRequest.id.desc(),
     viewonly=True,
 )
 
 
-# note: SslAcmeAccountKey.server_certificates__5
-SslAcmeAccountKey.server_certificates__5 = sa_orm_relationship(
-    SslServerCertificate,
+# note: AcmeAccountKey.server_certificates__5
+AcmeAccountKey.server_certificates__5 = sa_orm_relationship(
+    ServerCertificate,
     primaryjoin=(
         sa.and_(
-            SslAcmeAccountKey.id == SslServerCertificate.ssl_acme_account_key_id,
-            SslServerCertificate.id.in_(
-                sa.select([SslServerCertificate.id])
-                .where(
-                    SslAcmeAccountKey.id == SslServerCertificate.ssl_acme_account_key_id
-                )
-                .order_by(SslServerCertificate.id.desc())
+            AcmeAccountKey.id == ServerCertificate.acme_account_key_id,
+            ServerCertificate.id.in_(
+                sa.select([ServerCertificate.id])
+                .where(AcmeAccountKey.id == ServerCertificate.acme_account_key_id)
+                .order_by(ServerCertificate.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=SslServerCertificate.id.desc(),
+    order_by=ServerCertificate.id.desc(),
     viewonly=True,
 )
 
@@ -1690,48 +1675,42 @@ SslAcmeAccountKey.server_certificates__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-# note: SslPrivateKey.certificate_requests__5
-SslPrivateKey.certificate_requests__5 = sa_orm_relationship(
-    SslCertificateRequest,
+# note: PrivateKey.certificate_requests__5
+PrivateKey.certificate_requests__5 = sa_orm_relationship(
+    CertificateRequest,
     primaryjoin=(
         sa.and_(
-            SslPrivateKey.id == SslCertificateRequest.ssl_private_key_id__signed_by,
-            SslCertificateRequest.id.in_(
-                sa.select([SslCertificateRequest.id])
-                .where(
-                    SslPrivateKey.id
-                    == SslCertificateRequest.ssl_private_key_id__signed_by
-                )
-                .order_by(SslCertificateRequest.id.desc())
+            PrivateKey.id == CertificateRequest.private_key_id__signed_by,
+            CertificateRequest.id.in_(
+                sa.select([CertificateRequest.id])
+                .where(PrivateKey.id == CertificateRequest.private_key_id__signed_by)
+                .order_by(CertificateRequest.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=SslCertificateRequest.id.desc(),
+    order_by=CertificateRequest.id.desc(),
     viewonly=True,
 )
 
 
-# note: SslPrivateKey.server_certificates__5
-SslPrivateKey.server_certificates__5 = sa_orm_relationship(
-    SslServerCertificate,
+# note: PrivateKey.server_certificates__5
+PrivateKey.server_certificates__5 = sa_orm_relationship(
+    ServerCertificate,
     primaryjoin=(
         sa.and_(
-            SslPrivateKey.id == SslServerCertificate.ssl_private_key_id__signed_by,
-            SslServerCertificate.id.in_(
-                sa.select([SslServerCertificate.id])
-                .where(
-                    SslPrivateKey.id
-                    == SslServerCertificate.ssl_private_key_id__signed_by
-                )
-                .order_by(SslServerCertificate.id.desc())
+            PrivateKey.id == ServerCertificate.private_key_id__signed_by,
+            ServerCertificate.id.in_(
+                sa.select([ServerCertificate.id])
+                .where(PrivateKey.id == ServerCertificate.private_key_id__signed_by)
+                .order_by(ServerCertificate.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=SslServerCertificate.id.desc(),
+    order_by=ServerCertificate.id.desc(),
     viewonly=True,
 )
 
@@ -1739,56 +1718,56 @@ SslPrivateKey.server_certificates__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-# note: SslDomain.server_certificates__5
+# note: Domain.server_certificates__5
 # returns an object with a `certificate` on it
-SslDomain.server_certificates__5 = sa_orm_relationship(
-    SslServerCertificate,
-    primaryjoin="SslDomain.id == SslUniqueFQDNSet2SslDomain.ssl_domain_id",
+Domain.server_certificates__5 = sa_orm_relationship(
+    ServerCertificate,
+    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
     secondary=(
-        """join(SslUniqueFQDNSet2SslDomain,
-                SslServerCertificate,
-                SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id == SslServerCertificate.ssl_unique_fqdn_set_id
+        """join(UniqueFQDNSet2Domain,
+                ServerCertificate,
+                UniqueFQDNSet2Domain.unique_fqdn_set_id == ServerCertificate.unique_fqdn_set_id
                 )"""
     ),
     secondaryjoin=(
         sa.and_(
-            SslServerCertificate.ssl_unique_fqdn_set_id
-            == sa.orm.foreign(SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id),
-            SslServerCertificate.id.in_(
-                sa.select([SslServerCertificate.id])
+            ServerCertificate.unique_fqdn_set_id
+            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
+            ServerCertificate.id.in_(
+                sa.select([ServerCertificate.id])
                 .where(
-                    SslServerCertificate.ssl_unique_fqdn_set_id
-                    == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
+                    ServerCertificate.unique_fqdn_set_id
+                    == UniqueFQDNSet2Domain.unique_fqdn_set_id
                 )
-                .where(SslUniqueFQDNSet2SslDomain.ssl_domain_id == SslDomain.id)
-                .order_by(SslServerCertificate.id.desc())
+                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .order_by(ServerCertificate.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=SslServerCertificate.id.desc(),
+    order_by=ServerCertificate.id.desc(),
     viewonly=True,
 )
 
 
-# note: SslDomain.to_unique_fqdn_sets__5
+# note: Domain.to_unique_fqdn_sets__5
 # returns an object with a `unique_fqdn_set` on it
-SslDomain.to_unique_fqdn_sets__5 = sa_orm_relationship(
-    SslUniqueFQDNSet2SslDomain,
+Domain.to_unique_fqdn_sets__5 = sa_orm_relationship(
+    UniqueFQDNSet2Domain,
     primaryjoin=(
         sa.and_(
-            SslDomain.id == SslUniqueFQDNSet2SslDomain.ssl_domain_id,
-            SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id.in_(
-                sa.select([SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id])
-                .where(SslDomain.id == SslUniqueFQDNSet2SslDomain.ssl_domain_id)
-                .order_by(SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id.desc())
+            Domain.id == UniqueFQDNSet2Domain.domain_id,
+            UniqueFQDNSet2Domain.unique_fqdn_set_id.in_(
+                sa.select([UniqueFQDNSet2Domain.unique_fqdn_set_id])
+                .where(Domain.id == UniqueFQDNSet2Domain.domain_id)
+                .order_by(UniqueFQDNSet2Domain.unique_fqdn_set_id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id.desc(),
+    order_by=UniqueFQDNSet2Domain.unique_fqdn_set_id.desc(),
     viewonly=True,
 )
 
@@ -1796,61 +1775,55 @@ SslDomain.to_unique_fqdn_sets__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-# note: SslUniqueFQDNSet.certificate_requests__5
-SslUniqueFQDNSet.certificate_requests__5 = sa_orm_relationship(
-    SslCertificateRequest,
+# note: UniqueFQDNSet.certificate_requests__5
+UniqueFQDNSet.certificate_requests__5 = sa_orm_relationship(
+    CertificateRequest,
     primaryjoin=(
         sa.and_(
-            SslUniqueFQDNSet.id == SslCertificateRequest.ssl_unique_fqdn_set_id,
-            SslCertificateRequest.id.in_(
-                sa.select([SslCertificateRequest.id])
-                .where(
-                    SslUniqueFQDNSet.id == SslCertificateRequest.ssl_unique_fqdn_set_id
-                )
-                .order_by(SslCertificateRequest.id.desc())
+            UniqueFQDNSet.id == CertificateRequest.unique_fqdn_set_id,
+            CertificateRequest.id.in_(
+                sa.select([CertificateRequest.id])
+                .where(UniqueFQDNSet.id == CertificateRequest.unique_fqdn_set_id)
+                .order_by(CertificateRequest.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=SslCertificateRequest.id.desc(),
+    order_by=CertificateRequest.id.desc(),
     viewonly=True,
 )
 
 
-# note: SslUniqueFQDNSet.server_certificates__5
-SslUniqueFQDNSet.server_certificates__5 = sa_orm_relationship(
-    SslServerCertificate,
+# note: UniqueFQDNSet.server_certificates__5
+UniqueFQDNSet.server_certificates__5 = sa_orm_relationship(
+    ServerCertificate,
     primaryjoin=(
         sa.and_(
-            SslUniqueFQDNSet.id == SslServerCertificate.ssl_unique_fqdn_set_id,
-            SslServerCertificate.id.in_(
-                sa.select([SslServerCertificate.id])
-                .where(
-                    SslUniqueFQDNSet.id == SslServerCertificate.ssl_unique_fqdn_set_id
-                )
-                .order_by(SslServerCertificate.id.desc())
+            UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id,
+            ServerCertificate.id.in_(
+                sa.select([ServerCertificate.id])
+                .where(UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id)
+                .order_by(ServerCertificate.id.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=SslServerCertificate.id.desc(),
+    order_by=ServerCertificate.id.desc(),
     viewonly=True,
 )
 
 
-# note: SslUniqueFQDNSet.latest_certificate
-SslUniqueFQDNSet.latest_certificate = sa_orm_relationship(
-    SslServerCertificate,
+# note: UniqueFQDNSet.latest_certificate
+UniqueFQDNSet.latest_certificate = sa_orm_relationship(
+    ServerCertificate,
     primaryjoin=(
         sa.and_(
-            SslUniqueFQDNSet.id == SslServerCertificate.ssl_unique_fqdn_set_id,
-            SslServerCertificate.id.in_(
-                sa.select([sa.func.max(SslServerCertificate.id)])
-                .where(
-                    SslUniqueFQDNSet.id == SslServerCertificate.ssl_unique_fqdn_set_id
-                )
+            UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id,
+            ServerCertificate.id.in_(
+                sa.select([sa.func.max(ServerCertificate.id)])
+                .where(UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id)
                 .correlate()
             ),
         )
@@ -1859,18 +1832,16 @@ SslUniqueFQDNSet.latest_certificate = sa_orm_relationship(
     viewonly=True,
 )
 
-# note: SslUniqueFQDNSet.latest_active_certificate
-SslUniqueFQDNSet.latest_active_certificate = sa_orm_relationship(
-    SslServerCertificate,
+# note: UniqueFQDNSet.latest_active_certificate
+UniqueFQDNSet.latest_active_certificate = sa_orm_relationship(
+    ServerCertificate,
     primaryjoin=(
         sa.and_(
-            SslUniqueFQDNSet.id == SslServerCertificate.ssl_unique_fqdn_set_id,
-            SslServerCertificate.id.in_(
-                sa.select([sa.func.max(SslServerCertificate.id)])
-                .where(
-                    SslUniqueFQDNSet.id == SslServerCertificate.ssl_unique_fqdn_set_id
-                )
-                .where(SslServerCertificate.is_active.op("IS")(True))
+            UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id,
+            ServerCertificate.id.in_(
+                sa.select([sa.func.max(ServerCertificate.id)])
+                .where(UniqueFQDNSet.id == ServerCertificate.unique_fqdn_set_id)
+                .where(ServerCertificate.is_active.op("IS")(True))
                 .correlate()
             ),
         )

@@ -42,7 +42,7 @@ class ViewAdmin_List(Handler):
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
-        items_count = lib_db.get.get__SslAcmeAccountKey__count(self.request.api_context)
+        items_count = lib_db.get.get__AcmeAccountKey__count(self.request.api_context)
         if wants_json:
             (pager, offset) = self._paginate(
                 items_count,
@@ -55,13 +55,13 @@ class ViewAdmin_List(Handler):
                 url_template="%s/account-keys/{0}"
                 % self.request.registry.settings["admin_prefix"],
             )
-        items_paged = lib_db.get.get__SslAcmeAccountKey__paginated(
+        items_paged = lib_db.get.get__AcmeAccountKey__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         if wants_json:
             _accountKeys = {k.id: k.as_json for k in items_paged}
             return {
-                "SslAcmeAccountKeys": _accountKeys,
+                "AcmeAccountKeys": _accountKeys,
                 "pagination": {
                     "total_items": items_count,
                     "page": pager.page_num,
@@ -70,8 +70,8 @@ class ViewAdmin_List(Handler):
             }
         return {
             "project": "peter_sslers",
-            "SslAcmeAccountKeys_count": items_count,
-            "SslAcmeAccountKeys": items_paged,
+            "AcmeAccountKeys_count": items_count,
+            "AcmeAccountKeys": items_paged,
             "pager": pager,
         }
 
@@ -137,7 +137,7 @@ class ViewAdmin_New(Handler):
             (
                 dbAcmeAccountKey,
                 _is_created,
-            ) = lib_db.getcreate.getcreate__SslAcmeAccountKey(
+            ) = lib_db.getcreate.getcreate__AcmeAccountKey(
                 self.request.api_context, **key_create_args
             )
 
@@ -165,7 +165,7 @@ class ViewAdmin_New(Handler):
 
 class ViewAdmin_Focus(Handler):
     def _focus(self, eagerload_web=False):
-        dbAcmeAccountKey = lib_db.get.get__SslAcmeAccountKey__by_id(
+        dbAcmeAccountKey = lib_db.get.get__AcmeAccountKey__by_id(
             self.request.api_context,
             self.request.matchdict["id"],
             eagerload_web=eagerload_web,
@@ -199,7 +199,7 @@ class ViewAdmin_Focus(Handler):
                     "der": "%s/key.key" % _prefix,
                 },
             }
-        return {"project": "peter_sslers", "SslAcmeAccountKey": dbAcmeAccountKey}
+        return {"project": "peter_sslers", "AcmeAccountKey": dbAcmeAccountKey}
 
     @view_config(route_name="admin:account_key:focus:raw", renderer="string")
     def focus_raw(self):
@@ -268,7 +268,7 @@ class ViewAdmin_Focus(Handler):
     def _focus__authenticate__submit(self, dbAcmeAccountKey):
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
-        result = lib_db.actions.do__SslAcmeAccountKey_AcmeV2_authenticate(
+        result = lib_db.actions.do__AcmeAccountKey_AcmeV2_authenticate(
             self.request.api_context, dbAcmeAccountKey
         )
         wants_json = (
@@ -292,13 +292,13 @@ class ViewAdmin_Focus(Handler):
     )
     def focus__certificates(self):
         dbAcmeAccountKey = self._focus()
-        items_count = lib_db.get.get__SslServerCertificate__by_SslAcmeAccountKeyId__count(
+        items_count = lib_db.get.get__ServerCertificate__by_AcmeAccountKeyId__count(
             self.request.api_context, dbAcmeAccountKey.id
         )
         (pager, offset) = self._paginate(
             items_count, url_template="%s/certificates/{0}" % (self._focus_url)
         )
-        items_paged = lib_db.get.get__SslServerCertificate__by_SslAcmeAccountKeyId__paginated(
+        items_paged = lib_db.get.get__ServerCertificate__by_AcmeAccountKeyId__paginated(
             self.request.api_context,
             dbAcmeAccountKey.id,
             limit=items_per_page,
@@ -306,9 +306,9 @@ class ViewAdmin_Focus(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslAcmeAccountKey": dbAcmeAccountKey,
-            "SslServerCertificates_count": items_count,
-            "SslServerCertificates": items_paged,
+            "AcmeAccountKey": dbAcmeAccountKey,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
             "pager": pager,
         }
 
@@ -322,13 +322,13 @@ class ViewAdmin_Focus(Handler):
     )
     def focus__certificate_requests(self):
         dbAcmeAccountKey = self._focus()
-        items_count = lib_db.get.get__SslCertificateRequest__by_SslAcmeAccountKeyId__count(
+        items_count = lib_db.get.get__CertificateRequest__by_AcmeAccountKeyId__count(
             self.request.api_context, dbAcmeAccountKey.id
         )
         (pager, offset) = self._paginate(
             items_count, url_template="%s/certificate-requests/{0}" % (self._focus_url)
         )
-        items_paged = lib_db.get.get__SslCertificateRequest__by_SslAcmeAccountKeyId__paginated(
+        items_paged = lib_db.get.get__CertificateRequest__by_AcmeAccountKeyId__paginated(
             self.request.api_context,
             dbAcmeAccountKey.id,
             limit=items_per_page,
@@ -336,9 +336,9 @@ class ViewAdmin_Focus(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslAcmeAccountKey": dbAcmeAccountKey,
-            "SslCertificateRequests_count": items_count,
-            "SslCertificateRequests": items_paged,
+            "AcmeAccountKey": dbAcmeAccountKey,
+            "CertificateRequests_count": items_count,
+            "CertificateRequests": items_paged,
             "pager": pager,
         }
 
@@ -419,7 +419,7 @@ class ViewAdmin_Focus(Handler):
                     # `formStash.fatal_form(` will raise a `FormInvalid()`
                     formStash.fatal_form(message="Already default.")
 
-                formerDefaultKey = lib_db.get.get__SslAcmeAccountKey__default(
+                formerDefaultKey = lib_db.get.get__AcmeAccountKey__default(
                     self.request.api_context
                 )
                 if formerDefaultKey:
@@ -445,7 +445,7 @@ class ViewAdmin_Focus(Handler):
             lib_db.logger._log_object_event(
                 self.request.api_context,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
                     event_status
                 ),
                 dbAcmeAccountKey=dbAcmeAccountKey,
@@ -454,13 +454,13 @@ class ViewAdmin_Focus(Handler):
                 lib_db.logger._log_object_event(
                     self.request.api_context,
                     dbOperationsEvent=dbOperationsEvent,
-                    event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+                    event_status_id=model_utils.OperationsObjectEventStatus.from_string(
                         event_alt[0]
                     ),
                     dbAcmeAccountKey=event_alt[1],
                 )
             if wants_json:
-                return {"result": "success", "SslAcmeAccountKey": dbAcmeAccountKey}
+                return {"result": "success", "AcmeAccountKey": dbAcmeAccountKey}
             url_success = "%s?operation=mark&action=%s&result=success" % (
                 self._focus_url,
                 action,

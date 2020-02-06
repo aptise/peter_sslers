@@ -7,13 +7,13 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-event-logs">Acme Event Logs</a></li>
-        <li class="active">Focus: ${SslAcmeEventLog.id}</li>
+        <li class="active">Focus: ${AcmeEventLog.id}</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Acme Event Log: Focus ${SslAcmeEventLog.id}</h2>
+    <h2>Acme Event Log: Focus ${AcmeEventLog.id}</h2>
 </%block>
 
 
@@ -24,36 +24,36 @@
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>id</th>
-                    <td><span class="label label-default">${SslAcmeEventLog.id}</span></td>
+                    <td><span class="label label-default">${AcmeEventLog.id}</span></td>
                 </tr>
                 <tr>
                     <th>timestamp_event</th>
-                    <td>${SslAcmeEventLog.timestamp_event}</td>
+                    <td>${AcmeEventLog.timestamp_event}</td>
                 </tr>
                 <tr>
                     <th>acme_event</th>
-                    <td><span class="label label-default">${SslAcmeEventLog.acme_event}</span></td>
+                    <td><span class="label label-default">${AcmeEventLog.acme_event}</span></td>
                 </tr>
                 <tr>
-                    <th>ssl_acme_account_key_id</th>
+                    <th>acme_account_key_id</th>
                     <td>
-                        % if SslAcmeEventLog.ssl_acme_account_key_id:
+                        % if AcmeEventLog.acme_account_key_id:
                             <a  class="label label-info"
-                                href="${admin_prefix}/account-key/${SslAcmeEventLog.ssl_acme_account_key_id}"
+                                href="${admin_prefix}/account-key/${AcmeEventLog.acme_account_key_id}"
                             >
-                                account-${SslAcmeEventLog.ssl_acme_account_key_id}
+                                account-${AcmeEventLog.acme_account_key_id}
                             </a>
                         % endif
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_certificate_request_id</th>
+                    <th>certificate_request_id</th>
                     <td>
-                        % if SslAcmeEventLog.ssl_certificate_request_id:
+                        % if AcmeEventLog.certificate_request_id:
                             <a  class="label label-info"
-                                href="${admin_prefix}/certificate-request/${SslAcmeEventLog.ssl_certificate_request_id}"
+                                href="${admin_prefix}/certificate-request/${AcmeEventLog.certificate_request_id}"
                             >
-                                csr-${SslAcmeEventLog.ssl_certificate_request_id}
+                                csr-${AcmeEventLog.certificate_request_id}
                             </a>
                         % endif
                     </td>
@@ -61,9 +61,9 @@
                 <tr>
                     <th>challenges?</th>
                     <td>
-                        % if SslAcmeEventLog.acme_challenge_logs:
+                        % if AcmeEventLog.acme_challenge_logs:
                             <ul>
-                            % for challenge in SslAcmeEventLog.acme_challenge_logs:
+                            % for challenge in AcmeEventLog.acme_challenge_logs:
                                 <li>
                                     <a  class="label label-info"
                                         href="${admin_prefix}/acme-challenge-log/${challenge.id}"

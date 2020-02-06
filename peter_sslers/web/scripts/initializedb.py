@@ -44,8 +44,8 @@ def main(argv=sys.argv):
         Base.metadata.create_all(
             engineLogger,
             tables=[
-                model_objects.SslAcmeEventLog.__table__,
-                model_objects.SslAcmeChallengePoll.__table__,
+                model_objects.AcmeEventLog.__table__,
+                model_objects.AcmeChallengePoll.__table__,
             ],
         )
     session_factory = get_session_factory(engine)

@@ -14,8 +14,8 @@
 <%block name="page_header_col">
     <h2>Acme Challenge Log: Filtered</h2>
 
-    <a href="${admin_prefix}/account-key/${SslAcmeAccountKey.id}" class="label label-info">
-        account-${SslAcmeAccountKey.id}
+    <a href="${admin_prefix}/account-key/${AcmeAccountKey.id}" class="label label-info">
+        account-${AcmeAccountKey.id}
     </a>
     <p>
         Challenge Status: ${filtered_status}
@@ -26,7 +26,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if SslAcmeChallenges:
+            % if AcmeChallenges:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -44,13 +44,13 @@
                         </tr>
                     </thead>
                     <tbody>
-                    % for logged in SslAcmeChallenges:
+                    % for logged in AcmeChallenges:
                         <tr>
                             <td>
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/acme-event-log/${logged.ssl_acme_event_log_id}"
+                                    href="${admin_prefix}/acme-event-log/${logged.acme_event_log_id}"
                                 >
-                                    event-${logged.ssl_acme_event_log_id}
+                                    event-${logged.acme_event_log_id}
                                 </a>
                             </td>
                             <td>

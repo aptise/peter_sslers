@@ -198,7 +198,7 @@ def acme_verify_domains(
     for domain in csr_domains:
         log.info("acme_v1 Verifying {0}...".format(domain))
 
-        (sslAcmeEventLog_new_authz, sslAcmeChallenge) = acmeLogger.log_new_authz(
+        (dbAcmeEventLog_new_authz, dbAcmeChallenge) = acmeLogger.log_new_authz(
             "v1", dbCertificateRequest, domain=domain
         )  # log this to the db
 
@@ -225,7 +225,7 @@ def acme_verify_domains(
         keyauthorization = "{0}.{1}".format(token, thumbprint)
 
         # update the challenge
-        sslAcmeChallenge.set__challenge("http-01", keyauthorization)
+        dbAcmeChallenge.set__challenge("http-01", keyauthorization)
 
         # update the db; this should be integrated with the above
         wellknown_path = handle_keyauth_challenge(domain, token, keyauthorization)
@@ -243,14 +243,14 @@ def acme_verify_domains(
                 assert resp_data == keyauthorization
             except (IOError, AssertionError):
                 handle_keyauth_cleanup(domain, token, keyauthorization)
-                acmeLogger.log_challenge_error(sslAcmeChallenge, "pretest-1")
+                acmeLogger.log_challenge_error(dbAcmeChallenge, "pretest-1")
                 raise errors.DomainVerificationError(
                     "Wrote keyauth challenge, but couldn't download {0}".format(
                         wellknown_url
                     )
                 )
             except ssl.CertificateError as exc:
-                acmeLogger.log_challenge_error(sslAcmeChallenge, "pretest-2")
+                acmeLogger.log_challenge_error(dbAcmeChallenge, "pretest-2")
                 if str(exc).startswith("hostname") and ("doesn't match" in str(exc)):
                     raise errors.DomainVerificationError(
                         "Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(
@@ -260,7 +260,7 @@ def acme_verify_domains(
                 raise
 
         # note the challenge
-        acmeLogger.log_challenge_trigger(sslAcmeChallenge)
+        acmeLogger.log_challenge_trigger(dbAcmeChallenge)
 
         # if all challenges are active, trigger validation from LetsEncrypt
         code, result, headers = _send_signed_request(
@@ -279,11 +279,11 @@ def acme_verify_domains(
         # this just pings LetsEncrypt every 2 seconds
         while True:
             try:
-                acmeLogger.log_challenge_polled(sslAcmeChallenge)
+                acmeLogger.log_challenge_polled(dbAcmeChallenge)
                 resp = urlopen(challenge["uri"])
                 challenge_status = json.loads(resp.read().decode("utf8"))
             except IOError as exc:
-                acmeLogger.log_challenge_error(sslAcmeChallenge, "fail-1")
+                acmeLogger.log_challenge_error(dbAcmeChallenge, "fail-1")
                 raise errors.AcmeCommunicationError(
                     "Error checking challenge: {0} {1}".format(
                         exc.code, json.loads(exc.read().decode("utf8"))
@@ -296,11 +296,11 @@ def acme_verify_domains(
                 handle_keyauth_cleanup(domain, token, keyauthorization)
                 break
             else:
-                acmeLogger.log_challenge_error(sslAcmeChallenge, "fail-2")
+                acmeLogger.log_challenge_error(dbAcmeChallenge, "fail-2")
                 raise errors.DomainVerificationError(
                     "{0} challenge did not pass: {1}".format(domain, challenge_status)
                 )
-        acmeLogger.log_challenge_pass(sslAcmeChallenge)
+        acmeLogger.log_challenge_pass(dbAcmeChallenge)
     return True
 
 

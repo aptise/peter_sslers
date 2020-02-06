@@ -256,7 +256,7 @@ class ViewAdminOperations(Handler):
     )
     def object_log(self):
         _items_per_page = 25
-        items_count = lib_db.get.get__SslOperationsObjectEvent__count(
+        items_count = lib_db.get.get__OperationsObjectEvent__count(
             self.request.api_context
         )
         (pager, offset) = self._paginate(
@@ -265,13 +265,13 @@ class ViewAdminOperations(Handler):
             % self.request.registry.settings["admin_prefix"],
             items_per_page=_items_per_page,
         )
-        items_paged = lib_db.get.get__SslOperationsObjectEvent__paginated(
+        items_paged = lib_db.get.get__OperationsObjectEvent__paginated(
             self.request.api_context, limit=_items_per_page, offset=offset
         )
         return {
             "project": "peter_sslers",
-            "SslOperationsObjectEvent__count": items_count,
-            "SslOperationsObjectEvents": items_paged,
+            "OperationsObjectEvent__count": items_count,
+            "OperationsObjectEvents": items_paged,
             "pager": pager,
             "enable_redis": self.request.registry.settings["enable_redis"],
             "enable_nginx": self.request.registry.settings["enable_nginx"],
@@ -282,14 +282,14 @@ class ViewAdminOperations(Handler):
         renderer="/admin/operations-object_log-focus.mako",
     )
     def operations_object_log_focus(self):
-        item = lib_db.get.get__SslOperationsObjectEvent__by_id(
+        item = lib_db.get.get__OperationsObjectEvent__by_id(
             self.request.api_context, self.request.matchdict["id"], eagerload_log=True
         )
         if not item:
             raise ValueError("no item")
         return {
             "project": "peter_sslers",
-            "SslOperationsObjectEvent": item,
+            "OperationsObjectEvent": item,
             "enable_redis": self.request.registry.settings["enable_redis"],
             "enable_nginx": self.request.registry.settings["enable_nginx"],
         }

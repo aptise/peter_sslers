@@ -29,7 +29,6 @@ from ...model import objects as model_objects
 from .logger import AcmeLogger
 from .logger import log__SslOperationsEvent
 from .logger import _log_object_event
-from . import get
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -42,8 +41,18 @@ def disable_Domain(
     event_status="domain__mark__inactive",
     action="deactivated",
 ):
+    """
+    Disables a domain
+    
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbDomain: (required) A :class:`model.objects.Domain` object
+    :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
+
+    :param event_status: (optional) A string event status conforming to :class:`model_utils.OperationsObjectEventStatus`
+    :param action: (optional) A string action. default = "deactivated"
+    """
     event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["ssl_domain.id"] = dbDomain.id
+    event_payload_dict["domain.id"] = dbDomain.id
     event_payload_dict["action"] = action
     dbDomain.is_active = False
     ctx.dbSession.flush(objects=[dbDomain])
@@ -51,7 +60,7 @@ def disable_Domain(
     _log_object_event(
         ctx,
         dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
             event_status
         ),
         dbDomain=dbDomain,
@@ -66,8 +75,16 @@ def enable_Domain(
     event_status="domain__mark__active",
     action="activated",
 ):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbDomain: (required) A :class:`model.objects.Domain` object
+    :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
+
+    :param event_status: (optional) A string event status conforming to :class:`model_utils.OperationsObjectEventStatus`
+    :param action: (optional) A string action. default = "activated"
+    """
     event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["ssl_domain.id"] = dbDomain.id
+    event_payload_dict["domain.id"] = dbDomain.id
     event_payload_dict["action"] = action
     dbDomain.is_active = True
     ctx.dbSession.flush(objects=[dbDomain])
@@ -75,7 +92,7 @@ def enable_Domain(
     _log_object_event(
         ctx,
         dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
             event_status
         ),
         dbDomain=dbDomain,
@@ -89,7 +106,8 @@ def enable_Domain(
 def ca_certificate_probe(ctx):
     """
     Probes the LetsEncrypt Certificate Authority for new certificates
-    2016.06.04 - dbOperationsEvent compliant
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
     """
 
     # create a bookkeeping object
@@ -103,14 +121,12 @@ def ca_certificate_probe(ctx):
     certs_modified = []
     for c in certs:
         _is_created = False
-        dbCACertificate = lib.db.get.get__SslCaCertificate__by_pem_text(
-            ctx, c["cert_pem"]
-        )
+        dbCACertificate = lib.db.get.get__CaCertificate__by_pem_text(ctx, c["cert_pem"])
         if not dbCACertificate:
             (
                 dbCACertificate,
                 _is_created,
-            ) = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+            ) = lib.db.getcreate.getcreate__CaCertificate__by_pem_text(
                 ctx, c["cert_pem"], c["name"]
             )
             if _is_created:
@@ -149,311 +165,19 @@ def ca_certificate_probe(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def do__SslAcmeAccountKey_AcmeV1_authenticate(
-    ctx, dbAcmeAccountKey, account_key_path=None
-):
-    """
-    Authenticates the AccountKey against the LetsEncrypt ACME servers
-    2016.06.04 - dbOperationsEvent compliant
-    """
-    raise ValueError("ACME v1 is no longer supported")
-    from .. import acme_v1
-
-    _tmpfile = None
-    try:
-        if account_key_path is None:
-            _tmpfile = cert_utils.new_pem_tempfile(dbAcmeAccountKey.key_pem)
-            account_key_path = _tmpfile.name
-
-        # parse account key to get public key
-        header, thumbprint = acme_v1.account_key__header_thumbprint(
-            account_key_path=account_key_path
-        )
-
-        acmeLogger = AcmeLogger(ctx, dbAccountKey=dbAcmeAccountKey)
-
-        # result is either: `new-account` or `existing-account`
-        # failing will raise an exception
-        result = acme_v1.acme_register_account(
-            header,
-            account_key_path=account_key_path,
-            acmeLogger=acmeLogger,
-            acmeAccountKey=dbAcmeAccountKey,
-        )
-
-        # this would raise if we couldn't authenticate
-        dbAcmeAccountKey.timestamp_last_authenticated = ctx.timestamp
-        ctx.dbSession.flush(objects=[dbAcmeAccountKey])
-
-        # log this
-        event_payload_dict = utils.new_event_payload_dict()
-        event_payload_dict["ssl_acme_account_key.id"] = dbAcmeAccountKey.id
-        dbOperationsEvent = log__SslOperationsEvent(
-            ctx,
-            model_utils.SslOperationsEventType.from_string(
-                "acme_account_key__authenticate"
-            ),
-            event_payload_dict,
-        )
-        return result
-
-    finally:
-        if _tmpfile:
-            _tmpfile.close()
-
-
-def do__CertificateRequest__AcmeV1_Automated(
-    ctx,
-    domain_names,
-    dbAccountKey=None,
-    dbPrivateKey=None,
-    private_key_pem=None,
-    dbServerCertificate__renewal_of=None,
-    dbQueueRenewal__of=None,
-):
-    """
-    2016.06.04 - dbOperationsEvent compliant
-
-    #for a single domain
-    openssl req -new -sha256 -key domain.key -subj "/CN=yoursite.com" > domain.csr
-
-    #for multiple domains (use this one if you want both www.yoursite.com and yoursite.com)
-    openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:yoursite.com,DNS:www.yoursite.com")) > domain.csr
-
-    # homebrew?
-    /usr/local/opt/openssl/bin/openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <(cat /usr/local/etc/openssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:example.com,DNS:www.example.com")) > domain_multi.csr</code>
-
-    # scratch
-    openssl req -new -sha256 -key /var/folders/4o/4oYQL09OGcSwJ2-Uj2T+dE+++TI/-Tmp-/tmp9mT8V6 -subj "/" -reqexts SAN -config < /var/folders/4o/4oYQL09OGcSwJ2-Uj2T+dE+++TI/-Tmp-/tmpK9tsl9 >STDOUT
-    (cat /System/Library/OpenSSL/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:yoursite.com,DNS:www.yoursite.com"))
-    cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:yoursite.com,DNS:www.yoursite.com")
-    cat  /usr/local/etc/openssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:yoursite.com,DNS:www.yoursite.com")
-    cat /System/Library/OpenSSL/openssl.cnf printf "[SAN]\nsubjectAltName=DNS:yoursite.com,DNS:www.yoursite.com"
-    /usr/local/opt/openssl/bin/openssl req -new -sha256 -key domain.key -subj "/" -reqexts SAN -config <
-
-    """
-    raise ValueError("ACME v1 is no longer supported")
-    from .. import acme_v1
-
-    if not dbAccountKey:
-        raise ValueError("Must submit `dbAccountKey`")
-
-    if not any((dbPrivateKey, private_key_pem)) or all((dbPrivateKey, private_key_pem)):
-        raise ValueError(
-            "Submit one and only one of: `dbPrivateKey`, `private_key_pem`"
-        )
-
-    if domain_names is None:
-        if not dbServerCertificate__renewal_of:
-            raise ValueError("`domain_names` must be provided unless this is a renewal")
-        domain_names = dbServerCertificate__renewal_of.domains_as_list
-
-    # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(
-        ctx,
-        model_utils.SslOperationsEventType.from_string(
-            "certificate_request__do__automated"
-        ),
-    )
-
-    tmpfiles = []
-    dbCertificateRequest = None
-    dbServerCertificate = None
-    try:
-
-        # we should have cleaned this up before, but just be safe
-        domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
-        domain_names = set(domain_names)
-        if not domain_names:
-            raise ValueError("no domain names!")
-        # we need a list
-        domain_names = list(domain_names)
-
-        # pull the pem out of the account_key
-        account_key_pem = dbAccountKey.key_pem
-
-        # we need to use tmpfiles on the disk
-        tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-        tmpfiles.append(tmpfile_account)
-
-        if dbPrivateKey is None:
-            private_key_pem = cert_utils.cleanup_pem_text(private_key_pem)
-            (
-                dbPrivateKey,
-                _is_created,
-            ) = lib.db.getcreate.getcreate__SslPrivateKey__by_pem_text(
-                ctx, private_key_pem
-            )
-        else:
-            private_key_pem = dbPrivateKey.key_pem
-
-        # we need to use tmpfiles on the disk
-        tmpfile_pkey = cert_utils.new_pem_tempfile(private_key_pem)
-        tmpfiles.append(tmpfile_pkey)
-
-        # make the CSR
-        csr_pem = cert_utils.new_csr_for_domain_names(
-            domain_names, private_key_path=tmpfile_pkey.name
-        )
-        tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
-        tmpfiles.append(tmpfile_csr)
-
-        # these MUST commit
-        with transaction.manager as tx:
-            (
-                dbCertificateRequest,
-                dbDomainObjects,
-            ) = lib.db.create.create__SslCertificateRequest(
-                ctx,
-                csr_pem,
-                certificate_request_source_id=model_utils.SslCertificateRequestSource.ACME_AUTOMATED,
-                dbAccountKey=dbAccountKey,
-                dbPrivateKey=dbPrivateKey,
-                dbServerCertificate__issued=None,
-                dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
-                domain_names=domain_names,
-            )
-
-        def process_keyauth_challenge(domain, token, keyauthorization):
-            log.info("-process_keyauth_challenge %s", domain)
-            with transaction.manager as tx:
-                (dbDomain, dbCertificateRequest2D) = dbDomainObjects[domain]
-                dbCertificateRequest2D.challenge_key = token
-                dbCertificateRequest2D.challenge_text = keyauthorization
-                ctx.dbSession.flush(objects=[dbCertificateRequest2D])
-
-        def process_keyauth_cleanup(domain, token, keyauthorization):
-            log.info("-process_keyauth_cleanup %s", domain)
-
-        # ######################################################################
-        # THIS BLOCK IS FROM acme-tiny v1
-
-        # pull domains from csr
-        csr_domains = cert_utils.parse_csr_domains(
-            csr_path=tmpfile_csr.name, submitted_domain_names=domain_names
-        )
-        if set(csr_domains) != set(domain_names):
-            raise ValueError("Did not make a valid set")
-
-        # parse account key to get public key
-        header, thumbprint = acme_v1.account_key__header_thumbprint(
-            account_key_path=tmpfile_account.name
-        )
-
-        # register the account / ensure that it is registered
-        if not dbAccountKey.timestamp_last_authenticated:
-            do__SslAcmeAccountKey_AcmeV1_authenticate(
-                ctx, dbAccountKey, account_key_path=tmpfile_account.name
-            )
-
-        acmeLogger = AcmeLogger(
-            ctx, dbAccountKey=dbAccountKey, dbCertificateRequest=dbCertificateRequest
-        )
-
-        # verify each domain
-        acme_v1.acme_verify_domains(
-            csr_domains=csr_domains,
-            account_key_path=tmpfile_account.name,
-            handle_keyauth_challenge=process_keyauth_challenge,
-            handle_keyauth_cleanup=process_keyauth_cleanup,
-            thumbprint=thumbprint,
-            header=header,
-            acmeLogger=acmeLogger,
-            acmeAccountKey=dbAccountKey,
-            dbCertificateRequest=dbCertificateRequest,
-        )
-
-        # sign it
-        (
-            cert_pem,
-            chained_pem,
-            chain_url,
-            datetime_signed,
-            datetime_expires,
-            acmeLoggedEvent,
-        ) = acme_v1.acme_sign_certificate(
-            csr_path=tmpfile_csr.name,
-            account_key_path=tmpfile_account.name,
-            header=header,
-            acmeLogger=acmeLogger,
-            acmeAccountKey=dbAccountKey,
-            dbCertificateRequest=dbCertificateRequest,
-        )
-        #
-        # end acme-tiny
-        # ######################################################################
-
-        # let's make sure we have the right domains in the cert!!
-        # this only happens on development during tests when we use a single cert
-        # for all requests...
-        # so we don't need to handle this or save it
-        tmpfile_signed_cert = cert_utils.new_pem_tempfile(cert_pem)
-        tmpfiles.append(tmpfile_signed_cert)
-
-        cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
-        if set(domain_names) != set(cert_domains):
-            # if not acme_v1.TESTING_ENVIRONMENT:
-            log.error("set(domain_names) != set(cert_domains)")
-            log.error(domain_names)
-            log.error(cert_domains)
-            # current version of fakeboulder will sign the csr and give us the right domains !
-            raise ValueError("this should not happen!")
-
-        # these MUST commit
-        with transaction.manager as tx:
-            dbServerCertificate = lib.db.create.create__SslServerCertificate(
-                ctx,
-                timestamp_signed=datetime_signed,
-                timestamp_expires=datetime_expires,
-                is_active=True,
-                cert_pem=cert_pem,
-                chained_pem=chained_pem,
-                chain_name=chain_url,
-                dbCertificateRequest=dbCertificateRequest,
-                dbAcmeAccountKey=dbAccountKey,
-                dbPrivateKey=dbPrivateKey,
-                dbDomains=[v[0] for v in dbDomainObjects.values()],
-                dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
-            )
-            if dbServerCertificate__renewal_of:
-                dbServerCertificate__renewal_of.is_auto_renew = False
-                dbServerCertificate__renewal_of.is_renewed = True
-                ctx.dbSession.flush(objects=[dbServerCertificate__renewal_of])
-            if dbQueueRenewal__of:
-                dbQueueRenewal__of.timestamp_processed = ctx.timestamp
-                dbQueueRenewal__of.process_result = True
-                dbQueueRenewal__of.is_active = False
-                ctx.dbSession.flush(objects=[dbQueueRenewal__of])
-            # update the logger
-            acmeLogger.log_event_certificate(acmeLoggedEvent, dbServerCertificate)
-
-        log.debug("mark_changed(ctx.dbSession) - is this necessary?")
-        mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
-        # don't commit here, as that will trigger an error on object refresh
-        return dbServerCertificate
-
-    except Exception as exc:
-        if dbCertificateRequest:
-            dbCertificateRequest.is_active = False
-            dbCertificateRequest.is_error = True
-            ctx.dbSession.flush(objects=[dbCertificateRequest])
-            log.debug("mark_changed(ctx.dbSession) - is this necessary?")
-            mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
-            transaction.commit()
-        raise
-
-    finally:
-        # cleanup tmpfiles
-        for tf in tmpfiles:
-            tf.close()
-
-
-def do__SslAcmeAccountKey_AcmeV2_authenticate(
+def do__AcmeAccountKey_AcmeV2_authenticate(
     ctx, dbAcmeAccountKey, account_key_path=None,
 ):
     """
-    2020.01.28 - new; ported from `do__SslAcmeAccountKey_AcmeV1_authenticate`
+    Authenticates an AcmeAccountKey against the LetsEncrypt ACME Server
+    
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccountKey`
+    
+    !!! WARNING !!!
+
+    If `account_key_path` is not provided, the ACME library will be unable to perform any operations after authentication.
     """
     _tmpfile = None
     try:
@@ -461,7 +185,7 @@ def do__SslAcmeAccountKey_AcmeV2_authenticate(
             _tmpfile = cert_utils.new_pem_tempfile(dbAcmeAccountKey.key_pem)
             account_key_path = _tmpfile.name
 
-        acmeLogger = AcmeLogger(ctx, dbAccountKey=dbAcmeAccountKey)
+        acmeLogger = AcmeLogger(ctx, dbAcmeAccountKey=dbAcmeAccountKey)
 
         # create account, update contact details (if any), and set the global key identifier
         # result is either: `new-account` or `existing-account`
@@ -484,17 +208,27 @@ def do__SslAcmeAccountKey_AcmeV2_authenticate(
 def do__CertificateRequest__AcmeV2_Automated(
     ctx,
     domain_names,
-    dbAccountKey=None,
+    dbAcmeAccountKey=None,
     dbPrivateKey=None,
     private_key_pem=None,
     dbServerCertificate__renewal_of=None,
     dbQueueRenewal__of=None,
 ):
     """
-    2020.01.28 - new; ported from `do__CertificateRequest__AcmeV1_Automated`
+    Automates a Certificate deployment from LetsEncrypt
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param domain_names: (required) An iteratble list of domain names
+    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param dbPrivateKey: (optional) A :class:`model.objects.PrivateKey` object used to sign the request.
+        Must submit `private_key_pem` if not supplied.
+    :param private_key_pem: (optional) A PEM encoded private key.
+        Must submit `dbPrivateKey` if not supplied.
+    :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
+    :param dbQueueRenewal__of: (optional) A :class:`model.objects.SslQueueRenewal` object
     """
-    if not dbAccountKey:
-        raise ValueError("Must submit `dbAccountKey`")
+    if not dbAcmeAccountKey:
+        raise ValueError("Must submit `dbAcmeAccountKey`")
 
     if not any((dbPrivateKey, private_key_pem)) or all((dbPrivateKey, private_key_pem)):
         raise ValueError(
@@ -529,7 +263,7 @@ def do__CertificateRequest__AcmeV2_Automated(
         domain_names = list(domain_names)
 
         # pull the pem out of the account_key
-        account_key_pem = dbAccountKey.key_pem
+        account_key_pem = dbAcmeAccountKey.key_pem
 
         # we need to use tmpfiles on the disk
         tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
@@ -540,7 +274,7 @@ def do__CertificateRequest__AcmeV2_Automated(
             (
                 dbPrivateKey,
                 _is_created,
-            ) = lib.db.getcreate.getcreate__SslPrivateKey__by_pem_text(
+            ) = lib.db.getcreate.getcreate__PrivateKey__by_pem_text(
                 ctx, private_key_pem
             )
         else:
@@ -559,30 +293,15 @@ def do__CertificateRequest__AcmeV2_Automated(
 
         # these MUST commit
         with transaction.manager as tx:
-            (
-                dbCertificateRequest,
-                dbDomainObjects,
-            ) = lib.db.create.create__SslCertificateRequest(
+            dbCertificateRequest = lib.db.create.create__CertificateRequest(
                 ctx,
                 csr_pem,
-                certificate_request_source_id=model_utils.SslCertificateRequestSource.ACME_AUTOMATED,
-                dbAccountKey=dbAccountKey,
+                certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED,
                 dbPrivateKey=dbPrivateKey,
                 dbServerCertificate__issued=None,
                 dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
                 domain_names=domain_names,
             )
-
-        def process_keyauth_challenge(domain, token, keyauthorization):
-            log.info("-process_keyauth_challenge %s", domain)
-            with transaction.manager as tx:
-                (dbDomain, dbCertificateRequest2D) = dbDomainObjects[domain]
-                dbCertificateRequest2D.challenge_key = token
-                dbCertificateRequest2D.challenge_text = keyauthorization
-                ctx.dbSession.flush(objects=[dbCertificateRequest2D])
-
-        def process_keyauth_cleanup(domain, token, keyauthorization):
-            log.info("-process_keyauth_cleanup %s", domain)
 
         # scope this
         account_key_path = tmpfile_account.name
@@ -598,15 +317,60 @@ def do__CertificateRequest__AcmeV2_Automated(
             raise ValueError("Did not make a valid set")
 
         # register the account / ensure that it is registered
-        authenticatedUser = do__SslAcmeAccountKey_AcmeV2_authenticate(
-            ctx, dbAccountKey, account_key_path=account_key_path,
+        # the authenticatedUser will have an `acmeLogger`
+        authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
+            ctx, dbAcmeAccountKey, account_key_path=account_key_path,
         )
 
-        acmeLogger = AcmeLogger(ctx, dbAccountKey=dbAccountKey)
-
-        acmeOrder = authenticatedUser.acme_new_order(
-            csr_domains=csr_domains, dbCertificateRequest=dbCertificateRequest,
+        #
+        (acmeOrderObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_new_order(
+            ctx, csr_domains=csr_domains, dbCertificateRequest=dbCertificateRequest,
         )
+
+        #
+        dbAcmeOrder = lib.db.create.create__AcmeOrder(
+            ctx,
+            dbAcmeAccountKey=dbAcmeAccountKey,
+            dbCertificateRequest=dbCertificateRequest,
+            dbEventLogged=dbAcmeOrderEventLogged,
+        )
+        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+        def process_discovered_auth(authorization_url, authorization_response):
+            """
+            the getcreate will do the following:
+                create/update the Authorization object
+                create/update the Challenge object
+            """
+            log.info("-process_discovered_auth %s", authorization_url)
+            (
+                dbAuthorization,
+                _is_created,
+            ) = lib.db.getcreate.getcreate__AcmeAuthorization(
+                ctx, authorization_url, authorization_response, authenticatedUser
+            )
+            return dbAuthorization
+
+        def process_keyauth_challenge(domain, token, keyauthorization):
+            """
+            originally, this callback/hook was used to make a challenge "live"
+            it might be unused
+            """
+            log.info("-process_keyauth_challenge %s", domain)
+            if False:
+                with transaction.manager as tx:
+                    (dbDomain, dbCertificateRequest2D) = dbDomainObjects[domain]
+                    dbCertificateRequest2D.challenge_key = token
+                    dbCertificateRequest2D.challenge_text = keyauthorization
+                    ctx.dbSession.flush(objects=[dbCertificateRequest2D])
+
+        def process_keyauth_cleanup(domain, token, keyauthorization):
+            """
+            originally, this callback/hook was used to cleanup a challenge
+            it might be unused
+            """
+            log.info("-process_keyauth_cleanup %s", domain)
+            pdb.set_trace()
 
         """ 
             # https://tools.ietf.org/html/rfc8555#section-7.1.3
@@ -637,10 +401,13 @@ def do__CertificateRequest__AcmeV2_Automated(
                   certificate.
         """
         _todo_finalize_order = None
-        _order_status = acmeOrder.api_object["status"]
+        _order_status = acmeOrderObject.api_object["status"]
         if _order_status == "pending":
             _handled = authenticatedUser.acme_handle_order_authorizations(
-                acmeOrder=acmeOrder,
+                ctx,
+                acmeOrder=acmeOrderObject,
+                dbAcmeOrder=dbAcmeOrder,
+                handle_discovered_auth=process_discovered_auth,
                 handle_keyauth_challenge=process_keyauth_challenge,
                 handle_keyauth_cleanup=process_keyauth_cleanup,
             )
@@ -670,8 +437,9 @@ def do__CertificateRequest__AcmeV2_Automated(
 
         if _todo_finalize_order:
             # sign and download
+            raise ValueError("ok")
             (fullchain_pem, acmeLoggedEvent) = authenticatedUser.acme_finalize_order(
-                acmeOrder=acmeOrder, csr_path=tmpfile_csr.name,
+                acmeOrder=acmeOrderObject, csr_path=tmpfile_csr.name,
             )
         else:
             pdb.set_trace()
@@ -727,7 +495,7 @@ def do__CertificateRequest__AcmeV2_Automated(
 
         # these MUST commit
         with transaction.manager as tx:
-            dbServerCertificate = lib.db.create.create__SslServerCertificate(
+            dbServerCertificate = lib.db.create.create__ServerCertificate(
                 ctx,
                 timestamp_signed=datetime_signed,
                 timestamp_expires=datetime_expires,
@@ -736,7 +504,7 @@ def do__CertificateRequest__AcmeV2_Automated(
                 chained_pem=chained_pem,
                 chain_name=None,
                 dbCertificateRequest=dbCertificateRequest,
-                dbAcmeAccountKey=dbAccountKey,
+                dbAcmeAccountKey=dbAcmeAccountKey,
                 dbPrivateKey=dbPrivateKey,
                 dbDomains=[v[0] for v in dbDomainObjects.values()],
                 dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
@@ -751,7 +519,9 @@ def do__CertificateRequest__AcmeV2_Automated(
                 dbQueueRenewal__of.is_active = False
                 ctx.dbSession.flush(objects=[dbQueueRenewal__of])
             # update the logger
-            acmeLogger.log_event_certificate(acmeLoggedEvent, dbServerCertificate)
+            authenticatedUser.acmeLogger.log_event_certificate(
+                acmeLoggedEvent, dbServerCertificate
+            )
 
         log.debug("mark_changed(ctx.dbSession) - is this necessary?")
         mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
@@ -780,7 +550,8 @@ def do__CertificateRequest__AcmeV2_Automated(
 def operations_deactivate_expired(ctx):
     """
     deactivates expired certificates automatically
-    2016.06.04 - dbOperationsEvent compliant
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
     """
     # create an event first
     event_payload_dict = utils.new_event_payload_dict()
@@ -800,10 +571,10 @@ def operations_deactivate_expired(ctx):
 
     # deactivate expired certificates
     expired_certs = (
-        ctx.dbSession.query(model_objects.SslServerCertificate)
+        ctx.dbSession.query(model_objects.ServerCertificate)
         .filter(
-            model_objects.SslServerCertificate.is_active.is_(True),
-            model_objects.SslServerCertificate.timestamp_expires < ctx.timestamp,
+            model_objects.ServerCertificate.is_active.is_(True),
+            model_objects.ServerCertificate.timestamp_expires < ctx.timestamp,
         )
         .all()
     )
@@ -815,7 +586,7 @@ def operations_deactivate_expired(ctx):
     # update the event
     if len(expired_certs):
         event_payload_dict["count_deactivated"] = len(expired_certs)
-        event_payload_dict["ssl_server_certificate.ids"] = [c.id for c in expired_certs]
+        event_payload_dict["server_certificate.ids"] = [c.id for c in expired_certs]
         operationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[operationsEvent])
 
@@ -834,6 +605,9 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     1. cache the most recent certs via `operations_update_recents`
     2. find domains that have multiple active certs
     3. don't turn off any certs that are a latest_single or latest_multi
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ran_operations_update_recents: (optional) Default = `None`
     """
     raise ValueError("Don't run this. It's not needed anymore")
     raise errors.OperationsContextError("Not Compliant")
@@ -851,24 +625,18 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     )
 
     _q_ids__latest_single = (
-        ctx.dbSession.query(
-            model_objects.SslDomain.ssl_server_certificate_id__latest_single
-        )
+        ctx.dbSession.query(model_objects.Domain.server_certificate_id__latest_single)
         .distinct()
         .filter(
-            model_objects.SslDomain.ssl_server_certificate_id__latest_single
-            != None  # noqa
+            model_objects.Domain.server_certificate_id__latest_single != None  # noqa
         )
         .subquery()
     )
     _q_ids__latest_multi = (
-        ctx.dbSession.query(
-            model_objects.SslDomain.ssl_server_certificate_id__latest_multi
-        )
+        ctx.dbSession.query(model_objects.Domain.server_certificate_id__latest_multi)
         .distinct()
         .filter(
-            model_objects.SslDomain.ssl_server_certificate_id__latest_single
-            != None  # noqa
+            model_objects.Domain.server_certificate_id__latest_single != None  # noqa
         )
         .subquery()
     )
@@ -876,42 +644,41 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     # now grab the domains with many certs...
     q_inner = (
         ctx.dbSession.query(
-            model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id,
-            sqlalchemy.func.count(
-                model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id
-            ).label("counted"),
+            model_objects.UniqueFQDNSet2Domain.domain_id,
+            sqlalchemy.func.count(model_objects.UniqueFQDNSet2Domain.domain_id).label(
+                "counted"
+            ),
         )
         .join(
-            model_objects.SslServerCertificate,
-            model_objects.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
-            == model_objects.SslServerCertificate.ssl_unique_fqdn_set_id,
+            model_objects.ServerCertificate,
+            model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id
+            == model_objects.ServerCertificate.unique_fqdn_set_id,
         )
-        .filter(model_objects.SslServerCertificate.is_active.is_(True))
-        .group_by(model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id)
+        .filter(model_objects.ServerCertificate.is_active.is_(True))
+        .group_by(model_objects.UniqueFQDNSet2Domain.domain_id)
     )
     q_inner = q_inner.subquery()
     q_domains = ctx.dbSession.query(q_inner).filter(q_inner.c.counted >= 2)
     result = q_domains.all()
-    domain_ids_with_multiple_active_certs = [i.ssl_domain_id for i in result]
+    domain_ids_with_multiple_active_certs = [i.domain_id for i in result]
 
     if False:
         _turned_off = []
         for _domain_id in domain_ids_with_multiple_active_certs:
             domain_certs = (
-                ctx.dbSession.query(model_objects.SslServerCertificate)
+                ctx.dbSession.query(model_objects.ServerCertificate)
                 .join(
-                    model_objects.SslUniqueFQDNSet2SslDomain,
-                    model_objects.SslServerCertificate.ssl_unique_fqdn_set_id
-                    == model_objects.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+                    model_objects.UniqueFQDNSet2Domain,
+                    model_objects.ServerCertificate.unique_fqdn_set_id
+                    == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
                 )
                 .filter(
-                    model_objects.SslServerCertificate.is_active.is_(True),
-                    model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id
-                    == _domain_id,
-                    model_objects.SslServerCertificate.id.notin_(_q_ids__latest_single),
-                    model_objects.SslServerCertificate.id.notin_(_q_ids__latest_multi),
+                    model_objects.ServerCertificate.is_active.is_(True),
+                    model_objects.UniqueFQDNSet2Domain.domain_id == _domain_id,
+                    model_objects.ServerCertificate.id.notin_(_q_ids__latest_single),
+                    model_objects.ServerCertificate.id.notin_(_q_ids__latest_multi),
                 )
-                .order_by(model_objects.SslServerCertificate.timestamp_expires.desc())
+                .order_by(model_objects.ServerCertificate.timestamp_expires.desc())
                 .all()
             )
             if len(domain_certs) > 1:
@@ -935,122 +702,121 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
 def operations_update_recents(ctx):
     """
     updates all the objects to their most-recent relations
-    2016.06.04 - dbOperationsEvent compliant
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
     """
     # first the single
-    # _t_domain = model_objects.SslDomain.__table__.alias('domain')
+    # _t_domain = model_objects.Domain.__table__.alias('domain')
 
     _q_sub = (
-        ctx.dbSession.query(model_objects.SslServerCertificate.id)
+        ctx.dbSession.query(model_objects.ServerCertificate.id)
         .join(
-            model_objects.SslUniqueFQDNSet2SslDomain,
-            model_objects.SslServerCertificate.ssl_unique_fqdn_set_id
-            == model_objects.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+            model_objects.UniqueFQDNSet2Domain,
+            model_objects.ServerCertificate.unique_fqdn_set_id
+            == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
         .filter(
-            model_objects.SslServerCertificate.is_active.is_(True),
-            model_objects.SslServerCertificate.is_single_domain_cert.is_(True),
-            model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id
-            == model_objects.SslDomain.id,
+            model_objects.ServerCertificate.is_active.is_(True),
+            model_objects.ServerCertificate.is_single_domain_cert.is_(True),
+            model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
         )
-        .order_by(model_objects.SslServerCertificate.timestamp_expires.desc())
+        .order_by(model_objects.ServerCertificate.timestamp_expires.desc())
         .limit(1)
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
 
     ctx.dbSession.execute(
-        model_objects.SslDomain.__table__.update().values(
-            ssl_server_certificate_id__latest_single=_q_sub
+        model_objects.Domain.__table__.update().values(
+            server_certificate_id__latest_single=_q_sub
         )
     )
 
     # then the multiple
-    # _t_domain = model_objects.SslDomain.__table__.alias('domain')
+    # _t_domain = model_objects.Domain.__table__.alias('domain')
     _q_sub = (
-        ctx.dbSession.query(model_objects.SslServerCertificate.id)
+        ctx.dbSession.query(model_objects.ServerCertificate.id)
         .join(
-            model_objects.SslUniqueFQDNSet2SslDomain,
-            model_objects.SslServerCertificate.ssl_unique_fqdn_set_id
-            == model_objects.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+            model_objects.UniqueFQDNSet2Domain,
+            model_objects.ServerCertificate.unique_fqdn_set_id
+            == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
         .filter(
-            model_objects.SslServerCertificate.is_active.is_(True),
-            model_objects.SslServerCertificate.is_single_domain_cert.is_(False),
-            model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id
-            == model_objects.SslDomain.id,
+            model_objects.ServerCertificate.is_active.is_(True),
+            model_objects.ServerCertificate.is_single_domain_cert.is_(False),
+            model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
         )
-        .order_by(model_objects.SslServerCertificate.timestamp_expires.desc())
+        .order_by(model_objects.ServerCertificate.timestamp_expires.desc())
         .limit(1)
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
-        model_objects.SslDomain.__table__.update().values(
-            ssl_server_certificate_id__latest_multi=_q_sub
+        model_objects.Domain.__table__.update().values(
+            server_certificate_id__latest_multi=_q_sub
         )
     )
 
     # update the count of active certs
-    SslServerCertificate1 = sqlalchemy.orm.aliased(model_objects.SslServerCertificate)
-    SslServerCertificate2 = sqlalchemy.orm.aliased(model_objects.SslServerCertificate)
+    ServerCertificate1 = sqlalchemy.orm.aliased(model_objects.ServerCertificate)
+    ServerCertificate2 = sqlalchemy.orm.aliased(model_objects.ServerCertificate)
     _q_sub = (
-        ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslDomain.id))
+        ctx.dbSession.query(sqlalchemy.func.count(model_objects.Domain.id))
         .outerjoin(
-            SslServerCertificate1,
-            model_objects.SslDomain.ssl_server_certificate_id__latest_single
-            == SslServerCertificate1.id,
+            ServerCertificate1,
+            model_objects.Domain.server_certificate_id__latest_single
+            == ServerCertificate1.id,
         )
         .outerjoin(
-            SslServerCertificate2,
-            model_objects.SslDomain.ssl_server_certificate_id__latest_multi
-            == SslServerCertificate2.id,
+            ServerCertificate2,
+            model_objects.Domain.server_certificate_id__latest_multi
+            == ServerCertificate2.id,
         )
         .filter(
             sqlalchemy.or_(
-                model_objects.SslCaCertificate.id
-                == SslServerCertificate1.ssl_ca_certificate_id__upchain,
-                model_objects.SslCaCertificate.id
-                == SslServerCertificate2.ssl_ca_certificate_id__upchain,
+                model_objects.CaCertificate.id
+                == ServerCertificate1.ca_certificate_id__upchain,
+                model_objects.CaCertificate.id
+                == ServerCertificate2.ca_certificate_id__upchain,
             )
         )
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
-        model_objects.SslCaCertificate.__table__.update().values(
+        model_objects.CaCertificate.__table__.update().values(
             count_active_certificates=_q_sub
         )
     )
 
     # update the count of active PrivateKeys
-    SslServerCertificate1 = sqlalchemy.orm.aliased(model_objects.SslServerCertificate)
-    SslServerCertificate2 = sqlalchemy.orm.aliased(model_objects.SslServerCertificate)
+    ServerCertificate1 = sqlalchemy.orm.aliased(model_objects.ServerCertificate)
+    ServerCertificate2 = sqlalchemy.orm.aliased(model_objects.ServerCertificate)
     _q_sub = (
-        ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslDomain.id))
+        ctx.dbSession.query(sqlalchemy.func.count(model_objects.Domain.id))
         .outerjoin(
-            SslServerCertificate1,
-            model_objects.SslDomain.ssl_server_certificate_id__latest_single
-            == SslServerCertificate1.id,
+            ServerCertificate1,
+            model_objects.Domain.server_certificate_id__latest_single
+            == ServerCertificate1.id,
         )
         .outerjoin(
-            SslServerCertificate2,
-            model_objects.SslDomain.ssl_server_certificate_id__latest_multi
-            == SslServerCertificate2.id,
+            ServerCertificate2,
+            model_objects.Domain.server_certificate_id__latest_multi
+            == ServerCertificate2.id,
         )
         .filter(
             sqlalchemy.or_(
-                model_objects.SslPrivateKey.id
-                == SslServerCertificate1.ssl_private_key_id__signed_by,
-                model_objects.SslPrivateKey.id
-                == SslServerCertificate2.ssl_private_key_id__signed_by,
+                model_objects.PrivateKey.id
+                == ServerCertificate1.private_key_id__signed_by,
+                model_objects.PrivateKey.id
+                == ServerCertificate2.private_key_id__signed_by,
             )
         )
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
-        model_objects.SslPrivateKey.__table__.update().values(
+        model_objects.PrivateKey.__table__.update().values(
             count_active_certificates=_q_sub
         )
     )
@@ -1058,27 +824,27 @@ def operations_update_recents(ctx):
     # the following works, but this is currently tracked
     """
         # update the counts on Account Keys
-        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslCertificateRequest.id))\
-            .filter(model_objects.SslCertificateRequest.ssl_acme_account_key_id == model_objects.SslAcmeAccountKey.id,
+        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.CertificateRequest.id))\
+            .filter(model_objects.CertificateRequest.acme_account_key_id == model_objects.AcmeAccountKey.id,
                     )\
             .subquery().as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
-        ctx.dbSession.execute(model_objects.SslAcmeAccountKey.__table__
+        ctx.dbSession.execute(model_objects.AcmeAccountKey.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
                                       # count_certificates_issued=_q_sub_iss,
                                       )
                               )
         # update the counts on Private Keys
-        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslCertificateRequest.id))\
-            .filter(model_objects.SslCertificateRequest.ssl_private_key_id__signed_by == model_objects.SslPrivateKey.id,
+        _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.CertificateRequest.id))\
+            .filter(model_objects.CertificateRequest.private_key_id__signed_by == model_objects.PrivateKey.id,
                     )\
             .subquery().as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
-        _q_sub_iss = ctx.dbSession.query(sqlalchemy.func.count(model_objects.SslServerCertificate.id))\
-            .filter(model_objects.SslServerCertificate.ssl_private_key_id__signed_by == model_objects.SslPrivateKey.id,
+        _q_sub_iss = ctx.dbSession.query(sqlalchemy.func.count(model_objects.ServerCertificate.id))\
+            .filter(model_objects.ServerCertificate.private_key_id__signed_by == model_objects.PrivateKey.id,
                     )\
             .subquery().as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
 
-        ctx.dbSession.execute(model_objects.SslPrivateKey.__table__
+        ctx.dbSession.execute(model_objects.PrivateKey.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
                                       count_certificates_issued=_q_sub_iss,
@@ -1088,21 +854,21 @@ def operations_update_recents(ctx):
 
     # should we do the timestamps?
     """
-    UPDATE ssl_acme_account_key SET timestamp_last_certificate_request = (
-    SELECT MAX(timestamp_finished) FROM ssl_certificate_request
-    WHERE ssl_certificate_request.ssl_acme_account_key_id = ssl_acme_account_key.id);
+    UPDATE acme_account_key SET timestamp_last_certificate_request = (
+    SELECT MAX(timestamp_finished) FROM certificate_request
+    WHERE certificate_request.acme_account_key_id = acme_account_key.id);
 
-    UPDATE ssl_acme_account_key SET timestamp_last_certificate_issue = (
-    SELECT MAX(timestamp_signed) FROM ssl_server_certificate
-    WHERE ssl_server_certificate.ssl_acme_account_key_id = ssl_acme_account_key.id);
+    UPDATE acme_account_key SET timestamp_last_certificate_issue = (
+    SELECT MAX(timestamp_signed) FROM server_certificate
+    WHERE server_certificate.acme_account_key_id = acme_account_key.id);
 
-    UPDATE ssl_private_key SET timestamp_last_certificate_request = (
-    SELECT MAX(timestamp_finished) FROM ssl_certificate_request
-    WHERE ssl_certificate_request.ssl_private_key_id__signed_by = ssl_private_key.id);
+    UPDATE private_key SET timestamp_last_certificate_request = (
+    SELECT MAX(timestamp_finished) FROM certificate_request
+    WHERE certificate_request.private_key_id__signed_by = private_key.id);
 
-    UPDATE ssl_private_key SET timestamp_last_certificate_issue = (
-    SELECT MAX(timestamp_signed) FROM ssl_server_certificate
-    WHERE ssl_server_certificate.ssl_private_key_id__signed_by = ssl_private_key.id);
+    UPDATE private_key SET timestamp_last_certificate_issue = (
+    SELECT MAX(timestamp_signed) FROM server_certificate
+    WHERE server_certificate.private_key_id__signed_by = private_key.id);
     """
 
     # bookkeeping, doing this will mark the session as changed!
@@ -1124,7 +890,12 @@ def operations_update_recents(ctx):
 
 
 def api_domains__enable(ctx, domain_names):
-    """this is just a proxy around queue_domains__add"""
+    """
+    this is just a proxy around queue_domains__add
+    
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param domain_names: (required) a list of domain names
+    """
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
@@ -1143,6 +914,9 @@ def api_domains__enable(ctx, domain_names):
 def api_domains__disable(ctx, domain_names):
     """
     disables domains
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param domain_names: (required) a list of domain names
     """
     domain_names = utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
@@ -1156,7 +930,7 @@ def api_domains__disable(ctx, domain_names):
     )
 
     for domain_name in domain_names:
-        _dbDomain = lib.db.get.get__SslDomain__by_name(
+        _dbDomain = lib.db.get.get__Domain__by_name(
             ctx, domain_name, preload=False, active_only=False
         )
         if _dbDomain:
@@ -1203,6 +977,11 @@ def api_domains__certificate_if_needed(
     Adds domains if needed
     2016.06.29
 
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param domain_names: (required) a list of domain names
+    :param account_key_pem: (required) the account-key used for new orders
+    :param dbPrivateKey: (required) the class:`model.objects.PrivateKey` used to sign requests
+
     results will be a dict:
 
         {%DOMAIN_NAME%: {'domain': # active, activated, new, FAIL
@@ -1227,24 +1006,24 @@ def api_domains__certificate_if_needed(
         event_payload_dict,
     )
 
-    dbAccountKey = None
+    dbAcmeAccountKey = None
     if account_key_pem is not None:
         raise ValueError("acmeAccountProvider_id")
-        dbAccountKey, _is_created = lib.db.getcreate.getcreate__SslAcmeAccountKey(
+        dbAcmeAccountKey, _is_created = lib.db.getcreate.getcreate__AcmeAccountKey(
             ctx, account_key_pem, acmeAccountProvider_id=None
         )
-        if not dbAccountKey:
+        if not dbAcmeAccountKey:
             raise errors.DisplayableError("Could not create an AccountKey")
 
     if account_key_pem is None:
-        dbAccountKey = lib.db.get.get__SslAcmeAccountKey__default(ctx)
-        if not dbAccountKey:
+        dbAcmeAccountKey = lib.db.get.get__AcmeAccountKey__default(ctx)
+        if not dbAcmeAccountKey:
             raise errors.DisplayableError("Could not grab an AccountKey")
 
     if dbPrivateKey is None:
-        dbPrivateKey = lib.db.get.get__SslPrivateKey__current_week(ctx)
+        dbPrivateKey = lib.db.get.get__PrivateKey__current_week(ctx)
         if not dbPrivateKey:
-            dbPrivateKey = lib.db.create.create__SslPrivateKey__autogenerated(ctx)
+            dbPrivateKey = lib.db.create.create__PrivateKey__autogenerated(ctx)
         if not dbPrivateKey:
             raise errors.DisplayableError("Could not grab a PrivateKey")
 
@@ -1255,26 +1034,26 @@ def api_domains__certificate_if_needed(
         _result = {
             "domain.status": None,
             "certificate.status": None,
-            "ssl_domain.id": None,
-            "ssl_server_certificate.id": None,
+            "domain.id": None,
+            "server_certificate.id": None,
         }
 
         _dbQueueDomain = None
 
         # go for the domain
         _logger_args = {"event_status_id": None}
-        _dbDomain = lib.db.get.get__SslDomain__by_name(
+        _dbDomain = lib.db.get.get__Domain__by_name(
             ctx, domain_name, preload=False, active_only=False
         )
         if _dbDomain:
-            _result["ssl_domain.id"] = _dbDomain.id
+            _result["domain.id"] = _dbDomain.id
 
             if not _dbDomain.is_active:
                 _result["domain.status"] = "activated"
 
                 _logger_args[
                     "event_status_id"
-                ] = model_utils.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.OperationsObjectEventStatus.from_string(
                     "api_domains__certificate_if_needed__domain_activate"
                 )
                 _logger_args["dbDomain"] = _dbDomain
@@ -1288,23 +1067,23 @@ def api_domains__certificate_if_needed(
 
                 _logger_args[
                     "event_status_id"
-                ] = model_utils.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.OperationsObjectEventStatus.from_string(
                     "api_domains__certificate_if_needed__domain_exists"
                 )
                 _logger_args["dbDomain"] = _dbDomain
 
         elif not _dbDomain:
 
-            _dbDomain = lib.db.getcreate.getcreate__SslDomain__by_domainName(
+            _dbDomain = lib.db.getcreate.getcreate__Domain__by_domainName(
                 ctx, domain_name
             )[
                 0
             ]  # (dbDomain, _is_created)
             _result["domain.status"] = "new"
-            _result["ssl_domain.id"] = _dbDomain.id
+            _result["domain.id"] = _dbDomain.id
             _logger_args[
                 "event_status_id"
-            ] = model_utils.SslOperationsObjectEventStatus.from_string(
+            ] = model_utils.OperationsObjectEventStatus.from_string(
                 "api_domains__certificate_if_needed__domain_new"
             )
             _logger_args["dbDomain"] = _dbDomain
@@ -1317,15 +1096,15 @@ def api_domains__certificate_if_needed(
 
         # go for the certificate
         _logger_args = {"event_status_id": None}
-        _dbServerCertificate = lib.db.get.get__SslServerCertificate__by_SslDomainId__latest(
+        _dbServerCertificate = lib.db.get.get__ServerCertificate__by_DomainId__latest(
             ctx, _dbDomain.id
         )
         if _dbServerCertificate:
             _result["certificate.status"] = "exists"
-            _result["ssl_server_certificate.id"] = _dbServerCertificate.id
+            _result["server_certificate.id"] = _dbServerCertificate.id
             _logger_args[
                 "event_status_id"
-            ] = model_utils.SslOperationsObjectEventStatus.from_string(
+            ] = model_utils.OperationsObjectEventStatus.from_string(
                 "api_domains__certificate_if_needed__certificate_exists"
             )
             _logger_args["dbServerCertificate"] = _dbServerCertificate
@@ -1334,26 +1113,26 @@ def api_domains__certificate_if_needed(
                 _dbServerCertificate = do__CertificateRequest__AcmeV2_Automated(
                     ctx,
                     domain_names,
-                    dbAccountKey=dbAccountKey,
+                    dbAcmeAccountKey=dbAcmeAccountKey,
                     dbPrivateKey=dbPrivateKey,
                 )
                 _result["certificate.status"] = "new"
-                _result["ssl_server_certificate.id"] = _dbServerCertificate.id
+                _result["server_certificate.id"] = _dbServerCertificate.id
 
                 _logger_args[
                     "event_status_id"
-                ] = model_utils.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.OperationsObjectEventStatus.from_string(
                     "api_domains__certificate_if_needed__certificate_new_success"
                 )
                 _logger_args["dbServerCertificate"] = _dbServerCertificate
 
             except errors.DomainVerificationError as exc:
                 _result["certificate.status"] = "fail"
-                _result["ssl_server_certificate.id"] = None
+                _result["server_certificate.id"] = None
 
                 _logger_args[
                     "event_status_id"
-                ] = model_utils.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.OperationsObjectEventStatus.from_string(
                     "api_domains__certificate_if_needed__certificate_new_fail"
                 )
                 _logger_args["dbServerCertificate"] = None
@@ -1394,10 +1173,12 @@ def api_domains__certificate_if_needed(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def upload__SslCaCertificateBundle__by_pem_text(ctx, bundle_data):
+def upload__CaCertificateBundle__by_pem_text(ctx, bundle_data):
     """
     Uploads a bundle of CaCertificates
-    2016.06.04 - dbOperationsEvent compliant
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param bundle_data: (required) a compliant payload
     """
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
@@ -1432,7 +1213,7 @@ def upload__SslCaCertificateBundle__by_pem_text(ctx, bundle_data):
         (
             dbCACertificate,
             is_created,
-        ) = lib.db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+        ) = lib.db.getcreate.getcreate__CaCertificate__by_pem_text(
             ctx,
             cert_pem_text,
             cert_name,

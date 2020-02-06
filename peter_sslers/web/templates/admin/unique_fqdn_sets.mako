@@ -29,9 +29,9 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
-            % if SslUniqueFQDNSets:
+            % if UniqueFQDNSets:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_SslUniqueFQDNSets(SslUniqueFQDNSets)}
+                ${admin_partials.table_UniqueFQDNSets(UniqueFQDNSets)}
             % else:
                 <em>
                     No Unique FQDN Sets

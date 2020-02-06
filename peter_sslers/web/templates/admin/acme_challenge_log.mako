@@ -19,7 +19,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if SslAcmeChallenges:
+            % if AcmeChallenges:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -37,13 +37,13 @@
                         </tr>
                     </thead>
                     <tbody>
-                    % for logged in SslAcmeChallenges:
+                    % for logged in AcmeChallenges:
                         <tr>
                             <td>
                                 <a  class="label label-info"
-                                    href="${admin_prefix}/acme-event-log/${logged.ssl_acme_event_log_id}"
+                                    href="${admin_prefix}/acme-event-log/${logged.acme_event_log_id}"
                                 >
-                                    event-${logged.ssl_acme_event_log_id}
+                                    event-${logged.acme_event_log_id}
                                 </a>
                             </td>
                             <td>

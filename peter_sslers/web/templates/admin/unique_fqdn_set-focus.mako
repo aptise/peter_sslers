@@ -20,12 +20,12 @@
 <%block name="page_header_nav">
     <p class="pull-right">
         <a  class="btn btn-info btn-xs"
-            href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}/calendar.json"
+            href="${admin_prefix}/unique-fqdn-set/${UniqueFQDNSet.id}/calendar.json"
         >
             <span class="glyphicon glyphicon-calendar" aria-hidden="true"></span>
             calendar.json
         </a>
-        <a href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/unique-fqdn-set/${UniqueFQDNSet.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -43,7 +43,7 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${SslUniqueFQDNSet.id}
+                                ${UniqueFQDNSet.id}
                             </span>
                         </td>
                     </tr>
@@ -51,7 +51,7 @@
                         <th>first seen</th>
                         <td>
                             <timestamp>
-                                ${SslUniqueFQDNSet.timestamp_first_seen}
+                                ${UniqueFQDNSet.timestamp_first_seen}
                             </timestamp>
                         </td>
                     </tr>
@@ -59,7 +59,7 @@
                         <th>domain_ids_string</th>
                         <td>
                             <code>
-                                ${SslUniqueFQDNSet.domain_ids_string}
+                                ${UniqueFQDNSet.domain_ids_string}
                             </code>
                         </td>
                     </tr>
@@ -67,7 +67,7 @@
                         <th>domains</th>
                         <td>
                             <table class="table table-striped table-condensed">
-                                % for to_domain in SslUniqueFQDNSet.to_domains:
+                                % for to_domain in UniqueFQDNSet.to_domains:
                                     <tr>
                                         <td>
                                             <a  class="label label-info"
@@ -93,7 +93,7 @@
                         <td>
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}/renew/queue"
+                                href="${admin_prefix}/unique-fqdn-set/${UniqueFQDNSet.id}/renew/queue"
                                 title="Queue a renewal with the system defaults."
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -102,13 +102,13 @@
 
                         </td>
                     </tr>
-                    ${admin_partials.table_tr_event_created(SslUniqueFQDNSet)}
+                    ${admin_partials.table_tr_event_created(UniqueFQDNSet)}
                     <tr>
                         <td>Latest Certificates</td>
                         <td>
                 <%
-                    latest_certificate = SslUniqueFQDNSet.latest_certificate
-                    latest_active_certificate = SslUniqueFQDNSet.latest_active_certificate
+                    latest_certificate = UniqueFQDNSet.latest_certificate
+                    latest_active_certificate = UniqueFQDNSet.latest_active_certificate
                 %>
                 <table class="table table-striped table-condensed">
                     <thead>
@@ -162,25 +162,25 @@
                     <tr>
                         <th>certificates history</th>
                         <td>
-                            ${admin_partials.table_certificates__list(SslUniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
-                            % if SslUniqueFQDNSet.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificates" % (admin_prefix, SslUniqueFQDNSet.id))}
+                            ${admin_partials.table_certificates__list(UniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
+                            % if UniqueFQDNSet.server_certificates__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificates" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>certificate requests</th>
                         <td>
-                            ${admin_partials.table_certificate_requests__list(SslUniqueFQDNSet.certificate_requests__5)}
-                            % if SslUniqueFQDNSet.certificate_requests__5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-requests" % (admin_prefix, SslUniqueFQDNSet.id))}
+                            ${admin_partials.table_certificate_requests__list(UniqueFQDNSet.certificate_requests__5)}
+                            % if UniqueFQDNSet.certificate_requests__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-requests" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>Queue: Renewals</th>
                         <td>
-                            ${admin_partials.table_queue_renewal__list(SslUniqueFQDNSet.queue_renewal__active, show_certificate=True)}
+                            ${admin_partials.table_queue_renewal__list(UniqueFQDNSet.queue_renewal__active, show_certificate=True)}
                         </td>
                     </tr>
                 </tbody>

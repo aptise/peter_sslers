@@ -91,11 +91,11 @@ class ViewAdmin_List(Handler):
             )
             if wants_json:
                 url_template = "%s.json" % url_template
-            items_count = lib_db.get.get__SslServerCertificate__count(
+            items_count = lib_db.get.get__ServerCertificate__count(
                 self.request.api_context, expiring_days=expiring_days
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
-            items_paged = lib_db.get.get__SslServerCertificate__paginated(
+            items_paged = lib_db.get.get__ServerCertificate__paginated(
                 self.request.api_context,
                 expiring_days=expiring_days,
                 limit=items_per_page,
@@ -114,11 +114,11 @@ class ViewAdmin_List(Handler):
             )
             if wants_json:
                 url_template = "%s.json" % url_template
-            items_count = lib_db.get.get__SslServerCertificate__count(
+            items_count = lib_db.get.get__ServerCertificate__count(
                 self.request.api_context, is_active=True
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
-            items_paged = lib_db.get.get__SslServerCertificate__paginated(
+            items_paged = lib_db.get.get__ServerCertificate__paginated(
                 self.request.api_context,
                 is_active=True,
                 limit=items_per_page,
@@ -137,11 +137,11 @@ class ViewAdmin_List(Handler):
             )
             if wants_json:
                 url_template = "%s.json" % url_template
-            items_count = lib_db.get.get__SslServerCertificate__count(
+            items_count = lib_db.get.get__ServerCertificate__count(
                 self.request.api_context, is_active=False
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
-            items_paged = lib_db.get.get__SslServerCertificate__paginated(
+            items_paged = lib_db.get.get__ServerCertificate__paginated(
                 self.request.api_context,
                 is_active=False,
                 limit=items_per_page,
@@ -154,11 +154,11 @@ class ViewAdmin_List(Handler):
             )
             if wants_json:
                 url_template = "%s.json" % url_template
-            items_count = lib_db.get.get__SslServerCertificate__count(
+            items_count = lib_db.get.get__ServerCertificate__count(
                 self.request.api_context
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
-            items_paged = lib_db.get.get__SslServerCertificate__paginated(
+            items_paged = lib_db.get.get__ServerCertificate__paginated(
                 self.request.api_context,
                 limit=items_per_page,
                 offset=offset,
@@ -167,7 +167,7 @@ class ViewAdmin_List(Handler):
         if self.request.matched_route.name.endswith("|json"):
             _certificates = {c.id: c.as_json for c in items_paged}
             return {
-                "SslServerCertificates": _certificates,
+                "ServerCertificates": _certificates,
                 "pagination": {
                     "total_items": items_count,
                     "page": pager.page_num,
@@ -177,8 +177,8 @@ class ViewAdmin_List(Handler):
 
         return {
             "project": "peter_sslers",
-            "SslServerCertificates_count": items_count,
-            "SslServerCertificates": items_paged,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
             "sidenav_option": sidenav_option,
             "expiring_days": expiring_days,
             "pager": pager,
@@ -220,44 +220,45 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            with formStash.results["private_key_file"] as field:
-                private_key_pem = field.file.read()
+            private_key_pem = formhandling.slurp_file_field(
+                formStash, "private_key_file"
+            )
             if six.PY3:
                 if not isinstance(private_key_pem, str):
                     private_key_pem = private_key_pem.decode("utf8")
             (
                 dbPrivateKey,
                 pkey_is_created,
-            ) = lib_db.getcreate.getcreate__SslPrivateKey__by_pem_text(
+            ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
                 self.request.api_context, private_key_pem
             )
 
-            with formStash.results["chain_file"] as field:
-                chain_pem = field.file.read()
+            chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
             if six.PY3:
                 if not isinstance(chain_pem, str):
                     chain_pem = chain_pem.decode("utf8")
             (
                 dbCaCertificate,
                 cacert_is_created,
-            ) = lib_db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+            ) = lib_db.getcreate.getcreate__CaCertificate__by_pem_text(
                 self.request.api_context, chain_pem, "manual upload"
             )
 
-            with formStash.results["certificate_file"] as field:
-                certificate_pem = field.file.read()
+            certificate_pem = formhandling.slurp_file_field(
+                formStash, "certificate_file"
+            )
             if six.PY3:
                 if not isinstance(certificate_pem, str):
                     certificate_pem = certificate_pem.decode("utf8")
             (
                 dbServerCertificate,
                 cert_is_created,
-            ) = lib_db.getcreate.getcreate__SslServerCertificate__by_pem_text(
+            ) = lib_db.getcreate.getcreate__ServerCertificate__by_pem_text(
                 self.request.api_context,
                 certificate_pem,
                 dbCACertificate=dbCaCertificate,
                 dbPrivateKey=dbPrivateKey,
-                dbAccountKey=None,
+                dbAcmeAccountKey=None,
             )
 
             if wants_json:
@@ -294,7 +295,7 @@ class ViewAdmin_New(Handler):
 
 class ViewAdmin_Focus(Handler):
     def _focus(self):
-        dbServerCertificate = lib_db.get.get__SslServerCertificate__by_id(
+        dbServerCertificate = lib_db.get.get__ServerCertificate__by_id(
             self.request.api_context, self.request.matchdict["id"]
         )
         if not dbServerCertificate:
@@ -316,9 +317,9 @@ class ViewAdmin_Focus(Handler):
         )
         dbServerCertificate = self._focus()
         if wants_json:
-            return {"SslServerCertificate": dbServerCertificate.as_json}
+            return {"ServerCertificate": dbServerCertificate.as_json}
         # x-x509-server-cert
-        return {"project": "peter_sslers", "SslServerCertificate": dbServerCertificate}
+        return {"project": "peter_sslers", "ServerCertificate": dbServerCertificate}
 
     @view_config(route_name="admin:certificate:focus:parse|json", renderer="json")
     def focus_parse_json(self):
@@ -465,7 +466,7 @@ class ViewAdmin_Focus(Handler):
                 dbLetsencryptCertificateNew = lib_db.actions.do__CertificateRequest__AcmeV2_Automated(
                     self.request.api_context,
                     None,  # domain_names, handle via the certificate...
-                    dbAccountKey=dbServerCertificate.acme_account_key,
+                    dbAcmeAccountKey=dbServerCertificate.acme_account_key,
                     dbPrivateKey=dbServerCertificate.private_key,
                     dbServerCertificate__renewal_of=dbServerCertificate,
                 )
@@ -507,8 +508,8 @@ class ViewAdmin_Focus(Handler):
         dbServerCertificate = self._focus()
         try:
             # first check to see if this is already queued
-            dbQueued = lib_db.get.get__SslQueueRenewal__by_SslUniqueFQDNSetId__active(
-                self.request.api_context, dbServerCertificate.ssl_unique_fqdn_set_id
+            dbQueued = lib_db.get.get__SslQueueRenewal__by_UniqueFQDNSetId__active(
+                self.request.api_context, dbServerCertificate.unique_fqdn_set_id
             )
             if dbQueued:
                 raise errors.DisplayableError(
@@ -608,8 +609,8 @@ class ViewAdmin_Focus(Handler):
         return render_to_response(
             "/admin/certificate-focus-renew.mako",
             {
-                "SslServerCertificate": self.dbServerCertificate,
-                "dbAccountKeyDefault": self.dbAccountKeyDefault,
+                "ServerCertificate": self.dbServerCertificate,
+                "dbAcmeAccountKeyDefault": self.dbAcmeAccountKeyDefault,
                 "AcmeAccountProviderOptions": providers,
             },
             self.request,
@@ -636,10 +637,10 @@ class ViewAdmin_Focus(Handler):
                 (
                     dbAcmeAccountKey,
                     _is_created,
-                ) = lib_db.getcreate.getcreate__SslAcmeAccountKey(
+                ) = lib_db.getcreate.getcreate__AcmeAccountKey(
                     self.request.api_context, **key_create_args
                 )
-                accountKeySelection.SslAcmeAccountKey = dbAcmeAccountKey
+                accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
 
             private_key_pem = form_utils.parse_PrivateKeyPem(
                 self.request,
@@ -649,7 +650,7 @@ class ViewAdmin_Focus(Handler):
 
             try:
                 event_payload_dict = utils.new_event_payload_dict()
-                event_payload_dict["ssl_server_certificate.id"] = dbServerCertificate.id
+                event_payload_dict["server_certificate.id"] = dbServerCertificate.id
                 dbEvent = lib_db.logger.log__SslOperationsEvent(
                     self.request.api_context,
                     model_utils.SslOperationsEventType.from_string(
@@ -661,7 +662,7 @@ class ViewAdmin_Focus(Handler):
                 newLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeV2_Automated(
                     self.request.api_context,
                     domain_names=dbServerCertificate.domains_as_list,
-                    dbAccountKey=accountKeySelection.SslAcmeAccountKey,
+                    dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
                     private_key_pem=private_key_pem,
                     dbServerCertificate__renewal_of=dbServerCertificate,
                 )
@@ -742,7 +743,7 @@ class ViewAdmin_Focus(Handler):
 
             action = formStash.results["action"]
             event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["ssl_server_certificate.id"] = dbServerCertificate.id
+            event_payload_dict["server_certificate.id"] = dbServerCertificate.id
             event_payload_dict["action"] = action
             event_type = model_utils.SslOperationsEventType.from_string(
                 "certificate__mark"
@@ -883,7 +884,7 @@ class ViewAdmin_Focus(Handler):
             lib_db.logger._log_object_event(
                 self.request.api_context,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
                     event_status
                 ),
                 dbServerCertificate=dbServerCertificate,
@@ -893,7 +894,7 @@ class ViewAdmin_Focus(Handler):
                 event_update = lib_db.actions.operations_update_recents(
                     self.request.api_context
                 )
-                event_update.ssl_operations_event_id__child_of = dbOperationsEvent.id
+                event_update.operations_event_id__child_of = dbOperationsEvent.id
                 self.request.api_context.dbSession.flush(objects=[event_update])
 
             if deactivated:
@@ -907,7 +908,7 @@ class ViewAdmin_Focus(Handler):
                 pass
 
             if wants_json:
-                return {"result": "success", "SslDomain": dbServerCertificate.as_json}
+                return {"result": "success", "Domain": dbServerCertificate.as_json}
             url_success = "%s?operation=mark&action=%s&result=success" % (
                 self._focus_url.id,
                 action,

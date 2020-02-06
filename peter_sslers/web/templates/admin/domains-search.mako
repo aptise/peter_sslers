@@ -42,36 +42,36 @@
                 <h4>Query</h4>
                 <code>${search_results['query']}</code>
                 
-                <h4>Results - SslDomain</h4>
-                % if search_results['SslDomain']:
+                <h4>Results - Domain</h4>
+                % if search_results['Domain']:
                     <table class="table table-striped table-condensed">
                         <thead>
                             <tr>
-                                <th colspan="2">SslDomain</th>
+                                <th colspan="2">Domain</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <th>domain_name</th>
-                                <td><code>${search_results['SslDomain'].domain_name}</code></td>
+                                <td><code>${search_results['Domain'].domain_name}</code></td>
                             </tr>
                             <tr>
                                 <th>record</th>
-                                <td><a href="${admin_prefix}/domain/${search_results['SslDomain'].id}"
+                                <td><a href="${admin_prefix}/domain/${search_results['Domain'].id}"
                                        class="label label-info"
                                     >
-                                    domain-${search_results['SslDomain'].id}
+                                    domain-${search_results['Domain'].id}
                                     </a>
                                 </td>
                             </tr>
                             <tr>
                                 <th>is_active</th>
-                                <td>${search_results['SslDomain'].is_active}</td>
+                                <td>${search_results['Domain'].is_active}</td>
                             </tr>
                         </tbody>
                     </table>
                 % else:
-                    <em>No SslDomain</em>
+                    <em>No Domain</em>
                 % endif 
 
                 <h4>Results - SslQueueDomain Active</h4>

@@ -263,12 +263,12 @@ class AppTest(AppTestCore):
                 """
 
                 #
-                # insert SslAcmeAccountKey
+                # insert AcmeAccountKey
                 # this should create `/account-key/1`
                 #
                 _key_filename = TEST_FILES["AccountKey"]["1"]
                 key_pem = self._filedata_testfile(_key_filename)
-                _key_account1, _is_created = db.getcreate.getcreate__SslAcmeAccountKey(
+                _key_account1, _is_created = db.getcreate.getcreate__AcmeAccountKey(
                     self.ctx,
                     key_pem,
                     acme_account_provider_id=DEFAULT_acme_account_provider_id,
@@ -277,7 +277,7 @@ class AppTest(AppTestCore):
                 self.ctx.dbSession.commit()
 
                 #
-                # insert SslCaCertificate
+                # insert CaCertificate
                 # this should create `/ca-certificate/1`
                 #
                 _ca_cert_id = "isrgrootx1"
@@ -286,7 +286,7 @@ class AppTest(AppTestCore):
                 (
                     _ca_cert_1,
                     _is_created,
-                ) = db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+                ) = db.getcreate.getcreate__CaCertificate__by_pem_text(
                     self.ctx,
                     ca_cert_pem,
                     "ISRG Root",
@@ -298,7 +298,7 @@ class AppTest(AppTestCore):
                 self.ctx.dbSession.commit()
 
                 #
-                # insert SslCaCertificate - self signed
+                # insert CaCertificate - self signed
                 # this should create `/ca-certificate/2`
                 #
                 _ca_cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -308,14 +308,14 @@ class AppTest(AppTestCore):
                 (
                     _ca_cert_selfsigned1,
                     _is_created,
-                ) = db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+                ) = db.getcreate.getcreate__CaCertificate__by_pem_text(
                     self.ctx, ca_cert_pem, _ca_cert_filename
                 )
                 # print(_ca_cert_selfsigned1, _is_created)
                 self.ctx.dbSession.commit()
 
                 #
-                # insert SslPrivateKey
+                # insert PrivateKey
                 # this should create `/private-key/1`
                 #
                 _pkey_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -325,14 +325,12 @@ class AppTest(AppTestCore):
                 (
                     _key_private1,
                     _is_created,
-                ) = db.getcreate.getcreate__SslPrivateKey__by_pem_text(
-                    self.ctx, pkey_pem
-                )
+                ) = db.getcreate.getcreate__PrivateKey__by_pem_text(self.ctx, pkey_pem)
                 # print(_key_private1, _is_created)
                 self.ctx.dbSession.commit()
 
                 #
-                # insert SslServerCertificate
+                # insert ServerCertificate
                 # this should create `/certificate/1`
                 #
                 _cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -342,18 +340,18 @@ class AppTest(AppTestCore):
                 (
                     _cert_1,
                     _is_created,
-                ) = db.getcreate.getcreate__SslServerCertificate__by_pem_text(
+                ) = db.getcreate.getcreate__ServerCertificate__by_pem_text(
                     self.ctx,
                     cert_pem,
                     dbCACertificate=_ca_cert_selfsigned1,
-                    dbAccountKey=_key_account1,
+                    dbAcmeAccountKey=_key_account1,
                     dbPrivateKey=_key_private1,
                 )
                 # print(_cert_1, _is_created)
                 self.ctx.dbSession.commit()
 
                 # ensure we have domains?
-                domains = db.get.get__SslDomain__paginated(self.ctx)
+                domains = db.get.get__Domain__paginated(self.ctx)
                 domain_names = [d.domain_name for d in domains]
                 assert (
                     TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -369,14 +367,14 @@ class AppTest(AppTestCore):
                     (
                         _domain,
                         _is_created,
-                    ) = db.getcreate.getcreate__SslDomain__by_domainName(
+                    ) = db.getcreate.getcreate__Domain__by_domainName(
                         self.ctx, "www.example.com"
                     )
                     self.ctx.dbSession.commit()
 
                     # insert a domain name
                     # one should be extracted from uploading a ServerCertificate though
-                    # getcreate__SslUniqueFQDNSet__by_domainObjects
+                    # getcreate__UniqueFQDNSet__by_domainObjects
 
                 # upload a csr
                 _csr_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -386,32 +384,31 @@ class AppTest(AppTestCore):
                 (
                     _csr_1,
                     _is_created,
-                ) = db.getcreate.getcreate__SslCertificateRequest__by_pem_text(
+                ) = db.getcreate.getcreate__CertificateRequest__by_pem_text(
                     self.ctx,
                     csr_pem,
-                    certificate_request_source_id=model_utils.SslCertificateRequestSource.ACME_FLOW,
-                    dbAccountKey=_key_account1,
+                    certificate_request_source_id=model_utils.CertificateRequestSource.ACME_FLOW,
                     dbPrivateKey=_key_private1,
                 )
                 self.ctx.dbSession.commit()
 
                 # AcmeEventLog
-                sslAcmeEventLog = model_objects.SslAcmeEventLog()
-                sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-                sslAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+                dbAcmeEventLog = model_objects.AcmeEventLog()
+                dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+                dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
                     "v1|/acme/new-reg"
                 )
-                self.ctx.dbSession.add(sslAcmeEventLog)
+                self.ctx.dbSession.add(dbAcmeEventLog)
                 self.ctx.dbSession.flush()
                 self.ctx.dbSession.commit()
 
                 # AcmeChallengeLog
-                sslAcmeChallenge = model_objects.SslAcmeChallenge()
-                sslAcmeChallenge.timestamp_created = datetime.datetime.utcnow()
-                sslAcmeChallenge.ssl_acme_event_log_id = sslAcmeEventLog.id
-                sslAcmeChallenge.domain = "example.com"
-                sslAcmeChallenge.ssl_acme_account_key_id = _key_account1.id
-                self.ctx.dbSession.add(sslAcmeChallenge)
+                dbAcmeChallenge = model_objects.AcmeChallenge()
+                dbAcmeChallenge.timestamp_created = datetime.datetime.utcnow()
+                dbAcmeChallenge.acme_event_log_id = dbAcmeEventLog.id
+                dbAcmeChallenge.domain = "example.com"
+                dbAcmeChallenge.acme_account_key_id = _key_account1.id
+                self.ctx.dbSession.add(dbAcmeChallenge)
                 self.ctx.dbSession.flush()
                 self.ctx.dbSession.commit()
 
@@ -494,13 +491,13 @@ class UnitTestCSR(AppTestCore):
         raise ValueError("test this")
         ctx = ""
         domain_names = TEST_FILES["CertificateRequests"]["1"]["domains"]
-        dbAccountKey = (None,)
+        dbAcmeAccountKey = (None,)
         dbPrivateKey = (None,)
         private_key_pem = (None,)
         result = db.actions.do__CertificateRequest__AcmeV2_Automated(
             ctx,
             domain_names,
-            dbAccountKey=None,
+            dbAcmeAccountKey=None,
             dbPrivateKey=None,
             private_key_pem=None,
             dbServerCertificate__renewal_of=None,
@@ -547,7 +544,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
 
     def _get_item(self):
         # grab an event
-        focus_item = self.ctx.dbSession.query(model_objects.SslAcmeEventLog).first()
+        focus_item = self.ctx.dbSession.query(model_objects.AcmeEventLog).first()
         return focus_item
 
     def test_list(self):
@@ -571,7 +568,7 @@ class FunctionalTests_AcmeChallengeLog(AppTest):
 
     def _get_item(self):
         # grab a event
-        focus_item = self.ctx.dbSession.query(model_objects.SslAcmeChallenge).first()
+        focus_item = self.ctx.dbSession.query(model_objects.AcmeChallenge).first()
         return focus_item
 
     def test_list(self):
@@ -591,7 +588,7 @@ class FunctionalTests_AcmeChallengeLog(AppTest):
 
     def test_filter(self):
         dbAcmeAccountKey = self.ctx.dbSession.query(
-            model_objects.SslAcmeAccountKey
+            model_objects.AcmeAccountKey
         ).first()
         res = self.testapp.get(
             "/.well-known/admin/acme-challenge-logs/filtered", status=302
@@ -624,9 +621,9 @@ class FunctionalTests_AccountKeys(AppTest):
     def _get_item(self):
         # grab a Key
         focus_item = (
-            self.ctx.dbSession.query(model_objects.SslAcmeAccountKey)
-            .filter(model_objects.SslAcmeAccountKey.is_active.op("IS")(True))
-            .order_by(model_objects.SslAcmeAccountKey.id.asc())
+            self.ctx.dbSession.query(model_objects.AcmeAccountKey)
+            .filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+            .order_by(model_objects.AcmeAccountKey.id.asc())
             .first()
         )
         return focus_item
@@ -950,9 +947,9 @@ class FunctionalTests_Certificate(AppTest):
     def _get_item(self):
         # grab a certificate
         focus_item = (
-            self.ctx.dbSession.query(model_objects.SslServerCertificate)
-            .filter(model_objects.SslServerCertificate.is_active.op("IS")(True))
-            .order_by(model_objects.SslServerCertificate.id.asc())
+            self.ctx.dbSession.query(model_objects.ServerCertificate)
+            .filter(model_objects.ServerCertificate.is_active.op("IS")(True))
+            .order_by(model_objects.ServerCertificate.id.asc())
             .first()
         )
         return focus_item
@@ -1192,9 +1189,9 @@ class FunctionalTests_CertificateRequest(AppTest):
     def _get_item(self):
         # grab a certificate
         focus_item = (
-            self.ctx.dbSession.query(model_objects.SslCertificateRequest)
-            .filter(model_objects.SslCertificateRequest.is_active.op("IS")(True))
-            .order_by(model_objects.SslCertificateRequest.id.asc())
+            self.ctx.dbSession.query(model_objects.CertificateRequest)
+            .filter(model_objects.CertificateRequest.is_active.op("IS")(True))
+            .order_by(model_objects.CertificateRequest.id.asc())
             .first()
         )
         return focus_item
@@ -1335,9 +1332,9 @@ class FunctionalTests_Domain(AppTest):
     def _get_item(self):
         # grab a certificate
         focus_item = (
-            self.ctx.dbSession.query(model_objects.SslDomain)
-            .filter(model_objects.SslDomain.is_active.op("IS")(True))
-            .order_by(model_objects.SslDomain.id.asc())
+            self.ctx.dbSession.query(model_objects.Domain)
+            .filter(model_objects.Domain.is_active.op("IS")(True))
+            .order_by(model_objects.Domain.id.asc())
             .first()
         )
         return focus_item
@@ -1474,9 +1471,9 @@ class FunctionalTests_PrivateKeys(AppTest):
     def _get_item(self):
         # grab a Key
         focus_item = (
-            self.ctx.dbSession.query(model_objects.SslPrivateKey)
-            .filter(model_objects.SslPrivateKey.is_active.op("IS")(True))
-            .order_by(model_objects.SslPrivateKey.id.asc())
+            self.ctx.dbSession.query(model_objects.PrivateKey)
+            .filter(model_objects.PrivateKey.is_active.op("IS")(True))
+            .order_by(model_objects.PrivateKey.id.asc())
             .first()
         )
         return focus_item
@@ -1583,8 +1580,8 @@ class FunctionalTests_UniqueFQDNSets(AppTest):
     def _get_item(self):
         # grab a Key
         focus_item = (
-            self.ctx.dbSession.query(model_objects.SslUniqueFQDNSet)
-            .order_by(model_objects.SslUniqueFQDNSet.id.asc())
+            self.ctx.dbSession.query(model_objects.UniqueFQDNSet)
+            .order_by(model_objects.UniqueFQDNSet.id.asc())
             .first()
         )
         return focus_item
@@ -1844,8 +1841,8 @@ class FunctionalTests_Operations(AppTest):
         )
 
         focus_item_event = (
-            self.ctx.dbSession.query(model_objects.SslOperationsObjectEvent)
-            .order_by(model_objects.SslOperationsObjectEvent.id.asc())
+            self.ctx.dbSession.query(model_objects.OperationsObjectEvent)
+            .order_by(model_objects.OperationsObjectEvent.id.asc())
             .limit(1)
             .one()
         )

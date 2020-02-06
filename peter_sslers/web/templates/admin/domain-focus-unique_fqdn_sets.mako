@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
-        <li><a href="${admin_prefix}/domain/${SslDomain.id}">Focus [${SslDomain.id}]</a></li>
+        <li><a href="${admin_prefix}/domain/${Domain.id}">Focus [${Domain.id}]</a></li>
         <li class="active">Unique FQDN Set</li>
     </ol>
 </%block>
@@ -21,9 +21,9 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
-            % if SslUniqueFQDNSets:
+            % if UniqueFQDNSets:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_SslUniqueFQDNSets(SslUniqueFQDNSets)}
+                ${admin_partials.table_UniqueFQDNSets(UniqueFQDNSets)}
             % else:
                 No known fqdn sets.
             % endif

@@ -13,6 +13,9 @@ from .. import cert_utils
 def _certificate_parse_to_record(_tmpfileCert, dbCertificate):
     """
     helper utility
+
+    :param _tmpfileCert: (required) the tempfile to a PEM encoded certificate
+    :param dbCertificate: (required) The :class:`model.objects.SslCertificate`
     """
     # grab the modulus
     cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(_tmpfileCert.name)

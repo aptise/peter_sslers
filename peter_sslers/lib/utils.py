@@ -17,6 +17,11 @@ RE_domain = re.compile("^(?:[\w\-]+\.)+[\w]{2,5}$")
 
 
 def validate_domains(domain_names):
+    """
+    Ensures each items of the iterable `domain_names` matches a regular expression.
+    
+    :param domain_names: (required) An iterable list of strings
+    """
     for d in domain_names:
         if not RE_domain.match(d):
             raise ValueError("invalid name: `%s`", d)
@@ -24,6 +29,13 @@ def validate_domains(domain_names):
 
 
 def domains_from_list(domain_names):
+    """
+    Turns a list of strings into a standardized list of domain names.
+    
+    Will raise Exceptions if non-conforming elements are encountered.
+    
+    :param domain_names: (required) An iterable list of strings
+    """
     domain_names = [d for d in [d.strip().lower() for d in domain_names] if d]
     # make the list unique
     domain_names = list(set(domain_names))
@@ -33,6 +45,9 @@ def domains_from_list(domain_names):
 
 
 def domains_from_string(text):
+    """
+    :param text: (required) Turns a comma-separated-list of domain names into a list
+    """
     # generate list
     domain_names = text.split(",")
     return domains_from_list(domain_names)
@@ -62,11 +77,11 @@ class ApiContext(object):
 
     This implements an interface that guarantees several properties.  Substitutes may be used-
 
-    :request: - pyramid request object
-    :timestamp: `datetime.datetime.utcnow()`
-    :dbSession: - sqlalchemy `session` object
-    :dbSessionLogger: - sqlalchemy `session` object with autocommit
-    :dbOperationsEvent: - a topline SslOperationsEvent object for this request, if any
+    :param request: - Pyramid `request` object
+    :param timestamp: `datetime.datetime.utcnow()`
+    :param dbSession: - SqlAlchemy `Session` object
+    :param dbSessionLogger: - SqlAlchemy `Session` object with autocommit
+    :param dbOperationsEvent: - the top SslOperationsEvent object for the active `request`, if any
     """
 
     dbOperationsEvent = None

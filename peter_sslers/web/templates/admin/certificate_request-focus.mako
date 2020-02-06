@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
-        <li class="active">Focus [${SslCertificateRequest.id}]</li>
+        <li class="active">Focus [${CertificateRequest.id}]</li>
     </ol>
 </%block>
 
@@ -19,7 +19,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/certificate-request/${CertificateRequest.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -35,40 +35,40 @@
                     <th>id</th>
                     <td>
                         <span class="label label-default">
-                            ${SslCertificateRequest.id}
+                            ${CertificateRequest.id}
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <th>is_active</th>
                     <td>
-                        <span class="label label-${'success' if SslCertificateRequest.is_active else 'warning'}">
-                            ${'Active' if SslCertificateRequest.is_active else 'inactive'}
+                        <span class="label label-${'success' if CertificateRequest.is_active else 'warning'}">
+                            ${'Active' if CertificateRequest.is_active else 'inactive'}
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <th>is_error</th>
                     <td>
-                        <span class="label label-${'danger' if SslCertificateRequest.is_error else 'default'}">
-                            ${'Error' if SslCertificateRequest.is_error else 'ok'}
+                        <span class="label label-${'danger' if CertificateRequest.is_error else 'default'}">
+                            ${'Error' if CertificateRequest.is_error else 'ok'}
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <th>certificate_request_source</th>
                     <td>
-                        <span class="label label-default">${SslCertificateRequest.certificate_request_source}</span>
+                        <span class="label label-default">${CertificateRequest.certificate_request_source}</span>
                     </td>
                 </tr>
                 <tr>
                     <th>is issued?</th>
                     <td>
-                        % if SslCertificateRequest.server_certificate:
+                        % if CertificateRequest.server_certificate:
                             <span class="label label-success">Yes</span>&nbsp;
-                            <a class="label label-info" href="${admin_prefix}/certificate/${SslCertificateRequest.server_certificate.id}">
+                            <a class="label label-info" href="${admin_prefix}/certificate/${CertificateRequest.server_certificate.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${SslCertificateRequest.server_certificate.id}</a>
+                                cert-${CertificateRequest.server_certificate.id}</a>
                         % else:
                             <span class="label label-default">No</span>
                         % endif
@@ -77,39 +77,39 @@
                 <tr>
                     <th>is renewal?</th>
                     <td>
-                        % if SslCertificateRequest.ssl_server_certificate_id__renewal_of:
+                        % if CertificateRequest.server_certificate_id__renewal_of:
                             <span class="label label-success">Yes</span>&nbsp;
                             renewal of Certificate
-                            <a class="label label-info" href="${admin_prefix}/certificate/${SslCertificateRequest.ssl_server_certificate_id__renewal_of}">
+                            <a class="label label-info" href="${admin_prefix}/certificate/${CertificateRequest.server_certificate_id__renewal_of}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${SslCertificateRequest.ssl_server_certificate_id__renewal_of}</a>
+                                cert-${CertificateRequest.server_certificate_id__renewal_of}</a>
                         % else:
                             <span class="label label-default">No</span>
                         % endif
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_acme_account_key_id</th>
+                    <th>acme_account_key_id</th>
                     <td>
-                        % if SslCertificateRequest.ssl_acme_account_key_id:
-                            <a class="label label-info" href="${admin_prefix}/account-key/${SslCertificateRequest.ssl_acme_account_key_id}">
+                        % if CertificateRequest.acme_account_key_id:
+                            <a class="label label-info" href="${admin_prefix}/account-key/${CertificateRequest.acme_account_key_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                account-${SslCertificateRequest.ssl_acme_account_key_id}</a>
+                                account-${CertificateRequest.acme_account_key_id}</a>
                         % endif
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_private_key_id__signed_by</th>
+                    <th>private_key_id__signed_by</th>
                     <td>
-                        % if SslCertificateRequest.ssl_private_key_id__signed_by:
-                            % if SslCertificateRequest.private_key__signed_by.is_compromised:
-                                <a class="label label-danger" href="${admin_prefix}/private-key/${SslCertificateRequest.ssl_private_key_id__signed_by}">
+                        % if CertificateRequest.private_key_id__signed_by:
+                            % if CertificateRequest.private_key__signed_by.is_compromised:
+                                <a class="label label-danger" href="${admin_prefix}/private-key/${CertificateRequest.private_key_id__signed_by}">
                                     <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                    pkey-${SslCertificateRequest.ssl_private_key_id__signed_by}</a>
+                                    pkey-${CertificateRequest.private_key_id__signed_by}</a>
                             % else:
-                                <a class="label label-info" href="${admin_prefix}/private-key/${SslCertificateRequest.ssl_private_key_id__signed_by}">
+                                <a class="label label-info" href="${admin_prefix}/private-key/${CertificateRequest.private_key_id__signed_by}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    pkey-${SslCertificateRequest.ssl_private_key_id__signed_by}</a>
+                                    pkey-${CertificateRequest.private_key_id__signed_by}</a>
                             % endif
                         % endif
                     </td>
@@ -117,31 +117,31 @@
                 <tr>
                     <th>unique fqdn set</th>
                     <td>
-                        <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${SslCertificateRequest.ssl_unique_fqdn_set_id}">
+                        <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${CertificateRequest.unique_fqdn_set_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            fqdnset-${SslCertificateRequest.ssl_unique_fqdn_set_id}</a>
+                            fqdnset-${CertificateRequest.unique_fqdn_set_id}</a>
                     </td>
                 </tr>
                 <tr>
                     <th>timestamp_started</th>
-                    <td>${SslCertificateRequest.timestamp_started}</td>
+                    <td>${CertificateRequest.timestamp_started}</td>
                 </tr>
                 <tr>
                     <th>timestamp_finished</th>
-                    <td>${SslCertificateRequest.timestamp_finished or ''}</td>
+                    <td>${CertificateRequest.timestamp_finished or ''}</td>
                 </tr>
                 <tr>
                     <th>csr_pem_md5</th>
-                    <td><code>${SslCertificateRequest.csr_pem_md5 or ''}</code></td>
+                    <td><code>${CertificateRequest.csr_pem_md5 or ''}</code></td>
                 </tr>
                 <tr>
                     <th>csr_pem_modulus_md5</th>
                     <td>
-                        % if SslCertificateRequest.csr_pem_modulus_md5:
-                            <code>${SslCertificateRequest.csr_pem_modulus_md5}</code>
+                        % if CertificateRequest.csr_pem_modulus_md5:
+                            <code>${CertificateRequest.csr_pem_modulus_md5}</code>
                             <a
                                 class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${SslCertificateRequest.csr_pem_modulus_search}"
+                                href="${admin_prefix}/search?${CertificateRequest.csr_pem_modulus_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                             </a>
@@ -151,11 +151,11 @@
                 <tr>
                     <th>csr_pem</th>
                     <td>
-                        % if SslCertificateRequest.csr_pem:
-                            ## <textarea class="form-control">${SslCertificateRequest.csr_pem}</textarea>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/csr.pem">csr.pem</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
+                        % if CertificateRequest.csr_pem:
+                            ## <textarea class="form-control">${CertificateRequest.csr_pem}</textarea>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem">csr.pem</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.pem.txt">csr.pem.txt</a>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate-request/${CertificateRequest.id}/csr.csr">csr.csr [pem format]</a>
                         % else:
                             <em>pem is not tracked</em>
                         % endif
@@ -164,23 +164,23 @@
                 <tr>
                     <th>domains</th>
                     <td>
-                        ${admin_partials.table_SslCertificateRequest2Domain(SslCertificateRequest.to_domains,
-                                                                            request_inactive = (False if SslCertificateRequest.is_active else True),
+                        ${admin_partials.table_CertificateRequest2Domain(CertificateRequest.unique_fqdn_set.to_domains,
+                                                                            request_inactive = (False if CertificateRequest.is_active else True),
                                                                             perspective='certificate_request')}
                     </td>
                 </tr>
             </table>
 
-            % if SslCertificateRequest.is_active and SslCertificateRequest.certificate_request_source_is('acme flow'):
+            % if CertificateRequest.is_active and CertificateRequest.certificate_request_source_is('acme flow'):
                 <a
-                    href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage"
+                    href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage"
                     class="btn btn-info"
                 >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                     Edit Codes
                 </a>
                 <a
-                    href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/deactivate"
+                    href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/deactivate"
                     class="btn btn-primary"
                 >
                     <span class="glyphicon glyphicon-play-circle" aria-hidden="true"></span>

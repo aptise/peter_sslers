@@ -16,7 +16,7 @@ def year_week__default(element, compiler, **kw):
     # return compiler.visit_function(element)
     """
     ## select extract(week from timestamp_event) from table_a;
-    week_num = sqlalchemy.sql.expression.extract('WEEK', SslServerCertificate.timestamp_signed)
+    week_num = sqlalchemy.sql.expression.extract('WEEK', ServerCertificate.timestamp_signed)
     """
     args = list(element.clauses)
     return "concat(extract(year from %s), '.', extract(week from %s)) " % (
@@ -29,7 +29,7 @@ def year_week__default(element, compiler, **kw):
 def year_week__postgresql(element, compiler, **kw):
     """
     # select to_char(timestamp_event, 'YYYY.WW')  from table_a;
-    week_num = sqlalchemy.func.to_char(SslServerCertificate.timestamp_signed, 'YYYY.WW')
+    week_num = sqlalchemy.func.to_char(ServerCertificate.timestamp_signed, 'YYYY.WW')
     """
     args = list(element.clauses)
     return "to_char(%s, 'YYYY.WW')" % (compiler.process(args[0]),)
@@ -38,7 +38,7 @@ def year_week__postgresql(element, compiler, **kw):
 @compiles(year_week, "sqlite")
 def year_week__sqlite(element, compiler, **kw):
     """
-    # strftime('%Y.%W', cast(SslServerCertificate.timestamp_signed) as text)
+    # strftime('%Y.%W', cast(ServerCertificate.timestamp_signed) as text)
     week_num = sqlalchemy.func.strftime('%Y.%W',
                                         sqlalchemy.cast(TABLE.COLUMN,
                                                         sqlalchemy.Unicode
@@ -218,7 +218,7 @@ class SslOperationsEventType(_SslOperationsUnified):
     pass
 
 
-class SslOperationsObjectEventStatus(_SslOperationsUnified):
+class OperationsObjectEventStatus(_SslOperationsUnified):
     """
     This object is used to store constants
     """
@@ -302,13 +302,13 @@ class AcmeEvent(_mixin_mapping):
         # 3: "v1|/acme/new-cert",  # cert-issue
         4: "v2|newAccount",  # account create
         5: "v2|newOrder",
-        6: "v2|-authorization",  # not an endpoint name, but element of an order
+        6: "v2|-authorization-request",  # hitting the LE authorization url
         7: "v2|-challenge-trigger",  # not an endpoint name, but element of an order
         8: "v2|-order-finalize",
     }
 
 
-class SslCertificateRequestSource(object):
+class CertificateRequestSource(object):
     """
     How was the CertificateRequest generated?
     - RECORDED - just records the CSR; uploaded into our system
@@ -324,4 +324,4 @@ class SslCertificateRequestSource(object):
 class _mixin_SslOperationsEventType(object):
     @property
     def event_type_text(self):
-        return SslOperationsEventType.as_string(self.ssl_operations_event_type_id)
+        return SslOperationsEventType.as_string(self.operations_event_type_id)

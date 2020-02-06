@@ -48,7 +48,7 @@ class ViewAdmin_List(Handler):
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
-        items_count = lib_db.get.get__SslCertificateRequest__count(
+        items_count = lib_db.get.get__CertificateRequest__count(
             self.request.api_context
         )
         if wants_json:
@@ -63,13 +63,13 @@ class ViewAdmin_List(Handler):
                 url_template="%s/certificate-requests/{0}"
                 % self.request.registry.settings["admin_prefix"],
             )
-        items_paged = lib_db.get.get__SslCertificateRequest__paginated(
+        items_paged = lib_db.get.get__CertificateRequest__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         if wants_json:
             csrs = {csr.id: csr.as_json for csr in items_paged}
             return {
-                "SslCertificateRequests": csrs,
+                "CertificateRequests": csrs,
                 "pagination": {
                     "total_items": items_count,
                     "page": pager.page_num,
@@ -78,15 +78,15 @@ class ViewAdmin_List(Handler):
             }
         return {
             "project": "peter_sslers",
-            "SslCertificateRequests_count": items_count,
-            "SslCertificateRequests": items_paged,
+            "CertificateRequests_count": items_count,
+            "CertificateRequests": items_paged,
             "pager": pager,
         }
 
 
 class ViewAdmin_Focus(Handler):
     def _focus(self):
-        dbCertificateRequest = lib_db.get.get__SslCertificateRequest__by_id(
+        dbCertificateRequest = lib_db.get.get__CertificateRequest__by_id(
             self.request.api_context, self.request.matchdict["id"]
         )
         if not dbCertificateRequest:
@@ -109,10 +109,10 @@ class ViewAdmin_Focus(Handler):
         )
         dbCertificateRequest = self._focus()
         if wants_json:
-            return {"SslCertificateRequest": dbCertificateRequest.as_json_extended}
+            return {"CertificateRequest": dbCertificateRequest.as_json_extended}
         return {
             "project": "peter_sslers",
-            "SslCertificateRequest": dbCertificateRequest,
+            "CertificateRequest": dbCertificateRequest,
         }
 
     @view_config(route_name="admin:certificate_request:focus:raw", renderer="string")
@@ -150,7 +150,7 @@ class ViewAdmin_Focus(Handler):
         if wants_json:
             return {
                 "result": "success",
-                "SslCertificateRequest": dbCertificateRequest.as_json,
+                "CertificateRequest": dbCertificateRequest.as_json,
             }
         return HTTPSeeOther("%s?result=success" % self._focus_url)
 
@@ -168,8 +168,8 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
             raise HTTPNotFound("Only availble for Acme Flow")
         return {
             "project": "peter_sslers",
-            "SslCertificateRequest": dbCertificateRequest,
-            "SslCertificateRequest2Domain": None,
+            "CertificateRequest": dbCertificateRequest,
+            "CertificateRequest2Domain": None,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -182,18 +182,18 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
         dbCertificateRequest = self._focus()
         if not dbCertificateRequest.certificate_request_source_is("acme flow"):
             raise HTTPNotFound("Only availble for Acme Flow")
-        dbCertificateRequest2SslDomain = None
+        dbCertificateRequest2Domain = None
 
         domain_identifier = self.request.matchdict["domain_identifier"].strip()
         if domain_identifier.isdigit():
-            dbDomain = lib_db.get.get__SslDomain__by_id(
+            dbDomain = lib_db.get.get__Domain__by_id(
                 self.request.api_context,
                 domain_identifier,
                 preload=False,
                 eagerload_web=False,
             )
         else:
-            dbDomain = lib_db.get.get__SslDomain__by_name(
+            dbDomain = lib_db.get.get__Domain__by_name(
                 self.request.api_context,
                 domain_identifier,
                 preload=False,
@@ -202,15 +202,15 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
         if not dbDomain:
             raise HTTPNotFound("invalid domain")
 
-        for to_domain in dbCertificateRequest.to_domains:
-            if to_domain.ssl_domain_id == dbDomain.id:
-                dbCertificateRequest2SslDomain = to_domain
+        for to_domain in dbCertificateRequest.unique_fqdn_set.to_domains:
+            if to_domain.domain_id == dbDomain.id:
+                dbCertificateRequest2Domain = to_domain
                 break
-        if dbCertificateRequest2SslDomain is None:
+        if dbCertificateRequest2Domain is None:
             raise HTTPNotFound("invalid domain for certificate request")
 
-        self.db_SslCertificateRequest = dbCertificateRequest
-        self.db_SslCertificateRequest2Domain = dbCertificateRequest2SslDomain
+        self.db_CertificateRequest = dbCertificateRequest
+        self.db_CertificateRequest2Domain = dbCertificateRequest2Domain
 
         if self.request.method == "POST":
             return self._certificate_request_AcmeFlow_manage_domain__submit()
@@ -220,8 +220,8 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
         return render_to_response(
             "/admin/certificate_request-focus-AcmeFlow-manage.mako",
             {
-                "SslCertificateRequest": self.db_SslCertificateRequest,
-                "SslCertificateRequest2Domain": self.db_SslCertificateRequest2Domain,
+                "CertificateRequest": self.db_CertificateRequest,
+                "CertificateRequest2Domain": self.db_CertificateRequest2Domain,
             },
             self.request,
         )
@@ -236,19 +236,17 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
             if not result:
                 raise formhandling.FormInvalid()
 
-            if self.db_SslCertificateRequest2Domain.timestamp_verified:
+            if self.db_CertificateRequest2Domain.timestamp_verified:
                 raise ValueError("You can not edit the challenge of a verified item")
 
             changed = False
             for attribute in ("challenge_key", "challenge_text"):
                 submitted_value = formStash.results[attribute]
                 if submitted_value != getattr(
-                    self.db_SslCertificateRequest2Domain, attribute
+                    self.db_CertificateRequest2Domain, attribute
                 ):
                     setattr(
-                        self.db_SslCertificateRequest2Domain,
-                        attribute,
-                        submitted_value,
+                        self.db_CertificateRequest2Domain, attribute, submitted_value,
                     )
                     changed = True
 
@@ -256,12 +254,12 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
                 raise ValueError("No changes!")
 
             self.request.api_context.dbSession.flush(
-                objects=[self.db_SslCertificateRequest2Domain]
+                objects=[self.db_CertificateRequest2Domain]
             )
 
             return HTTPSeeOther(
                 "%s/acme-flow/manage/domain/%s?result=success"
-                % (self._focus_url, self.db_SslCertificateRequest2Domain.ssl_domain_id,)
+                % (self._focus_url, self.db_CertificateRequest2Domain.domain_id,)
             )
 
         except formhandling.FormInvalid as exc:
@@ -284,7 +282,7 @@ class ViewAdmin_New(Handler):
         self._load_AccountKeyDefault()
         return render_to_response(
             "/admin/certificate_request-new-AcmeFlow.mako",
-            {"dbAccountKeyDefault": self.dbAccountKeyDefault},
+            {"dbAcmeAccountKeyDefault": self.dbAcmeAccountKeyDefault},
             self.request,
         )
 
@@ -298,16 +296,15 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            raise ValueError("ACME-FLOW is being redone")
+
             domain_names = utils.domains_from_string(formStash.results["domain_names"])
             if not domain_names:
                 raise ValueError("missing valid domain names")
-            (
-                dbCertificateRequest,
-                dbDomainObjects,
-            ) = lib_db.create.create__SslCertificateRequest(
+            dbCertificateRequest = lib_db.create.create__CertificateRequest(
                 self.request.api_context,
                 csr_pem=None,
-                certificate_request_source_id=model_utils.SslCertificateRequestSource.ACME_FLOW,
+                certificate_request_source_id=model_utils.CertificateRequestSource.ACME_FLOW,
                 domain_names=domain_names,
             )
 
@@ -339,7 +336,7 @@ class ViewAdmin_New(Handler):
             "/admin/certificate_request-new-AcmeAutomated.mako",
             {
                 "CERTIFICATE_AUTHORITY": active_ca,
-                "dbAccountKeyDefault": self.dbAccountKeyDefault,
+                "dbAcmeAccountKeyDefault": self.dbAcmeAccountKeyDefault,
                 "dbPrivateKeyDefault": self.dbPrivateKeyDefault,
                 "AcmeAccountProviderOptions": providers,
             },
@@ -383,10 +380,10 @@ class ViewAdmin_New(Handler):
                 (
                     dbAcmeAccountKey,
                     _is_created,
-                ) = lib_db.getcreate.getcreate__SslAcmeAccountKey(
+                ) = lib_db.getcreate.getcreate__AcmeAccountKey(
                     self.request.api_context, **key_create_args
                 )
-                accountKeySelection.SslAcmeAccountKey = dbAcmeAccountKey
+                accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
 
             private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash)
 
@@ -394,7 +391,7 @@ class ViewAdmin_New(Handler):
                 dbLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeV2_Automated(
                     self.request.api_context,
                     domain_names,
-                    dbAccountKey=accountKeySelection.SslAcmeAccountKey,
+                    dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
                     private_key_pem=private_key_pem,
                 )
             except (

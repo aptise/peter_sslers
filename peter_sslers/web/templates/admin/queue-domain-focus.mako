@@ -75,10 +75,10 @@
                 <tr>
                     <th>domain?</th>
                     <td>
-                        % if QueueDomainItem.ssl_domain_id:
-                            <a class="label label-info" href="${admin_prefix}/domain/${QueueDomainItem.ssl_domain_id}">
+                        % if QueueDomainItem.domain_id:
+                            <a class="label label-info" href="${admin_prefix}/domain/${QueueDomainItem.domain_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                domain-${QueueDomainItem.ssl_domain_id}
+                                domain-${QueueDomainItem.domain_id}
                             </a>
                         % endif
                     </td>
@@ -117,7 +117,7 @@
             <hr/>
 
             <h4>Operation Object Events</h4>
-            ${admin_partials.table_SslOperationsObjectEvents(QueueDomainItem.operations_object_events, table_context='domain')}
+            ${admin_partials.table_OperationsObjectEvents(QueueDomainItem.operations_object_events, table_context='domain')}
         </div>
     </div>
 </%block>

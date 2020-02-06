@@ -9,8 +9,11 @@ from OpenSSL import crypto
 
 
 def cert_and_chain_from_fullchain(fullchain_pem):
-    """Split fullchain_pem into cert_pem and chain_pem
+    """
+    Split `fullchain_pem` into `cert_pem` and `chain_pem`
+
     :param str fullchain_pem: concatenated cert + chain
+
     :returns: tuple of string cert_pem and chain_pem
     :rtype: tuple
     """

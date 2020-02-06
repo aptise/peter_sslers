@@ -99,6 +99,28 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
 # ------------------------------------------------------------------------------
 
 
+def get_authorization_challenge(authorization_response, http01=None):
+    if not http01:
+        raise ValueError("must invoke with `http01=True`")
+    # find the http-01 challenge and write the challenge file
+    try:
+        challenge = [
+            c for c in authorization_response["challenges"] if c["type"] == "http-01"
+        ][0]
+    except Exception as exc:
+        raise ValueError("could not find a challenge")
+    return challenge
+
+
+def create_challenge_keyauthorization(token, accountkey_thumbprint):
+    token = re.sub(r"[^A-Za-z0-9_\-]", "_", token)
+    keyauthorization = "{0}.{1}".format(token, accountkey_thumbprint)
+    return keyauthorization
+
+
+# ------------------------------------------------------------------------------
+
+
 def acme_directory_get(acmeAccountKey=None):
     # get the ACME directory of urls
     log.info("acme_v2 Getting directory...")
@@ -350,7 +372,7 @@ class AuthenticatedUser(object):
             raise ValueError("directory does not support `newAccount`")
 
         # log the event to the db
-        self.acmeLogger.log_registration("v2")
+        self.acmeLogger.log_newAccount("v2")
 
         # hit the acme api for the registration
         try:
@@ -396,7 +418,7 @@ class AuthenticatedUser(object):
 
         # log this
         event_payload_dict = utils.new_event_payload_dict()
-        event_payload_dict["ssl_acme_account_key.id"] = self.acmeAccountKey.id
+        event_payload_dict["acme_account_key.id"] = self.acmeAccountKey.id
         dbOperationsEvent = self.log__SslOperationsEvent(
             app_ctx,
             model_utils.SslOperationsEventType.from_string(
@@ -406,9 +428,12 @@ class AuthenticatedUser(object):
         )
 
     def acme_new_order(
-        self, csr_domains=None, dbCertificateRequest=None,
+        self, app_ctx, csr_domains=None, dbCertificateRequest=None,
     ):
         """
+        returns
+            AcmeOrderObject, dbEventLogged
+
         https://tools.ietf.org/html/rfc8555#section-7.4
 
             identifiers (required, array of object):  An array of identifier 
@@ -478,9 +503,6 @@ class AuthenticatedUser(object):
         # create a new order
         log.info("acme_v2 Creating new order...")
 
-        # log the event to the db
-        self.acmeLogger.log_newOrder("v2", dbCertificateRequest)
-
         payload_order = {
             "identifiers": [{"type": "dns", "value": d} for d in csr_domains]
         }
@@ -488,37 +510,31 @@ class AuthenticatedUser(object):
             self.acme_directory["newOrder"], payload=payload_order,
         )
         log.info("acme_v2 Order created!")
-        acmeOrder = AcmeOrder(
+
+        # log the event to the db
+        dbEventLogged = self.acmeLogger.log_newOrder("v2", dbCertificateRequest)
+
+        # this is just a convenience wrapper for our order object
+        acmeOrderObject = AcmeOrder(
             api_object=acme_order_object,
             response_headers=acme_order_headers,
             dbCertificateRequest=dbCertificateRequest,
         )
-        return acmeOrder
+
+        return (acmeOrderObject, dbEventLogged)
 
     def acme_handle_order_authorizations(
         self,
+        app_ctx,
         acmeOrder=None,  # acme server api response, `AcmeOrder` object
+        dbAcmeOrder=None,  # used for logging
+        handle_discovered_auth=None,  # callable; expects (authorization_url, authorization_response)
         handle_keyauth_challenge=None,  # callable; expects (domain, token, keyauthorization)
         handle_keyauth_cleanup=None,  # callable; expects (domain, token, keyauthorization)
     ):
-        log.info("acme_v2 acme_handle_order_authorizations...")
-
-        _order_status = acmeOrder.api_object["status"]
-        if _order_status != "pending":
-            raise ValueError("unsure how to handle this status: `%s`" % _order_status)
-
-        # verify each domain
-        for authorization_url in acmeOrder.api_object["authorizations"]:
-
-            # in v1, we know the domain before the authorization request
-            # in v2, we hit an order's authorization url to get the domain
-            (authorization_response, _, _) = self._send_signed_request(
-                authorization_url, payload=None,
-            )
-            domain = authorization_response["identifier"]["value"]
-            log.info("acme_v2 Verifying {0}...".format(domain))
-
-            """
+        """
+        Authorizations
+        
             https://tools.ietf.org/html/rfc8555#section-7.1.4
 
                 status (required, string):  The status of this authorization.
@@ -551,54 +567,9 @@ class AuthenticatedUser(object):
                     a valid challenge has expired
                 "revoked"
                     revoked by the server
-            """
-            _authorization_status = authorization_response["status"]
-            _todo_complete_challenge = None
-            if _authorization_status == "pending":
-                # we need to run the authorization
-                _todo_complete_challenge = True
-            elif _authorization_status == "valid":
-                # noting to do, one or more challenges is valid
-                _todo_complete_challenge = False
-            elif _authorization_status == "invalid":
-                # this failed once, we need to auth again?
-                _todo_complete_challenge = True
-            elif _authorization_status == "deactivated":
-                # this has been removed from the order?
-                _todo_complete_challenge = False
-            elif _authorization_status == "expired":
-                # this passed once, BUT we need to auth again
-                _todo_complete_challenge = True
-            elif _authorization_status == "expired":
-                # this failed once, we need to auth again?
-                _todo_complete_challenge = True
-            else:
-                raise ValueError(
-                    "unexpected authorization status: `%s`" % _authorization_status
-                )
 
-            if not _todo_complete_challenge:
-                # short-circuit out of completing the challenge
-                continue
+        Challenges
 
-            (
-                sslAcmeEventLog_new_authorization,
-                sslAcmeChallenge,
-            ) = self.acmeLogger.log_new_authorization(
-                "v2", acmeOrder.dbCertificateRequest, domain=domain
-            )  # log this to the db
-
-            # find the http-01 challenge and write the challenge file
-            try:
-                challenge = [
-                    c
-                    for c in authorization_response["challenges"]
-                    if c["type"] == "http-01"
-                ][0]
-            except Exception as exc:
-                raise ValueError("could not find a challenge")
-
-            """
             https://tools.ietf.org/html/rfc8555#section-8
             
                 status (required, string):  The status of this challenge.  Possible
@@ -627,40 +598,119 @@ class AuthenticatedUser(object):
                     the ACME server has validated the challenge
                 "invalid"
                     the ACME server encountered an error when validating
-            """
-            _challenge_status = challenge["status"]
-            _todo_complete_challenge = None
+        """
+        log.info("acme_v2 acme_handle_order_authorizations...")
+
+        _order_status = acmeOrder.api_object["status"]
+        if _order_status != "pending":
+            raise ValueError("unsure how to handle this status: `%s`" % _order_status)
+
+        # verify each domain
+        for authorization_url in acmeOrder.api_object["authorizations"]:
+            # scoping, our todo list
+            _todo_complete_challenges = None
+            _todo_complete_challenge_http01 = None
+
+            # in v1, we know the domain before the authorization request
+            # in v2, we hit an order's authorization url to get the domain
+            (authorization_response, _, _) = self._send_signed_request(
+                authorization_url, payload=None,
+            )
+            dbAuthorization = handle_discovered_auth(
+                authorization_url, authorization_response
+            )
+            _response_domain = authorization_response["identifier"]["value"]
+            if dbAuthorization.domain.domain_name != _response_domain:
+                raise ValueError("mismatch on a domain name")
+
+            # once we inspect the url, we have the domain
+            # the domain is in our `authorization_response`
+            # but also on our `dbAuthorization` object
+            log.info(
+                "acme_v2 Handling Authorization for {0}...".format(
+                    dbAuthorization.domain.domain_name
+                )
+            )
+
+            dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
+                "v2", dbAcmeOrder
+            )  # log this to the db
+
+            _authorization_status = authorization_response["status"]
+            if _authorization_status == "pending":
+                # we need to run the authorization
+                _todo_complete_challenges = True
+            elif _authorization_status == "valid":
+                # noting to do, one or more challenges is valid
+                _todo_complete_challenges = False
+            elif _authorization_status == "invalid":
+                # this failed once, we need to auth again?
+                _todo_complete_challenges = True
+            elif _authorization_status == "deactivated":
+                # this has been removed from the order?
+                _todo_complete_challenges = False
+            elif _authorization_status == "expired":
+                # this passed once, BUT we need to auth again
+                _todo_complete_challenges = True
+            elif _authorization_status == "expired":
+                # this failed once, we need to auth again?
+                _todo_complete_challenges = True
+            else:
+                raise ValueError(
+                    "unexpected authorization status: `%s`" % _authorization_status
+                )
+
+            if not _todo_complete_challenges:
+                # short-circuit out of completing the challenge
+                continue
+
+            # we could parse the challenge
+            # like such: acme_challenge = get_authorization_challenge(authorization_response, http01=True)
+            # however, the call to `process_discovered_auth` should have updated the challenge object already
+
+            _challenge_status = dbAuthorization.acme_challenge_http01.status
 
             if _challenge_status == "pending":
-                _todo_complete_challenge = True
+                _todo_complete_challenge_http01 = True
             elif _challenge_status == "processing":
                 # we may need to trigger again?
-                _todo_complete_challenge = True
+                _todo_complete_challenge_http01 = True
             elif _challenge_status == "valid":
                 # already completed
-                _todo_complete_challenge = False
+                _todo_complete_challenge_http01 = False
             elif _challenge_status == "invalid":
                 # we may need to trigger again?
-                _todo_complete_challenge = True
+                _todo_complete_challenge_http01 = True
             else:
                 raise ValueError(
                     "unexpected challenge status: `%s`" % _challenge_status
                 )
 
-            if _todo_complete_challenge:
-                token = re.sub(r"[^A-Za-z0-9_\-]", "_", challenge["token"])
-                keyauthorization = "{0}.{1}".format(token, self.accountkey_thumbprint)
-
-                # update the challenge
-                sslAcmeChallenge.set__challenge("http-01", keyauthorization)
+            if _todo_complete_challenge_http01:
+                keyauthorization = create_challenge_keyauthorization(
+                    dbAuthorization.acme_challenge_http01.token,
+                    self.accountkey_thumbprint,
+                )
+                if (
+                    dbAuthorization.acme_challenge_http01.keyauthorization
+                    != keyauthorization
+                ):
+                    raise ValueError("This should never happen!")
 
                 # update the db; this should be integrated with the above
                 wellknown_path = handle_keyauth_challenge(
-                    domain, token, keyauthorization
+                    dbAuthorization.domain.domain_name,
+                    dbAuthorization.acme_challenge_http01.token,
+                    dbAuthorization.acme_challenge_http01.keyauthorization,
                 )
                 wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
-                    domain, token
+                    dbAuthorization.domain.domain_name,
+                    dbAuthorization.acme_challenge_http01.token,
                 )
+
+                print(wellknown_path)
+                print(wellknown_url)
+                pdb.set_trace()
 
                 # check that the file is in place
                 try:
@@ -674,9 +724,13 @@ class AuthenticatedUser(object):
                             resp_data = resp.read().decode("utf8").strip()
                             assert resp_data == keyauthorization
                         except (IOError, AssertionError):
-                            handle_keyauth_cleanup(domain, token, keyauthorization)
+                            handle_keyauth_cleanup(
+                                dbAuthorization.domain.domain_name,
+                                token,
+                                keyauthorization,
+                            )
                             self.acmeLogger.log_challenge_error(
-                                sslAcmeChallenge, "pretest-1"
+                                dbAcmeChallenge, "pretest-1"
                             )
                             raise errors.DomainVerificationError(
                                 "Wrote keyauth challenge, but couldn't download {0}".format(
@@ -685,7 +739,7 @@ class AuthenticatedUser(object):
                             )
                         except ssl.CertificateError as exc:
                             self.acmeLogger.log_challenge_error(
-                                sslAcmeChallenge, "pretest-2"
+                                dbAcmeChallenge, "pretest-2"
                             )
                             if str(exc).startswith("hostname") and (
                                 "doesn't match" in str(exc)
@@ -704,7 +758,7 @@ class AuthenticatedUser(object):
                     )
 
                 # note the challenge
-                self.acmeLogger.log_challenge_trigger(sslAcmeChallenge)
+                self.acmeLogger.log_challenge_trigger(dbAcmeChallenge)
 
                 # if we had a 'valid' challenge, the payload would be `None`
                 # to trigger a GET-as-POST functionality
@@ -713,25 +767,35 @@ class AuthenticatedUser(object):
                 )
 
                 # todo - would an accepted challenge require this?
-                log.info("checking domain {0}".format(domain))
+                log.info(
+                    "checking domain {0}".format(dbAuthorization.domain.domain_name)
+                )
                 authorization_response = self._poll_until_not(
                     authorization_url,
                     ["pending"],
-                    "checking challenge status for {0}".format(domain),
+                    "checking challenge status for {0}".format(
+                        dbAuthorization.domain.domain_name
+                    ),
                 )
                 if authorization_response["status"] == "valid":
-                    log.info("acme_v2 {0} verified!".format(domain))
-                    handle_keyauth_cleanup(domain, token, keyauthorization)
+                    log.info(
+                        "acme_v2 {0} verified!".format(
+                            dbAuthorization.domain.domain_name
+                        )
+                    )
+                    handle_keyauth_cleanup(
+                        dbAuthorization.domain.domain_name, token, keyauthorization
+                    )
                 elif authorization_response["status"] != "valid":
-                    self.acmeLogger.log_challenge_error(sslAcmeChallenge, "fail-2")
+                    self.acmeLogger.log_challenge_error(dbAcmeChallenge, "fail-2")
                     raise errors.DomainVerificationError(
                         "{0} challenge did not pass: {1}".format(
-                            domain, authorization_response
+                            dbAuthorization.domain.domain_name, authorization_response
                         )
                     )
 
                 # log this
-                self.acmeLogger.log_challenge_pass(sslAcmeChallenge)
+                self.acmeLogger.log_challenge_pass(dbAcmeChallenge)
 
         # no more domains!
         return True

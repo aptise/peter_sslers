@@ -1,13 +1,13 @@
 <%def name="table_tr_event_created(dbObject)">
-    % if dbObject.ssl_operations_event_id__created:
+    % if dbObject.operations_event_id__created:
         <tr>
             <th>Event Created At</th>
             <td>
-                <a  href="${admin_prefix}/operations/log/item/${dbObject.ssl_operations_event_id__created}"
+                <a  href="${admin_prefix}/operations/log/item/${dbObject.operations_event_id__created}"
                     class="label label-info"
                 >
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${dbObject.ssl_operations_event_id__created}
+                    ${dbObject.operations_event_id__created}
                 </a>
                 <span class="label label-default">${dbObject.operations_event__created.event_type_text}</span>
                 <timestamp>${dbObject.operations_event__created.timestamp_event or ''}</timestamp>
@@ -241,7 +241,7 @@
                     <th>certificate</th>
                 % endif
                 <th>timestamp_entered</th>
-                <th>ssl_operations_event_id__created</th>
+                <th>operations_event_id__created</th>
                 <th>timestamp_processed</th>
                 <th>timestamp_process_attempt</th>
                 <th>result</th>
@@ -261,15 +261,15 @@
                 </td>
                 % if show_certificate:
                     <td>
-                        % if queue_renewal.ssl_server_certificate_id:
-                            <a href="${admin_prefix}/certificate/${queue_renewal.ssl_server_certificate_id}" class="label label-info">
+                        % if queue_renewal.server_certificate_id:
+                            <a href="${admin_prefix}/certificate/${queue_renewal.server_certificate_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${queue_renewal.ssl_server_certificate_id}</a>
+                                cert-${queue_renewal.server_certificate_id}</a>
                         % endif
                     </td>
                 % endif
                 <td><timestamp>${queue_renewal.timestamp_entered or ''}</timestamp></td>
-                <td><span class="label label-info">${queue_renewal.ssl_operations_event_id__created}</span></td>
+                <td><span class="label label-info">${queue_renewal.operations_event_id__created}</span></td>
                 <td><timestamp>${queue_renewal.timestamp_processed or ''}</timestamp></td>
                 <td><timestamp>${queue_renewal.timestamp_process_attempt or ''}</timestamp></td>
                 <td>
@@ -288,7 +288,7 @@
 </%def>
 
 
-<%def name="table_SslCertificateRequest2Domain(lcr2mds, request_inactive=None, current_domain_id=None, perspective=None)">
+<%def name="table_CertificateRequest2Domain(lcr2mds, request_inactive=None, current_domain_id=None, perspective=None)">
     % if perspective == 'certificate_request':
         <table class="table table-striped table-condensed">
             <thead>
@@ -315,7 +315,7 @@
                                     <span class="label label-success">configured</span>
                                 % else:
                                     <a  class="label label-success"
-                                        href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${to_d.domain.id}"
+                                        href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage/domain/${to_d.domain.id}"
                                         >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         configured</a>
@@ -325,7 +325,7 @@
                                     <span class="label label-warning">not configured</span>
                                 % else:
                                     <a  class="label label-warning"
-                                        href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${to_d.domain.id}"
+                                        href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage/domain/${to_d.domain.id}"
                                         >
                                         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                         configure!</a>
@@ -348,10 +348,10 @@
                 </tr>
             </thead>
             <tbody>
-            % for to_d in SslCertificateRequest.to_domains:
+            % for to_d in CertificateRequest.unique_fqdn_set.to_domains:
                 <tr>
                     <td>
-                        % if current_domain_id == to_d.ssl_domain_id:
+                        % if current_domain_id == to_d.domain_id:
                             <span class="label label-success">current</span>
                         % endif
                     </td>
@@ -362,7 +362,7 @@
                         </span>
                     </td>
                     <td>
-                        % if current_domain_id == to_d.ssl_domain_id:
+                        % if current_domain_id == to_d.domain_id:
                             % if to_d.is_configured:
                                 <span
                                     class="label label-success">configured</span>
@@ -373,12 +373,12 @@
                         % else:
                             % if to_d.is_configured:
                                 <a
-                                    href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${to_d.ssl_domain_id}"
+                                    href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage/domain/${to_d.domain_id}"
                                     class="label label-success">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     configured</a>
                             % else:
-                                <a href="${admin_prefix}/certificate-request/${SslCertificateRequest.id}/acme-flow/manage/domain/${to_d.ssl_domain_id}"
+                                <a href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage/domain/${to_d.domain_id}"
                                     class="label label-warning">
                                     % if request_inactive:
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -415,12 +415,12 @@
         </table>
 
     % else:
-        <!-- table_SslCertificateRequest2Domain missing perspective -->
+        <!-- table_CertificateRequest2Domain missing perspective -->
     % endif
 </%def>
 
 
-<%def name="table_SslUniqueFQDNSets(SslUniqueFQDNSets)">
+<%def name="table_UniqueFQDNSets(UniqueFQDNSets)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -430,7 +430,7 @@
             </tr>
         </thead>
         <tbody>
-        % for i in SslUniqueFQDNSets:
+        % for i in UniqueFQDNSets:
             <tr>
                 <td>
                     <a  class="label label-info"
@@ -480,8 +480,8 @@
                         </a>
                     </td>
                     <td>
-                        % if event.ssl_operations_event_id__child_of:
-                            <span class="label label-default">${event.ssl_operations_event_id__child_of}</span>
+                        % if event.operations_event_id__child_of:
+                            <span class="label label-default">${event.operations_event_id__child_of}</span>
                         % endif
                     </td>
                     <td>
@@ -503,7 +503,7 @@
 </%def>
 
 
-<%def name="table_SslOperationsObjectEvents(SslOperationsObjectEvents, table_context=None)">
+<%def name="table_OperationsObjectEvents(OperationsObjectEvents, table_context=None)">
     <%
         show_event = True
         if table_context == "log_list":
@@ -523,12 +523,12 @@
             </tr>
         </thead>
         <tbody>
-            % for object_event in SslOperationsObjectEvents:
+            % for object_event in OperationsObjectEvents:
                 <tr>
                     % if show_event:
                         <td>
-                            <a class="label label-info" href="${admin_prefix}/operations/log/item/${object_event.ssl_operations_event_id}">
-                                ${object_event.ssl_operations_event_id}
+                            <a class="label label-info" href="${admin_prefix}/operations/log/item/${object_event.operations_event_id}">
+                                ${object_event.operations_event_id}
                             </a>
                         </td>
                         <td>
@@ -563,52 +563,52 @@
 
 
 <%def name="object_event__object(object_event)">
-                        % if object_event.ssl_ca_certificate_id:
-                            <a class="label label-info" href="${admin_prefix}/ca-certificate/${object_event.ssl_ca_certificate_id}">
+                        % if object_event.ca_certificate_id:
+                            <a class="label label-info" href="${admin_prefix}/ca-certificate/${object_event.ca_certificate_id}">
                                 CaCert
-                                ${object_event.ssl_ca_certificate_id}
+                                ${object_event.ca_certificate_id}
                             </a>
-                        % elif object_event.ssl_certificate_request_id:
-                            <a class="label label-info" href="${admin_prefix}/certificate-request/${object_event.ssl_certificate_request_id}">
+                        % elif object_event.certificate_request_id:
+                            <a class="label label-info" href="${admin_prefix}/certificate-request/${object_event.certificate_request_id}">
                                 CSR
-                                ${object_event.ssl_certificate_request_id}
+                                ${object_event.certificate_request_id}
                             </a>
-                        % elif object_event.ssl_domain_id:
-                            <a class="label label-info" href="${admin_prefix}/domain/${object_event.ssl_domain_id}">
+                        % elif object_event.domain_id:
+                            <a class="label label-info" href="${admin_prefix}/domain/${object_event.domain_id}">
                                 Domain
-                                ${object_event.ssl_domain_id}
+                                ${object_event.domain_id}
                             </a>
                             <code>${object_event.domain.domain_name}</code>
-                        % elif object_event.ssl_acme_account_key_id:
-                            <a class="label label-info" href="${admin_prefix}/account-key/${object_event.ssl_acme_account_key_id}">
+                        % elif object_event.acme_account_key_id:
+                            <a class="label label-info" href="${admin_prefix}/account-key/${object_event.acme_account_key_id}">
                                 AccountKey
-                                ${object_event.ssl_acme_account_key_id}
+                                ${object_event.acme_account_key_id}
                             </a>
-                        % elif object_event.ssl_private_key_id:
-                            <a class="label label-info" href="${admin_prefix}/private-key/${object_event.ssl_private_key_id}">
+                        % elif object_event.private_key_id:
+                            <a class="label label-info" href="${admin_prefix}/private-key/${object_event.private_key_id}">
                                 Private Key
-                                ${object_event.ssl_private_key_id}
+                                ${object_event.private_key_id}
                             </a>
-                        % elif object_event.ssl_queue_domain_id:
-                            <a class="label label-info" href="${admin_prefix}/queue-domain/${object_event.ssl_queue_domain_id}">
+                        % elif object_event.queue_domain_id:
+                            <a class="label label-info" href="${admin_prefix}/queue-domain/${object_event.queue_domain_id}">
                                 q-Domain
-                                ${object_event.ssl_queue_domain_id}
+                                ${object_event.queue_domain_id}
                             </a>
                             <code>${object_event.queue_domain.domain_name}</code>
-                        % elif object_event.ssl_queue_renewal_id:
-                            <a class="label label-info" href="${admin_prefix}/queue-renewal/${object_event.ssl_queue_renewal_id}">
+                        % elif object_event.queue_renewal_id:
+                            <a class="label label-info" href="${admin_prefix}/queue-renewal/${object_event.queue_renewal_id}">
                                 q-Renewal
-                                ${object_event.ssl_queue_renewal_id}
+                                ${object_event.queue_renewal_id}
                             </a>
-                        % elif object_event.ssl_server_certificate_id:
-                            <a class="label label-info" href="${admin_prefix}/certificate/${object_event.ssl_server_certificate_id}">
+                        % elif object_event.server_certificate_id:
+                            <a class="label label-info" href="${admin_prefix}/certificate/${object_event.server_certificate_id}">
                                 Cert
-                                ${object_event.ssl_server_certificate_id}
+                                ${object_event.server_certificate_id}
                             </a>
-                        % elif object_event.ssl_unique_fqdn_set_id:
-                            <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${object_event.ssl_unique_fqdn_set_id}">
+                        % elif object_event.unique_fqdn_set_id:
+                            <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${object_event.unique_fqdn_set_id}">
                                 uFQDN
-                                ${object_event.ssl_unique_fqdn_set_id}
+                                ${object_event.unique_fqdn_set_id}
                             </a>
                         % endif
 </%def>
@@ -640,32 +640,32 @@
 </%def>
 
 
-<%def name="formgroup__account_key_selector_advanced(dbAccountKeyReuse=None)">
-    % if dbAccountKeyReuse:
+<%def name="formgroup__account_key_selector_advanced(dbAcmeAccountKeyReuse=None)">
+    % if dbAcmeAccountKeyReuse:
         <div class="radio">
             <label>
                 <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" checked="checked"/>
-                <input type="hidden" name="account_key_reuse" value="${dbAccountKeyReuse.key_pem_md5}"/>
+                <input type="hidden" name="account_key_reuse" value="${dbAcmeAccountKeyReuse.key_pem_md5}"/>
                 Select to renew with same Account Key<br/>
-                <b>pem md5:</b> <code>${dbAccountKeyReuse.key_pem_md5}</code><br/>
-                <b>pem line 1:</b> <code>${dbAccountKeyReuse.key_pem_sample}</code>
+                <b>pem md5:</b> <code>${dbAcmeAccountKeyReuse.key_pem_md5}</code><br/>
+                <b>pem line 1:</b> <code>${dbAcmeAccountKeyReuse.key_pem_sample}</code>
             </label>
             <a  class="label label-info"
-                href="${admin_prefix}/account-key/${dbAccountKeyReuse.id}"
+                href="${admin_prefix}/account-key/${dbAcmeAccountKeyReuse.id}"
             >
                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                account-${dbAccountKeyReuse.id}
+                account-${dbAcmeAccountKeyReuse.id}
             </a>
         </div>
     % endif
-    % if dbAccountKeyDefault:
+    % if dbAcmeAccountKeyDefault:
         <div class="radio">
             <label>
                 <input type="radio" name="account_key_option" id="account_key_option-account_key_default" value="account_key_default"/>
-                <input type="hidden" name="account_key_default" value="${dbAccountKeyDefault.key_pem_md5}"/>
+                <input type="hidden" name="account_key_default" value="${dbAcmeAccountKeyDefault.key_pem_md5}"/>
                 Select to use the default Account Key<br/>
-                <b>pem md5:</b> <code>${dbAccountKeyDefault.key_pem_md5}</code><br/>
-                <b>pem line 1:</b> <code>${dbAccountKeyDefault.key_pem_sample}</code>
+                <b>pem md5:</b> <code>${dbAcmeAccountKeyDefault.key_pem_md5}</code><br/>
+                <b>pem line 1:</b> <code>${dbAcmeAccountKeyDefault.key_pem_sample}</code>
             </label>
         </div>
     % endif

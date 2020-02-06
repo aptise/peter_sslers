@@ -64,11 +64,11 @@ class ViewAdmin_List(Handler):
                     "%s/domains/expiring/{0}"
                     % self.request.registry.settings["admin_prefix"]
                 )
-            items_count = lib_db.get.get__SslDomain__count(
+            items_count = lib_db.get.get__Domain__count(
                 self.request.api_context, expiring_days=expiring_days
             )
             (pager, offset) = self._paginate(items_count, url_template=url_template)
-            items_paged = lib_db.get.get__SslDomain__paginated(
+            items_paged = lib_db.get.get__Domain__paginated(
                 self.request.api_context,
                 expiring_days=expiring_days,
                 limit=items_per_page,
@@ -85,9 +85,9 @@ class ViewAdmin_List(Handler):
                 url_template = (
                     "%s/domains/{0}" % self.request.registry.settings["admin_prefix"]
                 )
-            items_count = lib_db.get.get__SslDomain__count(self.request.api_context)
+            items_count = lib_db.get.get__Domain__count(self.request.api_context)
             (pager, offset) = self._paginate(items_count, url_template=url_template)
-            items_paged = lib_db.get.get__SslDomain__paginated(
+            items_paged = lib_db.get.get__Domain__paginated(
                 self.request.api_context,
                 eagerload_web=True,
                 limit=items_per_page,
@@ -96,7 +96,7 @@ class ViewAdmin_List(Handler):
         if wants_json:
             _domains = {d.id: d.as_json for d in items_paged}
             return {
-                "SslDomains": _domains,
+                "Domains": _domains,
                 "pagination": {
                     "total_items": items_count,
                     "page": pager.page_num,
@@ -105,8 +105,8 @@ class ViewAdmin_List(Handler):
             }
         return {
             "project": "peter_sslers",
-            "SslDomains_count": items_count,
-            "SslDomains": items_paged,
+            "Domains_count": items_count,
+            "Domains": items_paged,
             "sidenav_option": sidenav_option,
             "expiring_days": expiring_days,
             "pager": pager,
@@ -154,7 +154,7 @@ class ViewAdmin_Search(Handler):
                 raise formhandling.FormInvalid()
 
             domain_name = formStash.results["domain"]
-            dbDomain = lib_db.get.get__SslDomain__by_name(
+            dbDomain = lib_db.get.get__Domain__by_name(
                 self.request.api_context,
                 domain_name,
                 preload=None,
@@ -172,7 +172,7 @@ class ViewAdmin_Search(Handler):
             )
 
             search_results = {
-                "SslDomain": dbDomain,
+                "Domain": dbDomain,
                 "SslQueueDomainActive": dbQueueDomainActive,
                 "SslQueueDomainsInactive": dbQueueDomainsInactive,
                 "query": domain_name,
@@ -183,7 +183,7 @@ class ViewAdmin_Search(Handler):
                     "result": "success",
                     "query": domain_name,
                     "search_results": {
-                        "SslDomain": dbDomain.as_json if dbDomain else None,
+                        "Domain": dbDomain.as_json if dbDomain else None,
                         "SslQueueDomainActive": dbQueueDomainActive.as_json
                         if dbQueueDomainActive
                         else None,
@@ -204,14 +204,14 @@ class ViewAdmin_Focus(Handler):
     def _focus(self, eagerload_web=False):
         domain_identifier = self.request.matchdict["domain_identifier"].strip()
         if domain_identifier.isdigit():
-            dbDomain = lib_db.get.get__SslDomain__by_id(
+            dbDomain = lib_db.get.get__Domain__by_id(
                 self.request.api_context,
                 domain_identifier,
                 preload=True,
                 eagerload_web=eagerload_web,
             )
         else:
-            dbDomain = lib_db.get.get__SslDomain__by_name(
+            dbDomain = lib_db.get.get__Domain__by_name(
                 self.request.api_context,
                 domain_identifier,
                 preload=True,
@@ -234,8 +234,8 @@ class ViewAdmin_Focus(Handler):
         )
         dbDomain = self._focus(eagerload_web=True)
         if wants_json:
-            return {"SslDomain": dbDomain.as_json}
-        return {"project": "peter_sslers", "SslDomain": dbDomain}
+            return {"Domain": dbDomain.as_json}
+        return {"project": "peter_sslers", "Domain": dbDomain}
 
     @view_config(route_name="admin:domain:focus:nginx_cache_expire", renderer=None)
     @view_config(
@@ -270,7 +270,7 @@ class ViewAdmin_Focus(Handler):
             "server_certificate__latest_single": None,
             "server_certificate__latest_multi": None,
         }
-        if dbDomain.ssl_server_certificate_id__latest_single:
+        if dbDomain.server_certificate_id__latest_single:
             if self.request.params.get("idonly", None):
                 rval[
                     "server_certificate__latest_single"
@@ -279,7 +279,7 @@ class ViewAdmin_Focus(Handler):
                 rval[
                     "server_certificate__latest_single"
                 ] = dbDomain.server_certificate__latest_single.config_payload
-        if dbDomain.ssl_server_certificate_id__latest_multi:
+        if dbDomain.server_certificate_id__latest_multi:
             if self.request.params.get("idonly", None):
                 rval[
                     "server_certificate__latest_multi"
@@ -302,20 +302,20 @@ class ViewAdmin_Focus(Handler):
     )
     def focus__certificates(self):
         dbDomain = self._focus()
-        items_count = lib_db.get.get__SslServerCertificate__by_SslDomainId__count(
+        items_count = lib_db.get.get__ServerCertificate__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
         (pager, offset) = self._paginate(
             items_count, url_template="%s/certificates/{0}" % self._focus_url
         )
-        items_paged = lib_db.get.get__SslServerCertificate__by_SslDomainId__paginated(
+        items_paged = lib_db.get.get__ServerCertificate__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
         return {
             "project": "peter_sslers",
-            "SslDomain": dbDomain,
-            "SslServerCertificates_count": items_count,
-            "SslServerCertificates": items_paged,
+            "Domain": dbDomain,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
             "pager": pager,
         }
 
@@ -329,20 +329,20 @@ class ViewAdmin_Focus(Handler):
     )
     def focus__certificate_requests(self):
         dbDomain = self._focus()
-        items_count = lib_db.get.get__SslCertificateRequest__by_SslDomainId__count(
+        items_count = lib_db.get.get__CertificateRequest__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
         (pager, offset) = self._paginate(
             items_count, url_template="%s/certificate-requests/{0}" % self._focus_url
         )
-        items_paged = lib_db.get.get__SslCertificateRequest__by_SslDomainId__paginated(
+        items_paged = lib_db.get.get__CertificateRequest__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
         return {
             "project": "peter_sslers",
-            "SslDomain": dbDomain,
-            "SslCertificateRequests_count": items_count,
-            "SslCertificateRequests": items_paged,
+            "Domain": dbDomain,
+            "CertificateRequests_count": items_count,
+            "CertificateRequests": items_paged,
             "pager": pager,
         }
 
@@ -355,18 +355,16 @@ class ViewAdmin_Focus(Handler):
         weekly_certs = (
             self.request.api_context.dbSession.query(
                 model_utils.year_week(
-                    model_objects.SslServerCertificate.timestamp_signed
+                    model_objects.ServerCertificate.timestamp_signed
                 ).label("week_num"),
-                sqlalchemy.func.count(model_objects.SslServerCertificate.id),
+                sqlalchemy.func.count(model_objects.ServerCertificate.id),
             )
             .join(
-                model_objects.SslUniqueFQDNSet2SslDomain,
-                model_objects.SslServerCertificate.ssl_unique_fqdn_set_id
-                == model_objects.SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id,
+                model_objects.UniqueFQDNSet2Domain,
+                model_objects.ServerCertificate.unique_fqdn_set_id
+                == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
             )
-            .filter(
-                model_objects.SslUniqueFQDNSet2SslDomain.ssl_domain_id == dbDomain.id
-            )
+            .filter(model_objects.UniqueFQDNSet2Domain.domain_id == dbDomain.id)
             .group_by("week_num")
             .order_by(sqlalchemy.asc("week_num"))
             .all()
@@ -388,20 +386,20 @@ class ViewAdmin_Focus(Handler):
     )
     def focus__unique_fqdns(self):
         dbDomain = self._focus()
-        items_count = lib_db.get.get__SslUniqueFQDNSet__by_SslDomainId__count(
+        items_count = lib_db.get.get__UniqueFQDNSet__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
         (pager, offset) = self._paginate(
             items_count, url_template="%s/unique-fqdn-sets/{0}" % self._focus_url
         )
-        items_paged = lib_db.get.get__SslUniqueFQDNSet__by_SslDomainId__paginated(
+        items_paged = lib_db.get.get__UniqueFQDNSet__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
         return {
             "project": "peter_sslers",
-            "SslDomain": dbDomain,
-            "SslUniqueFQDNSets_count": items_count,
-            "SslUniqueFQDNSets": items_paged,
+            "Domain": dbDomain,
+            "UniqueFQDNSets_count": items_count,
+            "UniqueFQDNSets": items_paged,
             "pager": pager,
         }
 
@@ -492,7 +490,7 @@ class ViewAdmin_Focus(Handler):
             )
 
             if wants_json:
-                return {"result": "success", "SslDomain": dbDomain.as_json}
+                return {"result": "success", "Domain": dbDomain.as_json}
 
             url_success = "%s?operation=mark&action=%s&result=success" % (
                 self._focus_url,

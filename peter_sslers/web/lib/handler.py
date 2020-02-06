@@ -70,13 +70,13 @@ class Handler(object):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _load_AccountKeyDefault(self):
-        self.dbAccountKeyDefault = db.get.get__SslAcmeAccountKey__default(
+        self.dbAcmeAccountKeyDefault = db.get.get__AcmeAccountKey__default(
             self.request.api_context, active_only=True
         )
-        return self.dbAccountKeyDefault
+        return self.dbAcmeAccountKeyDefault
 
     def _load_PrivateKeyDefault(self):
-        self.dbPrivateKeyDefault = db.get.get__SslPrivateKey__default(
+        self.dbPrivateKeyDefault = db.get.get__PrivateKey__default(
             self.request.api_context, active_only=True
         )
         return self.dbPrivateKeyDefault

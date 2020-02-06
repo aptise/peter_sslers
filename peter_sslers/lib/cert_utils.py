@@ -39,6 +39,7 @@ openssl_path_conf = "/etc/ssl/openssl.cnf"
 ACME_VERSION = "v2"
 openssl_version = None
 _RE_openssl_version = re.compile("OpenSSL ((\d+\.\d+\.\d+)\w*) ", re.I)
+_RE_rn = re.compile("\r\n")
 _openssl_behavior = None  # 'a' or 'b'
 
 
@@ -321,8 +322,11 @@ def parse_csr_domains(csr_path=None, submitted_domain_names=None, is_der=None):
 
 
 def cleanup_pem_text(pem_text):
-    """ensures a trailing newline
     """
+    standardizes newlines;
+    ensures a trailing newline
+    """
+    pem_text = _RE_rn.sub("\n", pem_text)
     pem_text = pem_text.strip() + "\n"
     return pem_text
 

@@ -234,7 +234,7 @@ class ViewFocus(Handler):
                 "queue_renewal__mark"
             )
             event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["ssl_queue_renewal.id"] = dbRenewalQueueItem.id
+            event_payload_dict["queue_renewal.id"] = dbRenewalQueueItem.id
             event_payload_dict["action"] = formStash.results["action"]
 
             event_status = False
@@ -260,7 +260,7 @@ class ViewFocus(Handler):
             lib_db.logger._log_object_event(
                 self.request.api_context,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
                     event_status
                 ),
                 dbQueueRenewal=dbRenewalQueueItem,

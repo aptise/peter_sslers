@@ -42,7 +42,7 @@ class ViewAdmin(Handler):
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
-        items_count = lib_db.get.get__SslUniqueFQDNSet__count(self.request.api_context)
+        items_count = lib_db.get.get__UniqueFQDNSet__count(self.request.api_context)
         if wants_json:
             (pager, offset) = self._paginate(
                 items_count,
@@ -55,7 +55,7 @@ class ViewAdmin(Handler):
                 url_template="%s/unique-fqdn-sets/{0}"
                 % self.request.registry.settings["admin_prefix"],
             )
-        items_paged = lib_db.get.get__SslUniqueFQDNSet__paginated(
+        items_paged = lib_db.get.get__UniqueFQDNSet__paginated(
             self.request.api_context,
             limit=items_per_page,
             offset=offset,
@@ -64,7 +64,7 @@ class ViewAdmin(Handler):
         if wants_json:
             _sets = {s.id: s.as_json for s in items_paged}
             return {
-                "SslUniqueFQDNSets": _sets,
+                "UniqueFQDNSets": _sets,
                 "pagination": {
                     "total_items": items_count,
                     "page": pager.page_num,
@@ -73,15 +73,15 @@ class ViewAdmin(Handler):
             }
         return {
             "project": "peter_sslers",
-            "SslUniqueFQDNSets_count": items_count,
-            "SslUniqueFQDNSets": items_paged,
+            "UniqueFQDNSets_count": items_count,
+            "UniqueFQDNSets": items_paged,
             "pager": pager,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _focus(self):
-        dbItem = lib_db.get.get__SslUniqueFQDNSet__by_id(
+        dbItem = lib_db.get.get__UniqueFQDNSet__by_id(
             self.request.api_context, self.request.matchdict["id"]
         )
         if not dbItem:
@@ -103,9 +103,9 @@ class ViewAdmin(Handler):
                 self.request.registry.settings["admin_prefix"],
                 dbFqdnSet.id,
             )
-            return {"SslUniqueFQDNSet": dbFqdnSet.as_json}
+            return {"UniqueFQDNSet": dbFqdnSet.as_json}
 
-        return {"project": "peter_sslers", "SslUniqueFQDNSet": dbFqdnSet}
+        return {"project": "peter_sslers", "UniqueFQDNSet": dbFqdnSet}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -118,13 +118,12 @@ class ViewAdmin(Handler):
         weekly_certs = (
             self.request.api_context.dbSession.query(
                 model_utils.year_week(
-                    model_objects.SslServerCertificate.timestamp_signed
+                    model_objects.ServerCertificate.timestamp_signed
                 ).label("week_num"),
-                sqlalchemy.func.count(model_objects.SslServerCertificate.id),
+                sqlalchemy.func.count(model_objects.ServerCertificate.id),
             )
             .filter(
-                model_objects.SslServerCertificate.ssl_unique_fqdn_set_id
-                == dbUniqueFQDNSet.id
+                model_objects.ServerCertificate.unique_fqdn_set_id == dbUniqueFQDNSet.id
             )
             .group_by("week_num")
             .order_by(sqlalchemy.asc("week_num"))
@@ -147,7 +146,7 @@ class ViewAdmin(Handler):
     )
     def focus__certificates(self):
         dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__SslServerCertificate__by_SslUniqueFQDNSetId__count(
+        items_count = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
         (pager, offset) = self._paginate(
@@ -155,7 +154,7 @@ class ViewAdmin(Handler):
             url_template="%s/unique-fqdn-set/%s/certificates/{0}"
             % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
         )
-        items_paged = lib_db.get.get__SslServerCertificate__by_SslUniqueFQDNSetId__paginated(
+        items_paged = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
             limit=items_per_page,
@@ -163,9 +162,9 @@ class ViewAdmin(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslUniqueFQDNSet": dbUniqueFQDNSet,
-            "SslServerCertificates_count": items_count,
-            "SslServerCertificates": items_paged,
+            "UniqueFQDNSet": dbUniqueFQDNSet,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
             "pager": pager,
         }
 
@@ -179,7 +178,7 @@ class ViewAdmin(Handler):
     )
     def focus__certificate_requests(self):
         dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__SslCertificateRequest__by_SslUniqueFQDNSetId__count(
+        items_count = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
         (pager, offset) = self._paginate(
@@ -187,7 +186,7 @@ class ViewAdmin(Handler):
             url_template="%s/unique-fqdn-set/%s/certificate-requests/{0}"
             % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
         )
-        items_paged = lib_db.get.get__SslCertificateRequest__by_SslUniqueFQDNSetId__paginated(
+        items_paged = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
             limit=items_per_page,
@@ -195,9 +194,9 @@ class ViewAdmin(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslUniqueFQDNSet": dbUniqueFQDNSet,
-            "SslCertificateRequests_count": items_count,
-            "SslCertificateRequests": items_paged,
+            "UniqueFQDNSet": dbUniqueFQDNSet,
+            "CertificateRequests_count": items_count,
+            "CertificateRequests": items_paged,
             "pager": pager,
         }
 
@@ -215,7 +214,7 @@ class ViewAdmin(Handler):
         )
         try:
             # first check to see if this is already queued
-            dbQueued = lib_db.get.get__SslQueueRenewal__by_SslUniqueFQDNSetId__active(
+            dbQueued = lib_db.get.get__SslQueueRenewal__by_UniqueFQDNSetId__active(
                 self.request.api_context, dbUniqueFQDNSet.id
             )
             if dbQueued:
@@ -234,9 +233,7 @@ class ViewAdmin(Handler):
             dbQueue = lib_db.create._create__SslQueueRenewal_fqdns(
                 self.request.api_context, dbUniqueFQDNSet.id
             )
-            event_payload_dict["ssl_unique_fqdn_set-queued.ids"] = str(
-                dbUniqueFQDNSet.id
-            )
+            event_payload_dict["unique_fqdn_set-queued.ids"] = str(dbUniqueFQDNSet.id)
             event_payload_dict["sql_queue_renewals.ids"] = str(dbQueue.id)
             dbOperationsEvent.set_event_payload(event_payload_dict)
             self.request.api_context.dbSession.flush(objects=[dbOperationsEvent])

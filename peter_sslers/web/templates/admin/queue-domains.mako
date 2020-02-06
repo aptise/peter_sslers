@@ -81,10 +81,10 @@
                                 % endif
                             </td>
                             <td>
-                                % if q.ssl_domain_id:
-                                    <a class="label label-info" href="${admin_prefix}/domain/${q.ssl_domain_id}">
+                                % if q.domain_id:
+                                    <a class="label label-info" href="${admin_prefix}/domain/${q.domain_id}">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        domain-${q.ssl_domain_id}
+                                        domain-${q.domain_id}
                                     </a>
                                 % endif
                             </td>

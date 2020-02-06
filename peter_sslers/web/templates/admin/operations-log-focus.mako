@@ -36,12 +36,12 @@
                 <tr>
                     <th>child of</th>
                     <td>
-                        % if SslOperationsEvent.ssl_operations_event_id__child_of:
-                            <a  href="${admin_prefix}/operations/log/item/${SslOperationsEvent.ssl_operations_event_id__child_of}"
+                        % if SslOperationsEvent.operations_event_id__child_of:
+                            <a  href="${admin_prefix}/operations/log/item/${SslOperationsEvent.operations_event_id__child_of}"
                                 class="label label-info"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${SslOperationsEvent.ssl_operations_event_id__child_of}
+                                ${SslOperationsEvent.operations_event_id__child_of}
                             </a>
                         % endif
                     </td>
@@ -56,7 +56,7 @@
             ${admin_partials.table_SslOperationsEvents(SslOperationsEvent.children, show_event='event.id')}
 
             <h4>Operation Object Events?</h4>
-            ${admin_partials.table_SslOperationsObjectEvents(SslOperationsEvent.object_events, table_context='log-focus')}
+            ${admin_partials.table_OperationsObjectEvents(SslOperationsEvent.object_events, table_context='log-focus')}
         </div>
         <div class="col-sm-3">
             ${admin_partials.operations_options(enable_redis=enable_redis,

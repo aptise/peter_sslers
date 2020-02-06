@@ -36,7 +36,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if SslCaCertificates:
+            % if CaCertificates:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -48,7 +48,7 @@
                             <th>cert_pem_md5</th>
                         </tr>
                     </thead>
-                    % for cert in SslCaCertificates:
+                    % for cert in CaCertificates:
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/ca-certificate/${cert.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

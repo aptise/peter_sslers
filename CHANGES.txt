@@ -9,6 +9,8 @@ unreleased (2020-01-23)
 	- subprocess.Popen replaced with psutil.Popen, which provides a contextmanger on python2
 - renamed SslAcmeChallengeLog - > SslAcmeChallenge
 - several changes to the database design; please start with a new database
+- standardizes newlines for storage
+
 
 0.3.0
 2019.09.10

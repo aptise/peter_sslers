@@ -71,9 +71,9 @@
                 % endif
             % endif
 
-            % if SslServerCertificates:
+            % if ServerCertificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_certificates__list(SslServerCertificates, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_certificates__list(ServerCertificates, show_domains=True, show_expiring_days=True)}
             % else:
                 <em>
                     No Server Certificates

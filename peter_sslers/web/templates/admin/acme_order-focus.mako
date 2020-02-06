@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-orders">ACME Orders</a></li>
-        <li class="active">Focus [${SslAcmeOrder.id}]</li>
+        <li class="active">Focus [${AcmeOrder.id}]</li>
     </ol>
 </%block>
 
@@ -33,54 +33,54 @@
                     <th>id</th>
                     <td>
                         <span class="label label-default">
-                            ${SslAcmeOrder.id}
+                            ${AcmeOrder.id}
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <th>timestamp_created</th>
-                    <td><timestamp>${SslAcmeOrder.timestamp_created  or ''}</timestamp>
+                    <td><timestamp>${AcmeOrder.timestamp_created  or ''}</timestamp>
                     </td>
                 </tr>
                 <tr>
                     <th>timestamp_finalized</th>
-                    <td><timestamp>${SslAcmeOrder.timestamp_finalized  or ''}</timestamp>
+                    <td><timestamp>${AcmeOrder.timestamp_finalized  or ''}</timestamp>
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_acme_account_key_id</th>
+                    <th>acme_account_key_id</th>
                     <td>
                         <a
                             class="label label-info"
-                            href="${admin_prefix}/account-key/${SslAcmeOrder.ssl_acme_account_key_id}"
+                            href="${admin_prefix}/account-key/${AcmeOrder.acme_account_key_id}"
                         >
-                            ${SslAcmeOrder.ssl_acme_account_key_id}
+                            ${AcmeOrder.acme_account_key_id}
                         </a>
                     </td>
                 </tr>
 
                 <tr>
-                    <th>ssl_certificate_request_id</th>
+                    <th>certificate_request_id</th>
                     <td>
-                        % if SslAcmeOrder.ssl_certificate_request_id:
+                        % if AcmeOrder.certificate_request_id:
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/certificate-request/${SslAcmeOrder.ssl_certificate_request_id}"
+                                href="${admin_prefix}/certificate-request/${AcmeOrder.certificate_request_id}"
                             >
-                                ${SslAcmeOrder.ssl_certificate_request_id}
+                                ${AcmeOrder.certificate_request_id}
                             </a>
                         % endif
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_server_certificate_id</th>
+                    <th>server_certificate_id</th>
                     <td>
-                        % if SslAcmeOrder.ssl_server_certificate_id:
+                        % if AcmeOrder.server_certificate_id:
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/certificate/${SslAcmeOrder.ssl_server_certificate_id}"
+                                href="${admin_prefix}/certificate/${AcmeOrder.server_certificate_id}"
                             >
-                                ${SslAcmeOrder.ssl_server_certificate_id}
+                                ${AcmeOrder.server_certificate_id}
                             </a>
                         % endif
                     </td>

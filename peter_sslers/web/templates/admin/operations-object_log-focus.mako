@@ -23,31 +23,31 @@
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>id</th>
-                    <td><span class="label label-default">${SslOperationsObjectEvent.id}</span></td>
+                    <td><span class="label label-default">${OperationsObjectEvent.id}</span></td>
                 </tr>
                 <tr>
                     <th>event status</th>
-                    <td><span class="label label-default">${SslOperationsObjectEvent.event_status_text}</span></td>
+                    <td><span class="label label-default">${OperationsObjectEvent.event_status_text}</span></td>
                 </tr>
                 <tr>
                     <th>operations event</th>
                     <td>
-                            <a  href="${admin_prefix}/operations/log/item/${SslOperationsObjectEvent.ssl_operations_event_id}"
+                            <a  href="${admin_prefix}/operations/log/item/${OperationsObjectEvent.operations_event_id}"
                                 class="label label-info"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${SslOperationsObjectEvent.ssl_operations_event_id}
+                                ${OperationsObjectEvent.operations_event_id}
                             </a>
                     </td>
                 </tr>
                 <tr>
                     <th>timestamp</th>
-                    <td><timestamp>${SslOperationsObjectEvent.operations_event.timestamp_event}</timestamp></td>
+                    <td><timestamp>${OperationsObjectEvent.operations_event.timestamp_event}</timestamp></td>
                 </tr>
                 <tr>
                     <th>object data</th>
                     <td>
-                        ${admin_partials.object_event__object(SslOperationsObjectEvent)}
+                        ${admin_partials.object_event__object(OperationsObjectEvent)}
                     </td>
                 </tr>
             </table>

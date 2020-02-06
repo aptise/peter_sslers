@@ -54,23 +54,23 @@
                 <tr>
                     <th>certificate_id - renewal of</th>
                     <td>
-                        % if RenewalQueueItem.ssl_server_certificate_id:
+                        % if RenewalQueueItem.server_certificate_id:
                             <a class="label label-info"
-                                href="${admin_prefix}/certificate/${RenewalQueueItem.ssl_server_certificate_id}"
+                                href="${admin_prefix}/certificate/${RenewalQueueItem.server_certificate_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${RenewalQueueItem.ssl_server_certificate_id}</a>
+                                cert-${RenewalQueueItem.server_certificate_id}</a>
                         % endif
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_unique_fqdn_set_id</th>
+                    <th>unique_fqdn_set_id</th>
                     <td>
                         <a class="label label-info"
-                            href="${admin_prefix}/unique-fqdn-set/${RenewalQueueItem.ssl_unique_fqdn_set_id}"
+                            href="${admin_prefix}/unique-fqdn-set/${RenewalQueueItem.unique_fqdn_set_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            fqdnset-${RenewalQueueItem.ssl_unique_fqdn_set_id}</a>
+                            fqdnset-${RenewalQueueItem.unique_fqdn_set_id}</a>
                         </hr/>
                         <code>${RenewalQueueItem.unique_fqdn_set.domains_as_string}</code>
                     </td>
@@ -96,12 +96,12 @@
                 <tr>
                     <th>certificate_id - renewed</th>
                     <td>
-                        % if RenewalQueueItem.ssl_server_certificate_id__renewed:
+                        % if RenewalQueueItem.server_certificate_id__renewed:
                             <a class="label label-info"
-                                href="${admin_prefix}/certificate/${RenewalQueueItem.ssl_server_certificate_id__renewed}"
+                                href="${admin_prefix}/certificate/${RenewalQueueItem.server_certificate_id__renewed}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${RenewalQueueItem.ssl_server_certificate_id__renewed}</a>
+                                cert-${RenewalQueueItem.server_certificate_id__renewed}</a>
                         % endif
                     </td>
                 </tr>
@@ -110,7 +110,7 @@
 
             <h4>Process History</h4>
             % if RenewalQueueItem.operations_object_events:
-                ${admin_partials.table_SslOperationsObjectEvents(RenewalQueueItem.operations_object_events, table_context=None)}
+                ${admin_partials.table_OperationsObjectEvents(RenewalQueueItem.operations_object_events, table_context=None)}
             % endif
         </div>
     </div>

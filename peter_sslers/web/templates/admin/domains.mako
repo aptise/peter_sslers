@@ -29,7 +29,7 @@
                 <p>Domains that will be expiring within `${expiring_days}` days.
                 </p>
             % endif
-            % if SslDomains:
+            % if Domains:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -48,7 +48,7 @@
                             <th>id, expiring, days</th>
                         </tr>
                     </thead>
-                    % for d in SslDomains:
+                    % for d in Domains:
                         <tr>
                             <td>
                                 <a  class="label label-info"
@@ -64,23 +64,23 @@
                                 </span>
                             </td>
                             <td>
-                                % if d.ssl_server_certificate_id__latest_multi:
+                                % if d.server_certificate_id__latest_multi:
                                     <a  class="label label-info"
-                                        href="${admin_prefix}/certificate/${d.ssl_server_certificate_id__latest_multi}"
+                                        href="${admin_prefix}/certificate/${d.server_certificate_id__latest_multi}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        cert-${d.ssl_server_certificate_id__latest_multi}</a>
+                                        cert-${d.server_certificate_id__latest_multi}</a>
                                     <timestamp>${d.server_certificate__latest_multi.timestamp_expires}</timestamp>
                                     <span class="label label-${d.server_certificate__latest_multi.expiring_days_label}">${d.server_certificate__latest_multi.expiring_days} days</span>
                                 % endif
                             </td>
                             <td>
-                                % if d.ssl_server_certificate_id__latest_single:
+                                % if d.server_certificate_id__latest_single:
                                     <a  class="label label-info"
-                                        href="${admin_prefix}/certificate/${d.ssl_server_certificate_id__latest_single}"
+                                        href="${admin_prefix}/certificate/${d.server_certificate_id__latest_single}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        cert-${d.ssl_server_certificate_id__latest_single}</a>
+                                        cert-${d.server_certificate_id__latest_single}</a>
                                     <timestamp>${d.server_certificate__latest_single.timestamp_expires}</timestamp>
                                     <span class="label label-${d.server_certificate__latest_single.expiring_days_label}">${d.server_certificate__latest_single.expiring_days} days</span>
                                 % endif

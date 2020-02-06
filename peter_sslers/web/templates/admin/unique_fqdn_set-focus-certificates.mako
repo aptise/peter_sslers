@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/unique-fqdn-sets">Unique FQDN Sets</a></li>
-        <li><a href="${admin_prefix}/unique-fqdn-set/${SslUniqueFQDNSet.id}">Focus [${SslUniqueFQDNSet.id}]</a></li>
+        <li><a href="${admin_prefix}/unique-fqdn-set/${UniqueFQDNSet.id}">Focus [${UniqueFQDNSet.id}]</a></li>
         <li class="active">Certificates</li>
     </ol>
 </%block>
@@ -21,9 +21,9 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if SslServerCertificates:
+            % if ServerCertificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_certificates__list(SslServerCertificates, show_domains=False, show_expiring_days=True)}
+                ${admin_partials.table_certificates__list(ServerCertificates, show_domains=False, show_expiring_days=True)}
             % else:
                 No known certificates.
             % endif

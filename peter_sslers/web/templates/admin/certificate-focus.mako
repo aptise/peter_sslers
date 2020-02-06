@@ -10,7 +10,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/certificates">Certificates</a></li>
-        <li class="active">Focus [${SslServerCertificate.id}]</li>
+        <li class="active">Focus [${ServerCertificate.id}]</li>
     </ol>
 </%block>
 
@@ -51,7 +51,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate/${SslServerCertificate.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/certificate/${ServerCertificate.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -68,19 +68,19 @@
                     <th>id</th>
                     <td>
                         <span class="label label-default">
-                            ${SslServerCertificate.id}
+                            ${ServerCertificate.id}
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <th>is_active</th>
                     <td>
-                        <span class="label label-${'success' if SslServerCertificate.is_active else 'warning'}">
-                            ${'Active' if SslServerCertificate.is_active else 'inactive'}
+                        <span class="label label-${'success' if ServerCertificate.is_active else 'warning'}">
+                            ${'Active' if ServerCertificate.is_active else 'inactive'}
                         </span>
                         &nbsp;
-                        % if SslServerCertificate.is_active:
-                            <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                        % if ServerCertificate.is_active:
+                            <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="inactive"/>
                                 <button class="btn btn-xs btn-warning" type="submit">
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -88,7 +88,7 @@
                                 </button>
                             </form>
                             &nbsp;
-                            <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                            <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="revoked"/>
                                 <button class="btn btn-xs btn-danger" type="submit">
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -97,19 +97,19 @@
                             </form>
                         % else:
                             ## show a reason
-                            % if SslServerCertificate.is_revoked:
+                            % if ServerCertificate.is_revoked:
                                 Reason: <code>revoked</code>
-                            % elif SslServerCertificate.is_deactivated:
+                            % elif ServerCertificate.is_deactivated:
                                 Reason: <code>deactivated</code>
                             % endif
 
-                            % if SslServerCertificate.is_deactivated:
+                            % if ServerCertificate.is_deactivated:
                                 ## manual deactivations can be undone
                                 ## this could be an 'inactive' or a 'revoke'
                                 &nbsp;
                                 Actions:
-                                % if SslServerCertificate.is_revoked:
-                                    <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                % if ServerCertificate.is_revoked:
+                                    <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="unrevoke"/>
                                         <button class="btn btn-xs btn-warning" type="submit">
                                             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -117,15 +117,15 @@
                                         </button>
                                     </form>
                                 % endif
-                                % if not SslServerCertificate.is_revoked:
-                                    <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                % if not ServerCertificate.is_revoked:
+                                    <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="active"/>
                                         <button class="btn btn-xs btn-success" type="submit">
                                             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                             activate
                                         </button>
                                     </form>
-                                    <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                    <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="revoked"/>
                                         <button class="btn btn-xs btn-danger" type="submit">
                                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -140,13 +140,13 @@
                 <tr>
                     <th>is_auto_renew</th>
                     <td>
-                        <span class="label label-${'success' if SslServerCertificate.is_auto_renew else 'warning'}">
-                            ${'AutoRenew' if SslServerCertificate.is_auto_renew else 'manual'}
+                        <span class="label label-${'success' if ServerCertificate.is_auto_renew else 'warning'}">
+                            ${'AutoRenew' if ServerCertificate.is_auto_renew else 'manual'}
                         </span>
                         &nbsp;
-                        % if SslServerCertificate.is_active:
-                            % if SslServerCertificate.is_auto_renew:
-                                <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                        % if ServerCertificate.is_active:
+                            % if ServerCertificate.is_auto_renew:
+                                <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="renew_manual"/>
                                     <button class="btn btn-xs btn-warning" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -154,7 +154,7 @@
                                     </button>
                                 </form>
                             % else:
-                                <form action="${admin_prefix}/certificate/${SslServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="renew_auto"/>
                                     <button class="btn btn-xs btn-success" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -168,23 +168,23 @@
                 <tr>
                     <th>is_renewed</th>
                     <td>
-                        <span class="label label-${'success' if SslServerCertificate.is_renewed else 'default'}">
-                            ${'Renewed' if SslServerCertificate.is_renewed else 'not-renewed-yet'}
+                        <span class="label label-${'success' if ServerCertificate.is_renewed else 'default'}">
+                            ${'Renewed' if ServerCertificate.is_renewed else 'not-renewed-yet'}
                         </span>
 
                         &nbsp;
                         <a  class="btn btn-xs btn-primary"
-                            href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/queue"
+                            href="${admin_prefix}/certificate/${ServerCertificate.id}/renew/queue"
                             title="Queue a renewal with the same private key and account key."
                         >
                             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                             queue a renewal
                         </a>
 
-                        % if SslServerCertificate.private_key and SslServerCertificate.private_key.is_active and SslServerCertificate.acme_account_key and SslServerCertificate.acme_account_key.is_active:
+                        % if ServerCertificate.private_key and ServerCertificate.private_key.is_active and ServerCertificate.acme_account_key and ServerCertificate.acme_account_key.is_active:
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/quick"
+                                href="${admin_prefix}/certificate/${ServerCertificate.id}/renew/quick"
                                 title="Renew NOW with the same private key and account key."
                             >
                                 <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
@@ -203,7 +203,7 @@
 
                         &nbsp;
                         <a  class="btn btn-xs btn-primary"
-                            href="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/custom"
+                            href="${admin_prefix}/certificate/${ServerCertificate.id}/renew/custom"
                             title="Select a new PrivateKey or AccountKey for renewal."
                         >
                             <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
@@ -217,9 +217,9 @@
                 <tr>
                     <th>is_revoked_upstream</th>
                     <td>
-                        % if SslServerCertificate.timestamp_revoked_upstream is not None:
+                        % if ServerCertificate.timestamp_revoked_upstream is not None:
                             <span class="label label-danger">
-                                revoked upstream @ ${SslServerCertificate.timestamp_revoked_upstream_isoformat}
+                                revoked upstream @ ${ServerCertificate.timestamp_revoked_upstream_isoformat}
                             </span>
                         % endif
                     </td>
@@ -227,11 +227,11 @@
                 <tr>
                     <th>is_single_domain_cert</th>
                     <td>
-                        % if SslServerCertificate.is_single_domain_cert is True:
+                        % if ServerCertificate.is_single_domain_cert is True:
                             <span class="label label-default">
                                 single domain certificate
                             </span>
-                        % elif SslServerCertificate.is_single_domain_cert is False:
+                        % elif ServerCertificate.is_single_domain_cert is False:
                             <span class="label label-default">
                                 multiple domain certificate
                             </span>
@@ -240,59 +240,59 @@
                 </tr>
                 <tr>
                     <th>timestamp_signed</th>
-                    <td><timestamp>${SslServerCertificate.timestamp_signed}</timestamp></td>
+                    <td><timestamp>${ServerCertificate.timestamp_signed}</timestamp></td>
                 </tr>
                 <tr>
                     <th>timestamp_expires</th>
-                    <td><timestamp>${SslServerCertificate.timestamp_expires}</timestamp></td>
+                    <td><timestamp>${ServerCertificate.timestamp_expires}</timestamp></td>
                 </tr>
                 <tr>
                     <th>expires in days</th>
                     <td>
-                        <span class="label label-${SslServerCertificate.expiring_days_label}">
-                            ${SslServerCertificate.expiring_days} days
+                        <span class="label label-${ServerCertificate.expiring_days_label}">
+                            ${ServerCertificate.expiring_days} days
                         </span>
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_ca_certificate_id__upchain</th>
+                    <th>ca_certificate_id__upchain</th>
                     <td>
-                        <a class="label label-info" href="${admin_prefix}/ca-certificate/${SslServerCertificate.ssl_ca_certificate_id__upchain}">
+                        <a class="label label-info" href="${admin_prefix}/ca-certificate/${ServerCertificate.ca_certificate_id__upchain}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            cacert-${SslServerCertificate.ssl_ca_certificate_id__upchain}</a>
+                            cacert-${ServerCertificate.ca_certificate_id__upchain}</a>
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_private_key_id__signed_by</th>
+                    <th>private_key_id__signed_by</th>
                     <td>
-                        % if not SslServerCertificate.private_key.is_compromised:
-                            <a class="label label-info" href="${admin_prefix}/private-key/${SslServerCertificate.ssl_private_key_id__signed_by}">
+                        % if not ServerCertificate.private_key.is_compromised:
+                            <a class="label label-info" href="${admin_prefix}/private-key/${ServerCertificate.private_key_id__signed_by}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                pkey-${SslServerCertificate.ssl_private_key_id__signed_by}</a>
+                                pkey-${ServerCertificate.private_key_id__signed_by}</a>
                         % else:
-                            <a class="label label-danger" href="${admin_prefix}/private-key/${SslServerCertificate.ssl_private_key_id__signed_by}">
+                            <a class="label label-danger" href="${admin_prefix}/private-key/${ServerCertificate.private_key_id__signed_by}">
                                 <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                pkey-${SslServerCertificate.ssl_private_key_id__signed_by}</a>
+                                pkey-${ServerCertificate.private_key_id__signed_by}</a>
                         % endif
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_acme_account_key_id</th>
+                    <th>acme_account_key_id</th>
                     <td>
-                        % if SslServerCertificate.ssl_acme_account_key_id:
-                            <a class="label label-info" href="${admin_prefix}/account-key/${SslServerCertificate.ssl_acme_account_key_id}">
+                        % if ServerCertificate.acme_account_key_id:
+                            <a class="label label-info" href="${admin_prefix}/account-key/${ServerCertificate.acme_account_key_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                pkey-${SslServerCertificate.ssl_acme_account_key_id}</a>
+                                pkey-${ServerCertificate.acme_account_key_id}</a>
                         % endif
                     </td>
                 </tr>
                 <tr>
-                    <th>ssl_certificate_request_id</th>
+                    <th>certificate_request_id</th>
                     <td>
-                        % if SslServerCertificate.ssl_certificate_request_id:
-                            <a class="label label-info" href="${admin_prefix}/certificate-request/${SslServerCertificate.ssl_certificate_request_id}">
+                        % if ServerCertificate.certificate_request_id:
+                            <a class="label label-info" href="${admin_prefix}/certificate-request/${ServerCertificate.certificate_request_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                csr-${SslServerCertificate.ssl_certificate_request_id}</a>
+                                csr-${ServerCertificate.certificate_request_id}</a>
                         % endif
                     </td>
                 </tr>
@@ -300,16 +300,16 @@
                     <th>unique fqdn set</th>
                     <td>
                         <a  class="label label-info"
-                            href="${admin_prefix}/unique-fqdn-set/${SslServerCertificate.ssl_unique_fqdn_set_id}"
+                            href="${admin_prefix}/unique-fqdn-set/${ServerCertificate.unique_fqdn_set_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            fqdnset-${SslServerCertificate.ssl_unique_fqdn_set_id}
+                            fqdnset-${ServerCertificate.unique_fqdn_set_id}
                         </a>
                         <%
-                            latest_certificate = SslServerCertificate.unique_fqdn_set.latest_certificate
-                            latest_active_certificate = SslServerCertificate.unique_fqdn_set.latest_active_certificate
-                            latest_certificate_same = True if latest_certificate and latest_certificate.id == SslServerCertificate.id else False
-                            latest_active_certificate_same = True if latest_active_certificate and latest_active_certificate.id == SslServerCertificate.id else False
+                            latest_certificate = ServerCertificate.unique_fqdn_set.latest_certificate
+                            latest_active_certificate = ServerCertificate.unique_fqdn_set.latest_active_certificate
+                            latest_certificate_same = True if latest_certificate and latest_certificate.id == ServerCertificate.id else False
+                            latest_active_certificate_same = True if latest_active_certificate and latest_active_certificate.id == ServerCertificate.id else False
                         %>
                         <table class="table table-striped table-condensed">
                             <thead>
@@ -379,15 +379,15 @@
                         </table>
                     </td>
                 </tr>
-                ${admin_partials.table_tr_event_created(SslServerCertificate)}
+                ${admin_partials.table_tr_event_created(ServerCertificate)}
                 <tr>
                     <th>is renewal?</th>
                     <td>
-                        % if SslServerCertificate.ssl_server_certificate_id__renewal_of:
+                        % if ServerCertificate.server_certificate_id__renewal_of:
                             <span class="label label-success">Yes</span>&nbsp;
-                            <a class="label label-info" href="${admin_prefix}/certificate/${SslServerCertificate.ssl_server_certificate_id__renewal_of}">
+                            <a class="label label-info" href="${admin_prefix}/certificate/${ServerCertificate.server_certificate_id__renewal_of}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${SslServerCertificate.ssl_server_certificate_id__renewal_of}</a>
+                                cert-${ServerCertificate.server_certificate_id__renewal_of}</a>
                         % else:
                             <span class="label label-default">No</span>
                         % endif
@@ -395,15 +395,15 @@
                 </tr>
                 <tr>
                     <th>cert_pem_md5</th>
-                    <td><code>${SslServerCertificate.cert_pem_md5}</code></td>
+                    <td><code>${ServerCertificate.cert_pem_md5}</code></td>
                 </tr>
                 <tr>
                     <th>cert_pem_modulus_md5</th>
                     <td>
-                        <code>${SslServerCertificate.cert_pem_modulus_md5}</code>
+                        <code>${ServerCertificate.cert_pem_modulus_md5}</code>
                         <a
                             class="btn btn-xs btn-info"
-                            href="${admin_prefix}/search?${SslServerCertificate.cert_pem_modulus_search}"
+                            href="${admin_prefix}/search?${ServerCertificate.cert_pem_modulus_search}"
                         >
                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                         </a>
@@ -412,14 +412,14 @@
                 <tr>
                     <th>cert_pem</th>
                     <td>
-                        ## <textarea class="form-control">${SslServerCertificate.key_pem}</textarea>
-                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/cert.pem">
+                        ## <textarea class="form-control">${ServerCertificate.key_pem}</textarea>
+                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/cert.pem">
                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                             cert.pem</a>
-                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/cert.pem.txt">
+                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/cert.pem.txt">
                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                             cert.pem.txt</a>
-                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/cert.crt">
+                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/cert.crt">
                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                             cert.crt (der)</a>
                     </td>
@@ -427,7 +427,7 @@
                 <tr>
                     <th>json payload</th>
                     <td>
-                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/config.json">
+                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/config.json">
                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                             config.json</a><br/>
                         <em>designed for downstream http config</em>
@@ -439,12 +439,12 @@
                         <td>
                             <span class="btn-group">
                                 <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/certificate/${SslServerCertificate.id}/nginx-cache-expire"
+                                    href="${admin_prefix}/certificate/${ServerCertificate.id}/nginx-cache-expire"
                                 >
                                     <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                     nginx-cache-expire</a>
                                 <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/certificate/${SslServerCertificate.id}/nginx-cache-expire.json"
+                                    href="${admin_prefix}/certificate/${ServerCertificate.id}/nginx-cache-expire.json"
                                     target="_blank"
                                 >
                                     <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -467,19 +467,19 @@
                                 <tr>
                                     <td>chain (upstream)</td>
                                     <td>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/chain.pem.txt">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.pem.txt">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             chain.pem.txt</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/chain.pem">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.pem">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             chain.pem</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/chain.cer">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.cer">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             chain.cer (der)</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/chain.crt">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.crt">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             chain.crt (der)</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/chain.der">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.der">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             chain.der (der)</a>
                                     </td>
@@ -487,10 +487,10 @@
                                 <tr>
                                     <td>fullchain (cert+upstream chain)</td>
                                     <td>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/fullchain.pem.txt">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/fullchain.pem.txt">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             fullchain.pem.txt</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/fullchain.pem">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/fullchain.pem">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             fullchain.pem</a>
                                     </td>
@@ -498,13 +498,13 @@
                                 <tr>
                                     <td>privatekey</td>
                                     <td>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/privkey.pem.txt">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/privkey.pem.txt">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             privkey.pem.txt</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/privkey.pem">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/privkey.pem">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             privkey.pem</a>
-                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${SslServerCertificate.id}/privkey.key">
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/privkey.key">
                                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                             privkey.key (der)</a>
                                     </td>
@@ -516,30 +516,30 @@
                 <tr>
                     <th>cert_subject</th>
                     <td>
-                        <code>${SslServerCertificate.cert_subject_hash}</code>
+                        <code>${ServerCertificate.cert_subject_hash}</code>
                         <a
                             class="btn btn-xs btn-info"
-                            href="${admin_prefix}/search?${SslServerCertificate.cert_subject_hash_search}"
+                            href="${admin_prefix}/search?${ServerCertificate.cert_subject_hash_search}"
                         >
                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                         </a>
                         <br/>
-                        <samp>${SslServerCertificate.cert_subject}</samp>
+                        <samp>${ServerCertificate.cert_subject}</samp>
                     </td>
                 </tr>
                 <tr>
                     <th>cert_issuer</th>
                     <td>
-                        <code>${SslServerCertificate.cert_issuer_hash}</code>
+                        <code>${ServerCertificate.cert_issuer_hash}</code>
                         <a
                             class="btn btn-xs btn-info"
-                            href="${admin_prefix}/search?${SslServerCertificate.cert_issuer_hash_search}"
+                            href="${admin_prefix}/search?${ServerCertificate.cert_issuer_hash_search}"
                         >
                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                         </a>
                         <br/>
 
-                        <samp>${SslServerCertificate.cert_issuer}</samp>
+                        <samp>${ServerCertificate.cert_issuer}</samp>
                     </td>
                 </tr>
                 <tr>
@@ -554,7 +554,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                % for to_d in SslServerCertificate.unique_fqdn_set.to_domains:
+                                % for to_d in ServerCertificate.unique_fqdn_set.to_domains:
                                     <tr>
                                         <td>
                                             <a class="label label-info" href="${admin_prefix}/domain/${to_d.domain.id}">
@@ -565,12 +565,12 @@
                                             <code>${to_d.domain.domain_name}</code>
                                         </td>
                                         <td>
-                                            % if SslServerCertificate.id in (to_d.domain.ssl_server_certificate_id__latest_single, to_d.domain.ssl_server_certificate_id__latest_multi):
+                                            % if ServerCertificate.id in (to_d.domain.server_certificate_id__latest_single, to_d.domain.server_certificate_id__latest_multi):
                                                 <span class="label label-default">
-                                                    % if SslServerCertificate.id == to_d.domain.ssl_server_certificate_id__latest_single:
+                                                    % if ServerCertificate.id == to_d.domain.server_certificate_id__latest_single:
                                                         single
                                                     % endif
-                                                    % if SslServerCertificate.id == to_d.domain.ssl_server_certificate_id__latest_multi:
+                                                    % if ServerCertificate.id == to_d.domain.server_certificate_id__latest_multi:
                                                         multi
                                                     % endif
                                                 </span>
@@ -585,13 +585,13 @@
                 <tr>
                     <th>renewal requests</th>
                     <td>
-                        ${admin_partials.table_certificate_requests__list(SslServerCertificate.certificate_request__renewals, show_domains=False, show_certificate=True)}
+                        ${admin_partials.table_certificate_requests__list(ServerCertificate.certificate_request__renewals, show_domains=False, show_certificate=True)}
                     </td>
                 </tr>
                 <tr>
                     <th>Queue: Renewals</th>
                     <td>
-                        ${admin_partials.table_queue_renewal__list(SslServerCertificate.queue_renewal, )}
+                        ${admin_partials.table_queue_renewal__list(ServerCertificate.queue_renewal, )}
                     </td>
                 </tr>
             </table>

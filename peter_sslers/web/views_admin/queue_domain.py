@@ -277,7 +277,7 @@ class ViewAdmin_Focus(Handler):
                 "queue_domain__mark"
             )
             event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["ssl_queue_domain.id"] = dbQueueDomain.id
+            event_payload_dict["queue_domain.id"] = dbQueueDomain.id
             event_payload_dict["action"] = formStash.results["action"]
 
             # bookkeeping

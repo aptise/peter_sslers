@@ -21,18 +21,13 @@ def redis_default_connection(request, url=None, redis_client=Redis, **redis_opti
     Default Redis connection handler. Once a connection is established it is
     saved in `request.registry`.
 
-    Parameters:
+    :param request: The current Pyramid `request` object
 
-    ``request``
-    The current pyramid request object
+    :param url: An optional connection string that will be passed straight to
+        `StrictRedis.from_url`. The connection string should be in the form:
+            redis://username:password@localhost:6379/0
 
-    ``url``
-    An optional connection string that will be passed straight to
-    `StrictRedis.from_url`. The connection string should be in the form:
-        redis://username:password@localhost:6379/0
-
-    ``settings``
-    A dict of keyword args to be passed straight to `StrictRedis`
+    :param settings: A dict of keyword args to be passed straight to `StrictRedis`
 
     Returns:
 
@@ -71,6 +66,9 @@ def redis_default_connection(request, url=None, redis_client=Redis, **redis_opti
 
 
 def redis_connection_from_registry(request):
+    """
+    :param request: The current Pyramid `request` object
+    """
     redis_url = request.registry.settings["redis.url"]
     redis_options = {}
     redis_client = redis_default_connection(request, redis_url, **redis_options)
@@ -78,6 +76,9 @@ def redis_connection_from_registry(request):
 
 
 def redis_prime_style(request):
+    """
+    :param request: The current Pyramid `request` object
+    """
     prime_style = request.registry.settings["redis.prime_style"]
     if prime_style not in ("1", "2"):
         return False
@@ -85,6 +86,9 @@ def redis_prime_style(request):
 
 
 def redis_timeouts_from_registry(request):
+    """
+    :param request: The current Pyramid `request` object
+    """
     timeouts = {"cacert": None, "cert": None, "pkey": None, "domain": None}
     for _t in timeouts.keys():
         key_ini = "redis.timeout.%s" % _t
@@ -94,9 +98,13 @@ def redis_timeouts_from_registry(request):
 
 
 def prime_redis_domain(request, dbDomain):
-    """prime the domain for redis
+    """
+    prime the domain for redis
        return True if primed
        return False if not
+
+    :param request: The current Pyramid `request` object
+    :param dbDomain: The :class:`model.objects.Domain` to be primed
     """
     if not request.registry.settings["enable_redis"]:
         # don't error out here
@@ -140,15 +148,20 @@ def prime_redis_domain(request, dbDomain):
 def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     """
     primes the domain, returns the certificate
+
+    :param redis_client:
+    :param dbDomain: The :class:`model.objects.Domain` to be primed
+    :param redis_timeouts:
+
     r['d:foo.example.com'] = {'c': '1', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
     r['d:foo2.example.com'] = {'c': '2', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
     r['c1'] = CERT.PEM  # (c)ert
     r['c2'] = CERT.PEM
     """
     dbServerCertificate = None
-    if dbDomain.ssl_server_certificate_id__latest_multi:
+    if dbDomain.server_certificate_id__latest_multi:
         dbServerCertificate = dbDomain.server_certificate__latest_multi
-    elif dbDomain.ssl_server_certificate_id__latest_single:
+    elif dbDomain.server_certificate_id__latest_single:
         dbServerCertificate = dbDomain.server_certificate__latest_single
     else:
         raise ValueError(
@@ -159,8 +172,8 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
     key_redis = "d:%s" % dbDomain.domain_name
     value_redis = {
         "c": "%s" % dbServerCertificate.id,
-        "p": "%s" % dbServerCertificate.ssl_private_key_id__signed_by,
-        "i": "%s" % dbServerCertificate.ssl_ca_certificate_id__upchain,
+        "p": "%s" % dbServerCertificate.private_key_id__signed_by,
+        "i": "%s" % dbServerCertificate.ca_certificate_id__upchain,
     }
     redis_client.hmset(key_redis, value_redis)
 
@@ -176,6 +189,10 @@ def redis_prime_logic__style_1_Domain(redis_client, dbDomain, redis_timeouts):
 
 def redis_prime_logic__style_1_PrivateKey(redis_client, dbPrivateKey, redis_timeouts):
     """
+    :param redis_client:
+    :param dbPrivateKey: A :class:`model.objects.PrivateKey`
+    :param redis_timeouts:
+
     r['p2'] = PKEY.PEM  # (p)rivate
     """
     key_redis = "p%s" % dbPrivateKey.id
@@ -187,6 +204,10 @@ def redis_prime_logic__style_1_CACertificate(
     redis_client, dbCACertificate, redis_timeouts
 ):
     """
+    :param redis_client:
+    :param dbCACertificate: A :class:`model.objects.CaCertificate`
+    :param redis_timeouts:
+
     r['i99'] = CACERT.PEM  # (i)ntermediate cert
     """
     key_redis = "i%s" % dbCACertificate.id
@@ -195,12 +216,17 @@ def redis_prime_logic__style_1_CACertificate(
 
 
 def redis_prime_logic__style_2_domain(redis_client, dbDomain, redis_timeouts):
-    """returns the certificate
+    """
+    returns the certificate
+
+    :param redis_client:
+    :param dbDomain: A :class:`model.objects.Domain`
+    :param redis_timeouts:
     """
     dbServerCertificate = None
-    if dbDomain.ssl_server_certificate_id__latest_multi:
+    if dbDomain.server_certificate_id__latest_multi:
         dbServerCertificate = dbDomain.server_certificate__latest_multi
-    elif dbDomain.ssl_server_certificate_id__latest_single:
+    elif dbDomain.server_certificate_id__latest_single:
         dbServerCertificate = dbDomain.server_certificate__latest_single
     else:
         raise ValueError("this domain is not active: `%s`" % dbDomain.domain_name)

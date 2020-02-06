@@ -38,7 +38,7 @@ class ViewAdmin_List(Handler):
     @view_config(route_name="admin:ca_certificates|json", renderer="json")
     @view_config(route_name="admin:ca_certificates_paginated|json", renderer="json")
     def list(self):
-        items_count = lib_db.get.get__SslCaCertificate__count(self.request.api_context)
+        items_count = lib_db.get.get__CaCertificate__count(self.request.api_context)
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
@@ -54,13 +54,13 @@ class ViewAdmin_List(Handler):
                 url_template="%s/ca-certificates/{0}.json"
                 % self.request.registry.settings["admin_prefix"],
             )
-        items_paged = lib_db.get.get__SslCaCertificate__paginated(
+        items_paged = lib_db.get.get__CaCertificate__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         if wants_json:
             _certs = {c.id: c.as_json for c in items_paged}
             return {
-                "SslDomains": _certs,
+                "Domains": _certs,
                 "pagination": {
                     "total_items": items_count,
                     "page": pager.page_num,
@@ -69,15 +69,15 @@ class ViewAdmin_List(Handler):
             }
         return {
             "project": "peter_sslers",
-            "SslCaCertificates_count": items_count,
-            "SslCaCertificates": items_paged,
+            "CaCertificates_count": items_count,
+            "CaCertificates": items_paged,
             "pager": pager,
         }
 
 
 class ViewAdmin_Focus(Handler):
     def _focus(self):
-        dbCaCertificate = lib_db.get.get__SslCaCertificate__by_id(
+        dbCaCertificate = lib_db.get.get__CaCertificate__by_id(
             self.request.api_context, self.request.matchdict["id"]
         )
         if not dbCaCertificate:
@@ -99,22 +99,22 @@ class ViewAdmin_Focus(Handler):
             True if self.request.matched_route.name.endswith("|json") else False
         )
         dbCaCertificate = self._focus()
-        items_count = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__count(
+        items_count = lib_db.get.get__ServerCertificate__by_CaCertificateId__count(
             self.request.api_context, dbCaCertificate.id
         )
-        items_paged = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__paginated(
+        items_paged = lib_db.get.get__ServerCertificate__by_CaCertificateId__paginated(
             self.request.api_context, dbCaCertificate.id, limit=10, offset=0
         )
         if wants_json:
             return {
-                "SslCaCertificate": dbCaCertificate.as_json,
-                "SslServerCertificates_count": items_count,
+                "CaCertificate": dbCaCertificate.as_json,
+                "ServerCertificates_count": items_count,
             }
         return {
             "project": "peter_sslers",
-            "SslCaCertificate": dbCaCertificate,
-            "SslServerCertificates_count": items_count,
-            "SslServerCertificates": items_paged,
+            "CaCertificate": dbCaCertificate,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
         }
 
     @view_config(route_name="admin:ca_certificate:focus:raw", renderer="string")
@@ -161,13 +161,13 @@ class ViewAdmin_Focus(Handler):
     )
     def focus__certificates_signed(self):
         dbCaCertificate = self._focus()
-        items_count = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__count(
+        items_count = lib_db.get.get__ServerCertificate__by_CaCertificateId__count(
             self.request.api_context, dbCaCertificate.id
         )
         (pager, offset) = self._paginate(
             items_count, url_template="%s/certificates-signed/{0}" % self.focus_url
         )
-        items_paged = lib_db.get.get__SslServerCertificate__by_SslCaCertificateId__paginated(
+        items_paged = lib_db.get.get__ServerCertificate__by_CaCertificateId__paginated(
             self.request.api_context,
             dbCaCertificate.id,
             limit=items_per_page,
@@ -175,9 +175,9 @@ class ViewAdmin_Focus(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslCaCertificate": dbCaCertificate,
-            "SslServerCertificates_count": items_count,
-            "SslServerCertificates": items_paged,
+            "CaCertificate": dbCaCertificate,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
             "pager": pager,
         }
 
@@ -213,8 +213,7 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            with formStash.results["chain_file"] as field:
-                chain_pem = field.file.read()
+            chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
             if six.PY3:
                 if not isinstance(chain_pem, str):
                     chain_pem = chain_pem.decode("utf8")
@@ -223,7 +222,7 @@ class ViewAdmin_New(Handler):
             (
                 dbCaCertificate,
                 cacert_is_created,
-            ) = lib_db.getcreate.getcreate__SslCaCertificate__by_pem_text(
+            ) = lib_db.getcreate.getcreate__CaCertificate__by_pem_text(
                 self.request.api_context, chain_pem, chain_file_name
             )
 
@@ -313,8 +312,9 @@ class ViewAdmin_New(Handler):
 
             bundle_data = {"isrgrootx1_pem": None}
             if formStash.results["isrgrootx1_file"] is not None:
-                with formStash.results["isrgrootx1_file"] as field:
-                    bundle_data["isrgrootx1_pem"] = field.file.read()
+                bundle_data["isrgrootx1_pem"] = formhandling.slurp_file_field(
+                    formStash, "isrgrootx1_file"
+                )
                 if six.PY3:
                     if not isinstance(bundle_data["isrgrootx1_pem"], str):
                         bundle_data["isrgrootx1_pem"] = bundle_data[
@@ -325,8 +325,9 @@ class ViewAdmin_New(Handler):
                 _bd_key = "le_%s_cross_signed_pem" % xi
                 bundle_data[_bd_key] = None
                 if formStash.results["le_%s_cross_signed_file" % xi] is not None:
-                    with formStash.results["le_%s_cross_signed_file" % xi] as field:
-                        bundle_data[_bd_key] = field.file.read()
+                    bundle_data[_bd_key] = formhandling.slurp_file_field(
+                        formStash, "le_%s_cross_signed_file" % xi
+                    )
                     if six.PY3:
                         if not isinstance(bundle_data[_bd_key], str):
                             bundle_data[_bd_key] = bundle_data[_bd_key].decode("utf8")
@@ -335,15 +336,16 @@ class ViewAdmin_New(Handler):
                 _bd_key = "le_%s_auth_pem" % xi
                 bundle_data[_bd_key] = None
                 if formStash.results["le_%s_auth_file" % xi] is not None:
-                    with formStash.results["le_%s_auth_file" % xi] as field:
-                        bundle_data[_bd_key] = field.file.read()
+                    bundle_data[_bd_key] = formhandling.slurp_file_field(
+                        formStash, "le_%s_auth_file" % xi
+                    )
                     if six.PY3:
                         if not isinstance(bundle_data[_bd_key], str):
                             bundle_data[_bd_key] = bundle_data[_bd_key].decode("utf8")
 
             bundle_data = dict([i for i in bundle_data.items() if i[1]])
 
-            dbResults = lib_db.actions.upload__SslCaCertificateBundle__by_pem_text(
+            dbResults = lib_db.actions.upload__CaCertificateBundle__by_pem_text(
                 self.request.api_context, bundle_data
             )
 

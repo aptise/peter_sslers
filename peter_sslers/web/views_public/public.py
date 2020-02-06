@@ -28,39 +28,31 @@ class ViewPublic(Handler):
     @view_config(route_name="public_challenge", renderer="string")
     def public_challenge(self):
         challenge = self.request.matchdict["challenge"]
-        activeRequest = lib_db.get.get__SslCertificateRequest2Domain__challenged(
+
+        dbAcmeChallenge = lib_db.get.get__AcmeChallenge__challenged(
             self.request.api_context, challenge, self.request.active_domain_name
         )
-        # this will log a tuple of (csr_id, domain_id) for activeRequest
+        # this will log a tuple of (acme_authorization_id, domain_id) for activeRequest
         log.info(
             "public challenge: domain=%s, challenge=%s, activeRequest=%s",
             self.request.active_domain_name,
             challenge,
             (
-                (activeRequest.ssl_certificate_request_id, activeRequest.ssl_domain_id)
-                if activeRequest
+                (
+                    dbAcmeChallenge.acme_authorization_id,
+                    dbAcmeChallenge.acme_authorization.domain.id,
+                )
+                if dbAcmeChallenge
                 else None
             ),
         )
-        if activeRequest:
+        if dbAcmeChallenge:
             log_verification = True if "test" not in self.request.params else False
             if log_verification:
-                activeRequest.timestamp_verified = datetime.datetime.utcnow()
-                activeRequest.ip_verified = self.request.environ["REMOTE_ADDR"]
-                self.request.api_context.dbSession.flush(objects=[activeRequest])
-                # quick cleanup
-                dbCertificateRequest = lib_db.get.get__SslCertificateRequest__by_id(
-                    self.request.api_context, activeRequest.ssl_certificate_request_id
+                lib_db.create.create__AcmeChallengePoll(
+                    self.request.api_context,
+                    dbAcmeChallenge=dbAcmeChallenge,
+                    remote_ip_address=self.request.environ["REMOTE_ADDR"],
                 )
-                has_unverified = False
-                for d in dbCertificateRequest.to_domains:
-                    if not d.timestamp_verified:
-                        has_unverified = True
-                        break
-                if not has_unverified and not dbCertificateRequest.timestamp_finished:
-                    dbCertificateRequest.timestamp_finished = datetime.datetime.utcnow()
-                    self.request.api_context.dbSession.flush(
-                        objects=[dbCertificateRequest]
-                    )
-            return activeRequest.challenge_text
+            return dbAcmeChallenge.keyauthorization
         return "ERROR"

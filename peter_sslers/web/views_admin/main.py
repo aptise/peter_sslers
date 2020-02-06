@@ -68,12 +68,12 @@ class ViewAdminMain(Handler):
 
     def _search__submit(self, search_type):
         results = {
-            "SslAcmeAccountKey": {"count": 0, "items": [], "next": False},
-            "SslDomain": {"count": 0, "items": [], "next": False},
-            "SslCaCertificate": {"count": 0, "items": [], "next": False},
-            "SslCertificateRequest": {"count": 0, "items": [], "next": False},
-            "SslPrivateKey": {"count": 0, "items": [], "next": False},
-            "SslServerCertificate": {"count": 0, "items": [], "next": False},
+            "AcmeAccountKey": {"count": 0, "items": [], "next": False},
+            "Domain": {"count": 0, "items": [], "next": False},
+            "CaCertificate": {"count": 0, "items": [], "next": False},
+            "CertificateRequest": {"count": 0, "items": [], "next": False},
+            "PrivateKey": {"count": 0, "items": [], "next": False},
+            "ServerCertificate": {"count": 0, "items": [], "next": False},
         }
 
         # lightweight pagination
@@ -104,72 +104,68 @@ class ViewAdminMain(Handler):
             if not all((search_modulus, source_type, source_id)):
                 raise ValueError("invalid search")
 
-            # SslAcmeAccountKey
-            if show_only["SslAcmeAccountKey"]:
+            # AcmeAccountKey
+            if show_only["AcmeAccountKey"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.SslAcmeAccountKey
+                    model_objects.AcmeAccountKey
                 ).filter(
-                    model_objects.SslAcmeAccountKey.key_pem_modulus_md5
-                    == search_modulus
+                    model_objects.AcmeAccountKey.key_pem_modulus_md5 == search_modulus
                 )
-                results["SslAcmeAccountKey"]["count"] = _base.count()
-                if results["SslAcmeAccountKey"]["count"]:
-                    results["SslAcmeAccountKey"]["items"] = (
+                results["AcmeAccountKey"]["count"] = _base.count()
+                if results["AcmeAccountKey"]["count"]:
+                    results["AcmeAccountKey"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # SslCaCertificate
-            if show_only["SslCaCertificate"]:
+            # CaCertificate
+            if show_only["CaCertificate"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.SslCaCertificate
+                    model_objects.CaCertificate
                 ).filter(
-                    model_objects.SslCaCertificate.cert_pem_modulus_md5
-                    == search_modulus
+                    model_objects.CaCertificate.cert_pem_modulus_md5 == search_modulus
                 )
-                results["SslCaCertificate"]["count"] = _base.count()
-                if results["SslCaCertificate"]["count"]:
-                    results["SslCaCertificate"]["items"] = (
+                results["CaCertificate"]["count"] = _base.count()
+                if results["CaCertificate"]["count"]:
+                    results["CaCertificate"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # SslCertificateRequest
-            if show_only["SslCertificateRequest"]:
+            # CertificateRequest
+            if show_only["CertificateRequest"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.SslCertificateRequest
+                    model_objects.CertificateRequest
                 ).filter(
-                    model_objects.SslCertificateRequest.csr_pem_modulus_md5
+                    model_objects.CertificateRequest.csr_pem_modulus_md5
                     == search_modulus
                 )
-                results["SslCertificateRequest"]["count"] = _base.count()
-                if results["SslCertificateRequest"]["count"]:
-                    results["SslCertificateRequest"]["items"] = (
+                results["CertificateRequest"]["count"] = _base.count()
+                if results["CertificateRequest"]["count"]:
+                    results["CertificateRequest"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # SslPrivateKey
-            if show_only["SslPrivateKey"]:
+            # PrivateKey
+            if show_only["PrivateKey"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.SslPrivateKey
-                ).filter(
-                    model_objects.SslPrivateKey.key_pem_modulus_md5 == search_modulus
-                )
-                results["SslPrivateKey"]["count"] = _base.count()
-                if results["SslPrivateKey"]["count"]:
-                    results["SslPrivateKey"]["items"] = (
+                    model_objects.PrivateKey
+                ).filter(model_objects.PrivateKey.key_pem_modulus_md5 == search_modulus)
+                results["PrivateKey"]["count"] = _base.count()
+                if results["PrivateKey"]["count"]:
+                    results["PrivateKey"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # SslServerCertificate
-            if show_only["SslServerCertificate"]:
+            # ServerCertificate
+            if show_only["ServerCertificate"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.SslServerCertificate
+                    model_objects.ServerCertificate
                 ).filter(
-                    model_objects.SslServerCertificate.cert_pem_modulus_md5
+                    model_objects.ServerCertificate.cert_pem_modulus_md5
                     == search_modulus
                 )
-                results["SslServerCertificate"]["count"] = _base.count()
-                if results["SslServerCertificate"]["count"]:
-                    results["SslServerCertificate"]["items"] = (
+                results["ServerCertificate"]["count"] = _base.count()
+                if results["ServerCertificate"]["count"]:
+                    results["ServerCertificate"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
@@ -192,37 +188,36 @@ class ViewAdminMain(Handler):
 
             search_hash = cert_subject_hash or cert_issuer_hash
 
-            # SslCaCertificate
-            if show_only["SslCaCertificate"]:
+            # CaCertificate
+            if show_only["CaCertificate"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.SslCaCertificate
+                    model_objects.CaCertificate
                 ).filter(
                     sqlalchemy.or_(
-                        model_objects.SslCaCertificate.cert_subject_hash == search_hash,
-                        model_objects.SslCaCertificate.cert_issuer_hash == search_hash,
+                        model_objects.CaCertificate.cert_subject_hash == search_hash,
+                        model_objects.CaCertificate.cert_issuer_hash == search_hash,
                     )
                 )
-                results["SslCaCertificate"]["count"] = _base.count()
-                if results["SslCaCertificate"]["count"]:
-                    results["SslCaCertificate"]["items"] = (
+                results["CaCertificate"]["count"] = _base.count()
+                if results["CaCertificate"]["count"]:
+                    results["CaCertificate"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-            # SslServerCertificate
-            if show_only["SslServerCertificate"]:
+            # ServerCertificate
+            if show_only["ServerCertificate"]:
                 _base = self.request.api_context.dbSession.query(
-                    model_objects.SslServerCertificate
+                    model_objects.ServerCertificate
                 ).filter(
                     sqlalchemy.or_(
-                        model_objects.SslServerCertificate.cert_subject_hash
+                        model_objects.ServerCertificate.cert_subject_hash
                         == search_hash,
-                        model_objects.SslServerCertificate.cert_issuer_hash
-                        == search_hash,
+                        model_objects.ServerCertificate.cert_issuer_hash == search_hash,
                     )
                 )
-                results["SslServerCertificate"]["count"] = _base.count()
-                if results["SslServerCertificate"]["count"]:
-                    results["SslServerCertificate"]["items"] = (
+                results["ServerCertificate"]["count"] = _base.count()
+                if results["ServerCertificate"]["count"]:
+                    results["ServerCertificate"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 

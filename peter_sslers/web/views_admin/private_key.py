@@ -39,7 +39,7 @@ class ViewAdmin_List(Handler):
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
-        items_count = lib_db.get.get__SslPrivateKey__count(self.request.api_context)
+        items_count = lib_db.get.get__PrivateKey__count(self.request.api_context)
         if wants_json:
             (pager, offset) = self._paginate(
                 items_count,
@@ -52,13 +52,13 @@ class ViewAdmin_List(Handler):
                 url_template="%s/private-keys/{0}.json"
                 % self.request.registry.settings["admin_prefix"],
             )
-        items_paged = lib_db.get.get__SslPrivateKey__paginated(
+        items_paged = lib_db.get.get__PrivateKey__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         if wants_json:
             _keys = {k.id: k.as_json for k in items_paged}
             return {
-                "SslPrivateKeys": _keys,
+                "PrivateKeys": _keys,
                 "pagination": {
                     "total_items": items_count,
                     "page": pager.page_num,
@@ -67,15 +67,15 @@ class ViewAdmin_List(Handler):
             }
         return {
             "project": "peter_sslers",
-            "SslPrivateKeys_count": items_count,
-            "SslPrivateKeys": items_paged,
+            "PrivateKeys_count": items_count,
+            "PrivateKeys": items_paged,
             "pager": pager,
         }
 
 
 class ViewAdmin_Focus(Handler):
     def _focus(self, eagerload_web=False):
-        dbPrivateKey = lib_db.get.get__SslPrivateKey__by_id(
+        dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
             self.request.api_context,
             self.request.matchdict["id"],
             eagerload_web=eagerload_web,
@@ -100,14 +100,14 @@ class ViewAdmin_Focus(Handler):
         dbPrivateKey = self._focus(eagerload_web=True)
         if wants_json:
             return {
-                "SslPrivateKey": dbPrivateKey.as_json,
+                "PrivateKey": dbPrivateKey.as_json,
                 "raw": {
                     "pem.txt": "%s/key.pem.txt" % self._focus_url,
                     "pem": "%s/key.pem" % self._focus_url,
                     "der": "%s/key.key" % self._focus_url,
                 },
             }
-        return {"project": "peter_sslers", "SslPrivateKey": dbPrivateKey}
+        return {"project": "peter_sslers", "PrivateKey": dbPrivateKey}
 
     @view_config(route_name="admin:private_key:focus:raw", renderer="string")
     def focus_raw(self):
@@ -141,13 +141,13 @@ class ViewAdmin_Focus(Handler):
     )
     def focus__certificates(self):
         dbPrivateKey = self._focus()
-        items_count = lib_db.get.get__SslServerCertificate__by_SslPrivateKeyId__count(
+        items_count = lib_db.get.get__ServerCertificate__by_PrivateKeyId__count(
             self.request.api_context, dbPrivateKey.id
         )
         (pager, offset) = self._paginate(
             items_count, url_template="%s/certificates/{0}" % self._focus_url
         )
-        items_paged = lib_db.get.get__SslServerCertificate__by_SslPrivateKeyId__paginated(
+        items_paged = lib_db.get.get__ServerCertificate__by_PrivateKeyId__paginated(
             self.request.api_context,
             dbPrivateKey.id,
             limit=items_per_page,
@@ -155,9 +155,9 @@ class ViewAdmin_Focus(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslPrivateKey": dbPrivateKey,
-            "SslServerCertificates_count": items_count,
-            "SslServerCertificates": items_paged,
+            "PrivateKey": dbPrivateKey,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
             "pager": pager,
         }
 
@@ -171,13 +171,13 @@ class ViewAdmin_Focus(Handler):
     )
     def focus__certificate_requests(self):
         dbPrivateKey = self._focus()
-        items_count = lib_db.get.get__SslCertificateRequest__by_SslPrivateKeyId__count(
+        items_count = lib_db.get.get__CertificateRequest__by_PrivateKeyId__count(
             self.request.api_context, dbPrivateKey.id
         )
         (pager, offset) = self._paginate(
             items_count, url_template="%s/certificate-requests/{0}" % self._focus_url
         )
-        items_paged = lib_db.get.get__SslCertificateRequest__by_SslPrivateKeyId__paginated(
+        items_paged = lib_db.get.get__CertificateRequest__by_PrivateKeyId__paginated(
             self.request.api_context,
             dbPrivateKey.id,
             limit=items_per_page,
@@ -185,9 +185,9 @@ class ViewAdmin_Focus(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslPrivateKey": dbPrivateKey,
-            "SslCertificateRequests_count": items_count,
-            "SslCertificateRequests": items_paged,
+            "PrivateKey": dbPrivateKey,
+            "CertificateRequests_count": items_count,
+            "CertificateRequests": items_paged,
             "pager": pager,
         }
 
@@ -234,7 +234,7 @@ class ViewAdmin_Focus(Handler):
                 "private_key__mark"
             )
             event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["ssl_private_key.id"] = dbPrivateKey.id
+            event_payload_dict["private_key.id"] = dbPrivateKey.id
             event_payload_dict["action"] = formStash.results["action"]
 
             marked_comprimised = False
@@ -286,7 +286,7 @@ class ViewAdmin_Focus(Handler):
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(field="action", message="Key not active")
 
-                formerDefaultKey = lib_db.get.get__SslPrivateKey__default(
+                formerDefaultKey = lib_db.get.get__PrivateKey__default(
                     self.request.api_context
                 )
                 if formerDefaultKey:
@@ -311,7 +311,7 @@ class ViewAdmin_Focus(Handler):
             lib_db.logger._log_object_event(
                 self.request.api_context,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
                     event_status
                 ),
                 dbPrivateKey=dbPrivateKey,
@@ -324,7 +324,7 @@ class ViewAdmin_Focus(Handler):
                 )
 
             if wants_json:
-                return {"result": "success", "SslDomain": dbPrivateKey.as_json}
+                return {"result": "success", "Domain": dbPrivateKey.as_json}
             url_success = "%s?operation=mark&action=%s&result=success" % (
                 self._focus_url,
                 action,
@@ -374,15 +374,16 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            with formStash.results["private_key_file"] as field:
-                private_key_pem = field.file.read()
+            private_key_pem = formhandling.slurp_file_field(
+                formStash, "private_key_file"
+            )
             if six.PY3:
                 if not isinstance(private_key_pem, str):
                     private_key_pem = private_key_pem.decode("utf8")
             (
                 dbPrivateKey,
                 _is_created,
-            ) = lib_db.getcreate.getcreate__SslPrivateKey__by_pem_text(
+            ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
                 self.request.api_context, private_key_pem
             )
 
@@ -390,7 +391,7 @@ class ViewAdmin_New(Handler):
                 return {
                     "result": "success",
                     "is_created": True if _is_created else False,
-                    "SslPrivateKey": dbPrivateKey.as_json,
+                    "PrivateKey": dbPrivateKey.as_json,
                 }
             return HTTPSeeOther(
                 "%s/private-key/%s?result=success%s"

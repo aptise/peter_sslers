@@ -32,8 +32,15 @@ def dequeue_QueuedDomain(
     event_status="queue_domain__mark__cancelled",
     action="de-queued",
 ):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbQueueDomain: (required) The :class:`model.objects.SslQueueDomain`
+    :param dbOperationsEvent:
+    :param event_status:
+    :param action:
+    """
     event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["ssl_queue_domain.id"] = dbQueueDomain.id
+    event_payload_dict["queue_domain.id"] = dbQueueDomain.id
     event_payload_dict["action"] = action
     dbQueueDomain.is_active = False
     dbQueueDomain.timestamp_processed = ctx.timestamp
@@ -42,7 +49,7 @@ def dequeue_QueuedDomain(
     _log_object_event(
         ctx,
         dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.SslOperationsObjectEventStatus.from_string(
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
             event_status
         ),
         dbQueueDomain=dbQueueDomain,
@@ -56,7 +63,9 @@ def dequeue_QueuedDomain(
 def queue_domains__add(ctx, domain_names):
     """
     Adds domains to the queue if needed
-    2016.06.04 - dbOperationsEvent compliant
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param domain names:
     """
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
@@ -70,7 +79,7 @@ def queue_domains__add(ctx, domain_names):
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:
-        _dbDomain = lib.db.get.get__SslDomain__by_name(
+        _dbDomain = lib.db.get.get__Domain__by_name(
             ctx, domain_name, preload=False, active_only=False
         )
         _result = None
@@ -82,7 +91,7 @@ def queue_domains__add(ctx, domain_names):
 
                 _logger_args[
                     "event_status_id"
-                ] = model_utils.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.OperationsObjectEventStatus.from_string(
                     "queue_domain__add__already_exists_activate"
                 )
                 _logger_args["dbDomain"] = _dbDomain
@@ -91,7 +100,7 @@ def queue_domains__add(ctx, domain_names):
             else:
                 _logger_args[
                     "event_status_id"
-                ] = model_utils.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.OperationsObjectEventStatus.from_string(
                     "queue_domain__add__already_exists"
                 )
                 _logger_args["dbDomain"] = _dbDomain
@@ -102,7 +111,7 @@ def queue_domains__add(ctx, domain_names):
             if _dbQueueDomain:
                 _logger_args[
                     "event_status_id"
-                ] = model_utils.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.OperationsObjectEventStatus.from_string(
                     "queue_domain__add__already_queued"
                 )
                 _logger_args["dbQueueDomain"] = _dbQueueDomain
@@ -112,13 +121,13 @@ def queue_domains__add(ctx, domain_names):
                 _dbQueueDomain = model_objects.SslQueueDomain()
                 _dbQueueDomain.domain_name = domain_name
                 _dbQueueDomain.timestamp_entered = _timestamp
-                _dbQueueDomain.ssl_operations_event_id__created = dbOperationsEvent.id
+                _dbQueueDomain.operations_event_id__created = dbOperationsEvent.id
                 ctx.dbSession.add(_dbQueueDomain)
                 ctx.dbSession.flush(objects=[_dbQueueDomain])
 
                 _logger_args[
                     "event_status_id"
-                ] = model_utils.SslOperationsObjectEventStatus.from_string(
+                ] = model_utils.OperationsObjectEventStatus.from_string(
                     "queue_domain__add__success"
                 )
                 _logger_args["dbQueueDomain"] = _dbQueueDomain
@@ -137,16 +146,22 @@ def queue_domains__add(ctx, domain_names):
 
 
 def _get_default_AccountKey(ctx):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    """
     # raises an error if we fail
-    dbAccountKeyDefault = lib.db.get.get__SslAcmeAccountKey__default(
+    dbAcmeAccountKeyDefault = lib.db.get.get__AcmeAccountKey__default(
         ctx, active_only=True
     )
-    if not dbAccountKeyDefault:
+    if not dbAcmeAccountKeyDefault:
         raise ValueError("Could not load a default AccountKey.")
-    return dbAccountKeyDefault
+    return dbAcmeAccountKeyDefault
 
 
 def _get_default_PrivateKey(ctx):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    """
     # raises an error if we fail
     # which private-key should we use?
 
@@ -156,11 +171,11 @@ def _get_default_PrivateKey(ctx):
 
     use_weekly_key = ctx.request.registry.settings["queue_domains_use_weekly_key"]
     if use_weekly_key:
-        dbPrivateKey = lib.db.get.get__SslPrivateKey__current_week(ctx)
+        dbPrivateKey = lib.db.get.get__PrivateKey__current_week(ctx)
         if not dbPrivateKey:
-            dbPrivateKey = lib.db.create.create__SslPrivateKey__autogenerated(ctx)
+            dbPrivateKey = lib.db.create.create__PrivateKey__autogenerated(ctx)
     else:
-        dbPrivateKey = lib.db.get.get__SslPrivateKey__default(ctx, active_only=True)
+        dbPrivateKey = lib.db.get.get__PrivateKey__default(ctx, active_only=True)
     if not dbPrivateKey:
         raise errors.DisplayableError("Could not load a default PrivateKey")
     return dbPrivateKey
@@ -169,20 +184,23 @@ def _get_default_PrivateKey(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_domains__process(ctx, dbAccountKey=None, dbPrivateKey=None):
+def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
     """
     This endpoint should pull `1-100[configurable]` domains from the queue, and create a certificate for them
 
     * if there are more than 100, should we process them, or return that info in json?
 
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbAcmeAccountKey:
+    :param dbPrivateKey:
     """
     if not ctx.request:
         # ToDo: refactor `ctx.request.registry.settings`
         raise ValueError("must be invoked within Pyramid")
 
-    if dbAccountKey is None:
+    if dbAcmeAccountKey is None:
         # raises an error if we fail
-        dbAccountKey = _get_default_AccountKey(ctx)
+        dbAcmeAccountKey = _get_default_AccountKey(ctx)
 
     if dbPrivateKey is None:
         # raises an error if we fail
@@ -240,11 +258,11 @@ def queue_domains__process(ctx, dbAccountKey=None, dbPrivateKey=None):
             (
                 domainObject,
                 _is_created,
-            ) = lib.db.getcreate.getcreate__SslDomain__by_domainName(
+            ) = lib.db.getcreate.getcreate__Domain__by_domainName(
                 ctx, qDomain.domain_name, is_from_queue_domain=True
             )
             domainObjects.append(domainObject)
-            qDomain.ssl_domain_id = domainObject.id
+            qDomain.domain_id = domainObject.id
             ctx.dbSession.flush(objects=[qDomain])
 
         # create a dbUniqueFqdnSet for this.
@@ -253,12 +271,12 @@ def queue_domains__process(ctx, dbAccountKey=None, dbPrivateKey=None):
         (
             dbUniqueFqdnSet,
             _is_created,
-        ) = lib.db.getcreate.getcreate__SslUniqueFQDNSet__by_domainObjects(
+        ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
             ctx, domainObjects
         )
 
         # update the event
-        event_payload_dict["ssl_unique_fqdn_set_id"] = dbUniqueFqdnSet.id
+        event_payload_dict["unique_fqdn_set_id"] = dbUniqueFqdnSet.id
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent])
         transaction.commit()
@@ -270,7 +288,10 @@ def queue_domains__process(ctx, dbAccountKey=None, dbPrivateKey=None):
         try:
             domain_names = [d.domain_name for d in domainObjects]
             dbServerCertificate = lib.db.actions.do__CertificateRequest__AcmeV2_Automated(
-                ctx, domain_names, dbAccountKey=dbAccountKey, dbPrivateKey=dbPrivateKey
+                ctx,
+                domain_names,
+                dbAcmeAccountKey=dbAcmeAccountKey,
+                dbPrivateKey=dbPrivateKey,
             )
             for qdomain in items_paged:
                 # this may have committed
@@ -321,6 +342,10 @@ def queue_domains__process(ctx, dbAccountKey=None, dbPrivateKey=None):
 
 
 def queue_renewals__update(ctx, fqdns_ids_only=None):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param fqdns_ids_only:
+    """
     renewals = []
     results = []
     try:
@@ -335,30 +360,26 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
                     ctx, fqdns_id
                 )
                 renewals.append(dbQueueRenewal)
-            event_payload_dict["ssl_unique_fqdn_set-queued.ids"] = ",".join(
+            event_payload_dict["unique_fqdn_set-queued.ids"] = ",".join(
                 [str(sid) for sid in fqdns_ids_only]
             )
         else:
             _expiring_days = 28
             _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
             _subquery_already_queued = (
-                ctx.dbSession.query(
-                    model_objects.SslQueueRenewal.ssl_server_certificate_id
-                )
+                ctx.dbSession.query(model_objects.SslQueueRenewal.server_certificate_id)
                 .filter(
                     model_objects.SslQueueRenewal.timestamp_processed.op("IS")(None),
                     model_objects.SslQueueRenewal.process_result.op("IS NOT")(True),
                 )
                 .subquery()
             )
-            _core_query = ctx.dbSession.query(
-                model_objects.SslServerCertificate
-            ).filter(
-                model_objects.SslServerCertificate.is_active.op("IS")(True),
-                model_objects.SslServerCertificate.is_auto_renew.op("IS")(True),
-                model_objects.SslServerCertificate.is_renewed.op("IS NOT")(True),
-                model_objects.SslServerCertificate.timestamp_expires <= _until,
-                model_objects.SslServerCertificate.id.notin_(_subquery_already_queued),
+            _core_query = ctx.dbSession.query(model_objects.ServerCertificate).filter(
+                model_objects.ServerCertificate.is_active.op("IS")(True),
+                model_objects.ServerCertificate.is_auto_renew.op("IS")(True),
+                model_objects.ServerCertificate.is_renewed.op("IS NOT")(True),
+                model_objects.ServerCertificate.timestamp_expires <= _until,
+                model_objects.ServerCertificate.id.notin_(_subquery_already_queued),
             )
             results = _core_query.all()
             for cert in results:
@@ -388,6 +409,8 @@ def queue_renewals__process(ctx):
     """
     process the queue
     in order to best deal with transactions, we do 1 queue item at a time and redirect to process more
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
     """
     rval = {
         "count_total": None,
@@ -409,15 +432,13 @@ def queue_renewals__process(ctx):
             ctx, unprocessed_only=True, limit=1, offset=0, eagerload_renewal=True
         )
 
-        dbAccountKeyDefault = None
+        dbAcmeAccountKeyDefault = None
         _need_default_AccountKey = False
         for dbQueueRenewal in items_paged:
             if (
                 (not dbQueueRenewal.server_certificate)
-                or (not dbQueueRenewal.server_certificate.ssl_acme_account_key_id)
-                or (
-                    not dbQueueRenewal.server_certificate.ssl_acme_account_key.is_active
-                )
+                or (not dbQueueRenewal.server_certificate.acme_account_key_id)
+                or (not dbQueueRenewal.server_certificate.acme_account_key.is_active)
             ):
                 _need_default_AccountKey = True
                 break
@@ -427,7 +448,7 @@ def queue_renewals__process(ctx):
         for dbQueueRenewal in items_paged:
             if (
                 (not dbQueueRenewal.server_certificate)
-                or (not dbQueueRenewal.server_certificate.ssl_private_key_id__signed_by)
+                or (not dbQueueRenewal.server_certificate.private_key_id__signed_by)
                 or (not dbQueueRenewal.server_certificate.private_key.is_active)
             ):
                 _need_default_PrivateKey = True
@@ -435,7 +456,7 @@ def queue_renewals__process(ctx):
 
         if _need_default_AccountKey:
             # raises an error if we fail
-            dbAccountKeyDefault = _get_default_AccountKey(ctx)
+            dbAcmeAccountKeyDefault = _get_default_AccountKey(ctx)
 
         if _need_default_PrivateKey:
             # raises an error if we fail
@@ -445,23 +466,27 @@ def queue_renewals__process(ctx):
             if dbQueueRenewal not in ctx.dbSession:
                 dbQueueRenewal = ctx.dbSession.merge(dbQueueRenewal)
 
-            if dbAccountKeyDefault:
-                if dbAccountKeyDefault not in ctx.dbSession:
-                    dbAccountKeyDefault = ctx.dbSession.merge(dbAccountKeyDefault)
+            if dbAcmeAccountKeyDefault:
+                if dbAcmeAccountKeyDefault not in ctx.dbSession:
+                    dbAcmeAccountKeyDefault = ctx.dbSession.merge(
+                        dbAcmeAccountKeyDefault
+                    )
             if ctx.dbOperationsEvent not in ctx.dbSession:
                 ctx.dbOperationsEvent = ctx.dbSession.merge(ctx.dbOperationsEvent)
             if dbOperationsEvent not in ctx.dbSession:
                 dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
 
             dbServerCertificate = None
-            _dbAccountKey = dbQueueRenewal.renewal_AccountKey or dbAccountKeyDefault
+            _dbAcmeAccountKey = (
+                dbQueueRenewal.renewal_AccountKey or dbAcmeAccountKeyDefault
+            )
             _dbPrivateKey = dbQueueRenewal.renewal_PrivateKey or dbPrivateKeyDefault
             try:
                 timestamp_attempt = datetime.datetime.utcnow()
                 dbServerCertificate = lib.db.actions.do__CertificateRequest__AcmeV2_Automated(
                     ctx,
                     dbQueueRenewal.domains_as_list,
-                    dbAccountKey=_dbAccountKey,
+                    dbAcmeAccountKey=_dbAcmeAccountKey,
                     dbPrivateKey=_dbPrivateKey,
                     dbServerCertificate__renewal_of=dbQueueRenewal.server_certificate,
                     dbQueueRenewal__of=dbQueueRenewal,
@@ -479,7 +504,7 @@ def queue_renewals__process(ctx):
                     rval["count_remaining"] -= 1
                     dbQueueRenewal.process_result = True
                     dbQueueRenewal.timestamp_process_attempt = timestamp_attempt
-                    dbQueueRenewal.ssl_server_certificate_id__renewed = (
+                    dbQueueRenewal.server_certificate_id__renewed = (
                         dbServerCertificate.id
                     )
                     ctx.dbSession.flush(objects=[dbQueueRenewal])

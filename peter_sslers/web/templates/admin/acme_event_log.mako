@@ -20,7 +20,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if SslAcmeEventLogs:
+            % if AcmeEventLogs:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -28,12 +28,12 @@
                             <th>id</th>
                             <th>timestamp_event</th>
                             <th>acme_event_id</th>
-                            <th>ssl_acme_account_key_id</th>
-                            <th>ssl_certificate_request_id</th>
+                            <th>acme_account_key_id</th>
+                            <th>certificate_request_id</th>
                         </tr>
                     </thead>
                     <tbody>
-                    % for logged in SslAcmeEventLogs:
+                    % for logged in AcmeEventLogs:
                         <tr>
                             <td>
                                 <a  class="label label-info"
@@ -45,20 +45,20 @@
                             <td>${logged.timestamp_event}</td>
                             <td><span class="label label-default">${logged.acme_event}</span></td>
                             <td>
-                                % if logged.ssl_acme_account_key_id:
+                                % if logged.acme_account_key_id:
                                     <a  class="label label-info"
-                                        href="${admin_prefix}/account-key/${logged.ssl_acme_account_key_id}"
+                                        href="${admin_prefix}/account-key/${logged.acme_account_key_id}"
                                     >
-                                        account-${logged.ssl_acme_account_key_id}
+                                        account-${logged.acme_account_key_id}
                                     </a>
                                 % endif
                             </td>
                             <td>
-                                % if logged.ssl_certificate_request_id:
+                                % if logged.certificate_request_id:
                                     <a  class="label label-info"
-                                        href="${admin_prefix}/certificate-request/${logged.ssl_certificate_request_id}"
+                                        href="${admin_prefix}/certificate-request/${logged.certificate_request_id}"
                                     >
-                                        csr-${logged.ssl_certificate_request_id}
+                                        csr-${logged.certificate_request_id}
                                     </a>
                                 % endif
                             </td>

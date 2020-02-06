@@ -4,7 +4,7 @@ import six
 # local
 from ...lib import db as lib_db
 from ...model import utils as model_utils
-
+from . import formhandling
 
 # ==============================================================================
 
@@ -96,16 +96,20 @@ class AccountKeyUploadParser(object):
             self.acme_account_provider_id = getcreate_args[
                 "acme_account_provider_id"
             ] = acme_account_provider_id
-            with formStash.results["account_key_file_pem"] as field:
-                self.account_key_pem = getcreate_args["key_pem"] = field.file.read()
+            self.account_key_pem = getcreate_args[
+                "key_pem"
+            ] = formhandling.slurp_file_field(formStash, "account_key_file_pem")
         else:
             # note that we use `jsonS` to indicate a string
-            with formStash.results["account_key_file_le_meta"] as field:
-                self.le_meta_jsons = getcreate_args["le_meta_jsons"] = field.file.read()
-            with formStash.results["account_key_file_le_pkey"] as field:
-                self.le_pkey_jsons = getcreate_args["le_pkey_jsons"] = field.file.read()
-            with formStash.results["account_key_file_le_reg"] as field:
-                self.le_reg_jsons = getcreate_args["le_reg_jsons"] = field.file.read()
+            self.le_meta_jsons = getcreate_args[
+                "le_meta_jsons"
+            ] = formhandling.slurp_file_field(formStash, "account_key_file_le_meta")
+            self.le_pkey_jsons = getcreate_args[
+                "le_pkey_jsons"
+            ] = formhandling.slurp_file_field(formStash, "account_key_file_le_pkey")
+            self.le_reg_jsons = getcreate_args[
+                "le_reg_jsons"
+            ] = formhandling.slurp_file_field(formStash, "account_key_file_le_reg")
         if six.PY3:
             for (k, v) in list(getcreate_args.items()):
                 if isinstance(v, bytes):
@@ -116,13 +120,13 @@ class AccountKeyUploadParser(object):
 class AccountKeySelection(object):
     selection = None  # upload,
     upload_parsed = None  # instance of AccountKeyUploadParser or None
-    SslAcmeAccountKey = None
+    AcmeAccountKey = None
 
 
 def parse_AccountKeySelection(request, formStash, seek_selected=None):
     account_key_pem = None
     account_key_pem_md5 = None
-    dbAccountKey = None
+    dbAcmeAccountKey = None
     is_default = None
     # handle the explicit-option
 
@@ -153,21 +157,21 @@ def parse_AccountKeySelection(request, formStash, seek_selected=None):
             formStash.fatal_field(
                 field=seek_selected, message="You did not provide a value"
             )
-        dbAccountKey = lib_db.get.get__SslAcmeAccountKey__by_pemMd5(
+        dbAcmeAccountKey = lib_db.get.get__AcmeAccountKey__by_pemMd5(
             request.api_context, account_key_pem_md5, is_active=True
         )
-        if not dbAccountKey:
+        if not dbAcmeAccountKey:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field=seek_selected, message="This account key is not tracked."
             )
-        if is_default and not dbAccountKey.is_default:
+        if is_default and not dbAcmeAccountKey.is_default:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field=seek_selected,
                 message="This account key is not the default any more.",
             )
-        accountKeySelection.SslAcmeAccountKey = dbAccountKey
+        accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
         return accountKeySelection
     # `formStash.fatal_form()` will raise `FormInvalid()`
     formStash.fatal_form("There was an error Validating your form.")
@@ -181,8 +185,9 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
     if seek_selected:
         if seek_selected == "private_key_file":
             try:
-                private_key_pem = formStash.results["private_key_file"].file.read()
-                formStash.results["private_key_file"].file.close()
+                private_key_pem = formhandling.slurp_file_field(
+                    formStash, "private_key_file"
+                )
             except Exception as exc:
                 # we'll still error out...'
                 pass
@@ -204,7 +209,7 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
                 formStash.fatal_field(
                     field=seek_selected, message="You did not provide a value"
                 )
-            dbPrivateKey = lib_db.get.get__SslPrivateKey__by_pemMd5(
+            dbPrivateKey = lib_db.get.get__PrivateKey__by_pemMd5(
                 request.api_context, private_key_pem_md5, is_active=True
             )
             if not dbPrivateKey:
@@ -218,8 +223,7 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
 
     # handle the best-option now
     if formStash.results["private_key_file"] is not None:
-        with formStash.results["private_key_file"] as field:
-            private_key_pem = field.file.read()
+        private_key_pem = formhandling.slurp_file_field(formStash, "private_key_file")
     else:
         private_key_pem_md5 = None
         field_source = None
@@ -231,7 +235,7 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
             field_source = "private_key_default"
         if not private_key_pem_md5:
             raise ValueError("form validation should prevent this condition")
-        dbPrivateKey = lib_db.get.get__SslPrivateKey__by_pemMd5(
+        dbPrivateKey = lib_db.get.get__PrivateKey__by_pemMd5(
             request.api_context, private_key_pem_md5, is_active=True
         )
         if not dbPrivateKey:

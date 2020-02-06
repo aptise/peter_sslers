@@ -83,3 +83,13 @@ def form_validate(request, **kwargs):
         '<form:error name="%(field)s" format="main" data-formencode-form="%(form)s"/>'
     )
     return (result, formStash)
+
+
+def slurp_file_field(formStash, field):
+    try:
+        if field not in formStash.results:
+            return None
+        file = formStash.results[field].file
+        return file.read()
+    finally:
+        file.close()

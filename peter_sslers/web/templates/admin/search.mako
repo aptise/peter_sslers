@@ -27,9 +27,9 @@
         <div class="row">
             <div class="col-sm-9">
 
-                % if show_only['SslAcmeAccountKey']:
+                % if show_only['AcmeAccountKey']:
                     <h4>Account Keys</h4>
-                    % if results['SslAcmeAccountKey']['count']:
+                    % if results['AcmeAccountKey']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -40,7 +40,7 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for key in results['SslAcmeAccountKey']['items']:
+                            % for key in results['AcmeAccountKey']['items']:
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
@@ -56,8 +56,8 @@
                             % endfor
                             </body>
                         </table>
-                        % if results['SslAcmeAccountKey']['next']:
-                            <a href="${results['SslAcmeAccountKey']['next']}">More</a>
+                        % if results['AcmeAccountKey']['next']:
+                            <a href="${results['AcmeAccountKey']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>
@@ -65,9 +65,9 @@
                     <hr/>
                 % endif
 
-                % if show_only['SslPrivateKey']:
+                % if show_only['PrivateKey']:
                     <h4>Private Keys</h4>
-                    % if results['SslPrivateKey']['count']:
+                    % if results['PrivateKey']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -78,7 +78,7 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for key in results['SslPrivateKey']['items']:
+                            % for key in results['PrivateKey']['items']:
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
@@ -94,8 +94,8 @@
                             % endfor
                             </body>
                         </table>
-                        % if results['SslPrivateKey']['next']:
-                            <a href="${results['SslPrivateKey']['next']}">More</a>
+                        % if results['PrivateKey']['next']:
+                            <a href="${results['PrivateKey']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>
@@ -103,9 +103,9 @@
                     <hr/>
                 % endif
 
-                % if show_only['SslServerCertificate']:
+                % if show_only['ServerCertificate']:
                     <h4>Certificates</h4>
-                    % if results['SslServerCertificate']['count']:
+                    % if results['ServerCertificate']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -119,7 +119,7 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for cert in results['SslServerCertificate']['items']:
+                            % for cert in results['ServerCertificate']['items']:
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
@@ -138,8 +138,8 @@
                             % endfor
                             </body>
                         </table>
-                        % if results['SslServerCertificate']['next']:
-                            <a href="${results['SslServerCertificate']['next']}">More</a>
+                        % if results['ServerCertificate']['next']:
+                            <a href="${results['ServerCertificate']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>
@@ -147,9 +147,9 @@
                     <hr/>
                 % endif
 
-                % if show_only['SslCaCertificate']:
+                % if show_only['CaCertificate']:
                     <h4>CA Certificates</h4>
-                    % if results['SslCaCertificate']['count']:
+                    % if results['CaCertificate']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -162,7 +162,7 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for cert in results['SslCaCertificate']['items']:
+                            % for cert in results['CaCertificate']['items']:
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
@@ -180,8 +180,8 @@
                             % endfor
                             </body>
                         </table>
-                        % if results['SslCaCertificate']['next']:
-                            <a href="${results['SslCaCertificate']['next']}">More</a>
+                        % if results['CaCertificate']['next']:
+                            <a href="${results['CaCertificate']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>
@@ -189,11 +189,11 @@
                     <hr/>
                 % endif
 
-                % if show_only['SslCertificateRequest']:
+                % if show_only['CertificateRequest']:
                     <h4>Certificate Requests</h4>
-                    % if results['SslCertificateRequest']['count']:
+                    % if results['CertificateRequest']['count']:
                         <table class="table table-condensed">
-                            % for csr in results['SslCertificateRequest']['items']:
+                            % for csr in results['CertificateRequest']['items']:
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
@@ -205,8 +205,8 @@
                                 </tr>
                             % endfor
                         </table>
-                        % if results['SslCertificateRequest']['next']:
-                            <a href="${results['SslCertificateRequest']['next']}">More</a>
+                        % if results['CertificateRequest']['next']:
+                            <a href="${results['CertificateRequest']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>

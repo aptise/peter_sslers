@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
-        <li class="active">Focus [${SslDomain.id}]</li>
+        <li class="active">Focus [${Domain.id}]</li>
     </ol>
 </%block>
 
@@ -47,13 +47,13 @@
 <%block name="page_header_nav">
     <p class="pull-right">
         <a  class="btn btn-xs btn-info"
-            href="${admin_prefix}/domain/${SslDomain.id}/calendar.json"
+            href="${admin_prefix}/domain/${Domain.id}/calendar.json"
             target="_blank"
         >
             <span class="glyphicon glyphicon-calendar" aria-hidden="true"></span>
             calendar.json</a>
         <a  class="btn btn-xs btn-info"
-            href="${admin_prefix}/domain/${SslDomain.id}.json"
+            href="${admin_prefix}/domain/${Domain.id}.json"
         >
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json</a>
@@ -71,28 +71,28 @@
                     <th>id</th>
                     <td>
                         <span class="label label-default">
-                            ${SslDomain.id}
+                            ${Domain.id}
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <th>domain_name</th>
-                    <td><code>${SslDomain.domain_name}</code></td>
+                    <td><code>${Domain.domain_name}</code></td>
                 </tr>
                 <tr>
                     <th>timestamp_first_seen</th>
-                    <td><timestamp>${SslDomain.timestamp_first_seen}</timestamp></td>
+                    <td><timestamp>${Domain.timestamp_first_seen}</timestamp></td>
                 </tr>
                 <tr>
                     <th>is_active</th>
                     <td>
-                        <span class="label label-${'success' if SslDomain.is_active else 'warning'}">
-                            ${'Active' if SslDomain.is_active else 'inactive'}
+                        <span class="label label-${'success' if Domain.is_active else 'warning'}">
+                            ${'Active' if Domain.is_active else 'inactive'}
                         </span>
 
-                        % if SslDomain.is_active:
+                        % if Domain.is_active:
                             &nbsp;
-                            <form action="${admin_prefix}/domain/${SslDomain.id}/mark" method="POST" style="display:inline;">
+                            <form action="${admin_prefix}/domain/${Domain.id}/mark" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="inactive"/>
                                 <button class="btn btn-xs btn-warning" type="submit">
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -101,7 +101,7 @@
                             </form>
                         % else:
                             &nbsp;
-                            <form action="${admin_prefix}/domain/${SslDomain.id}/mark" method="POST" style="display:inline;">
+                            <form action="${admin_prefix}/domain/${Domain.id}/mark" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="active"/>
                                 <button class="btn btn-xs btn-success" type="submit">
                                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -116,7 +116,7 @@
                     <th>json_config</th>
                     <td>
                         <a  class="btn btn-xs btn-info"
-                            href="${admin_prefix}/domain/${SslDomain.id}/config.json"
+                            href="${admin_prefix}/domain/${Domain.id}/config.json"
                         >
                             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                             config.json</a>
@@ -128,12 +128,12 @@
                         <td>
                             <span class="btn-group">
                                 <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/domain/${SslDomain.id}/nginx-cache-expire"
+                                    href="${admin_prefix}/domain/${Domain.id}/nginx-cache-expire"
                                 >
                                     <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                     nginx-cache-expire</a>
                                 <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/domain/${SslDomain.id}/nginx-cache-expire.json"
+                                    href="${admin_prefix}/domain/${Domain.id}/nginx-cache-expire.json"
                                     target="_blank"
                                 >
                                     <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -149,16 +149,16 @@
                             <tr>
                                 <th>latest_single</th>
                                 <td>
-                                    % if SslDomain.ssl_server_certificate_id__latest_single:
-                                        ${admin_partials.table_certificates__list([SslDomain.server_certificate__latest_single,], show_domains=True, show_expiring_days=True)}
+                                    % if Domain.server_certificate_id__latest_single:
+                                        ${admin_partials.table_certificates__list([Domain.server_certificate__latest_single,], show_domains=True, show_expiring_days=True)}
                                     % endif
                                 </td>
                             </tr>
                             <tr>
                                 <th>latest_multi</th>
                                 <td>
-                                    % if SslDomain.ssl_server_certificate_id__latest_multi:
-                                        ${admin_partials.table_certificates__list([SslDomain.server_certificate__latest_multi,], show_domains=True, show_expiring_days=True)}
+                                    % if Domain.server_certificate_id__latest_multi:
+                                        ${admin_partials.table_certificates__list([Domain.server_certificate__latest_multi,], show_domains=True, show_expiring_days=True)}
                                     % endif
                                 </td>
                             </tr>
@@ -168,27 +168,27 @@
                 <tr>
                     <th>certificates history</th>
                     <td>
-                        ${admin_partials.table_certificates__list(SslDomain.server_certificates__5, show_domains=True, show_expiring_days=True)}
-                        % if SslDomain.server_certificates__5:
-                            ${admin_partials.nav_pager("%s/domain/%s/certificates" % (admin_prefix, SslDomain.id))}
+                        ${admin_partials.table_certificates__list(Domain.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                        % if Domain.server_certificates__5:
+                            ${admin_partials.nav_pager("%s/domain/%s/certificates" % (admin_prefix, Domain.id))}
                         % endif
                     </td>
                 </tr>
                 <tr>
                     <th>certificate requests</th>
                     <td>
-                        ${admin_partials.table_to_certificate_requests(SslDomain.to_certificate_requests__5)}
-                        % if SslDomain.to_certificate_requests__5:
-                            ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, SslDomain.id))}
+                        ${admin_partials.table_to_certificate_requests(Domain.to_certificate_requests__5)}
+                        % if Domain.to_certificate_requests__5:
+                            ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, Domain.id))}
                         % endif
                     </td>
                 </tr>
                 <tr>
                     <th>unique FQDN Sets</th>
                     <td>
-                        ${admin_partials.table_SslUniqueFQDNSets([i.unique_fqdn_set for i in SslDomain.to_unique_fqdn_sets__5])}
-                        % if SslDomain.to_unique_fqdn_sets__5:
-                            ${admin_partials.nav_pager("%s/domain/%s/unique-fqdn-sets" % (admin_prefix, SslDomain.id))}
+                        ${admin_partials.table_UniqueFQDNSets([i.unique_fqdn_set for i in Domain.to_unique_fqdn_sets__5])}
+                        % if Domain.to_unique_fqdn_sets__5:
+                            ${admin_partials.nav_pager("%s/domain/%s/unique-fqdn-sets" % (admin_prefix, Domain.id))}
                         % endif
                     </td>
                 </tr>

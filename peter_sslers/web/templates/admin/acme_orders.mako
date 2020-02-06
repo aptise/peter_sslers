@@ -24,7 +24,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if SslAcmeOrders:
+            % if AcmeOrders:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -35,7 +35,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                    % for order in SslAcmeOrders:
+                    % for order in AcmeOrders:
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/acme-order/${order.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

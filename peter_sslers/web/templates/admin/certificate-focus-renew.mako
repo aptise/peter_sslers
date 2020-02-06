@@ -10,7 +10,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/certificates">Certificates</a></li>
-        <li><a href="${admin_prefix}/certificate/${SslServerCertificate.id}">Focus [${SslServerCertificate.id}]</a></li>
+        <li><a href="${admin_prefix}/certificate/${ServerCertificate.id}">Focus [${ServerCertificate.id}]</a></li>
         <li class="active">Renew</li>
     </ol>
 </%block>
@@ -27,7 +27,7 @@
         <div class="col-sm-12">
 
             <form method="POST"
-                  action="${admin_prefix}/certificate/${SslServerCertificate.id}/renew/custom"
+                  action="${admin_prefix}/certificate/${ServerCertificate.id}/renew/custom"
                   enctype="multipart/form-data"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
@@ -42,40 +42,40 @@
                         <th>renewal of: id</th>
                         <td>
                             <a  class="btn btn-xs btn-info"
-                                href="${admin_prefix}/certificate/${SslServerCertificate.id}"
+                                href="${admin_prefix}/certificate/${ServerCertificate.id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${SslServerCertificate.id}
+                                cert-${ServerCertificate.id}
                             </a>
                         </td>
                     </tr>
                     <tr>
                         <th>renewal of: issued</th>
                         <td>
-                            <timestamp>${SslServerCertificate.timestamp_signed}</timestamp>
+                            <timestamp>${ServerCertificate.timestamp_signed}</timestamp>
                         </td>
                     </tr>
                     <tr>
                         <th>renewal of: expires</th>
                         <td>
-                            <timestamp>${SslServerCertificate.timestamp_expires}</timestamp>
+                            <timestamp>${ServerCertificate.timestamp_expires}</timestamp>
                         </td>
                     </tr>
                     <tr>
                         <th>renewal of: expires</th>
                         <td>
-                            <timestamp>${SslServerCertificate.timestamp_expires}</timestamp>
+                            <timestamp>${ServerCertificate.timestamp_expires}</timestamp>
                         </td>
                     </tr>
                     <tr>
                         <th>domains</th>
-                        <td><code>${SslServerCertificate.domains_as_string}</code></td>
+                        <td><code>${ServerCertificate.domains_as_string}</code></td>
                     </tr>
                     <tr>
                         <th>Lets Encrypt Account</th>
                         <td>
                             ${admin_partials.formgroup__account_key_selector_advanced(
-                                dbAccountKeyReuse=SslServerCertificate.acme_account_key,
+                                dbAcmeAccountKeyReuse=ServerCertificate.acme_account_key,
                             )}
                         </td>
                     </tr>
@@ -84,7 +84,7 @@
                         <td>
                             ${admin_partials.formgroup__private_key_selector_advanced(
                                 show_text=False,
-                                dbPrivateKeyReuse=SslServerCertificate.private_key,
+                                dbPrivateKeyReuse=ServerCertificate.private_key,
                             )}
                         </td>
                     </tr>

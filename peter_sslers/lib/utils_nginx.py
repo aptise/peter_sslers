@@ -15,6 +15,9 @@ from .. import lib  # for `lib.db.logger`
 
 
 def new_nginx_session(request):
+    """
+    :param request: The current Pyramid `request` object
+    """
     sess = requests.Session()
     _auth = request.registry.settings.get("nginx.userpass")
     if _auth:
@@ -28,6 +31,10 @@ def new_nginx_session(request):
 
 
 def nginx_flush_cache(request, ctx):
+    """
+    :param request: The current Pyramid `request` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    """
     _reset_path = request.registry.settings["nginx.reset_path"]
     timeout = request.registry.settings["nginx.timeout"]
     sess = new_nginx_session(request)
@@ -70,7 +77,12 @@ def nginx_flush_cache(request, ctx):
 
 
 def nginx_status(request, ctx):
-    """returns the status document for each server"""
+    """
+    returns the status document for each server
+
+    :param request: The current Pyramid `request` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    """
     status_path = request.registry.settings["nginx.status_path"]
     timeout = request.registry.settings["nginx.timeout"]
     sess = new_nginx_session(request)
@@ -106,6 +118,11 @@ def nginx_status(request, ctx):
 
 
 def nginx_expire_cache(request, ctx, dbDomains=None):
+    """
+    :param request: The current Pyramid `request` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbDomains:
+    """
     if not dbDomains:
         raise ValueError("no domains submitted")
     domain_ids = {"success": set([]), "failure": set([])}
@@ -132,7 +149,7 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
                 domain_ids["failure"].add(domain.id)
 
     event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["ssl_domain_ids"] = {
+    event_payload_dict["domain_ids"] = {
         "success": list(domain_ids["success"]),
         "failure": list(domain_ids["failure"]),
     }
