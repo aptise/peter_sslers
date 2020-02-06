@@ -519,7 +519,7 @@ class ViewAdmin_Focus(Handler):
                 )
 
             # okay, we're good to go...'
-            event_type = model_utils.SslOperationsEventType.from_string(
+            event_type = model_utils.OperationsEventType.from_string(
                 "queue_renewal__update"
             )
             event_payload_dict = utils.new_event_payload_dict()
@@ -653,7 +653,7 @@ class ViewAdmin_Focus(Handler):
                 event_payload_dict["server_certificate.id"] = dbServerCertificate.id
                 dbEvent = lib_db.logger.log__SslOperationsEvent(
                     self.request.api_context,
-                    model_utils.SslOperationsEventType.from_string(
+                    model_utils.OperationsEventType.from_string(
                         "certificate__renew"
                     ),
                     event_payload_dict,
@@ -745,7 +745,7 @@ class ViewAdmin_Focus(Handler):
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["server_certificate.id"] = dbServerCertificate.id
             event_payload_dict["action"] = action
-            event_type = model_utils.SslOperationsEventType.from_string(
+            event_type = model_utils.OperationsEventType.from_string(
                 "certificate__mark"
             )
 

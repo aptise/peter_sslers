@@ -223,7 +223,7 @@ class ViewAdmin(Handler):
                 )
 
             # okay, we're good to go...'
-            event_type = model_utils.SslOperationsEventType.from_string(
+            event_type = model_utils.OperationsEventType.from_string(
                 "queue_renewal__update"
             )
             event_payload_dict = utils.new_event_payload_dict()

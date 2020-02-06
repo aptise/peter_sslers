@@ -118,7 +118,7 @@ def create__CertificateRequest(
         certificate_request_source_id
         == model_utils.CertificateRequestSource.ACME_AUTOMATED
     ):
-        _event_type_id = model_utils.SslOperationsEventType.from_string(
+        _event_type_id = model_utils.OperationsEventType.from_string(
             "certificate_request__new__automated"
         )
     else:
@@ -278,7 +278,7 @@ def create__ServerCertificate(
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
-        ctx, model_utils.SslOperationsEventType.from_string("certificate__insert")
+        ctx, model_utils.OperationsEventType.from_string("certificate__insert")
     )
 
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)

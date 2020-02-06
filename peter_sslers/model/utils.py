@@ -129,7 +129,7 @@ class _mixin_mapping(object):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-class _SslOperationsUnified(_mixin_mapping):
+class _OperationsUnified(_mixin_mapping):
     """
     unified constants
     """
@@ -210,7 +210,7 @@ class _SslOperationsUnified(_mixin_mapping):
     }
 
 
-class SslOperationsEventType(_SslOperationsUnified):
+class OperationsEventType(_OperationsUnified):
     """
     This object used to store constants
     """
@@ -218,7 +218,7 @@ class SslOperationsEventType(_SslOperationsUnified):
     pass
 
 
-class OperationsObjectEventStatus(_SslOperationsUnified):
+class OperationsObjectEventStatus(_OperationsUnified):
     """
     This object is used to store constants
     """
@@ -321,7 +321,7 @@ class CertificateRequestSource(object):
     ACME_AUTOMATED = 3
 
 
-class _mixin_SslOperationsEventType(object):
+class _mixin_OperationsEventType(object):
     @property
     def event_type_text(self):
-        return SslOperationsEventType.as_string(self.operations_event_type_id)
+        return OperationsEventType.as_string(self.operations_event_type_id)

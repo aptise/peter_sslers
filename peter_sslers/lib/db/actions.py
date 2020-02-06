@@ -113,7 +113,7 @@ def ca_certificate_probe(ctx):
     # create a bookkeeping object
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
-        ctx, model_utils.SslOperationsEventType.from_string("ca_certificate__probe")
+        ctx, model_utils.OperationsEventType.from_string("ca_certificate__probe")
     )
 
     certs = letsencrypt_info.probe_letsencrypt_certificates()
@@ -244,7 +244,7 @@ def do__CertificateRequest__AcmeV2_Automated(
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.SslOperationsEventType.from_string(
+        model_utils.OperationsEventType.from_string(
             "certificate_request__do__automated"
         ),
     )
@@ -558,7 +558,7 @@ def operations_deactivate_expired(ctx):
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.SslOperationsEventType.from_string(
+        model_utils.OperationsEventType.from_string(
             "certificate__deactivate_expired"
         ),
         event_payload_dict,
@@ -620,7 +620,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.SslOperationsEventType.from_string("deactivate_duplicate"),
+        model_utils.OperationsEventType.from_string("deactivate_duplicate"),
         event_payload_dict,
     )
 
@@ -874,7 +874,7 @@ def operations_update_recents(ctx):
     # bookkeeping, doing this will mark the session as changed!
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.SslOperationsEventType.from_string("operations__update_recents"),
+        model_utils.OperationsEventType.from_string("operations__update_recents"),
     )
 
     # mark the session changed
@@ -901,7 +901,7 @@ def api_domains__enable(ctx, domain_names):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.SslOperationsEventType.from_string("api_domains__enable"),
+        model_utils.OperationsEventType.from_string("api_domains__enable"),
         event_payload_dict,
     )
     results = lib.db.queues.queue_domains__add(ctx, domain_names)
@@ -925,7 +925,7 @@ def api_domains__disable(ctx, domain_names):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.SslOperationsEventType.from_string("api_domains__disable"),
+        model_utils.OperationsEventType.from_string("api_domains__disable"),
         event_payload_dict,
     )
 
@@ -1000,7 +1000,7 @@ def api_domains__certificate_if_needed(
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.SslOperationsEventType.from_string(
+        model_utils.OperationsEventType.from_string(
             "api_domains__certificate_if_needed"
         ),
         event_payload_dict,
@@ -1184,7 +1184,7 @@ def upload__CaCertificateBundle__by_pem_text(ctx, bundle_data):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.SslOperationsEventType.from_string("ca_certificate__upload_bundle"),
+        model_utils.OperationsEventType.from_string("ca_certificate__upload_bundle"),
         event_payload_dict,
     )
     results = {}

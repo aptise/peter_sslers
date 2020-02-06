@@ -71,7 +71,7 @@ def queue_domains__add(ctx, domain_names):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.SslOperationsEventType.from_string("queue_domain__add"),
+        model_utils.OperationsEventType.from_string("queue_domain__add"),
         event_payload_dict,
     )
 
@@ -227,7 +227,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
         )
         dbOperationsEvent = log__SslOperationsEvent(
             ctx,
-            model_utils.SslOperationsEventType.from_string("queue_domain__process"),
+            model_utils.OperationsEventType.from_string("queue_domain__process"),
             event_payload_dict,
         )
 
@@ -236,7 +236,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.SslOperationsEventType.from_string(
+                event_status_id=model_utils.OperationsEventType.from_string(
                     "queue_domain__process"
                 ),
                 dbQueueDomain=qDomain,
@@ -314,7 +314,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
                 _log_object_event(
                     ctx,
                     dbOperationsEvent=dbOperationsEvent,
-                    event_status_id=model_utils.SslOperationsEventType.from_string(
+                    event_status_id=model_utils.OperationsEventType.from_string(
                         "queue_domain__process__fail"
                     ),
                     dbQueueDomain=qd,
@@ -326,7 +326,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.SslOperationsEventType.from_string(
+                event_status_id=model_utils.OperationsEventType.from_string(
                     "queue_domain__process__success"
                 ),
                 dbQueueDomain=qd,
@@ -349,7 +349,7 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
     renewals = []
     results = []
     try:
-        event_type = model_utils.SslOperationsEventType.from_string(
+        event_type = model_utils.OperationsEventType.from_string(
             "queue_renewal__update"
         )
         event_payload_dict = utils.new_event_payload_dict()
@@ -419,7 +419,7 @@ def queue_renewals__process(ctx):
         "count_remaining": 0,
         "failures": {},
     }
-    event_type = model_utils.SslOperationsEventType.from_string(
+    event_type = model_utils.OperationsEventType.from_string(
         "queue_renewal__process"
     )
     event_payload_dict = utils.new_event_payload_dict()
@@ -495,7 +495,7 @@ def queue_renewals__process(ctx):
                     _log_object_event(
                         ctx,
                         dbOperationsEvent=dbOperationsEvent,
-                        event_status_id=model_utils.SslOperationsEventType.from_string(
+                        event_status_id=model_utils.OperationsEventType.from_string(
                             "queue_renewal__process__success"
                         ),
                         dbQueueRenewal=dbQueueRenewal,
@@ -525,7 +525,7 @@ def queue_renewals__process(ctx):
                 _log_object_event(
                     ctx,
                     dbOperationsEvent=dbOperationsEvent,
-                    event_status_id=model_utils.SslOperationsEventType.from_string(
+                    event_status_id=model_utils.OperationsEventType.from_string(
                         "queue_renewal__process__fail"
                     ),
                     dbQueueRenewal=dbQueueRenewal,

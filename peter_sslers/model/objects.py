@@ -1419,7 +1419,7 @@ class UniqueFQDNSet2Domain(Base):
 # ==============================================================================
 
 
-class SslOperationsEvent(Base, model_utils._mixin_SslOperationsEventType):
+class SslOperationsEvent(Base, model_utils._mixin_OperationsEventType):
     """
     Certain events are tracked for bookkeeping
     """
@@ -1428,7 +1428,7 @@ class SslOperationsEvent(Base, model_utils._mixin_SslOperationsEventType):
     id = sa.Column(sa.Integer, primary_key=True)
     operations_event_type_id = sa.Column(
         sa.Integer, nullable=False
-    )  # references SslOperationsEventType
+    )  # references OperationsEventType
     timestamp_event = sa.Column(sa.DateTime, nullable=True)
     event_payload = sa.Column(sa.Text, nullable=False)
     operations_event_id__child_of = sa.Column(

@@ -421,7 +421,7 @@ class AuthenticatedUser(object):
         event_payload_dict["acme_account_key.id"] = self.acmeAccountKey.id
         dbOperationsEvent = self.log__SslOperationsEvent(
             app_ctx,
-            model_utils.SslOperationsEventType.from_string(
+            model_utils.OperationsEventType.from_string(
                 "acme_account_key__authenticate"
             ),
             event_payload_dict,

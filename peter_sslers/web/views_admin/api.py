@@ -375,7 +375,7 @@ class ViewAdmin(Handler):
         event_payload_dict["total_primed"] = total_primed
         dbEvent = lib_db.logger.log__SslOperationsEvent(
             self.request.api_context,
-            model_utils.SslOperationsEventType.from_string("operations__redis_prime"),
+            model_utils.OperationsEventType.from_string("operations__redis_prime"),
             event_payload_dict,
         )
         if wants_json:

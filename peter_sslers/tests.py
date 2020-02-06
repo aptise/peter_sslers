@@ -421,7 +421,7 @@ class AppTest(AppTestCore):
                 # renew a csr
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
-                event_type = model_utils.SslOperationsEventType.from_string(
+                event_type = model_utils.OperationsEventType.from_string(
                     "queue_renewal__update"
                 )
                 event_payload_dict = utils.new_event_payload_dict()

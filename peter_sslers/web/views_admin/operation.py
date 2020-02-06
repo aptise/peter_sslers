@@ -27,7 +27,7 @@ class ViewAdminOperations(Handler):
         event_type_id = None
         if event_type:
             try:
-                event_type_id = model_utils.SslOperationsEventType.from_string(
+                event_type_id = model_utils.OperationsEventType.from_string(
                     event_type
                 )
             except AttributeError:
@@ -40,7 +40,7 @@ class ViewAdminOperations(Handler):
         event_type = self.request.params.get("event_type", None)
         if event_type:
             try:
-                event_type_id = model_utils.SslOperationsEventType.from_string(
+                event_type_id = model_utils.OperationsEventType.from_string(
                     event_type
                 )
             except AttributeError:
@@ -169,7 +169,7 @@ class ViewAdminOperations(Handler):
         items_count = lib_db.get.get__SslOperationsEvent__count(
             self.request.api_context,
             event_type_ids=(
-                model_utils.SslOperationsEventType.from_string(
+                model_utils.OperationsEventType.from_string(
                     "operations__redis_prime"
                 ),
             ),
@@ -183,7 +183,7 @@ class ViewAdminOperations(Handler):
         items_paged = lib_db.get.get__SslOperationsEvent__paginated(
             self.request.api_context,
             event_type_ids=(
-                model_utils.SslOperationsEventType.from_string(
+                model_utils.OperationsEventType.from_string(
                     "operations__redis_prime"
                 ),
             ),
@@ -213,10 +213,10 @@ class ViewAdminOperations(Handler):
 
         _items_per_page = 25
         _event_type_ids = (
-            model_utils.SslOperationsEventType.from_string(
+            model_utils.OperationsEventType.from_string(
                 "operations__nginx_cache_expire"
             ),
-            model_utils.SslOperationsEventType.from_string(
+            model_utils.OperationsEventType.from_string(
                 "operations__nginx_cache_flush"
             ),
         )

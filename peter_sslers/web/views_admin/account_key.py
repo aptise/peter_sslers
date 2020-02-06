@@ -382,7 +382,7 @@ class ViewAdmin_Focus(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
-            event_type = model_utils.SslOperationsEventType.from_string(
+            event_type = model_utils.OperationsEventType.from_string(
                 "acme_account_key__mark"
             )
             event_payload_dict = utils.new_event_payload_dict()

@@ -444,7 +444,7 @@ class ViewAdmin_Focus(Handler):
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
-            event_type = model_utils.SslOperationsEventType.from_string("domain__mark")
+            event_type = model_utils.OperationsEventType.from_string("domain__mark")
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["domain_id"] = dbDomain.id
             event_payload_dict["action"] = action

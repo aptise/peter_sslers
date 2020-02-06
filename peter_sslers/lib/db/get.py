@@ -687,7 +687,7 @@ def get__SslOperationsEvent__certificate_probe__count(ctx):
         ctx.dbSession.query(model_objects.SslOperationsEvent)
         .filter(
             model_objects.SslOperationsEvent.operations_event_type_id
-            == model_utils.SslOperationsEventType.from_string("ca_certificate__probe")
+            == model_utils.OperationsEventType.from_string("ca_certificate__probe")
         )
         .count()
     )
@@ -700,7 +700,7 @@ def get__SslOperationsEvent__certificate_probe__paginated(ctx, limit=None, offse
         .order_by(model_objects.SslOperationsEvent.id.desc())
         .filter(
             model_objects.SslOperationsEvent.operations_event_type_id
-            == model_utils.SslOperationsEventType.from_string("ca_certificate__probe")
+            == model_utils.OperationsEventType.from_string("ca_certificate__probe")
         )
         .limit(limit)
         .offset(offset)
