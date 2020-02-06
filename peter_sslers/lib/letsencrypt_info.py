@@ -1,10 +1,8 @@
 # stdlib
 import copy
 
-try:
-    from urllib.request import urlopen  # Python 3
-except ImportError:
-    from urllib2 import urlopen  # Python 2
+# pypi
+import requests
 
 # localapp
 from . import cert_utils
@@ -133,18 +131,13 @@ def probe_letsencrypt_certificates():
     THIS DOES NOT APPLY `cleanup_pem_text`
     """
     certs = copy.deepcopy(CA_CERTS_DATA)
-    tmpfile = None
-    try:
-        for c in certs:
-            resp = urlopen(c["url_pem"])
-            if resp.getcode() != 200:
-                raise ValueError("Could not load certificate")
-            cert_pem_text = resp.read()
-            cert_pem_text = cert_utils.cleanup_pem_text(cert_pem_text)
-            c["cert_pem"] = cert_pem_text
-            c["cert_pem_md5"] = utils.md5_text(cert_pem_text)
-    finally:
-        if tmpfile:
-            tmpfile.close()
+    for c in certs:
+        resp = requests.get(c["url_pem"])
+        if resp.status_code != 200:
+            raise ValueError("Could not load certificate")
+        cert_pem_text = resp.content
+        cert_pem_text = cert_utils.cleanup_pem_text(cert_pem_text)
+        c["cert_pem"] = cert_pem_text
+        c["cert_pem_md5"] = utils.md5_text(cert_pem_text)
 
     return certs

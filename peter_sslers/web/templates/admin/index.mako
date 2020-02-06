@@ -38,6 +38,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     account-keys</a></li>
+                <li><a href="${admin_prefix}/acme-orders"
+                       title="${request.text_library.info_AcmeOrders[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-orders</a></li>
                 <li><a href="${admin_prefix}/certificate-requests"
                        title="${request.text_library.info_CertificateRequests[0]}"
                     >

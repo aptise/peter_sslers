@@ -3,6 +3,10 @@ import formencode
 
 # these should be tuples of ('Short', 'Long')
 
+info_AcmeOrders = [
+    "A LetsEncrypt ACME Order",
+    "An ACME order is essentially a Certificate Signing Request.",
+]
 info_AccountKeys = [
     "Used to sign Certificate Requests",
     "AccountKeys identify our account to LetsEncrypt when signing.",

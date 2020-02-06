@@ -118,6 +118,7 @@ def get__SslAcmeAccountKey__by_id(ctx, key_id, eagerload_web=False):
     if eagerload_web:
         q = q.options(
             sqlalchemy.orm.subqueryload("certificate_requests__5")
+            .joinedload("unique_fqdn_set")
             .joinedload("to_domains")
             .joinedload("domain"),
             sqlalchemy.orm.subqueryload("server_certificates__5")
@@ -150,6 +151,33 @@ def get__SslAcmeAccountKey__default(ctx, active_only=None):
     item = q.first()
     return item
 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__SslAcmeOrder__count(ctx):
+    counted = ctx.dbSession.query(model_objects.SslAcmeOrder).count()
+    return counted
+
+
+def get__SslAcmeOrder__paginated(ctx, limit=None, offset=0):
+    query = ctx.dbSession.query(model_objects.SslAcmeOrder)
+    query = (
+        query.order_by(model_objects.SslAcmeOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeOrders = query.all()
+    return dbAcmeOrders
+
+
+def get__SslAcmeOrder__by_id(ctx, order_id, eagerload_web=False):
+    q = ctx.dbSession.query(model_objects.SslAcmeOrder).filter(
+        model_objects.SslAcmeOrder.id == order_id
+    )
+    item = q.first()
+    return item
+    
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

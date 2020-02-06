@@ -22,7 +22,7 @@ from .helpers import _certificate_parse_to_record
 def create__SslCertificateRequest(
     ctx,
     csr_pem=None,
-    certificate_request_type_id=None,
+    certificate_request_source_id=None,
     dbAccountKey=None,
     dbPrivateKey=None,
     dbServerCertificate__issued=None,
@@ -33,19 +33,19 @@ def create__SslCertificateRequest(
     create CSR
     2016.06.04 - dbOperationsEvent compliant
     """
-    if certificate_request_type_id not in (
+    if certificate_request_source_id not in (
         model_utils.SslCertificateRequestSource.ACME_FLOW,
         model_utils.SslCertificateRequestSource.ACME_AUTOMATED,
     ):
-        raise ValueError("Invalid `certificate_request_type_id`")
+        raise ValueError("Invalid `certificate_request_source_id`")
 
     _event_type_id = None
-    if certificate_request_type_id == model_utils.SslCertificateRequestSource.ACME_FLOW:
+    if certificate_request_source_id == model_utils.SslCertificateRequestSource.ACME_FLOW:
         _event_type_id = model_utils.SslOperationsEventType.from_string(
             "certificate_request__new__flow"
         )
     elif (
-        certificate_request_type_id
+        certificate_request_source_id
         == model_utils.SslCertificateRequestSource.ACME_AUTOMATED
     ):
         _event_type_id = model_utils.SslOperationsEventType.from_string(
@@ -83,7 +83,7 @@ def create__SslCertificateRequest(
         finally:
             _tmpfile.close()
 
-    if certificate_request_type_id == model_utils.SslCertificateRequestSource.ACME_FLOW:
+    if certificate_request_source_id == model_utils.SslCertificateRequestSource.ACME_FLOW:
         if domain_names is None:
             if csr_pem is None:
                 raise ValueError(
@@ -117,7 +117,7 @@ def create__SslCertificateRequest(
         dbCertificateRequest = model_objects.SslCertificateRequest()
         dbCertificateRequest.is_active = True
         dbCertificateRequest.csr_pem = csr_pem
-        dbCertificateRequest.certificate_request_type_id = (
+        dbCertificateRequest.certificate_request_source_id = (
             model_utils.SslCertificateRequestSource.ACME_FLOW
         )
         dbCertificateRequest.timestamp_created = ctx.timestamp
@@ -200,7 +200,7 @@ def create__SslCertificateRequest(
         # build the cert
         dbCertificateRequest = model_objects.SslCertificateRequest()
         dbCertificateRequest.is_active = True
-        dbCertificateRequest.certificate_request_type_id = certificate_request_type_id
+        dbCertificateRequest.certificate_request_source_id = certificate_request_source_id
         dbCertificateRequest.timestamp_started = t_now
         dbCertificateRequest.csr_pem = csr_pem
         dbCertificateRequest.csr_pem_md5 = utils.md5_text(csr_pem)

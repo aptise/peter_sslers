@@ -316,7 +316,7 @@ def getcreate__SslCaCertificate__by_pem_text(
 def getcreate__SslCertificateRequest__by_pem_text(
     ctx,
     csr_pem,
-    certificate_request_type_id=None,
+    certificate_request_source_id=None,
     dbAccountKey=None,
     dbPrivateKey=None,
     dbServerCertificate__issued=None,
@@ -336,7 +336,7 @@ def getcreate__SslCertificateRequest__by_pem_text(
         ) = lib.db.create.create__SslCertificateRequest(
             ctx,
             csr_pem,
-            certificate_request_type_id=certificate_request_type_id,
+            certificate_request_source_id=certificate_request_source_id,
             dbAccountKey=dbAccountKey,
             dbPrivateKey=dbPrivateKey,
             dbServerCertificate__issued=dbServerCertificate__issued,
