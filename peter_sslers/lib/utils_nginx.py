@@ -155,9 +155,7 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
     }
     dbEvent = lib.db.logger.log__SslOperationsEvent(
         ctx,
-        model_utils.OperationsEventType.from_string(
-            "operations__nginx_cache_expire"
-        ),
+        model_utils.OperationsEventType.from_string("operations__nginx_cache_expire"),
         event_payload_dict,
     )
     return True, dbEvent

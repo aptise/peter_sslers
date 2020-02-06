@@ -558,9 +558,7 @@ def operations_deactivate_expired(ctx):
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__SslOperationsEvent(
         ctx,
-        model_utils.OperationsEventType.from_string(
-            "certificate__deactivate_expired"
-        ),
+        model_utils.OperationsEventType.from_string("certificate__deactivate_expired"),
         event_payload_dict,
     )
 
@@ -873,8 +871,7 @@ def operations_update_recents(ctx):
 
     # bookkeeping, doing this will mark the session as changed!
     dbOperationsEvent = log__SslOperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string("operations__update_recents"),
+        ctx, model_utils.OperationsEventType.from_string("operations__update_recents"),
     )
 
     # mark the session changed

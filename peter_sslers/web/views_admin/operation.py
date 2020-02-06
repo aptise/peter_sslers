@@ -27,9 +27,7 @@ class ViewAdminOperations(Handler):
         event_type_id = None
         if event_type:
             try:
-                event_type_id = model_utils.OperationsEventType.from_string(
-                    event_type
-                )
+                event_type_id = model_utils.OperationsEventType.from_string(event_type)
             except AttributeError:
                 event_type = None
         return (event_type, event_type_id)
@@ -40,9 +38,7 @@ class ViewAdminOperations(Handler):
         event_type = self.request.params.get("event_type", None)
         if event_type:
             try:
-                event_type_id = model_utils.OperationsEventType.from_string(
-                    event_type
-                )
+                event_type_id = model_utils.OperationsEventType.from_string(event_type)
             except AttributeError:
                 event_type = None
                 event_type_id = None
@@ -169,9 +165,7 @@ class ViewAdminOperations(Handler):
         items_count = lib_db.get.get__SslOperationsEvent__count(
             self.request.api_context,
             event_type_ids=(
-                model_utils.OperationsEventType.from_string(
-                    "operations__redis_prime"
-                ),
+                model_utils.OperationsEventType.from_string("operations__redis_prime"),
             ),
         )
         (pager, offset) = self._paginate(
@@ -183,9 +177,7 @@ class ViewAdminOperations(Handler):
         items_paged = lib_db.get.get__SslOperationsEvent__paginated(
             self.request.api_context,
             event_type_ids=(
-                model_utils.OperationsEventType.from_string(
-                    "operations__redis_prime"
-                ),
+                model_utils.OperationsEventType.from_string("operations__redis_prime"),
             ),
             limit=_items_per_page,
             offset=offset,

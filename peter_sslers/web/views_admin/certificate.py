@@ -653,9 +653,7 @@ class ViewAdmin_Focus(Handler):
                 event_payload_dict["server_certificate.id"] = dbServerCertificate.id
                 dbEvent = lib_db.logger.log__SslOperationsEvent(
                     self.request.api_context,
-                    model_utils.OperationsEventType.from_string(
-                        "certificate__renew"
-                    ),
+                    model_utils.OperationsEventType.from_string("certificate__renew"),
                     event_payload_dict,
                 )
 

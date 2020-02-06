@@ -100,9 +100,7 @@ def getcreate__AcmeAccountKey(
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__SslOperationsEvent(
                 ctx,
-                model_utils.OperationsEventType.from_string(
-                    "acme_account_key__insert"
-                ),
+                model_utils.OperationsEventType.from_string("acme_account_key__insert"),
             )
 
             dbAcmeAccountKey = model_objects.AcmeAccountKey()
@@ -188,9 +186,7 @@ def getcreate__AcmeAccountKey(
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__SslOperationsEvent(
                 ctx,
-                model_utils.OperationsEventType.from_string(
-                    "acme_account_key__insert"
-                ),
+                model_utils.OperationsEventType.from_string("acme_account_key__insert"),
             )
 
             dbAcmeAccountKey = model_objects.AcmeAccountKey()
@@ -357,9 +353,7 @@ def getcreate__CaCertificate__by_pem_text(
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__SslOperationsEvent(
                 ctx,
-                model_utils.OperationsEventType.from_string(
-                    "ca_certificate__insert"
-                ),
+                model_utils.OperationsEventType.from_string("ca_certificate__insert"),
             )
 
             dbCACertificate = model_objects.CaCertificate()
@@ -659,8 +653,7 @@ def getcreate__ServerCertificate__by_pem_text(
             # bookkeeping
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__SslOperationsEvent(
-                ctx,
-                model_utils.OperationsEventType.from_string("certificate__insert"),
+                ctx, model_utils.OperationsEventType.from_string("certificate__insert"),
             )
 
             dbServerCertificate = model_objects.ServerCertificate()

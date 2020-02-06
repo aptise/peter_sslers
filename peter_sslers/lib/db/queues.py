@@ -419,9 +419,7 @@ def queue_renewals__process(ctx):
         "count_remaining": 0,
         "failures": {},
     }
-    event_type = model_utils.OperationsEventType.from_string(
-        "queue_renewal__process"
-    )
+    event_type = model_utils.OperationsEventType.from_string("queue_renewal__process")
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__SslOperationsEvent(ctx, event_type, event_payload_dict)
     items_count = lib.db.get.get__SslQueueRenewal__count(ctx, unprocessed_only=True)
