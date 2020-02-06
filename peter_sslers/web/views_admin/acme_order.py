@@ -30,7 +30,9 @@ class ViewAdmin_List(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_orders", renderer="/admin/acme_orders.mako")
-    @view_config(route_name="admin:acme_orders_paginated", renderer="/admin/acme_orders.mako")
+    @view_config(
+        route_name="admin:acme_orders_paginated", renderer="/admin/acme_orders.mako"
+    )
     def list(self):
         items_count = lib_db.get.get__SslAcmeOrder__count(self.request.api_context)
         (pager, offset) = self._paginate(

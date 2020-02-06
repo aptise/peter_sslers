@@ -212,7 +212,9 @@ class AppTestCore(unittest.TestCase):
         return data
 
     def setUp(self):
-        settings = get_appsettings("test.ini", name="main")  # this can cause an unclosed resource
+        settings = get_appsettings(
+            "test.ini", name="main"
+        )  # this can cause an unclosed resource
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
         if False:
             settings["sqlalchemy.url"] = "sqlite://"
@@ -504,7 +506,7 @@ class UnitTestCSR(AppTestCore):
             dbServerCertificate__renewal_of=None,
             dbQueueRenewal__of=None,
         )
-        
+
 
 class FunctionalTests_Main(AppTest):
     """
@@ -976,10 +978,12 @@ class FunctionalTests_Certificate(AppTest):
     def test_focus(self):
         focus_item = self._get_item()
         if focus_item is None:
-            raise ValueError("""This test currently fails when the ENTIRE SUITE is run """
-                             """because `FunctionalTests_API.tests_manipulate` will """
-                             """deactivate the certificate. Try running this test or """
-                             """this tests's class directly to ensure a pass.""")
+            raise ValueError(
+                """This test currently fails when the ENTIRE SUITE is run """
+                """because `FunctionalTests_API.tests_manipulate` will """
+                """deactivate the certificate. Try running this test or """
+                """this tests's class directly to ensure a pass."""
+            )
         focus_id = focus_item.id
 
         res = self.testapp.get(
@@ -1853,6 +1857,7 @@ class FunctionalTests_Operations(AppTest):
 
 class ZZZ_FunctionalTests_API(AppTest):
     """python -m unittest peter_sslers.tests.ZZZ_FunctionalTests_API"""
+
     """this is prefixed `ZZZ_` so it runs last. 
     When run, some API endpoints will deactivate the test certificates – which will
     cause other tests to fail.

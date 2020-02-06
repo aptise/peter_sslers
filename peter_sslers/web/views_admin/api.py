@@ -201,8 +201,8 @@ class ViewAdmin(Handler):
 
             account_key_pem = None
             if formStash.results["account_key_file_pem"] is not None:
-                account_key_pem = formStash.results["account_key_file_pem"].file.read()
-                formStash.results["account_key_file_pem"].file.close()
+                with formStash.results["account_key_file_pem"] as field:
+                    account_key_pem = field.file.read()
                 if six.PY3:
                     if not isinstance(account_key_pem, str):
                         account_key_pem = account_key_pem.decode("utf8")

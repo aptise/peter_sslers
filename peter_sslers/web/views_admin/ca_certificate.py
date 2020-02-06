@@ -213,8 +213,8 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            chain_pem = formStash.results["chain_file"].file.read()
-            formStash.results["chain_file"].file.close()
+            with formStash.results["chain_file"] as field:
+                chain_pem = field.file.read()
             if six.PY3:
                 if not isinstance(chain_pem, str):
                     chain_pem = chain_pem.decode("utf8")
@@ -313,10 +313,8 @@ class ViewAdmin_New(Handler):
 
             bundle_data = {"isrgrootx1_pem": None}
             if formStash.results["isrgrootx1_file"] is not None:
-                bundle_data["isrgrootx1_pem"] = formStash.results[
-                    "isrgrootx1_file"
-                ].file.read()
-                formStash.results["isrgrootx1_file"].file.close()
+                with formStash.results["isrgrootx1_file"] as field:
+                    bundle_data["isrgrootx1_pem"] = field.file.read()
                 if six.PY3:
                     if not isinstance(bundle_data["isrgrootx1_pem"], str):
                         bundle_data["isrgrootx1_pem"] = bundle_data[
@@ -327,10 +325,8 @@ class ViewAdmin_New(Handler):
                 _bd_key = "le_%s_cross_signed_pem" % xi
                 bundle_data[_bd_key] = None
                 if formStash.results["le_%s_cross_signed_file" % xi] is not None:
-                    bundle_data[_bd_key] = formStash.results[
-                        "le_%s_cross_signed_file" % xi
-                    ].file.read()
-                    formStash.results["le_%s_cross_signed_file" % xi].file.close()
+                    with formStash.results["le_%s_cross_signed_file" % xi] as field:
+                        bundle_data[_bd_key] = field.file.read()
                     if six.PY3:
                         if not isinstance(bundle_data[_bd_key], str):
                             bundle_data[_bd_key] = bundle_data[_bd_key].decode("utf8")
@@ -339,10 +335,8 @@ class ViewAdmin_New(Handler):
                 _bd_key = "le_%s_auth_pem" % xi
                 bundle_data[_bd_key] = None
                 if formStash.results["le_%s_auth_file" % xi] is not None:
-                    bundle_data[_bd_key] = formStash.results[
-                        "le_%s_auth_file" % xi
-                    ].file.read()
-                    formStash.results["le_%s_auth_file" % xi].file.close()
+                    with formStash.results["le_%s_auth_file" % xi] as field:
+                        bundle_data[_bd_key] = field.file.read()
                     if six.PY3:
                         if not isinstance(bundle_data[_bd_key], str):
                             bundle_data[_bd_key] = bundle_data[_bd_key].decode("utf8")

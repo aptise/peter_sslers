@@ -261,10 +261,7 @@ class ViewAdmin_Focus_AcmeFlow(ViewAdmin_Focus):
 
             return HTTPSeeOther(
                 "%s/acme-flow/manage/domain/%s?result=success"
-                % (
-                    self._focus_url,
-                    self.db_SslCertificateRequest2Domain.ssl_domain_id,
-                )
+                % (self._focus_url, self.db_SslCertificateRequest2Domain.ssl_domain_id,)
             )
 
         except formhandling.FormInvalid as exc:

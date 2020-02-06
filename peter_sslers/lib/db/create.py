@@ -40,7 +40,10 @@ def create__SslCertificateRequest(
         raise ValueError("Invalid `certificate_request_source_id`")
 
     _event_type_id = None
-    if certificate_request_source_id == model_utils.SslCertificateRequestSource.ACME_FLOW:
+    if (
+        certificate_request_source_id
+        == model_utils.SslCertificateRequestSource.ACME_FLOW
+    ):
         _event_type_id = model_utils.SslOperationsEventType.from_string(
             "certificate_request__new__flow"
         )
@@ -83,7 +86,10 @@ def create__SslCertificateRequest(
         finally:
             _tmpfile.close()
 
-    if certificate_request_source_id == model_utils.SslCertificateRequestSource.ACME_FLOW:
+    if (
+        certificate_request_source_id
+        == model_utils.SslCertificateRequestSource.ACME_FLOW
+    ):
         if domain_names is None:
             if csr_pem is None:
                 raise ValueError(
@@ -200,7 +206,9 @@ def create__SslCertificateRequest(
         # build the cert
         dbCertificateRequest = model_objects.SslCertificateRequest()
         dbCertificateRequest.is_active = True
-        dbCertificateRequest.certificate_request_source_id = certificate_request_source_id
+        dbCertificateRequest.certificate_request_source_id = (
+            certificate_request_source_id
+        )
         dbCertificateRequest.timestamp_started = t_now
         dbCertificateRequest.csr_pem = csr_pem
         dbCertificateRequest.csr_pem_md5 = utils.md5_text(csr_pem)

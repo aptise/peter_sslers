@@ -74,9 +74,7 @@ class ViewAdmin_AcmeChallengeLog(Handler):
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
         )
-        items_count = lib_db.get.get__SslAcmeChallenges__count(
-            self.request.api_context
-        )
+        items_count = lib_db.get.get__SslAcmeChallenges__count(self.request.api_context)
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/acme-challenge-logs/{0}"

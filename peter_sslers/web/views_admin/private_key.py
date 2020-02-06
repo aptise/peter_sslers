@@ -374,8 +374,8 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            private_key_pem = formStash.results["private_key_file"].file.read()
-            formStash.results["private_key_file"].file.close()
+            with formStash.results["private_key_file"] as field:
+                private_key_pem = field.file.read()
             if six.PY3:
                 if not isinstance(private_key_pem, str):
                     private_key_pem = private_key_pem.decode("utf8")

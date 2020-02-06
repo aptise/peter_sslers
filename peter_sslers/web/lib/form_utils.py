@@ -96,25 +96,16 @@ class AccountKeyUploadParser(object):
             self.acme_account_provider_id = getcreate_args[
                 "acme_account_provider_id"
             ] = acme_account_provider_id
-            self.account_key_pem = getcreate_args["key_pem"] = formStash.results[
-                "account_key_file_pem"
-            ].file.read()
-            formStash.results["account_key_file_pem"].file.close()
+            with formStash.results["account_key_file_pem"] as field:
+                self.account_key_pem = getcreate_args["key_pem"] = field.file.read()
         else:
             # note that we use `jsonS` to indicate a string
-            self.le_meta_jsons = getcreate_args["le_meta_jsons"] = formStash.results[
-                "account_key_file_le_meta"
-            ].file.read()
-            formStash.results["account_key_file_le_meta"].file.close()
-            self.le_pkey_jsons = getcreate_args["le_pkey_jsons"] = formStash.results[
-                "account_key_file_le_pkey"
-            ].file.read()
-            formStash.results["account_key_file_le_pkey"].file.close()
-            self.le_reg_jsons = getcreate_args["le_reg_jsons"] = formStash.results[
-                "account_key_file_le_reg"
-            ].file.read()
-            formStash.results["account_key_file_le_reg"].file.close()
-
+            with formStash.results["account_key_file_le_meta"] as field:
+                self.le_meta_jsons = getcreate_args["le_meta_jsons"] = field.file.read()
+            with formStash.results["account_key_file_le_pkey"] as field:
+                self.le_pkey_jsons = getcreate_args["le_pkey_jsons"] = field.file.read()
+            with formStash.results["account_key_file_le_reg"] as field:
+                self.le_reg_jsons = getcreate_args["le_reg_jsons"] = field.file.read()
         if six.PY3:
             for (k, v) in list(getcreate_args.items()):
                 if isinstance(v, bytes):
@@ -227,8 +218,8 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
 
     # handle the best-option now
     if formStash.results["private_key_file"] is not None:
-        private_key_pem = formStash.results["private_key_file"].file.read()
-        formStash.results["private_key_file"].file.close()
+        with formStash.results["private_key_file"] as field:
+            private_key_pem = field.file.read()
     else:
         private_key_pem_md5 = None
         field_source = None

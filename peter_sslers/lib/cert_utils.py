@@ -171,7 +171,7 @@ def new_csr_for_domain_names(
             # store some data in a tempfile
             with open(openssl_path_conf, "rt", encoding="utf-8") as _f_conf:
                 _conf_data = _f_conf.read()
-            
+
             _newline = "\n\n"
             if six.PY3:
                 _conf_data = _conf_data.encode()

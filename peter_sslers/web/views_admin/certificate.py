@@ -220,8 +220,8 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            private_key_pem = formStash.results["private_key_file"].file.read()
-            formStash.results["private_key_file"].file.close()
+            with formStash.results["private_key_file"] as field:
+                private_key_pem = field.file.read()
             if six.PY3:
                 if not isinstance(private_key_pem, str):
                     private_key_pem = private_key_pem.decode("utf8")
@@ -232,8 +232,8 @@ class ViewAdmin_New(Handler):
                 self.request.api_context, private_key_pem
             )
 
-            chain_pem = formStash.results["chain_file"].file.read()
-            formStash.results["chain_file"].file.close()
+            with formStash.results["chain_file"] as field:
+                chain_pem = field.file.read()
             if six.PY3:
                 if not isinstance(chain_pem, str):
                     chain_pem = chain_pem.decode("utf8")
@@ -244,8 +244,8 @@ class ViewAdmin_New(Handler):
                 self.request.api_context, chain_pem, "manual upload"
             )
 
-            certificate_pem = formStash.results["certificate_file"].file.read()
-            formStash.results["certificate_file"].file.close()
+            with formStash.results["certificate_file"] as field:
+                certificate_pem = field.file.read()
             if six.PY3:
                 if not isinstance(certificate_pem, str):
                     certificate_pem = certificate_pem.decode("utf8")

@@ -163,9 +163,7 @@ def get__SslAcmeOrder__count(ctx):
 def get__SslAcmeOrder__paginated(ctx, limit=None, offset=0):
     query = ctx.dbSession.query(model_objects.SslAcmeOrder)
     query = (
-        query.order_by(model_objects.SslAcmeOrder.id.desc())
-        .limit(limit)
-        .offset(offset)
+        query.order_by(model_objects.SslAcmeOrder.id.desc()).limit(limit).offset(offset)
     )
     dbAcmeOrders = query.all()
     return dbAcmeOrders
@@ -177,7 +175,7 @@ def get__SslAcmeOrder__by_id(ctx, order_id, eagerload_web=False):
     )
     item = q.first()
     return item
-    
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -301,9 +299,7 @@ def get__SslCertificateRequest__by_SslDomainId__count(ctx, domain_id):
             model_objects.SslCertificateRequest.id
             == model_objects.SslCertificateRequest2Domain.ssl_certificate_request_id,
         )
-        .filter(
-            model_objects.SslCertificateRequest2Domain.ssl_domain_id == domain_id
-        )
+        .filter(model_objects.SslCertificateRequest2Domain.ssl_domain_id == domain_id)
         .count()
     )
     return counted
@@ -319,9 +315,7 @@ def get__SslCertificateRequest__by_SslDomainId__paginated(
             model_objects.SslCertificateRequest.id
             == model_objects.SslCertificateRequest2Domain.ssl_certificate_request_id,
         )
-        .filter(
-            model_objects.SslCertificateRequest2Domain.ssl_domain_id == domain_id
-        )
+        .filter(model_objects.SslCertificateRequest2Domain.ssl_domain_id == domain_id)
         .order_by(model_objects.SslCertificateRequest.id.desc())
         .limit(limit)
         .offset(offset)

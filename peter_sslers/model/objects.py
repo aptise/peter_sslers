@@ -1523,14 +1523,13 @@ class SslOperationsObjectEvent(Base):
         sa.Integer, sa.ForeignKey("ssl_unique_fqdn_set.id"), nullable=True
     )
 
-
     # TODO: Queue
-    '''
+    """
         CASE WHEN ssl_queue_domain_id IS NOT NULL THEN 1 ELSE 0 END
         +
         CASE WHEN ssl_queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END
         +
-    '''    
+    """
     check1 = sa.CheckConstraint(
         """(
         CASE WHEN ssl_ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END
@@ -1647,10 +1646,13 @@ SslAcmeAccountKey.certificate_requests__5 = sa_orm_relationship(
     ),
     secondaryjoin=(
         sa.and_(
-            SslCertificateRequest.id == sa.orm.foreign(SslAcmeOrder.ssl_certificate_request_id),
+            SslCertificateRequest.id
+            == sa.orm.foreign(SslAcmeOrder.ssl_certificate_request_id),
             SslCertificateRequest.id.in_(
                 sa.select([SslCertificateRequest.id])
-                .where(SslCertificateRequest.id == SslAcmeOrder.ssl_certificate_request_id)
+                .where(
+                    SslCertificateRequest.id == SslAcmeOrder.ssl_certificate_request_id
+                )
                 .where(SslAcmeOrder.ssl_acme_account_key_id == SslAcmeAccountKey.id)
                 .order_by(SslCertificateRequest.id.desc())
                 .limit(5)
@@ -1754,7 +1756,10 @@ SslDomain.server_certificates__5 = sa_orm_relationship(
             == sa.orm.foreign(SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id),
             SslServerCertificate.id.in_(
                 sa.select([SslServerCertificate.id])
-                .where(SslServerCertificate.ssl_unique_fqdn_set_id == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id)
+                .where(
+                    SslServerCertificate.ssl_unique_fqdn_set_id
+                    == SslUniqueFQDNSet2SslDomain.ssl_unique_fqdn_set_id
+                )
                 .where(SslUniqueFQDNSet2SslDomain.ssl_domain_id == SslDomain.id)
                 .order_by(SslServerCertificate.id.desc())
                 .limit(5)
