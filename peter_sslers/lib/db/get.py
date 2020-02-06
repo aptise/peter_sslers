@@ -14,17 +14,10 @@ from .. import cert_utils
 from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
-
-
-EVENTS_USE_ALT = True
+from ._utils import get_dbSessionLogItem
 
 
 # ==============================================================================
-
-
-def get_dbSessionLogItem(ctx):
-    dbSession = ctx.dbSessionLogger if EVENTS_USE_ALT else ctx.dbSession
-    return dbSession
 
 
 def get__AcmeEventLogs__count(ctx):

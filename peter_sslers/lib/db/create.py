@@ -15,7 +15,7 @@ from ... import lib  # from . import db?
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
 from .helpers import _certificate_parse_to_record
-from .get import get_dbSessionLogItem
+from ._utils import get_dbSessionLogItem
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

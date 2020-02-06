@@ -11,6 +11,7 @@ import pdb
 from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
+from ._utils import get_dbSessionLogItem
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -33,6 +34,11 @@ class AcmeLogger(object):
         """
         self.ctx = ctx
         self.dbAcmeAccountKey = dbAcmeAccountKey
+
+    @property
+    def dbSession(self):
+        # return get_dbSessionLogItem(self.ctx)
+        return self.ctx.dbSession
 
     def register_dbAcmeOrder(self, dbAcmeOrder):
         """
@@ -57,8 +63,8 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = acme_event_id
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
-        self.ctx.dbSessionLogger.add(dbAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
         return dbAcmeEventLog
 
     def log_newOrder(self, acme_version, dbCertificateRequest):
@@ -81,8 +87,8 @@ class AcmeLogger(object):
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
-        self.ctx.dbSessionLogger.add(dbAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
         return dbAcmeEventLog
 
     def log_authorization_request(self, acme_version, dbAcmeAuthorization):
@@ -103,8 +109,8 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        self.ctx.dbSessionLogger.add(dbAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
         return dbAcmeEventLog
 
     def log_challenge_trigger(self, acme_version, dbAcmeChallenge):
@@ -126,8 +132,8 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        self.ctx.dbSessionLogger.add(dbAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
         return dbAcmeEventLog
 
     # ==========================================================================
@@ -147,14 +153,14 @@ class AcmeLogger(object):
             dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "setup-prevalidation"
             )
-            self.ctx.dbSessionLogger.add(dbAcmeChallenge)
-            self.ctx.dbSessionLogger.flush()
+            self.dbSession.add(dbAcmeChallenge)
+            self.dbSession.flush()
         elif failtype in ("fail-1", "fail-2"):
             dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "upstream-validation"
             )
-            self.ctx.dbSessionLogger.add(dbAcmeChallenge)
-            self.ctx.dbSessionLogger.flush()
+            self.dbSession.add(dbAcmeChallenge)
+            self.dbSession.flush()
         else:
             raise ValueError("unknown `failtype")
 
@@ -170,8 +176,8 @@ class AcmeLogger(object):
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
-        self.ctx.dbSessionLogger.add(dbAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
         return dbAcmeEventLog
 
     def log_order_finalize(self, version, dbCertificateRequest):
@@ -186,8 +192,8 @@ class AcmeLogger(object):
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
-        self.ctx.dbSessionLogger.add(dbAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
         return dbAcmeEventLog
 
     def log_event_certificate(self, dbAcmeEventLog, dbServerCertificate):
@@ -196,8 +202,8 @@ class AcmeLogger(object):
         """
         pdb.set_trace()
         dbAcmeEventLog.server_certificate_id = dbServerCertificate.id
-        self.ctx.dbSessionLogger.add(dbAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
 
     def log_challenge_pass(self, dbAcmeChallenge):
         """
@@ -205,8 +211,8 @@ class AcmeLogger(object):
         """
         raise ValueError("this is not consistent with current api")
         dbAcmeChallenge.timestamp_challenge_pass = datetime.datetime.utcnow()
-        self.ctx.dbSessionLogger.add(dbAcmeChallenge)
-        self.ctx.dbSessionLogger.flush()
+        self.dbSession.add(dbAcmeChallenge)
+        self.dbSession.flush()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
