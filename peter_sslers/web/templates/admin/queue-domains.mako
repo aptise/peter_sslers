@@ -52,7 +52,7 @@
                 The domain queue is designed to allow for domains to be "queued in" for later batch processing.  A domain can have multiple entries, but only one "active" entry. 
             </p>
 
-            % if SslQueueDomains:
+            % if QueueDomains:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -65,7 +65,7 @@
                             <th>domain</th>
                         </tr>
                     </thead>
-                    % for q in SslQueueDomains:
+                    % for q in QueueDomains:
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/queue-domain/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

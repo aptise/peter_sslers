@@ -453,7 +453,7 @@
 </%def>
 
 
-<%def name="table_SslOperationsEvents(SslOperationsEvents, show_event=None, event_type_listable=None)">
+<%def name="table_OperationsEvents(OperationsEvents, show_event=None, event_type_listable=None)">
     <%
         event_id = None
         if show_event is not None:
@@ -469,7 +469,7 @@
             </tr>
         </thead>
         <tbody>
-            % for event in SslOperationsEvents:
+            % for event in OperationsEvents:
                 <tr class="${'success' if event_id == str(event.id) else ''}">
                     <td>
                         <a  href="${admin_prefix}/operations/log/item/${event.id}"

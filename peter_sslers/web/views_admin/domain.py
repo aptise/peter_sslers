@@ -161,10 +161,10 @@ class ViewAdmin_Search(Handler):
                 eagerload_web=False,
                 active_only=False,
             )
-            dbQueueDomainActive = lib_db.get.get__SslQueueDomain__by_name(
+            dbQueueDomainActive = lib_db.get.get__QueueDomain__by_name(
                 self.request.api_context, domain_name, active_only=True
             )
-            dbQueueDomainsInactive = lib_db.get.get__SslQueueDomains__by_name(
+            dbQueueDomainsInactive = lib_db.get.get__QueueDomains__by_name(
                 self.request.api_context,
                 domain_name,
                 active_only=False,
@@ -173,8 +173,8 @@ class ViewAdmin_Search(Handler):
 
             search_results = {
                 "Domain": dbDomain,
-                "SslQueueDomainActive": dbQueueDomainActive,
-                "SslQueueDomainsInactive": dbQueueDomainsInactive,
+                "QueueDomainActive": dbQueueDomainActive,
+                "QueueDomainsInactive": dbQueueDomainsInactive,
                 "query": domain_name,
             }
             self.search_results = search_results
@@ -184,10 +184,10 @@ class ViewAdmin_Search(Handler):
                     "query": domain_name,
                     "search_results": {
                         "Domain": dbDomain.as_json if dbDomain else None,
-                        "SslQueueDomainActive": dbQueueDomainActive.as_json
+                        "QueueDomainActive": dbQueueDomainActive.as_json
                         if dbQueueDomainActive
                         else None,
-                        "SslQueueDomainsInactive": [
+                        "QueueDomainsInactive": [
                             q.as_json for q in dbQueueDomainsInactive
                         ],
                     },
@@ -451,7 +451,7 @@ class ViewAdmin_Focus(Handler):
             event_status = False
 
             # bookkeeping
-            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )
 

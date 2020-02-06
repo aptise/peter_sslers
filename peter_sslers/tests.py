@@ -425,10 +425,10 @@ class AppTest(AppTestCore):
                     "queue_renewal__update"
                 )
                 event_payload_dict = utils.new_event_payload_dict()
-                dbOperationsEvent = db.logger.log__SslOperationsEvent(
+                dbOperationsEvent = db.logger.log__OperationsEvent(
                     self.ctx, event_type, event_payload_dict
                 )
-                dbQueue = db.create._create__SslQueueRenewal(self.ctx, _cert_1)
+                dbQueue = db.create._create__QueueRenewal(self.ctx, _cert_1)
                 self.ctx.dbSession.commit()
 
             except Exception as exc:
@@ -1647,8 +1647,8 @@ class FunctionalTests_QueueDomains(AppTest):
     def _get_item(self):
         # grab an item
         focus_item = (
-            self.ctx.dbSession.query(model_objects.SslQueueDomain)
-            .order_by(model_objects.SslQueueDomain.id.asc())
+            self.ctx.dbSession.query(model_objects.QueueDomain)
+            .order_by(model_objects.QueueDomain.id.asc())
             .first()
         )
         return focus_item
@@ -1733,8 +1733,8 @@ class FunctionalTests_QueueRenewal(AppTest):
     def _get_item(self):
         # grab an item
         focus_item = (
-            self.ctx.dbSession.query(model_objects.SslQueueRenewal)
-            .order_by(model_objects.SslQueueRenewal.id.asc())
+            self.ctx.dbSession.query(model_objects.QueueRenewal)
+            .order_by(model_objects.QueueRenewal.id.asc())
             .first()
         )
         return focus_item
@@ -1831,8 +1831,8 @@ class FunctionalTests_Operations(AppTest):
         res = self.testapp.get("/.well-known/admin/operations/object-log/1", status=200)
 
         focus_item = (
-            self.ctx.dbSession.query(model_objects.SslOperationsEvent)
-            .order_by(model_objects.SslOperationsEvent.id.asc())
+            self.ctx.dbSession.query(model_objects.OperationsEvent)
+            .order_by(model_objects.OperationsEvent.id.asc())
             .limit(1)
             .one()
         )

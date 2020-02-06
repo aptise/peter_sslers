@@ -214,7 +214,7 @@ class ViewAdmin(Handler):
         )
         try:
             # first check to see if this is already queued
-            dbQueued = lib_db.get.get__SslQueueRenewal__by_UniqueFQDNSetId__active(
+            dbQueued = lib_db.get.get__QueueRenewal__by_UniqueFQDNSetId__active(
                 self.request.api_context, dbUniqueFQDNSet.id
             )
             if dbQueued:
@@ -227,10 +227,10 @@ class ViewAdmin(Handler):
                 "queue_renewal__update"
             )
             event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )
-            dbQueue = lib_db.create._create__SslQueueRenewal_fqdns(
+            dbQueue = lib_db.create._create__QueueRenewal_fqdns(
                 self.request.api_context, dbUniqueFQDNSet.id
             )
             event_payload_dict["unique_fqdn_set-queued.ids"] = str(dbUniqueFQDNSet.id)

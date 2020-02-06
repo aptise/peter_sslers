@@ -74,48 +74,48 @@
                     <em>No Domain</em>
                 % endif 
 
-                <h4>Results - SslQueueDomain Active</h4>
-                % if search_results['SslQueueDomainActive']:
+                <h4>Results - QueueDomain Active</h4>
+                % if search_results['QueueDomainActive']:
                     <table class="table table-striped table-condensed">
                         <thead>
                             <tr>
-                                <th colspan="2">SslQueueDomain</th>
+                                <th colspan="2">QueueDomain</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <th>domain_name</th>
-                                <td><code>${search_results['SslQueueDomainActive'].domain_name}</code></td>
+                                <td><code>${search_results['QueueDomainActive'].domain_name}</code></td>
                             </tr>
                             <tr>
                                 <th>record</th>
-                                <td><a href="${admin_prefix}/queue-domain/${search_results['SslQueueDomainActive'].id}"
+                                <td><a href="${admin_prefix}/queue-domain/${search_results['QueueDomainActive'].id}"
                                        class="label label-info"
                                     >
-                                    queue-domain-${search_results['SslQueueDomainActive'].id}
+                                    queue-domain-${search_results['QueueDomainActive'].id}
                                     </a>
                                 </td>
                             </tr>
                             <tr>
                                 <th>is_active</th>
-                                <td>${search_results['SslQueueDomainActive'].is_active}</td>
+                                <td>${search_results['QueueDomainActive'].is_active}</td>
                             </tr>
                         </tbody>
                     </table>
                 % else:
-                    <em>No SslQueueDomain - Active</em>
+                    <em>No QueueDomain - Active</em>
                 % endif 
 
-                <h4>Results - SslQueueDomains - Inactive</h4>
-                % if search_results['SslQueueDomainsInactive']:
+                <h4>Results - QueueDomains - Inactive</h4>
+                % if search_results['QueueDomainsInactive']:
                     <table class="table table-striped table-condensed">
                         <thead>
                             <tr>
-                                <th colspan="2">SslQueueDomainsInactive</th>
+                                <th colspan="2">QueueDomainsInactive</th>
                             </tr>
                         </thead>
                         <tbody>
-                            % for q in search_results['SslQueueDomainsInactive']:
+                            % for q in search_results['QueueDomainsInactive']:
                                 <tr>
                                     <th>domain_name</th>
                                     <td><code>${q.domain_name}</code></td>
@@ -140,7 +140,7 @@
                         </tbody>
                     </table>
                 % else:
-                    <em>No SslQueueDomain - Active</em>
+                    <em>No QueueDomain - Active</em>
                 % endif 
             % endif 
             

@@ -85,14 +85,14 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.flush()
         return dbAcmeEventLog
 
-    # ==========================================================================
-
-    def log_authorization_request(self, version, dbAcmeOrder):
+    def log_authorization_request(self, acme_version):
         """
         Logs a new authorization and creates a challenge object
+
+        :param acme_version: (required) The ACME version of the API we are using.
         """
-        if version != "v2":
-            raise ValueError("invalid version: %s" % version)
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
 
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
@@ -100,11 +100,52 @@ class AcmeLogger(object):
             "v2|-authorization-request"
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
-        dbAcmeEventLog.acme_order_id = dbAcmeOrder.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
         self.ctx.dbSessionLogger.add(dbAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
-
         return dbAcmeEventLog
+
+    def log_challenge_trigger(self, acme_version, dbAcmeChallenge):
+        """
+        Logs a new authorization and creates a challenge object
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-challenge-trigger"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_challenge_id = self.dbAcmeChallenge.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        self.ctx.dbSessionLogger.add(dbAcmeEventLog)
+        self.ctx.dbSessionLogger.flush()
+        return dbAcmeEventLog
+
+    def log_challenge_error(self, dbAcmeChallenge, failtype):
+        """
+        Logs a challenge as error
+        """
+        pdb.set_trace()
+        if failtype in ("pretest-1", "pretest-2"):
+            dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
+                "setup-prevalidation"
+            )
+            self.ctx.dbSessionLogger.add(dbAcmeChallenge)
+            self.ctx.dbSessionLogger.flush()
+        elif failtype in ("fail-1", "fail-2"):
+            dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
+                "upstream-validation"
+            )
+            self.ctx.dbSessionLogger.add(dbAcmeChallenge)
+            self.ctx.dbSessionLogger.flush()
+
+    # ==========================================================================
 
     def log_new_cert(self, dbCertificateRequest, version):
         if version not in ("v1", "v2"):
@@ -147,57 +188,20 @@ class AcmeLogger(object):
         self.ctx.dbSessionLogger.add(dbAcmeEventLog)
         self.ctx.dbSessionLogger.flush()
 
-    def log_challenge_trigger(self, dbAcmeChallenge):
-        """
-        Logs a challenge request
-        """
-        pdb.set_trace()
-        dbAcmeChallenge.timestamp_challenge_trigger = datetime.datetime.utcnow()
-        dbAcmeChallenge.count_polled = 0
-        self.ctx.dbSessionLogger.add(dbAcmeChallenge)
-        self.ctx.dbSessionLogger.flush()
-
-    def log_challenge_polled(self, dbAcmeChallenge):
-        """
-        Logs a challenge poll
-        """
-        pdb.set_trace()
-        dbAcmeChallenge.count_polled += 1
-        self.ctx.dbSessionLogger.add(dbAcmeChallenge)
-        self.ctx.dbSessionLogger.flush()
-
     def log_challenge_pass(self, dbAcmeChallenge):
         """
         Logs a challenge as passed
         """
-        pdb.set_trace()
+        raise ValueError("this is not consistent with current api")
         dbAcmeChallenge.timestamp_challenge_pass = datetime.datetime.utcnow()
         self.ctx.dbSessionLogger.add(dbAcmeChallenge)
         self.ctx.dbSessionLogger.flush()
-
-    def log_challenge_error(self, dbAcmeChallenge, failtype):
-        """
-        Logs a challenge as error
-        """
-        pdb.set_trace()
-        if failtype in ("pretest-1", "pretest-2"):
-            dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
-                "setup-prevalidation"
-            )
-            self.ctx.dbSessionLogger.add(dbAcmeChallenge)
-            self.ctx.dbSessionLogger.flush()
-        elif failtype in ("fail-1", "fail-2"):
-            dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
-                "upstream-validation"
-            )
-            self.ctx.dbSessionLogger.add(dbAcmeChallenge)
-            self.ctx.dbSessionLogger.flush()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def log__SslOperationsEvent(
+def log__OperationsEvent(
     ctx,
     event_type_id,
     event_payload_dict=None,
@@ -205,7 +209,7 @@ def log__SslOperationsEvent(
     timestamp_event=None,
 ):
     """
-    creates a SslOperationsEvent instance
+    creates a OperationsEvent instance
     if needed, registers it into the ctx
     """
     # defaults
@@ -218,7 +222,7 @@ def log__SslOperationsEvent(
         event_payload_dict = utils.new_event_payload_dict()
 
     # bookkeeping
-    dbOperationsEvent = model_objects.SslOperationsEvent()
+    dbOperationsEvent = model_objects.OperationsEvent()
     dbOperationsEvent.operations_event_type_id = event_type_id
     dbOperationsEvent.timestamp_event = timestamp_event
     dbOperationsEvent.set_event_payload(event_payload_dict)
@@ -282,4 +286,4 @@ def _log_object_event(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-__all__ = ("AcmeLogger", "log__SslOperationsEvent", "_log_object_event")
+__all__ = ("AcmeLogger", "log__OperationsEvent", "_log_object_event")

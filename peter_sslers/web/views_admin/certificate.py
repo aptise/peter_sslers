@@ -426,7 +426,7 @@ class ViewAdmin_Focus(Handler):
             c2d.domain for c2d in dbServerCertificate.unique_fqdn_set.to_domains
         ]
 
-        # this will generate it's own log__SslOperationsEvent
+        # this will generate it's own log__OperationsEvent
         success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=dbDomains
         )
@@ -508,7 +508,7 @@ class ViewAdmin_Focus(Handler):
         dbServerCertificate = self._focus()
         try:
             # first check to see if this is already queued
-            dbQueued = lib_db.get.get__SslQueueRenewal__by_UniqueFQDNSetId__active(
+            dbQueued = lib_db.get.get__QueueRenewal__by_UniqueFQDNSetId__active(
                 self.request.api_context, dbServerCertificate.unique_fqdn_set_id
             )
             if dbQueued:
@@ -523,10 +523,10 @@ class ViewAdmin_Focus(Handler):
                 "queue_renewal__update"
             )
             event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )
-            dbQueue = lib_db.create._create__SslQueueRenewal(
+            dbQueue = lib_db.create._create__QueueRenewal(
                 self.request.api_context, dbServerCertificate
             )
             event_payload_dict["ssl_certificate-queued.ids"] = str(
@@ -651,7 +651,7 @@ class ViewAdmin_Focus(Handler):
             try:
                 event_payload_dict = utils.new_event_payload_dict()
                 event_payload_dict["server_certificate.id"] = dbServerCertificate.id
-                dbEvent = lib_db.logger.log__SslOperationsEvent(
+                dbEvent = lib_db.logger.log__OperationsEvent(
                     self.request.api_context,
                     model_utils.OperationsEventType.from_string("certificate__renew"),
                     event_payload_dict,
@@ -876,7 +876,7 @@ class ViewAdmin_Focus(Handler):
             self.request.api_context.dbSession.flush(objects=[dbServerCertificate])
 
             # bookkeeping
-            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )
             lib_db.logger._log_object_event(

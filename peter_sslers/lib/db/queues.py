@@ -18,7 +18,7 @@ from ...model import utils as model_utils
 from ...model import objects as model_objects
 
 # local
-from .logger import log__SslOperationsEvent
+from .logger import log__OperationsEvent
 from .logger import _log_object_event
 
 
@@ -34,7 +34,7 @@ def dequeue_QueuedDomain(
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param dbQueueDomain: (required) The :class:`model.objects.SslQueueDomain`
+    :param dbQueueDomain: (required) The :class:`model.objects.QueueDomain`
     :param dbOperationsEvent:
     :param event_status:
     :param action:
@@ -69,7 +69,7 @@ def queue_domains__add(ctx, domain_names):
     """
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(
+    dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("queue_domain__add"),
         event_payload_dict,
@@ -107,7 +107,7 @@ def queue_domains__add(ctx, domain_names):
                 _result = "exists"
 
         elif not _dbDomain:
-            _dbQueueDomain = lib.db.get.get__SslQueueDomain__by_name(ctx, domain_name)
+            _dbQueueDomain = lib.db.get.get__QueueDomain__by_name(ctx, domain_name)
             if _dbQueueDomain:
                 _logger_args[
                     "event_status_id"
@@ -118,7 +118,7 @@ def queue_domains__add(ctx, domain_names):
                 _result = "already_queued"
 
             else:
-                _dbQueueDomain = model_objects.SslQueueDomain()
+                _dbQueueDomain = model_objects.QueueDomain()
                 _dbQueueDomain.domain_name = domain_name
                 _dbQueueDomain.timestamp_entered = _timestamp
                 _dbQueueDomain.operations_event_id__created = dbOperationsEvent.id
@@ -210,7 +210,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
         min_domains = ctx.request.registry.settings["queue_domains_min_per_cert"]
         max_domains = ctx.request.registry.settings["queue_domains_max_per_cert"]
 
-        items_paged = lib.db.get.get__SslQueueDomain__paginated(
+        items_paged = lib.db.get.get__QueueDomain__paginated(
             ctx, unprocessed_only=True, limit=max_domains, offset=0
         )
         if len(items_paged) < min_domains:
@@ -225,7 +225,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
         event_payload_dict["queue_domain_ids"] = ",".join(
             [str(d.id) for d in items_paged]
         )
-        dbOperationsEvent = log__SslOperationsEvent(
+        dbOperationsEvent = log__OperationsEvent(
             ctx,
             model_utils.OperationsEventType.from_string("queue_domain__process"),
             event_payload_dict,
@@ -353,10 +353,10 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
             "queue_renewal__update"
         )
         event_payload_dict = utils.new_event_payload_dict()
-        dbOperationsEvent = log__SslOperationsEvent(ctx, event_type, event_payload_dict)
+        dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
         if fqdns_ids_only:
             for fqdns_id in fqdns_ids_only:
-                dbQueueRenewal = lib.db.create._create__SslQueueRenewal_fqdns(
+                dbQueueRenewal = lib.db.create._create__QueueRenewal_fqdns(
                     ctx, fqdns_id
                 )
                 renewals.append(dbQueueRenewal)
@@ -367,10 +367,10 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
             _expiring_days = 28
             _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
             _subquery_already_queued = (
-                ctx.dbSession.query(model_objects.SslQueueRenewal.server_certificate_id)
+                ctx.dbSession.query(model_objects.QueueRenewal.server_certificate_id)
                 .filter(
-                    model_objects.SslQueueRenewal.timestamp_processed.op("IS")(None),
-                    model_objects.SslQueueRenewal.process_result.op("IS NOT")(True),
+                    model_objects.QueueRenewal.timestamp_processed.op("IS")(None),
+                    model_objects.QueueRenewal.process_result.op("IS NOT")(True),
                 )
                 .subquery()
             )
@@ -384,7 +384,7 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
             results = _core_query.all()
             for cert in results:
                 # this will call `_log_object_event` as needed
-                dbQueueRenewal = lib.db.create._create__SslQueueRenewal(ctx, cert)
+                dbQueueRenewal = lib.db.create._create__QueueRenewal(ctx, cert)
                 renewals.append(dbQueueRenewal)
             event_payload_dict["ssl_certificate-queued.ids"] = ",".join(
                 [str(c.id) for c in results]
@@ -421,12 +421,12 @@ def queue_renewals__process(ctx):
     }
     event_type = model_utils.OperationsEventType.from_string("queue_renewal__process")
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(ctx, event_type, event_payload_dict)
-    items_count = lib.db.get.get__SslQueueRenewal__count(ctx, unprocessed_only=True)
+    dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
+    items_count = lib.db.get.get__QueueRenewal__count(ctx, unprocessed_only=True)
     rval["count_total"] = items_count
     rval["count_remaining"] = items_count
     if items_count:
-        items_paged = lib.db.get.get__SslQueueRenewal__paginated(
+        items_paged = lib.db.get.get__QueueRenewal__paginated(
             ctx, unprocessed_only=True, limit=1, offset=0, eagerload_renewal=True
         )
 

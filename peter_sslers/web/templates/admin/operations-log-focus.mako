@@ -23,40 +23,40 @@
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>id</th>
-                    <td><span class="label label-default">${SslOperationsEvent.id}</span></td>
+                    <td><span class="label label-default">${OperationsEvent.id}</span></td>
                 </tr>
                 <tr>
                     <th>event type</th>
-                    <td><span class="label label-default">${SslOperationsEvent.event_type_text}</span></td>
+                    <td><span class="label label-default">${OperationsEvent.event_type_text}</span></td>
                 </tr>
                 <tr>
                     <th>timestamp</th>
-                    <td><timestamp>${SslOperationsEvent.timestamp_event}</timestamp></td>
+                    <td><timestamp>${OperationsEvent.timestamp_event}</timestamp></td>
                 </tr>
                 <tr>
                     <th>child of</th>
                     <td>
-                        % if SslOperationsEvent.operations_event_id__child_of:
-                            <a  href="${admin_prefix}/operations/log/item/${SslOperationsEvent.operations_event_id__child_of}"
+                        % if OperationsEvent.operations_event_id__child_of:
+                            <a  href="${admin_prefix}/operations/log/item/${OperationsEvent.operations_event_id__child_of}"
                                 class="label label-info"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${SslOperationsEvent.operations_event_id__child_of}
+                                ${OperationsEvent.operations_event_id__child_of}
                             </a>
                         % endif
                     </td>
                 </tr>
                 <tr>
                     <th>payload</th>
-                    <td><code type="payload">${SslOperationsEvent.event_payload_json}</code></td>
+                    <td><code type="payload">${OperationsEvent.event_payload_json}</code></td>
                 </tr>
             </table>
 
             <h4>Children</h4>
-            ${admin_partials.table_SslOperationsEvents(SslOperationsEvent.children, show_event='event.id')}
+            ${admin_partials.table_OperationsEvents(OperationsEvent.children, show_event='event.id')}
 
             <h4>Operation Object Events?</h4>
-            ${admin_partials.table_OperationsObjectEvents(SslOperationsEvent.object_events, table_context='log-focus')}
+            ${admin_partials.table_OperationsObjectEvents(OperationsEvent.object_events, table_context='log-focus')}
         </div>
         <div class="col-sm-3">
             ${admin_partials.operations_options(enable_redis=enable_redis,

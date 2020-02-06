@@ -20,7 +20,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
-            % if SslOperationsEvents:
+            % if OperationsEvents:
                 ${admin_partials.nav_pagination(pager)}
                 <%
                     event_id = None
@@ -37,7 +37,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        % for event in SslOperationsEvents:
+                        % for event in OperationsEvents:
                             <tr class="${'success' if event_id == str(event.id) else ''}">
                                 <td><span class="label label-default">${event.id}</span></td>
                                 <td><timestamp>${event.timestamp_event}</timestamp></td>

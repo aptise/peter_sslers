@@ -81,7 +81,7 @@ class ApiContext(object):
     :param timestamp: `datetime.datetime.utcnow()`
     :param dbSession: - SqlAlchemy `Session` object
     :param dbSessionLogger: - SqlAlchemy `Session` object with autocommit
-    :param dbOperationsEvent: - the top SslOperationsEvent object for the active `request`, if any
+    :param dbOperationsEvent: - the top OperationsEvent object for the active `request`, if any
     """
 
     dbOperationsEvent = None

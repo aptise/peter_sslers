@@ -26,7 +26,7 @@
         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
         Update Queue (30 days or less)</a>
       </li>
-      % if SslQueueRenewals:
+      % if QueueRenewals:
           <li role="presentation" class="">
             <a href="${admin_prefix}/api/queue-renewals/process">
             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -62,7 +62,7 @@
                 </div>
             % endif
 
-            % if SslQueueRenewals:
+            % if QueueRenewals:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -76,7 +76,7 @@
                             <th>process_result</th>
                         </tr>
                     </thead>
-                    % for q in SslQueueRenewals:
+                    % for q in QueueRenewals:
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/queue-renewal/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

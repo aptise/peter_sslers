@@ -27,7 +27,7 @@ from ...model import objects as model_objects
 
 # local
 from .logger import AcmeLogger
-from .logger import log__SslOperationsEvent
+from .logger import log__OperationsEvent
 from .logger import _log_object_event
 
 
@@ -112,7 +112,7 @@ def ca_certificate_probe(ctx):
 
     # create a bookkeeping object
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(
+    dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("ca_certificate__probe")
     )
 
@@ -194,7 +194,7 @@ def do__AcmeAccountKey_AcmeV2_authenticate(
             acmeLogger=acmeLogger,
             acmeAccountKey=dbAcmeAccountKey,
             account_key_path=account_key_path,
-            log__SslOperationsEvent=log__SslOperationsEvent,
+            log__OperationsEvent=log__OperationsEvent,
         )
         authenticatedUser.authenticate(ctx)
 
@@ -225,7 +225,7 @@ def do__CertificateRequest__AcmeV2_Automated(
     :param private_key_pem: (optional) A PEM encoded private key.
         Must submit `dbPrivateKey` if not supplied.
     :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
-    :param dbQueueRenewal__of: (optional) A :class:`model.objects.SslQueueRenewal` object
+    :param dbQueueRenewal__of: (optional) A :class:`model.objects.QueueRenewal` object
     """
     if not dbAcmeAccountKey:
         raise ValueError("Must submit `dbAcmeAccountKey`")
@@ -242,7 +242,7 @@ def do__CertificateRequest__AcmeV2_Automated(
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(
+    dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string(
             "certificate_request__do__automated"
@@ -556,7 +556,7 @@ def operations_deactivate_expired(ctx):
     # create an event first
     event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
-    operationsEvent = log__SslOperationsEvent(
+    operationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("certificate__deactivate_expired"),
         event_payload_dict,
@@ -616,7 +616,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["count_deactivated"] = 0
-    operationsEvent = log__SslOperationsEvent(
+    operationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("deactivate_duplicate"),
         event_payload_dict,
@@ -870,7 +870,7 @@ def operations_update_recents(ctx):
     """
 
     # bookkeeping, doing this will mark the session as changed!
-    dbOperationsEvent = log__SslOperationsEvent(
+    dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("operations__update_recents"),
     )
 
@@ -896,7 +896,7 @@ def api_domains__enable(ctx, domain_names):
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(
+    dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("api_domains__enable"),
         event_payload_dict,
@@ -920,7 +920,7 @@ def api_domains__disable(ctx, domain_names):
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(
+    dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("api_domains__disable"),
         event_payload_dict,
@@ -943,7 +943,7 @@ def api_domains__disable(ctx, domain_names):
             else:
                 results[domain_name] = "already deactivated"
         elif not _dbDomain:
-            _dbQueueDomain = lib.db.get.get__SslQueueDomain__by_name(ctx, domain_name)
+            _dbQueueDomain = lib.db.get.get__QueueDomain__by_name(ctx, domain_name)
             if _dbQueueDomain:
                 lib.db.queues.dequeue_QueuedDomain(
                     ctx,
@@ -995,7 +995,7 @@ def api_domains__certificate_if_needed(
     """
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(
+    dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string(
             "api_domains__certificate_if_needed"
@@ -1143,7 +1143,7 @@ def api_domains__certificate_if_needed(
         transaction.commit()
 
         # remove from queue if it exists
-        _dbQueueDomain = lib.db.get.get__SslQueueDomain__by_name(ctx, domain_name)
+        _dbQueueDomain = lib.db.get.get__QueueDomain__by_name(ctx, domain_name)
         if _dbQueueDomain:
             lib.db.queues.dequeue_QueuedDomain(
                 ctx,
@@ -1179,7 +1179,7 @@ def upload__CaCertificateBundle__by_pem_text(ctx, bundle_data):
     """
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__SslOperationsEvent(
+    dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("ca_certificate__upload_bundle"),
         event_payload_dict,

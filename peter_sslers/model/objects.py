@@ -44,6 +44,9 @@ class AcmeEventLog(Base):
     acme_account_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
     )
+    acme_challenge_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=True
+    )
     acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
     certificate_request_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
@@ -144,8 +147,8 @@ class AcmeAccountKey(Base):
     )
 
     operations_event__created = sa_orm_relationship(
-        "SslOperationsEvent",
-        primaryjoin="AcmeAccountKey.operations_event_id__created==SslOperationsEvent.id",
+        "OperationsEvent",
+        primaryjoin="AcmeAccountKey.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
 
@@ -567,8 +570,8 @@ class CaCertificate(Base):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     operations_event__created = sa_orm_relationship(
-        "SslOperationsEvent",
-        primaryjoin="CaCertificate.operations_event_id__created==SslOperationsEvent.id",
+        "OperationsEvent",
+        primaryjoin="CaCertificate.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
 
@@ -980,8 +983,8 @@ class PrivateKey(Base):
     )
 
     operations_event__created = sa_orm_relationship(
-        "SslOperationsEvent",
-        primaryjoin="PrivateKey.operations_event_id__created==SslOperationsEvent.id",
+        "OperationsEvent",
+        primaryjoin="PrivateKey.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
 
@@ -1126,8 +1129,8 @@ class ServerCertificate(Base):
     )
 
     operations_event__created = sa_orm_relationship(
-        "SslOperationsEvent",
-        primaryjoin="ServerCertificate.operations_event_id__created==SslOperationsEvent.id",
+        "OperationsEvent",
+        primaryjoin="ServerCertificate.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
 
@@ -1147,8 +1150,8 @@ class ServerCertificate(Base):
     # TODO: queue
     if False:
         queue_renewal = sa_orm_relationship(
-            "SslQueueRenewal",
-            primaryjoin="ServerCertificate.id==SslQueueRenewal.server_certificate_id",
+            "QueueRenewal",
+            primaryjoin="ServerCertificate.id==QueueRenewal.server_certificate_id",
             back_populates="server_certificate",
         )
 
@@ -1335,14 +1338,14 @@ class UniqueFQDNSet(Base):
     # TODO: queue
     if False:
         queue_renewal = sa_orm_relationship(
-            "SslQueueRenewal",
-            primaryjoin="UniqueFQDNSet.id==SslQueueRenewal.unique_fqdn_set_id",
+            "QueueRenewal",
+            primaryjoin="UniqueFQDNSet.id==QueueRenewal.unique_fqdn_set_id",
             back_populates="unique_fqdn_set",
         )
 
         queue_renewal__active = sa_orm_relationship(
-            "SslQueueRenewal",
-            primaryjoin="and_(UniqueFQDNSet.id==SslQueueRenewal.unique_fqdn_set_id, SslQueueRenewal.is_active==True)",
+            "QueueRenewal",
+            primaryjoin="and_(UniqueFQDNSet.id==QueueRenewal.unique_fqdn_set_id, QueueRenewal.is_active==True)",
             back_populates="unique_fqdn_set",
         )
 
@@ -1353,8 +1356,8 @@ class UniqueFQDNSet(Base):
     )
 
     operations_event__created = sa_orm_relationship(
-        "SslOperationsEvent",
-        primaryjoin="UniqueFQDNSet.operations_event_id__created==SslOperationsEvent.id",
+        "OperationsEvent",
+        primaryjoin="UniqueFQDNSet.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
 
@@ -1419,7 +1422,7 @@ class UniqueFQDNSet2Domain(Base):
 # ==============================================================================
 
 
-class SslOperationsEvent(Base, model_utils._mixin_OperationsEventType):
+class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
     """
     Certain events are tracked for bookkeeping
     """
@@ -1439,23 +1442,23 @@ class SslOperationsEvent(Base, model_utils._mixin_OperationsEventType):
 
     object_events = sa_orm_relationship(
         "OperationsObjectEvent",
-        primaryjoin="SslOperationsEvent.id==OperationsObjectEvent.operations_event_id",
+        primaryjoin="OperationsEvent.id==OperationsObjectEvent.operations_event_id",
         back_populates="operations_event",
     )
 
     children = sa_orm_relationship(
-        "SslOperationsEvent",
-        primaryjoin="SslOperationsEvent.id==SslOperationsEvent.operations_event_id__child_of",
-        remote_side="SslOperationsEvent.operations_event_id__child_of",
+        "OperationsEvent",
+        primaryjoin="OperationsEvent.id==OperationsEvent.operations_event_id__child_of",
+        remote_side="OperationsEvent.operations_event_id__child_of",
         back_populates="parent",
     )
 
     parent = sa_orm_relationship(
-        "SslOperationsEvent",
-        primaryjoin="SslOperationsEvent.operations_event_id__child_of==SslOperationsEvent.id",
+        "OperationsEvent",
+        primaryjoin="OperationsEvent.operations_event_id__child_of==OperationsEvent.id",
         uselist=False,
         back_populates="children",
-        remote_side="SslOperationsEvent.id",
+        remote_side="OperationsEvent.id",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1540,8 +1543,8 @@ class OperationsObjectEvent(Base):
     )
 
     operations_event = sa_orm_relationship(
-        "SslOperationsEvent",
-        primaryjoin="OperationsObjectEvent.operations_event_id==SslOperationsEvent.id",
+        "OperationsEvent",
+        primaryjoin="OperationsObjectEvent.operations_event_id==OperationsEvent.id",
         uselist=False,
         back_populates="object_events",
     )
@@ -1584,14 +1587,14 @@ class OperationsObjectEvent(Base):
     if False:
         # TODO: Queue
         queue_domain = sa_orm_relationship(
-            "SslQueueDomain",
-            primaryjoin="OperationsObjectEvent.queue_domain_id==SslQueueDomain.id",
+            "QueueDomain",
+            primaryjoin="OperationsObjectEvent.queue_domain_id==QueueDomain.id",
             uselist=False,
             back_populates="operations_object_events",
         )
         queue_renewal = sa_orm_relationship(
-            "SslQueueRenewal",
-            primaryjoin="OperationsObjectEvent.queue_renewal_id==SslQueueRenewal.id",
+            "QueueRenewal",
+            primaryjoin="OperationsObjectEvent.queue_renewal_id==QueueRenewal.id",
             uselist=False,
             back_populates="operations_object_events",
         )

@@ -194,7 +194,7 @@ class AuthenticatedUser(object):
     accountkey_jwk = None
     accountkey_thumbprint = None
     alg = None
-    log__SslOperationsEvent = None
+    log__OperationsEvent = None
 
     _api_account_object = None  # api server native/json object
     _api_account_headers = None  # api server native/json object
@@ -205,7 +205,7 @@ class AuthenticatedUser(object):
         acmeAccountKey=None,
         account_key_path=None,
         acme_directory=None,
-        log__SslOperationsEvent=None,
+        log__OperationsEvent=None,
     ):
         if not all((acmeLogger, acmeAccountKey, account_key_path)):
             raise ValueError(
@@ -229,7 +229,7 @@ class AuthenticatedUser(object):
         self.accountkey_jwk = accountkey_jwk
         self.accountkey_thumbprint = accountkey_thumbprint
         self.alg = alg
-        self.log__SslOperationsEvent = log__SslOperationsEvent
+        self.log__OperationsEvent = log__OperationsEvent
 
     def _send_signed_request(self, url, payload=None, depth=0):
         payload64 = "" if payload is None else _b64(json.dumps(payload).encode("utf8"))
@@ -419,7 +419,7 @@ class AuthenticatedUser(object):
         # log this
         event_payload_dict = utils.new_event_payload_dict()
         event_payload_dict["acme_account_key.id"] = self.acmeAccountKey.id
-        dbOperationsEvent = self.log__SslOperationsEvent(
+        dbOperationsEvent = self.log__OperationsEvent(
             app_ctx,
             model_utils.OperationsEventType.from_string(
                 "acme_account_key__authenticate"
@@ -633,7 +633,7 @@ class AuthenticatedUser(object):
             )
 
             dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-                "v2", dbAcmeOrder
+                "v2"
             )  # log this to the db
 
             _authorization_status = authorization_response["status"]
@@ -730,7 +730,7 @@ class AuthenticatedUser(object):
                                 keyauthorization,
                             )
                             self.acmeLogger.log_challenge_error(
-                                dbAcmeChallenge, "pretest-1"
+                                "v2", dbAuthorization.acme_challenge_http01, "pretest-1"
                             )
                             raise errors.DomainVerificationError(
                                 "Wrote keyauth challenge, but couldn't download {0}".format(
@@ -739,7 +739,7 @@ class AuthenticatedUser(object):
                             )
                         except ssl.CertificateError as exc:
                             self.acmeLogger.log_challenge_error(
-                                dbAcmeChallenge, "pretest-2"
+                                "v2", dbAuthorization.acme_challenge_http01, "pretest-2"
                             )
                             if str(exc).startswith("hostname") and (
                                 "doesn't match" in str(exc)
@@ -758,7 +758,9 @@ class AuthenticatedUser(object):
                     )
 
                 # note the challenge
-                self.acmeLogger.log_challenge_trigger(dbAcmeChallenge)
+                self.acmeLogger.log_challenge_trigger(
+                    "v2", dbAuthorization.acme_challenge_http01
+                )
 
                 # if we had a 'valid' challenge, the payload would be `None`
                 # to trigger a GET-as-POST functionality
@@ -787,7 +789,9 @@ class AuthenticatedUser(object):
                         dbAuthorization.domain.domain_name, token, keyauthorization
                     )
                 elif authorization_response["status"] != "valid":
-                    self.acmeLogger.log_challenge_error(dbAcmeChallenge, "fail-2")
+                    self.acmeLogger.log_challenge_error(
+                        "v2", dbAuthorization.acme_challenge_http01, "fail-2"
+                    )
                     raise errors.DomainVerificationError(
                         "{0} challenge did not pass: {1}".format(
                             dbAuthorization.domain.domain_name, authorization_response
@@ -795,7 +799,9 @@ class AuthenticatedUser(object):
                     )
 
                 # log this
-                self.acmeLogger.log_challenge_pass(dbAcmeChallenge)
+                self.acmeLogger.log_challenge_pass(
+                    "v2", dbAuthorization.acme_challenge_http01
+                )
 
         # no more domains!
         return True

@@ -126,11 +126,11 @@ class ViewList(Handler):
                 )
             sidenav_option = "active-failures"
 
-        items_count = lib_db.get.get__SslQueueRenewal__count(
+        items_count = lib_db.get.get__QueueRenewal__count(
             self.request.api_context, **get_kwargs
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__SslQueueRenewal__paginated(
+        items_paged = lib_db.get.get__QueueRenewal__paginated(
             self.request.api_context, limit=items_per_page, offset=offset, **get_kwargs
         )
 
@@ -148,7 +148,7 @@ class ViewList(Handler):
         if wants_json:
             _domains = {d.id: d.as_json for d in items_paged}
             return {
-                "SslQueueRenewals": _domains,
+                "QueueRenewals": _domains,
                 "pagination": {
                     "total_items": items_count,
                     "page": pager.page_num,
@@ -157,8 +157,8 @@ class ViewList(Handler):
             }
         return {
             "project": "peter_sslers",
-            "SslQueueRenewals_count": items_count,
-            "SslQueueRenewals": items_paged,
+            "QueueRenewals_count": items_count,
+            "QueueRenewals": items_paged,
             "sidenav_option": sidenav_option,
             "pager": pager,
             "continue_processing": continue_processing,
@@ -167,7 +167,7 @@ class ViewList(Handler):
 
 class ViewFocus(Handler):
     def _focus(self):
-        dbQueueRenewal = lib_db.get.get__SslQueueRenewal__by_id(
+        dbQueueRenewal = lib_db.get.get__QueueRenewal__by_id(
             self.request.api_context, self.request.matchdict["id"], load_events=True
         )
         if not dbQueueRenewal:
@@ -190,7 +190,7 @@ class ViewFocus(Handler):
             True if self.request.matched_route.name.endswith("|json") else False
         )
         if wants_json:
-            return {"status": "success", "SslQueueRenewal": dbRenewalQueueItem.as_json}
+            return {"status": "success", "QueueRenewal": dbRenewalQueueItem.as_json}
         return {"project": "peter_sslers", "RenewalQueueItem": dbRenewalQueueItem}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -254,7 +254,7 @@ class ViewFocus(Handler):
                 formStash.fatal_field(field="action", message="invalid action")
 
             # bookkeeping
-            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )
             lib_db.logger._log_object_event(
@@ -268,7 +268,7 @@ class ViewFocus(Handler):
             if wants_json:
                 return {
                     "result": "success",
-                    "SslQueueRenewal": dbRenewalQueueItem.as_json,
+                    "QueueRenewal": dbRenewalQueueItem.as_json,
                 }
 
             url_post_required = "%s?operation=mark&result=success" % (self._focus_url,)

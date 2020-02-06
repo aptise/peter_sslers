@@ -89,13 +89,13 @@ class ViewAdmin_List(Handler):
                     "%s/queue-domains/{0}"
                     % self.request.registry.settings["admin_prefix"]
                 )
-        items_count = lib_db.get.get__SslQueueDomain__count(
+        items_count = lib_db.get.get__QueueDomain__count(
             self.request.api_context,
             show_all=show_all,
             unprocessed_only=unprocessed_only,
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__SslQueueDomain__paginated(
+        items_paged = lib_db.get.get__QueueDomain__paginated(
             self.request.api_context,
             show_all=show_all,
             unprocessed_only=unprocessed_only,
@@ -105,7 +105,7 @@ class ViewAdmin_List(Handler):
         if wants_json:
             _domains = {d.id: d.as_json for d in items_paged}
             return {
-                "SslQueueDomains": _domains,
+                "QueueDomains": _domains,
                 "pagination": {
                     "total_items": items_count,
                     "page": pager.page_num,
@@ -114,8 +114,8 @@ class ViewAdmin_List(Handler):
             }
         return {
             "project": "peter_sslers",
-            "SslQueueDomains_count": items_count,
-            "SslQueueDomains": items_paged,
+            "QueueDomains_count": items_count,
+            "QueueDomains": items_paged,
             "sidenav_option": sidenav_option,
             "pager": pager,
         }
@@ -211,7 +211,7 @@ class ViewAdmin_New(Handler):
 
 class ViewAdmin_Focus(Handler):
     def _focus(self):
-        dbQueueDomain = lib_db.get.get__SslQueueDomain__by_id(
+        dbQueueDomain = lib_db.get.get__QueueDomain__by_id(
             self.request.api_context, self.request.matchdict["id"], eagerload_log=True
         )
         if not dbQueueDomain:
@@ -233,7 +233,7 @@ class ViewAdmin_Focus(Handler):
             True if self.request.matched_route.name.endswith("|json") else False
         )
         if wants_json:
-            return {"status": "success", "SslQueueDomain": dbQueueDomain.as_json}
+            return {"status": "success", "QueueDomain": dbQueueDomain.as_json}
         return {"project": "peter_sslers", "QueueDomainItem": dbQueueDomain}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -281,7 +281,7 @@ class ViewAdmin_Focus(Handler):
             event_payload_dict["action"] = formStash.results["action"]
 
             # bookkeeping
-            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )
 
@@ -307,7 +307,7 @@ class ViewAdmin_Focus(Handler):
             )
 
             if wants_json:
-                return {"result": "success", "SslQueueDomain": dbQueueDomain.as_json}
+                return {"result": "success", "QueueDomain": dbQueueDomain.as_json}
 
             url_success = "%s?operation=mark&action=%s&result=success" % (
                 self._focus_url,

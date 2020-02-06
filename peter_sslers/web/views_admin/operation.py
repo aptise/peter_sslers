@@ -71,7 +71,7 @@ class ViewAdminOperations(Handler):
         (event_type, event_type_id) = self._parse__event_type()
         event_type_ids = (event_type_id,) if event_type_id else None
 
-        items_count = lib_db.get.get__SslOperationsEvent__count(
+        items_count = lib_db.get.get__OperationsEvent__count(
             self.request.api_context, event_type_ids=event_type_ids
         )
         _url_template = (
@@ -85,7 +85,7 @@ class ViewAdminOperations(Handler):
         (pager, offset) = self._paginate(
             items_count, url_template=_url_template, items_per_page=_items_per_page
         )
-        items_paged = lib_db.get.get__SslOperationsEvent__paginated(
+        items_paged = lib_db.get.get__OperationsEvent__paginated(
             self.request.api_context,
             event_type_ids=event_type_ids,
             limit=_items_per_page,
@@ -93,8 +93,8 @@ class ViewAdminOperations(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslOperationsEvents__count": items_count,
-            "SslOperationsEvents": items_paged,
+            "OperationsEvents__count": items_count,
+            "OperationsEvents": items_paged,
             "pager": pager,
             "enable_redis": self.request.registry.settings["enable_redis"],
             "enable_nginx": self.request.registry.settings["enable_nginx"],
@@ -106,14 +106,14 @@ class ViewAdminOperations(Handler):
         renderer="/admin/operations-log-focus.mako",
     )
     def operations_log_focus(self):
-        item = lib_db.get.get__SslOperationsEvent__by_id(
+        item = lib_db.get.get__OperationsEvent__by_id(
             self.request.api_context, self.request.matchdict["id"], eagerload_log=True
         )
         if not item:
             raise ValueError("no item")
         return {
             "project": "peter_sslers",
-            "SslOperationsEvent": item,
+            "OperationsEvent": item,
             "enable_redis": self.request.registry.settings["enable_redis"],
             "enable_nginx": self.request.registry.settings["enable_nginx"],
         }
@@ -130,7 +130,7 @@ class ViewAdminOperations(Handler):
         renderer="/admin/operations-ca_certificate_probes.mako",
     )
     def ca_certificate_probes(self):
-        items_count = lib_db.get.get__SslOperationsEvent__certificate_probe__count(
+        items_count = lib_db.get.get__OperationsEvent__certificate_probe__count(
             self.request.api_context
         )
         (pager, offset) = self._paginate(
@@ -138,13 +138,13 @@ class ViewAdminOperations(Handler):
             url_template="%s/operations/ca-certificate-probes/{0}"
             % self.request.registry.settings["admin_prefix"],
         )
-        items_paged = lib_db.get.get__SslOperationsEvent__certificate_probe__paginated(
+        items_paged = lib_db.get.get__OperationsEvent__certificate_probe__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         return {
             "project": "peter_sslers",
-            "SslOperationsEvents_count": items_count,
-            "SslOperationsEvents": items_paged,
+            "OperationsEvents_count": items_count,
+            "OperationsEvents": items_paged,
             "pager": pager,
         }
 
@@ -162,7 +162,7 @@ class ViewAdminOperations(Handler):
         self._ensure_redis()
 
         _items_per_page = 25
-        items_count = lib_db.get.get__SslOperationsEvent__count(
+        items_count = lib_db.get.get__OperationsEvent__count(
             self.request.api_context,
             event_type_ids=(
                 model_utils.OperationsEventType.from_string("operations__redis_prime"),
@@ -174,7 +174,7 @@ class ViewAdminOperations(Handler):
             % self.request.registry.settings["admin_prefix"],
             items_per_page=_items_per_page,
         )
-        items_paged = lib_db.get.get__SslOperationsEvent__paginated(
+        items_paged = lib_db.get.get__OperationsEvent__paginated(
             self.request.api_context,
             event_type_ids=(
                 model_utils.OperationsEventType.from_string("operations__redis_prime"),
@@ -184,8 +184,8 @@ class ViewAdminOperations(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslOperationsEvents__count": items_count,
-            "SslOperationsEvents": items_paged,
+            "OperationsEvents__count": items_count,
+            "OperationsEvents": items_paged,
             "pager": pager,
             "enable_redis": self.request.registry.settings["enable_redis"],
         }
@@ -212,7 +212,7 @@ class ViewAdminOperations(Handler):
                 "operations__nginx_cache_flush"
             ),
         )
-        items_count = lib_db.get.get__SslOperationsEvent__count(
+        items_count = lib_db.get.get__OperationsEvent__count(
             self.request.api_context, event_type_ids=_event_type_ids
         )
         (pager, offset) = self._paginate(
@@ -221,7 +221,7 @@ class ViewAdminOperations(Handler):
             % self.request.registry.settings["admin_prefix"],
             items_per_page=_items_per_page,
         )
-        items_paged = lib_db.get.get__SslOperationsEvent__paginated(
+        items_paged = lib_db.get.get__OperationsEvent__paginated(
             self.request.api_context,
             event_type_ids=_event_type_ids,
             limit=_items_per_page,
@@ -229,8 +229,8 @@ class ViewAdminOperations(Handler):
         )
         return {
             "project": "peter_sslers",
-            "SslOperationsEvents__count": items_count,
-            "SslOperationsEvents": items_paged,
+            "OperationsEvents__count": items_count,
+            "OperationsEvents": items_paged,
             "pager": pager,
             "enable_nginx": self.request.registry.settings["enable_nginx"],
         }

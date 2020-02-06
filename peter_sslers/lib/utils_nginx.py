@@ -69,7 +69,7 @@ def nginx_flush_cache(request, ctx):
                 "Exception": "%s" % str(exc),  # this could be an object
             }
         rval["servers"][_server] = status
-    dbEvent = lib.db.logger.log__SslOperationsEvent(
+    dbEvent = lib.db.logger.log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("operations__nginx_cache_flush"),
     )
@@ -153,7 +153,7 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
         "success": list(domain_ids["success"]),
         "failure": list(domain_ids["failure"]),
     }
-    dbEvent = lib.db.logger.log__SslOperationsEvent(
+    dbEvent = lib.db.logger.log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string("operations__nginx_cache_expire"),
         event_payload_dict,

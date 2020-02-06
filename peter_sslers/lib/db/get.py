@@ -634,28 +634,24 @@ def get__OperationsObjectEvent__by_id(ctx, event_id, eagerload_log=False):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslOperationsEvent__count(ctx, event_type_ids=None):
-    q = ctx.dbSession.query(model_objects.SslOperationsEvent)
+def get__OperationsEvent__count(ctx, event_type_ids=None):
+    q = ctx.dbSession.query(model_objects.OperationsEvent)
     if event_type_ids is not None:
         q = q.filter(
-            model_objects.SslOperationsEvent.operations_event_type_id.in_(
-                event_type_ids
-            )
+            model_objects.OperationsEvent.operations_event_type_id.in_(event_type_ids)
         )
     items_count = q.count()
     return items_count
 
 
-def get__SslOperationsEvent__paginated(ctx, event_type_ids=None, limit=None, offset=0):
-    q = ctx.dbSession.query(model_objects.SslOperationsEvent)
+def get__OperationsEvent__paginated(ctx, event_type_ids=None, limit=None, offset=0):
+    q = ctx.dbSession.query(model_objects.OperationsEvent)
     if event_type_ids is not None:
         q = q.filter(
-            model_objects.SslOperationsEvent.operations_event_type_id.in_(
-                event_type_ids
-            )
+            model_objects.OperationsEvent.operations_event_type_id.in_(event_type_ids)
         )
     items_paged = (
-        q.order_by(model_objects.SslOperationsEvent.id.desc())
+        q.order_by(model_objects.OperationsEvent.id.desc())
         .limit(limit)
         .offset(offset)
         .all()
@@ -663,9 +659,9 @@ def get__SslOperationsEvent__paginated(ctx, event_type_ids=None, limit=None, off
     return items_paged
 
 
-def get__SslOperationsEvent__by_id(ctx, event_id, eagerload_log=False):
-    q = ctx.dbSession.query(model_objects.SslOperationsEvent).filter(
-        model_objects.SslOperationsEvent.id == event_id
+def get__OperationsEvent__by_id(ctx, event_id, eagerload_log=False):
+    q = ctx.dbSession.query(model_objects.OperationsEvent).filter(
+        model_objects.OperationsEvent.id == event_id
     )
     if eagerload_log:
         q = q.options(
@@ -682,11 +678,11 @@ def get__SslOperationsEvent__by_id(ctx, event_id, eagerload_log=False):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslOperationsEvent__certificate_probe__count(ctx):
+def get__OperationsEvent__certificate_probe__count(ctx):
     counted = (
-        ctx.dbSession.query(model_objects.SslOperationsEvent)
+        ctx.dbSession.query(model_objects.OperationsEvent)
         .filter(
-            model_objects.SslOperationsEvent.operations_event_type_id
+            model_objects.OperationsEvent.operations_event_type_id
             == model_utils.OperationsEventType.from_string("ca_certificate__probe")
         )
         .count()
@@ -694,12 +690,12 @@ def get__SslOperationsEvent__certificate_probe__count(ctx):
     return counted
 
 
-def get__SslOperationsEvent__certificate_probe__paginated(ctx, limit=None, offset=0):
+def get__OperationsEvent__certificate_probe__paginated(ctx, limit=None, offset=0):
     paged_items = (
-        ctx.dbSession.query(model_objects.SslOperationsEvent)
-        .order_by(model_objects.SslOperationsEvent.id.desc())
+        ctx.dbSession.query(model_objects.OperationsEvent)
+        .order_by(model_objects.OperationsEvent.id.desc())
         .filter(
-            model_objects.SslOperationsEvent.operations_event_type_id
+            model_objects.OperationsEvent.operations_event_type_id
             == model_utils.OperationsEventType.from_string("ca_certificate__probe")
         )
         .limit(limit)
@@ -780,37 +776,37 @@ def get__PrivateKey__default(ctx, active_only=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslQueueDomain__count(ctx, show_all=None, unprocessed_only=None):
-    q = ctx.dbSession.query(model_objects.SslQueueDomain)
+def get__QueueDomain__count(ctx, show_all=None, unprocessed_only=None):
+    q = ctx.dbSession.query(model_objects.QueueDomain)
     if unprocessed_only and show_all:
         raise ValueError("conflicting arguments")
     if unprocessed_only:
         q = q.filter(
-            model_objects.SslQueueDomain.timestamp_processed.op("IS")(None)
+            model_objects.QueueDomain.timestamp_processed.op("IS")(None)
         )  # noqa
     counted = q.count()
     return counted
 
 
-def get__SslQueueDomain__paginated(
+def get__QueueDomain__paginated(
     ctx, show_all=None, unprocessed_only=None, eagerload_web=None, limit=None, offset=0
 ):
-    q = ctx.dbSession.query(model_objects.SslQueueDomain)
+    q = ctx.dbSession.query(model_objects.QueueDomain)
     if unprocessed_only and show_all:
         raise ValueError("conflicting arguments")
     if unprocessed_only:
         q = q.filter(
-            model_objects.SslQueueDomain.timestamp_processed.op("IS")(None)
+            model_objects.QueueDomain.timestamp_processed.op("IS")(None)
         )  # noqa
-    q = q.order_by(model_objects.SslQueueDomain.id.desc())
+    q = q.order_by(model_objects.QueueDomain.id.desc())
     q = q.limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
 
 
-def get__SslQueueDomain__by_id(ctx, set_id, eagerload_log=None):
-    q = ctx.dbSession.query(model_objects.SslQueueDomain).filter(
-        model_objects.SslQueueDomain.id == set_id
+def get__QueueDomain__by_id(ctx, set_id, eagerload_log=None):
+    q = ctx.dbSession.query(model_objects.QueueDomain).filter(
+        model_objects.QueueDomain.id == set_id
     )
     if eagerload_log:
         q = q.options(
@@ -822,28 +818,26 @@ def get__SslQueueDomain__by_id(ctx, set_id, eagerload_log=None):
     return item
 
 
-def get__SslQueueDomain__by_name(ctx, domain_name, active_only=True):
-    q = ctx.dbSession.query(model_objects.SslQueueDomain).filter(
-        sqlalchemy.func.lower(model_objects.SslQueueDomain.domain_name)
+def get__QueueDomain__by_name(ctx, domain_name, active_only=True):
+    q = ctx.dbSession.query(model_objects.QueueDomain).filter(
+        sqlalchemy.func.lower(model_objects.QueueDomain.domain_name)
         == sqlalchemy.func.lower(domain_name)
     )
     if active_only:
-        q = q.filter(model_objects.SslQueueDomain.is_active.op("IS")(True))
+        q = q.filter(model_objects.QueueDomain.is_active.op("IS")(True))
     item = q.first()
     return item
 
 
-def get__SslQueueDomains__by_name(
-    ctx, domain_name, active_only=None, inactive_only=None
-):
-    q = ctx.dbSession.query(model_objects.SslQueueDomain).filter(
-        sqlalchemy.func.lower(model_objects.SslQueueDomain.domain_name)
+def get__QueueDomains__by_name(ctx, domain_name, active_only=None, inactive_only=None):
+    q = ctx.dbSession.query(model_objects.QueueDomain).filter(
+        sqlalchemy.func.lower(model_objects.QueueDomain.domain_name)
         == sqlalchemy.func.lower(domain_name)
     )
     if active_only:
-        q = q.filter(model_objects.SslQueueDomain.is_active.op("IS")(True))
+        q = q.filter(model_objects.QueueDomain.is_active.op("IS")(True))
     elif inactive_only:
-        q = q.filter(model_objects.SslQueueDomain.is_active.op("IS")(False))
+        q = q.filter(model_objects.QueueDomain.is_active.op("IS")(False))
     items = q.all()
     return items
 
@@ -851,20 +845,20 @@ def get__SslQueueDomains__by_name(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslOperationsQueueDomainEvent__count(ctx):
-    q = ctx.dbSession.query(model_objects.SslOperationsQueueDomainEvent)
+def get__OperationsQueueDomainEvent__count(ctx):
+    q = ctx.dbSession.query(model_objects.OperationsQueueDomainEvent)
     counted = q.count()
     return counted
 
 
-def get__SslOperationsQueueDomainEvent__paginated(ctx, limit=None, offset=0):
+def get__OperationsQueueDomainEvent__paginated(ctx, limit=None, offset=0):
     q = (
-        ctx.dbSession.query(model_objects.SslOperationsQueueDomainEvent)
+        ctx.dbSession.query(model_objects.OperationsQueueDomainEvent)
         .options(
             sqlalchemy.orm.joinedload("queue_domain").load_only("domain_name"),
             sqlalchemy.orm.joinedload("domain").load_only("domain_name"),
         )
-        .order_by(model_objects.SslOperationsQueueDomainEvent.id.desc())
+        .order_by(model_objects.OperationsQueueDomainEvent.id.desc())
         .limit(limit)
         .offset(offset)
     )
@@ -875,29 +869,29 @@ def get__SslOperationsQueueDomainEvent__paginated(ctx, limit=None, offset=0):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__SslQueueRenewal__count(
+def get__QueueRenewal__count(
     ctx, unprocessed_only=False, unprocessed_failures_only=None
 ):
     if unprocessed_failures_only and unprocessed_only:
         raise ValueError("only submit one strategy")
-    q = ctx.dbSession.query(model_objects.SslQueueRenewal)
+    q = ctx.dbSession.query(model_objects.QueueRenewal)
     if unprocessed_failures_only:
         q = q.filter(
-            model_objects.SslQueueRenewal.timestamp_processed.op("IS")(None),  # noqa
-            model_objects.SslQueueRenewal.timestamp_process_attempt.op("IS NOT")(
+            model_objects.QueueRenewal.timestamp_processed.op("IS")(None),  # noqa
+            model_objects.QueueRenewal.timestamp_process_attempt.op("IS NOT")(
                 None
             ),  # noqa
-            model_objects.SslQueueRenewal.process_result.op("IS")(False),  # noqa
+            model_objects.QueueRenewal.process_result.op("IS")(False),  # noqa
         )
     if unprocessed_only:
         q = q.filter(
-            model_objects.SslQueueRenewal.timestamp_processed.op("IS")(None)
+            model_objects.QueueRenewal.timestamp_processed.op("IS")(None)
         )  # noqa
     counted = q.count()
     return counted
 
 
-def get__SslQueueRenewal__paginated(
+def get__QueueRenewal__paginated(
     ctx,
     unprocessed_only=False,
     unprocessed_failures_only=None,
@@ -908,18 +902,18 @@ def get__SslQueueRenewal__paginated(
 ):
     if unprocessed_failures_only and unprocessed_only:
         raise ValueError("only submit one strategy")
-    q = ctx.dbSession.query(model_objects.SslQueueRenewal)
+    q = ctx.dbSession.query(model_objects.QueueRenewal)
     if unprocessed_failures_only:
         q = q.filter(
-            model_objects.SslQueueRenewal.timestamp_processed.op("IS")(None),  # noqa
-            model_objects.SslQueueRenewal.timestamp_process_attempt.op("IS NOT")(
+            model_objects.QueueRenewal.timestamp_processed.op("IS")(None),  # noqa
+            model_objects.QueueRenewal.timestamp_process_attempt.op("IS NOT")(
                 None
             ),  # noqa
-            model_objects.SslQueueRenewal.process_result.op("IS")(False),  # noqa
+            model_objects.QueueRenewal.process_result.op("IS")(False),  # noqa
         )
     if unprocessed_only:
         q = q.filter(
-            model_objects.SslQueueRenewal.timestamp_processed.op("IS")(None)
+            model_objects.QueueRenewal.timestamp_processed.op("IS")(None)
         )  # noqa
     if eagerload_web:
         q = q.options(
@@ -934,16 +928,16 @@ def get__SslQueueRenewal__paginated(
             sqlalchemy.orm.subqueryload("server_certificate.acme_account_key"),
             sqlalchemy.orm.subqueryload("server_certificate.private_key"),
         )
-    q = q.order_by(model_objects.SslQueueRenewal.id.desc())
+    q = q.order_by(model_objects.QueueRenewal.id.desc())
     q = q.limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
 
 
-def get__SslQueueRenewal__by_id(ctx, set_id, load_events=None):
+def get__QueueRenewal__by_id(ctx, set_id, load_events=None):
     q = (
-        ctx.dbSession.query(model_objects.SslQueueRenewal)
-        .filter(model_objects.SslQueueRenewal.id == set_id)
+        ctx.dbSession.query(model_objects.QueueRenewal)
+        .filter(model_objects.QueueRenewal.id == set_id)
         .options(
             sqlalchemy.orm.subqueryload("server_certificate")
             .joinedload("unique_fqdn_set")
@@ -957,10 +951,10 @@ def get__SslQueueRenewal__by_id(ctx, set_id, load_events=None):
     return item
 
 
-def get__SslQueueRenewal__by_UniqueFQDNSetId__active(ctx, set_id):
-    q = ctx.dbSession.query(model_objects.SslQueueRenewal).filter(
-        model_objects.SslQueueRenewal.unique_fqdn_set_id == set_id,
-        model_objects.SslQueueRenewal.timestamp_processed.op("IS")(None),
+def get__QueueRenewal__by_UniqueFQDNSetId__active(ctx, set_id):
+    q = ctx.dbSession.query(model_objects.QueueRenewal).filter(
+        model_objects.QueueRenewal.unique_fqdn_set_id == set_id,
+        model_objects.QueueRenewal.timestamp_processed.op("IS")(None),
     )
     items_paged = q.all()
     return items_paged

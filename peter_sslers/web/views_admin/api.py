@@ -373,7 +373,7 @@ class ViewAdmin(Handler):
         event_payload_dict = utils.new_event_payload_dict()
         event_payload_dict["prime_style"] = prime_style
         event_payload_dict["total_primed"] = total_primed
-        dbEvent = lib_db.logger.log__SslOperationsEvent(
+        dbEvent = lib_db.logger.log__OperationsEvent(
             self.request.api_context,
             model_utils.OperationsEventType.from_string("operations__redis_prime"),
             event_payload_dict,

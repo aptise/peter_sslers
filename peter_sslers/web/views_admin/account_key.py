@@ -439,7 +439,7 @@ class ViewAdmin_Focus(Handler):
             self.request.api_context.dbSession.flush(objects=[dbAcmeAccountKey])
 
             # bookkeeping
-            dbOperationsEvent = lib_db.logger.log__SslOperationsEvent(
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
             )
             lib_db.logger._log_object_event(

@@ -19,9 +19,9 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-9">
-            % if SslOperationsEvents:
+            % if OperationsEvents:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_SslOperationsEvents(SslOperationsEvents, show_event='event.id', event_type_listable=True, )}
+                ${admin_partials.table_OperationsEvents(OperationsEvents, show_event='event.id', event_type_listable=True, )}
             % else:
                 <em>
                     no events
