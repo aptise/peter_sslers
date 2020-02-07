@@ -130,6 +130,36 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(
+        route_name="admin:certificate_request:focus:acme_orders",
+        renderer="/admin/certificate_request-focus-acme_orders.mako",
+    )
+    def focus_acme_orders(self):
+        dbCertificateRequest = self._focus()
+        items_count = lib_db.get.get__AcmeOrders__by_CertificateRequest__count(
+            self.request.api_context, dbCertificateRequest.id
+        )
+        (pager, offset) = self._paginate(
+            items_count,
+            url_template="%s/certificate-request/{0}/acme-orders"
+            % self.request.registry.settings["admin_prefix"],
+        )
+        items_paged = lib_db.get.get__AcmeOrders__by_CertificateRequest__paginated(
+            self.request.api_context,
+            dbCertificateRequest.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "CertificateRequest": dbCertificateRequest,
+            "AcmeOrders_count": items_count,
+            "AcmeOrders": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:certificate_request:focus:acme-flow:deactivate")
     @view_config(
         route_name="admin:certificate_request:focus:acme-flow:deactivate|json",

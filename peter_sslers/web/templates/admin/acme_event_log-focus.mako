@@ -39,7 +39,7 @@
                     <td>
                         % if AcmeEventLog.acme_account_key_id:
                             <a  class="label label-info"
-                                href="${admin_prefix}/account-key/${AcmeEventLog.acme_account_key_id}"
+                                href="${admin_prefix}/acme-account-key/${AcmeEventLog.acme_account_key_id}"
                             >
                                 account-${AcmeEventLog.acme_account_key_id}
                             </a>

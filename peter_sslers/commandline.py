@@ -73,7 +73,7 @@ def upload_account(server_url_root, fset):
     """actually uploads an account fileset"""
     if server_url_root[-1] == "/":
         server_url_root = server_url_root[:-1]
-    url = "%s/account-key/upload.json" % server_url_root
+    url = "%s/acme-account-key/upload.json" % server_url_root
 
     try:
         proc = psutil.Popen(

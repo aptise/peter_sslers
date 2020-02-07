@@ -6,15 +6,15 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/account-keys">Account Keys</a></li>
+        <li><a href="${admin_prefix}/acme-account-keys">Acme Account Keys</a></li>
         <li class="active">Upload</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Account Key | Upload</h2>
-    <p><em>${request.text_library.info_AccountKeys[1]}</em></p>
+    <h2>Acme Account Key | Upload</h2>
+    <p><em>${request.text_library.info_AcmeAccountKeys[1]}</em></p>
 </%block>
 
 
@@ -22,7 +22,7 @@
     <div class="row">
         <div class="col-sm-6">
             <form
-                action="${admin_prefix}/account-key/upload"
+                action="${admin_prefix}/acme-account-key/upload"
                 method="POST"
                 enctype="multipart/form-data"
             >
@@ -36,11 +36,11 @@
             </form>
         </div>
         <div class="col-sm-6">
-            ${admin_partials.info_AccountKey()}
+            ${admin_partials.info_AcmeAccountKey()}
             <h3>This form accepts JSON</h3>
 
             <p>
-                <code>curl ${request.api_host}${admin_prefix}/account-key/upload.json</code>
+                <code>curl ${request.api_host}${admin_prefix}/acme-account-key/upload.json</code>
             </p>
         </div>
     </div>

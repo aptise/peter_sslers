@@ -48,11 +48,12 @@ class AcmeLogger(object):
         """
         self.dbAcmeOrder = dbAcmeOrder
 
-    def log_newAccount(self, acme_version):
+    def log_newAccount(self, acme_version, transaction_commit=None):
         """
         Logs a call for the ACME Registration event
 
         :param acme_version: (required) The ACME version of the API we are using.
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
         """
         # ???: update with result?
         if acme_version != "v2":
@@ -65,14 +66,21 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.transaction_manager.commit()
+            self.ctx.transaction_manager.begin()
+
         return dbAcmeEventLog
 
-    def log_newOrder(self, acme_version, dbCertificateRequest):
+    def log_newOrder(self, acme_version, dbCertificateRequest, transaction_commit=None):
         """
         Logs a call for the ACME Registration event
         
         :param acme_version: (required) The ACME version of the API we are using.
         :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest` for the new order
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
 
         This WILL NOT SET:
             `dbAcmeEventLog.acme_order_id` - must be set AFTER creating the database object
@@ -89,14 +97,23 @@ class AcmeLogger(object):
         dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.transaction_manager.commit()
+            self.ctx.transaction_manager.begin()
+
         return dbAcmeEventLog
 
-    def log_authorization_request(self, acme_version, dbAcmeAuthorization):
+    def log_authorization_request(
+        self, acme_version, dbAcmeAuthorization, transaction_commit=None
+    ):
         """
         Logs a new authorization and creates a challenge object
 
         :param acme_version: (required) The ACME version of the API we are using.
         :param dbAcmeAuthorization: (required) The :class:`model.objects.AcmeAuthorization` we fetched
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
         """
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
@@ -111,14 +128,23 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.transaction_manager.commit()
+            self.ctx.transaction_manager.begin()
+
         return dbAcmeEventLog
 
-    def log_challenge_trigger(self, acme_version, dbAcmeChallenge):
+    def log_challenge_trigger(
+        self, acme_version, dbAcmeChallenge, transaction_commit=None
+    ):
         """
         Logs a new authorization and creates a challenge object
 
         :param acme_version: (required) The ACME version of the API we are using.
         :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
         """
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
@@ -134,19 +160,25 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.transaction_manager.commit()
+            self.ctx.transaction_manager.begin()
+
         return dbAcmeEventLog
 
-    # ==========================================================================
-
-    def log_challenge_error(self, acme_version, dbAcmeChallenge, failtype):
+    def log_challenge_error(
+        self, acme_version, dbAcmeChallenge, failtype, transaction_commit=None
+    ):
         """
         Logs a challenge as error
 
         :param acme_version: (required) The ACME version of the API we are using.
         :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
         :param failtype: (required) A string from :class:`model_utils.AcmeChallengeFailType`
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
         """
-        raise ValueError("not compaitible with current api")
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
         if failtype in ("pretest-1", "pretest-2"):
@@ -163,6 +195,13 @@ class AcmeLogger(object):
             self.dbSession.flush()
         else:
             raise ValueError("unknown `failtype")
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.transaction_manager.commit()
+            self.ctx.transaction_manager.begin()
+
+    # ==========================================================================
 
     def log_new_cert(self, dbCertificateRequest, version):
         if version not in ("v1", "v2"):

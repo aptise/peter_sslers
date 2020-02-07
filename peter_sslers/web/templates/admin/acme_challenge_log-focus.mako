@@ -41,7 +41,7 @@
                     <td>
                         via log event
                         <a  class="label label-info"
-                            href="${admin_prefix}/account-keys/${AcmeChallenge.acme_event_log.acme_account_key_id}"
+                            href="${admin_prefix}/acme-account-keys/${AcmeChallenge.acme_event_log.acme_account_key_id}"
                         >
                             account-${AcmeChallenge.acme_event_log.acme_account_key_id}
                         </a>

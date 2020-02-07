@@ -28,7 +28,7 @@
             <div class="col-sm-9">
 
                 % if show_only['AcmeAccountKey']:
-                    <h4>Account Keys</h4>
+                    <h4>Acme Account Keys</h4>
                     % if results['AcmeAccountKey']['count']:
                         <table class="table table-condensed">
                             <thead>
@@ -44,7 +44,7 @@
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
-                                            href="${admin_prefix}/account-key/${key.id}"
+                                            href="${admin_prefix}/acme-account-key/${key.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             account-${key.id}</a>

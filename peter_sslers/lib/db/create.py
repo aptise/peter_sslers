@@ -22,7 +22,11 @@ from ._utils import get_dbSessionLogItem
 
 
 def create__AcmeOrder(
-    ctx, dbAcmeAccountKey=None, dbCertificateRequest=None, dbEventLogged=None,
+    ctx,
+    dbAcmeAccountKey=None,
+    dbCertificateRequest=None,
+    dbEventLogged=None,
+    transaction_commit=None,
 ):
     """
     Create a new ACME Order
@@ -31,7 +35,11 @@ def create__AcmeOrder(
     :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` associated with the order
     :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest` associated with the order
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
+    :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
     """
+    if not transaction_commit:
+        raise ValueError("`create__AcmeOrder` must persist to the database.")
+
     dbAcmeOrder = model_objects.AcmeOrder()
     dbAcmeOrder.timestamp_created = ctx.timestamp
     dbAcmeOrder.acme_account_key_id = dbAcmeAccountKey.id
@@ -43,6 +51,11 @@ def create__AcmeOrder(
     # then update the event with the order
     dbEventLogged.acme_order_id = dbAcmeOrder.id
     ctx.dbSession.flush(objects=[dbEventLogged])
+
+    # persist this to the db
+    if transaction_commit:
+        ctx.transaction_manager.commit()
+        ctx.transaction_manager.begin()
 
     return dbAcmeOrder
 

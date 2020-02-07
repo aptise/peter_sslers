@@ -14,7 +14,7 @@
 <%block name="page_header_col">
     <h2>Acme Challenge Log: Filtered</h2>
 
-    <a href="${admin_prefix}/account-key/${AcmeAccountKey.id}" class="label label-info">
+    <a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}" class="label label-info">
         account-${AcmeAccountKey.id}
     </a>
     <p>

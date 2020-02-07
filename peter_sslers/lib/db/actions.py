@@ -324,39 +324,62 @@ def do__CertificateRequest__AcmeV2_Automated(
 
         #
         (acmeOrderObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_new_order(
-            ctx, csr_domains=csr_domains, dbCertificateRequest=dbCertificateRequest,
+            ctx,
+            csr_domains=csr_domains,
+            dbCertificateRequest=dbCertificateRequest,
+            transaction_commit=True,
         )
-
-        #
         dbAcmeOrder = lib.db.create.create__AcmeOrder(
             ctx,
             dbAcmeAccountKey=dbAcmeAccountKey,
             dbCertificateRequest=dbCertificateRequest,
             dbEventLogged=dbAcmeOrderEventLogged,
+            transaction_commit=True,
         )
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
-        def process_discovered_auth(authorization_url, authorization_response):
+        def process_discovered_auth(
+            authorization_url, authorization_response, transaction_commit=None
+        ):
             """
+            :param authorization_url: (required) The URL of the ACME Server's Authorization Object.
+            :param authorization_response: (required) The JSON object corresponding to the ACME Server's Authorization Object.
+            :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+
             the getcreate will do the following:
                 create/update the Authorization object
                 create/update the Challenge object
             """
             log.info("-process_discovered_auth %s", authorization_url)
+            if transaction_commit is not True:
+                raise ValueError("we must invoke this knowing it will commit")
             (
                 dbAcmeAuthorization,
                 _is_created,
             ) = lib.db.getcreate.getcreate__AcmeAuthorization(
-                ctx, authorization_url, authorization_response, authenticatedUser
+                ctx,
+                authorization_url,
+                authorization_response,
+                authenticatedUser,
+                transaction_commit=transaction_commit,
             )
             return dbAcmeAuthorization
 
-        def process_keyauth_challenge(domain, token, keyauthorization):
+        def process_keyauth_challenge(
+            domain, token, keyauthorization, transaction_commit=None
+        ):
             """
+            :param domain: (required) The domain for the challenge, as a string.
+            :param token: (required) The challenge's token.
+            :param keyauthorization: (required) The keyauthorization expected to be in the challenge url
+            :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+
             originally, this callback/hook was used to make a challenge "live"
             it might be unused
             """
             log.info("-process_keyauth_challenge %s", domain)
+            if transaction_commit is not True:
+                raise ValueError("we must invoke this knowing it will commit")
             if False:
                 with transaction.manager as tx:
                     (dbDomain, dbCertificateRequest2D) = dbDomainObjects[domain]
@@ -364,13 +387,21 @@ def do__CertificateRequest__AcmeV2_Automated(
                     dbCertificateRequest2D.challenge_text = keyauthorization
                     ctx.dbSession.flush(objects=[dbCertificateRequest2D])
 
-        def process_keyauth_cleanup(domain, token, keyauthorization):
+        def process_keyauth_cleanup(
+            domain, token, keyauthorization, transaction_commit=None
+        ):
             """
+            :param domain: (required) The domain for the challenge, as a string.
+            :param token: (required) The challenge's token.
+            :param keyauthorization: (required) The keyauthorization expected to be in the challenge url
+            :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+
             originally, this callback/hook was used to cleanup a challenge
             it might be unused
             """
             log.info("-process_keyauth_cleanup %s", domain)
-            pdb.set_trace()
+            if transaction_commit is not True:
+                raise ValueError("we must invoke this knowing it will commit")
 
         """ 
             # https://tools.ietf.org/html/rfc8555#section-7.1.3
@@ -401,7 +432,7 @@ def do__CertificateRequest__AcmeV2_Automated(
                   certificate.
         """
         _todo_finalize_order = None
-        _order_status = acmeOrderObject.api_object["status"]
+        _order_status = acmeOrderObject.rfc_object["status"]
         if _order_status == "pending":
             _handled = authenticatedUser.acme_handle_order_authorizations(
                 ctx,
@@ -410,6 +441,7 @@ def do__CertificateRequest__AcmeV2_Automated(
                 handle_discovered_auth=process_discovered_auth,
                 handle_keyauth_challenge=process_keyauth_challenge,
                 handle_keyauth_cleanup=process_keyauth_cleanup,
+                transaction_commit=True,
             )
             if not _handled:
                 raise ValueError("Order Authorizations failed")
@@ -821,7 +853,7 @@ def operations_update_recents(ctx):
 
     # the following works, but this is currently tracked
     """
-        # update the counts on Account Keys
+        # update the counts on Acme Account Keys
         _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.CertificateRequest.id))\
             .filter(model_objects.CertificateRequest.acme_account_key_id == model_objects.AcmeAccountKey.id,
                     )\
@@ -976,7 +1008,7 @@ def api_domains__certificate_if_needed(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param domain_names: (required) a list of domain names
-    :param account_key_pem: (required) the account-key used for new orders
+    :param account_key_pem: (required) the acme-account-key used for new orders
     :param dbPrivateKey: (required) the class:`model.objects.PrivateKey` used to sign requests
 
     results will be a dict:

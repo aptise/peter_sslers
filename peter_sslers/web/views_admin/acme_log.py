@@ -115,7 +115,7 @@ class ViewAdmin_AcmeChallengeLog(Handler):
         )
         dbAcmeAccountKey = None
         try:
-            acme_account_key_id = int(self.request.params.get("account-key-id", 0))
+            acme_account_key_id = int(self.request.params.get("acme-account-key-id", 0))
             dbAcmeAccountKey = lib_db.get.get__AcmeAccountKey__by_id(
                 self.request.api_context, acme_account_key_id, eagerload_web=False
             )

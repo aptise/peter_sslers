@@ -6,24 +6,24 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">Account Keys</li>
+        <li class="active">Acme Account Keys</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Account Keys</h2>
-    <p>${request.text_library.info_AccountKeys[1]}</p>
+    <h2>Acme Account Keys</h2>
+    <p>${request.text_library.info_AcmeAccountKeys[1]}</p>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/account-keys.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-account-keys.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
-        <a  href="${admin_prefix}/account-key/upload"
+        <a  href="${admin_prefix}/acme-account-key/upload"
             title="${request.text_library.info_UploadAccountKey[0]}"
             class="btn btn-xs btn-primary"
         >
@@ -54,7 +54,7 @@
                     <tbody>
                     % for key in AcmeAccountKeys:
                         <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/account-key/${key.id}">
+                            <td><a class="label label-info" href="${admin_prefix}/acme-account-key/${key.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 account-${key.id}</a></td>
                             <td>
@@ -78,7 +78,7 @@
                 </table>
             % else:
                 <em>
-                    No Account Keys
+                    No Acme Account Keys
                 </em>
             % endif
         </div>

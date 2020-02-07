@@ -6,15 +6,15 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/account-keys">Account Keys</a></li>
-        <li><a href="${admin_prefix}/account-key/${AcmeAccountKey.id}">Focus [${AcmeAccountKey.id}]</a></li>
+        <li><a href="${admin_prefix}/acme-account-keys">Acme Account Keys</a></li>
+        <li><a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}">Focus [${AcmeAccountKey.id}]</a></li>
         <li class="active">Certificate Requests</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Account Key - Focus | Certificate Requests</h2>
+    <h2>Acme Account Key - Focus | Certificate Requests</h2>
 </%block>
 
 

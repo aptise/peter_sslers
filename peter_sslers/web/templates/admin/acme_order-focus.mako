@@ -52,7 +52,7 @@
                     <td>
                         <a
                             class="label label-info"
-                            href="${admin_prefix}/account-key/${AcmeOrder.acme_account_key_id}"
+                            href="${admin_prefix}/acme-account-key/${AcmeOrder.acme_account_key_id}"
                         >
                             ${AcmeOrder.acme_account_key_id}
                         </a>

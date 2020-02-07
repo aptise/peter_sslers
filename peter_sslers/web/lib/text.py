@@ -12,9 +12,9 @@ info_AcmeOrders = [
     "A LetsEncrypt ACME Order",
     "An ACME order is essentially a Certificate Signing Request.",
 ]
-info_AccountKeys = [
+info_AcmeAccountKeys = [
     "Used to sign Certificate Requests",
-    "AccountKeys identify our account to LetsEncrypt when signing.",
+    "AcmeAccountKeys identify our account to LetsEncrypt when signing.",
 ]
 info_PrivateKeys = [
     "Private Keys matched to Signed Certificates",

@@ -222,13 +222,18 @@ def getcreate__AcmeAccountKey(
 
 
 def getcreate__AcmeAuthorization(
-    ctx, authorization_url, authorization_payload, authenticatedUser=None
+    ctx,
+    authorization_url,
+    authorization_payload,
+    authenticatedUser=None,
+    transaction_commit=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param authorization_url: (required) the url of an RFC-8555 authorization
     :param authorization_payload: (required) an RFC-8555 authorization payload
     :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
+    :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
 
     https://tools.ietf.org/html/rfc8555#section-7.1.4
     Authorization Payload Contents:
@@ -308,6 +313,12 @@ def getcreate__AcmeAuthorization(
             dbChallenge.timestamp_updated = ctx.timestamp
             ctx.dbSession.add(dbChallenge)
             ctx.dbSession.flush(objects=[dbChallenge])
+
+    # ???: should this be broken up into separate `AcmeAuthorization` and `AcmeChallenge` phases?
+    # persist this to the db
+    if transaction_commit:
+        ctx.transaction_manager.commit()
+        ctx.transaction_manager.begin()
 
     return dbAcmeAuthorization, is_created
 

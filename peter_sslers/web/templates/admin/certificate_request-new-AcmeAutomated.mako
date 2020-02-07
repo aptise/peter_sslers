@@ -54,7 +54,7 @@
             </form>
         </div>
         <div class="col-sm-6">
-            ${admin_partials.info_AccountKey()}
+            ${admin_partials.info_AcmeAccountKey()}
             ${admin_partials.info_PrivateKey()}
         </div>
     </div>

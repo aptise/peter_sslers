@@ -786,12 +786,16 @@ class CertificateRequest(Base):
 
     @property
     def domains_as_string(self):
-        domains = sorted([to_d.domain.domain_name for to_d in self.to_domains])
+        domains = sorted(
+            [to_d.domain.domain_name for to_d in self.unique_fqdn_set.to_domains]
+        )
         return ", ".join(domains)
 
     @property
     def domains_as_list(self):
-        domain_names = [to_d.domain.domain_name.lower() for to_d in self.to_domains]
+        domain_names = [
+            to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
+        ]
         domain_names = list(set(domain_names))
         domain_names = sorted(domain_names)
         return domain_names
@@ -1731,6 +1735,27 @@ PrivateKey.server_certificates__5 = sa_orm_relationship(
         )
     ),
     order_by=ServerCertificate.id.desc(),
+    viewonly=True,
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# note: CertificateRequest.latest_acme_order
+CertificateRequest.latest_acme_order = sa_orm_relationship(
+    AcmeOrder,
+    primaryjoin=(
+        sa.and_(
+            CertificateRequest.id == AcmeOrder.certificate_request_id,
+            AcmeOrder.id.in_(
+                sa.select([sa.func.max(AcmeOrder.id)])
+                .where(AcmeOrder.certificate_request_id == CertificateRequest.id)
+                .correlate()
+            ),
+        )
+    ),
+    uselist=False,
     viewonly=True,
 )
 

@@ -174,12 +174,12 @@
                 <th>id</th>
                 <th>type</th>
                 <th>active?</th>
-                <th>error?</th>
+                ## <th>error?</th>
                 % if show_certificate:
                     <th>cert issued?</th>
                 % endif
-                <th>timestamp_started</th>
-                <th>timestamp_finished</th>
+                <th>timestamp_created</th>
+                ## <th>timestamp_finished</th>
                 % if show_domains:
                     <th>domains</th>
                 % endif
@@ -202,11 +202,11 @@
                         ${'Active' if certificate_request.is_active else 'inactive'}
                     </span>
                 </td>
-                <td>
-                    <span class="label label-${'danger' if certificate_request.is_error else 'default'}">
-                        ${'Error' if certificate_request.is_error else 'ok'}
-                    </span>
-                </td>
+                ## <td>
+                ##    <span class="label label-${'danger' if certificate_request.is_error else 'default'}">
+                ##        ${'Error' if certificate_request.is_error else 'ok'}
+                ##    </span>
+                ## </td>
                 % if show_certificate:
                     <td>
                         % if certificate_request.server_certificate:
@@ -219,8 +219,8 @@
                         % endif
                     </td>
                 % endif
-                <td><timestamp>${certificate_request.timestamp_started}</timestamp></td>
-                <td><timestamp>${certificate_request.timestamp_finished or ''}</timestamp></td>
+                <td><timestamp>${certificate_request.timestamp_created}</timestamp></td>
+                ## <td><timestamp>${certificate_request.timestamp_finished or ''}</timestamp></td>
                 % if show_domains:
                      <td><code>${certificate_request.domains_as_string}</code></td>
                 % endif
@@ -288,54 +288,80 @@
 </%def>
 
 
-<%def name="table_CertificateRequest2Domain(lcr2mds, request_inactive=None, current_domain_id=None, perspective=None)">
-    % if perspective == 'certificate_request':
+
+<%def name="table_AcmeOrders(acme_orders, perspective=None)">
+    % if perspective == 'CertificateRequest':
         <table class="table table-striped table-condensed">
             <thead>
                 <tr>
-                    <th>domain</th>
-                    <th>timestamp_verified</th>
-                    <th>challenge_key</th>
-                    <th>challenge_text</th>
-                    <th>configured?</th>
+                    <th>id</th>
+                    <th>timestamp_created</th>
+                    <th>timestamp_finalized</th>
+                    <th>acme_account_key_id</th>
+                    <th>server_certificate_id</th>
                 </tr>
             </thead>
             <tbody>
-                % for to_d in lcr2mds:
+                % for acme_order in acme_orders:
                     <tr>
-                        <td><a href="${admin_prefix}/domain/${to_d.domain.id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            domain-${to_d.domain.id}</a> ${to_d.domain.domain_name}</td>
-                        <td><timestamp>${to_d.timestamp_verified or ''}</timestamp></td>
-                        <td><code>${to_d.challenge_key or ''}</code></td>
-                        <td><code>${to_d.challenge_text or ''}</code></td>
                         <td>
-                            % if to_d.is_configured:
-                                % if request_inactive:
-                                    <span class="label label-success">configured</span>
-                                % else:
-                                    <a  class="label label-success"
-                                        href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage/domain/${to_d.domain.id}"
-                                        >
-                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        configured</a>
-                                % endif
-                            % else:
-                                % if request_inactive:
-                                    <span class="label label-warning">not configured</span>
-                                % else:
-                                    <a  class="label label-warning"
-                                        href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage/domain/${to_d.domain.id}"
-                                        >
-                                        <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                                        configure!</a>
-                                % endif
-                            % endif
+                            <a href="${admin_prefix}/acme-order/${acme_order.id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                acme-order-${acme_order.id}
+                            </a>
+                            <td><timestamp>${acme_order.timestamp_created or ''}</timestamp></td>
+                            <td><timestamp>${acme_order.timestamp_finalized or ''}</timestamp></td>
+                            <a href="${admin_prefix}/acme-account-key/${acme_order.acme_account_key_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                acme-account-key-${acme_order.acme_account_key_id}
+                            </a>
+                            <a href="${admin_prefix}/server-certificate/${acme_order.server_certificate_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                server-certificate-${acme_order.server_certificate_id}
+                            </a>
                         </td>
                     </tr>
                 % endfor
             </tbody>
         </table>
+    % else:
+        <!-- table_AcmeOrders missing perspective -->
+    % endif
+</%def>
+    
+
+<%def name="table_UniqueFqdnSet_Domains(unique_fqdn_set, perspective=None)">
+    % if perspective == 'CertificateRequest':
+        <table class="table table-striped table-condensed">
+            <thead>
+                <tr>
+                    <th>domain</th>
+                </tr>
+            </thead>
+            <tbody>
+                % for to_d in unique_fqdn_set.to_domains:
+                    <tr>
+                        <td>
+                            <a href="${admin_prefix}/domain/${to_d.domain.id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                domain-${to_d.domain.id}
+                            </a>
+                            <code>${to_d.domain.domain_name}</code>
+                        </td>
+                    </tr>
+                % endfor
+            </tbody>
+        </table>
+    % else:
+        <!-- table_UniqueFqdnSet_Domains missing perspective -->
+    % endif
+</%def>
+        
+
+
+<%def name="table_CertificateRequest2Domain(lcr2mds, request_inactive=None, current_domain_id=None, perspective=None)">
+    % if perspective == 'CertificateRequest':
+        <% raise ValueError("deprecated") %>
     % elif perspective == 'certificate_request_sidebar':
         <table class="table table-striped table-condensed">
             <thead>
@@ -580,7 +606,7 @@
                             </a>
                             <code>${object_event.domain.domain_name}</code>
                         % elif object_event.acme_account_key_id:
-                            <a class="label label-info" href="${admin_prefix}/account-key/${object_event.acme_account_key_id}">
+                            <a class="label label-info" href="${admin_prefix}/acme-account-key/${object_event.acme_account_key_id}">
                                 AccountKey
                                 ${object_event.acme_account_key_id}
                             </a>
@@ -614,8 +640,8 @@
 </%def>
 
 
-<%def name="info_AccountKey()">
-    <h3>Need an Account Key?</h3>
+<%def name="info_AcmeAccountKey()">
+    <h3>Need an Acme Account Key?</h3>
         <p>Use an Existing LetsEncrypt key from their client.
            This is the easiest way to register with LetsEncrypt and opt into their TOS.
         </p>
@@ -646,12 +672,12 @@
             <label>
                 <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" checked="checked"/>
                 <input type="hidden" name="account_key_reuse" value="${dbAcmeAccountKeyReuse.key_pem_md5}"/>
-                Select to renew with same Account Key<br/>
+                Select to renew with same Acme Account Key<br/>
                 <b>pem md5:</b> <code>${dbAcmeAccountKeyReuse.key_pem_md5}</code><br/>
                 <b>pem line 1:</b> <code>${dbAcmeAccountKeyReuse.key_pem_sample}</code>
             </label>
             <a  class="label label-info"
-                href="${admin_prefix}/account-key/${dbAcmeAccountKeyReuse.id}"
+                href="${admin_prefix}/acme-account-key/${dbAcmeAccountKeyReuse.id}"
             >
                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                 account-${dbAcmeAccountKeyReuse.id}
@@ -663,7 +689,7 @@
             <label>
                 <input type="radio" name="account_key_option" id="account_key_option-account_key_default" value="account_key_default"/>
                 <input type="hidden" name="account_key_default" value="${dbAcmeAccountKeyDefault.key_pem_md5}"/>
-                Select to use the default Account Key<br/>
+                Select to use the default Acme Account Key<br/>
                 <b>pem md5:</b> <code>${dbAcmeAccountKeyDefault.key_pem_md5}</code><br/>
                 <b>pem line 1:</b> <code>${dbAcmeAccountKeyDefault.key_pem_sample}</code>
             </label>
@@ -681,7 +707,7 @@
     <div class="radio">
         <label>
             <input type="radio" name="account_key_option" id="account_key_option-account_key_file" value="account_key_file">
-            Select to upload a new Account Key<br/>
+            Select to upload a new Acme Account Key<br/>
         </label>
         <label>
             ${formgroup__account_key_file()}
@@ -756,13 +782,13 @@
 
 <%def name="formgroup__account_key_file(show_header=True)">
     <div class="form-group">
-        <label for="f1-account_key_file_pem">Account Key: PEM</label>
+        <label for="f1-account_key_file_pem">Acme Account Key: PEM</label>
         <p class="help-block">
             Enter your LetsEncrypt registered AccountKey in PEM format. This is used when requesting the ACME server sign your certificates.
         </p>
         <input class="form-control" type="file" id="f1-account_key_file_pem" name="account_key_file_pem" />
         <div class="form-group">
-            <label for="f1-account_key_file_le_meta">Account Key: LetsEncrypt meta.json</label>
+            <label for="f1-account_key_file_le_meta">Acme Account Key: LetsEncrypt meta.json</label>
             <select class="form-control" id="f1-acme_account_provider_id" name="acme_account_provider_id" />
                 % for option in AcmeAccountProviderOptions:
                     <option value="${option['id']}" ${'selected' if option['is_default'] else ''}>${option['name']}</option>
@@ -776,11 +802,11 @@
             Enter your LetsEncrypt registered AccountKey in PEM format. This is used when requesting the ACME server sign your certificates.
             The provider will be auto-detected.
         </p>
-        <label for="f1-account_key_file_le_meta">Account Key: LetsEncrypt meta.json</label>
+        <label for="f1-account_key_file_le_meta">Acme Account Key: LetsEncrypt meta.json</label>
         <input class="form-control" type="file" id="f1-account_key_file_le_meta" name="account_key_file_le_meta" />
-        <label for="f1-account_key_file_le_pkey">Account Key: LetsEncrypt private_key.json</label>
+        <label for="f1-account_key_file_le_pkey">Acme Account Key: LetsEncrypt private_key.json</label>
         <input class="form-control" type="file" id="f1-account_key_file_le_pkey" name="account_key_file_le_pkey" />
-        <label for="f1-account_key_file_le_reg">Account Key: LetsEncrypt regr.json</label>
+        <label for="f1-account_key_file_le_reg">Acme Account Key: LetsEncrypt regr.json</label>
         <input class="form-control" type="file" id="f1-account_key_file_le_reg" name="account_key_file_le_reg" />
     </div>
 </%def>

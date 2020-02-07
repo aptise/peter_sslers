@@ -48,14 +48,6 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>is_error</th>
-                    <td>
-                        <span class="label label-${'danger' if CertificateRequest.is_error else 'default'}">
-                            ${'Error' if CertificateRequest.is_error else 'ok'}
-                        </span>
-                    </td>
-                </tr>
-                <tr>
                     <th>certificate_request_source</th>
                     <td>
                         <span class="label label-default">${CertificateRequest.certificate_request_source}</span>
@@ -89,16 +81,6 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>acme_account_key_id</th>
-                    <td>
-                        % if CertificateRequest.acme_account_key_id:
-                            <a class="label label-info" href="${admin_prefix}/account-key/${CertificateRequest.acme_account_key_id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                account-${CertificateRequest.acme_account_key_id}</a>
-                        % endif
-                    </td>
-                </tr>
-                <tr>
                     <th>private_key_id__signed_by</th>
                     <td>
                         % if CertificateRequest.private_key_id__signed_by:
@@ -123,12 +105,8 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>timestamp_started</th>
-                    <td>${CertificateRequest.timestamp_started}</td>
-                </tr>
-                <tr>
-                    <th>timestamp_finished</th>
-                    <td>${CertificateRequest.timestamp_finished or ''}</td>
+                    <th>timestamp_created</th>
+                    <td>${CertificateRequest.timestamp_created}</td>
                 </tr>
                 <tr>
                     <th>csr_pem_md5</th>
@@ -164,11 +142,36 @@
                 <tr>
                     <th>domains</th>
                     <td>
-                        ${admin_partials.table_CertificateRequest2Domain(CertificateRequest.unique_fqdn_set.to_domains,
-                                                                            request_inactive = (False if CertificateRequest.is_active else True),
-                                                                            perspective='certificate_request')}
+                        ${admin_partials.table_UniqueFqdnSet_Domains(CertificateRequest.unique_fqdn_set, perspective='CertificateRequest')}
                     </td>
                 </tr>
+
+                <tr>
+                    <th>latest acme order</th>
+                    <td>
+                        % if CertificateRequest.latest_acme_order:
+                            <a
+                                class="btn btn-xs btn-info"
+                                href="${admin_prefix}/acme-order/${CertificateRequest.latest_acme_order.id}"
+                            >
+                                acme-order-${CertificateRequest.latest_acme_order.id}
+                            </a>
+                        % endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>acme order history history</th>
+                    <td>
+                        <a
+                            class="btn btn-xs btn-info"
+                            href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-orders"
+                        >
+                            AcmeOrder History
+                        </a>
+                    </td>
+                </tr>
+
+
             </table>
 
             % if CertificateRequest.is_active and CertificateRequest.certificate_request_source_is('acme flow'):
@@ -187,6 +190,10 @@
                     deactivate
                 </a>
             % endif
+
+
+
+
         </div>
     </div>
 </%block>

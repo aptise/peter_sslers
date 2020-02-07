@@ -104,5 +104,10 @@ class ApiContext(object):
         self.dbSessionLogger = dbSessionLogger
         self.timestamp = timestamp
 
+    @property
+    def transaction_manager(self):
+        # this is the pyramid_tm interface
+        return self.request.tm
+
 
 # ------------------------------------------------------------------------------

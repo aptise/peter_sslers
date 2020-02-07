@@ -51,8 +51,16 @@ def _b64(b):
     return base64.urlsafe_b64encode(b).decode("utf8").replace("=", "")
 
 
-# helper function - make request and automatically parse json response
 def url_request(url, post_data=None, err_msg="Error", depth=0):
+    """
+    Originally from acme-tiny
+    # helper function - make request and automatically parse json response
+
+    :param url: (required) The url
+    :param post_data: (optional) A Python dict of data to POST to the url
+    :param err_msg: (optional) A string to use as an error message
+    :param depth: (optional) An integer nothing the depth of this function being called
+    """
     context = None
     try:
         headers = {
@@ -100,6 +108,10 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
 
 
 def get_authorization_challenge(authorization_response, http01=None):
+    """
+    :param authorization_response: (required) A Python dict representing a server's JSON payload of an Authorization Object.
+    :param http01: (required) You must declare this is a http01 request
+    """
     if not http01:
         raise ValueError("must invoke with `http01=True`")
     # find the http-01 challenge and write the challenge file
@@ -113,6 +125,10 @@ def get_authorization_challenge(authorization_response, http01=None):
 
 
 def create_challenge_keyauthorization(token, accountkey_thumbprint):
+    """
+    :param token: (required) A string `token` entry from a server Challenge object
+    :param accountkey_thumbprint: (required) The thumbprint of an Authenticated Account
+    """
     token = re.sub(r"[^A-Za-z0-9_\-]", "_", token)
     keyauthorization = "{0}.{1}".format(token, accountkey_thumbprint)
     return keyauthorization
@@ -122,7 +138,11 @@ def create_challenge_keyauthorization(token, accountkey_thumbprint):
 
 
 def acme_directory_get(acmeAccountKey=None):
-    # get the ACME directory of urls
+    """
+    Get the ACME directory of urls
+
+    :param acmeAccountKey: (required) a :class:`model.objects.AcmeAccountKey` instance
+    """
     log.info("acme_v2 Getting directory...")
     url_directory = acmeAccountKey.acme_account_provider_directory
     if not url_directory:
@@ -140,6 +160,9 @@ def acme_directory_get(acmeAccountKey=None):
 
 
 def account_key__parse(account_key_path=None):
+    """
+    :param account_key_path: (required) the filepath to a PEM encoded RSA account key file.
+    """
     log.info("acme_v2 Parsing account key...")
     with psutil.Popen(
         [cert_utils.openssl_path, "rsa", "-in", account_key_path, "-noout", "-text",],
@@ -169,14 +192,24 @@ def account_key__parse(account_key_path=None):
 
 
 class AcmeOrder(object):
-    api_object = None
+    """
+    An object wrapping up an ACME server order
+    
+    Attributes:
+
+    :param rfc_object: (required) A Python dict representing the RFC AcmeOrder object
+    :param response_headers: (required) The headers of the ACME Server's response
+    :param dbCertificateRequest: (required) A :class:`model.objects.CertificateRequest` object
+    """
+
+    rfc_object = None
     response_headers = None
     dbCertificateRequest = None
 
     def __init__(
-        self, api_object=None, response_headers=None, dbCertificateRequest=None
+        self, rfc_object=None, response_headers=None, dbCertificateRequest=None
     ):
-        self.api_object = api_object
+        self.rfc_object = rfc_object
         self.response_headers = response_headers
         self.dbCertificateRequest = dbCertificateRequest
 
@@ -207,6 +240,13 @@ class AuthenticatedUser(object):
         acme_directory=None,
         log__OperationsEvent=None,
     ):
+        """
+        :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
+        :param acmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+        :param account_key_path: (optional) The filepath of a PEM encoded RSA key
+        :param acme_directory: (optional) The ACME Server's url for a "directory"
+        :param log__OperationsEvent: (required) callable function to log the operations event
+        """
         if not all((acmeLogger, acmeAccountKey, account_key_path)):
             raise ValueError(
                 "all elements are required: (acmeLogger, acmeAccountKey, account_key_path)"
@@ -232,6 +272,12 @@ class AuthenticatedUser(object):
         self.log__OperationsEvent = log__OperationsEvent
 
     def _send_signed_request(self, url, payload=None, depth=0):
+        """
+        Originally from acme-tiny
+        :param url: (required) The url
+        :param payload: (optional) A Python dict of data to POST to the url
+        :param depth: (optional) An integer nothing the depth of this function being called
+        """
         payload64 = "" if payload is None else _b64(json.dumps(payload).encode("utf8"))
         new_nonce = url_request(self.acme_directory["newNonce"])[2]["Replay-Nonce"]
         protected = {"url": url, "alg": self.alg, "nonce": new_nonce}
@@ -271,6 +317,12 @@ class AuthenticatedUser(object):
             return self._send_signed_request(url, payload=payload, depth=(depth + 1),)
 
     def _poll_until_not(self, _url, _pending_statuses, _log_message):
+        """
+        Originally from acme-tiny
+        :param _url: (required) The url
+        :param _pending_statuses: (required) The statuses we will continue polling until we lose
+        :param depth: (optional) An integer nothing the depth of this function being called
+        """
         log.info("acme_v2 _poll_until_not {0}".format(_log_message))
         _result, _t0 = None, time.time()
         while _result is None or _result["status"] in _pending_statuses:
@@ -279,11 +331,10 @@ class AuthenticatedUser(object):
             _result, _, _ = self._send_signed_request(_url, payload=None,)
         return _result
 
-    def authenticate(self, app_ctx, contact=None):
+    def authenticate(self, ctx, contact=None):
         """
-        kwargs:
-            app_ctx = app context.
-            contact = updated contact info
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param contact: (optional) The updated contact info
 
         returns:
             acme_account_object - ACME Server account object
@@ -372,7 +423,7 @@ class AuthenticatedUser(object):
             raise ValueError("directory does not support `newAccount`")
 
         # log the event to the db
-        self.acmeLogger.log_newAccount("v2")
+        self.acmeLogger.log_newAccount("v2", transaction_commit=True)
 
         # hit the acme api for the registration
         try:
@@ -413,14 +464,14 @@ class AuthenticatedUser(object):
             )
 
         # this would raise if we couldn't authenticate
-        self.acmeAccountKey.timestamp_last_authenticated = app_ctx.timestamp
-        app_ctx.dbSession.flush(objects=[self.acmeAccountKey])
+        self.acmeAccountKey.timestamp_last_authenticated = ctx.timestamp
+        ctx.dbSession.flush(objects=[self.acmeAccountKey])
 
         # log this
         event_payload_dict = utils.new_event_payload_dict()
         event_payload_dict["acme_account_key.id"] = self.acmeAccountKey.id
         dbOperationsEvent = self.log__OperationsEvent(
-            app_ctx,
+            ctx,
             model_utils.OperationsEventType.from_string(
                 "acme_account_key__authenticate"
             ),
@@ -428,9 +479,14 @@ class AuthenticatedUser(object):
         )
 
     def acme_new_order(
-        self, app_ctx, csr_domains=None, dbCertificateRequest=None,
+        self, ctx, csr_domains=None, dbCertificateRequest=None, transaction_commit=None,
     ):
         """
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param csr_domains: (required) The domains for our order
+        :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest` associated with the order
+        :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
+
         returns
             AcmeOrderObject, dbEventLogged
 
@@ -502,6 +558,9 @@ class AuthenticatedUser(object):
         """
         # create a new order
         log.info("acme_v2 Creating new order...")
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
 
         payload_order = {
             "identifiers": [{"type": "dns", "value": d} for d in csr_domains]
@@ -512,11 +571,13 @@ class AuthenticatedUser(object):
         log.info("acme_v2 Order created!")
 
         # log the event to the db
-        dbEventLogged = self.acmeLogger.log_newOrder("v2", dbCertificateRequest)
+        dbEventLogged = self.acmeLogger.log_newOrder(
+            "v2", dbCertificateRequest, transaction_commit=True
+        )
 
         # this is just a convenience wrapper for our order object
         acmeOrderObject = AcmeOrder(
-            api_object=acme_order_object,
+            rfc_object=acme_order_object,
             response_headers=acme_order_headers,
             dbCertificateRequest=dbCertificateRequest,
         )
@@ -525,14 +586,24 @@ class AuthenticatedUser(object):
 
     def acme_handle_order_authorizations(
         self,
-        app_ctx,
-        acmeOrder=None,  # acme server api response, `AcmeOrder` object
-        dbAcmeOrder=None,  # used for logging
-        handle_discovered_auth=None,  # callable; expects (authorization_url, authorization_response)
-        handle_keyauth_challenge=None,  # callable; expects (domain, token, keyauthorization)
-        handle_keyauth_cleanup=None,  # callable; expects (domain, token, keyauthorization)
+        ctx,
+        acmeOrder=None,
+        dbAcmeOrder=None,
+        handle_discovered_auth=None,
+        handle_keyauth_challenge=None,
+        handle_keyauth_cleanup=None,
+        transaction_commit=None,
     ):
         """
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param acmeOrder: (required) A :class:`AcmeOrder` object representing the server's response
+        :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
+
+        :param handle_discovered_auth: (required) Callable function. expects (authorization_url, authorization_response, transaction_commit)
+        :param handle_keyauth_challenge: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
+        :param handle_keyauth_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
+        :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
+ 
         Authorizations
         
             https://tools.ietf.org/html/rfc8555#section-7.1.4
@@ -600,13 +671,18 @@ class AuthenticatedUser(object):
                     the ACME server encountered an error when validating
         """
         log.info("acme_v2 acme_handle_order_authorizations...")
+        if not transaction_commit:
+            # !!!: if this were not True, then we can't invoke items with `transaction_commit=True` below
+            raise ValueError(
+                "`acme_handle_order_authorizations()` must persist to the database."
+            )
 
-        _order_status = acmeOrder.api_object["status"]
+        _order_status = acmeOrder.rfc_object["status"]
         if _order_status != "pending":
             raise ValueError("unsure how to handle this status: `%s`" % _order_status)
 
         # verify each domain
-        for authorization_url in acmeOrder.api_object["authorizations"]:
+        for authorization_url in acmeOrder.rfc_object["authorizations"]:
             # scoping, our todo list
             _todo_complete_challenges = None
             _todo_complete_challenge_http01 = None
@@ -617,7 +693,7 @@ class AuthenticatedUser(object):
                 authorization_url, payload=None,
             )
             dbAcmeAuthorization = handle_discovered_auth(
-                authorization_url, authorization_response
+                authorization_url, authorization_response, transaction_commit=True,
             )
             _response_domain = authorization_response["identifier"]["value"]
             if dbAcmeAuthorization.domain.domain_name != _response_domain:
@@ -633,7 +709,7 @@ class AuthenticatedUser(object):
             )
 
             dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-                "v2", dbAcmeAuthorization=dbAcmeAuthorization
+                "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
             )  # log this to the db
 
             _authorization_status = authorization_response["status"]
@@ -702,15 +778,12 @@ class AuthenticatedUser(object):
                     dbAcmeAuthorization.domain.domain_name,
                     dbAcmeAuthorization.acme_challenge_http01.token,
                     dbAcmeAuthorization.acme_challenge_http01.keyauthorization,
+                    transaction_commit=True,
                 )
                 wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
                     dbAcmeAuthorization.domain.domain_name,
                     dbAcmeAuthorization.acme_challenge_http01.token,
                 )
-
-                print(wellknown_path)
-                print(wellknown_url)
-                pdb.set_trace()
 
                 # check that the file is in place
                 try:
@@ -728,11 +801,13 @@ class AuthenticatedUser(object):
                                 dbAcmeAuthorization.domain.domain_name,
                                 token,
                                 keyauthorization,
+                                transaction_commit=True,
                             )
                             self.acmeLogger.log_challenge_error(
                                 "v2",
                                 dbAcmeAuthorization.acme_challenge_http01,
                                 "pretest-1",
+                                transaction_commit=True,
                             )
                             raise errors.DomainVerificationError(
                                 "Wrote keyauth challenge, but couldn't download {0}".format(
@@ -744,6 +819,7 @@ class AuthenticatedUser(object):
                                 "v2",
                                 dbAcmeAuthorization.acme_challenge_http01,
                                 "pretest-2",
+                                transaction_commit=True,
                             )
                             if str(exc).startswith("hostname") and (
                                 "doesn't match" in str(exc)
@@ -763,7 +839,9 @@ class AuthenticatedUser(object):
 
                 # note the challenge
                 self.acmeLogger.log_challenge_trigger(
-                    "v2", dbAcmeAuthorization.acme_challenge_http01
+                    "v2",
+                    dbAcmeAuthorization.acme_challenge_http01,
+                    transaction_commit=True,
                 )
 
                 # if we had a 'valid' challenge, the payload would be `None`
@@ -790,12 +868,18 @@ class AuthenticatedUser(object):
                         )
                     )
                     handle_keyauth_cleanup(
-                        dbAcmeAuthorization.domain.domain_name, token, keyauthorization
+                        dbAcmeAuthorization.domain.domain_name,
+                        token,
+                        keyauthorization,
+                        transaction_commit=True,
                     )
                 elif authorization_response["status"] != "valid":
 
                     self.acmeLogger.log_challenge_error(
-                        "v2", dbAcmeAuthorization.acme_challenge_http01, "fail-2"
+                        "v2",
+                        dbAcmeAuthorization.acme_challenge_http01,
+                        "fail-2",
+                        transaction_commit=True,
                     )
                     raise errors.DomainVerificationError(
                         "{0} challenge did not pass: {1}".format(
@@ -806,7 +890,9 @@ class AuthenticatedUser(object):
 
                 # log this
                 self.acmeLogger.log_challenge_pass(
-                    "v2", dbAcmeAuthorization.acme_challenge_http01
+                    "v2",
+                    dbAcmeAuthorization.acme_challenge_http01,
+                    transaction_commit=True,
                 )
 
         # no more domains!
@@ -838,7 +924,7 @@ class AuthenticatedUser(object):
         payload_finalize = {"csr": _b64(csr_der)}
         try:
             (finalize_response, _, _) = self._send_signed_request(
-                acmeOrder.api_object["finalize"], payload=payload_finalize,
+                acmeOrder.rfc_object["finalize"], payload=payload_finalize,
             )
         except Exception as exc:
             pdb.set_trace()

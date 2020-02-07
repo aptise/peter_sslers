@@ -32,12 +32,12 @@ class ViewAdmin_List(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:account_keys", renderer="/admin/account_keys.mako")
+    @view_config(route_name="admin:acme_account_keys", renderer="/admin/acme_account_keys.mako")
     @view_config(
-        route_name="admin:account_keys_paginated", renderer="/admin/account_keys.mako"
+        route_name="admin:acme_account_keys_paginated", renderer="/admin/acme_account_keys.mako"
     )
-    @view_config(route_name="admin:account_keys|json", renderer="json")
-    @view_config(route_name="admin:account_keys_paginated|json", renderer="json")
+    @view_config(route_name="admin:acme_account_keys|json", renderer="json")
+    @view_config(route_name="admin:acme_account_keys_paginated|json", renderer="json")
     def list(self):
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
@@ -46,13 +46,13 @@ class ViewAdmin_List(Handler):
         if wants_json:
             (pager, offset) = self._paginate(
                 items_count,
-                url_template="%s/account-keys/{0}.json"
+                url_template="%s/acme-account-keys/{0}.json"
                 % self.request.registry.settings["admin_prefix"],
             )
         else:
             (pager, offset) = self._paginate(
                 items_count,
-                url_template="%s/account-keys/{0}"
+                url_template="%s/acme-account-keys/{0}"
                 % self.request.registry.settings["admin_prefix"],
             )
         items_paged = lib_db.get.get__AcmeAccountKey__paginated(
@@ -77,8 +77,8 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_New(Handler):
-    @view_config(route_name="admin:account_key:upload")
-    @view_config(route_name="admin:account_key:upload|json", renderer="json")
+    @view_config(route_name="admin:acme_account_key:upload")
+    @view_config(route_name="admin:acme_account_key:upload|json", renderer="json")
     def upload(self):
         if self.request.method == "POST":
             return self._upload__submit()
@@ -91,9 +91,9 @@ class ViewAdmin_New(Handler):
         if wants_json:
             return {
                 "instructions": [
-                    """curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/account-key/upload.json"""
+                    """curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/acme-account-key/upload.json"""
                     % self.request.admin_url,
-                    """curl --form 'account_key_file_le_meta=@meta.json' 'account_key_file_le_pkey=@private_key.json' 'account_key_file_le_reg=@regr.json' %s/account-key/upload.json"""
+                    """curl --form 'account_key_file_le_meta=@meta.json' 'account_key_file_le_pkey=@private_key.json' 'account_key_file_le_reg=@regr.json' %s/acme-account-key/upload.json"""
                     % self.request.admin_url,
                 ],
                 "form_fields": {
@@ -114,7 +114,7 @@ class ViewAdmin_New(Handler):
         # quick setup, we need a bunch of options for dropdowns...
         providers = list(model_utils.AcmeAccountProvider.registry.values())
         return render_to_response(
-            "/admin/account_key-upload.mako",
+            "/admin/acme_account_key-upload.mako",
             {"AcmeAccountProviderOptions": providers},
             self.request,
         )
@@ -149,7 +149,7 @@ class ViewAdmin_New(Handler):
                     "is_existing": False if _is_created else True,
                 }
             return HTTPSeeOther(
-                "%s/account-key/%s?result=success%s"
+                "%s/acme-account-key/%s?result=success%s"
                 % (
                     self.request.admin_url,
                     dbAcmeAccountKey.id,
@@ -172,7 +172,7 @@ class ViewAdmin_Focus(Handler):
         )
         if not dbAcmeAccountKey:
             raise HTTPNotFound("the key was not found")
-        self._focus_url = "%s/account-key/%s" % (
+        self._focus_url = "%s/acme-account-key/%s" % (
             self.request.admin_url,
             dbAcmeAccountKey.id,
         )
@@ -181,9 +181,9 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:account_key:focus", renderer="/admin/account_key-focus.mako"
+        route_name="admin:acme_account_key:focus", renderer="/admin/acme_account_key-focus.mako"
     )
-    @view_config(route_name="admin:account_key:focus|json", renderer="json")
+    @view_config(route_name="admin:acme_account_key:focus|json", renderer="json")
     def focus(self):
         wants_json = (
             True if self.request.matched_route.name.endswith("|json") else False
@@ -201,7 +201,7 @@ class ViewAdmin_Focus(Handler):
             }
         return {"project": "peter_sslers", "AcmeAccountKey": dbAcmeAccountKey}
 
-    @view_config(route_name="admin:account_key:focus:raw", renderer="string")
+    @view_config(route_name="admin:acme_account_key:focus:raw", renderer="string")
     def focus_raw(self):
         dbAcmeAccountKey = self._focus()
         if self.request.matchdict["format"] == "pem":
@@ -214,7 +214,7 @@ class ViewAdmin_Focus(Handler):
             as_der = cert_utils.convert_pem_to_der(pem_data=dbAcmeAccountKey.key_pem)
             return as_der
 
-    @view_config(route_name="admin:account_key:focus:parse|json", renderer="json")
+    @view_config(route_name="admin:acme_account_key:focus:parse|json", renderer="json")
     def focus_parse_json(self):
         dbAcmeAccountKey = self._focus()
         return {
@@ -226,7 +226,7 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:account_key:focus:config|json", renderer="json")
+    @view_config(route_name="admin:acme_account_key:focus:config|json", renderer="json")
     def focus_config_json(self):
         dbAcmeAccountKey = self._focus(eagerload_web=True)
         return {
@@ -237,9 +237,9 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:account_key:focus:authenticate", renderer=None)
+    @view_config(route_name="admin:acme_account_key:focus:authenticate", renderer=None)
     @view_config(
-        route_name="admin:account_key:focus:authenticate|json", renderer="json"
+        route_name="admin:acme_account_key:focus:authenticate|json", renderer="json"
     )
     def focus__authenticate(self):
         """
@@ -283,12 +283,12 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:account_key:focus:certificates",
-        renderer="/admin/account_key-focus-certificates.mako",
+        route_name="admin:acme_account_key:focus:certificates",
+        renderer="/admin/acme_account_key-focus-certificates.mako",
     )
     @view_config(
-        route_name="admin:account_key:focus:certificates_paginated",
-        renderer="/admin/account_key-focus-certificates.mako",
+        route_name="admin:acme_account_key:focus:certificates_paginated",
+        renderer="/admin/acme_account_key-focus-certificates.mako",
     )
     def focus__certificates(self):
         dbAcmeAccountKey = self._focus()
@@ -313,12 +313,12 @@ class ViewAdmin_Focus(Handler):
         }
 
     @view_config(
-        route_name="admin:account_key:focus:certificate_requests",
-        renderer="/admin/account_key-focus-certificate_requests.mako",
+        route_name="admin:acme_account_key:focus:certificate_requests",
+        renderer="/admin/acme_account_key-focus-certificate_requests.mako",
     )
     @view_config(
-        route_name="admin:account_key:focus:certificate_requests_paginated",
-        renderer="/admin/account_key-focus-certificate_requests.mako",
+        route_name="admin:acme_account_key:focus:certificate_requests_paginated",
+        renderer="/admin/acme_account_key-focus-certificate_requests.mako",
     )
     def focus__certificate_requests(self):
         dbAcmeAccountKey = self._focus()
@@ -344,8 +344,8 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:account_key:focus:mark", renderer=None)
-    @view_config(route_name="admin:account_key:focus:mark|json", renderer="json")
+    @view_config(route_name="admin:acme_account_key:focus:mark", renderer=None)
+    @view_config(route_name="admin:acme_account_key:focus:mark|json", renderer="json")
     def focus_mark(self):
         dbAcmeAccountKey = self._focus()
         if self.request.method == "POST":

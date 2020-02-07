@@ -216,6 +216,29 @@ def get__AcmeOrder__by_id(ctx, order_id, eagerload_web=False):
     return item
 
 
+def get__AcmeOrders__by_CertificateRequest__count(ctx, certificate_request_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .filter(model_objects.AcmeOrder.certificate_request_id == certificate_request_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrders__by_CertificateRequest__paginated(
+    ctx, certificate_request_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .filter(model_objects.AcmeOrder.certificate_request_id == certificate_request_id)
+        .order_by(model_objects.AcmeOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

@@ -85,12 +85,12 @@ for pvd in model_utils.AcmeAccountProvider.registry.values():
 
 
 TEST_FILES = {
-    "AccountKey": {
-        "1": "account_1.key",
-        "2": "account_2.key",
-        "3": "account_3.key",
-        "4": "account_4.key",
-        "5": "account_5.key",
+    "AcmeAccountKey": {
+        "1": "acme_account_1.key",
+        "2": "acme_account_2.key",
+        "3": "acme_account_3.key",
+        "4": "acme_account_4.key",
+        "5": "acme_account_5.key",
     },
     "CaCertificates": {
         "order": (
@@ -264,9 +264,9 @@ class AppTest(AppTestCore):
 
                 #
                 # insert AcmeAccountKey
-                # this should create `/account-key/1`
+                # this should create `/acme-account-key/1`
                 #
-                _key_filename = TEST_FILES["AccountKey"]["1"]
+                _key_filename = TEST_FILES["AcmeAccountKey"]["1"]
                 key_pem = self._filedata_testfile(_key_filename)
                 _key_account1, _is_created = db.getcreate.getcreate__AcmeAccountKey(
                     self.ctx,
@@ -594,7 +594,7 @@ class FunctionalTests_AcmeChallengeLog(AppTest):
             "/.well-known/admin/acme-challenge-logs/filtered", status=302
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-logs/filtered?account-key-id=%s"
+            "/.well-known/admin/acme-challenge-logs/filtered?acme-account-key-id=%s"
             % dbAcmeAccountKey.id,
             status=200,
         )
@@ -630,14 +630,14 @@ class FunctionalTests_AccountKeys(AppTest):
 
     def test_list(self):
         # root
-        res = self.testapp.get("/.well-known/admin/account-keys", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-account-keys", status=200)
         # paginated
-        res = self.testapp.get("/.well-known/admin/account-keys/1", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-account-keys/1", status=200)
 
         # json root
-        res = self.testapp.get("/.well-known/admin/account-keys.json", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-account-keys.json", status=200)
         # json paginated
-        res = self.testapp.get("/.well-known/admin/account-keys/1.json", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-account-keys/1.json", status=200)
 
     def test_focus(self):
         focus_item = self._get_item()
@@ -645,39 +645,39 @@ class FunctionalTests_AccountKeys(AppTest):
         focus_id = focus_item.id
 
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s.json" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s.json" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s/config.json" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s/config.json" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s/parse.json" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s/parse.json" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s/key.key" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s/key.key" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s/key.pem" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s/key.pem" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s/key.pem.txt" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s/key.pem.txt" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s/certificate-requests" % focus_id,
+            "/.well-known/admin/acme-account-key/%s/certificate-requests" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s/certificate-requests/1" % focus_id,
+            "/.well-known/admin/acme-account-key/%s/certificate-requests/1" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s/certificates" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s/certificates" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/account-key/%s/certificates/1" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s/certificates/1" % focus_id, status=200
         )
 
     def test_manipulate(self):
@@ -686,30 +686,30 @@ class FunctionalTests_AccountKeys(AppTest):
         focus_id = focus_item.id
 
         # TODO:
-        # config.add_route_7('admin:account_key:focus:authenticate', '/account-key/{@id}/authenticate')
+        # config.add_route_7('admin:acme_account_key:focus:authenticate', '/acme-account-key/{@id}/authenticate')
 
         if not focus_item.is_default:
             # make sure to roundtrip!
             # note we expect a 303 on success!
             if focus_item.is_active:
                 res = self.testapp.get(
-                    "/.well-known/admin/account-key/%s/mark" % focus_id,
+                    "/.well-known/admin/acme-account-key/%s/mark" % focus_id,
                     {"action": "inactive"},
                     status=303,
                 )
                 res = self.testapp.get(
-                    "/.well-known/admin/account-key/%s/mark.json" % focus_id,
+                    "/.well-known/admin/acme-account-key/%s/mark.json" % focus_id,
                     {"action": "active"},
                     status=200,
                 )
             else:
                 res = self.testapp.get(
-                    "/.well-known/admin/account-key/%s/mark" % focus_id,
+                    "/.well-known/admin/acme-account-key/%s/mark" % focus_id,
                     {"action": "active"},
                     status=303,
                 )
                 res = self.testapp.get(
-                    "/.well-known/admin/account-key/%s/mark.json" % focus_id,
+                    "/.well-known/admin/acme-account-key/%s/mark.json" % focus_id,
                     {"action": "inactive"},
                     status=200,
                 )
@@ -719,10 +719,10 @@ class FunctionalTests_AccountKeys(AppTest):
 
     def test_new(self):
         # this should be creating a new key
-        _key_filename = TEST_FILES["AccountKey"]["2"]
+        _key_filename = TEST_FILES["AcmeAccountKey"]["2"]
         key_filepath = self._filepath_testfile(_key_filename)
 
-        res = self.testapp.get("/.well-known/admin/account-key/upload", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-account-key/upload", status=200)
         form = res.form
         form["account_key_file_pem"] = Upload(key_filepath)
         form["acme_account_provider_id"].force_value(
@@ -731,19 +731,19 @@ class FunctionalTests_AccountKeys(AppTest):
         res2 = form.submit()
         assert res2.status_code == 303
         assert res2.location in (
-            """http://localhost/.well-known/admin/account-key/2?result=success&is_created=1""",
-            """http://localhost:80/.well-known/admin/account-key/2?result=success&is_created=1""",
+            """http://localhost/.well-known/admin/acme-account-key/2?result=success&is_created=1""",
+            """http://localhost:80/.well-known/admin/acme-account-key/2?result=success&is_created=1""",
         )
         res3 = self.testapp.get(res2.location, status=200)
 
-        res = self.testapp.get("/.well-known/admin/account-key/upload.json", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-account-key/upload.json", status=200)
         res_json = json.loads(res.body)
         assert "instructions" in res_json
 
         form = {}
         form["account_key_file_pem"] = Upload(key_filepath)
         form["acme_account_provider_id"] = str(DEFAULT_acme_account_provider_id)
-        res2 = self.testapp.post("/.well-known/admin/account-key/upload.json", form)
+        res2 = self.testapp.post("/.well-known/admin/acme-account-key/upload.json", form)
         assert res2.status_code == 200
         res2_json = json.loads(res2.body)
         assert "result" in res2_json
@@ -755,23 +755,23 @@ class FunctionalTests_AccountKeys(AppTest):
     def tests_letsencrypt_api(self):
         # this hits LE
         res = self.testapp.get(
-            "/.well-known/admin/account-key/1/authenticate", status=303
+            "/.well-known/admin/acme-account-key/1/authenticate", status=303
         )
         assert (
             res.location
-            == "http://localhost/.well-known/admin/account-key/1?operation=authenticate&result=post+required"
+            == "http://localhost/.well-known/admin/acme-account-key/1?operation=authenticate&result=post+required"
         )
-        res = self.testapp.post("/.well-known/admin/account-key/1/authenticate", {})
+        res = self.testapp.post("/.well-known/admin/acme-account-key/1/authenticate", {})
         assert res.location in (
-            """http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=existing-account""",
-            """http://localhost/.well-known/admin/account-key/1?result=success&is_authenticated=new-account""",
+            """http://localhost/.well-known/admin/acme-account-key/1?result=success&is_authenticated=existing-account""",
+            """http://localhost/.well-known/admin/acme-account-key/1?result=success&is_authenticated=new-account""",
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/account-key/1/authenticate.json", status=200
+            "/.well-known/admin/acme-account-key/1/authenticate.json", status=200
         )
         res = self.testapp.post(
-            "/.well-known/admin/account-key/1/authenticate.json", {}
+            "/.well-known/admin/acme-account-key/1/authenticate.json", {}
         )
         assert res.status == 200
 

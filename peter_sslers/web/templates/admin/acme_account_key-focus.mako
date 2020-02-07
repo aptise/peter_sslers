@@ -6,15 +6,15 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/account-keys">Account Keys</a></li>
+        <li><a href="${admin_prefix}/acme-account-keys">Acme Account Keys</a></li>
         <li class="active">Focus [${AcmeAccountKey.id}]</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Account Keys - Focus</h2>
-    <p>${request.text_library.info_AccountKeys[1]}</p>
+    <h2>Acme Account Keys - Focus</h2>
+    <p>${request.text_library.info_AcmeAccountKeys[1]}</p>
 
     ${admin_partials.standard_error_display()}
 </%block>
@@ -22,7 +22,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/account-key/${AcmeAccountKey.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -46,7 +46,7 @@
                 <tr>
                     <th>timestamp_last_authenticated</th>
                     <td><timestamp>${AcmeAccountKey.timestamp_last_authenticated  or ''}</timestamp>
-                        <form action="${admin_prefix}/account-key/${AcmeAccountKey.id}/authenticate" method="POST">
+                        <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/authenticate" method="POST">
                             <button class="btn btn-xs btn-primary" type="submit">
                                 authenticate against LetsEncrypt
                             </button>
@@ -61,7 +61,7 @@
                         </span>
                         &nbsp;
                         % if not AcmeAccountKey.is_active:
-                            <form action="${admin_prefix}/account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
+                            <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="active"/>
                                 <button class="label label-info" type="submit">
                                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -70,7 +70,7 @@
                             </form>
                         % else:
                             % if not AcmeAccountKey.is_default:
-                                <form action="${admin_prefix}/account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
+                                <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="inactive"/>
                                     <button class="label label-danger" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -102,7 +102,7 @@
                         % endif
                         &nbsp;
                         % if not AcmeAccountKey.is_default:
-                            <form action="${admin_prefix}/account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
+                            <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="default"/>
                                 <button class="label label-primary" type="submit">
                                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -130,7 +130,7 @@
                     <td>
                         <a
                             class="btn btn-xs btn-info"
-                            href="${admin_prefix}/acme-challenge-logs/filtered?account-key-id=${AcmeAccountKey.id}&status=pending"
+                            href="${admin_prefix}/acme-challenge-logs/filtered?acme-account-key-id=${AcmeAccountKey.id}&status=pending"
                         >
                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                             SEARCH
@@ -178,9 +178,9 @@
                     <td>
                         ## ${'tracked' if AcmeAccountKey.key_pem else 'untracked'}
                         ## <textarea class="form-control">${AcmeAccountKey.key_pem}</textarea>
-                        <a class="btn btn-xs btn-info" href="${admin_prefix}/account-key/${AcmeAccountKey.id}/key.pem">key.pem</a>
-                        <a class="btn btn-xs btn-info" href="${admin_prefix}/account-key/${AcmeAccountKey.id}/key.pem.txt">key.pem.txt</a>
-                        <a class="btn btn-xs btn-info" href="${admin_prefix}/account-key/${AcmeAccountKey.id}/key.key">key.key (der)</a>
+                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.pem">key.pem</a>
+                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.pem.txt">key.pem.txt</a>
+                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.key">key.key (der)</a>
                     </td>
                 </tr>
                 <tr>
@@ -197,7 +197,7 @@
                     <td>
                         ${admin_partials.table_certificates__list(AcmeAccountKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
                         % if AcmeAccountKey.server_certificates__5:
-                            ${admin_partials.nav_pager("%s/account-key/%s/certificates" % (admin_prefix, AcmeAccountKey.id))}
+                            ${admin_partials.nav_pager("%s/acme-account-key/%s/certificates" % (admin_prefix, AcmeAccountKey.id))}
                         % endif
                     </td>
                 </tr>
@@ -206,7 +206,7 @@
                     <td>
                         ${admin_partials.table_certificate_requests__list(AcmeAccountKey.certificate_requests__5, show_domains=True)}
                         % if AcmeAccountKey.certificate_requests__5:
-                            ${admin_partials.nav_pager("%s/account-key/%s/certificate-requests" % (admin_prefix, AcmeAccountKey.id))}
+                            ${admin_partials.nav_pager("%s/acme-account-key/%s/certificate-requests" % (admin_prefix, AcmeAccountKey.id))}
                         % endif
                     </td>
                 </tr>

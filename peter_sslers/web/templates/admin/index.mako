@@ -33,8 +33,8 @@
         <div class="col-sm-4">
             <h3>Enrolled Records</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/account-keys"
-                       title="${request.text_library.info_AccountKeys[0]}"
+                <li><a href="${admin_prefix}/acme-account-keys"
+                       title="${request.text_library.info_AcmeAccountKeys[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     account-keys</a></li>
@@ -157,11 +157,11 @@
             <h3>Existing Certificates</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
-                    <a  href="${admin_prefix}/account-key/upload"
+                    <a  href="${admin_prefix}/acme-account-key/upload"
                         title="${request.text_library.info_UploadAccountKey[0]}"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-                    Upload: Account Key</a></li>
+                    Upload: Acme Account Key</a></li>
                 <li>
                     <a  href="${admin_prefix}/ca-certificate/upload"
                         title="${request.text_library.info_UploadCACertificate[0]}"
