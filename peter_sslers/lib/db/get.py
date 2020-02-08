@@ -175,6 +175,33 @@ def get__AcmeAccountKey__default(ctx, active_only=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmeAuthorization__count(ctx):
+    counted = ctx.dbSession.query(model_objects.AcmeAuthorization).count()
+    return counted
+
+
+def get__AcmeAuthorization__paginated(ctx, limit=None, offset=0, active_only=False):
+    query = ctx.dbSession.query(model_objects.AcmeAuthorization)
+    query = (
+        query.order_by(model_objects.AcmeAuthorization.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items = query.all()
+    return items
+
+
+def get__AcmeAuthorization__by_id(ctx, item_id, eagerload_web=False):
+    q = ctx.dbSession.query(model_objects.AcmeAuthorization).filter(
+        model_objects.AcmeAuthorization.id == item_id
+    )
+    item = q.first()
+    return item
+
+
 def get__AcmeAuthorization__by_authorization_url(ctx, authorization_url):
     q = ctx.dbSession.query(model_objects.AcmeAuthorization).filter(
         model_objects.AcmeAuthorization.authorization_url == authorization_url
@@ -234,6 +261,45 @@ def get__AcmeOrders__by_CertificateRequest__paginated(
         ctx.dbSession.query(model_objects.AcmeOrder)
         .filter(
             model_objects.AcmeOrder.certificate_request_id == certificate_request_id
+        )
+        .order_by(model_objects.AcmeOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__AcmeOrders__by_AcmeAuthorization__count(ctx, acme_authorization_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .join(
+            model_objects.AcmeOrder2AcmeAuthorization,
+            model_objects.AcmeOrder.id
+            == model_objects.AcmeOrder2AcmeAuthorization.acme_order_id,
+        )
+        .filter(
+            model_objects.AcmeOrder2AcmeAuthorization.acme_authorization_id
+            == acme_authorization_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrders__by_AcmeAuthorization__paginated(
+    ctx, acme_authorization_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .join(
+            model_objects.AcmeOrder2AcmeAuthorization,
+            model_objects.AcmeOrder.id
+            == model_objects.AcmeOrder2AcmeAuthorization.acme_order_id,
+        )
+        .filter(
+            model_objects.AcmeOrder2AcmeAuthorization.acme_authorization_id
+            == acme_authorization_id
         )
         .order_by(model_objects.AcmeOrder.id.desc())
         .limit(limit)

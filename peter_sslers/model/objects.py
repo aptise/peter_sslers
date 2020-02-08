@@ -290,7 +290,7 @@ class AcmeOrder(Base):
     to_acme_authorizations = sa_orm_relationship(
         "AcmeOrder2AcmeAuthorization",
         primaryjoin="AcmeOrder.id==AcmeOrder2AcmeAuthorization.acme_order_id",
-        uselist=False,
+        uselist=True,
         back_populates="acme_order",
     )
 
@@ -350,14 +350,14 @@ class AcmeOrder2AcmeAuthorization(Base):
     acme_order = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="AcmeOrder2AcmeAuthorization.acme_order_id==AcmeOrder.id",
-        uselist=True,
+        uselist=False,
         back_populates="to_acme_authorizations",
     )
 
     acme_authorization = sa_orm_relationship(
         "AcmeAuthorization",
         primaryjoin="AcmeOrder2AcmeAuthorization.acme_authorization_id==AcmeAuthorization.id",
-        uselist=True,
+        uselist=False,
         back_populates="to_acme_orders",
     )
 

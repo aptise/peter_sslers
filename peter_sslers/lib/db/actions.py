@@ -237,6 +237,7 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
             authorization_url,
             authorization_response,
             authenticatedUser,
+            dbAcmeOrder,
             transaction_commit=transaction_commit,
         )
         return dbAcmeAuthorization
@@ -276,7 +277,9 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
     return (handle_discovered_auth, handle_keyauth_challenge, handle_keyauth_cleanup)
 
 
-def _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject, is_retry=None):
+def _AcmeV2_handle_order(
+    ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject, is_retry=None
+):
     """
     Consolidated AcmeOrder routine
 
@@ -548,7 +551,9 @@ def do__AcmeOrder__AcmeV2_Automated(
         )
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
-        _todo_finalize_order = _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject)
+        _todo_finalize_order = _AcmeV2_handle_order(
+            ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject
+        )
         if _todo_finalize_order:
             # sign and download
             raise ValueError("ok")

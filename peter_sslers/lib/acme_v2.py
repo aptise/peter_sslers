@@ -713,10 +713,12 @@ class AuthenticatedUser(object):
 
         _order_status = acmeOrder.rfc_object["status"]
         if _order_status != "pending":
-            if (_order_status == 'invalid') and is_retry:
+            if (_order_status == "invalid") and is_retry:
                 pass
             else:
-                raise ValueError("unsure how to handle this status: `%s`" % _order_status)
+                raise ValueError(
+                    "unsure how to handle this status: `%s`" % _order_status
+                )
 
         # verify each domain
         for authorization_url in acmeOrder.rfc_object["authorizations"]:
@@ -750,7 +752,6 @@ class AuthenticatedUser(object):
             )  # log this to the db
 
             _authorization_status = authorization_response["status"]
-            pdb.set_trace()
             if _authorization_status == "pending":
                 # we need to run the authorization
                 _todo_complete_challenges = True
@@ -883,6 +884,7 @@ class AuthenticatedUser(object):
                     transaction_commit=True,
                 )
 
+                pdb.set_trace()
                 # if we had a 'valid' challenge, the payload would be `None`
                 # to trigger a GET-as-POST functionality
                 (challenge_response, _, _) = self._send_signed_request(

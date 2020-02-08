@@ -52,10 +52,28 @@ def _admin_views(config):
     config.add_route_7("admin:acme_orders", "/acme-orders")
     config.add_route_7("admin:acme_orders_paginated", "/acme-orders/{@page}")
     config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
+    config.add_route_7(
+        "admin:acme_order:focus:acme_authorizations",
+        "/acme-order/{@id}/acme-authorizations",
+    )
     config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
     config.add_route_7("admin:acme_order:new:automated", "/acme-order/new-automated")
 
-    # !!!: AccountKeys
+    # !!!: ACME Authorizations
+    config.add_route_7("admin:acme_authorizations", "/acme-authorizations")
+    config.add_route_7(
+        "admin:acme_authorizations_paginated", "/acme-authorizations/{@page}"
+    )
+    config.add_route_7("admin:acme_authorization:focus", "/acme-authorization/{@id}")
+    config.add_route_7(
+        "admin:acme_authorization:focus:orders", "/acme-authorization/{@id}/orders"
+    )
+    config.add_route_7(
+        "admin:acme_authorization:focus:orders_paginated",
+        "/acme-authorization/{@id}/orders/{@page}",
+    )
+
+    # !!!: ACME AccountKeys
     # AccountKeys are the LetsEncrypt accounts
     config.add_route_7("admin:acme_account_keys", "/acme-account-keys")
     config.add_route_7("admin:acme_account_keys|json", "/acme-account-keys.json")
@@ -66,7 +84,7 @@ def _admin_views(config):
         "admin:acme_account_keys_paginated|json", "/acme-account-keys/{@page}.json"
     )
 
-    # !!!: AccountKey - Focus
+    # !!!: ACME AccountKey - Focus
     config.add_route_7("admin:acme_account_key:focus", "/acme-account-key/{@id}")
     config.add_route_7(
         "admin:acme_account_key:focus|json", "/acme-account-key/{@id}.json"

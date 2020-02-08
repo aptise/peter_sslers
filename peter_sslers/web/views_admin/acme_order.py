@@ -76,6 +76,16 @@ class ViewAdmin_Focus(Handler):
         dbAcmeOrder = self._focus(eagerload_web=True)
         return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
 
+    @view_config(
+        route_name="admin:acme_order:focus:acme_authorizations",
+        renderer="/admin/acme_order-focus-acme_authorizations.mako",
+    )
+    def acme_authorizations(self):
+        dbAcmeOrder = self._focus(eagerload_web=True)
+        return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:acme_order:focus:retry", renderer=None)
     def retry(self):
         dbAcmeOrder = self._focus(eagerload_web=True)

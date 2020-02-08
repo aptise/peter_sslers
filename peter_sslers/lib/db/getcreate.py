@@ -226,6 +226,7 @@ def getcreate__AcmeAuthorization(
     authorization_url,
     authorization_payload,
     authenticatedUser=None,
+    dbAcmeOrder=None,
     transaction_commit=None,
 ):
     """
@@ -233,6 +234,7 @@ def getcreate__AcmeAuthorization(
     :param authorization_url: (required) the url of an RFC-8555 authorization
     :param authorization_payload: (required) an RFC-8555 authorization payload
     :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
+    :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
 
     https://tools.ietf.org/html/rfc8555#section-7.1.4
@@ -276,6 +278,23 @@ def getcreate__AcmeAuthorization(
         ctx.dbSession.add(dbAcmeAuthorization)
         ctx.dbSession.flush(objects=[dbAcmeAuthorization])
         is_created = True
+
+    # is this associated?
+    dbOrder2Auth = (
+        ctx.dbSession.query(model_objects.AcmeOrder2AcmeAuthorization)
+        .filter(
+            model_objects.AcmeOrder2AcmeAuthorization.acme_order_id == dbAcmeOrder.id,
+            model_objects.AcmeOrder2AcmeAuthorization.acme_authorization_id
+            == dbAcmeAuthorization.id,
+        )
+        .first()
+    )
+    if not dbOrder2Auth:
+        dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
+        dbOrder2Auth.acme_order_id = dbAcmeOrder.id
+        dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
+        ctx.dbSession.add(dbOrder2Auth)
+        ctx.dbSession.flush(objects=[dbOrder2Auth])
 
     # should we handle the challenge here too?
 

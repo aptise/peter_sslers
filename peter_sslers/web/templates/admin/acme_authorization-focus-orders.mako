@@ -6,15 +6,15 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
-        <li><a href="${admin_prefix}/certificate-request/${CertificateRequest.id}">Focus [${CertificateRequest.id}]</li>
-        <li class="active">ACME Orders</li>
+        <li><a href="${admin_prefix}/acme-authorizations">ACME Authorization</a></li>
+        <li><a href="${admin_prefix}/acme-authorizations/${AcmeAuthorization.id}">Focus [${AcmeAuthorization.id}]</a></li>
+        <li class="active">Orders</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Certificate Request - Focus - ACME Orders</h2>
+    <h2>ACME Authorization - Focus - Orders</h2>
 </%block>
 
 
@@ -23,12 +23,12 @@
 
 
 <%block name="content_main">
+    ${admin_partials.handle_querystring_result()}
+    
     <div class="row">
         <div class="col-sm-12">
-
             ${admin_partials.nav_pagination(pager)}
-            ${admin_partials.table_AcmeOrders(AcmeOrders, perspective='CertificateRequest')}
-
+            ${admin_partials.table_AcmeOrders(AcmeOrders, perspective="AcmeAuthorization")}
         </div>
     </div>
 </%block>

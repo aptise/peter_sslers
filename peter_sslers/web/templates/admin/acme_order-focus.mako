@@ -36,6 +36,13 @@
             retry
         </a>
     % endif
+    <a
+        class="label label-info"
+        href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-authorizations"
+    >
+        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+        Acme Authorizations
+    </a>
     
     
     <div class="row">

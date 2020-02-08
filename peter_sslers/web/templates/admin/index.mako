@@ -33,16 +33,6 @@
         <div class="col-sm-4">
             <h3>Enrolled Records</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/acme-account-keys"
-                       title="${request.text_library.info_AcmeAccountKeys[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    account-keys</a></li>
-                <li><a href="${admin_prefix}/acme-orders"
-                       title="${request.text_library.info_AcmeOrders[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-orders</a></li>
                 <li><a href="${admin_prefix}/certificate-requests"
                        title="${request.text_library.info_CertificateRequests[0]}"
                     >
@@ -65,6 +55,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys</a></li>
+                <li><a href="${admin_prefix}/unique-fqdn-sets"
+                       title="${request.text_library.info_UniqueFQDNs[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    unique-fqdn-sets</a></li>
             </ul>
 
             <h3>Configuration</h3>
@@ -82,24 +77,44 @@
             </ul>
 
 
-            <h3>Recordkeeping</h3>
+            <h3>Recordkeeping - ACME Logs</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/acme-event-logs"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-event-logs</a></li>
-                <li><a href="${admin_prefix}/acme-challenge-unknown-polls"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-challenge-unknown-polls</a></li>
-
-
-
-
                 <li><a href="${admin_prefix}/acme-challenge-logs"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-challenge-logs</a></li>
+                <li><a href="${admin_prefix}/acme-challenge-unknown-polls"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-challenge-unknown-polls</a></li>
+                <li><a href="${admin_prefix}/acme-event-logs"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-event-logs</a></li>
+            </ul>
+
+            <h3>Recordkeeping - ACME Records</h3>
+            <ul class="nav nav-pills nav-stacked">
+                <li><a href="${admin_prefix}/acme-account-keys"
+                       title="${request.text_library.info_AcmeAccountKeys[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-account-keys</a></li>
+                <li><a href="${admin_prefix}/acme-authorizations"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-authorizations</a></li>
+                <li><a href="${admin_prefix}/acme-orders"
+                       title="${request.text_library.info_AcmeOrders[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-orders</a></li>
+            </ul>
+
+
+
+            <h3>Recordkeeping</h3>
+            <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/queue-domains"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -108,11 +123,6 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     queue-renewals</a></li>
-                <li><a href="${admin_prefix}/unique-fqdn-sets"
-                       title="${request.text_library.info_UniqueFQDNs[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    unique-fqdn-sets</a></li>
             </ul>
         </div>
         <div class="col-sm-4">

@@ -289,6 +289,51 @@
 
 
 
+<%def name="table_AcmeAuthorizations(data, perspective=None)">
+    % if perspective == 'AcmeOrder.to_acme_authorizations':
+        <table class="table table-striped table-condensed">
+            <thead>
+                <tr>
+                    <th>id</th>
+                    <th>timestamp_created</th>
+                    <th>domain_id</th>
+                    <th>timestamp_expires</th>
+                    <th>status</th>
+                    <th>timestamp_updated</th>
+                    <th>wildcard</th>
+                </tr>
+            </thead>
+            <tbody>
+                % for to_acme_authorization in data.to_acme_authorizations:
+                    <tr>
+                        <td>
+                            <a href="${admin_prefix}/acme-authorization/${to_acme_authorization.acme_authorization_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                acme-authorization-${to_acme_authorization.acme_authorization_id}
+                            </a>
+                        </td>
+                        <td><timestamp>${to_acme_authorization.acme_authorization.timestamp_created or ''}</timestamp></td>
+                        <td>
+                            <a href="${admin_prefix}/domain/${to_acme_authorization.acme_authorization.domain_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                domain-${to_acme_authorization.acme_authorization.domain_id}
+                            </a>
+                        </td>
+                        <td><timestamp>${to_acme_authorization.acme_authorization.timestamp_expires or ''}</timestamp></td>
+                        <td><code>${to_acme_authorization.acme_authorization.status or ''}</code></td>
+                        <td><timestamp>${to_acme_authorization.acme_authorization.timestamp_updated or ''}</timestamp></td>
+                        <td><code>${to_acme_authorization.acme_authorization.wildcard or ''}</code></td>
+                    </tr>
+                % endfor
+            </tbody>
+        </table>
+    % else:
+        <!-- table_AcmeAuthorizations missing perspective -->
+    % endif
+</%def>
+
+
+
 <%def name="table_AcmeOrders(acme_orders, perspective=None)">
     % if perspective == 'CertificateRequest':
         <table class="table table-striped table-condensed">
@@ -316,6 +361,51 @@
                             <a href="${admin_prefix}/acme-account-key/${acme_order.acme_account_key_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 acme-account-key-${acme_order.acme_account_key_id}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="${admin_prefix}/server-certificate/${acme_order.server_certificate_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                server-certificate-${acme_order.server_certificate_id}
+                            </a>
+                        </td>
+                    </tr>
+                % endfor
+            </tbody>
+        </table>
+    % elif perspective == 'AcmeAuthorization':
+        <table class="table table-striped table-condensed">
+            <thead>
+                <tr>
+                    <th>id</th>
+                    <th>timestamp_created</th>
+                    <th>timestamp_finalized</th>
+                    <th>acme_account_key_id</th>
+                    <th>certificate_request_id</th>
+                    <th>server_certificate_id</th>
+                </tr>
+            </thead>
+            <tbody>
+                % for acme_order in acme_orders:
+                    <tr>
+                        <td>
+                            <a href="${admin_prefix}/acme-order/${acme_order.id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                acme-order-${acme_order.id}
+                            </a>
+                        </td>
+                        <td><timestamp>${acme_order.timestamp_created or ''}</timestamp></td>
+                        <td><timestamp>${acme_order.timestamp_finalized or ''}</timestamp></td>
+                        <td>
+                            <a href="${admin_prefix}/acme-account-key/${acme_order.acme_account_key_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                acme-account-key-${acme_order.acme_account_key_id}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="${admin_prefix}/certificate-request/${acme_order.certificate_request_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                certificate-request-${acme_order.certificate_request_id}
                             </a>
                         </td>
                         <td>
