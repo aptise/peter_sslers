@@ -49,7 +49,7 @@ info_CertificateRequest_new_AcmeFlow = [
     "ACME-flow lets you manage the well-known placements only.",
     "ACME-flow lets you manage the well-known placements only.",
 ]
-info_CertificateRequest_new_AcmeAutomated = [
+info_AcmeOrder_new_Automated = [
     "ACME-Automated automates the entire certifcate request process.",
     "ACME-Automated automates the entire certifcate request process.",
 ]

@@ -449,6 +449,7 @@ class AuthenticatedUser(object):
         except Exception as exc:
             pdb.set_trace()
             raise
+
         log.info("acme_v2 Registered!" if code == 201 else "Already registered!")
         if contact is not None:
             raise ValueError("todo: log this")
@@ -478,7 +479,38 @@ class AuthenticatedUser(object):
             event_payload_dict,
         )
 
-    def acme_new_order(
+    def acme_order_load(self, ctx, dbAcmeOrder, transaction_commit=None):
+        """
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param dbAcmeOrder: (required) The url of the order
+        """
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if not dbAcmeOrder.resource_url:
+            raise ValueError("the order does not have a `resource_url`")
+
+        (acme_order_object, _code, acme_order_headers) = self._send_signed_request(
+            dbAcmeOrder.resource_url, None
+        )
+        log.info("acme_v2 Order loaded!")
+
+        # log the event to the db
+        dbEventLogged = self.acmeLogger.log_order_load(
+            "v2", dbAcmeOrder, transaction_commit=True
+        )
+
+        # this is just a convenience wrapper for our order object
+        acmeOrderObject = AcmeOrder(
+            rfc_object=acme_order_object,
+            response_headers=acme_order_headers,
+            dbCertificateRequest=dbAcmeOrder.certificate_request,
+        )
+
+        return (acmeOrderObject, dbEventLogged)
+
+    def acme_order_new(
         self, ctx, csr_domains=None, dbCertificateRequest=None, transaction_commit=None,
     ):
         """
@@ -593,6 +625,7 @@ class AuthenticatedUser(object):
         handle_keyauth_challenge=None,
         handle_keyauth_cleanup=None,
         transaction_commit=None,
+        is_retry=None,
     ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
@@ -603,6 +636,7 @@ class AuthenticatedUser(object):
         :param handle_keyauth_challenge: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param handle_keyauth_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
+        :param is_retry: (required) Boolean. False to indicate a New order; True to indicate this is a retry.
  
         Authorizations
         
@@ -679,7 +713,10 @@ class AuthenticatedUser(object):
 
         _order_status = acmeOrder.rfc_object["status"]
         if _order_status != "pending":
-            raise ValueError("unsure how to handle this status: `%s`" % _order_status)
+            if (_order_status == 'invalid') and is_retry:
+                pass
+            else:
+                raise ValueError("unsure how to handle this status: `%s`" % _order_status)
 
         # verify each domain
         for authorization_url in acmeOrder.rfc_object["authorizations"]:
@@ -713,6 +750,7 @@ class AuthenticatedUser(object):
             )  # log this to the db
 
             _authorization_status = authorization_response["status"]
+            pdb.set_trace()
             if _authorization_status == "pending":
                 # we need to run the authorization
                 _todo_complete_challenges = True
@@ -720,7 +758,8 @@ class AuthenticatedUser(object):
                 # noting to do, one or more challenges is valid
                 _todo_complete_challenges = False
             elif _authorization_status == "invalid":
-                # this failed once, we need to auth again?
+                # this failed once, we need to auth again !
+                # !!!: if this is not a `is_retry`, I don't know what is going on!
                 _todo_complete_challenges = True
             elif _authorization_status == "deactivated":
                 # this has been removed from the order?

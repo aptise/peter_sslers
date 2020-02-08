@@ -15,8 +15,8 @@ import sqlalchemy
 from .. import lib
 from ..lib import formhandling
 from ..lib import text as lib_text
-from ..lib.forms import Form_AccountKey_new__file
-from ..lib.forms import Form_AccountKey_mark
+from ..lib.forms import Form_AcmeAccountKey_new__file
+from ..lib.forms import Form_AcmeAccountKey_mark
 from ..lib.form_utils import AccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
 from ...lib import cert_utils
@@ -32,9 +32,12 @@ class ViewAdmin_List(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:acme_account_keys", renderer="/admin/acme_account_keys.mako")
     @view_config(
-        route_name="admin:acme_account_keys_paginated", renderer="/admin/acme_account_keys.mako"
+        route_name="admin:acme_account_keys", renderer="/admin/acme_account_keys.mako"
+    )
+    @view_config(
+        route_name="admin:acme_account_keys_paginated",
+        renderer="/admin/acme_account_keys.mako",
     )
     @view_config(route_name="admin:acme_account_keys|json", renderer="json")
     @view_config(route_name="admin:acme_account_keys_paginated|json", renderer="json")
@@ -125,7 +128,7 @@ class ViewAdmin_New(Handler):
         )
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AccountKey_new__file, validate_get=False
+                self.request, schema=Form_AcmeAccountKey_new__file, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()
@@ -181,7 +184,8 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_account_key:focus", renderer="/admin/acme_account_key-focus.mako"
+        route_name="admin:acme_account_key:focus",
+        renderer="/admin/acme_account_key-focus.mako",
     )
     @view_config(route_name="admin:acme_account_key:focus|json", renderer="json")
     def focus(self):
@@ -374,7 +378,7 @@ class ViewAdmin_Focus(Handler):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
-                schema=Form_AccountKey_mark,
+                schema=Form_AcmeAccountKey_mark,
                 validate_get=False,
                 # validate_post=False
             )

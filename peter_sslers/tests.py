@@ -494,7 +494,7 @@ class UnitTestCSR(AppTestCore):
         dbAcmeAccountKey = (None,)
         dbPrivateKey = (None,)
         private_key_pem = (None,)
-        result = db.actions.do__CertificateRequest__AcmeV2_Automated(
+        dbAcmeOrder = db.actions.do__AcmeOrder__AcmeV2_Automated(
             ctx,
             domain_names,
             dbAcmeAccountKey=None,
@@ -637,7 +637,9 @@ class FunctionalTests_AccountKeys(AppTest):
         # json root
         res = self.testapp.get("/.well-known/admin/acme-account-keys.json", status=200)
         # json paginated
-        res = self.testapp.get("/.well-known/admin/acme-account-keys/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-keys/1.json", status=200
+        )
 
     def test_focus(self):
         focus_item = self._get_item()
@@ -677,7 +679,8 @@ class FunctionalTests_AccountKeys(AppTest):
             "/.well-known/admin/acme-account-key/%s/certificates" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-account-key/%s/certificates/1" % focus_id, status=200
+            "/.well-known/admin/acme-account-key/%s/certificates/1" % focus_id,
+            status=200,
         )
 
     def test_manipulate(self):
@@ -736,14 +739,18 @@ class FunctionalTests_AccountKeys(AppTest):
         )
         res3 = self.testapp.get(res2.location, status=200)
 
-        res = self.testapp.get("/.well-known/admin/acme-account-key/upload.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/upload.json", status=200
+        )
         res_json = json.loads(res.body)
         assert "instructions" in res_json
 
         form = {}
         form["account_key_file_pem"] = Upload(key_filepath)
         form["acme_account_provider_id"] = str(DEFAULT_acme_account_provider_id)
-        res2 = self.testapp.post("/.well-known/admin/acme-account-key/upload.json", form)
+        res2 = self.testapp.post(
+            "/.well-known/admin/acme-account-key/upload.json", form
+        )
         assert res2.status_code == 200
         res2_json = json.loads(res2.body)
         assert "result" in res2_json
@@ -761,7 +768,9 @@ class FunctionalTests_AccountKeys(AppTest):
             res.location
             == "http://localhost/.well-known/admin/acme-account-key/1?operation=authenticate&result=post+required"
         )
-        res = self.testapp.post("/.well-known/admin/acme-account-key/1/authenticate", {})
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/1/authenticate", {}
+        )
         assert res.location in (
             """http://localhost/.well-known/admin/acme-account-key/1?result=success&is_authenticated=existing-account""",
             """http://localhost/.well-known/admin/acme-account-key/1?result=success&is_authenticated=new-account""",
@@ -1244,7 +1253,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         )
         self.testapp_http.wait()
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/new-acme-automated", status=200
+            "/.well-known/admin/acme-order/new-automated", status=200
         )
         form = res.form
         form["account_key_file_pem"] = Upload(

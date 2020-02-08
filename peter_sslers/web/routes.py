@@ -52,21 +52,28 @@ def _admin_views(config):
     config.add_route_7("admin:acme_orders", "/acme-orders")
     config.add_route_7("admin:acme_orders_paginated", "/acme-orders/{@page}")
     config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
+    config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
+    config.add_route_7("admin:acme_order:new:automated", "/acme-order/new-automated")
 
     # !!!: AccountKeys
     # AccountKeys are the LetsEncrypt accounts
     config.add_route_7("admin:acme_account_keys", "/acme-account-keys")
     config.add_route_7("admin:acme_account_keys|json", "/acme-account-keys.json")
-    config.add_route_7("admin:acme_account_keys_paginated", "/acme-account-keys/{@page}")
+    config.add_route_7(
+        "admin:acme_account_keys_paginated", "/acme-account-keys/{@page}"
+    )
     config.add_route_7(
         "admin:acme_account_keys_paginated|json", "/acme-account-keys/{@page}.json"
     )
 
     # !!!: AccountKey - Focus
     config.add_route_7("admin:acme_account_key:focus", "/acme-account-key/{@id}")
-    config.add_route_7("admin:acme_account_key:focus|json", "/acme-account-key/{@id}.json")
     config.add_route_7(
-        "admin:acme_account_key:focus:config|json", "/acme-account-key/{@id}/config.json"
+        "admin:acme_account_key:focus|json", "/acme-account-key/{@id}.json"
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:config|json",
+        "/acme-account-key/{@id}/config.json",
     )
     config.add_route_7(
         "admin:acme_account_key:focus:parse|json", "/acme-account-key/{@id}/parse.json"
@@ -84,25 +91,31 @@ def _admin_views(config):
         "/acme-account-key/{@id}/certificate-requests/{@page}",
     )
     config.add_route_7(
-        "admin:acme_account_key:focus:certificates", "/acme-account-key/{@id}/certificates"
+        "admin:acme_account_key:focus:certificates",
+        "/acme-account-key/{@id}/certificates",
     )
     config.add_route_7(
         "admin:acme_account_key:focus:certificates_paginated",
         "/acme-account-key/{@id}/certificates/{@page}",
     )
     config.add_route_7(
-        "admin:acme_account_key:focus:authenticate", "/acme-account-key/{@id}/authenticate"
+        "admin:acme_account_key:focus:authenticate",
+        "/acme-account-key/{@id}/authenticate",
     )
     config.add_route_7(
         "admin:acme_account_key:focus:authenticate|json",
         "/acme-account-key/{@id}/authenticate.json",
     )
-    config.add_route_7("admin:acme_account_key:focus:mark", "/acme-account-key/{@id}/mark")
+    config.add_route_7(
+        "admin:acme_account_key:focus:mark", "/acme-account-key/{@id}/mark"
+    )
     config.add_route_7(
         "admin:acme_account_key:focus:mark|json", "/acme-account-key/{@id}/mark.json"
     )
     config.add_route_7("admin:acme_account_key:upload", "/acme-account-key/upload")
-    config.add_route_7("admin:acme_account_key:upload|json", "/acme-account-key/upload.json")
+    config.add_route_7(
+        "admin:acme_account_key:upload|json", "/acme-account-key/upload.json"
+    )
 
     # !!!: Admin API Items
     config.add_route_7("admin:api", "/api")
@@ -336,10 +349,6 @@ def _admin_views(config):
     config.add_route_7(
         "admin:certificate_request:focus:raw",
         "/certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}",
-    )
-    config.add_route_7(
-        "admin:certificate_request:new:acme-automated",
-        "/certificate-request/new-acme-automated",
     )
 
     # !!! Certificate Request - ACME Flow

@@ -205,7 +205,212 @@ def do__AcmeAccountKey_AcmeV2_authenticate(
             _tmpfile.close()
 
 
-def do__CertificateRequest__AcmeV2_Automated(
+def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
+    """
+    generates functions for order handling
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param authenticatedUser: (required) a :class:`lib.acme_v2.AuthenticatedUser` instance
+    :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
+    """
+
+    def handle_discovered_auth(
+        authorization_url, authorization_response, transaction_commit=None
+    ):
+        """
+        :param authorization_url: (required) The URL of the ACME Server's Authorization Object.
+        :param authorization_response: (required) The JSON object corresponding to the ACME Server's Authorization Object.
+        :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+
+        the getcreate will do the following:
+            create/update the Authorization object
+            create/update the Challenge object
+        """
+        log.info("-handle_discovered_auth %s", authorization_url)
+        if transaction_commit is not True:
+            raise ValueError("we must invoke this knowing it will commit")
+        (
+            dbAcmeAuthorization,
+            _is_created,
+        ) = lib.db.getcreate.getcreate__AcmeAuthorization(
+            ctx,
+            authorization_url,
+            authorization_response,
+            authenticatedUser,
+            transaction_commit=transaction_commit,
+        )
+        return dbAcmeAuthorization
+
+    def handle_keyauth_challenge(
+        domain, token, keyauthorization, transaction_commit=None
+    ):
+        """
+        :param domain: (required) The domain for the challenge, as a string.
+        :param token: (required) The challenge's token.
+        :param keyauthorization: (required) The keyauthorization expected to be in the challenge url
+        :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+
+        originally, this callback/hook was used to make a challenge "live"
+        it might be unused
+        """
+        log.info("-handle_keyauth_challenge %s", domain)
+        if transaction_commit is not True:
+            raise ValueError("we must invoke this knowing it will commit")
+
+    def handle_keyauth_cleanup(
+        domain, token, keyauthorization, transaction_commit=None
+    ):
+        """
+        :param domain: (required) The domain for the challenge, as a string.
+        :param token: (required) The challenge's token.
+        :param keyauthorization: (required) The keyauthorization expected to be in the challenge url
+        :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+
+        originally, this callback/hook was used to cleanup a challenge
+        it might be unused
+        """
+        log.info("-handle_keyauth_cleanup %s", domain)
+        if transaction_commit is not True:
+            raise ValueError("we must invoke this knowing it will commit")
+
+    return (handle_discovered_auth, handle_keyauth_challenge, handle_keyauth_cleanup)
+
+
+def _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject, is_retry=None):
+    """
+    Consolidated AcmeOrder routine
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param authenticatedUser: (required) a :class:`lib.acme_v2.AuthenticatedUser` instance
+    :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
+    :param acmeOrderObject: (required) a :class:`lib.acme_v2.AcmeOrder` instance
+    :param is_retry: (optional) If this is a retry, we may behave differently
+    
+    -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+    
+    About the ACME order object Status
+
+    # https://tools.ietf.org/html/rfc8555#section-7.1.3
+
+    status (required, string):
+        The status of this order.  
+        Possible values are" "pending", "ready", "processing", "valid", and "invalid".  See Section 7.1.6.
+
+    # https://tools.ietf.org/html/rfc8555#page-48
+
+       o  "invalid": The certificate will not be issued.  Consider this
+          order process abandoned.
+
+       o  "pending": The server does not believe that the client has
+          fulfilled the requirements.  Check the "authorizations" array for
+          entries that are still pending.
+
+       o  "ready": The server agrees that the requirements have been
+          fulfilled, and is awaiting finalization.  Submit a finalization
+          request.
+
+       o  "processing": The certificate is being issued.  Send a POST-as-GET
+          request after the time given in the Retry-After header field of
+          the response, if any.
+
+       o  "valid": The server has issued the certificate and provisioned its
+          URL to the "certificate" field of the order.  Download the
+          certificate.
+    """
+
+    (
+        handle_discovered_auth,
+        handle_keyauth_challenge,
+        handle_keyauth_cleanup,
+    ) = _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder)
+
+    _todo_finalize_order = None
+    _order_status = acmeOrderObject.rfc_object["status"]
+    if _order_status == "pending" or (is_retry and _order_status == "invalid"):
+        # if we are retrying an order, we can try to handle it
+        _handled = authenticatedUser.acme_handle_order_authorizations(
+            ctx,
+            acmeOrder=acmeOrderObject,
+            dbAcmeOrder=dbAcmeOrder,
+            handle_discovered_auth=handle_discovered_auth,
+            handle_keyauth_challenge=handle_keyauth_challenge,
+            handle_keyauth_cleanup=handle_keyauth_cleanup,
+            transaction_commit=True,
+            is_retry=is_retry,
+        )
+        if not _handled:
+            raise ValueError("Order Authorizations failed")
+        _todo_finalize_order = True
+    else:
+        if _order_status == "invalid":
+            # order abandoned
+            raise ValueError("Order Abandoned")
+        elif _order_status == "ready":
+            # requirements/challenges fulfilled
+            _todo_finalize_order = True
+        elif _order_status == "processing":
+            # The certificate is being issued.
+            # Send a POST-as-GET request after the time given in the Retry-After header field of the response, if any.
+            # TODO: Post-as-GET this semi-completed order
+            raise ValueError("todo: download")
+        elif _order_status == "valid":
+            # The server has issued the certificate and provisioned its URL to the "certificate" field of the order
+            # TODO: download the url of this order
+            raise ValueError("todo: download")
+        else:
+            raise ValueError("unsure how to handle this status: `%s`" % _order_status)
+    return _todo_finalize_order
+
+
+def do__AcmeOrder_AcmeV2__retry(
+    ctx, dbAcmeOrder=None,
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
+    """
+    if not dbAcmeOrder:
+        raise ValueError("Must submit `dbAcmeOrder`")
+
+    tmpfiles = []
+    try:
+        # we need to use tmpfiles on the disk
+        account_key_pem = dbAcmeOrder.acme_account_key.key_pem
+        tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
+        tmpfiles.append(tmpfile_account)
+        account_key_path = tmpfile_account.name
+
+        # register the account / ensure that it is registered
+        # the authenticatedUser will have an `acmeLogger`
+        authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
+            ctx, dbAcmeOrder.acme_account_key, account_key_path=account_key_path,
+        )
+        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+        (acmeOrderObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_load(
+            ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+        )
+
+        # todo: update the order if it's not the same on the database
+        _server_status = acmeOrderObject.rfc_object["status"]
+        if dbAcmeOrder.status != _server_status:
+            dbAcmeOrder.status = _server_status
+            dbAcmeOrder.timestamp_updated = ctx.timestamp
+
+            # transaction_commit
+            ctx.transaction_manager.commit()
+            ctx.transaction_manager.begin()
+
+        _todo_finalize_order = _AcmeV2_handle_order(
+            ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject, is_retry=True
+        )
+
+    finally:
+        # cleanup tmpfiles
+        for tf in tmpfiles:
+            tf.close()
+
+
+def do__AcmeOrder__AcmeV2_Automated(
     ctx,
     domain_names,
     dbAcmeAccountKey=None,
@@ -226,6 +431,8 @@ def do__CertificateRequest__AcmeV2_Automated(
         Must submit `dbPrivateKey` if not supplied.
     :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
     :param dbQueueRenewal__of: (optional) A :class:`model.objects.QueueRenewal` object
+    
+    :returns: A :class:`model.objects.AcmeOrder` object
     """
     if not dbAcmeAccountKey:
         raise ValueError("Must submit `dbAcmeAccountKey`")
@@ -250,6 +457,7 @@ def do__CertificateRequest__AcmeV2_Automated(
     )
 
     tmpfiles = []
+    dbAcmeOrder = None
     dbCertificateRequest = None
     dbServerCertificate = None
     try:
@@ -323,7 +531,7 @@ def do__CertificateRequest__AcmeV2_Automated(
         )
 
         #
-        (acmeOrderObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_new_order(
+        (acmeOrderObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
             ctx,
             csr_domains=csr_domains,
             dbCertificateRequest=dbCertificateRequest,
@@ -334,139 +542,13 @@ def do__CertificateRequest__AcmeV2_Automated(
             dbAcmeAccountKey=dbAcmeAccountKey,
             dbCertificateRequest=dbCertificateRequest,
             dbEventLogged=dbAcmeOrderEventLogged,
+            acmeOrderRfcObject=acmeOrderObject.rfc_object,
+            acmeOrderResponseHeaders=acmeOrderObject.response_headers,
             transaction_commit=True,
         )
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
-        def process_discovered_auth(
-            authorization_url, authorization_response, transaction_commit=None
-        ):
-            """
-            :param authorization_url: (required) The URL of the ACME Server's Authorization Object.
-            :param authorization_response: (required) The JSON object corresponding to the ACME Server's Authorization Object.
-            :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
-
-            the getcreate will do the following:
-                create/update the Authorization object
-                create/update the Challenge object
-            """
-            log.info("-process_discovered_auth %s", authorization_url)
-            if transaction_commit is not True:
-                raise ValueError("we must invoke this knowing it will commit")
-            (
-                dbAcmeAuthorization,
-                _is_created,
-            ) = lib.db.getcreate.getcreate__AcmeAuthorization(
-                ctx,
-                authorization_url,
-                authorization_response,
-                authenticatedUser,
-                transaction_commit=transaction_commit,
-            )
-            return dbAcmeAuthorization
-
-        def process_keyauth_challenge(
-            domain, token, keyauthorization, transaction_commit=None
-        ):
-            """
-            :param domain: (required) The domain for the challenge, as a string.
-            :param token: (required) The challenge's token.
-            :param keyauthorization: (required) The keyauthorization expected to be in the challenge url
-            :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
-
-            originally, this callback/hook was used to make a challenge "live"
-            it might be unused
-            """
-            log.info("-process_keyauth_challenge %s", domain)
-            if transaction_commit is not True:
-                raise ValueError("we must invoke this knowing it will commit")
-            if False:
-                with transaction.manager as tx:
-                    (dbDomain, dbCertificateRequest2D) = dbDomainObjects[domain]
-                    dbCertificateRequest2D.challenge_key = token
-                    dbCertificateRequest2D.challenge_text = keyauthorization
-                    ctx.dbSession.flush(objects=[dbCertificateRequest2D])
-
-        def process_keyauth_cleanup(
-            domain, token, keyauthorization, transaction_commit=None
-        ):
-            """
-            :param domain: (required) The domain for the challenge, as a string.
-            :param token: (required) The challenge's token.
-            :param keyauthorization: (required) The keyauthorization expected to be in the challenge url
-            :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
-
-            originally, this callback/hook was used to cleanup a challenge
-            it might be unused
-            """
-            log.info("-process_keyauth_cleanup %s", domain)
-            if transaction_commit is not True:
-                raise ValueError("we must invoke this knowing it will commit")
-
-        """ 
-            # https://tools.ietf.org/html/rfc8555#section-7.1.3
-
-            status (required, string):
-                The status of this order.  
-                Possible values are" "pending", "ready", "processing", "valid", and "invalid".  See Section 7.1.6.
-
-            # https://tools.ietf.org/html/rfc8555#page-48
-
-               o  "invalid": The certificate will not be issued.  Consider this
-                  order process abandoned.
-
-               o  "pending": The server does not believe that the client has
-                  fulfilled the requirements.  Check the "authorizations" array for
-                  entries that are still pending.
-
-               o  "ready": The server agrees that the requirements have been
-                  fulfilled, and is awaiting finalization.  Submit a finalization
-                  request.
-
-               o  "processing": The certificate is being issued.  Send a POST-as-GET
-                  request after the time given in the Retry-After header field of
-                  the response, if any.
-
-               o  "valid": The server has issued the certificate and provisioned its
-                  URL to the "certificate" field of the order.  Download the
-                  certificate.
-        """
-        _todo_finalize_order = None
-        _order_status = acmeOrderObject.rfc_object["status"]
-        if _order_status == "pending":
-            _handled = authenticatedUser.acme_handle_order_authorizations(
-                ctx,
-                acmeOrder=acmeOrderObject,
-                dbAcmeOrder=dbAcmeOrder,
-                handle_discovered_auth=process_discovered_auth,
-                handle_keyauth_challenge=process_keyauth_challenge,
-                handle_keyauth_cleanup=process_keyauth_cleanup,
-                transaction_commit=True,
-            )
-            if not _handled:
-                raise ValueError("Order Authorizations failed")
-            _todo_finalize_order = True
-        else:
-            if _order_status == "invalid":
-                # order abandoned
-                raise ValueError("Order Abandoned")
-            elif _order_status == "ready":
-                # requirements/challenges fulfilled
-                _todo_finalize_order = True
-            elif _order_status == "processing":
-                # The certificate is being issued.
-                # Send a POST-as-GET request after the time given in the Retry-After header field of the response, if any.
-                # TODO: Post-as-GET this semi-completed order
-                raise ValueError("todo: download")
-            elif _order_status == "valid":
-                # The server has issued the certificate and provisioned its URL to the "certificate" field of the order
-                # TODO: download the url of this order
-                raise ValueError("todo: download")
-            else:
-                raise ValueError(
-                    "unsure how to handle this status: `%s`" % _order_status
-                )
-
+        _todo_finalize_order = _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject)
         if _todo_finalize_order:
             # sign and download
             raise ValueError("ok")
@@ -557,8 +639,9 @@ def do__CertificateRequest__AcmeV2_Automated(
 
         log.debug("mark_changed(ctx.dbSession) - is this necessary?")
         mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
+
         # don't commit here, as that will trigger an error on object refresh
-        return dbServerCertificate
+        return dbAcmeOrder
 
     except Exception as exc:
         if dbCertificateRequest:
@@ -1139,7 +1222,7 @@ def api_domains__certificate_if_needed(
             _logger_args["dbServerCertificate"] = _dbServerCertificate
         else:
             try:
-                _dbServerCertificate = do__CertificateRequest__AcmeV2_Automated(
+                _dbServerCertificate = do__AcmeOrder__AcmeV2_Automated(
                     ctx,
                     domain_names,
                     dbAcmeAccountKey=dbAcmeAccountKey,

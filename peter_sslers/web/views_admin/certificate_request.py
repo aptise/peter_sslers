@@ -17,10 +17,8 @@ from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.forms import Form_CertificateRequest_AcmeFlow_manage_domain
-from ..lib.forms import Form_CertificateRequest_new_AcmeAutomated
 from ..lib.forms import Form_CertificateRequest_new_AcmeFlow
 from ..lib.handler import Handler, items_per_page
-from ...lib import acme_v2
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -348,112 +346,5 @@ class ViewAdmin_New(Handler):
 
         except formhandling.FormInvalid as exc:
             return formhandling.form_reprint(self.request, self._new_AcmeFlow__print)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:certificate_request:new:acme-automated")
-    def new_AcmeAutomated(self):
-        self._load_AccountKeyDefault()
-        self._load_PrivateKeyDefault()
-        if self.request.method == "POST":
-            return self._new_AcmeAutomated__submit()
-        return self._new_AcmeAutomated__print()
-
-    def _new_AcmeAutomated__print(self):
-        active_ca = acme_v2.CERTIFICATE_AUTHORITY
-        providers = list(model_utils.AcmeAccountProvider.registry.values())
-        return render_to_response(
-            "/admin/certificate_request-new-AcmeAutomated.mako",
-            {
-                "CERTIFICATE_AUTHORITY": active_ca,
-                "dbAcmeAccountKeyDefault": self.dbAcmeAccountKeyDefault,
-                "dbPrivateKeyDefault": self.dbPrivateKeyDefault,
-                "AcmeAccountProviderOptions": providers,
-            },
-            self.request,
-        )
-
-    def _new_AcmeAutomated__submit(self):
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request,
-                schema=Form_CertificateRequest_new_AcmeAutomated,
-                validate_get=False,
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            try:
-                domain_names = utils.domains_from_string(
-                    formStash.results["domain_names"]
-                )
-            except ValueError as exc:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="invalid domain names detected"
-                )
-
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names",
-                    message="invalid or no valid domain names detected",
-                )
-
-            accountKeySelection = form_utils.parse_AccountKeySelection(
-                self.request,
-                formStash,
-                seek_selected=formStash.results["account_key_option"],
-            )
-            if accountKeySelection.selection == "upload":
-                key_create_args = accountKeySelection.upload_parsed.getcreate_args
-                (
-                    dbAcmeAccountKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__AcmeAccountKey(
-                    self.request.api_context, **key_create_args
-                )
-                accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
-
-            private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash)
-
-            try:
-                dbLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeV2_Automated(
-                    self.request.api_context,
-                    domain_names,
-                    dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
-                    private_key_pem=private_key_pem,
-                )
-            except (
-                errors.AcmeCommunicationError,
-                errors.DomainVerificationError,
-            ) as exc:
-                return HTTPSeeOther(
-                    "%s/certificate-requests?error=new-AcmeAutomated&message=%s"
-                    % (
-                        self.request.registry.settings["admin_prefix"],
-                        str(exc).replace("\n", "+").replace(" ", "+"),
-                    )
-                )
-            except Exception as exc:
-                if self.request.registry.settings["exception_redirect"]:
-                    return HTTPSeeOther(
-                        "%s/certificate-requests?error=new-AcmeAutomated"
-                        % self.request.registry.settings["admin_prefix"]
-                    )
-                raise
-
-            return HTTPSeeOther(
-                "%s/certificate/%s"
-                % (
-                    self.request.registry.settings["admin_prefix"],
-                    dbLetsencryptCertificate.id,
-                )
-            )
-
-        except formhandling.FormInvalid as exc:
-            return formhandling.form_reprint(
-                self.request, self._new_AcmeAutomated__print
-            )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -26,6 +26,18 @@
 
 <%block name="content_main">
     ${admin_partials.handle_querystring_result()}
+    
+    % if AcmeOrder.is_can_retry:
+        <a
+            class="label label-info"
+            href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"
+        >
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            retry
+        </a>
+    % endif
+    
+    
     <div class="row">
         <div class="col-sm-12">
             <table class="table">
@@ -43,8 +55,28 @@
                     </td>
                 </tr>
                 <tr>
+                    <th>status</th>
+                    <td><code>${AcmeOrder.status  or ''}</code>
+                    </td>
+                </tr>
+                <tr>
+                    <th>resource_url</th>
+                    <td><code>${AcmeOrder.resource_url or ''}</code>
+                    </td>
+                </tr>
+                <tr>
+                    <th>timestamp_expires</th>
+                    <td><timestamp>${AcmeOrder.timestamp_expires  or ''}</timestamp>
+                    </td>
+                </tr>
+                <tr>
                     <th>timestamp_finalized</th>
                     <td><timestamp>${AcmeOrder.timestamp_finalized  or ''}</timestamp>
+                    </td>
+                </tr>
+                <tr>
+                    <th>finalize_url</th>
+                    <td><code>${AcmeOrder.finalize_url or ''}</code>
                     </td>
                 </tr>
                 <tr>
@@ -54,7 +86,8 @@
                             class="label label-info"
                             href="${admin_prefix}/acme-account-key/${AcmeOrder.acme_account_key_id}"
                         >
-                            ${AcmeOrder.acme_account_key_id}
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            acme-account-key-${AcmeOrder.acme_account_key_id}
                         </a>
                     </td>
                 </tr>
@@ -67,7 +100,8 @@
                                 class="label label-info"
                                 href="${admin_prefix}/certificate-request/${AcmeOrder.certificate_request_id}"
                             >
-                                ${AcmeOrder.certificate_request_id}
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                certificate-request-${AcmeOrder.certificate_request_id}
                             </a>
                         % endif
                     </td>
@@ -80,14 +114,12 @@
                                 class="label label-info"
                                 href="${admin_prefix}/certificate/${AcmeOrder.server_certificate_id}"
                             >
-                                ${AcmeOrder.server_certificate_id}
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                server-certificate-${AcmeOrder.server_certificate_id}
                             </a>
                         % endif
                     </td>
                 </tr>
-
-
-
             </table>
         </div>
     </div>

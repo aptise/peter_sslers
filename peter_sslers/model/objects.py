@@ -241,6 +241,11 @@ class AcmeOrder(Base):
 
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    status = sa.Column(sa.Unicode(32), nullable=False)
+    resource_url = sa.Column(sa.Unicode(255), nullable=True)
+    finalize_url = sa.Column(sa.Unicode(255), nullable=True)
+    timestamp_expires = sa.Column(sa.DateTime, nullable=True)
+    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
 
     acme_event_log_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_event_log.id"), nullable=False
@@ -296,6 +301,13 @@ class AcmeOrder(Base):
         uselist=False,
         back_populates="acme_order",
     )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def is_can_retry(self):
+        # TODO: this should be conditional
+        return True
 
 
 class AcmeOrder2Domain(Base):

@@ -287,7 +287,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
         dbServerCertificate = None
         try:
             domain_names = [d.domain_name for d in domainObjects]
-            dbServerCertificate = lib.db.actions.do__CertificateRequest__AcmeV2_Automated(
+            dbAcmeOrder = lib.db.actions.do__AcmeOrder__AcmeV2_Automated(
                 ctx,
                 domain_names,
                 dbAcmeAccountKey=dbAcmeAccountKey,
@@ -481,7 +481,7 @@ def queue_renewals__process(ctx):
             _dbPrivateKey = dbQueueRenewal.renewal_PrivateKey or dbPrivateKeyDefault
             try:
                 timestamp_attempt = datetime.datetime.utcnow()
-                dbServerCertificate = lib.db.actions.do__CertificateRequest__AcmeV2_Automated(
+                dbAcmeOrder = lib.db.actions.do__AcmeOrder__AcmeV2_Automated(
                     ctx,
                     dbQueueRenewal.domains_as_list,
                     dbAcmeAccountKey=_dbAcmeAccountKey,

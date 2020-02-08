@@ -463,7 +463,7 @@ class ViewAdmin_Focus(Handler):
                 )
 
             try:
-                dbLetsencryptCertificateNew = lib_db.actions.do__CertificateRequest__AcmeV2_Automated(
+                dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2_Automated(
                     self.request.api_context,
                     None,  # domain_names, handle via the certificate...
                     dbAcmeAccountKey=dbServerCertificate.acme_account_key,
@@ -479,11 +479,12 @@ class ViewAdmin_Focus(Handler):
             if wants_json:
                 return {
                     "status": "success",
-                    "certificate_new.id": dbLetsencryptCertificateNew.id,
+                    "acme_order.id": dbAcmeOrder.id,
+                    "certificate_new.id": dbAcmeOrder.server_certificate_id,
                 }
             url_success = (
                 "%s?operation=renewal&renewal_type=quick&success=%s&result=success"
-                % (self._focus_url, dbLetsencryptCertificateNew.id)
+                % (self._focus_url, dbAcmeOrder.server_certificate_id)
             )
             return HTTPSeeOther(url_success)
 
@@ -657,7 +658,7 @@ class ViewAdmin_Focus(Handler):
                     event_payload_dict,
                 )
 
-                newLetsencryptCertificate = lib_db.actions.do__CertificateRequest__AcmeV2_Automated(
+                dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2_Automated(
                     self.request.api_context,
                     domain_names=dbServerCertificate.domains_as_list,
                     dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
@@ -684,7 +685,7 @@ class ViewAdmin_Focus(Handler):
                 "%s/certificate/%s?is_renewal=True"
                 % (
                     self.request.registry.settings["admin_prefix"],
-                    newLetsencryptCertificate.id,
+                    dbAcmeOrder.server_certificate_id,
                 )
             )
 

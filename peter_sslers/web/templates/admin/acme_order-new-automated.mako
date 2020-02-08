@@ -14,7 +14,7 @@
 
 <%block name="page_header_col">
     <h2>Certificate Request - FULL | New</h2>
-    <p><em>${request.text_library.info_CertificateRequest_new_AcmeAutomated[1]}</em></p>
+    <p><em>${request.text_library.info_AcmeOrder_new_Automated[1]}</em></p>
     <div class="alert alert-info">
         <em>
             Requests will be performed against the following Certificate Authority:
@@ -32,14 +32,15 @@
             <%! show_text = False %>
 
             <form
-                action="${admin_prefix}/certificate-request/new-acme-automated"
+                action="${admin_prefix}/acme-order/new-automated"
                 method="POST"
                 enctype="multipart/form-data"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <h3>LetsEncrypt Account</h3>
+                <h3>ACME Account Key</h3>
+                <p>A LetsEncrypt ACME Account Key</p>
                 ${admin_partials.formgroup__account_key_selector_advanced()}
                 <hr/>
 

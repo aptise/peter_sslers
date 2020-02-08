@@ -139,11 +139,11 @@
             <h3>New Certificates</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
-                    <a  href="${admin_prefix}/certificate-request/new-acme-automated"
-                        title="${request.text_library.info_CertificateRequest_new_AcmeAutomated[0]}"
+                    <a  href="${admin_prefix}/acme-order/new-automated"
+                        title="${request.text_library.info_AcmeOrder_new_Automated[0]}"
                     >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                    New: ACME Automated</a></li>
+                    New ACME Order: Automated</a></li>
                 % if request.registry.settings['enable_acme_flow']:
                     <li>
                         <a  href="${admin_prefix}/certificate-request/new-acme-flow"

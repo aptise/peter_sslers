@@ -3,12 +3,14 @@ import logging
 
 log = logging.getLogger(__name__)
 
+# pypi
+from dateutil import parser as dateutil_parser
+
 # localapp
 from .. import cert_utils
 from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
-
 from ... import lib  # from . import db?
 
 # local
@@ -26,6 +28,8 @@ def create__AcmeOrder(
     dbAcmeAccountKey=None,
     dbCertificateRequest=None,
     dbEventLogged=None,
+    acmeOrderRfcObject=None,
+    acmeOrderResponseHeaders=None,
     transaction_commit=None,
 ):
     """
@@ -35,16 +39,38 @@ def create__AcmeOrder(
     :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` associated with the order
     :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest` associated with the order
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
+    :param acmeOrderRfcObject: (required) dictionary object from the server, representing an ACME payload
+    :param acmeOrderResponseHeaders: (required) headers from the ACME order
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
     """
     if not transaction_commit:
         raise ValueError("`create__AcmeOrder` must persist to the database.")
 
+    if acmeOrderRfcObject is None:
+        raise ValueError(
+            "`create__AcmeOrder` must be invoked with a `acmeOrderRfcObject`."
+        )
+    acme_order_status = acmeOrderRfcObject["status"]
+    finalize_url = acmeOrderRfcObject.get("finalize")
+    timestamp_expires = acmeOrderRfcObject.get("expires")
+    if timestamp_expires:
+        timestamp_expires = dateutil_parser.parse(timestamp_expires)
+    try:
+        resource_url = acmeOrderResponseHeaders["location"]
+    except:
+        pass
+
     dbAcmeOrder = model_objects.AcmeOrder()
     dbAcmeOrder.timestamp_created = ctx.timestamp
+    dbAcmeOrder.resource_url = resource_url
     dbAcmeOrder.acme_account_key_id = dbAcmeAccountKey.id
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
     dbAcmeOrder.certificate_request_id = dbCertificateRequest.id
+    dbAcmeOrder.status = acme_order_status
+    dbAcmeOrder.finalize_url = finalize_url
+    dbAcmeOrder.timestamp_expires = timestamp_expires
+    dbAcmeOrder.timestamp_updated = ctx.timestamp
+
     ctx.dbSession.add(dbAcmeOrder)
     ctx.dbSession.flush(objects=[dbAcmeOrder])
 
@@ -128,7 +154,7 @@ def create__CertificateRequest(
     :param dbPrivateKey: (required) Private Key used to sign the CSR
     
     invoked by:
-        lib.db.actions.do__CertificateRequest__AcmeV2_Automated
+        lib.db.actions.do__AcmeOrder__AcmeV2_Automated
             ctx,
             csr_pem,
             certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED,

@@ -309,12 +309,16 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 acme-order-${acme_order.id}
                             </a>
-                            <td><timestamp>${acme_order.timestamp_created or ''}</timestamp></td>
-                            <td><timestamp>${acme_order.timestamp_finalized or ''}</timestamp></td>
+                        </td>
+                        <td><timestamp>${acme_order.timestamp_created or ''}</timestamp></td>
+                        <td><timestamp>${acme_order.timestamp_finalized or ''}</timestamp></td>
+                        <td>
                             <a href="${admin_prefix}/acme-account-key/${acme_order.acme_account_key_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 acme-account-key-${acme_order.acme_account_key_id}
                             </a>
+                        </td>
+                        <td>
                             <a href="${admin_prefix}/server-certificate/${acme_order.server_certificate_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 server-certificate-${acme_order.server_certificate_id}

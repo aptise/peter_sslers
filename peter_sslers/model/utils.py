@@ -305,6 +305,7 @@ class AcmeEvent(_mixin_mapping):
         6: "v2|-authorization-request",  # hitting the LE authorization url
         7: "v2|-challenge-trigger",  # not an endpoint name, but element of an order
         8: "v2|-order-finalize",
+        9: "v2|-order-location",
     }
 
 

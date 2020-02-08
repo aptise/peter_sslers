@@ -31,17 +31,19 @@
                         <tr>
                             <th>id</th>
                             <th>timestamp_created</th>
+                            <th>status</th>
                             <th>timestamp_finalized</th>
                         </tr>
                     </thead>
                     <tbody>
-                    % for order in AcmeOrders:
+                    % for acme_order in AcmeOrders:
                         <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/acme-order/${order.id}">
+                            <td><a class="label label-info" href="${admin_prefix}/acme-order/${acme_order.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${order.id}</a></td>
-                            <td><timestamp>${key.timestamp_created}</timestamp></td>
-                            <td><timestamp>${key.timestamp_finalized}</timestamp></td>
+                                ${acme_order.id}</a></td>
+                            <td><timestamp>${acme_order.timestamp_created or ''}</timestamp></td>
+                            <td><code>${acme_order.status or ''}</code></td>
+                            <td><timestamp>${acme_order.timestamp_finalized or ''}</timestamp></td>
                         </tr>
                     % endfor
                     </tbody>

@@ -105,6 +105,34 @@ class AcmeLogger(object):
 
         return dbAcmeEventLog
 
+    def log_order_load(self, acme_version, dbAcmeOrder, transaction_commit=None):
+        """
+        Logs a call for the ACME order's endpint
+        
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` for the existing order
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        acme_event_id = model_utils.AcmeEvent.from_string("v2|-order-location")
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.acme_event_id = acme_event_id
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.transaction_manager.commit()
+            self.ctx.transaction_manager.begin()
+
+        return dbAcmeEventLog
+
     def log_authorization_request(
         self, acme_version, dbAcmeAuthorization, transaction_commit=None
     ):

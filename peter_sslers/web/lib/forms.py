@@ -83,11 +83,11 @@ class _Form_Schema_Base(_FormSchema):
     filter_extra_fields = True
 
 
-class Form_AccountKey_new__file(_Form_Schema_Base):
+class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
     """
     copied into a few other forms
         * Form_Certificate_Renewal_Custom
-        * Form_CertificateRequest_new_AcmeAutomated
+        * Form_AcmeOrder_new_automated
     """
 
     # if this isn't provided...
@@ -105,8 +105,42 @@ class Form_AccountKey_new__file(_Form_Schema_Base):
     )
 
 
-class Form_AccountKey_mark(_Form_Schema_Base):
+class Form_AcmeAccountKey_mark(_Form_Schema_Base):
     action = OneOf(("default", "active", "inactive"))
+
+
+class Form_AcmeOrder_new_automated(_Form_Schema_Base):
+    account_key_option = OneOf(
+        ("account_key_default", "account_key_existing", "account_key_file")
+    )
+    account_key_default = UnicodeString(not_empty=False, if_missing=None)
+    account_key_existing = UnicodeString(not_empty=False, if_missing=None)
+
+    # these are via Form_AcmeAccountKey_new__file
+    account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    account_key_file_le_meta = FieldStorageUploadConverter(
+        not_empty=False, if_missing=None
+    )
+    account_key_file_le_pkey = FieldStorageUploadConverter(
+        not_empty=False, if_missing=None
+    )
+    account_key_file_le_reg = FieldStorageUploadConverter(
+        not_empty=False, if_missing=None
+    )
+    acme_account_provider_id = Int(not_empty=False, if_missing=None)
+
+    private_key_existing = UnicodeString(not_empty=False, if_missing=None)
+    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key_default = UnicodeString(not_empty=False, if_missing=None)
+
+    domain_names = UnicodeString(not_empty=True)
+
+    chained_validators = [
+        OnlyOneOf(
+            ("private_key_existing", "private_key_file", "private_key_default"),
+            not_empty=True,
+        )
+    ]
 
 
 class Form_CACertificate_Upload__file(_Form_Schema_Base):
@@ -151,7 +185,7 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
     account_key_default = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
 
-    # these are via Form_AccountKey_new__file
+    # these are via Form_AcmeAccountKey_new__file
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     account_key_file_le_meta = FieldStorageUploadConverter(
         not_empty=False, if_missing=None
@@ -180,40 +214,6 @@ class Form_Certificate_mark(_Form_Schema_Base):
 
 class Form_CertificateRequest_new_AcmeFlow(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
-
-
-class Form_CertificateRequest_new_AcmeAutomated(_Form_Schema_Base):
-    account_key_option = OneOf(
-        ("account_key_default", "account_key_existing", "account_key_file")
-    )
-    account_key_default = UnicodeString(not_empty=False, if_missing=None)
-    account_key_existing = UnicodeString(not_empty=False, if_missing=None)
-
-    # these are via Form_AccountKey_new__file
-    account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    account_key_file_le_meta = FieldStorageUploadConverter(
-        not_empty=False, if_missing=None
-    )
-    account_key_file_le_pkey = FieldStorageUploadConverter(
-        not_empty=False, if_missing=None
-    )
-    account_key_file_le_reg = FieldStorageUploadConverter(
-        not_empty=False, if_missing=None
-    )
-    acme_account_provider_id = Int(not_empty=False, if_missing=None)
-
-    private_key_existing = UnicodeString(not_empty=False, if_missing=None)
-    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    private_key_default = UnicodeString(not_empty=False, if_missing=None)
-
-    domain_names = UnicodeString(not_empty=True)
-
-    chained_validators = [
-        OnlyOneOf(
-            ("private_key_existing", "private_key_file", "private_key_default"),
-            not_empty=True,
-        )
-    ]
 
 
 class Form_CertificateRequest_AcmeFlow_manage_domain(_Form_Schema_Base):
