@@ -611,7 +611,7 @@ class ViewAdmin_Focus(Handler):
             "/admin/certificate-focus-renew.mako",
             {
                 "ServerCertificate": self.dbServerCertificate,
-                "dbAcmeAccountKeyDefault": self.dbAcmeAccountKeyDefault,
+                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
                 "AcmeAccountProviderOptions": providers,
             },
             self.request,

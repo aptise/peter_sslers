@@ -17,6 +17,46 @@
 
 
 <%block name="content_main">
+    <h3>Runtime Settings</h3>
+    <p>
+        These settings can be edited using the web interface
+    </p>
+    <div class="row">
+        <div class="col-sm-12">
+            <table class="table table-striped table-condensed">
+                <tr>
+                    <th>Default AcmeAccountKey</th>
+                    <td>
+                        % if not AcmeAccountKey_Default:
+                            Not configured                        
+                        % else:
+                            <a href="${admin_prefix}/acme-account-key/${AcmeAccountKey_Default.id}" span class="label label-default">
+                                acme-account-key-${AcmeAccountKey_Default.id}
+                            </a>
+                            <code>${AcmeAccountKey_Default.key_pem_sample}</code>
+                        % endif
+                        <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-account-keys">AcmeAccountKey</a>.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Default PrivateKey</th>
+                    <td>
+                        % if not PrivateKey_Default:
+                            Not configured                        
+                        % else:
+                            <a href="${admin_prefix}/acme-account-key/${PrivateKey_Default.id}" span class="label label-default">
+                                acme-account-key-${PrivateKey_Default.id}
+                            </a>
+                            <code>${PrivateKey_Default.key_pem_sample}</code>
+                        % endif
+                        <p>This can be configured by selecting a new <a href="${admin_prefix}/private-keys">PrivateKey</a>.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <h3>Environment Settings</h3>
     <p>
         These settings can be edited with your <code>environment.ini</code> file.
     </p>

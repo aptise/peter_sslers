@@ -778,14 +778,14 @@
             </a>
         </div>
     % endif
-    % if dbAcmeAccountKeyDefault:
+    % if AcmeAccountKey_Default:
         <div class="radio">
             <label>
                 <input type="radio" name="account_key_option" id="account_key_option-account_key_default" value="account_key_default"/>
-                <input type="hidden" name="account_key_default" value="${dbAcmeAccountKeyDefault.key_pem_md5}"/>
+                <input type="hidden" name="account_key_default" value="${AcmeAccountKey_Default.key_pem_md5}"/>
                 Select to use the default Acme Account Key<br/>
-                <b>pem md5:</b> <code>${dbAcmeAccountKeyDefault.key_pem_md5}</code><br/>
-                <b>pem line 1:</b> <code>${dbAcmeAccountKeyDefault.key_pem_sample}</code>
+                <b>pem md5:</b> <code>${AcmeAccountKey_Default.key_pem_md5}</code><br/>
+                <b>pem line 1:</b> <code>${AcmeAccountKey_Default.key_pem_sample}</code>
             </label>
         </div>
     % endif
@@ -812,13 +812,13 @@
 
 <%def name="formgroup__private_key_selector(show_text=None)">
     <h4>Private Key</h4>
-        % if dbPrivateKeyDefault:
+        % if PrivateKey_Default:
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" name="private_key_default" id="f1-private_key_default" value="${dbPrivateKeyDefault.key_pem_md5}"/>
+                    <input type="checkbox" name="private_key_default" id="f1-private_key_default" value="${PrivateKey_Default.key_pem_md5}"/>
                     Check this box to use the default.<br/>
-                    <b>pem md5:</b> <code>${dbPrivateKeyDefault.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${dbPrivateKeyDefault.key_pem_sample}</code>
+                    <b>pem md5:</b> <code>${PrivateKey_Default.key_pem_md5}</code><br/>
+                    <b>pem line 1:</b> <code>${PrivateKey_Default.key_pem_sample}</code>
                 </label>
             </div>
         % else:

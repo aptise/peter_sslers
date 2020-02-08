@@ -44,22 +44,7 @@ def _admin_views(config):
     config.add_route_7("admin:search", "/search")
     config.add_route_7("admin:settings", "/settings")
 
-    # this is just letsencrypt endpoints
-    config.add_route_7("admin:acme_providers", "/acme-providers")
-    config.add_route_7("admin:acme_providers|json", "/acme-providers.json")
-
-    # !!!: ACME Orders
-    config.add_route_7("admin:acme_orders", "/acme-orders")
-    config.add_route_7("admin:acme_orders_paginated", "/acme-orders/{@page}")
-    config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
-    config.add_route_7(
-        "admin:acme_order:focus:acme_authorizations",
-        "/acme-order/{@id}/acme-authorizations",
-    )
-    config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
-    config.add_route_7("admin:acme_order:new:automated", "/acme-order/new-automated")
-
-    # !!!: ACME Authorizations
+    # !!!: AcmeAuthorizations
     config.add_route_7("admin:acme_authorizations", "/acme-authorizations")
     config.add_route_7(
         "admin:acme_authorizations_paginated", "/acme-authorizations/{@page}"
@@ -73,7 +58,7 @@ def _admin_views(config):
         "/acme-authorization/{@id}/orders/{@page}",
     )
 
-    # !!!: ACME AccountKeys
+    # !!!: AcmeAccountKeys
     # AccountKeys are the LetsEncrypt accounts
     config.add_route_7("admin:acme_account_keys", "/acme-account-keys")
     config.add_route_7("admin:acme_account_keys|json", "/acme-account-keys.json")
@@ -84,7 +69,7 @@ def _admin_views(config):
         "admin:acme_account_keys_paginated|json", "/acme-account-keys/{@page}.json"
     )
 
-    # !!!: ACME AccountKey - Focus
+    # !!!: AcmeAccountKey - Focus
     config.add_route_7("admin:acme_account_key:focus", "/acme-account-key/{@id}")
     config.add_route_7(
         "admin:acme_account_key:focus|json", "/acme-account-key/{@id}.json"
@@ -135,6 +120,55 @@ def _admin_views(config):
         "admin:acme_account_key:upload|json", "/acme-account-key/upload.json"
     )
 
+    # !!!: AcmeChallenge Poll
+    config.add_route_7("admin:acme_challenge_poll", "/acme-challenge-polls")
+    config.add_route_7(
+        "admin:acme_challenge_poll_paginated", "/acme-challenge-polls/{@page}"
+    )
+    config.add_route_7("admin:acme_challenge_poll:focus", "/acme-challenge-poll/{@id}")
+
+    # !!!: AcmeChallengeUnknown Poll
+    config.add_route_7(
+        "admin:acme_challenge_unknown_poll", "/acme-challenge-unknown-polls"
+    )
+    config.add_route_7(
+        "admin:acme_challenge_unknown_poll_paginated",
+        "/acme-challenge-unknown-polls/{@page}",
+    )
+
+    # !!!: AcmeEvents Logging
+    config.add_route_7("admin:acme_event_log", "/acme-event-logs")
+    config.add_route_7("admin:acme_event_log_paginated", "/acme-event-logs/{@page}")
+    config.add_route_7("admin:acme_event_log:focus", "/acme-event-log/{@id}")
+    config.add_route_7("admin:acme_challenge_log", "/acme-challenge-logs")
+    config.add_route_7(
+        "admin:acme_challenge_log_paginated", "/acme-challenge-logs/{@page}"
+    )
+    config.add_route_7("admin:acme_challenge_log:focus", "/acme-challenge-log/{@id}")
+
+    config.add_route_7(
+        "admin:acme_challenge_log:filtered", "/acme-challenge-logs/filtered"
+    )
+    config.add_route_7(
+        "admin:acme_challenge_log:filtered|json", "/acme-challenge-logs/filtered.json"
+    )
+
+    # !!!: AcmeOrder
+    config.add_route_7("admin:acme_orders", "/acme-orders")
+    config.add_route_7("admin:acme_orders_paginated", "/acme-orders/{@page}")
+    config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
+    config.add_route_7(
+        "admin:acme_order:focus:acme_authorizations",
+        "/acme-order/{@id}/acme-authorizations",
+    )
+    config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
+    config.add_route_7("admin:acme_order:new:automated", "/acme-order/new-automated")
+
+    # !!!: AcmeProvider
+    # this is just letsencrypt endpoints
+    config.add_route_7("admin:acme_providers", "/acme-providers")
+    config.add_route_7("admin:acme_providers|json", "/acme-providers.json")
+
     # !!!: Admin API Items
     config.add_route_7("admin:api", "/api")
     config.add_route_7("admin:api:domain:enable", "/api/domain/enable")
@@ -177,39 +211,6 @@ def _admin_views(config):
         "admin:api:queue_renewals:process|json", "/api/queue-renewals/process.json"
     )
 
-    # !!!: AcmeEvents Logging
-    config.add_route_7("admin:acme_event_log", "/acme-event-logs")
-    config.add_route_7("admin:acme_event_log_paginated", "/acme-event-logs/{@page}")
-    config.add_route_7("admin:acme_event_log:focus", "/acme-event-log/{@id}")
-    config.add_route_7("admin:acme_challenge_log", "/acme-challenge-logs")
-    config.add_route_7(
-        "admin:acme_challenge_log_paginated", "/acme-challenge-logs/{@page}"
-    )
-    config.add_route_7("admin:acme_challenge_log:focus", "/acme-challenge-log/{@id}")
-
-    config.add_route_7(
-        "admin:acme_challenge_log:filtered", "/acme-challenge-logs/filtered"
-    )
-    config.add_route_7(
-        "admin:acme_challenge_log:filtered|json", "/acme-challenge-logs/filtered.json"
-    )
-
-    # !!!: AcmeChallenge Poll
-    config.add_route_7("admin:acme_challenge_poll", "/acme-challenge-polls")
-    config.add_route_7(
-        "admin:acme_challenge_poll_paginated", "/acme-challenge-polls/{@page}"
-    )
-    config.add_route_7("admin:acme_challenge_poll:focus", "/acme-challenge-poll/{@id}")
-
-    # !!!: AcmeChallengeUnknown Poll
-    config.add_route_7(
-        "admin:acme_challenge_unknown_poll", "/acme-challenge-unknown-polls"
-    )
-    config.add_route_7(
-        "admin:acme_challenge_unknown_poll_paginated",
-        "/acme-challenge-unknown-polls/{@page}",
-    )
-
     # !!!: CertificateAuthority Certificates
     config.add_route_7("admin:ca_certificates", "/ca-certificates")
     config.add_route_7("admin:ca_certificates_paginated", "/ca-certificates/{@page}")
@@ -245,7 +246,7 @@ def _admin_views(config):
         "admin:ca_certificate:upload_bundle|json", "/ca-certificate/upload-bundle.json"
     )
 
-    # !!!: Certificates - List
+    # !!!: Certificates
     config.add_route_7("admin:certificates", "/certificates")
     config.add_route_7("admin:certificates_paginated", "/certificates/{@page}")
     config.add_route_7("admin:certificates:active", "/certificates/active")
@@ -283,7 +284,7 @@ def _admin_views(config):
         "/certificates/inactive/{@page}.json",
     )
 
-    # !!!: Certificate Focus
+    # !!!: Certificate - Focus
     config.add_route_7("admin:certificate:focus", "/certificate/{@id}")
     config.add_route_7("admin:certificate:focus|json", "/certificate/{@id}.json")
     config.add_route_7(
@@ -453,7 +454,7 @@ def _admin_views(config):
         "/domain/{domain_identifier}/nginx-cache-expire.json",
     )
 
-    # !!!: Operations & sync events
+    # !!!: Operations & Sync Events
     config.add_route_7("admin:operations", "/operations")
     # -
     config.add_route_7(
@@ -491,7 +492,7 @@ def _admin_views(config):
         "admin:private_keys_paginated|json", "/private-keys/{@page}.json"
     )
 
-    # !!!: Private Key Focus
+    # !!!: Private Key - Focus
     config.add_route_7("admin:private_key:focus", "/private-key/{@id}")
     config.add_route_7("admin:private_key:focus|json", "/private-key/{@id}.json")
     config.add_route_7(
@@ -598,6 +599,8 @@ def _admin_views(config):
     config.add_route_7(
         "admin:unique_fqdn_sets_paginated|json", "/unique-fqdn-sets/{@page}.json"
     )
+
+    # !!!: Unique FQDN Set - Focus
     config.add_route_7("admin:unique_fqdn_set:focus", "/unique-fqdn-set/{@id}")
     config.add_route_7(
         "admin:unique_fqdn_set:focus|json", "/unique-fqdn-set/{@id}.json"

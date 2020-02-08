@@ -56,10 +56,10 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
     Originally from acme-tiny
     # helper function - make request and automatically parse json response
 
-    :param url: (required) The url
-    :param post_data: (optional) A Python dict of data to POST to the url
-    :param err_msg: (optional) A string to use as an error message
-    :param depth: (optional) An integer nothing the depth of this function being called
+    :param str url: (required) The url
+    :param dict post_data: (optional) Data to POST to the url
+    :param str err_msg: (optional) A custom error message
+    :param int depth: (optional) An integer nothing the depth of this function being called
     """
     context = None
     try:
@@ -109,8 +109,8 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
 
 def get_authorization_challenge(authorization_response, http01=None):
     """
-    :param authorization_response: (required) A Python dict representing a server's JSON payload of an Authorization Object.
-    :param http01: (required) You must declare this is a http01 request
+    :param dict authorization_response: (required) A Python dict representing a server's JSON payload of an Authorization Object.
+    :param bool http01: (required) You must declare this is a http01 request
     """
     if not http01:
         raise ValueError("must invoke with `http01=True`")
@@ -126,8 +126,8 @@ def get_authorization_challenge(authorization_response, http01=None):
 
 def create_challenge_keyauthorization(token, accountkey_thumbprint):
     """
-    :param token: (required) A string `token` entry from a server Challenge object
-    :param accountkey_thumbprint: (required) The thumbprint of an Authenticated Account
+    :param str token: (required) A string `token` entry from a server Challenge object
+    :param str accountkey_thumbprint: (required) The thumbprint of an Authenticated Account
     """
     token = re.sub(r"[^A-Za-z0-9_\-]", "_", token)
     keyauthorization = "{0}.{1}".format(token, accountkey_thumbprint)

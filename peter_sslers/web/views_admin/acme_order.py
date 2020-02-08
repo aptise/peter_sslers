@@ -115,8 +115,8 @@ class ViewAdmin_New(Handler):
             "/admin/acme_order-new-automated.mako",
             {
                 "CERTIFICATE_AUTHORITY": active_ca,
-                "dbAcmeAccountKeyDefault": self.dbAcmeAccountKeyDefault,
-                "dbPrivateKeyDefault": self.dbPrivateKeyDefault,
+                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
+                "PrivateKey_Default": self.dbPrivateKeyDefault,
                 "AcmeAccountProviderOptions": providers,
             },
             self.request,
