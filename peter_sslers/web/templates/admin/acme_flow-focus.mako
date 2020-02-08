@@ -14,7 +14,7 @@
 
 <%block name="page_header_col">
     <h2>Certificate Request - Acme Flow | New</h2>
-    <p><em>${request.text_library.info_CertificateRequest_new_AcmeFlow[1]}</em></p>
+    <p><em>${request.text_library.info_AcmeFlow_new[1]}</em></p>
     <p>
         The Acme-Flow system was designed to manage challeneges for a LetsEncrypt certificate issuance initiated with other software.
         This subsystem allows you enter the challenge/response codes via HTML or a JSON API, and tracks when LetsEncrypt makes the validation.
@@ -26,7 +26,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            <form action="${admin_prefix}/certificate-request/new-acme-flow" method="POST">
+            <form action="${admin_prefix}/acme-flow/new" method="POST">
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 

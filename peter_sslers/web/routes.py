@@ -128,19 +128,24 @@ def _admin_views(config):
         "admin:acme_account_key:upload|json", "/acme-account-key/upload.json"
     )
 
+    # !!!: AcmeChallenge
+    config.add_route_7("admin:acme_challenges", "/acme-challenges")
+    config.add_route_7("admin:acme_challenges_paginated", "/acme-challenges/{@page}")
+    config.add_route_7("admin:acme_challenge:focus", "/acme-challenge/{@id}")
+
     # !!!: AcmeChallenge Poll
-    config.add_route_7("admin:acme_challenge_poll", "/acme-challenge-polls")
+    config.add_route_7("admin:acme_challenge_polls", "/acme-challenge-polls")
     config.add_route_7(
-        "admin:acme_challenge_poll_paginated", "/acme-challenge-polls/{@page}"
+        "admin:acme_challenge_polls_paginated", "/acme-challenge-polls/{@page}"
     )
     config.add_route_7("admin:acme_challenge_poll:focus", "/acme-challenge-poll/{@id}")
 
     # !!!: AcmeChallengeUnknown Poll
     config.add_route_7(
-        "admin:acme_challenge_unknown_poll", "/acme-challenge-unknown-polls"
+        "admin:acme_challenge_unknown_polls", "/acme-challenge-unknown-polls"
     )
     config.add_route_7(
-        "admin:acme_challenge_unknown_poll_paginated",
+        "admin:acme_challenge_unknown_polls_paginated",
         "/acme-challenge-unknown-polls/{@page}",
     )
 
@@ -148,6 +153,8 @@ def _admin_views(config):
     config.add_route_7("admin:acme_event_log", "/acme-event-logs")
     config.add_route_7("admin:acme_event_log_paginated", "/acme-event-logs/{@page}")
     config.add_route_7("admin:acme_event_log:focus", "/acme-event-log/{@id}")
+
+    # !!! AcmeChallengeLog - DEPRECATED / REMOVE
     config.add_route_7("admin:acme_challenge_log", "/acme-challenge-logs")
     config.add_route_7(
         "admin:acme_challenge_log_paginated", "/acme-challenge-logs/{@page}"

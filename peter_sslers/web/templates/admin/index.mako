@@ -83,6 +83,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-challenge-logs</a></li>
+                <li><a href="${admin_prefix}/acme-challenge-polls"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-challenge-polls</a></li>
                 <li><a href="${admin_prefix}/acme-challenge-unknown-polls"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -104,6 +108,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-authorizations</a></li>
+                <li><a href="${admin_prefix}/acme-challenges"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-challenges</a></li>
                 <li><a href="${admin_prefix}/acme-orders"
                        title="${request.text_library.info_AcmeOrders[0]}"
                     >
@@ -156,8 +164,8 @@
                     New ACME Order: Automated</a></li>
                 % if request.registry.settings['enable_acme_flow']:
                     <li>
-                        <a  href="${admin_prefix}/certificate-request/new-acme-flow"
-                            title="${request.text_library.info_CertificateRequest_new_AcmeFlow[0]}"
+                        <a  href="${admin_prefix}/acme-flow/new"
+                            title="${request.text_library.info_AcmeFlow_new[0]}"
                         >
                         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                         New: ACME Flow</a></li>

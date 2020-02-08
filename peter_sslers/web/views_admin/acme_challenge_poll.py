@@ -30,28 +30,28 @@ class ViewAdmin_List(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_challenge_unknown_polls",
-        renderer="/admin/acme_challenge_unknown_polls.mako",
+        route_name="admin:acme_challenge_polls",
+        renderer="/admin/acme_challenge_polls.mako",
     )
     @view_config(
-        route_name="admin:acme_challenge_unknown_polls_paginated",
-        renderer="/admin/acme_challenge_unknown_polls.mako",
+        route_name="admin:acme_challenge_polls_paginated",
+        renderer="/admin/acme_challenge_polls.mako",
     )
     def list(self):
-        items_count = lib_db.get.get__AcmeChallengeUnknownPolls__count(
+        items_count = lib_db.get.get__AcmeChallengePolls__count(
             self.request.api_context
         )
         (pager, offset) = self._paginate(
             items_count,
-            url_template="%s/acme-challenge-unknown-polls/{0}"
+            url_template="%s/acme-challenge-polls/{0}"
             % self.request.registry.settings["admin_prefix"],
         )
-        items_paged = lib_db.get.get__AcmeChallengeUnknownPolls__paginated(
+        items_paged = lib_db.get.get__AcmeChallengePolls__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         return {
             "project": "peter_sslers",
-            "AcmeChallengeUnknownPolls_count": items_count,
-            "AcmeChallengeUnknownPolls": items_paged,
+            "AcmeChallengePolls_count": items_count,
+            "AcmeChallengePolls": items_paged,
             "pager": pager,
         }

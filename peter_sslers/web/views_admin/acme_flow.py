@@ -30,7 +30,6 @@ from ...model import objects as model_objects
 
 
 class ViewAdmin_New(Handler):
-
     @view_config(route_name="admin:acme_flow:new")
     def new_AcmeFlow(self):
         raise ValueError("ACME-FLOW is being redone")

@@ -45,7 +45,7 @@ info_CertificateRequests = [
 ]
 
 
-info_CertificateRequest_new_AcmeFlow = [
+info_AcmeFlow_new = [
     "ACME-flow lets you manage the well-known placements only.",
     "ACME-flow lets you manage the well-known placements only.",
 ]

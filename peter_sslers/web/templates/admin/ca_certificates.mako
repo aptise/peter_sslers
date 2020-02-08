@@ -12,8 +12,13 @@
 
 
 <%block name="page_header_col">
-    <h2>CA Certificate</h2>
+    <h2>CA Certificates</h2>
     <p>${request.text_library.info_CACertificates[1]}</p>
+    <p>
+        CaCertificates can be initialized and updated by probing the LetsEncrypt service;
+        see <a class="btn btn-xs btn-warning" href="${admin_prefix}/api">Api Endpoints</a>.
+    
+    </p>
 </%block>
 
 

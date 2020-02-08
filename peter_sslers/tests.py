@@ -1285,9 +1285,7 @@ class FunctionalTests_CertificateRequest(AppTest):
                 raise ValueError("Expected certificate/2")
 
     def tests_acme_flow(self):
-        res = self.testapp.get(
-            "/.well-known/admin/certificate-request/new-acme-flow", status=200
-        )
+        res = self.testapp.get("/.well-known/admin/acme-flow/new", status=200)
         form = res.form
         form["domain_names"] = TEST_FILES["CertificateRequests"]["1"]["domains"]
         res2 = form.submit()

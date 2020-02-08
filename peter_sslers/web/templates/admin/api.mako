@@ -71,8 +71,9 @@
         {'endpoint': '/api/ca-certificate-probes/probe.json',
          'about': """Probes the LetsEncrypt website for certificates""",
          'POST': True,
-         'GET': False,
+         'GET': True,
          'args': None,
+         'GET-button': True
          },
         {'endpoint': '/api/redis/prime.json',
          'about': """Primes the Redis cache""",
@@ -129,23 +130,29 @@
                         <tr>
                             <td></td>
                             <td>
-                                <b>Get:</b>
-                                % if ep['GET'] is True:
-                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
-                                % elif ep['GET'] is None:
-                                    <span class="label label-warning"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span></span>
-                                % endif
-                                <br/>
-                                <b>Post:</b>
-                                % if ep['POST']:
-                                    <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
-                                % endif
-                                <br/>
-                                % if ep['args']:
-                                    <b>Args:</b>
-                                    ${ep['args']|n}
-                                    <br/>
-                                % endif
+                                <ul class="list">
+                                    <li>
+                                        <b>GET:</b>
+                                        % if ep['GET'] is True:
+                                            <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                        % elif ep['GET'] is None:
+                                            <span class="label label-warning"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span></span>
+                                        % endif
+                                    </li>
+                                    <li>
+                                        <b>POST:</b>
+                                        % if ep['POST']:
+                                            <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                        % endif
+                                        <br/>
+                                    </li>
+                                    <li>
+                                        <b>Args:</b>
+                                        % if ep['args']:
+                                            ${ep['args']|n}
+                                        % endif
+                                    </li>
+                                </ul>
                                 % if ep.get('example') or ep.get('examples'):
                                     <b>Examples:</b>
                                     <br/>
@@ -160,6 +167,15 @@
                                             <code>${example.replace('{ADMIN_PREFIX}', request.admin_url)}</code>
                                         % endfor
                                     % endif
+                                % endif
+                                % if ep.get('GET-button'):
+                                    <a href="${request.admin_url}${ep['endpoint']}"
+                                       target="_blank"
+                                       class="btn btn-small btn-info"
+                                    >
+                                        <i class="glyphicon glyphicon-link"></i>
+                                        GET
+                                    </a>                                
                                 % endif
                             </td>
                         </tr>
@@ -830,23 +846,28 @@ api_docs_other = {
                             <tr>
                                 <td></td>
                                 <td>
-                                    <b>Get:</b>
-                                    % if ep['GET'] is True:
-                                        <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
-                                    % elif ep['GET'] is None:
-                                        <span class="label label-warning"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span></span>
-                                    % endif
-                                    <br/>
-                                    <b>Post:</b>
-                                    % if ep['POST']:
-                                        <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
-                                    % endif
-                                    <br/>
-                                    % if ep['args']:
-                                        <b>Args:</b>
-                                        ${ep['args']}
-                                        <br/>
-                                    % endif
+                                    <ul class="list">
+                                        <li>
+                                            <b>GET:</b>
+                                            % if ep['GET'] is True:
+                                                <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                            % elif ep['GET'] is None:
+                                                <span class="label label-warning"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span></span>
+                                            % endif
+                                        </li>
+                                        <li>
+                                            <b>Post:</b>
+                                            % if ep['POST']:
+                                                <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
+                                            % endif
+                                        </li>
+                                        <li>
+                                            <b>Args:</b>
+                                            % if ep['args']:
+                                                ${ep['args']}
+                                            % endif
+                                        </li>
+                                    </ul>                                        
                                     % if ep.get('example') or ep.get('examples'):
                                         <b>Examples:</b>
                                         <br/>
