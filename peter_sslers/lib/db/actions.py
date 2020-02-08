@@ -558,7 +558,7 @@ def do__AcmeOrder__AcmeV2_Automated(
             # sign and download
             raise ValueError("ok")
             (fullchain_pem, acmeLoggedEvent) = authenticatedUser.acme_finalize_order(
-                acmeOrder=acmeOrderObject, csr_path=tmpfile_csr.name,
+                acmeOrder=acmeOrderObject, dbAcmeOrder=dbAcmeOrder, csr_path=tmpfile_csr.name,
             )
         else:
             pdb.set_trace()

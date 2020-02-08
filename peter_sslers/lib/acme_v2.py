@@ -942,9 +942,17 @@ class AuthenticatedUser(object):
     def acme_finalize_order(
         self,
         acmeOrder=None,  # acme server api response, `AcmeOrder` object
+        dbAcmeOrder=None,
         # function specific
         csr_path=None,
     ):
+        """
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param acmeOrder: (required) A :class:`AcmeOrder` object representing the server's response
+        :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
+        
+        :param csr_path: (required) a 
+        """
         # get the new certificate
         log.info("acme_v2 acme_finalize_order")
 
@@ -972,7 +980,8 @@ class AuthenticatedUser(object):
             raise
 
         # poll the order to monitor when it's done
-        url_order_status = acmeOrder.response_headers["Location"]
+        # url_order_status = acmeOrder.response_headers["Location"]
+        url_order_status = dbAcmeOrder.resource_url
 
         log.info("checking order {0}".format("order"))
         acme_order_finalized = self._poll_until_not(
