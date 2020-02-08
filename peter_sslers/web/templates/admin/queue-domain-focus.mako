@@ -78,7 +78,7 @@
                         % if QueueDomainItem.domain_id:
                             <a class="label label-info" href="${admin_prefix}/domain/${QueueDomainItem.domain_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                domain-${QueueDomainItem.domain_id}
+                                Domain-${QueueDomainItem.domain_id}
                             </a>
                         % endif
                     </td>

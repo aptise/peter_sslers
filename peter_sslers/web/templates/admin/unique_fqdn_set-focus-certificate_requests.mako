@@ -25,7 +25,7 @@
                 ${admin_partials.nav_pagination(pager)}
                 ${admin_partials.table_certificate_requests__list(CertificateRequests, show_domains=False)}
             % else:
-                No known certificates requests.
+                No known CertificateRequests.
             % endif
         </div>
     </div>

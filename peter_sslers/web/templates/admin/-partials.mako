@@ -16,91 +16,6 @@
     % endif
 </%def>
 
-<%def name="table_to_certificates(to_certificates, show_domains=False, show_domains_title='domains', show_expiring_days=False)">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>active?</th>
-                <th>timestamp_signed</th>
-                <th>timestamp_expires</th>
-                % if show_expiring_days:
-                    <th>expiring days</th>
-                % endif
-                % if show_domains:
-                    <th>${show_domains_title}</th>
-                % endif
-            </tr>
-        </thead>
-        <tbody>
-        % for to_cert in to_certificates:
-            <tr>
-                <td><a class="label label-info" href="${admin_prefix}/certificate/${to_cert.certificate.id}">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    cert-${to_cert.certificate.id}</a>
-                </td>
-                <td>
-                    <span class="label label-${'success' if to_cert.certificate.is_active else 'warning'}">
-                        ${'Active' if to_cert.certificate.is_active else 'inactive'}
-                    </span>
-                </td>
-                <td><timestamp>${to_cert.certificate.timestamp_signed}</timestamp></td>
-                <td><timestamp>${to_cert.certificate.timestamp_expires or ''}</timestamp></td>
-                % if show_expiring_days:
-                    <td>
-                        <span class="label label-${to_cert.certificate.expiring_days_label}">
-                            ${to_cert.certificate.expiring_days} days
-                        </span>
-                    </td>
-                % endif
-                % if show_domains:
-                     <td><code>${to_cert.certificate.domains_as_string}</code></td>
-                % endif
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
-
-
-<%def name="table_to_certificate_requests(to_certificate_requests, show_domains=False)">
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>active?</th>
-                <th>type?</th>
-                <th>timestamp_verified</th>
-                <th>challenge_key</th>
-                <th>challenge_text</th>
-            </tr>
-        </thead>
-        <tbody>
-        % for to_cr in to_certificate_requests:
-            <tr>
-                <td>
-                    <a  class="label label-info"
-                        href="${admin_prefix}/certificate-request/${to_cr.certificate_request.id}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        csr-${to_cr.certificate_request.id}</a>
-                </td>
-                <td>
-                    <span class="label label-${'success' if to_cr.certificate_request.is_active else 'warning'}">
-                        ${'Active' if to_cr.certificate_request.is_active else 'inactive'}
-                    </span>
-                </td>
-                <td>
-                    <span class="label label-defaul">${to_cr.certificate_request.certificate_request_source}</span>
-                </td>
-                <td><timestamp>${to_cr.timestamp_verified or ''}</timestamp></td>
-                <td><code>${to_cr.challenge_key or ''}</code></td>
-                <td><code>${to_cr.challenge_text or ''}</code></td>
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
-
 
 <%def name="table_certificates__list(certificates, show_domains=False, show_expiring_days=False)">
     <table class="table table-striped">
@@ -159,70 +74,6 @@
                 % endif
                 % if show_domains:
                     <td><code>${cert.domains_as_string}</code></td>
-                % endif
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
-
-
-<%def name="table_certificate_requests__list(certificate_requests, show_domains=False, show_certificate=False)">
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>type</th>
-                <th>active?</th>
-                ## <th>error?</th>
-                % if show_certificate:
-                    <th>cert issued?</th>
-                % endif
-                <th>timestamp_created</th>
-                ## <th>timestamp_finished</th>
-                % if show_domains:
-                    <th>domains</th>
-                % endif
-            </tr>
-        </thead>
-        <tbody>
-        % for certificate_request in certificate_requests:
-            <tr>
-                <td>
-                    <a  class="label label-info"
-                        href="${admin_prefix}/certificate-request/${certificate_request.id}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        csr-${certificate_request.id}</a>
-                </td>
-                <td>
-                    <span class="label label-default">${certificate_request.certificate_request_source}</span>
-                </td>
-                <td>
-                    <span class="label label-${'success' if certificate_request.is_active else 'warning'}">
-                        ${'Active' if certificate_request.is_active else 'inactive'}
-                    </span>
-                </td>
-                ## <td>
-                ##    <span class="label label-${'danger' if certificate_request.is_error else 'default'}">
-                ##        ${'Error' if certificate_request.is_error else 'ok'}
-                ##    </span>
-                ## </td>
-                % if show_certificate:
-                    <td>
-                        % if certificate_request.server_certificate:
-                            <a  class="label label-info"
-                                href="${admin_prefix}/certificate/${certificate_request.server_certificate.id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${certificate_request.server_certificate.id}</a>
-                        % else:
-                            &nbsp;
-                        % endif
-                    </td>
-                % endif
-                <td><timestamp>${certificate_request.timestamp_created}</timestamp></td>
-                ## <td><timestamp>${certificate_request.timestamp_finished or ''}</timestamp></td>
-                % if show_domains:
-                     <td><code>${certificate_request.domains_as_string}</code></td>
                 % endif
             </tr>
         % endfor
@@ -309,14 +160,14 @@
                         <td>
                             <a href="${admin_prefix}/acme-authorization/${to_acme_authorization.acme_authorization_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                acme-authorization-${to_acme_authorization.acme_authorization_id}
+                                AcmeAuthorization-${to_acme_authorization.acme_authorization_id}
                             </a>
                         </td>
                         <td><timestamp>${to_acme_authorization.acme_authorization.timestamp_created or ''}</timestamp></td>
                         <td>
                             <a href="${admin_prefix}/domain/${to_acme_authorization.acme_authorization.domain_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                domain-${to_acme_authorization.acme_authorization.domain_id}
+                                Domain-${to_acme_authorization.acme_authorization.domain_id}
                             </a>
                         </td>
                         <td><timestamp>${to_acme_authorization.acme_authorization.timestamp_expires or ''}</timestamp></td>
@@ -335,122 +186,209 @@
 
 
 <%def name="table_AcmeOrders(acme_orders, perspective=None)">
-    % if perspective == 'CertificateRequest':
-        <table class="table table-striped table-condensed">
-            <thead>
-                <tr>
-                    <th>id</th>
-                    <th>timestamp_created</th>
-                    <th>timestamp_finalized</th>
-                    <th>acme_account_key_id</th>
-                    <th>server_certificate_id</th>
-                </tr>
-            </thead>
-            <tbody>
-                % for acme_order in acme_orders:
-                    <tr>
-                        <td>
-                            <a href="${admin_prefix}/acme-order/${acme_order.id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                acme-order-${acme_order.id}
-                            </a>
-                        </td>
-                        <td><timestamp>${acme_order.timestamp_created or ''}</timestamp></td>
-                        <td><timestamp>${acme_order.timestamp_finalized or ''}</timestamp></td>
-                        <td>
-                            <a href="${admin_prefix}/acme-account-key/${acme_order.acme_account_key_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                acme-account-key-${acme_order.acme_account_key_id}
-                            </a>
-                        </td>
-                        <td>
-                            <a href="${admin_prefix}/server-certificate/${acme_order.server_certificate_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                server-certificate-${acme_order.server_certificate_id}
-                            </a>
-                        </td>
-                    </tr>
+    <%
+        cols = ("id", 
+                "status",
+                "timestamp_created",
+                "timestamp_finalized",
+                "acme_account_key_id",
+                "certificate_request_id",
+                "server_certificate_id",
+                "unique_fqdn_set_id",
+               )
+        if perspective == 'CertificateRequest':
+            cols = [c for c in cols if c != 'certificate_request_id']
+        elif perspective == 'AcmeAuthorization':
+            cols = [c for c in cols]
+        elif perspective == 'AcmeAccountKey':
+            cols = [c for c in cols if c != "acme_account_key_id"]
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
                 % endfor
-            </tbody>
-        </table>
-    % elif perspective == 'AcmeAuthorization':
-        <table class="table table-striped table-condensed">
-            <thead>
+            </tr>
+        </thead>
+        <tbody>
+            % for acme_order in acme_orders:
                 <tr>
-                    <th>id</th>
-                    <th>timestamp_created</th>
-                    <th>timestamp_finalized</th>
-                    <th>acme_account_key_id</th>
-                    <th>certificate_request_id</th>
-                    <th>server_certificate_id</th>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                    <a href="${admin_prefix}/acme-order/${acme_order.id}" class="label label-info">
+                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                        AcmeOrder-${acme_order.id}
+                                    </a>
+                            % elif c == 'status':
+                                <code>${acme_order.status or ''}</code>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${acme_order.timestamp_created or ''}</timestamp>
+                            % elif c == 'timestamp_finalized':
+                                <timestamp>${acme_order.timestamp_finalized or ''}</timestamp>
+                            % elif c == 'acme_account_key_id':
+                                    % if acme_order.acme_account_key_id:
+                                        <a href="${admin_prefix}/acme-account-key/${acme_order.acme_account_key_id}" class="label label-info">
+                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                            AcmeAccountKey-${acme_order.acme_account_key_id}
+                                        </a>
+                                    % endif
+                            % elif c == 'certificate_request_id':
+                                    % if acme_order.certificate_request_id:
+                                        <a href="${admin_prefix}/certificate-request/${acme_order.certificate_request_id}" class="label label-info">
+                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                            CertificateRequest-${acme_order.certificate_request_id}
+                                        </a>
+                                    % endif
+                            % elif c == 'server_certificate_id':
+                                    % if acme_order.server_certificate_id:
+                                        <a href="${admin_prefix}/server-certificate/${acme_order.server_certificate_id}" class="label label-info">
+                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                            Certificate-${acme_order.server_certificate_id}
+                                        </a>
+                                    % endif
+                            % elif c == 'unique_fqdn_set_id':
+                                    % if acme_order.unique_fqdn_set_id:
+                                        <a href="${admin_prefix}/unique-fqdn-set/${acme_order.unique_fqdn_set_id}" class="label label-info">
+                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                            UniqueFqdnSet-${acme_order.unique_fqdn_set_id}
+                                        </a>
+                                    % endif
+                            % endif
+                        </td>
+                    % endfor
                 </tr>
-            </thead>
-            <tbody>
-                % for acme_order in acme_orders:
-                    <tr>
-                        <td>
-                            <a href="${admin_prefix}/acme-order/${acme_order.id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                acme-order-${acme_order.id}
-                            </a>
-                        </td>
-                        <td><timestamp>${acme_order.timestamp_created or ''}</timestamp></td>
-                        <td><timestamp>${acme_order.timestamp_finalized or ''}</timestamp></td>
-                        <td>
-                            <a href="${admin_prefix}/acme-account-key/${acme_order.acme_account_key_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                acme-account-key-${acme_order.acme_account_key_id}
-                            </a>
-                        </td>
-                        <td>
-                            <a href="${admin_prefix}/certificate-request/${acme_order.certificate_request_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                certificate-request-${acme_order.certificate_request_id}
-                            </a>
-                        </td>
-                        <td>
-                            <a href="${admin_prefix}/server-certificate/${acme_order.server_certificate_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                server-certificate-${acme_order.server_certificate_id}
-                            </a>
-                        </td>
-                    </tr>
-                % endfor
-            </tbody>
-        </table>
-    % else:
-        <!-- table_AcmeOrders missing perspective -->
-    % endif
+            % endfor
+        </tbody>
+    </table>
 </%def>
     
 
-<%def name="table_UniqueFqdnSet_Domains(unique_fqdn_set, perspective=None)">
-    % if perspective == 'CertificateRequest':
-        <table class="table table-striped table-condensed">
-            <thead>
-                <tr>
-                    <th>domain</th>
-                </tr>
-            </thead>
-            <tbody>
-                % for to_d in unique_fqdn_set.to_domains:
-                    <tr>
-                        <td>
-                            <a href="${admin_prefix}/domain/${to_d.domain.id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                domain-${to_d.domain.id}
-                            </a>
-                            <code>${to_d.domain.domain_name}</code>
-                        </td>
-                    </tr>
+<%def name="table_CertificateRequests(certificate_requests, perspective=None)">
+    <%
+        cols = ("id", 
+                "type"
+                "is_active",
+                "timestamp_created",
+                "certificate_request_source_id",
+                "unique_fqdn_set_id",
+               )
+        if perspective == 'Domain':
+            cols = [c for c in cols]
+        else:
+            raise ValueError("invalid `perspective`")
+    %>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                % for c in cols:
+                    <th>${c}</th>
                 % endfor
-            </tbody>
-        </table>
-    % else:
-        <!-- table_UniqueFqdnSet_Domains missing perspective -->
-    % endif
+            </tr>
+        </thead>
+        <tbody>
+            % for certificate_request in certificate_requests:
+                <tr>
+                    % for c in cols:
+                        <td>
+                            % if c == 'id':
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/certificate-request/${certificate_request.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    CertificateRequest-${certificate_request.id}</a>
+                            % elif c == 'type':
+                                <span class="label label-default">${certificate_request.certificate_request_source}</span>
+                            % elif c == 'is_active':
+                                <span class="label label-${'success' if certificate_request.is_active else 'warning'}">
+                                    ${'Active' if certificate_request.is_active else 'inactive'}
+                                </span>
+                            % elif c == 'timestamp_created':
+                                <timestamp>${certificate_request.timestamp_created}</timestamp>
+                            % elif c == 'certificate_request_source_id':
+                                <code>${certificate_request.certificate_request_source_id}</code>
+                            % elif c == 'unique_fqdn_set_id':
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/unique-fqdn-set/${certificate_request.unique_fqdn_set_id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    UniqueFqdnSet-${certificate_request.unique_fqdn_set_id}</a>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </tbody>
+    </table>
 </%def>
-        
+
+
+
+<%def name="table_certificate_requests__list(certificate_requests, show_domains=False, show_certificate=False)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>type</th>
+                <th>active?</th>
+                ## <th>error?</th>
+                % if show_certificate:
+                    <th>cert issued?</th>
+                % endif
+                <th>timestamp_created</th>
+                ## <th>timestamp_finished</th>
+                % if show_domains:
+                    <th>domains</th>
+                % endif
+            </tr>
+        </thead>
+        <tbody>
+        % for certificate_request in certificate_requests:
+            <tr>
+                <td>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/certificate-request/${certificate_request.id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        CertificateRequest-${certificate_request.id}</a>
+                </td>
+                <td>
+                    <span class="label label-default">${certificate_request.certificate_request_source}</span>
+                </td>
+                <td>
+                    <span class="label label-${'success' if certificate_request.is_active else 'warning'}">
+                        ${'Active' if certificate_request.is_active else 'inactive'}
+                    </span>
+                </td>
+                ## <td>
+                ##    <span class="label label-${'danger' if certificate_request.is_error else 'default'}">
+                ##        ${'Error' if certificate_request.is_error else 'ok'}
+                ##    </span>
+                ## </td>
+                % if show_certificate:
+                    <td>
+                        % if certificate_request.server_certificate:
+                            <a  class="label label-info"
+                                href="${admin_prefix}/certificate/${certificate_request.server_certificate.id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                cert-${certificate_request.server_certificate.id}</a>
+                        % else:
+                            &nbsp;
+                        % endif
+                    </td>
+                % endif
+                <td><timestamp>${certificate_request.timestamp_created}</timestamp></td>
+                ## <td><timestamp>${certificate_request.timestamp_finished or ''}</timestamp></td>
+                % if show_domains:
+                     <td><code>${certificate_request.domains_as_string}</code></td>
+                % endif
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 
 
 <%def name="table_CertificateRequest2Domain(lcr2mds, request_inactive=None, current_domain_id=None, perspective=None)">
@@ -540,7 +478,7 @@
 </%def>
 
 
-<%def name="table_UniqueFQDNSets(UniqueFQDNSets)">
+<%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -550,14 +488,14 @@
             </tr>
         </thead>
         <tbody>
-        % for i in UniqueFQDNSets:
+        % for i in unique_fqdn_sets:
             <tr>
                 <td>
                     <a  class="label label-info"
                         href="${admin_prefix}/unique-fqdn-set/${i.id}"
                     >
                      <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                     fqdnset-${i.id}
+                     UniqueFqdnSet-${i.id}
                     </a>
                 </td>
                 <td>
@@ -570,6 +508,34 @@
         % endfor
         </tbody>
     </table>
+</%def>
+
+
+<%def name="table_UniqueFqdnSet_Domains(unique_fqdn_set, perspective=None)">
+    % if perspective == 'CertificateRequest':
+        <table class="table table-striped table-condensed">
+            <thead>
+                <tr>
+                    <th>domain</th>
+                </tr>
+            </thead>
+            <tbody>
+                % for to_d in unique_fqdn_set.to_domains:
+                    <tr>
+                        <td>
+                            <a href="${admin_prefix}/domain/${to_d.domain.id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                Domain-${to_d.domain.id}
+                            </a>
+                            <code>${to_d.domain.domain_name}</code>
+                        </td>
+                    </tr>
+                % endfor
+            </tbody>
+        </table>
+    % else:
+        <!-- table_UniqueFqdnSet_Domains missing perspective -->
+    % endif
 </%def>
 
 

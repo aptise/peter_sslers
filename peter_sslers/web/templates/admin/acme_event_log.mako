@@ -58,7 +58,7 @@
                                     <a  class="label label-info"
                                         href="${admin_prefix}/certificate-request/${logged.certificate_request_id}"
                                     >
-                                        csr-${logged.certificate_request_id}
+                                        CertificateRequest-${logged.certificate_request_id}
                                     </a>
                                 % endif
                             </td>

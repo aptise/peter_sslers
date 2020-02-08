@@ -41,10 +41,10 @@
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/acme-authorization/${acme_authorization.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                acme-authorization-${acme_authorization.id}</a></td>
+                                AcmeAuthorization-${acme_authorization.id}</a></td>
                             <td><a class="label label-info" href="${admin_prefix}/domain/${acme_authorization.domain_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                domain-${acme_authorization.domain_id}</a></td>
+                                Domain-${acme_authorization.domain_id}</a></td>
                             <td><timestamp>${acme_authorization.timestamp_created or ''}</timestamp></td>
                             <td><code>${acme_authorization.status or ''}</code></td>
                             <td><timestamp>${acme_authorization.timestamp_expires or ''}</timestamp></td>

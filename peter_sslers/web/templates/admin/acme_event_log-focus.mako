@@ -53,7 +53,7 @@
                             <a  class="label label-info"
                                 href="${admin_prefix}/certificate-request/${AcmeEventLog.certificate_request_id}"
                             >
-                                csr-${AcmeEventLog.certificate_request_id}
+                                CertificateRequest-${AcmeEventLog.certificate_request_id}
                             </a>
                         % endif
                     </td>

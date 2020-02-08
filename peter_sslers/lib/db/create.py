@@ -66,6 +66,7 @@ def create__AcmeOrder(
     dbAcmeOrder.acme_account_key_id = dbAcmeAccountKey.id
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
     dbAcmeOrder.certificate_request_id = dbCertificateRequest.id
+    dbAcmeOrder.unique_fqdn_set_id = dbCertificateRequest.unique_fqdn_set_id
     dbAcmeOrder.status = acme_order_status
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.timestamp_expires = timestamp_expires

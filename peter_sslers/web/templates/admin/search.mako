@@ -85,7 +85,7 @@
                                             href="${admin_prefix}/private-key/${key.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            pkey-${key.id}</a>
+                                            PrivateKey-${key.id}</a>
                                     </td>
                                     <td><code>${key.key_pem_modulus_md5}</code></td>
                                     <td><timestamp>${key.timestamp_last_certificate_request}</timestamp></td>
@@ -200,7 +200,7 @@
                                             href="${admin_prefix}/certificate-request/${csr.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            csr-${csr.id}</a>
+                                            CertificateRequest-${csr.id}</a>
                                     </td>
                                 </tr>
                             % endfor

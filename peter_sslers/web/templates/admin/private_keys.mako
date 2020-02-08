@@ -56,7 +56,7 @@
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/private-key/${key.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                pkey-${key.id}</a></td>
+                                PrivateKey-${key.id}</a></td>
                             <td>
                                 % if key.is_active:
                                     <span class="label label-success">

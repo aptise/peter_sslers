@@ -31,7 +31,7 @@
                             Not configured                        
                         % else:
                             <a href="${admin_prefix}/acme-account-key/${AcmeAccountKey_Default.id}" span class="label label-default">
-                                acme-account-key-${AcmeAccountKey_Default.id}
+                                AcmeAccountKey-${AcmeAccountKey_Default.id}
                             </a>
                             <code>${AcmeAccountKey_Default.key_pem_sample}</code>
                         % endif
@@ -45,7 +45,7 @@
                             Not configured                        
                         % else:
                             <a href="${admin_prefix}/acme-account-key/${PrivateKey_Default.id}" span class="label label-default">
-                                acme-account-key-${PrivateKey_Default.id}
+                                AcmeAccountKey-${PrivateKey_Default.id}
                             </a>
                             <code>${PrivateKey_Default.key_pem_sample}</code>
                         % endif

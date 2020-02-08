@@ -268,11 +268,11 @@
                         % if not ServerCertificate.private_key.is_compromised:
                             <a class="label label-info" href="${admin_prefix}/private-key/${ServerCertificate.private_key_id__signed_by}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                pkey-${ServerCertificate.private_key_id__signed_by}</a>
+                                PrivateKey-${ServerCertificate.private_key_id__signed_by}</a>
                         % else:
                             <a class="label label-danger" href="${admin_prefix}/private-key/${ServerCertificate.private_key_id__signed_by}">
                                 <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                pkey-${ServerCertificate.private_key_id__signed_by}</a>
+                                PrivateKey-${ServerCertificate.private_key_id__signed_by}</a>
                         % endif
                     </td>
                 </tr>
@@ -282,7 +282,7 @@
                         % if ServerCertificate.acme_account_key_id:
                             <a class="label label-info" href="${admin_prefix}/acme-account-key/${ServerCertificate.acme_account_key_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                pkey-${ServerCertificate.acme_account_key_id}</a>
+                                PrivateKey-${ServerCertificate.acme_account_key_id}</a>
                         % endif
                     </td>
                 </tr>
@@ -292,7 +292,7 @@
                         % if ServerCertificate.certificate_request_id:
                             <a class="label label-info" href="${admin_prefix}/certificate-request/${ServerCertificate.certificate_request_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                csr-${ServerCertificate.certificate_request_id}</a>
+                                CertificateRequest-${ServerCertificate.certificate_request_id}</a>
                         % endif
                     </td>
                 </tr>
@@ -303,7 +303,7 @@
                             href="${admin_prefix}/unique-fqdn-set/${ServerCertificate.unique_fqdn_set_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            fqdnset-${ServerCertificate.unique_fqdn_set_id}
+                            UniqueFqdnSet-${ServerCertificate.unique_fqdn_set_id}
                         </a>
                         <%
                             latest_certificate = ServerCertificate.unique_fqdn_set.latest_certificate
@@ -559,7 +559,7 @@
                                         <td>
                                             <a class="label label-info" href="${admin_prefix}/domain/${to_d.domain.id}">
                                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                domain-${to_d.domain.id}</a>
+                                                Domain-${to_d.domain.id}</a>
                                         </td>
                                         <td>
                                             <code>${to_d.domain.domain_name}</code>

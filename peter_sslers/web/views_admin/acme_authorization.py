@@ -93,7 +93,7 @@ class ViewAdmin_Focus(Handler):
     )
     def orders(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
-        items_count = lib_db.get.get__AcmeOrders__by_AcmeAuthorization__count(
+        items_count = lib_db.get.get__AcmeOrders__by_AcmeAuthorizationId__count(
             self.request.api_context, dbAcmeAuthorization.id
         )
         (pager, offset) = self._paginate(
@@ -101,7 +101,7 @@ class ViewAdmin_Focus(Handler):
             url_template="%s/acme-challenge-unknown-polls/{0}"
             % self.request.registry.settings["admin_prefix"],
         )
-        items_paged = lib_db.get.get__AcmeOrders__by_AcmeAuthorization__paginated(
+        items_paged = lib_db.get.get__AcmeOrders__by_AcmeAuthorizationId__paginated(
             self.request.api_context,
             dbAcmeAuthorization.id,
             limit=items_per_page,

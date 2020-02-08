@@ -254,13 +254,16 @@ class AcmeOrder(Base):
     timestamp_finalized = sa.Column(sa.DateTime, nullable=True)
 
     acme_account_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=False
     )
     certificate_request_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
     )
     server_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
+    unique_fqdn_set_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1660,6 +1663,25 @@ class OperationsObjectEvent(Base):
 
 # !!!: Advanced Relationships Below
 
+# note: AcmeAccountKey.acme_orders__5
+AcmeAccountKey.acme_orders__5 = sa_orm_relationship(
+    AcmeOrder,
+    primaryjoin=(
+        sa.and_(
+            AcmeAccountKey.id == AcmeOrder.acme_account_key_id,
+            AcmeOrder.id.in_(
+                sa.select([AcmeOrder.id])
+                .where(AcmeAccountKey.id == AcmeOrder.acme_account_key_id)
+                .order_by(AcmeOrder.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeOrder.id.desc(),
+    viewonly=True,
+)
+
 # note: AcmeAccountKey.certificate_requests__5
 AcmeAccountKey.certificate_requests__5 = sa_orm_relationship(
     CertificateRequest,
@@ -1773,6 +1795,70 @@ CertificateRequest.latest_acme_order = sa_orm_relationship(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# note: Domain.acme_orders__5
+Domain.acme_orders__5 = sa_orm_relationship(
+    AcmeOrder,
+    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
+    secondary=(
+        """join(UniqueFQDNSet2Domain,
+                AcmeOrder,
+                UniqueFQDNSet2Domain.unique_fqdn_set_id == AcmeOrder.unique_fqdn_set_id
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            AcmeOrder.unique_fqdn_set_id
+            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
+            AcmeOrder.id.in_(
+                sa.select([AcmeOrder.id])
+                .where(
+                    AcmeOrder.unique_fqdn_set_id
+                    == UniqueFQDNSet2Domain.unique_fqdn_set_id
+                )
+                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .order_by(AcmeOrder.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeOrder.id.desc(),
+    viewonly=True,
+)
+
+# note: Domain.certificate_requests__5
+# returns an object with a `certificate` on it
+Domain.certificate_requests__5 = sa_orm_relationship(
+    CertificateRequest,
+    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
+    secondary=(
+        """join(UniqueFQDNSet2Domain,
+                CertificateRequest,
+                UniqueFQDNSet2Domain.unique_fqdn_set_id == CertificateRequest.unique_fqdn_set_id
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            CertificateRequest.unique_fqdn_set_id
+            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
+            CertificateRequest.id.in_(
+                sa.select([CertificateRequest.id])
+                .where(
+                    CertificateRequest.unique_fqdn_set_id
+                    == UniqueFQDNSet2Domain.unique_fqdn_set_id
+                )
+                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .order_by(CertificateRequest.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=CertificateRequest.id.desc(),
+    viewonly=True,
+)
 
 
 # note: Domain.server_certificates__5

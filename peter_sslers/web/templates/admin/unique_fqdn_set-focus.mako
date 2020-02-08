@@ -74,7 +74,7 @@
                                                 href="${admin_prefix}/domain/${to_domain.domain.id}"
                                             >
                                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                domain-${to_domain.domain.id}
+                                                Domain-${to_domain.domain.id}
                                             </a>
                                         </td>
                                         <td>
@@ -104,7 +104,7 @@
                     </tr>
                     ${admin_partials.table_tr_event_created(UniqueFQDNSet)}
                     <tr>
-                        <td>Latest Certificates</td>
+                        <th>Latest Certificates</th>
                         <td>
                 <%
                     latest_certificate = UniqueFQDNSet.latest_certificate
@@ -160,7 +160,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>certificates history</th>
+                        <th>Certificates</th>
                         <td>
                             ${admin_partials.table_certificates__list(UniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
                             % if UniqueFQDNSet.server_certificates__5:
@@ -169,7 +169,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>certificate requests</th>
+                        <th>CertificateRequests</th>
                         <td>
                             ${admin_partials.table_certificate_requests__list(UniqueFQDNSet.certificate_requests__5)}
                             % if UniqueFQDNSet.certificate_requests__5:
@@ -177,12 +177,14 @@
                             % endif
                         </td>
                     </tr>
-                    <tr>
-                        <th>Queue: Renewals</th>
-                        <td>
-                            ${admin_partials.table_queue_renewal__list(UniqueFQDNSet.queue_renewal__active, show_certificate=True)}
-                        </td>
-                    </tr>
+                    % if False:
+                        <tr>
+                            <th>Queue: Renewals</th>
+                            <td>
+                                ${admin_partials.table_queue_renewal__list(UniqueFQDNSet.queue_renewal__active, show_certificate=True)}
+                            </td>
+                        </tr>
+                    % endif
                 </tbody>
             </table>
         </div>

@@ -52,28 +52,28 @@
                         </tr>
                     </thead>
                     <tbody>
-                    % for key in AcmeAccountKeys:
-                        <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/acme-account-key/${key.id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                account-${key.id}</a></td>
-                            <td>
-                                % if key.is_active:
-                                    <span class="label label-success">active</span>
-                                % endif
-                            </td>
-                            <td>
-                                % if key.is_default:
-                                    <span class="label label-success">default</span>
-                                % endif
-                            </td>
-                            <td>${key.acme_account_provider}</td>
-                            <td><timestamp>${key.timestamp_first_seen}</timestamp></td>
-                            <td><code>${key.key_pem_md5}</code></td>
-                            <td><span class="badge">${key.count_certificate_requests or ''}</span></td>
-                            <td><span class="badge">${key.count_certificates_issued or ''}</span></td>
-                        </tr>
-                    % endfor
+                        % for key in AcmeAccountKeys:
+                            <tr>
+                                <td><a class="label label-info" href="${admin_prefix}/acme-account-key/${key.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    account-${key.id}</a></td>
+                                <td>
+                                    % if key.is_active:
+                                        <span class="label label-success">active</span>
+                                    % endif
+                                </td>
+                                <td>
+                                    % if key.is_default:
+                                        <span class="label label-success">default</span>
+                                    % endif
+                                </td>
+                                <td>${key.acme_account_provider}</td>
+                                <td><timestamp>${key.timestamp_first_seen}</timestamp></td>
+                                <td><code>${key.key_pem_md5}</code></td>
+                                <td><span class="badge">${key.count_certificate_requests or ''}</span></td>
+                                <td><span class="badge">${key.count_certificates_issued or ''}</span></td>
+                            </tr>
+                        % endfor
                     </tbody>
                 </table>
             % else:

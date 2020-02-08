@@ -60,7 +60,7 @@
                                 <td><a href="${admin_prefix}/domain/${search_results['Domain'].id}"
                                        class="label label-info"
                                     >
-                                    domain-${search_results['Domain'].id}
+                                    Domain-${search_results['Domain'].id}
                                     </a>
                                 </td>
                             </tr>

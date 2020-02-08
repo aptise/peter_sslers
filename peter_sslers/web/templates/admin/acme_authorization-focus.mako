@@ -28,11 +28,12 @@
     <div class="row">
         <div class="col-sm-12">
 
-
-            <a class="label label-info" href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/orders">
-                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                orders
+            <p>
+                <a class="label label-info" href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/orders">
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    Related AcmeOrders
                 </a>
+            </p>
 
 
             <table class="table">
@@ -58,7 +59,7 @@
                     <th>domain</th>
                     <td><a class="label label-info" href="${admin_prefix}/domain/${AcmeAuthorization.domain_id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        domain-${AcmeAuthorization.domain_id}</a>
+                        Domain-${AcmeAuthorization.domain_id}</a>
                         <code>${AcmeAuthorization.domain.domain_name}</code>
                         </td>
                 </tr>

@@ -270,7 +270,7 @@ def get__AcmeOrders__by_CertificateRequest__paginated(
     return items_paged
 
 
-def get__AcmeOrders__by_AcmeAuthorization__count(ctx, acme_authorization_id):
+def get__AcmeOrders__by_AcmeAuthorizationId__count(ctx, acme_authorization_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeOrder)
         .join(
@@ -287,7 +287,7 @@ def get__AcmeOrders__by_AcmeAuthorization__count(ctx, acme_authorization_id):
     return counted
 
 
-def get__AcmeOrders__by_AcmeAuthorization__paginated(
+def get__AcmeOrders__by_AcmeAuthorizationId__paginated(
     ctx, acme_authorization_id, limit=None, offset=0
 ):
     items_paged = (
@@ -301,6 +301,29 @@ def get__AcmeOrders__by_AcmeAuthorization__paginated(
             model_objects.AcmeOrder2AcmeAuthorization.acme_authorization_id
             == acme_authorization_id
         )
+        .order_by(model_objects.AcmeOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__AcmeOrders__by_AcmeAccountKeyId__count(ctx, acme_account_key_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrders__by_AcmeAccountKeyId__paginated(
+    ctx, acme_account_key_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
         .order_by(model_objects.AcmeOrder.id.desc())
         .limit(limit)
         .offset(offset)
@@ -674,17 +697,10 @@ def _get__Domain__core(q, preload=False, eagerload_web=False):
         ),
     )
     if eagerload_web:
-        # need to join back the domains to show alternate domains.
         q = q.options(
-            sqlalchemy.orm.subqueryload("to_certificate_requests__5")
-            .joinedload("certificate_request")
-            .joinedload("unique_fqdn_set")
-            .joinedload("to_domains")
-            .joinedload("domain"),
-            sqlalchemy.orm.subqueryload("server_certificates__5")
-            .joinedload("unique_fqdn_set")
-            .joinedload("to_domains")
-            .joinedload("domain"),
+            sqlalchemy.orm.subqueryload("acme_orders__5"),
+            sqlalchemy.orm.subqueryload("certificate_requests__5"),
+            sqlalchemy.orm.subqueryload("server_certificates__5"),
         )
     return q
 

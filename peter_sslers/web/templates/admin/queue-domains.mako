@@ -84,7 +84,7 @@
                                 % if q.domain_id:
                                     <a class="label label-info" href="${admin_prefix}/domain/${q.domain_id}">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        domain-${q.domain_id}
+                                        Domain-${q.domain_id}
                                     </a>
                                 % endif
                             </td>

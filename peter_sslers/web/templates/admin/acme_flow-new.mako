@@ -25,7 +25,7 @@
             <p>Workspace for
                 <a  class="label label-default"
                     href="${admin_prefix}/certificate-request/${CertificateRequest.id}"
-                >csr-${CertificateRequest.id} | ${CertificateRequest.timestamp_started}</a>
+                >CertificateRequest-${CertificateRequest.id} | ${CertificateRequest.timestamp_started}</a>
                 <span class="label label-info">${CertificateRequest.certificate_request_source}</span>
             </p>
 

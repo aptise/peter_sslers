@@ -27,23 +27,25 @@
 <%block name="content_main">
     ${admin_partials.handle_querystring_result()}
     
-    % if AcmeOrder.is_can_retry:
+
+    <p>
+        % if AcmeOrder.is_can_retry:
+            <a
+                href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"
+                class="label label-info"
+            >
+                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                retry
+            </a>
+        % endif
         <a
+            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-authorizations"
             class="label label-info"
-            href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"
         >
-            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            retry
+            <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+            Related AcmeAuthorizations
         </a>
-    % endif
-    <a
-        class="label label-info"
-        href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-authorizations"
-    >
-        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-        Acme Authorizations
-    </a>
-    
+    </p>    
     
     <div class="row">
         <div class="col-sm-12">
@@ -94,11 +96,10 @@
                             href="${admin_prefix}/acme-account-key/${AcmeOrder.acme_account_key_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            acme-account-key-${AcmeOrder.acme_account_key_id}
+                            AcmeAccountKey-${AcmeOrder.acme_account_key_id}
                         </a>
                     </td>
                 </tr>
-
                 <tr>
                     <th>certificate_request_id</th>
                     <td>
@@ -108,7 +109,7 @@
                                 href="${admin_prefix}/certificate-request/${AcmeOrder.certificate_request_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                certificate-request-${AcmeOrder.certificate_request_id}
+                                CertificateRequest-${AcmeOrder.certificate_request_id}
                             </a>
                         % endif
                     </td>
@@ -122,7 +123,21 @@
                                 href="${admin_prefix}/certificate/${AcmeOrder.server_certificate_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                server-certificate-${AcmeOrder.server_certificate_id}
+                                Certificate-${AcmeOrder.server_certificate_id}
+                            </a>
+                        % endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>unique_fqdn_set_id</th>
+                    <td>
+                        % if AcmeOrder.unique_fqdn_set_id:
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/unique-fqdn-set/${AcmeOrder.unique_fqdn_set_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniqueFqdnSet-${AcmeOrder.unique_fqdn_set_id}
                             </a>
                         % endif
                     </td>

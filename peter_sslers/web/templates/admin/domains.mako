@@ -55,7 +55,7 @@
                                     href="${admin_prefix}/domain/${d.id}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    domain-${d.id}</a>
+                                    Domain-${d.id}</a>
                             </td>
                             <td><code>${d.domain_name}</code></td>
                             <td>

@@ -86,6 +86,14 @@ def _admin_views(config):
         "/acme-account-key/{@id}/key.{format:(key|pem|pem.txt)}",
     )
     config.add_route_7(
+        "admin:acme_account_key:focus:acme_orders",
+        "/acme-account-key/{@id}/acme-orders",
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:acme_orders_paginated",
+        "/acme-account-key/{@id}/acme-orders/{@page}",
+    )
+    config.add_route_7(
         "admin:acme_account_key:focus:certificate_requests",
         "/acme-account-key/{@id}/certificate-requests",
     )
@@ -151,6 +159,22 @@ def _admin_views(config):
     )
     config.add_route_7(
         "admin:acme_challenge_log:filtered|json", "/acme-challenge-logs/filtered.json"
+    )
+
+    # !!! AcmeFlow - our manual system
+    # two types of CR handling
+    config.add_route_7("admin:acme_flow:new", "/acme-flow/new")
+    config.add_route_7(
+        "admin:acme_flow:focus", "/acme-flow/{@id}",
+    )
+    config.add_route_7(
+        "admin:acme_flow:focus:deactivate", "/acme-flow/{@id}/deactivate",
+    )
+    config.add_route_7(
+        "admin:acme_flow:focus:deactivate|json", "/acme-flow/{@id}/deactivate.json",
+    )
+    config.add_route_7(
+        "admin:acme_flow:focus:domain", "/acme-flow/{@id}/domain/{domain_identifier}",
     )
 
     # !!!: AcmeOrder
@@ -368,28 +392,6 @@ def _admin_views(config):
     config.add_route_7(
         "admin:certificate_request:focus:raw",
         "/certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}",
-    )
-
-    # !!! Certificate Request - ACME Flow
-    config.add_route_7(
-        "admin:certificate_request:focus:acme-flow:deactivate",
-        "/certificate-request/{@id}/acme-flow/deactivate",
-    )
-    config.add_route_7(
-        "admin:certificate_request:focus:acme-flow:deactivate|json",
-        "/certificate-request/{@id}/acme-flow/deactivate.json",
-    )
-    config.add_route_7(
-        "admin:certificate_request:focus:acme-flow:manage",
-        "/certificate-request/{@id}/acme-flow/manage",
-    )
-    config.add_route_7(
-        "admin:certificate_request:focus:acme-flow:manage:domain",
-        "/certificate-request/{@id}/acme-flow/manage/domain/{domain_identifier}",
-    )
-    # two types of CR handling
-    config.add_route_7(
-        "admin:certificate_request:new:acme-flow", "/certificate-request/new-acme-flow"
     )
 
     # !!!: Domains
