@@ -32,7 +32,7 @@
         <div class="col-sm-12">
             % if CertificateRequests:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_certificate_requests__list(CertificateRequests, show_domains=True, show_certificate=True)}
+                ${admin_partials.table_CertificateRequests(CertificateRequests, perspective='CertificateRequest')}
             % else:
                 <em>
                     No Certificate Requests

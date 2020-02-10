@@ -176,7 +176,7 @@
                             </a>
                         </td>
                     </tr>
-                    ${admin_partials.table_tr_event_created(PrivateKey)}
+                    ${admin_partials.table_tr_OperationsEventCreated(PrivateKey)}
                     <tr>
                         <th>key_pem</th>
                         <td>
@@ -204,7 +204,7 @@
                     <tr>
                         <th>Certificates</th>
                         <td>
-                            ${admin_partials.table_certificates__list(PrivateKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                            ${admin_partials.table_Certificates(PrivateKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
                             % if PrivateKey.server_certificates__5:
                                 ${admin_partials.nav_pager("%s/private-key/%s/certificates" % (admin_prefix, PrivateKey.id))}
                             % endif
@@ -213,7 +213,7 @@
                     <tr>
                         <th>CertificateRequests</th>
                         <td>
-                            ${admin_partials.table_certificate_requests__list(PrivateKey.certificate_requests__5, show_domains=True)}
+                            ${admin_partials.table_CertificateRequests(CertificateRequests, perspective='PrivateKey')}
                             % if PrivateKey.certificate_requests__5:
                                 ${admin_partials.nav_pager("%s/private-key/%s/certificate-requests" % (admin_prefix, PrivateKey.id))}
                             % endif

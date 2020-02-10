@@ -191,7 +191,7 @@
                         % endif
                     </td>
                 </tr>
-                ${admin_partials.table_tr_event_created(AcmeAccountKey)}
+                ${admin_partials.table_tr_OperationsEventCreated(AcmeAccountKey)}
                 <tr>
                     <th>AcmeOrder(s)</th>
                     <td>
@@ -204,7 +204,7 @@
                 <tr>
                     <th>Certificate(s)</th>
                     <td>
-                        ${admin_partials.table_certificates__list(AcmeAccountKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                        ${admin_partials.table_Certificates(AcmeAccountKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
                         % if AcmeAccountKey.server_certificates__5:
                             ${admin_partials.nav_pager("%s/acme-account-key/%s/certificates" % (admin_prefix, AcmeAccountKey.id))}
                         % endif
@@ -213,7 +213,7 @@
                 <tr>
                     <th>CertificateRequest(s)</th>
                     <td>
-                        ${admin_partials.table_certificate_requests__list(AcmeAccountKey.certificate_requests__5, show_domains=True)}
+                        ${admin_partials.table_CertificateRequests(AcmeAccountKey.certificate_requests__5, perspective='AcmeAccountKey')}
                         % if AcmeAccountKey.certificate_requests__5:
                             ${admin_partials.nav_pager("%s/acme-account-key/%s/certificate-requests" % (admin_prefix, AcmeAccountKey.id))}
                         % endif

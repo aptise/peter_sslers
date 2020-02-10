@@ -55,10 +55,6 @@
     <div class="row">
         <div class="col-sm-6">
             <h5>Domains in Certificate Request</h5>
-            ${admin_partials.table_CertificateRequest2Domain(CertificateRequest.unique_fqdn_set.to_domains,
-                                                                request_inactive = request_inactive,
-                                                                current_domain_id = (CertificateRequest2Domain.domain_id if CertificateRequest2Domain else None),
-                                                                perspective='certificate_request_sidebar')}
 
         </div>
         <div class="col-sm-6">

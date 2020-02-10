@@ -713,11 +713,11 @@ class CertificateRequest(Base):
         uselist=False,
     )
 
-    server_certificate = sa_orm_relationship(
+    server_certificates = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="CertificateRequest.id==ServerCertificate.certificate_request_id",
         back_populates="certificate_request",
-        uselist=False,
+        uselist=True,
     )
 
     server_certificate__renewal_of = sa_orm_relationship(
@@ -728,6 +728,7 @@ class CertificateRequest(Base):
     )
 
     if False:
+
         # TODO: migrate through the Unique FQDNS
         to_domains = sa_orm_relationship(
             "CertificateRequest2Domain",

@@ -150,7 +150,7 @@
                                 <th>latest_single</th>
                                 <td>
                                     % if Domain.server_certificate_id__latest_single:
-                                        ${admin_partials.table_certificates__list([Domain.server_certificate__latest_single,], show_domains=True, show_expiring_days=True)}
+                                        ${admin_partials.table_Certificates([Domain.server_certificate__latest_single,], show_domains=True, show_expiring_days=True)}
                                     % endif
                                 </td>
                             </tr>
@@ -158,7 +158,7 @@
                                 <th>latest_multi</th>
                                 <td>
                                     % if Domain.server_certificate_id__latest_multi:
-                                        ${admin_partials.table_certificates__list([Domain.server_certificate__latest_multi,], show_domains=True, show_expiring_days=True)}
+                                        ${admin_partials.table_Certificates([Domain.server_certificate__latest_multi,], show_domains=True, show_expiring_days=True)}
                                     % endif
                                 </td>
                             </tr>
@@ -168,7 +168,7 @@
                 <tr>
                     <th>Certificates</th>
                     <td>
-                        ${admin_partials.table_certificates__list(Domain.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                        ${admin_partials.table_Certificates(Domain.server_certificates__5, show_domains=True, show_expiring_days=True)}
                         % if Domain.server_certificates__5:
                             ${admin_partials.nav_pager("%s/domain/%s/certificates" % (admin_prefix, Domain.id))}
                         % endif

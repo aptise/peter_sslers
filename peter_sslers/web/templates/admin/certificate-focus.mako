@@ -379,7 +379,7 @@
                         </table>
                     </td>
                 </tr>
-                ${admin_partials.table_tr_event_created(ServerCertificate)}
+                ${admin_partials.table_tr_OperationsEventCreated(ServerCertificate)}
                 <tr>
                     <th>is renewal?</th>
                     <td>
@@ -585,13 +585,13 @@
                 <tr>
                     <th>renewal requests</th>
                     <td>
-                        ${admin_partials.table_certificate_requests__list(ServerCertificate.certificate_request__renewals, show_domains=False, show_certificate=True)}
+                        ${admin_partials.table_CertificateRequests(ServerCertificate.certificate_request__renewals, perspective='ServerCertificate')}
                     </td>
                 </tr>
                 <tr>
                     <th>Queue: Renewals</th>
                     <td>
-                        ${admin_partials.table_queue_renewal__list(ServerCertificate.queue_renewal, )}
+                        ${admin_partials.table_QueueRenewal(ServerCertificate.queue_renewal, perspective="Certificate")}
                     </td>
                 </tr>
             </table>

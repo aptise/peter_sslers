@@ -105,7 +105,7 @@
                         % endif
                     </td>
                 </tr>
-                ${admin_partials.table_tr_event_created(RenewalQueueItem)}
+                ${admin_partials.table_tr_OperationsEventCreated(RenewalQueueItem)}
             </table>
 
             <h4>Process History</h4>

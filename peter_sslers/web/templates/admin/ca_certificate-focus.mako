@@ -134,7 +134,7 @@
                             <samp>${CaCertificate.cert_issuer}</samp>
                             </td>
                     </tr>
-                    ${admin_partials.table_tr_event_created(CaCertificate)}
+                    ${admin_partials.table_tr_OperationsEventCreated(CaCertificate)}
                 </tbody>
                 <thead>
                     <tr>
@@ -153,7 +153,7 @@
                         <th>Signed Certificates</th>
                         <td>
                             % if ServerCertificates:
-                                ${admin_partials.table_certificates__list(ServerCertificates, show_domains=True)}
+                                ${admin_partials.table_Certificates(ServerCertificates, show_domains=True)}
                                 ${admin_partials.nav_pager("%s/ca-certificate/%s/certificates-signed" % (admin_prefix, CaCertificate.id))}
                             % else:
                                 No known certificates.

@@ -23,7 +23,7 @@
         <div class="col-sm-12">
             % if CertificateRequests:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_certificate_requests__list(CertificateRequests, show_domains=False)}
+                ${admin_partials.table_CertificateRequests(CertificateRequests, perspective='UniqueFQDNSet')}
             % else:
                 No known CertificateRequests.
             % endif

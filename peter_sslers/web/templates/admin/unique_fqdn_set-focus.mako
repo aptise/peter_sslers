@@ -102,7 +102,7 @@
 
                         </td>
                     </tr>
-                    ${admin_partials.table_tr_event_created(UniqueFQDNSet)}
+                    ${admin_partials.table_tr_OperationsEventCreated(UniqueFQDNSet)}
                     <tr>
                         <th>Latest Certificates</th>
                         <td>
@@ -162,7 +162,7 @@
                     <tr>
                         <th>Certificates</th>
                         <td>
-                            ${admin_partials.table_certificates__list(UniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
+                            ${admin_partials.table_Certificates(UniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
                             % if UniqueFQDNSet.server_certificates__5:
                                 ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificates" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
@@ -171,7 +171,7 @@
                     <tr>
                         <th>CertificateRequests</th>
                         <td>
-                            ${admin_partials.table_certificate_requests__list(UniqueFQDNSet.certificate_requests__5)}
+                            ${admin_partials.table_CertificateRequests(UniqueFQDNSet.certificate_requests__5, perspective="UniqueFQDNSet")}
                             % if UniqueFQDNSet.certificate_requests__5:
                                 ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificate-requests" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
@@ -181,7 +181,7 @@
                         <tr>
                             <th>Queue: Renewals</th>
                             <td>
-                                ${admin_partials.table_queue_renewal__list(UniqueFQDNSet.queue_renewal__active, show_certificate=True)}
+                            ${admin_partials.table_QueueRenewal(UniqueFQDNSet.queue_renewal__active, perspective="UniqueFQDNSet")}
                             </td>
                         </tr>
                     % endif

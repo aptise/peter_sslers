@@ -23,7 +23,7 @@
         <div class="col-sm-12">
             % if ServerCertificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_certificates__list(ServerCertificates, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_Certificates(ServerCertificates, show_domains=True, show_expiring_days=True)}
             % else:
                 No known certificates.
             % endif

@@ -1,4 +1,4 @@
-<%def name="table_tr_event_created(dbObject)">
+<%def name="table_tr_OperationsEventCreated(dbObject)">
     % if dbObject.operations_event_id__created:
         <tr>
             <th>Event Created At</th>
@@ -14,128 +14,6 @@
             </td>
         </tr>
     % endif
-</%def>
-
-
-<%def name="table_certificates__list(certificates, show_domains=False, show_expiring_days=False)">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>active?</th>
-                <th>auto-renew?</th>
-                <th>is renewed?</th>
-                <th>timestamp_signed</th>
-                <th>timestamp_expires</th>
-                % if show_expiring_days:
-                    <th>expiring days</th>
-                % endif
-                % if show_domains:
-                    <th>domains</th>
-                % endif
-            </tr>
-        </thead>
-        <tbody>
-        % for cert in certificates:
-            <tr>
-                <td><a class="label label-info" href="${admin_prefix}/certificate/${cert.id}">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    cert-${cert.id}</a>
-                </td>
-                <td>
-                    % if cert.is_revoked:
-                        <span class="label label-danger">
-                            revoked
-                        </span>
-                    % else:
-                        <span class="label label-${'success' if cert.is_active else 'warning'}">
-                            ${'Active' if cert.is_active else 'inactive'}
-                        </span>
-                    % endif
-                </td>
-                <td>
-                    <span class="label label-${'success' if cert.is_auto_renew else 'warning'}">
-                        ${'AutoRenew' if cert.is_auto_renew else 'manual'}
-                    </span>
-                </td>
-                <td>
-                    <span class="label label-${'success' if cert.is_renewed else 'default'}">
-                        ${'Renewed' if cert.is_renewed else 'not-renewed-yet'}
-                    </span>
-                </td>
-                <td><timestamp>${cert.timestamp_signed}</timestamp></td>
-                <td><timestamp>${cert.timestamp_expires or ''}</timestamp></td>
-                % if show_expiring_days:
-                    <td>
-                        <span class="label label-${cert.expiring_days_label}">
-                            ${cert.expiring_days} days
-                        </span>
-                    </td>
-                % endif
-                % if show_domains:
-                    <td><code>${cert.domains_as_string}</code></td>
-                % endif
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
-
-
-<%def name="table_queue_renewal__list(renewal_items, show_certificate=False)">
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>active?</th>
-                % if show_certificate:
-                    <th>certificate</th>
-                % endif
-                <th>timestamp_entered</th>
-                <th>operations_event_id__created</th>
-                <th>timestamp_processed</th>
-                <th>timestamp_process_attempt</th>
-                <th>result</th>
-            </tr>
-        </thead>
-        <tbody>
-        % for queue_renewal in renewal_items:
-            <tr>
-                <td><a href="${admin_prefix}/queue-renewal/${queue_renewal.id}" class="label label-info">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    qrenew-${queue_renewal.id}</a>
-                </td>
-                <td>
-                    <span class="label label-${'success' if queue_renewal.is_active else 'warning'}">
-                        ${'active' if queue_renewal.is_active else 'no'}
-                    </span>
-                </td>
-                % if show_certificate:
-                    <td>
-                        % if queue_renewal.server_certificate_id:
-                            <a href="${admin_prefix}/certificate/${queue_renewal.server_certificate_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${queue_renewal.server_certificate_id}</a>
-                        % endif
-                    </td>
-                % endif
-                <td><timestamp>${queue_renewal.timestamp_entered or ''}</timestamp></td>
-                <td><span class="label label-info">${queue_renewal.operations_event_id__created}</span></td>
-                <td><timestamp>${queue_renewal.timestamp_processed or ''}</timestamp></td>
-                <td><timestamp>${queue_renewal.timestamp_process_attempt or ''}</timestamp></td>
-                <td>
-                    % if queue_renewal.process_result is None:
-                        &nbsp;
-                    % elif queue_renewal.process_result is False:
-                        <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
-                    % elif queue_renewal.process_result is True:
-                        <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
-                    % endif
-                </td>
-            </tr>
-        % endfor
-        </tbody>
-    </table>
 </%def>
 
 
@@ -267,7 +145,76 @@
 </%def>
     
 
+<%def name="table_Certificates(certificates, show_domains=False, show_expiring_days=False)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>active?</th>
+                <th>auto-renew?</th>
+                <th>is renewed?</th>
+                <th>timestamp_signed</th>
+                <th>timestamp_expires</th>
+                % if show_expiring_days:
+                    <th>expiring days</th>
+                % endif
+                % if show_domains:
+                    <th>domains</th>
+                % endif
+            </tr>
+        </thead>
+        <tbody>
+        % for cert in certificates:
+            <tr>
+                <td><a class="label label-info" href="${admin_prefix}/certificate/${cert.id}">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    cert-${cert.id}</a>
+                </td>
+                <td>
+                    % if cert.is_revoked:
+                        <span class="label label-danger">
+                            revoked
+                        </span>
+                    % else:
+                        <span class="label label-${'success' if cert.is_active else 'warning'}">
+                            ${'Active' if cert.is_active else 'inactive'}
+                        </span>
+                    % endif
+                </td>
+                <td>
+                    <span class="label label-${'success' if cert.is_auto_renew else 'warning'}">
+                        ${'AutoRenew' if cert.is_auto_renew else 'manual'}
+                    </span>
+                </td>
+                <td>
+                    <span class="label label-${'success' if cert.is_renewed else 'default'}">
+                        ${'Renewed' if cert.is_renewed else 'not-renewed-yet'}
+                    </span>
+                </td>
+                <td><timestamp>${cert.timestamp_signed}</timestamp></td>
+                <td><timestamp>${cert.timestamp_expires or ''}</timestamp></td>
+                % if show_expiring_days:
+                    <td>
+                        <span class="label label-${cert.expiring_days_label}">
+                            ${cert.expiring_days} days
+                        </span>
+                    </td>
+                % endif
+                % if show_domains:
+                    <td><code>${cert.domains_as_string}</code></td>
+                % endif
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_CertificateRequests(certificate_requests, perspective=None)">
+    <%
+        show_domains = True if perspective in ("PrivateKey", 'CertificateRequest', ) else False
+        show_certificate = True if perspective in ("ServerCertificate", 'CertificateRequest', ) else False
+    %>
     <%
         cols = ("id", 
                 "type"
@@ -276,8 +223,18 @@
                 "certificate_request_source_id",
                 "unique_fqdn_set_id",
                )
-        if perspective == 'Domain':
+        if perspective == 'AcmeAccountKey':
             cols = [c for c in cols]
+        elif perspective == 'CertificateRequest':
+            cols = [c for c in cols]
+        elif perspective == 'Domain':
+            cols = [c for c in cols]
+        elif perspective == 'PrivateKey':
+            cols = [c for c in cols if c != 'private_key_id__signed_by']
+        elif perspective == 'ServerCertificate':
+            cols = [c for c in cols]
+        elif perspective == 'UniqueFQDNSet':
+            cols = [c for c in cols if c != 'unique_fqdn_set_id']
         else:
             raise ValueError("invalid `perspective`")
     %>
@@ -287,6 +244,9 @@
                 % for c in cols:
                     <th>${c}</th>
                 % endfor
+                % if show_domains:
+                     <th>domains</th>
+                % endif
             </tr>
         </thead>
         <tbody>
@@ -316,6 +276,9 @@
                                     UniqueFqdnSet-${certificate_request.unique_fqdn_set_id}</a>
                             % endif
                         </td>
+                        % if show_domains:
+                             <td><code>${certificate_request.domains_as_string}</code></td>
+                        % endif
                     % endfor
                 </tr>
             % endfor
@@ -325,157 +288,8 @@
 
 
 
-<%def name="table_certificate_requests__list(certificate_requests, show_domains=False, show_certificate=False)">
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>type</th>
-                <th>active?</th>
-                ## <th>error?</th>
-                % if show_certificate:
-                    <th>cert issued?</th>
-                % endif
-                <th>timestamp_created</th>
-                ## <th>timestamp_finished</th>
-                % if show_domains:
-                    <th>domains</th>
-                % endif
-            </tr>
-        </thead>
-        <tbody>
-        % for certificate_request in certificate_requests:
-            <tr>
-                <td>
-                    <a  class="label label-info"
-                        href="${admin_prefix}/certificate-request/${certificate_request.id}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        CertificateRequest-${certificate_request.id}</a>
-                </td>
-                <td>
-                    <span class="label label-default">${certificate_request.certificate_request_source}</span>
-                </td>
-                <td>
-                    <span class="label label-${'success' if certificate_request.is_active else 'warning'}">
-                        ${'Active' if certificate_request.is_active else 'inactive'}
-                    </span>
-                </td>
-                ## <td>
-                ##    <span class="label label-${'danger' if certificate_request.is_error else 'default'}">
-                ##        ${'Error' if certificate_request.is_error else 'ok'}
-                ##    </span>
-                ## </td>
-                % if show_certificate:
-                    <td>
-                        % if certificate_request.server_certificate:
-                            <a  class="label label-info"
-                                href="${admin_prefix}/certificate/${certificate_request.server_certificate.id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${certificate_request.server_certificate.id}</a>
-                        % else:
-                            &nbsp;
-                        % endif
-                    </td>
-                % endif
-                <td><timestamp>${certificate_request.timestamp_created}</timestamp></td>
-                ## <td><timestamp>${certificate_request.timestamp_finished or ''}</timestamp></td>
-                % if show_domains:
-                     <td><code>${certificate_request.domains_as_string}</code></td>
-                % endif
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
 
 
-
-
-<%def name="table_CertificateRequest2Domain(lcr2mds, request_inactive=None, current_domain_id=None, perspective=None)">
-    % if perspective == 'CertificateRequest':
-        <% raise ValueError("deprecated") %>
-    % elif perspective == 'certificate_request_sidebar':
-        <table class="table table-striped table-condensed">
-            <thead>
-                <tr>
-                    <th>current?</th>
-                    <th>domain</th>
-                    <th>configured?</th>
-                    <th>verified?</th>
-                    <th>test</th>
-                </tr>
-            </thead>
-            <tbody>
-            % for to_d in CertificateRequest.unique_fqdn_set.to_domains:
-                <tr>
-                    <td>
-                        % if current_domain_id == to_d.domain_id:
-                            <span class="label label-success">current</span>
-                        % endif
-                    </td>
-                    <td>
-                        <span class="label label-default"
-                        >
-                            ${to_d.domain.domain_name}
-                        </span>
-                    </td>
-                    <td>
-                        % if current_domain_id == to_d.domain_id:
-                            % if to_d.is_configured:
-                                <span
-                                    class="label label-success">configured</span>
-                            % else:
-                                <span
-                                    class="label label-warning">not configured</span>
-                            % endif
-                        % else:
-                            % if to_d.is_configured:
-                                <a
-                                    href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage/domain/${to_d.domain_id}"
-                                    class="label label-success">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    configured</a>
-                            % else:
-                                <a href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage/domain/${to_d.domain_id}"
-                                    class="label label-warning">
-                                    % if request_inactive:
-                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                         not configured
-                                    % else:
-                                        <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                                        configure
-                                    % endif
-                                    </a>
-                            % endif
-                        % endif
-                    </td>
-                    <td>
-                        % if to_d.timestamp_verified:
-                            <span class="label label-success">verified</span>
-                        % else:
-                            &nbsp;
-                        % endif
-                    </td>
-                    <td>
-                        % if to_d.is_configured:
-                            <a  class="label label-info"
-                                target="_blank"
-                                href="http://${to_d.domain.domain_name}/.well-known/acme-challenge/${to_d.challenge_key}?test=1"
-                            >
-                                <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
-                                test
-                            </a>
-                        % endif
-                    </td>
-                </tr>
-            % endfor
-            </tbody>
-        </table>
-
-    % else:
-        <!-- table_CertificateRequest2Domain missing perspective -->
-    % endif
-</%def>
 
 
 <%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
@@ -639,6 +453,63 @@
                     </td>
                 </tr>
             % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+<%def name="table_QueueRenewal(renewal_items, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>active?</th>
+                % if show_certificate:
+                    <th>certificate</th>
+                % endif
+                <th>timestamp_entered</th>
+                <th>operations_event_id__created</th>
+                <th>timestamp_processed</th>
+                <th>timestamp_process_attempt</th>
+                <th>result</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for queue_renewal in renewal_items:
+            <tr>
+                <td><a href="${admin_prefix}/queue-renewal/${queue_renewal.id}" class="label label-info">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    qrenew-${queue_renewal.id}</a>
+                </td>
+                <td>
+                    <span class="label label-${'success' if queue_renewal.is_active else 'warning'}">
+                        ${'active' if queue_renewal.is_active else 'no'}
+                    </span>
+                </td>
+                % if show_certificate:
+                    <td>
+                        % if queue_renewal.server_certificate_id:
+                            <a href="${admin_prefix}/certificate/${queue_renewal.server_certificate_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                cert-${queue_renewal.server_certificate_id}</a>
+                        % endif
+                    </td>
+                % endif
+                <td><timestamp>${queue_renewal.timestamp_entered or ''}</timestamp></td>
+                <td><span class="label label-info">${queue_renewal.operations_event_id__created}</span></td>
+                <td><timestamp>${queue_renewal.timestamp_processed or ''}</timestamp></td>
+                <td><timestamp>${queue_renewal.timestamp_process_attempt or ''}</timestamp></td>
+                <td>
+                    % if queue_renewal.process_result is None:
+                        &nbsp;
+                    % elif queue_renewal.process_result is False:
+                        <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                    % elif queue_renewal.process_result is True:
+                        <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                    % endif
+                </td>
+            </tr>
+        % endfor
         </tbody>
     </table>
 </%def>
