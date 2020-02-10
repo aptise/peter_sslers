@@ -42,7 +42,7 @@
                                     event-${logged.id}
                                 </a>
                             </td>
-                            <td>${logged.timestamp_event}</td>
+                            <td><timestamp>${logged.timestamp_event}</timestamp></td>
                             <td><span class="label label-default">${logged.acme_event}</span></td>
                             <td>
                                 % if logged.acme_account_key_id:

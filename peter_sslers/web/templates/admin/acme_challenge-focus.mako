@@ -51,7 +51,7 @@
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
-                        <td>${AcmeChallenge.timestamp_created}</td>
+                        <td><timestamp>${AcmeChallenge.timestamp_created}</timestamp></td>
                     </tr>
                     <tr>
                         <th>status</th>
@@ -63,7 +63,7 @@
                     </tr>
                     <tr>
                         <th>timestamp_updated</th>
-                        <td>${AcmeChallenge.timestamp_updated}</td>
+                        <td><timestamp>${AcmeChallenge.timestamp_updated}</timestamp></td>
                     </tr>
                     <tr>
                         <th>keyauthorization</th>
@@ -87,7 +87,7 @@
                                     AcmeChallengePoll-${poll.id}
                                 </a>
                             </td>
-                            <td>${poll.timestamp_polled}</td>
+                            <td><timestamp>${poll.timestamp_polled}</timestamp></td>
                             <td>${poll.remote_ip_address}</td>
                         </tr>
                     % endfor

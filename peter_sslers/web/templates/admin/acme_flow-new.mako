@@ -88,7 +88,7 @@
                 <table class="table table-striped">
                     <tr>
                         <th>timestamp_verified</th>
-                        <td>${CertificateRequest2Domain.timestamp_verified or ''}</td>
+                        <td><timestamp>${CertificateRequest2Domain.timestamp_verified or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>ip_verified</th>

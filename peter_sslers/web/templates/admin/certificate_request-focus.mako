@@ -114,7 +114,7 @@
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
-                        <td>${CertificateRequest.timestamp_created}</td>
+                        <td><timestamp>${CertificateRequest.timestamp_created}</timestamp></td>
                     </tr>
                     <tr>
                         <th>csr_pem_md5</th>

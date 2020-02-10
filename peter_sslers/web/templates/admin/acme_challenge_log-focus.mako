@@ -49,7 +49,7 @@
                 </tr>
                 <tr>
                     <th>timestamp_created</th>
-                    <td>${AcmeChallenge.timestamp_created}</td>
+                    <td><timestamp>${AcmeChallenge.timestamp_created}</timestamp></td>
                 </tr>
                 <tr>
                     <th>domain</th>
@@ -65,7 +65,7 @@
                 </tr>
                 <tr>
                     <th>timestamp_challenge_trigger</th>
-                    <td>${AcmeChallenge.timestamp_challenge_trigger or ''}</td>
+                    <td><timestamp>${AcmeChallenge.timestamp_challenge_trigger or ''}</timestamp></td>
                 </tr>
                 <tr>
                     <th>count_polled</th>
@@ -73,7 +73,7 @@
                 </tr>
                 <tr>
                     <th>timestamp_challenge_pass</th>
-                    <td>${AcmeChallenge.timestamp_challenge_pass or ''}</td>
+                    <td><timestamp>${AcmeChallenge.timestamp_challenge_pass or ''}</timestamp></td>
                 </tr>
                 <tr>
                     <th>acme_challenge_fail_type</th>

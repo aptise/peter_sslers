@@ -618,14 +618,10 @@
                             </a>
                         </td>
                         <td>
-                            <code>
-                                ${object_event.operations_event.event_type_text}
-                            </code>
+                            <code>${object_event.operations_event.event_type_text}</code>
                         </td>
                         <td>
-                            <timestamp>
-                                ${object_event.operations_event.timestamp_event}
-                            </timestamp>
+                            <timestamp>${object_event.operations_event.timestamp_event}</timestamp>
                         </td>
                     % endif
                     <td>

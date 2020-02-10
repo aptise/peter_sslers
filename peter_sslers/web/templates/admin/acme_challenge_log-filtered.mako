@@ -60,7 +60,7 @@
                                     challenge-${logged.id}
                                 </a>
                             </td>
-                            <td>${logged.timestamp_created}</td>
+                            <td><timestamp>${logged.timestamp_created}</timestamp></td>
                             <td><span class="label label-default">${logged.acme_challenge_type}</span></td>
                             <td>${logged.domain}</td>
                             <td>${logged.acme_challenge}</td>

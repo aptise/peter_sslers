@@ -41,10 +41,10 @@
                             <td><a class="label label-info" href="${admin_prefix}/acme-challenge/${item.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${item.id}</a></td>
-                            <td>${item.timestamp_created}</td>
+                            <td><timestamp>${item.timestamp_created}</timestamp></td>
                             <td><code>${item.status}</code></td>
                             <td><code>${item.token}</code></td>
-                            <td>${item.timestamp_updated}</td>
+                            <td><timestamp>${item.timestamp_updated}</timestamp></td>
                         </tr>
                     % endfor
                     </tbody>

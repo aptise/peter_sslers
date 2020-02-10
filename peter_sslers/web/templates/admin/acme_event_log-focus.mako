@@ -28,7 +28,7 @@
                 </tr>
                 <tr>
                     <th>timestamp_event</th>
-                    <td>${AcmeEventLog.timestamp_event}</td>
+                    <td><timestamp>${AcmeEventLog.timestamp_event}</timestamp></td>
                 </tr>
                 <tr>
                     <th>acme_event</th>
