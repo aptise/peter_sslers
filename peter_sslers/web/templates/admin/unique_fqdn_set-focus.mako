@@ -190,6 +190,15 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>ACME Orders</th>
+                        <td>
+                            ${admin_partials.table_AcmeOrders(UniqueFQDNSet.acme_orders__5, perspective="UniqueFQDNSet")}
+                            % if UniqueFQDNSet.acme_orders__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/acme-orders" % (admin_prefix, UniqueFQDNSet.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>CertificateRequests</th>
                         <td>
                             ${admin_partials.table_CertificateRequests(UniqueFQDNSet.certificate_requests__5, perspective="UniqueFQDNSet")}

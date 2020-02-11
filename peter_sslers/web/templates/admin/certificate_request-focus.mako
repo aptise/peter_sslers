@@ -142,13 +142,13 @@
                         <td>
                             <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${CertificateRequest.unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFqdnSet-${CertificateRequest.unique_fqdn_set_id}</a>
+                                UniqueFQDNSet-${CertificateRequest.unique_fqdn_set_id}</a>
                         </td>
                     </tr>
                     <tr>
-                        <th>domains (via UniqueFqdnSet)</th>
+                        <th>domains (via UniqueFQDNSet)</th>
                         <td>
-                            ${admin_partials.table_UniqueFqdnSet_Domains(CertificateRequest.unique_fqdn_set, perspective='CertificateRequest')}
+                            ${admin_partials.table_UniqueFQDNSet_Domains(CertificateRequest.unique_fqdn_set, perspective='CertificateRequest')}
                         </td>
                     </tr>
                 </tbody>

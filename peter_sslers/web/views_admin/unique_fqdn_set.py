@@ -137,6 +137,38 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:unique_fqdn_set:focus:acme_orders",
+        renderer="/admin/unique_fqdn_set-focus-acme_orders.mako",
+    )
+    @view_config(
+        route_name="admin:unique_fqdn_set:focus:acme_orders_paginated",
+        renderer="/admin/unique_fqdn_set-focus-acme_orders.mako",
+    )
+    def focus__acme_orders(self):
+        dbUniqueFQDNSet = self._focus()
+        items_count = lib_db.get.get__AcmeOrders__by_UniqueFQDNSetId__count(
+            self.request.api_context, dbUniqueFQDNSet.id
+        )
+        (pager, offset) = self._paginate(
+            items_count,
+            url_template="%s/unique-fqdn-set/%s/acme-orders/{0}"
+            % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
+        )
+        items_paged = lib_db.get.get__AcmeOrders__by_UniqueFQDNSetId__paginated(
+            self.request.api_context,
+            dbUniqueFQDNSet.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "UniqueFQDNSet": dbUniqueFQDNSet,
+            "AcmeOrders_count": items_count,
+            "AcmeOrders": items_paged,
+            "pager": pager,
+        }
+
+    @view_config(
         route_name="admin:unique_fqdn_set:focus:certificates",
         renderer="/admin/unique_fqdn_set-focus-certificates.mako",
     )

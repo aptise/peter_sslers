@@ -265,18 +265,18 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
             qDomain.domain_id = domainObject.id
             ctx.dbSession.flush(objects=[qDomain])
 
-        # create a dbUniqueFqdnSet for this.
+        # create a dbUniqueFQDNSet for this.
         # TODO - should we delete this if we fail? or keep for the CSR record
         #      - rationale is that on another pass, we would have a different fqdn set
         (
-            dbUniqueFqdnSet,
+            dbUniqueFQDNSet,
             _is_created,
         ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
             ctx, domainObjects
         )
 
         # update the event
-        event_payload_dict["unique_fqdn_set_id"] = dbUniqueFqdnSet.id
+        event_payload_dict["unique_fqdn_set_id"] = dbUniqueFQDNSet.id
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent])
         transaction.commit()

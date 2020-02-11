@@ -309,7 +309,7 @@ class AcmeEvent(_mixin_mapping):
     }
 
 
-class CertificateRequestSource(object):
+class CertificateRequestSource(_mixin_mapping):
     """
     How was the CertificateRequest generated?
     - RECORDED - just records the CSR; uploaded into our system
@@ -320,6 +320,8 @@ class CertificateRequestSource(object):
     RECORDED = 1
     ACME_FLOW = 2
     ACME_AUTOMATED = 3
+
+    _mapping = {1: "RECORDED", 2: "ACME_FLOW", 3: "ACME_AUTOMATED"}
 
 
 class _mixin_OperationsEventType(object):

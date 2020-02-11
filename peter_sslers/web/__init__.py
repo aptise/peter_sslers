@@ -21,6 +21,7 @@ def add_renderer_globals(event):
     """sticks the admin_prefix into the renderer's topline namespace"""
     event["admin_prefix"] = event["request"].registry.settings["admin_prefix"]
     event["admin_server"] = event["request"].admin_server
+    event["model_utils"] = model_utils
 
 
 def db_log_cleanup__tween_factory(handler, registry):

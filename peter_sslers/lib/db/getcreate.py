@@ -758,10 +758,10 @@ def getcreate__ServerCertificate__by_pem_text(
                 for _domain_name in certificate_domain_names
             ]
             (
-                dbUniqueFqdnSet,
+                dbUniqueFQDNSet,
                 is_created_fqdn,
             ) = getcreate__UniqueFQDNSet__by_domainObjects(ctx, dbDomainObjects)
-            dbServerCertificate.unique_fqdn_set_id = dbUniqueFqdnSet.id
+            dbServerCertificate.unique_fqdn_set_id = dbUniqueFQDNSet.id
 
             if len(certificate_domain_names) == 1:
                 dbServerCertificate.is_single_domain_cert = True

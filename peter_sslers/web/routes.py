@@ -622,6 +622,14 @@ def _admin_views(config):
         "/unique-fqdn-set/{@id}/calendar.json",
     )
     config.add_route_7(
+        "admin:unique_fqdn_set:focus:acme_orders",
+        "/unique-fqdn-set/{@id}/acme-orders",
+    )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:acme_orders_paginated",
+        "/unique-fqdn-set/{@id}/acme-orders/{@page}",
+    )
+    config.add_route_7(
         "admin:unique_fqdn_set:focus:certificates",
         "/unique-fqdn-set/{@id}/certificates",
     )

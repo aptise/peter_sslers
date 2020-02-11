@@ -361,6 +361,29 @@ def get__AcmeOrders__by_AcmeAccountKeyId__paginated(
     return items_paged
 
 
+def get__AcmeOrders__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .filter(model_objects.AcmeOrder.unique_fqdn_set_id == unique_fqdn_set_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrders__by_UniqueFQDNSetId__paginated(
+    ctx, unique_fqdn_set_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .filter(model_objects.AcmeOrder.unique_fqdn_set_id == unique_fqdn_set_id)
+        .order_by(model_objects.AcmeOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

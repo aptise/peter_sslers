@@ -146,7 +146,7 @@
                                 href="${admin_prefix}/unique-fqdn-set/${AcmeOrder.unique_fqdn_set_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFqdnSet-${AcmeOrder.unique_fqdn_set_id}
+                                UniqueFQDNSet-${AcmeOrder.unique_fqdn_set_id}
                             </a>
                         % endif
                     </td>

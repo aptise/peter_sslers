@@ -263,7 +263,7 @@ def create__CertificateRequest(
     # we'll use this tuple in a bit...
     # getcreate__Domain__by_domainName returns a tuple of (domainObject, is_created)
     (
-        dbUniqueFqdnSet,
+        dbUniqueFQDNSet,
         is_created_fqdn,
     ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
         ctx, dbDomainObjects.values()
@@ -285,7 +285,7 @@ def create__CertificateRequest(
         dbCertificateRequest.server_certificate_id__renewal_of = (
             dbServerCertificate__renewal_of.id
         )
-    dbCertificateRequest.unique_fqdn_set_id = dbUniqueFqdnSet.id
+    dbCertificateRequest.unique_fqdn_set_id = dbUniqueFQDNSet.id
 
     ctx.dbSession.add(dbCertificateRequest)
     ctx.dbSession.flush(objects=[dbCertificateRequest])
@@ -370,7 +370,7 @@ def create__ServerCertificate(
 
         # pull the domains, so we can get the fqdn
         (
-            dbUniqueFqdnSet,
+            dbUniqueFQDNSet,
             is_created_fqdn,
         ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(ctx, dbDomains)
 
@@ -398,7 +398,7 @@ def create__ServerCertificate(
         dbServerCertificate.private_key_id__signed_by = dbPrivateKey.id
 
         # note the fqdn
-        dbServerCertificate.unique_fqdn_set_id = dbUniqueFqdnSet.id
+        dbServerCertificate.unique_fqdn_set_id = dbUniqueFQDNSet.id
 
         # note the event
         dbServerCertificate.operations_event_id__created = dbOperationsEvent.id
@@ -506,7 +506,7 @@ def _create__QueueRenewal_fqdns(ctx, unique_fqdn_set_id):
     This must happen within the context other events
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param unique_fqdn_set_id: (required) The id of a :class:`model.objects.UniqueFqdnSet` object
+    :param unique_fqdn_set_id: (required) The id of a :class:`model.objects.UniqueFQDNSet` object
     """
     if not ctx.dbOperationsEvent:
         raise ValueError("This must happen WITHIN an operations event")

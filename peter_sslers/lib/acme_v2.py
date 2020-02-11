@@ -21,8 +21,10 @@ import time
 
 try:
     from urllib.request import urlopen, Request  # Python 3
+    from urllib.error import URLError
 except ImportError:
     from urllib2 import urlopen, Request  # Python 2
+    from urllib2 import URLError
 
 # pupi
 import psutil
@@ -78,9 +80,15 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
             resp.getcode(),
             resp.headers,
         )
-    except IOError as e:
-        resp_data = e.read().decode("utf8") if hasattr(e, "read") else str(e)
-        code, headers = getattr(e, "code", None), {}
+    except IOError as exc:
+        if isinstance(exc, URLError):
+            # TODO: log this error to the database
+            raise errors.AcmeCommunicationError(str(exc))
+        resp_data = exc.read().decode("utf8") if hasattr(exc, "read") else str(exc)
+        code, headers = getattr(exc, "code", None), {}
+    except Exception as exc:
+        # TODO: log this error to the database
+        raise errors.AcmeCommunicationError(str(exc))
     try:
         resp_data = json.loads(resp_data)  # try to parse json results
     except ValueError:

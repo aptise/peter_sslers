@@ -70,7 +70,7 @@
                             href="${admin_prefix}/unique-fqdn-set/${RenewalQueueItem.unique_fqdn_set_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            UniqueFqdnSet-${RenewalQueueItem.unique_fqdn_set_id}</a>
+                            UniqueFQDNSet-${RenewalQueueItem.unique_fqdn_set_id}</a>
                         </hr/>
                         <code>${RenewalQueueItem.unique_fqdn_set.domains_as_string}</code>
                     </td>

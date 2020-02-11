@@ -309,7 +309,7 @@
                                 href="${admin_prefix}/unique-fqdn-set/${ServerCertificate.unique_fqdn_set_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFqdnSet-${ServerCertificate.unique_fqdn_set_id}
+                                UniqueFQDNSet-${ServerCertificate.unique_fqdn_set_id}
                             </a>
                             <%
                                 latest_certificate = ServerCertificate.unique_fqdn_set.latest_certificate

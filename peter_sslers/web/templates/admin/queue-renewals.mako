@@ -89,7 +89,7 @@
                                 % endif
                             <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFqdnSet-${q.unique_fqdn_set_id}</a></td>
+                                UniqueFQDNSet-${q.unique_fqdn_set_id}</a></td>
                             <td><timestamp>${q.timestamp_entered}</timestamp></td>
                             <td><timestamp>${q.timestamp_process_attempt or ''}</timestamp></td>
                             <td><timestamp>${q.timestamp_processed or ''}</timestamp></td>

@@ -2003,6 +2003,26 @@ Domain.to_unique_fqdn_sets__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+# note: AcmeAccountKey.acme_orders__5
+UniqueFQDNSet.acme_orders__5 = sa_orm_relationship(
+    AcmeOrder,
+    primaryjoin=(
+        sa.and_(
+            UniqueFQDNSet.id == AcmeOrder.unique_fqdn_set_id,
+            AcmeOrder.id.in_(
+                sa.select([AcmeOrder.id])
+                .where(UniqueFQDNSet.id == AcmeOrder.unique_fqdn_set_id)
+                .order_by(AcmeOrder.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeOrder.id.desc(),
+    viewonly=True,
+)
+
+
 # note: UniqueFQDNSet.certificate_requests__5
 UniqueFQDNSet.certificate_requests__5 = sa_orm_relationship(
     CertificateRequest,

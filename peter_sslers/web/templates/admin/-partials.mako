@@ -80,6 +80,8 @@
             cols = [c for c in cols]
         elif perspective == 'AcmeAccountKey':
             cols = [c for c in cols if c != "acme_account_key_id"]
+        elif perspective == 'UniqueFQDNSet':
+            cols = [c for c in cols if c != "unique_fqdn_set_id"]
         else:
             raise ValueError("invalid `perspective`")
     %>
@@ -132,7 +134,7 @@
                                     % if acme_order.unique_fqdn_set_id:
                                         <a href="${admin_prefix}/unique-fqdn-set/${acme_order.unique_fqdn_set_id}" class="label label-info">
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            UniqueFqdnSet-${acme_order.unique_fqdn_set_id}
+                                            UniqueFQDNSet-${acme_order.unique_fqdn_set_id}
                                         </a>
                                     % endif
                             % endif
@@ -203,12 +205,15 @@
                             % elif c == 'timestamp_created':
                                 <timestamp>${certificate_request.timestamp_created}</timestamp>
                             % elif c == 'certificate_request_source_id':
-                                <code>${certificate_request.certificate_request_source_id}</code>
+                                % if certificate_request.certificate_request_source_id:
+                                    ## <code>${certificate_request.certificate_request_source_id}</code>
+                                    <span class="label label-default">${model_utils.CertificateRequestSource.as_string(certificate_request.certificate_request_source_id)}</span>
+                                % endif
                             % elif c == 'unique_fqdn_set_id':
                                 <a  class="label label-info"
                                     href="${admin_prefix}/unique-fqdn-set/${certificate_request.unique_fqdn_set_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    UniqueFqdnSet-${certificate_request.unique_fqdn_set_id}</a>
+                                    UniqueFQDNSet-${certificate_request.unique_fqdn_set_id}</a>
                             % endif
                         </td>
                         % if show_domains:
@@ -469,7 +474,7 @@
                         href="${admin_prefix}/unique-fqdn-set/${i.id}"
                     >
                      <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                     UniqueFqdnSet-${i.id}
+                     UniqueFQDNSet-${i.id}
                     </a>
                 </td>
                 <td>
@@ -485,7 +490,7 @@
 </%def>
 
 
-<%def name="table_UniqueFqdnSet_Domains(unique_fqdn_set, perspective=None)">
+<%def name="table_UniqueFQDNSet_Domains(unique_fqdn_set, perspective=None)">
     % if perspective == 'CertificateRequest':
         <table class="table table-striped table-condensed">
             <thead>
@@ -508,7 +513,7 @@
             </tbody>
         </table>
     % else:
-        <!-- table_UniqueFqdnSet_Domains missing perspective -->
+        <!-- table_UniqueFQDNSet_Domains missing perspective -->
     % endif
 </%def>
 
