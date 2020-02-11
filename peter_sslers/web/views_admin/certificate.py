@@ -463,9 +463,9 @@ class ViewAdmin_Focus(Handler):
                 )
 
             try:
-                dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2_Automated(
+                dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2__automated(
                     self.request.api_context,
-                    None,  # domain_names, handle via the certificate...
+                    domain_names=None,  # domain_names, handle via the certificate...
                     dbAcmeAccountKey=dbServerCertificate.acme_account_key,
                     dbPrivateKey=dbServerCertificate.private_key,
                     dbServerCertificate__renewal_of=dbServerCertificate,
@@ -658,11 +658,21 @@ class ViewAdmin_Focus(Handler):
                     event_payload_dict,
                 )
 
-                dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2_Automated(
+                raise ValueError("figure this out")
+                """
+                (
+                    dbPrivateKey,
+                    _is_created,
+                ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
+                    self.request.api_context, private_key_pem
+                )
+                """
+
+                dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2__automated(
                     self.request.api_context,
-                    domain_names=dbServerCertificate.domains_as_list,
+                    domain_names=None,
                     dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
-                    private_key_pem=private_key_pem,
+                    dbPrivateKey=dbPrivateKey,
                     dbServerCertificate__renewal_of=dbServerCertificate,
                 )
             except (

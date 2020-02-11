@@ -153,7 +153,7 @@
                         <th>Signed Certificates</th>
                         <td>
                             % if ServerCertificates:
-                                ${admin_partials.table_Certificates(ServerCertificates, show_domains=True)}
+                                ${admin_partials.table_ServerCertificates(ServerCertificates, show_domains=True)}
                                 ${admin_partials.nav_pager("%s/ca-certificate/%s/certificates-signed" % (admin_prefix, CaCertificate.id))}
                             % else:
                                 No known certificates.

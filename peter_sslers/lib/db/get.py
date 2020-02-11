@@ -413,7 +413,7 @@ def get__CertificateRequest__paginated(ctx, limit=None, offset=0):
     items_paged = (
         ctx.dbSession.query(model_objects.CertificateRequest)
         .options(
-            sqlalchemy.orm.joinedload("server_certificate"),
+            sqlalchemy.orm.joinedload("server_certificates"),
             sqlalchemy.orm.subqueryload("unique_fqdn_set")
             .joinedload("to_domains")
             .joinedload("domain"),
@@ -431,7 +431,7 @@ def get__CertificateRequest__by_id(ctx, certificate_request_id):
         ctx.dbSession.query(model_objects.CertificateRequest)
         .filter(model_objects.CertificateRequest.id == certificate_request_id)
         .options(
-            sqlalchemy.orm.joinedload("server_certificate"),
+            sqlalchemy.orm.joinedload("server_certificates__5"),
             sqlalchemy.orm.subqueryload("unique_fqdn_set")
             .joinedload("to_domains")
             .joinedload("domain"),

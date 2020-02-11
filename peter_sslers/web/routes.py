@@ -192,6 +192,9 @@ def _admin_views(config):
         "admin:acme_order:focus:acme_authorizations",
         "/acme-order/{@id}/acme-authorizations",
     )
+    config.add_route_7(
+        "admin:acme_order:focus:acme_server_sync", "/acme-order/{@id}/acme-server-sync"
+    )
     config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
     config.add_route_7("admin:acme_order:new:automated", "/acme-order/new-automated")
 

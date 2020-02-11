@@ -145,71 +145,6 @@
 </%def>
     
 
-<%def name="table_Certificates(certificates, show_domains=False, show_expiring_days=False)">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>active?</th>
-                <th>auto-renew?</th>
-                <th>is renewed?</th>
-                <th>timestamp_signed</th>
-                <th>timestamp_expires</th>
-                % if show_expiring_days:
-                    <th>expiring days</th>
-                % endif
-                % if show_domains:
-                    <th>domains</th>
-                % endif
-            </tr>
-        </thead>
-        <tbody>
-        % for cert in certificates:
-            <tr>
-                <td><a class="label label-info" href="${admin_prefix}/certificate/${cert.id}">
-                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    cert-${cert.id}</a>
-                </td>
-                <td>
-                    % if cert.is_revoked:
-                        <span class="label label-danger">
-                            revoked
-                        </span>
-                    % else:
-                        <span class="label label-${'success' if cert.is_active else 'warning'}">
-                            ${'Active' if cert.is_active else 'inactive'}
-                        </span>
-                    % endif
-                </td>
-                <td>
-                    <span class="label label-${'success' if cert.is_auto_renew else 'warning'}">
-                        ${'AutoRenew' if cert.is_auto_renew else 'manual'}
-                    </span>
-                </td>
-                <td>
-                    <span class="label label-${'success' if cert.is_renewed else 'default'}">
-                        ${'Renewed' if cert.is_renewed else 'not-renewed-yet'}
-                    </span>
-                </td>
-                <td><timestamp>${cert.timestamp_signed}</timestamp></td>
-                <td><timestamp>${cert.timestamp_expires or ''}</timestamp></td>
-                % if show_expiring_days:
-                    <td>
-                        <span class="label label-${cert.expiring_days_label}">
-                            ${cert.expiring_days} days
-                        </span>
-                    </td>
-                % endif
-                % if show_domains:
-                    <td><code>${cert.domains_as_string}</code></td>
-                % endif
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
-
-
 <%def name="table_CertificateRequests(certificate_requests, perspective=None)">
     <%
         show_domains = True if perspective in ("PrivateKey", 'CertificateRequest', ) else False
@@ -286,71 +221,6 @@
     </table>
 </%def>
 
-
-
-
-
-
-
-<%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>timestamp first seen</th>
-                <th>domain ids string</th>
-            </tr>
-        </thead>
-        <tbody>
-        % for i in unique_fqdn_sets:
-            <tr>
-                <td>
-                    <a  class="label label-info"
-                        href="${admin_prefix}/unique-fqdn-set/${i.id}"
-                    >
-                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                     UniqueFqdnSet-${i.id}
-                    </a>
-                </td>
-                <td>
-                    <timestamp>${i.timestamp_first_seen}</timestamp>
-                </td>
-                <td>
-                    <code>${i.domain_ids_string}</code>
-                </td>
-            </tr>
-        % endfor
-        </tbody>
-    </table>
-</%def>
-
-
-<%def name="table_UniqueFqdnSet_Domains(unique_fqdn_set, perspective=None)">
-    % if perspective == 'CertificateRequest':
-        <table class="table table-striped table-condensed">
-            <thead>
-                <tr>
-                    <th>domain</th>
-                </tr>
-            </thead>
-            <tbody>
-                % for to_d in unique_fqdn_set.to_domains:
-                    <tr>
-                        <td>
-                            <a href="${admin_prefix}/domain/${to_d.domain.id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                Domain-${to_d.domain.id}
-                            </a>
-                            <code>${to_d.domain.domain_name}</code>
-                        </td>
-                    </tr>
-                % endfor
-            </tbody>
-        </table>
-    % else:
-        <!-- table_UniqueFqdnSet_Domains missing perspective -->
-    % endif
-</%def>
 
 
 <%def name="table_OperationsEvents(OperationsEvents, show_event=None, event_type_listable=None)">
@@ -512,6 +382,134 @@
         % endfor
         </tbody>
     </table>
+</%def>
+
+
+
+<%def name="table_ServerCertificates(certificates, show_domains=False, show_expiring_days=False)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>active?</th>
+                <th>auto-renew?</th>
+                <th>is renewed?</th>
+                <th>timestamp_signed</th>
+                <th>timestamp_expires</th>
+                % if show_expiring_days:
+                    <th>expiring days</th>
+                % endif
+                % if show_domains:
+                    <th>domains</th>
+                % endif
+            </tr>
+        </thead>
+        <tbody>
+        % for cert in certificates:
+            <tr>
+                <td><a class="label label-info" href="${admin_prefix}/certificate/${cert.id}">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    cert-${cert.id}</a>
+                </td>
+                <td>
+                    % if cert.is_revoked:
+                        <span class="label label-danger">
+                            revoked
+                        </span>
+                    % else:
+                        <span class="label label-${'success' if cert.is_active else 'warning'}">
+                            ${'Active' if cert.is_active else 'inactive'}
+                        </span>
+                    % endif
+                </td>
+                <td>
+                    <span class="label label-${'success' if cert.is_auto_renew else 'warning'}">
+                        ${'AutoRenew' if cert.is_auto_renew else 'manual'}
+                    </span>
+                </td>
+                <td>
+                    <span class="label label-${'success' if cert.is_renewed else 'default'}">
+                        ${'Renewed' if cert.is_renewed else 'not-renewed-yet'}
+                    </span>
+                </td>
+                <td><timestamp>${cert.timestamp_signed}</timestamp></td>
+                <td><timestamp>${cert.timestamp_expires or ''}</timestamp></td>
+                % if show_expiring_days:
+                    <td>
+                        <span class="label label-${cert.expiring_days_label}">
+                            ${cert.expiring_days} days
+                        </span>
+                    </td>
+                % endif
+                % if show_domains:
+                    <td><code>${cert.domains_as_string}</code></td>
+                % endif
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+
+<%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>timestamp first seen</th>
+                <th>domain ids string</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for i in unique_fqdn_sets:
+            <tr>
+                <td>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/unique-fqdn-set/${i.id}"
+                    >
+                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                     UniqueFqdnSet-${i.id}
+                    </a>
+                </td>
+                <td>
+                    <timestamp>${i.timestamp_first_seen}</timestamp>
+                </td>
+                <td>
+                    <code>${i.domain_ids_string}</code>
+                </td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+<%def name="table_UniqueFqdnSet_Domains(unique_fqdn_set, perspective=None)">
+    % if perspective == 'CertificateRequest':
+        <table class="table table-striped table-condensed">
+            <thead>
+                <tr>
+                    <th>domain</th>
+                </tr>
+            </thead>
+            <tbody>
+                % for to_d in unique_fqdn_set.to_domains:
+                    <tr>
+                        <td>
+                            <a href="${admin_prefix}/domain/${to_d.domain.id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                Domain-${to_d.domain.id}
+                            </a>
+                            <code>${to_d.domain.domain_name}</code>
+                        </td>
+                    </tr>
+                % endfor
+            </tbody>
+        </table>
+    % else:
+        <!-- table_UniqueFqdnSet_Domains missing perspective -->
+    % endif
 </%def>
 
 
@@ -967,7 +965,7 @@
 </%def>
 
 
-<%def name="standard_error_display(has_message=None)">
+<%def name="standard_error_display(expect_message=None)">
     <%
         error = request.params.get('error', None)
         message = request.params.get('message', None)
@@ -977,7 +975,7 @@
             ## operation=mark&action=deactivate&result=error&error=Can%20not%20deactivate%20the%20default
             <b>Error</b>
             <p>
-                % if has_message:
+                % if message:
                     ${message}
                 % else:
                     ${error}

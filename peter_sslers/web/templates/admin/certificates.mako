@@ -73,7 +73,7 @@
 
             % if ServerCertificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_Certificates(ServerCertificates, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_ServerCertificates(ServerCertificates, show_domains=True, show_expiring_days=True)}
             % else:
                 <em>
                     No Server Certificates

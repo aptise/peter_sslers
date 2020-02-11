@@ -38,6 +38,13 @@
         <div class="col-sm-12">
             ${admin_partials.handle_querystring_result()}
             <table class="table table-striped table-condensed">
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                            Core Details
+                        </th>
+                    </tr>
+                </thead>
                 <tbody>
                     <tr>
                         <th>id</th>
@@ -103,66 +110,80 @@
                         </td>
                     </tr>
                     ${admin_partials.table_tr_OperationsEventCreated(UniqueFQDNSet)}
+                </tbody>
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                        <hr/>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">
+                            Relations Library
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
                     <tr>
                         <th>Latest Certificates</th>
                         <td>
-                <%
-                    latest_certificate = UniqueFQDNSet.latest_certificate
-                    latest_active_certificate = UniqueFQDNSet.latest_active_certificate
-                %>
-                <table class="table table-striped table-condensed">
-                    <thead>
-                        <tr>
-                            <th>Cert</th>
-                            <th>id</th>
-                            <th>is active?</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <th>Latest Certificate</th>
-                            % if latest_certificate:
-                                <td>
-                                    <a  class="label label-info"
-                                        href="${admin_prefix}/certificate/${latest_certificate.id}"
-                                    >
-                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        cert-${latest_certificate.id}
-                                    </a>
-                                </td>
-                                <td>
-                                    <span class="label label-${'success' if latest_certificate.is_active else 'warning'}">
-                                        ${'Active' if latest_certificate.is_active else 'inactive'}
-                                    </span>
-                                </td>
-                            % endif
-                        </tr>
-                        <tr>
-                            <th>Latest Active Certificate</th>
-                            % if latest_active_certificate:
-                                <td>
-                                    <a  class="label label-info"
-                                        href="${admin_prefix}/certificate/${latest_active_certificate.id}"
-                                    >
-                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        cert-${latest_active_certificate.id}
-                                    </a>
-                                </td>
-                                <td>
-                                    <span class="label label-${'success' if latest_active_certificate.is_active else 'warning'}">
-                                        ${'Active' if latest_active_certificate.is_active else 'inactive'}
-                                    </span>
-                                </td>
-                            % endif
-                        </tr>
-                    </tbody>
-                </table>
+                            <%
+                                latest_certificate = UniqueFQDNSet.latest_certificate
+                                latest_active_certificate = UniqueFQDNSet.latest_active_certificate
+                            %>
+                            <table class="table table-striped table-condensed">
+                                <thead>
+                                    <tr>
+                                        <th>Cert</th>
+                                        <th>id</th>
+                                        <th>is active?</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th>Latest Certificate</th>
+                                        % if latest_certificate:
+                                            <td>
+                                                <a  class="label label-info"
+                                                    href="${admin_prefix}/certificate/${latest_certificate.id}"
+                                                >
+                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                    cert-${latest_certificate.id}
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <span class="label label-${'success' if latest_certificate.is_active else 'warning'}">
+                                                    ${'Active' if latest_certificate.is_active else 'inactive'}
+                                                </span>
+                                            </td>
+                                        % endif
+                                    </tr>
+                                    <tr>
+                                        <th>Latest Active Certificate</th>
+                                        % if latest_active_certificate:
+                                            <td>
+                                                <a  class="label label-info"
+                                                    href="${admin_prefix}/certificate/${latest_active_certificate.id}"
+                                                >
+                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                    cert-${latest_active_certificate.id}
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <span class="label label-${'success' if latest_active_certificate.is_active else 'warning'}">
+                                                    ${'Active' if latest_active_certificate.is_active else 'inactive'}
+                                                </span>
+                                            </td>
+                                        % endif
+                                    </tr>
+                                </tbody>
+                            </table>
                         </td>
                     </tr>
                     <tr>
                         <th>Certificates</th>
                         <td>
-                            ${admin_partials.table_Certificates(UniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
+                            ${admin_partials.table_ServerCertificates(UniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
                             % if UniqueFQDNSet.server_certificates__5:
                                 ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificates" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
@@ -177,6 +198,7 @@
                             % endif
                         </td>
                     </tr>
+                    ## TODO: queue_renewal
                     % if False:
                         <tr>
                             <th>Queue: Renewals</th>

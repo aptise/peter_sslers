@@ -13,20 +13,20 @@ info_AcmeOrders = [
     "An ACME order is essentially a Certificate Signing Request.",
 ]
 info_AcmeAccountKeys = [
-    "Used to sign Certificate Requests",
-    "AcmeAccountKeys identify our account to LetsEncrypt when signing.",
+    "Used to make Acme Orders",
+    "AcmeAccountKeys identify our account to LetsEncrypt's ACME server.",
 ]
 info_PrivateKeys = [
-    "Private Keys matched to Signed Certificates",
+    "PrivateKeys sign CertificateRequests and ServerCertificates",
     "PrivateKeys are paired to our Certifcate Requests.",
 ]
 info_CACertificates = [
     "Official LetsEncrypt",
-    "CACertificates are what LetsEncrypt uses to sign our Certificates.",
+    "CACertificates are `Certificate Authority Certificates`, or what LetsEncrypt uses to sign our ServerCertificates.",
 ]
 info_CACertificateProbes = [
     "Probe Events",
-    "Probe the LE website to find new certificates (if any) and update our db.",
+    "Probe the LE website to find new published Certificate Authority Certificates (if any) and update our database.",
 ]
 
 

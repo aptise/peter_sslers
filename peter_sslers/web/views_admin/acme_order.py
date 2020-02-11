@@ -86,17 +86,59 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:acme_order:focus:retry", renderer=None)
-    def retry(self):
+    @view_config(route_name="admin:acme_order:focus:acme_server_sync", renderer=None)
+    def acme_server_sync(self):
+        """
+        Acme Refresh should just update the record against the acme server.
+        """
         dbAcmeOrder = self._focus(eagerload_web=True)
-        if not dbAcmeOrder.is_can_retry:
-            raise HTTPSeeOther("%s?error=retry+not+allowed" % self._focus_url)
+        try:
+            if not dbAcmeOrder.is_can_acme_server_sync:
+                raise errors.InvalidRequest(
+                    "ACME Server Sync is not allowed for this AcmeOrder"
+                )
+            result = lib_db.actions.do__AcmeOrder_AcmeV2__acme_server_sync(
+                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+            )
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme+server+sync+success" % self._focus_url
+            )
+        except (
+            errors.AcmeCommunicationError,
+            errors.DomainVerificationError,
+            errors.InvalidRequest,
+        ) as exc:
+            return HTTPSeeOther(
+                "%s?error=new-automated&message=%s"
+                % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+            )
 
-        result = lib_db.actions.do__AcmeOrder_AcmeV2__retry(
-            self.request.api_context, dbAcmeOrder=dbAcmeOrder,
-        )
-
-        return HTTPSeeOther("%s?error=retry+success" % self._focus_url)
+    @view_config(route_name="admin:acme_order:focus:retry", renderer=None)
+    def retry_order(self):
+        """
+        Retry should create a new order
+        """
+        dbAcmeOrder = self._focus(eagerload_web=True)
+        try:
+            if not dbAcmeOrder.is_can_acme_server_sync:
+                raise errors.InvalidRequest(
+                    "ACME Retry is not allowed for this AcmeOrder"
+                )
+            result = lib_db.actions.do__AcmeOrder_AcmeV2__retry(
+                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+            )
+            return HTTPSeeOther(
+                "%s?result=success&operation=retry+success" % self._focus_url
+            )
+        except (
+            errors.AcmeCommunicationError,
+            errors.DomainVerificationError,
+            errors.InvalidRequest,
+        ) as exc:
+            return HTTPSeeOther(
+                "%s?error=new-automated&message=%s"
+                % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+            )
 
 
 class ViewAdmin_New(Handler):
@@ -163,17 +205,24 @@ class ViewAdmin_New(Handler):
                 accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
 
             private_key_pem = form_utils.parse_PrivateKeyPem(self.request, formStash)
+            (
+                dbPrivateKey,
+                _is_created,
+            ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
+                self.request.api_context, private_key_pem
+            )
 
             try:
-                dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2_Automated(
+                dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2__automated(
                     self.request.api_context,
-                    domain_names,
+                    domain_names=domain_names,
                     dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
-                    private_key_pem=private_key_pem,
+                    dbPrivateKey=dbPrivateKey,
                 )
             except (
                 errors.AcmeCommunicationError,
                 errors.DomainVerificationError,
+                errors.InvalidRequest,
             ) as exc:
                 return HTTPSeeOther(
                     "%s/acme-orders?error=new-automated&message=%s"

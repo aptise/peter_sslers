@@ -13,7 +13,7 @@
 
 <%block name="page_header_col">
     <h2>Certificate Requests</h2>
-    ${admin_partials.standard_error_display(has_message=True)}
+    ${admin_partials.standard_error_display(expect_message=True)}
 </%block>
 
 

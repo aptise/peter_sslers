@@ -64,11 +64,9 @@
                     <tr>
                         <th>is issued?</th>
                         <td>
-                            % if CertificateRequest.server_certificate:
+                            % if CertificateRequest.server_certificates__5:
                                 <span class="label label-success">Yes</span>&nbsp;
-                                <a class="label label-info" href="${admin_prefix}/certificate/${CertificateRequest.server_certificate.id}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    cert-${CertificateRequest.server_certificate.id}</a>
+                                ${admin_partials.table_ServerCertificates(CertificateRequest.server_certificates__5, perspective='CertificateRequest')}
                             % else:
                                 <span class="label label-default">No</span>
                             % endif
@@ -102,14 +100,6 @@
                                         PrivateKey-${CertificateRequest.private_key_id__signed_by}</a>
                                 % endif
                             % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>unique fqdn set</th>
-                        <td>
-                            <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${CertificateRequest.unique_fqdn_set_id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFqdnSet-${CertificateRequest.unique_fqdn_set_id}</a>
                         </td>
                     </tr>
                     <tr>
@@ -148,7 +138,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>domains</th>
+                        <th>unique fqdn set</th>
+                        <td>
+                            <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${CertificateRequest.unique_fqdn_set_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniqueFqdnSet-${CertificateRequest.unique_fqdn_set_id}</a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>domains (via UniqueFqdnSet)</th>
                         <td>
                             ${admin_partials.table_UniqueFqdnSet_Domains(CertificateRequest.unique_fqdn_set, perspective='CertificateRequest')}
                         </td>

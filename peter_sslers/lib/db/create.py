@@ -30,6 +30,8 @@ def create__AcmeOrder(
     dbEventLogged=None,
     acmeOrderRfcObject=None,
     acmeOrderResponseHeaders=None,
+    dbAcmeOrder_retry_of=None,
+    dbAcmeOrder_renewal_of=None,
     transaction_commit=None,
 ):
     """
@@ -41,6 +43,10 @@ def create__AcmeOrder(
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
     :param acmeOrderRfcObject: (required) dictionary object from the server, representing an ACME payload
     :param acmeOrderResponseHeaders: (required) headers from the ACME order
+
+    :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
+    :param dbAcmeOrder_renewal_of: (optional) A :class:`model.objects.AcmeOrder` object
+
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
     """
     if not transaction_commit:
@@ -60,6 +66,11 @@ def create__AcmeOrder(
     except:
         pass
 
+    if all((dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of)):
+        raise ValueError(
+            "`create__AcmeOrder` must be invoked with one or None of (`dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of`)."
+        )
+
     dbAcmeOrder = model_objects.AcmeOrder()
     dbAcmeOrder.timestamp_created = ctx.timestamp
     dbAcmeOrder.resource_url = resource_url
@@ -71,6 +82,10 @@ def create__AcmeOrder(
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.timestamp_expires = timestamp_expires
     dbAcmeOrder.timestamp_updated = ctx.timestamp
+    if dbAcmeOrder_retry_of:
+        dbAcmeOrder.acme_order_id__retry_of = dbAcmeOrder_retry_of.id
+    if dbAcmeOrder_renewal_of:
+        dbAcmeOrder.acme_order_id__renewal_of = dbAcmeOrder_renewal_of.id
 
     ctx.dbSession.add(dbAcmeOrder)
     ctx.dbSession.flush(objects=[dbAcmeOrder])
@@ -155,7 +170,7 @@ def create__CertificateRequest(
     :param dbPrivateKey: (required) Private Key used to sign the CSR
     
     invoked by:
-        lib.db.actions.do__AcmeOrder__AcmeV2_Automated
+        lib.db.actions.do__AcmeOrder__AcmeV2__automated
             ctx,
             csr_pem,
             certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED,

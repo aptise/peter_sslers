@@ -884,7 +884,6 @@ class AuthenticatedUser(object):
                     transaction_commit=True,
                 )
 
-                pdb.set_trace()
                 # if we had a 'valid' challenge, the payload would be `None`
                 # to trigger a GET-as-POST functionality
                 (challenge_response, _, _) = self._send_signed_request(

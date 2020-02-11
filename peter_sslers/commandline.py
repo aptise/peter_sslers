@@ -37,7 +37,7 @@ def upload_fileset(server_url_root, fset):
     url = "%s/certificate/upload.json" % server_url_root
 
     try:
-        proc = psutil.Popen(
+        with psutil.Popen(
             [
                 "curl",
                 "--form",
@@ -51,22 +51,22 @@ def upload_fileset(server_url_root, fset):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        )
-        json_response, err = proc.communicate()
-        if not json_response:
-            raise ValueError("error")
-        if six.PY3:
-            json_response = json_response.decode("utf8")
-        json_response = json.loads(json_response)
-        if ("result" not in json_response) or (json_response["result"] != "success"):
-            pprint.pprint(json_response)
-            raise ValueError("error!")
-        else:
-            print("success | %s" % json_response)
+        ) as proc:
+            json_response, err = proc.communicate()
+            if not json_response:
+                raise ValueError("error")
+            if six.PY3:
+                json_response = json_response.decode("utf8")
+            json_response = json.loads(json_response)
+            if ("result" not in json_response) or (
+                json_response["result"] != "success"
+            ):
+                pprint.pprint(json_response)
+                raise ValueError("error!")
+            else:
+                print("success | %s" % json_response)
     except Exception as exc:
         raise
-    finally:
-        proc.kill()
 
 
 def upload_account(server_url_root, fset):
@@ -76,7 +76,7 @@ def upload_account(server_url_root, fset):
     url = "%s/acme-account-key/upload.json" % server_url_root
 
     try:
-        proc = psutil.Popen(
+        with psutil.Popen(
             [
                 "curl",
                 "--form",
@@ -90,22 +90,22 @@ def upload_account(server_url_root, fset):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        )
-        json_response, err = proc.communicate()
-        if not json_response:
-            raise ValueError("error")
-        if six.PY3:
-            json_response = json_response.decode("utf8")
-        json_response = json.loads(json_response)
-        if ("result" not in json_response) or (json_response["result"] != "success"):
-            pprint.pprint(json_response)
-            raise ValueError("error!")
-        else:
-            print("success | %s" % json_response)
+        ) as proc:
+            json_response, err = proc.communicate()
+            if not json_response:
+                raise ValueError("error")
+            if six.PY3:
+                json_response = json_response.decode("utf8")
+            json_response = json.loads(json_response)
+            if ("result" not in json_response) or (
+                json_response["result"] != "success"
+            ):
+                pprint.pprint(json_response)
+                raise ValueError("error!")
+            else:
+                print("success | %s" % json_response)
     except Exception as exc:
         raise
-    finally:
-        proc.kill()
 
 
 def import_letsencrypt_certs_archive(archive_path, server_url_root):

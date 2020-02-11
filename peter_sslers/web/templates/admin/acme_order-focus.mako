@@ -29,13 +29,22 @@
     
 
     <p>
+        % if AcmeOrder.is_can_acme_server_sync:
+            <a
+                href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
+                class="label label-info"
+            >
+                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                Sync Order Against ACME Server
+            </a>
+        % endif
         % if AcmeOrder.is_can_retry:
             <a
                 href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"
                 class="label label-info"
             >
                 <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                retry
+                Retry (New) Order
             </a>
         % endif
         <a
@@ -142,6 +151,42 @@
                         % endif
                     </td>
                 </tr>
+
+                <tr>
+                    <th><hr/></th>
+                    <th><hr/></th>
+                </tr>
+
+                <tr>
+                    <th>acme_order_id__retry_of</th>
+                    <td>
+                        % if AcmeOrder.acme_order_id__retry_of:
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/acme-order/${AcmeOrder.acme_order_id__retry_of}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeOrder-${AcmeOrder.acme_order_id__retry_of}
+                            </a>
+                        % endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>acme_order_id__renewal_of</th>
+                    <td>
+                        % if AcmeOrder.acme_order_id__renewal_of:
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/acme-order/${AcmeOrder.acme_order_id__renewal_of}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeOrder-${AcmeOrder.acme_order_id__renewal_of}
+                            </a>
+                        % endif
+                    </td>
+                </tr>
+
+
             </table>
         </div>
     </div>

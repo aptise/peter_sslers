@@ -22,6 +22,10 @@ class AcmeCommunicationError(Exception):
     pass
 
 
+class InvalidRequest(Exception):
+    pass
+
+
 class DomainVerificationError(Exception):
     pass
 
