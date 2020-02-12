@@ -11,6 +11,7 @@ from ..lib import cert_utils
 from ..lib.utils import ApiContext
 from ..model import objects as model_objects
 from ..model import utils as model_utils
+from ..model import websafe as model_websafe
 from .lib.config_utils import set_bool_setting
 from .lib.config_utils import set_int_setting
 
@@ -21,7 +22,7 @@ def add_renderer_globals(event):
     """sticks the admin_prefix into the renderer's topline namespace"""
     event["admin_prefix"] = event["request"].registry.settings["admin_prefix"]
     event["admin_server"] = event["request"].admin_server
-    event["model_utils"] = model_utils
+    event["model_websafe"] = model_websafe
 
 
 def db_log_cleanup__tween_factory(handler, registry):

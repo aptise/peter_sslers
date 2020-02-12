@@ -21,7 +21,7 @@ from ...model import objects as model_objects
 # local
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
-from .get import get__CaCertificate__by_pem_text
+from .get import get__CACertificate__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
 from .logger import log__OperationsEvent
@@ -247,7 +247,7 @@ def getcreate__AcmeAuthorization(
         challenges (required, array of objects):
         wildcard (optional, boolean)
     """
-    is_created = False
+    is_created__AcmeAuthorization = False
     dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
         ctx, authorization_url
     )
@@ -274,10 +274,10 @@ def getcreate__AcmeAuthorization(
         dbAcmeAuthorization.domain_id = dbDomain.id
         dbAcmeAuthorization.timestamp_expires = timestamp_expires
         dbAcmeAuthorization.status = authorization_status
-        dbAcmeAuthorization.timestamp_updated = ctx.timestamp
+        dbAcmeAuthorization.timestamp_updated = datetime.datetime.utcnow()
         ctx.dbSession.add(dbAcmeAuthorization)
         ctx.dbSession.flush(objects=[dbAcmeAuthorization])
-        is_created = True
+        is_created__AcmeAuthorization = True
 
     # is this associated?
     dbOrder2Auth = (
@@ -305,7 +305,7 @@ def getcreate__AcmeAuthorization(
     challenge_url = acme_challenge["url"]
     challenge_status = acme_challenge["status"]
     dbChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
-    is_created_challenge = False
+    is_created_AcmeChallenge = False
     if not dbChallenge:
         challenge_token = acme_challenge["token"]
         dbChallenge = model_objects.AcmeChallenge()
@@ -317,7 +317,7 @@ def getcreate__AcmeAuthorization(
         )
         dbChallenge.status = challenge_status
         dbChallenge.token = challenge_token
-        dbChallenge.timestamp_updated = ctx.timestamp
+        dbChallenge.timestamp_updated = datetime.datetime.utcnow()
         if authenticatedUser:
             dbChallenge.keyauthorization = lib.acme_v2.create_challenge_keyauthorization(
                 challenge_token, authenticatedUser.accountkey_thumbprint
@@ -325,46 +325,46 @@ def getcreate__AcmeAuthorization(
 
         ctx.dbSession.add(dbChallenge)
         ctx.dbSession.flush(objects=[dbChallenge])
-        is_created_challenge = True
+        is_created_AcmeChallenge = True
     else:
+        pdb.set_trace()
         if dbChallenge.status != challenge_status:
             dbChallenge.status = challenge_status
-            dbChallenge.timestamp_updated = ctx.timestamp
+            dbChallenge.timestamp_updated = datetime.datetime.utcnow()
             ctx.dbSession.add(dbChallenge)
             ctx.dbSession.flush(objects=[dbChallenge])
 
     # ???: should this be broken up into separate `AcmeAuthorization` and `AcmeChallenge` phases?
     # persist this to the db
     if transaction_commit:
-        ctx.transaction_manager.commit()
-        ctx.transaction_manager.begin()
+        ctx.pyramid_transaction_commit()
 
-    return dbAcmeAuthorization, is_created
+    return dbAcmeAuthorization, is_created__AcmeAuthorization
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__CaCertificate__by_pem_text(
+def getcreate__CACertificate__by_pem_text(
     ctx,
     cert_pem,
-    chain_name,
+    chain_name=None,
     le_authority_name=None,
     is_authority_certificate=None,
     is_cross_signed_authority_certificate=None,
 ):
     """
-    Gets or Creates CaCertificates
+    Gets or Creates CACertificates
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param cert_pem: 
+    :param cert_pem: (required)
     :param chain_name:
     :param le_authority_name:
     :param is_authority_certificate:
     :param is_cross_signed_authority_certificate:
     """
     is_created = False
-    dbCACertificate = get__CaCertificate__by_pem_text(ctx, cert_pem)
+    dbCACertificate = get__CACertificate__by_pem_text(ctx, cert_pem)
     if not dbCACertificate:
         cert_pem = cert_utils.cleanup_pem_text(cert_pem)
         cert_pem_md5 = utils.md5_text(cert_pem)
@@ -386,7 +386,7 @@ def getcreate__CaCertificate__by_pem_text(
                 model_utils.OperationsEventType.from_string("ca_certificate__insert"),
             )
 
-            dbCACertificate = model_objects.CaCertificate()
+            dbCACertificate = model_objects.CACertificate()
             dbCACertificate.name = chain_name or "unknown"
 
             dbCACertificate.le_authority_name = le_authority_name
@@ -623,7 +623,7 @@ def getcreate__ServerCertificate__by_pem_text(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param cert_pem: 
-    :param dbCACertificate: (required) The upstream :class:`model.objects.CaCertificate` that signed the certificate
+    :param dbCACertificate: (required) The upstream :class:`model.objects.CACertificate` that signed the certificate
     :param dbAcmeAccountKey: (required) The :class:`model.objects.PrivateKey` that owns the certificate
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
     :param dbServerCertificate__renewal_of: (required) The :class:`model.objects.ServerCertificate` this renews
@@ -859,7 +859,7 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
 
 __all__ = (
     "getcreate__AcmeAccountKey",
-    "getcreate__CaCertificate__by_pem_text",
+    "getcreate__CACertificate__by_pem_text",
     "getcreate__CertificateRequest__by_pem_text",
     "getcreate__Domain__by_domainName",
     "getcreate__PrivateKey__by_pem_text",

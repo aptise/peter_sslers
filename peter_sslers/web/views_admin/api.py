@@ -263,7 +263,7 @@ class ViewAdmin(Handler):
             offset = 0
             limit = 100
             while True:
-                active_certs = lib_db.get.get__CaCertificate__paginated(
+                active_certs = lib_db.get.get__CACertificate__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,

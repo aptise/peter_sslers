@@ -84,14 +84,14 @@ class ViewAdmin_Focus(Handler):
         return {"project": "peter_sslers", "AcmeAuthorization": dbAcmeAuthorization}
 
     @view_config(
-        route_name="admin:acme_authorization:focus:orders",
-        renderer="/admin/acme_authorization-focus-orders.mako",
+        route_name="admin:acme_authorization:focus:acme_orders",
+        renderer="/admin/acme_authorization-focus-acme_orders.mako",
     )
     @view_config(
-        route_name="admin:acme_authorization:focus:orders_paginated",
-        renderer="/admin/acme_authorization-focus-orders.mako",
+        route_name="admin:acme_authorization:focus:acme_orders_paginated",
+        renderer="/admin/acme_authorization-focus-acme_orders.mako",
     )
-    def orders(self):
+    def acme_orders(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         items_count = lib_db.get.get__AcmeOrders__by_AcmeAuthorizationId__count(
             self.request.api_context, dbAcmeAuthorization.id

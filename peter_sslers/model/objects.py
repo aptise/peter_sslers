@@ -150,12 +150,14 @@ class AcmeAccountKey(Base):
         back_populates="acme_account_key",
     )
 
-    server_certificates__issued = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="AcmeAccountKey.id==ServerCertificate.acme_account_key_id",
-        order_by="ServerCertificate.id.desc()",
-        back_populates="acme_account_key",
-    )
+    # TODO: remap to orders
+    if False:
+        server_certificates__issued = sa_orm_relationship(
+            "ServerCertificate",
+            primaryjoin="AcmeAccountKey.id==ServerCertificate.acme_account_key_id",
+            order_by="ServerCertificate.id.desc()",
+            back_populates="acme_account_key",
+        )
 
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
@@ -241,7 +243,7 @@ class AcmeOrder(Base):
 
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    status = sa.Column(sa.Unicode(32), nullable=False)
+    acme_status_order_id = sa.Column(sa.Integer, nullable=False)  # Acme_Status_Order
     resource_url = sa.Column(sa.Unicode(255), nullable=True)
     finalize_url = sa.Column(sa.Unicode(255), nullable=True)
     timestamp_expires = sa.Column(sa.DateTime, nullable=True)
@@ -295,7 +297,7 @@ class AcmeOrder(Base):
         "ServerCertificate",
         primaryjoin="AcmeOrder.server_certificate_id==ServerCertificate.id",
         uselist=False,
-        back_populates="acme_orders",
+        back_populates="acme_order",
     )
 
     # authorizations
@@ -339,8 +341,11 @@ class AcmeOrder(Base):
 
     @property
     def is_can_retry(self):
-        # TODO: this should be conditional
-        return True
+        if self.acme_status_order_id == model_utils.Acme_Status_Order.from_string(
+            "invalid"
+        ):
+            return True
+        return False
 
 
 class AcmeOrder2Domain(Base):
@@ -430,7 +435,9 @@ class AcmeAuthorization(Base):
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
     timestamp_expires = sa.Column(sa.DateTime, nullable=True)
-    status = sa.Column(sa.Unicode(32), nullable=False)
+    acme_status_authorization_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # Acme_Status_Authorization
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
     wildcard = sa.Column(sa.Boolean, nullable=True, default=None)
 
@@ -515,7 +522,9 @@ class AcmeChallenge(Base):
     acme_challenge_type_id = sa.Column(
         sa.Integer, nullable=True
     )  # this library only does http-01, `model_utils.AcmeChallengeType`
-    status = sa.Column(sa.Unicode(32), nullable=False)
+    acme_status_challenge_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # Acme_Status_Challenge
     token = sa.Column(sa.Unicode(255), nullable=False)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
 
@@ -596,7 +605,7 @@ class AcmeChallenge(Base):
 # ==============================================================================
 
 
-class CaCertificate(Base):
+class CACertificate(Base):
     """
     These are trusted "Certificate Authority" Certificates from LetsEncrypt that are used to sign server certificates.
     These are directly tied to a ServerCertificate and are needed to create a "fullchain" certificate for most deployments.
@@ -633,13 +642,13 @@ class CaCertificate(Base):
 
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
-        primaryjoin="CaCertificate.operations_event_id__created==OperationsEvent.id",
+        primaryjoin="CACertificate.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
 
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
-        primaryjoin="CaCertificate.id==OperationsObjectEvent.ca_certificate_id",
+        primaryjoin="CACertificate.id==OperationsObjectEvent.ca_certificate_id",
         back_populates="ca_certificate",
     )
 
@@ -1147,11 +1156,6 @@ class ServerCertificate(Base):
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
 
-    # this is the account key, if a LetsEncrypt issue.  this could be null
-    acme_account_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
-    )
-
     # tracking
     # `use_alter=True` is needed for setup/drop
     certificate_request_id = sa.Column(
@@ -1168,17 +1172,24 @@ class ServerCertificate(Base):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    # TODO: remap through AcmeOrder
     acme_account_key = sa_orm_relationship(
-        "AcmeAccountKey",
-        primaryjoin="ServerCertificate.acme_account_key_id==AcmeAccountKey.id",
-        back_populates="server_certificates__issued",
+        AcmeAccountKey,
+        primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id",
+        secondary=(
+            """join(AcmeOrder,
+                    AcmeAccountKey,
+                    AcmeOrder.acme_account_key_id == AcmeAccountKey.id
+                    )"""
+        ),
+        # back_populates="server_certificates__issued",
         uselist=False,
     )
 
-    acme_orders = sa_orm_relationship(
+    acme_order = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id",
-        uselist=True,
+        uselist=False,
         back_populates="server_certificate",
     )
 
@@ -1196,8 +1207,8 @@ class ServerCertificate(Base):
     )
 
     certificate_upchain = sa_orm_relationship(
-        "CaCertificate",
-        primaryjoin="ServerCertificate.ca_certificate_id__upchain==CaCertificate.id",
+        "CACertificate",
+        primaryjoin="ServerCertificate.ca_certificate_id__upchain==CACertificate.id",
         uselist=False,
     )
 
@@ -1335,8 +1346,8 @@ class ServerCertificate(Base):
     @property
     def can_renew_letsencrypt(self):
         """only allow renew of LE certificates"""
-        if self.acme_account_key_id:
-            return True
+        # if self.acme_account_key_id:
+        #    return True
         return False
 
     @property
@@ -1364,7 +1375,7 @@ class ServerCertificate(Base):
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "ca_certificate_id__upchain": self.ca_certificate_id__upchain,
             "private_key_id__signed_by": self.private_key_id__signed_by,
-            "acme_account_key_id": self.acme_account_key_id,
+            # "acme_account_key_id": self.acme_account_key_id,
             "domains_as_list": self.domains_as_list,
         }
 
@@ -1631,8 +1642,8 @@ class OperationsObjectEvent(Base):
     )
 
     ca_certificate = sa_orm_relationship(
-        "CaCertificate",
-        primaryjoin="OperationsObjectEvent.ca_certificate_id==CaCertificate.id",
+        "CACertificate",
+        primaryjoin="OperationsObjectEvent.ca_certificate_id==CACertificate.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -1778,12 +1789,23 @@ AcmeAccountKey.certificate_requests__5 = sa_orm_relationship(
 # note: AcmeAccountKey.server_certificates__5
 AcmeAccountKey.server_certificates__5 = sa_orm_relationship(
     ServerCertificate,
-    primaryjoin=(
+    primaryjoin="AcmeAccountKey.id==AcmeOrder.acme_account_key_id",
+    secondary=(
+        """join(AcmeOrder,
+                ServerCertificate,
+                AcmeOrder.server_certificate_id == ServerCertificate.id
+                )"""
+    ),
+    secondaryjoin=(
         sa.and_(
-            AcmeAccountKey.id == ServerCertificate.acme_account_key_id,
+            ServerCertificate.id == sa.orm.foreign(AcmeOrder.server_certificate_id),
             ServerCertificate.id.in_(
                 sa.select([ServerCertificate.id])
-                .where(AcmeAccountKey.id == ServerCertificate.acme_account_key_id)
+                .where(ServerCertificate.id == AcmeOrder.server_certificate_id)
+                .where(
+                    AcmeOrder.acme_account_key_id
+                    == AcmeAccountKey.id
+                )
                 .order_by(ServerCertificate.id.desc())
                 .limit(5)
                 .correlate()
@@ -1797,6 +1819,38 @@ AcmeAccountKey.server_certificates__5 = sa_orm_relationship(
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+# note: AcmeAuthorization.acme_orders__5
+AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
+    AcmeOrder,
+    primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
+    secondary=(
+        """join(AcmeOrder2AcmeAuthorization,
+                AcmeOrder,
+                AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            AcmeOrder.id == sa.orm.foreign(AcmeOrder2AcmeAuthorization.acme_order_id),
+            AcmeOrder.id.in_(
+                sa.select([AcmeOrder.id])
+                .where(AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id)
+                .where(
+                    AcmeOrder2AcmeAuthorization.acme_authorization_id
+                    == AcmeAuthorization.id
+                )
+                .order_by(AcmeOrder.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeOrder.id.desc(),
+    viewonly=True,
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # note: PrivateKey.certificate_requests__5
 PrivateKey.certificate_requests__5 = sa_orm_relationship(
@@ -2003,7 +2057,7 @@ Domain.to_unique_fqdn_sets__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-# note: AcmeAccountKey.acme_orders__5
+# note: UniqueFQDNSet.acme_orders__5
 UniqueFQDNSet.acme_orders__5 = sa_orm_relationship(
     AcmeOrder,
     primaryjoin=(

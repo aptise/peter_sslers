@@ -5,6 +5,7 @@ import re
 
 # pypi
 import six
+from zope.sqlalchemy import mark_changed
 
 
 # ==============================================================================
@@ -108,6 +109,12 @@ class ApiContext(object):
     def transaction_manager(self):
         # this is the pyramid_tm interface
         return self.request.tm
+
+    def pyramid_transaction_commit(self):
+        """this method does some ugly stuff to commit the pyramid transaction"""
+        mark_changed(self.dbSession)
+        self.transaction_manager.commit()
+        self.transaction_manager.begin()
 
 
 # ------------------------------------------------------------------------------

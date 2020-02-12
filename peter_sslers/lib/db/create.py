@@ -81,7 +81,7 @@ def create__AcmeOrder(
     dbAcmeOrder.status = acme_order_status
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.timestamp_expires = timestamp_expires
-    dbAcmeOrder.timestamp_updated = ctx.timestamp
+    dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
     if dbAcmeOrder_retry_of:
         dbAcmeOrder.acme_order_id__retry_of = dbAcmeOrder_retry_of.id
     if dbAcmeOrder_renewal_of:
@@ -96,8 +96,7 @@ def create__AcmeOrder(
 
     # persist this to the db
     if transaction_commit:
-        ctx.transaction_manager.commit()
-        ctx.transaction_manager.begin()
+        ctx.pyramid_transaction_commit()
 
     return dbAcmeOrder
 
@@ -321,38 +320,71 @@ def create__CertificateRequest(
 
 def create__ServerCertificate(
     ctx,
-    timestamp_signed=None,
-    timestamp_expires=None,
-    is_active=None,
     cert_pem=None,
-    chained_pem=None,
-    chain_name=None,
+    dbAcmeOrder=None,
+    dbCACertificate=None,
+    ca_chain_pem=None,
+    ca_chain_name=None,
     dbCertificateRequest=None,
-    # dbAcmeAccountKey=None,
-    dbDomains=None,
-    dbServerCertificate__renewal_of=None,
     dbPrivateKey=None,
+    dbServerCertificate__renewal_of=None,
+    is_active=None,
+    cert_domains_expected=None,
+    dbDomains=None,
 ):
     """
     Create a new ServerCertificate
     
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
+    :param cert_pem: (required) The certificate in PEM encoding
 
+    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
+        if provivded, do not submit `dbCertificateRequest`
+    :param dbCACertificate: (optional) The :class:`model.objects.CACertificate` that signed this certificate
+        if not provided, please submit `ca_chain_pem` and `ca_chain_name`
+    :param ca_chain_pem: (optional) The CA Certificate's PEM if :param:`dbCACertificate` is not provided
+    :param ca_chain_name: (optional) The CA Certificate's Name if :param:`dbCACertificate` is not provided
+
+    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through. 
+        if provivded, do not submit `dbAcmeOrder`
+    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
+    :param dbServerCertificate__renewal_of: (optional) The :class:`model.objects.ServerCertificate` this renews
+    :param is_active: (optional) default `None`  do not activate a certificate when uploading unless specified.
+    
+    :param cert_domains_expected: (required) a list of domains in the cert we expect to see
+    
     """
     if not dbPrivateKey:
         raise ValueError(
             "create__ServerCertificate must be provided with `dbPrivateKey`"
         )
+    if dbAcmeOrder:
+        if dbCertificateRequest:
+            raise ValueError(
+                "do not submit a `dbCertificateRequest` with a `dbAcmeOrder`"
+            )
+    if dbCACertificate:
+        if any((ca_chain_pem, ca_chain_name)):
+            raise ValueError(
+                "do not submit `ca_chain_pem, ca_chain_name` with a `dbCACertificate`"
+            )
+    else:
+        if not all((ca_chain_pem, ca_chain_name)):
+            raise ValueError(
+                "must submit `ca_chain_pem, ca_chain_name` with a `dbCACertificate`"
+            )
 
-    # we need to figure this out; it's the chained_pem
-    # ca_certificate_id__upchain
-    (
-        dbCACertificate,
-        _is_created_cert,
-    ) = lib.db.getcreate.getcreate__CaCertificate__by_pem_text(
-        ctx, chained_pem, chain_name
-    )
+    if not dbCACertificate:
+        # we need to figure this out; it's the ca_chain_pem
+        # ca_certificate_id__upchain
+        (
+            dbCACertificate,
+            _is_created__CACertificate,
+        ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
+            ctx, ca_chain_pem, ca_chain_name
+        )
+        if not dbCACertificate:
+            raise ValueError("Could not create a `dbCACertificate`")
     ca_certificate_id__upchain = dbCACertificate.id
 
     # bookkeeping
@@ -361,12 +393,49 @@ def create__ServerCertificate(
         ctx, model_utils.OperationsEventType.from_string("certificate__insert")
     )
 
-    cert_pem = cert_utils.cleanup_pem_text(cert_pem)
+    _tmpfileCert = None
     try:
+
+        # cleanup the cert_pem
+        cert_pem = cert_utils.cleanup_pem_text(cert_pem)
         _tmpfileCert = cert_utils.new_pem_tempfile(cert_pem)
 
         # validate
         cert_utils.validate_cert__pem_filepath(_tmpfileCert.name)
+
+        # validate the domains!
+        # let's make sure have the right domains in the cert!!
+        # this only happens on development during tests when we use a single cert
+        # for all requests...
+        # so we don't need to handle this or save it
+        cert_domains = cert_utils.parse_cert_domains(_tmpfileCert.name)
+        if set(cert_domains_expected) != set(cert_domains):
+            # if not acme_v2.TESTING_ENVIRONMENT:
+            log.error("set(cert_domains_expected) != set(cert_domains)")
+            log.error(cert_domains_expected)
+            log.error(cert_domains)
+            raise ValueError(
+                "Certificate Domains do not match the expected ones! this should never happen!"
+            )
+
+        # ok, now pull the dates off the cert
+        cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
+
+        datetime_signed = cert_dates["startdate"]
+        if not datetime_signed.startswith("notBefore="):
+            raise ValueError("unexpected notBefore: %s" % datetime_signed)
+        datetime_signed = datetime_signed[10:]
+        datetime_signed = dateutil_parser.parse(datetime_signed)
+        datetime_signed = datetime_signed.replace(tzinfo=None)
+
+        datetime_expires = cert_dates["enddate"]
+        if not datetime_expires.startswith("notAfter="):
+            raise ValueError("unexpected notAfter: %s" % datetime_expires)
+        datetime_expires = datetime_expires[9:]
+        datetime_expires = dateutil_parser.parse(datetime_expires)
+        datetime_expires = datetime_signed.replace(tzinfo=None)
+
+        pdb.set_trace()
 
         # pull the domains, so we can get the fqdn
         (
@@ -403,6 +472,8 @@ def create__ServerCertificate(
         # note the event
         dbServerCertificate.operations_event_id__created = dbOperationsEvent.id
 
+        raise ValueError("not sure how we're here")
+
         ctx.dbSession.add(dbServerCertificate)
         ctx.dbSession.flush(objects=[dbServerCertificate])
 
@@ -437,7 +508,8 @@ def create__ServerCertificate(
     except Exception as exc:
         raise
     finally:
-        _tmpfileCert.close()
+        if _tmpfileCert:
+            _tmpfileCert.close()
 
     return dbServerCertificate
 

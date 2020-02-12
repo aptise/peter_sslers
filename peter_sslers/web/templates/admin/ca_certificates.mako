@@ -15,7 +15,7 @@
     <h2>CA Certificates</h2>
     <p>${request.text_library.info_CACertificates[1]}</p>
     <p>
-        CaCertificates can be initialized and updated by probing the LetsEncrypt service;
+        CACertificates can be initialized and updated by probing the LetsEncrypt service;
         see <a class="btn btn-xs btn-warning" href="${admin_prefix}/api">Api Endpoints</a>.
     
     </p>
@@ -41,7 +41,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if CaCertificates:
+            % if CACertificates:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -53,7 +53,7 @@
                             <th>cert_pem_md5</th>
                         </tr>
                     </thead>
-                    % for cert in CaCertificates:
+                    % for cert in CACertificates:
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/ca-certificate/${cert.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

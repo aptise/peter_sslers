@@ -121,13 +121,13 @@ def ca_certificate_probe(ctx):
     certs_modified = []
     for c in certs:
         _is_created = False
-        dbCACertificate = lib.db.get.get__CaCertificate__by_pem_text(ctx, c["cert_pem"])
+        dbCACertificate = lib.db.get.get__CACertificate__by_pem_text(ctx, c["cert_pem"])
         if not dbCACertificate:
             (
                 dbCACertificate,
                 _is_created,
-            ) = lib.db.getcreate.getcreate__CaCertificate__by_pem_text(
-                ctx, c["cert_pem"], c["name"]
+            ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
+                ctx, c["cert_pem"], chain_name=c["name"]
             )
             if _is_created:
                 certs_discovered.append(dbCACertificate)
@@ -214,7 +214,7 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     """
 
-    def handle_discovered_auth(
+    def handle_discovered_authorization(
         authorization_url, authorization_response, transaction_commit=None
     ):
         """
@@ -226,7 +226,7 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
             create/update the Authorization object
             create/update the Challenge object
         """
-        log.info("-handle_discovered_auth %s", authorization_url)
+        log.info("-handle_discovered_authorization %s", authorization_url)
         if transaction_commit is not True:
             raise ValueError("we must invoke this knowing it will commit")
         (
@@ -242,23 +242,25 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
         )
         return dbAcmeAuthorization
 
-    def handle_keyauth_challenge(
+    def handle_challenge_setup(
         domain, token, keyauthorization, transaction_commit=None
     ):
         """
+        `handle_challenge_setup` is a hook designed to setup the challenge on a server if needed.
+
+        this hook is currently not used, because the challenge is effectively enabled by being in the database.
+
         :param domain: (required) The domain for the challenge, as a string.
         :param token: (required) The challenge's token.
         :param keyauthorization: (required) The keyauthorization expected to be in the challenge url
         :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
-
-        originally, this callback/hook was used to make a challenge "live"
-        it might be unused
         """
-        log.info("-handle_keyauth_challenge %s", domain)
+        log.info("-handle_challenge_setup %s", domain)
         if transaction_commit is not True:
             raise ValueError("we must invoke this knowing it will commit")
+        return True
 
-    def handle_keyauth_cleanup(
+    def handle_challenge_cleanup(
         domain, token, keyauthorization, transaction_commit=None
     ):
         """
@@ -270,11 +272,30 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
         originally, this callback/hook was used to cleanup a challenge
         it might be unused
         """
-        log.info("-handle_keyauth_cleanup %s", domain)
+        log.info("-handle_challenge_cleanup %s", domain)
         if transaction_commit is not True:
             raise ValueError("we must invoke this knowing it will commit")
+        return True
 
-    return (handle_discovered_auth, handle_keyauth_challenge, handle_keyauth_cleanup)
+    def update_order_status(status, transaction_commit=None):
+        """
+        :param status: (required) The status for the order
+        :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+        """
+        if transaction_commit is not True:
+            raise ValueError("we must invoke this knowing it will commit")
+        if dbAcmeOrder.status != status:
+            dbAcmeOrder.status = status
+            dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
+            if transaction_commit:
+                ctx.pyramid_transaction_commit()
+
+    return (
+        handle_discovered_authorization,
+        handle_challenge_setup,
+        handle_challenge_cleanup,
+        update_order_status,
+    )
 
 
 def _AcmeV2_handle_order(
@@ -322,9 +343,10 @@ def _AcmeV2_handle_order(
     """
 
     (
-        handle_discovered_auth,
-        handle_keyauth_challenge,
-        handle_keyauth_cleanup,
+        handle_discovered_authorization,
+        handle_challenge_setup,
+        handle_challenge_cleanup,
+        update_order_status,
     ) = _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder)
 
     _todo_finalize_order = None
@@ -335,9 +357,9 @@ def _AcmeV2_handle_order(
             ctx,
             acmeOrder=acmeOrderObject,
             dbAcmeOrder=dbAcmeOrder,
-            handle_discovered_auth=handle_discovered_auth,
-            handle_keyauth_challenge=handle_keyauth_challenge,
-            handle_keyauth_cleanup=handle_keyauth_cleanup,
+            handle_discovered_authorization=handle_discovered_authorization,
+            handle_challenge_setup=handle_challenge_setup,
+            handle_challenge_cleanup=handle_challenge_cleanup,
             transaction_commit=True,
             is_retry=is_retry,
         )
@@ -400,11 +422,10 @@ def do__AcmeOrder_AcmeV2__acme_server_sync(
         _server_status = acmeOrderObject.rfc_object["status"]
         if dbAcmeOrder.status != _server_status:
             dbAcmeOrder.status = _server_status
-            dbAcmeOrder.timestamp_updated = ctx.timestamp
+            dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
 
             # transaction_commit
-            ctx.transaction_manager.commit()
-            ctx.transaction_manager.begin()
+            ctx.pyramid_transaction_commit()
 
     finally:
         # cleanup tmpfiles
@@ -549,16 +570,17 @@ def _do__AcmeOrder__AcmeV2__core(
             tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
             tmpfiles.append(tmpfile_csr)
 
-            with transaction.manager as tx:
-                dbCertificateRequest = lib.db.create.create__CertificateRequest(
-                    ctx,
-                    csr_pem,
-                    certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED,
-                    dbPrivateKey=dbPrivateKey,
-                    dbServerCertificate__issued=None,
-                    dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
-                    domain_names=domain_names,
-                )
+            # immediately commit this
+            dbCertificateRequest = lib.db.create.create__CertificateRequest(
+                ctx,
+                csr_pem,
+                certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED,
+                dbPrivateKey=dbPrivateKey,
+                dbServerCertificate__issued=None,
+                dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
+                domain_names=domain_names,
+            )
+            ctx.pyramid_transaction_commit()
 
         # pull domains from csr
         csr_domains = cert_utils.parse_csr_domains(
@@ -595,17 +617,18 @@ def _do__AcmeOrder__AcmeV2__core(
         # register the order into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
-        # mark the order to be finalized
+        # handle the order towards finalized?
         _todo_finalize_order = _AcmeV2_handle_order(
             ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject
         )
         if _todo_finalize_order:
             # sign and download
-            raise ValueError("ok")
-            (fullchain_pem, acmeLoggedEvent) = authenticatedUser.acme_finalize_order(
+            fullchain_pem = authenticatedUser.acme_finalize_order(
                 acmeOrder=acmeOrderObject,
                 dbAcmeOrder=dbAcmeOrder,
+                update_order_status=update_order_status,
                 csr_path=tmpfile_csr.name,
+                transaction_commit=True,
             )
         else:
             pdb.set_trace()
@@ -613,78 +636,54 @@ def _do__AcmeOrder__AcmeV2__core(
         # ######################################################################
         # ######################################################################
 
-        (certificate_pem, chained_pem) = utils_certbot.cert_and_chain_from_fullchain(
+        (certificate_pem, ca_chain_pem) = utils_certbot.cert_and_chain_from_fullchain(
             fullchain_pem
         )
 
-        # let's make sure have the right domains in the cert!!
-        # this only happens on development during tests when we use a single cert
-        # for all requests...
-        # so we don't need to handle this or save it
-        tmpfile_signed_cert = cert_utils.new_pem_tempfile(certificate_pem)
-        tmpfiles.append(tmpfile_signed_cert)
+        (
+            dbCACertificate,
+            is_created__CACertificate,
+        ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
+            ctx,
+            ca_chain_pem,
+            ca_chain_name="ACME Server Response",
+            le_authority_name=None,
+            is_authority_certificate=None,
+            is_cross_signed_authority_certificate=None,
+        )
+        if is_created__CACertificate:
+            self.ctx.pyramid_transaction_commit()
 
-        # some checking!
-        cert_domains = cert_utils.parse_cert_domains(tmpfile_signed_cert.name)
-        if set(domain_names) != set(cert_domains):
-            # if not acme_v2.TESTING_ENVIRONMENT:
-            log.error("set(domain_names) != set(cert_domains)")
-            log.error(domain_names)
-            log.error(cert_domains)
-            # current version of fakeboulder will sign the csr and give us the right domains !
-            raise ValueError(
-                "Certificate Domains do not match the CSR! this should never happen!"
-            )
+        # immediately commit this
+        dbServerCertificate = lib.db.create.create__ServerCertificate(
+            ctx,
+            cert_pem=certificate_pem,
+            dbAcmeOrder=dbAcmeOrder,
+            dbCACertificate=dbCACertificate,
+            # ca_chain_pem=ca_chain_pem,
+            # ca_chain_name=None,
+            # dbCertificateRequest=dbCertificateRequest,
+            # dbPrivateKey=dbPrivateKey,
+            # dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
+            is_active=True,
+            cert_domains_expected=domain_names,
+            # dbDomains=[v[0] for v in dbDomainObjects.values()],
+        )
+        if dbServerCertificate__renewal_of:
+            dbServerCertificate__renewal_of.is_auto_renew = False
+            dbServerCertificate__renewal_of.is_renewed = True
+            ctx.dbSession.flush(objects=[dbServerCertificate__renewal_of])
+        if dbQueueRenewal__of:
+            dbQueueRenewal__of.timestamp_processed = ctx.timestamp
+            dbQueueRenewal__of.process_result = True
+            dbQueueRenewal__of.is_active = False
+            ctx.dbSession.flush(objects=[dbQueueRenewal__of])
+        ctx.pyramid_transaction_commit()
 
-        # ok, now pull the dates off the cert
-        cert_dates = cert_utils.parse_cert__dates(pem_filepath=tmpfile_signed_cert.name)
-
-        datetime_signed = cert_dates["startdate"]
-        if not datetime_signed.startswith("notBefore="):
-            raise ValueError("unexpected notBefore: %s" % datetime_signed)
-        datetime_signed = datetime_signed[10:]
-        datetime_signed = dateutil_parser.parse(datetime_signed)
-        datetime_signed = datetime_signed.replace(tzinfo=None)
-
-        datetime_expires = cert_dates["enddate"]
-        if not datetime_expires.startswith("notAfter="):
-            raise ValueError("unexpected notAfter: %s" % datetime_expires)
-        datetime_expires = datetime_expires[9:]
-        datetime_expires = dateutil_parser.parse(datetime_expires)
-        datetime_expires = datetime_signed.replace(tzinfo=None)
-
-        # these MUST commit
-        with transaction.manager as tx:
-            dbServerCertificate = lib.db.create.create__ServerCertificate(
-                ctx,
-                timestamp_signed=datetime_signed,
-                timestamp_expires=datetime_expires,
-                is_active=True,
-                cert_pem=certificate_pem,
-                chained_pem=chained_pem,
-                chain_name=None,
-                dbCertificateRequest=dbCertificateRequest,
-                dbAcmeAccountKey=dbAcmeAccountKey,
-                dbPrivateKey=dbPrivateKey,
-                dbDomains=[v[0] for v in dbDomainObjects.values()],
-                dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
-            )
-            if dbServerCertificate__renewal_of:
-                dbServerCertificate__renewal_of.is_auto_renew = False
-                dbServerCertificate__renewal_of.is_renewed = True
-                ctx.dbSession.flush(objects=[dbServerCertificate__renewal_of])
-            if dbQueueRenewal__of:
-                dbQueueRenewal__of.timestamp_processed = ctx.timestamp
-                dbQueueRenewal__of.process_result = True
-                dbQueueRenewal__of.is_active = False
-                ctx.dbSession.flush(objects=[dbQueueRenewal__of])
-            # update the logger
-            authenticatedUser.acmeLogger.log_event_certificate(
-                acmeLoggedEvent, dbServerCertificate
-            )
-
-        log.debug("mark_changed(ctx.dbSession) - is this necessary?")
-        mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
+        # update the logger
+        authenticatedUser.acmeLogger.log_CertificateProcured(
+            "v2", dbServerCertificate, transaction_commit=True
+        )
 
         # don't commit here, as that will trigger an error on object refresh
         return dbAcmeOrder
@@ -694,9 +693,7 @@ def _do__AcmeOrder__AcmeV2__core(
             dbCertificateRequest.is_active = False
             dbCertificateRequest.is_error = True
             ctx.dbSession.flush(objects=[dbCertificateRequest])
-            log.debug("mark_changed(ctx.dbSession) - is this necessary?")
-            mark_changed(ctx.dbSession)  # not sure why this is needed, but it is
-            transaction.commit()
+            ctx.pyramid_transaction_commit()
         raise
 
     finally:
@@ -978,9 +975,9 @@ def operations_update_recents(ctx):
         )
         .filter(
             sqlalchemy.or_(
-                model_objects.CaCertificate.id
+                model_objects.CACertificate.id
                 == ServerCertificate1.ca_certificate_id__upchain,
-                model_objects.CaCertificate.id
+                model_objects.CACertificate.id
                 == ServerCertificate2.ca_certificate_id__upchain,
             )
         )
@@ -988,7 +985,7 @@ def operations_update_recents(ctx):
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
-        model_objects.CaCertificate.__table__.update().values(
+        model_objects.CACertificate.__table__.update().values(
             count_active_certificates=_q_sub
         )
     )
@@ -1376,9 +1373,9 @@ def api_domains__certificate_if_needed(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def upload__CaCertificateBundle__by_pem_text(ctx, bundle_data):
+def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
     """
-    Uploads a bundle of CaCertificates
+    Uploads a bundle of CACertificates
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param bundle_data: (required) a compliant payload
@@ -1416,10 +1413,10 @@ def upload__CaCertificateBundle__by_pem_text(ctx, bundle_data):
         (
             dbCACertificate,
             is_created,
-        ) = lib.db.getcreate.getcreate__CaCertificate__by_pem_text(
+        ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
             ctx,
             cert_pem_text,
-            cert_name,
+            chain_name=cert_name,
             le_authority_name=None,
             is_authority_certificate=None,
             is_cross_signed_authority_certificate=None,

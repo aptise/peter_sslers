@@ -387,37 +387,37 @@ def get__AcmeOrders__by_UniqueFQDNSetId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__CaCertificate__count(ctx):
-    counted = ctx.dbSession.query(model_objects.CaCertificate).count()
+def get__CACertificate__count(ctx):
+    counted = ctx.dbSession.query(model_objects.CACertificate).count()
     return counted
 
 
-def get__CaCertificate__paginated(ctx, limit=None, offset=0, active_only=False):
-    q = ctx.dbSession.query(model_objects.CaCertificate)
+def get__CACertificate__paginated(ctx, limit=None, offset=0, active_only=False):
+    q = ctx.dbSession.query(model_objects.CACertificate)
     if active_only:
-        q = q.filter(model_objects.CaCertificate.count_active_certificates >= 1)
-    q = q.order_by(model_objects.CaCertificate.id.desc()).limit(limit).offset(offset)
+        q = q.filter(model_objects.CACertificate.count_active_certificates >= 1)
+    q = q.order_by(model_objects.CACertificate.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
 
 
-def get__CaCertificate__by_id(ctx, cert_id):
-    dbCaCertificate = (
-        ctx.dbSession.query(model_objects.CaCertificate)
-        .filter(model_objects.CaCertificate.id == cert_id)
+def get__CACertificate__by_id(ctx, cert_id):
+    dbCACertificate = (
+        ctx.dbSession.query(model_objects.CACertificate)
+        .filter(model_objects.CACertificate.id == cert_id)
         .first()
     )
-    return dbCaCertificate
+    return dbCACertificate
 
 
-def get__CaCertificate__by_pem_text(ctx, cert_pem):
+def get__CACertificate__by_pem_text(ctx, cert_pem):
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
     dbCertificate = (
-        ctx.dbSession.query(model_objects.CaCertificate)
+        ctx.dbSession.query(model_objects.CACertificate)
         .filter(
-            model_objects.CaCertificate.cert_pem_md5 == cert_pem_md5,
-            model_objects.CaCertificate.cert_pem == cert_pem,
+            model_objects.CACertificate.cert_pem_md5 == cert_pem_md5,
+            model_objects.CACertificate.cert_pem == cert_pem,
         )
         .first()
     )
@@ -1242,7 +1242,7 @@ def get__ServerCertificate__by_AcmeAccountKeyId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__ServerCertificate__by_CaCertificateId__count(ctx, cert_id):
+def get__ServerCertificate__by_CACertificateId__count(ctx, cert_id):
     counted = (
         ctx.dbSession.query(model_objects.ServerCertificate)
         .filter(model_objects.ServerCertificate.ca_certificate_id__upchain == cert_id)
@@ -1251,7 +1251,7 @@ def get__ServerCertificate__by_CaCertificateId__count(ctx, cert_id):
     return counted
 
 
-def get__ServerCertificate__by_CaCertificateId__paginated(
+def get__ServerCertificate__by_CACertificateId__paginated(
     ctx, cert_id, limit=None, offset=0
 ):
     items_paged = (

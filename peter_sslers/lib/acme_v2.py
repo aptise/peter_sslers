@@ -10,6 +10,7 @@ log.setLevel(logging.INFO)
 # stdlib
 import base64
 import binascii
+import datetime
 import hashlib
 import json
 import pdb
@@ -81,9 +82,9 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
             resp.headers,
         )
     except IOError as exc:
-        if isinstance(exc, URLError):
-            # TODO: log this error to the database
-            raise errors.AcmeCommunicationError(str(exc))
+        # if isinstance(exc, URLError):
+        #    # TODO: log this error to the database
+        #    raise errors.AcmeCommunicationError(str(exc))
         resp_data = exc.read().decode("utf8") if hasattr(exc, "read") else str(exc)
         code, headers = getattr(exc, "code", None), {}
     except Exception as exc:
@@ -629,9 +630,9 @@ class AuthenticatedUser(object):
         ctx,
         acmeOrder=None,
         dbAcmeOrder=None,
-        handle_discovered_auth=None,
-        handle_keyauth_challenge=None,
-        handle_keyauth_cleanup=None,
+        handle_discovered_authorization=None,
+        handle_challenge_setup=None,
+        handle_challenge_cleanup=None,
         transaction_commit=None,
         is_retry=None,
     ):
@@ -640,9 +641,9 @@ class AuthenticatedUser(object):
         :param acmeOrder: (required) A :class:`AcmeOrder` object representing the server's response
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
 
-        :param handle_discovered_auth: (required) Callable function. expects (authorization_url, authorization_response, transaction_commit)
-        :param handle_keyauth_challenge: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
-        :param handle_keyauth_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
+        :param handle_discovered_authorization: (required) Callable function. expects (authorization_url, authorization_response, transaction_commit)
+        :param handle_challenge_setup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
+        :param handle_challenge_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
         :param is_retry: (required) Boolean. False to indicate a New order; True to indicate this is a retry.
  
@@ -729,6 +730,7 @@ class AuthenticatedUser(object):
                 )
 
         # verify each domain
+        pdb.set_trace()
         for authorization_url in acmeOrder.rfc_object["authorizations"]:
             # scoping, our todo list
             _todo_complete_challenges = None
@@ -739,7 +741,7 @@ class AuthenticatedUser(object):
             (authorization_response, _, _) = self._send_signed_request(
                 authorization_url, payload=None,
             )
-            dbAcmeAuthorization = handle_discovered_auth(
+            dbAcmeAuthorization = handle_discovered_authorization(
                 authorization_url, authorization_response, transaction_commit=True,
             )
             _response_domain = authorization_response["identifier"]["value"]
@@ -789,9 +791,15 @@ class AuthenticatedUser(object):
                 continue
 
             # we could parse the challenge
-            # like such: acme_challenge = get_authorization_challenge(authorization_response, http01=True)
             # however, the call to `process_discovered_auth` should have updated the challenge object already
 
+            acme_challenge_response = get_authorization_challenge(
+                authorization_response, http01=True
+            )
+            if not acme_challenge_response:
+                raise ValueError(
+                    "`acme_challenge_response` not in `authorization_response`"
+                )
             _challenge_status = dbAcmeAuthorization.acme_challenge_http01.status
 
             if _challenge_status == "pending":
@@ -811,6 +819,7 @@ class AuthenticatedUser(object):
                 )
 
             if _todo_complete_challenge_http01:
+                # acme_challenge_response
                 keyauthorization = create_challenge_keyauthorization(
                     dbAcmeAuthorization.acme_challenge_http01.token,
                     self.accountkey_thumbprint,
@@ -822,7 +831,7 @@ class AuthenticatedUser(object):
                     raise ValueError("This should never happen!")
 
                 # update the db; this should be integrated with the above
-                wellknown_path = handle_keyauth_challenge(
+                wellknown_path = handle_challenge_setup(
                     dbAcmeAuthorization.domain.domain_name,
                     dbAcmeAuthorization.acme_challenge_http01.token,
                     dbAcmeAuthorization.acme_challenge_http01.keyauthorization,
@@ -845,9 +854,9 @@ class AuthenticatedUser(object):
                             resp_data = resp.read().decode("utf8").strip()
                             assert resp_data == keyauthorization
                         except (IOError, AssertionError):
-                            handle_keyauth_cleanup(
+                            handle_challenge_cleanup(
                                 dbAcmeAuthorization.domain.domain_name,
-                                token,
+                                dbAcmeAuthorization.acme_challenge_http01.token,
                                 keyauthorization,
                                 transaction_commit=True,
                             )
@@ -915,10 +924,10 @@ class AuthenticatedUser(object):
                             dbAcmeAuthorization.domain.domain_name
                         )
                     )
-                    handle_keyauth_cleanup(
+                    handle_challenge_cleanup(
                         dbAcmeAuthorization.domain.domain_name,
-                        token,
-                        keyauthorization,
+                        dbAcmeAuthorization.acme_challenge_http01.token,
+                        dbAcmeAuthorization.acme_challenge_http01.keyauthorization,
                         transaction_commit=True,
                     )
                 elif authorization_response["status"] != "valid":
@@ -950,6 +959,8 @@ class AuthenticatedUser(object):
         self,
         acmeOrder=None,  # acme server api response, `AcmeOrder` object
         dbAcmeOrder=None,
+        update_order_status=None,
+        transaction_commit=None,
         # function specific
         csr_path=None,
     ):
@@ -957,11 +968,22 @@ class AuthenticatedUser(object):
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
         :param acmeOrder: (required) A :class:`AcmeOrder` object representing the server's response
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
+        :param update_order_status: (required) Callable function. expects (status, transaction_commit)
+        :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
         
         :param csr_path: (required) a 
         """
         # get the new certificate
         log.info("acme_v2 acme_finalize_order")
+
+        if transaction_commit is not True:
+            # required for the `update_order_status`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if update_order_status is None:
+            raise ValueError(
+                "we must invoke this with a callable `update_order_status`"
+            )
 
         # convert the certificate to a DER
         with psutil.Popen(
@@ -974,7 +996,7 @@ class AuthenticatedUser(object):
                 csr_der = csr_der.decode("utf8")
 
         acmeLoggedEvent = self.acmeLogger.log_order_finalize(
-            "v2", acmeOrder.dbCertificateRequest
+            "v2", transaction_commit=True
         )  # log this to the db
 
         payload_finalize = {"csr": _b64(csr_der)}
@@ -999,24 +1021,26 @@ class AuthenticatedUser(object):
                 "Order failed: {0}".format(acme_order_finalized)
             )
 
+        # acme_order_finalized["status"] == "valid"
+        update_order_status(
+            acme_order_finalized["status"], transaction_commit=transaction_commit
+        )
+
+        url_certificate = acme_order_finalized.get("certificate")
+        if not url_certificate:
+            raise ValueError(
+                "The AcmeOrder server response should have a `certificate`."
+            )
+
         # download the certificate
         # ACME-V2 furnishes a FULLCHAIN (certificate_pem + chain_pem)
         (fullchain_pem, _, certificate_headers) = self._send_signed_request(
-            acme_order_finalized["certificate"], None
+            url_certificate, None
         )
 
-        log.info("acme_v2 Certificate signed!")
+        log.info("acme_v2 recived signed Certificate!")
 
-        """
-
-        # return signed certificate!
-        # openssl x509 -inform der -in issuer-cert -out issuer-cert.pem
-        """
-
-        return (
-            fullchain_pem,
-            acmeLoggedEvent,
-        )
+        return fullchain_pem
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

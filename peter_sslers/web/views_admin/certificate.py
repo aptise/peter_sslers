@@ -238,10 +238,10 @@ class ViewAdmin_New(Handler):
                 if not isinstance(chain_pem, str):
                     chain_pem = chain_pem.decode("utf8")
             (
-                dbCaCertificate,
+                dbCACertificate,
                 cacert_is_created,
-            ) = lib_db.getcreate.getcreate__CaCertificate__by_pem_text(
-                self.request.api_context, chain_pem, "manual upload"
+            ) = lib_db.getcreate.getcreate__CACertificate__by_pem_text(
+                self.request.api_context, ca_chain_pem, ca_chain_name="manual upload"
             )
 
             certificate_pem = formhandling.slurp_file_field(
@@ -256,7 +256,7 @@ class ViewAdmin_New(Handler):
             ) = lib_db.getcreate.getcreate__ServerCertificate__by_pem_text(
                 self.request.api_context,
                 certificate_pem,
-                dbCACertificate=dbCaCertificate,
+                dbCACertificate=dbCACertificate,
                 dbPrivateKey=dbPrivateKey,
                 dbAcmeAccountKey=None,
             )
@@ -275,7 +275,7 @@ class ViewAdmin_New(Handler):
                     },
                     "ca_certificate": {
                         "created": cacert_is_created,
-                        "id": dbCaCertificate.id,
+                        "id": dbCACertificate.id,
                     },
                     "private_key": {"created": pkey_is_created, "id": dbPrivateKey.id},
                 }

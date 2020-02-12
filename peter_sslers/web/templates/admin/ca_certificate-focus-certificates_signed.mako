@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/ca-certificates">CA Certificates</a></li>
-        <li><a href="${admin_prefix}/ca-certificate/${CaCertificate.id}">Focus [${CaCertificate.id}]</a></li>
+        <li><a href="${admin_prefix}/ca-certificate/${CACertificate.id}">Focus [${CACertificate.id}]</a></li>
         <li class="active">CA Certificates</li>
     </ol>
 </%block>

@@ -92,7 +92,7 @@ TEST_FILES = {
         "4": "acme_account_4.key",
         "5": "acme_account_5.key",
     },
-    "CaCertificates": {
+    "CACertificates": {
         "order": (
             "isrgrootx1",
             "le_x1_auth",
@@ -252,7 +252,7 @@ class AppTest(AppTestCore):
 
                     AccountKey:
                         account_1.key
-                    CaCertificates:
+                    CACertificates:
                         isrgrootx1.pem.txt
                         selfsigned_1-server.crt
                     PrivateKey
@@ -277,19 +277,19 @@ class AppTest(AppTestCore):
                 self.ctx.dbSession.commit()
 
                 #
-                # insert CaCertificate
+                # insert CACertificate
                 # this should create `/ca-certificate/1`
                 #
                 _ca_cert_id = "isrgrootx1"
-                _ca_cert_filename = TEST_FILES["CaCertificates"]["cert"][_ca_cert_id]
+                _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
                 ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
                 (
                     _ca_cert_1,
                     _is_created,
-                ) = db.getcreate.getcreate__CaCertificate__by_pem_text(
+                ) = db.getcreate.getcreate__CACertificate__by_pem_text(
                     self.ctx,
                     ca_cert_pem,
-                    "ISRG Root",
+                    chain_name="ISRG Root",
                     le_authority_name="ISRG ROOT",
                     is_authority_certificate=True,
                     is_cross_signed_authority_certificate=False,
@@ -298,7 +298,7 @@ class AppTest(AppTestCore):
                 self.ctx.dbSession.commit()
 
                 #
-                # insert CaCertificate - self signed
+                # insert CACertificate - self signed
                 # this should create `/ca-certificate/2`
                 #
                 _ca_cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -308,8 +308,8 @@ class AppTest(AppTestCore):
                 (
                     _ca_cert_selfsigned1,
                     _is_created,
-                ) = db.getcreate.getcreate__CaCertificate__by_pem_text(
-                    self.ctx, ca_cert_pem, _ca_cert_filename
+                ) = db.getcreate.getcreate__CACertificate__by_pem_text(
+                    self.ctx, ca_cert_pem, chain_name=_ca_cert_filename
                 )
                 # print(_ca_cert_selfsigned1, _is_created)
                 self.ctx.dbSession.commit()
@@ -830,9 +830,9 @@ class FunctionalTests_CACertificate(AppTest):
         )
 
     def test_upload(self):
-        """This should enter in item #3, but the CaCertificates.order is 1; the other cert is a self-signed"""
-        _ca_cert_id = TEST_FILES["CaCertificates"]["order"][1]
-        _ca_cert_filename = TEST_FILES["CaCertificates"]["cert"][_ca_cert_id]
+        """This should enter in item #3, but the CACertificates.order is 1; the other cert is a self-signed"""
+        _ca_cert_id = TEST_FILES["CACertificates"]["order"][1]
+        _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
         _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
 
         res = self.testapp.get("/.well-known/admin/ca-certificate/upload", status=200)
@@ -847,8 +847,8 @@ class FunctionalTests_CACertificate(AppTest):
         res3 = self.testapp.get(res2.location, status=200)
 
         """This should enter in item #4"""
-        _ca_cert_id = TEST_FILES["CaCertificates"]["order"][2]
-        _ca_cert_filename = TEST_FILES["CaCertificates"]["cert"][_ca_cert_id]
+        _ca_cert_id = TEST_FILES["CACertificates"]["order"][2]
+        _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
         _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
 
         res = self.testapp.get(
@@ -869,32 +869,32 @@ class FunctionalTests_CACertificate(AppTest):
         )
         form = res.form
         form["isrgrootx1_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CaCertificates"]["cert"]["isrgrootx1"])
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["isrgrootx1"])
         )
         form["le_x1_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CaCertificates"]["cert"]["le_x1_auth"])
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x1_auth"])
         )
         form["le_x2_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CaCertificates"]["cert"]["le_x2_auth"])
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x2_auth"])
         )
         form["le_x1_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CaCertificates"]["cert"]["le_x1_cross_signed"]
+                TEST_FILES["CACertificates"]["cert"]["le_x1_cross_signed"]
             )
         )
         form["le_x2_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CaCertificates"]["cert"]["le_x2_cross_signed"]
+                TEST_FILES["CACertificates"]["cert"]["le_x2_cross_signed"]
             )
         )
         form["le_x3_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CaCertificates"]["cert"]["le_x3_cross_signed"]
+                TEST_FILES["CACertificates"]["cert"]["le_x3_cross_signed"]
             )
         )
         form["le_x4_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CaCertificates"]["cert"]["le_x4_cross_signed"]
+                TEST_FILES["CACertificates"]["cert"]["le_x4_cross_signed"]
             )
         )
         res2 = form.submit()
@@ -911,32 +911,32 @@ class FunctionalTests_CACertificate(AppTest):
         chain_filepath = self._filepath_testfile("lets-encrypt-x1-cross-signed.pem.txt")
         form = {}
         form["isrgrootx1_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CaCertificates"]["cert"]["isrgrootx1"])
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["isrgrootx1"])
         )
         form["le_x1_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CaCertificates"]["cert"]["le_x1_auth"])
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x1_auth"])
         )
         form["le_x2_auth_file"] = Upload(
-            self._filepath_testfile(TEST_FILES["CaCertificates"]["cert"]["le_x2_auth"])
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x2_auth"])
         )
         form["le_x1_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CaCertificates"]["cert"]["le_x1_cross_signed"]
+                TEST_FILES["CACertificates"]["cert"]["le_x1_cross_signed"]
             )
         )
         form["le_x2_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CaCertificates"]["cert"]["le_x2_cross_signed"]
+                TEST_FILES["CACertificates"]["cert"]["le_x2_cross_signed"]
             )
         )
         form["le_x3_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CaCertificates"]["cert"]["le_x3_cross_signed"]
+                TEST_FILES["CACertificates"]["cert"]["le_x3_cross_signed"]
             )
         )
         form["le_x4_cross_signed_file"] = Upload(
             self._filepath_testfile(
-                TEST_FILES["CaCertificates"]["cert"]["le_x4_cross_signed"]
+                TEST_FILES["CACertificates"]["cert"]["le_x4_cross_signed"]
             )
         )
         res2 = self.testapp.post(
@@ -1252,7 +1252,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         )
         self.testapp_http.wait()
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/new-automated", status=200
+            "/.well-known/admin/acme-order/new/automated", status=200
         )
         form = res.form
         form["account_key_file_pem"] = Upload(

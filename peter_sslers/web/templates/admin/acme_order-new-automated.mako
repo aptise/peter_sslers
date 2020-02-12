@@ -32,7 +32,7 @@
             <%! show_text = False %>
 
             <form
-                action="${admin_prefix}/acme-order/new-automated"
+                action="${admin_prefix}/acme-order/new/automated"
                 method="POST"
                 enctype="multipart/form-data"
             >

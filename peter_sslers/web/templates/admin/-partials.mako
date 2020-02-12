@@ -207,7 +207,7 @@
                             % elif c == 'certificate_request_source_id':
                                 % if certificate_request.certificate_request_source_id:
                                     ## <code>${certificate_request.certificate_request_source_id}</code>
-                                    <span class="label label-default">${model_utils.CertificateRequestSource.as_string(certificate_request.certificate_request_source_id)}</span>
+                                    <span class="label label-default">${model_websafe.CertificateRequestSource.as_string(certificate_request.certificate_request_source_id)}</span>
                                 % endif
                             % elif c == 'unique_fqdn_set_id':
                                 <a  class="label label-info"

@@ -275,6 +275,45 @@ class AcmeAccountProvider:
     }
 
 
+class Acme_Status_Authorization(_mixin_mapping):
+    """The status of an authorization"""
+
+    _mapping = {
+        0: "*discovered*",  # not an ACME status, but our internal marker
+        1: "pending",
+        2: "valid",
+        3: "invalid",
+        4: "deactivated",
+        5: "expired",
+        6: "revoked",
+    }
+
+
+class Acme_Status_Challenge(_mixin_mapping):
+    """The status of a challenge"""
+
+    _mapping = {
+        0: "*discovered*",  # not an ACME status, but our internal marker
+        1: "pending",
+        2: "processing",
+        3: "valid",
+        4: "invalid",
+    }
+
+
+class Acme_Status_Order(_mixin_mapping):
+    """The status of an order"""
+
+    _mapping = {
+        0: "*discovered*",  # not an ACME status, but our internal marker
+        1: "pending",
+        2: "ready",
+        3: "processing",
+        4: "valid",
+        5: "invalid",
+    }
+
+
 class AcmeChallengeType(_mixin_mapping):
     """
     Used for Acme Logging
@@ -304,8 +343,11 @@ class AcmeEvent(_mixin_mapping):
         5: "v2|newOrder",
         6: "v2|-authorization-request",  # hitting the LE authorization url
         7: "v2|-challenge-trigger",  # not an endpoint name, but element of an order
-        8: "v2|-order-finalize",
+        8: "v2|Order-finalize",
         9: "v2|-order-location",
+        10: "v2|-challenge-pass",
+        11: "v2|-challenge-fail",
+        12: "v2|Certificate-procured",  # we downloaded and enrolled the certificate
     }
 
 

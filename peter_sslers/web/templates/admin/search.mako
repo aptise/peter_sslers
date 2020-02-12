@@ -147,9 +147,9 @@
                     <hr/>
                 % endif
 
-                % if show_only['CaCertificate']:
+                % if show_only['CACertificate']:
                     <h4>CA Certificates</h4>
-                    % if results['CaCertificate']['count']:
+                    % if results['CACertificate']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -162,7 +162,7 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for cert in results['CaCertificate']['items']:
+                            % for cert in results['CACertificate']['items']:
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
@@ -180,8 +180,8 @@
                             % endfor
                             </body>
                         </table>
-                        % if results['CaCertificate']['next']:
-                            <a href="${results['CaCertificate']['next']}">More</a>
+                        % if results['CACertificate']['next']:
+                            <a href="${results['CACertificate']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>

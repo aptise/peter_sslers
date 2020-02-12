@@ -51,11 +51,12 @@ def _admin_views(config):
     )
     config.add_route_7("admin:acme_authorization:focus", "/acme-authorization/{@id}")
     config.add_route_7(
-        "admin:acme_authorization:focus:orders", "/acme-authorization/{@id}/orders"
+        "admin:acme_authorization:focus:acme_orders",
+        "/acme-authorization/{@id}/acme-orders",
     )
     config.add_route_7(
-        "admin:acme_authorization:focus:orders_paginated",
-        "/acme-authorization/{@id}/orders/{@page}",
+        "admin:acme_authorization:focus:acme_orders_paginated",
+        "/acme-authorization/{@id}/acme-orders/{@page}",
     )
 
     # !!!: AcmeAccountKeys
@@ -196,7 +197,12 @@ def _admin_views(config):
         "admin:acme_order:focus:acme_server_sync", "/acme-order/{@id}/acme-server-sync"
     )
     config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
-    config.add_route_7("admin:acme_order:new:automated", "/acme-order/new-automated")
+    config.add_route_7("admin:acme_order:focus:mark", "/acme-order/{@id}/mark")
+    config.add_route_7("admin:acme_order:new:automated", "/acme-order/new/automated")
+    config.add_route_7(
+        "admin:acme_order:new:from-certificate-request",
+        "/acme-order/new/from-certificate-request",
+    )
 
     # !!!: AcmeProvider
     # this is just letsencrypt endpoints
@@ -622,8 +628,7 @@ def _admin_views(config):
         "/unique-fqdn-set/{@id}/calendar.json",
     )
     config.add_route_7(
-        "admin:unique_fqdn_set:focus:acme_orders",
-        "/unique-fqdn-set/{@id}/acme-orders",
+        "admin:unique_fqdn_set:focus:acme_orders", "/unique-fqdn-set/{@id}/acme-orders",
     )
     config.add_route_7(
         "admin:unique_fqdn_set:focus:acme_orders_paginated",

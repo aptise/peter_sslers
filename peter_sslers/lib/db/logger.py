@@ -69,8 +69,7 @@ class AcmeLogger(object):
 
         # persist to the database
         if transaction_commit:
-            self.ctx.transaction_manager.commit()
-            self.ctx.transaction_manager.begin()
+            self.ctx.pyramid_transaction_commit()
 
         return dbAcmeEventLog
 
@@ -100,8 +99,7 @@ class AcmeLogger(object):
 
         # persist to the database
         if transaction_commit:
-            self.ctx.transaction_manager.commit()
-            self.ctx.transaction_manager.begin()
+            self.ctx.pyramid_transaction_commit()
 
         return dbAcmeEventLog
 
@@ -128,8 +126,7 @@ class AcmeLogger(object):
 
         # persist to the database
         if transaction_commit:
-            self.ctx.transaction_manager.commit()
-            self.ctx.transaction_manager.begin()
+            self.ctx.pyramid_transaction_commit()
 
         return dbAcmeEventLog
 
@@ -154,13 +151,13 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
         # persist to the database
         if transaction_commit:
-            self.ctx.transaction_manager.commit()
-            self.ctx.transaction_manager.begin()
+            self.ctx.pyramid_transaction_commit()
 
         return dbAcmeEventLog
 
@@ -186,13 +183,13 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
         # persist to the database
         if transaction_commit:
-            self.ctx.transaction_manager.commit()
-            self.ctx.transaction_manager.begin()
+            self.ctx.pyramid_transaction_commit()
 
         return dbAcmeEventLog
 
@@ -213,73 +210,131 @@ class AcmeLogger(object):
             dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "setup-prevalidation"
             )
-            self.dbSession.add(dbAcmeChallenge)
             self.dbSession.flush()
         elif failtype in ("fail-1", "fail-2"):
             dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "upstream-validation"
             )
-            self.dbSession.add(dbAcmeChallenge)
             self.dbSession.flush()
         else:
             raise ValueError("unknown `failtype")
 
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-challenge-fail"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
+        dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
         # persist to the database
         if transaction_commit:
-            self.ctx.transaction_manager.commit()
-            self.ctx.transaction_manager.begin()
+            self.ctx.pyramid_transaction_commit()
+
+    def log_challenge_pass(
+        self, acme_version, dbAcmeChallenge, transaction_commit=None
+    ):
+        """
+        Logs a challenge as passed
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-challenge-pass"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
+        dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+    def log_order_finalize(self, acme_version, transaction_commit=True):
+        """
+        Logs an AcmeOrder as finalized
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        if not self.dbAcmeOrder:
+            raise ValueError(
+                "the logger MUST be configured with a :attr:`.dbAcmeOrder`"
+            )
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|Order-finalize"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
 
     # ==========================================================================
 
-    def log_new_cert(self, dbCertificateRequest, version):
-        if version not in ("v1", "v2"):
-            raise ValueError("invalid version: %s" % version)
+    def log_CertificateProcured(
+        self, acme_version, dbServerCertificate, transaction_commit=True
+    ):
+        """
+        Logs an AcmeOrder as finalized
 
-        pdb.set_trace()
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbServerCertificate: (required) The :class:`model.objects.ServerCertificate`
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        if not self.dbAcmeOrder:
+            raise ValueError(
+                "the logger MUST be configured with a :attr:`.dbAcmeOrder`"
+            )
+
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
-            "v1|/acme/new-cert"
+            "v2|Certificate-procured"
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
-        dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
-        self.dbSession.add(dbAcmeEventLog)
-        self.dbSession.flush()
-        return dbAcmeEventLog
-
-    def log_order_finalize(self, version, dbCertificateRequest):
-        if version != "v2":
-            raise ValueError("invalid version: %s" % version)
-
-        pdb.set_trace()
-        dbAcmeEventLog = model_objects.AcmeEventLog()
-        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
-            "v2|-order-finalize"
-        )
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
-        dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
-        self.dbSession.add(dbAcmeEventLog)
-        self.dbSession.flush()
-        return dbAcmeEventLog
-
-    def log_event_certificate(self, dbAcmeEventLog, dbServerCertificate):
-        """
-        Logs a challenge request
-        """
-        pdb.set_trace()
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
         dbAcmeEventLog.server_certificate_id = dbServerCertificate.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
-    def log_challenge_pass(self, dbAcmeChallenge):
-        """
-        Logs a challenge as passed
-        """
-        raise ValueError("this is not consistent with current api")
-        dbAcmeChallenge.timestamp_challenge_pass = datetime.datetime.utcnow()
-        self.dbSession.add(dbAcmeChallenge)
-        self.dbSession.flush()
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

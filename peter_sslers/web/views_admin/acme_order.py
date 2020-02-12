@@ -140,6 +140,32 @@ class ViewAdmin_Focus(Handler):
                 % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
             )
 
+    @view_config(route_name="admin:acme_order:focus:mark", renderer=None)
+    def mark_order(self):
+        """
+        Mark an order
+        """
+        dbAcmeOrder = self._focus(eagerload_web=True)
+        operation = self.request.params.get("operation")
+        try:
+            if operation == "invalid":
+                if dbAcmeOrder.status == "invalid":
+                    raise errors.InvalidRequest(
+                        "Can not mark an `invalid` order as `invalid`."
+                    )
+                dbAcmeOrder.status = "invalid"
+                dbAcmeOrder.timestamp_updated = self.request.api_context.timestamp
+                return HTTPSeeOther(
+                    "%s?result=success&operation=invalid" % self._focus_url
+                )
+            else:
+                raise errors.InvalidRequest("invalid `operation`")
+        except (errors.InvalidRequest,) as exc:
+            return HTTPSeeOther(
+                "%s?error=invalid&message=%s"
+                % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+            )
+
 
 class ViewAdmin_New(Handler):
     @view_config(route_name="admin:acme_order:new:automated")

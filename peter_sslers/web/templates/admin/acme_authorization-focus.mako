@@ -28,63 +28,86 @@
     <div class="row">
         <div class="col-sm-12">
 
-            <p>
-                <a class="label label-info" href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/orders">
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    Related AcmeOrders
-                </a>
-            </p>
-
 
             <table class="table">
-                <tr>
-                    <th>id</th>
-                    <td>
-                        <span class="label label-default">
-                            ${AcmeAuthorization.id}
-                        </span>
-                    </td>
-                </tr>
-                <tr>
-                    <th>authorization_url</th>
-                    <td><code>${AcmeAuthorization.authorization_url or ''}</code>
-                    </td>
-                </tr>
-                <tr>
-                    <th>timestamp_created</th>
-                    <td><timestamp>${AcmeAuthorization.timestamp_created  or ''}</timestamp>
-                    </td>
-                </tr>
-                <tr>
-                    <th>domain</th>
-                    <td><a class="label label-info" href="${admin_prefix}/domain/${AcmeAuthorization.domain_id}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        Domain-${AcmeAuthorization.domain_id}</a>
-                        <code>${AcmeAuthorization.domain.domain_name}</code>
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                            Core Details
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>id</th>
+                        <td>
+                            <span class="label label-default">
+                                ${AcmeAuthorization.id}
+                            </span>
                         </td>
-                </tr>
-                <tr>
-                    <th>timestamp_expires</th>
-                    <td><timestamp>${AcmeAuthorization.timestamp_expires  or ''}</timestamp>
-                    </td>
-                </tr>
-                <tr>
-                    <th>status</th>
-                    <td><code>${AcmeAuthorization.status  or ''}</code>
-                    </td>
-                </tr>
-                <tr>
-                    <th>timestamp_updated</th>
-                    <td><timestamp>${AcmeAuthorization.timestamp_updated  or ''}</timestamp>
-                    </td>
-                </tr>
-                <tr>
-                    <th>wildcard</th>
-                    <td><code>${AcmeAuthorization.wildcard  or ''}</code>
-                    </td>
-                </tr>
-
-
+                    </tr>
+                    <tr>
+                        <th>authorization_url</th>
+                        <td><code>${AcmeAuthorization.authorization_url or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_created</th>
+                        <td><timestamp>${AcmeAuthorization.timestamp_created  or ''}</timestamp>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>domain</th>
+                        <td><a class="label label-info" href="${admin_prefix}/domain/${AcmeAuthorization.domain_id}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            Domain-${AcmeAuthorization.domain_id}</a>
+                            <code>${AcmeAuthorization.domain.domain_name}</code>
+                            </td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_expires</th>
+                        <td><timestamp>${AcmeAuthorization.timestamp_expires  or ''}</timestamp>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>status</th>
+                        <td><code>${AcmeAuthorization.status  or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_updated</th>
+                        <td><timestamp>${AcmeAuthorization.timestamp_updated  or ''}</timestamp>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>wildcard</th>
+                        <td><code>${AcmeAuthorization.wildcard  or ''}</code>
+                        </td>
+                    </tr>
+                </tbody>
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                        <hr/>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">
+                            Relations Library
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>AcmeOrder(s)</th>
+                        <td>
+                            ${admin_partials.table_AcmeOrders(AcmeAuthorization.acme_orders__5, perspective="AcmeAuthorization")}
+                            % if AcmeAuthorization.acme_orders__5:
+                                ${admin_partials.nav_pager("%s/acme-authorization/%s/acme-orders" % (admin_prefix, AcmeAuthorization.id))}
+                            % endif
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>

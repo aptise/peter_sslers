@@ -243,7 +243,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
             )
 
         # commit this so we have the attempt recorded.
-        transaction.commit()
+        ctx.pyramid_transaction_commit()
 
         # exit out
         if not items_paged:
@@ -279,10 +279,9 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
         event_payload_dict["unique_fqdn_set_id"] = dbUniqueFQDNSet.id
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent])
-        transaction.commit()
 
         # do commit, just because we may have created a private key
-        transaction.commit()
+        ctx.pyramid_transaction_commit()
 
         dbServerCertificate = None
         try:

@@ -205,7 +205,7 @@ def redis_prime_logic__style_1_CACertificate(
 ):
     """
     :param redis_client:
-    :param dbCACertificate: A :class:`model.objects.CaCertificate`
+    :param dbCACertificate: A :class:`model.objects.CACertificate`
     :param redis_timeouts:
 
     r['i99'] = CACERT.PEM  # (i)ntermediate cert
