@@ -40,7 +40,7 @@ def create__AcmeOrder(
 ):
     """
     Create a new ACME Order
-    
+
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` associated with the order
     :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest` associated with the order
@@ -62,7 +62,9 @@ def create__AcmeOrder(
         )
 
     # acme_status_order_id = model_utils.Acme_Status_Order.DEFAULT_ID
-    acme_status_order_id = model_utils.Acme_Status_Order.from_string(acmeOrderRfcObject["status"])
+    acme_status_order_id = model_utils.Acme_Status_Order.from_string(
+        acmeOrderRfcObject["status"]
+    )
     finalize_url = acmeOrderRfcObject.get("finalize")
     timestamp_expires = acmeOrderRfcObject.get("expires")
     if timestamp_expires:
@@ -99,11 +101,16 @@ def create__AcmeOrder(
     # then update the event with the order
     dbEventLogged.acme_order_id = dbAcmeOrder.id
     ctx.dbSession.flush(objects=[dbEventLogged])
-    
+
     # now loop the authorization URLs to create stubs for this order
-    for authorization_url in acmeOrderRfcObject.get('authorizations'):
-        (dbAuthPlacholder, is_auth_created) = lib.db.getcreate.getcreate__AcmeAuthorizationUrl(ctx, authorization_url, dbAcmeOrder)
-    
+    for authorization_url in acmeOrderRfcObject.get("authorizations"):
+        (
+            dbAuthPlacholder,
+            is_auth_created,
+        ) = lib.db.getcreate.getcreate__AcmeAuthorizationUrl(
+            ctx, authorization_url, dbAcmeOrder
+        )
+
     # persist this to the db
     if transaction_commit:
         ctx.pyramid_transaction_commit()
@@ -124,7 +131,7 @@ def create__AcmeChallenge(*args, **kwargs):
 def create__AcmeChallengePoll(ctx, dbAcmeChallenge=None, remote_ip_address=None):
     """
     Create a new AcmeChallengePoll - this is a log
-    
+
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param dbAcmeChallenge: (required) The challenge which was polled
     :param remote_ip_address: (required) The remote ip address (string)
@@ -143,7 +150,7 @@ def create__AcmeChallengeUnknownPoll(
 ):
     """
     Create a new AcmeChallengeUnknownPoll - this is an unknown polling
-    
+
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param domain: (required) domain (string)
     :param challenge: (required) challenge (string)
@@ -171,13 +178,13 @@ def create__CertificateRequest(
 ):
     """
     Create a new Certificate Signing Request (CSR)
-    
+
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param csr_pem: (required) A Certificate Signing Request with PEM formatting
-    :param certificate_request_source_id: (required) What is the source of this? 
+    :param certificate_request_source_id: (required) What is the source of this?
         Valid options are in `model_utils.CertificateRequestSource`
     :param dbPrivateKey: (required) Private Key used to sign the CSR
-    
+
     invoked by:
         lib.db.actions.do__AcmeOrder__AcmeV2__automated
             ctx,
@@ -344,7 +351,7 @@ def create__ServerCertificate(
 ):
     """
     Create a new ServerCertificate
-    
+
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param cert_pem: (required) The certificate in PEM encoding
 
@@ -355,30 +362,31 @@ def create__ServerCertificate(
     :param ca_chain_pem: (optional) The CA Certificate's PEM if :param:`dbCACertificate` is not provided
     :param ca_chain_name: (optional) The CA Certificate's Name if :param:`dbCACertificate` is not provided
 
-    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through. 
+    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
         if provivded, do not submit `dbAcmeOrder`
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` that signed the certificate, if no `dbAcmeOrder` is provided
     :param dbServerCertificate__renewal_of: (optional) The :class:`model.objects.ServerCertificate` this renews
     :param is_active: (optional) default `None`  do not activate a certificate when uploading unless specified.
-    
+
     :param cert_domains_expected: (required) a list of domains in the cert we expect to see
-    
     """
     if all((dbAcmeOrder, dbPrivateKey)) or not any((dbAcmeOrder, dbPrivateKey)):
         raise ValueError(
             "create__ServerCertificate must be provided with `dbPrivateKey` or `dbAcmeOrder`, but never both"
         )
-    if all((dbAcmeOrder, dbCertificateRequest)) or not any((dbAcmeOrder, dbCertificateRequest)):
+    if all((dbAcmeOrder, dbCertificateRequest)) or not any(
+        (dbAcmeOrder, dbCertificateRequest)
+    ):
         raise ValueError(
             "create__ServerCertificate must be provided with `dbCertificateRequest` or `dbAcmeOrder`, but never both"
         )
-    
+
     dbAcmeAccountKey = None
     if dbAcmeOrder:
         dbAcmeAccountKey = dbAcmeOrder.acme_account_key
         dbCertificateRequest = dbAcmeOrder.certificate_request
         dbPrivateKey = dbAcmeOrder.certificate_request.private_key
-            
+
     if dbCACertificate:
         if any((ca_chain_pem, ca_chain_name)):
             raise ValueError(
@@ -405,7 +413,7 @@ def create__ServerCertificate(
     unique_fqdn_set_id = None
     if dbAcmeOrder:
         unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
-    elif dbCertificateRequest:    
+    elif dbCertificateRequest:
         unique_fqdn_set_id = dbCertificateRequest.unique_fqdn_set_id
     else:
         # the domains can be generated but is there a system that handles this now?
@@ -444,7 +452,6 @@ def create__ServerCertificate(
 
         # ok, now pull the dates off the cert
 
-
         dbServerCertificate = model_objects.ServerCertificate()
         dbServerCertificate.cert_pem = cert_pem
         dbServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
@@ -478,15 +485,21 @@ def create__ServerCertificate(
         # increment account/private key counts
         dbPrivateKey.count_certificates_issued += 1
         if not dbPrivateKey.timestamp_last_certificate_issue or (
-            dbPrivateKey.timestamp_last_certificate_issue < dbServerCertificate.timestamp_signed
+            dbPrivateKey.timestamp_last_certificate_issue
+            < dbServerCertificate.timestamp_signed
         ):
-            dbPrivateKey.timestamp_last_certificate_issue = dbServerCertificate.timestamp_signed
+            dbPrivateKey.timestamp_last_certificate_issue = (
+                dbServerCertificate.timestamp_signed
+            )
         if dbAcmeAccountKey:
             dbAcmeAccountKey.count_certificates_issued += 1
             if not dbAcmeAccountKey.timestamp_last_certificate_issue or (
-                dbAcmeAccountKey.timestamp_last_certificate_issue < dbServerCertificate.timestamp_signed
+                dbAcmeAccountKey.timestamp_last_certificate_issue
+                < dbServerCertificate.timestamp_signed
             ):
-                dbAcmeAccountKey.timestamp_last_certificate_issue = dbServerCertificate.timestamp_signed
+                dbAcmeAccountKey.timestamp_last_certificate_issue = (
+                    dbServerCertificate.timestamp_signed
+                )
 
         event_payload_dict["server_certificate.id"] = dbServerCertificate.id
         dbOperationsEvent.set_event_payload(event_payload_dict)

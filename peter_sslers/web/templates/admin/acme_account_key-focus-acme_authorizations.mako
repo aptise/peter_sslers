@@ -8,24 +8,24 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
         <li><a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}">Focus [${AcmeAccountKey.id}]</a></li>
-        <li class="active">Certificates</li>
+        <li class="active">AcmeAuthorizations</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeAccountKey - Focus | Certificates</h2>
+    <h2>AcmeAccountKey - Focus | AcmeAuthorizations</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if ServerCertificates:
+            % if AcmeAuthorizations:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_ServerCertificates(ServerCertificates, show_domains=True, show_expiring_days=True)}
+                ${admin_partials.table_AcmeAuthorizations(AcmeAuthorizations, perspective='AcmeAccountKey')}
             % else:
-                No known certificates.
+                No known AcmeAuthorizations.
             % endif
         </div>
     </div>

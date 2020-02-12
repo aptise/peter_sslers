@@ -277,6 +277,7 @@ class AcmeAccountProvider:
 
 class Acme_Status_Authorization(_mixin_mapping):
     """The status of an authorization"""
+
     DEFAULT_ID = 0
 
     _mapping = {
@@ -292,6 +293,7 @@ class Acme_Status_Authorization(_mixin_mapping):
 
 class Acme_Status_Challenge(_mixin_mapping):
     """The status of a challenge"""
+
     DEFAULT_ID = 0
 
     _mapping = {
@@ -305,6 +307,7 @@ class Acme_Status_Challenge(_mixin_mapping):
 
 class Acme_Status_Order(_mixin_mapping):
     """The status of an order"""
+
     DEFAULT_ID = 0
 
     _mapping = {
@@ -351,6 +354,7 @@ class AcmeEvent(_mixin_mapping):
         10: "v2|-challenge-pass",
         11: "v2|-challenge-fail",
         12: "v2|Certificate-procured",  # we downloaded and enrolled the certificate
+        13: "v2|-challenge-PostAsGet",
     }
 
 

@@ -38,7 +38,7 @@ class ViewAdmin_List(Handler):
         renderer="/admin/acme_challenge_unknown_polls.mako",
     )
     def list(self):
-        items_count = lib_db.get.get__AcmeChallengeUnknownPolls__count(
+        items_count = lib_db.get.get__AcmeChallengeUnknownPoll__count(
             self.request.api_context
         )
         (pager, offset) = self._paginate(
@@ -46,7 +46,7 @@ class ViewAdmin_List(Handler):
             url_template="%s/acme-challenge-unknown-polls/{0}"
             % self.request.registry.settings["admin_prefix"],
         )
-        items_paged = lib_db.get.get__AcmeChallengeUnknownPolls__paginated(
+        items_paged = lib_db.get.get__AcmeChallengeUnknownPoll__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         return {

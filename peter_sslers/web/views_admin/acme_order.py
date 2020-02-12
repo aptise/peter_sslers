@@ -149,13 +149,14 @@ class ViewAdmin_Focus(Handler):
         operation = self.request.params.get("operation")
         try:
             if operation == "invalid":
-                if dbAcmeOrder.status_text == "invalid":
-                    raise errors.InvalidRequest(
-                        "Can not mark an `invalid` order as `invalid`."
-                    )
-                # todo: use the helper
-                dbAcmeOrder.status_text = "invalid"
-                dbAcmeOrder.timestamp_updated = self.request.api_context.timestamp
+                if not dbAcmeOrder.is_can_mark_invalid:
+                    raise errors.InvalidRequest("Can not mark this order as 'invalid'.")
+                lib_db.actions.update_AcmeOrder_status(
+                    self.request.api_context,
+                    dbAcmeOrder,
+                    "invalid",
+                    transaction_commit=True,
+                )
                 return HTTPSeeOther(
                     "%s?result=success&operation=invalid" % self._focus_url
                 )

@@ -452,7 +452,7 @@ api_docs_other = {
          'GET': None,
          'args': """This route is self-documenting on GET requests""",
          'examples': ["curl http://127.0.0.1:7201/.well-known/admin/certificate/upload.json",
-                      "curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' {ADMIN_PREFIX}/certificate/upload.json",
+                      "curl --form 'private_key_file_pem=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' {ADMIN_PREFIX}/certificate/upload.json",
                       ]
          },
     ],
@@ -651,7 +651,7 @@ api_docs_other = {
          'GET': False,
          'args': """This route is self-documenting on GET requests""",
          'examples': ["curl {ADMIN_PREFIX}/private-key/1/upload.json",
-                      "curl --form 'private_key_file=@privkey1.pem' {ADMIN_PREFIX}/private-key/1/upload.json",
+                      "curl --form 'private_key_file_pem=@privkey1.pem' {ADMIN_PREFIX}/private-key/1/upload.json",
                       ],
          },
     ],

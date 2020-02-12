@@ -20,13 +20,13 @@ from ._utils import get_dbSessionLogItem
 # ==============================================================================
 
 
-def get__AcmeEventLogs__count(ctx):
+def get__AcmeEventLog__count(ctx):
     dbSessionLogItem = get_dbSessionLogItem(ctx)
     counted = dbSessionLogItem.query(model_objects.AcmeEventLog).count()
     return counted
 
 
-def get__AcmeEventLogs__paginated(ctx, limit=None, offset=0):
+def get__AcmeEventLog__paginated(ctx, limit=None, offset=0):
     dbSessionLogItem = get_dbSessionLogItem(ctx)
     query = (
         dbSessionLogItem.query(model_objects.AcmeEventLog)
@@ -41,101 +41,6 @@ def get__AcmeEventLogs__paginated(ctx, limit=None, offset=0):
 def get__AcmeEventLog__by_id(ctx, id):
     dbSessionLogItem = get_dbSessionLogItem(ctx)
     item = dbSessionLogItem.query(model_objects.AcmeEventLog).get(id)
-    return item
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__AcmeChallenges__count(ctx):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.AcmeChallenge).count()
-    return counted
-
-
-def get__AcmeChallenges__paginated(
-    ctx, limit=None, offset=0, acme_account_key_id=None, pending_only=None
-):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    query = dbSessionLogItem.query(model_objects.AcmeChallenge)
-    if acme_account_key_id:
-        query = query.join(
-            model_objects.AcmeEventLog,
-            model_objects.AcmeChallenge.acme_event_log_id
-            == model_objects.AcmeEventLog.id,
-        ).filter(model_objects.AcmeEventLog.acme_account_key_id == acme_account_key_id)
-    if pending_only:
-        query = query.filter(model_objects.AcmeChallenge.count_polled == 0)
-    query = (
-        query.order_by(model_objects.AcmeChallenge.id.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    dnAcmeChallenges = query.all()
-    return dnAcmeChallenges
-
-
-def get__AcmeChallenge__by_id(ctx, id):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    item = dbSessionLogItem.query(model_objects.AcmeChallenge).get(id)
-    return item
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__AcmeChallengePolls__count(ctx):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.AcmeChallengePoll).count()
-    return counted
-
-
-def get__AcmeChallengePolls__paginated(
-    ctx, limit=None, offset=0,
-):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    query = dbSessionLogItem.query(model_objects.AcmeChallengePoll)
-    query = (
-        query.order_by(model_objects.AcmeChallengePoll.id.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    dnAcmeChallengePolls = query.all()
-    return dnAcmeChallengePolls
-
-
-def get__AcmeChallengePoll__by_id(ctx, id):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    item = dbSessionLogItem.query(model_objects.AcmeChallengePoll).get(id)
-    return item
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__AcmeChallengeUnknownPolls__count(ctx):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll).count()
-    return counted
-
-
-def get__AcmeChallengeUnknownPolls__paginated(
-    ctx, limit=None, offset=0,
-):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    query = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll)
-    query = (
-        query.order_by(model_objects.AcmeChallengeUnknownPoll.id.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    dnAcmeChallengeUnknownPolls = query.all()
-    return dnAcmeChallengeUnknownPolls
-
-
-def get__AcmeChallengeUnknownPoll__by_id(ctx, id):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    item = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll).get(id)
     return item
 
 
@@ -239,11 +144,233 @@ def get__AcmeAuthorization__by_authorization_url(ctx, authorization_url):
     return item
 
 
+def get__AcmeAuthorization__by_AcmeAccountKeyId__count(
+    ctx, acme_account_key_id, only_pending=False
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeAuthorization)
+        .join(
+            model_objects.AcmeOrder,
+            model_objects.AcmeAuthorization.acme_order_id__created == model_objects.AcmeOrder.id,
+        )
+        .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
+    )
+    if only_pending:
+        query = query.filter(
+            model_objects.AcmeAuthorization.acme_status_authorization_id
+            == model_utils.Acme_Status_Authorization.from_string("pending")
+        )
+    return query.count()
+
+
+def get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
+    ctx, acme_account_key_id, only_pending=False, limit=None, offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeAuthorization)
+        .join(
+            model_objects.AcmeOrder,
+            model_objects.AcmeAuthorization.acme_order_id__created == model_objects.AcmeOrder.id,
+        )
+        .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
+    )
+    if only_pending:
+        query = query.filter(
+            model_objects.AcmeAuthorization.acme_status_authorization_id
+            == model_utils.Acme_Status_Authorization.from_string("pending")
+        )
+    query = (
+        query.order_by(model_objects.AcmeAuthorization.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeAuthorizations = query.all()
+    return dbAcmeAuthorizations
+
+
+def get__AcmeAuthorization__by_DomainId__count(ctx, domain_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeAuthorization)
+        .filter(model_objects.AcmeAuthorization.domain_id == domain_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeAuthorization__by_DomainId__paginated(
+    ctx, domain_id, limit=None, offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeAuthorization)
+        .filter(model_objects.AcmeAuthorization.domain_id == domain_id)
+        .order_by(model_objects.AcmeAuthorization.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeAuthorizations = query.all()
+    return dbAcmeAuthorizations
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmeChallenge__count(ctx):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    counted = dbSessionLogItem.query(model_objects.AcmeChallenge).count()
+    return counted
+
+
+def get__AcmeChallenge__paginated(
+    ctx, limit=None, offset=0, acme_account_key_id=None, pending_only=None
+):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    query = dbSessionLogItem.query(model_objects.AcmeChallenge)
+    if acme_account_key_id:
+        query = query.join(
+            model_objects.AcmeEventLog,
+            model_objects.AcmeChallenge.acme_event_log_id
+            == model_objects.AcmeEventLog.id,
+        ).filter(model_objects.AcmeEventLog.acme_account_key_id == acme_account_key_id)
+    if pending_only:
+        query = query.filter(model_objects.AcmeChallenge.count_polled == 0)
+    query = (
+        query.order_by(model_objects.AcmeChallenge.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeChallenges = query.all()
+    return dbAcmeChallenges
+
+
+def get__AcmeChallenge__by_id(ctx, id):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    item = dbSessionLogItem.query(model_objects.AcmeChallenge).get(id)
+    return item
+
+
 def get__AcmeChallenge__by_challenge_url(ctx, challenge_url):
     q = ctx.dbSession.query(model_objects.AcmeChallenge).filter(
         model_objects.AcmeChallenge.challenge_url == challenge_url
     )
     item = q.first()
+    return item
+
+
+def get__AcmeChallenge__by_AcmeAuthorizationId__count(ctx, acme_authorization_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeChallenge)
+        .filter(
+            model_objects.AcmeChallenge.acme_authorization_id == acme_authorization_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
+    ctx, acme_authorization_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.AcmeChallenge)
+        .filter(
+            model_objects.AcmeChallenge.acme_authorization_id == acme_authorization_id
+        )
+        .order_by(model_objects.AcmeChallenge.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__AcmeChallenge__by_DomainId__count(ctx, domain_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeChallenge)
+        .join(
+            model_objects.AcmeAuthorization,
+            model_objects.AcmeAuthorization.id
+            == model_objects.AcmeChallenge.acme_authorization_id,
+        )
+        .filter(model_objects.AcmeAuthorization.domain_id == domain_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeChallenge__by_DomainId__paginated(
+    ctx, domain_id, limit=None, offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeChallenge)
+        .join(
+            model_objects.AcmeAuthorization,
+            model_objects.AcmeAuthorization.id
+            == model_objects.AcmeChallenge.acme_authorization_id,
+        )
+        .filter(model_objects.AcmeAuthorization.domain_id == domain_id)
+        .order_by(model_objects.AcmeChallenge.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeChallenges = query.all()
+    return dbAcmeChallenges
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmeChallengePoll__count(ctx):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    counted = dbSessionLogItem.query(model_objects.AcmeChallengePoll).count()
+    return counted
+
+
+def get__AcmeChallengePoll__paginated(
+    ctx, limit=None, offset=0,
+):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    query = dbSessionLogItem.query(model_objects.AcmeChallengePoll)
+    query = (
+        query.order_by(model_objects.AcmeChallengePoll.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeChallengePolls = query.all()
+    return dbAcmeChallengePolls
+
+
+def get__AcmeChallengePoll__by_id(ctx, id):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    item = dbSessionLogItem.query(model_objects.AcmeChallengePoll).get(id)
+    return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmeChallengeUnknownPoll__count(ctx):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    counted = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll).count()
+    return counted
+
+
+def get__AcmeChallengeUnknownPoll__paginated(
+    ctx, limit=None, offset=0,
+):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    query = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll)
+    query = (
+        query.order_by(model_objects.AcmeChallengeUnknownPoll.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeChallengeUnknownPolls = query.all()
+    return dbAcmeChallengeUnknownPolls
+
+
+def get__AcmeChallengeUnknownPoll__by_id(ctx, id):
+    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    item = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll).get(id)
     return item
 
 
@@ -272,7 +399,7 @@ def get__AcmeOrder__by_id(ctx, order_id, eagerload_web=False):
     return item
 
 
-def get__AcmeOrders__by_CertificateRequest__count(ctx, certificate_request_id):
+def get__AcmeOrder__by_CertificateRequest__count(ctx, certificate_request_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeOrder)
         .filter(
@@ -283,7 +410,7 @@ def get__AcmeOrders__by_CertificateRequest__count(ctx, certificate_request_id):
     return counted
 
 
-def get__AcmeOrders__by_CertificateRequest__paginated(
+def get__AcmeOrder__by_CertificateRequest__paginated(
     ctx, certificate_request_id, limit=None, offset=0
 ):
     items_paged = (
@@ -299,7 +426,7 @@ def get__AcmeOrders__by_CertificateRequest__paginated(
     return items_paged
 
 
-def get__AcmeOrders__by_AcmeAuthorizationId__count(ctx, acme_authorization_id):
+def get__AcmeOrder__by_AcmeAuthorizationId__count(ctx, acme_authorization_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeOrder)
         .join(
@@ -316,7 +443,7 @@ def get__AcmeOrders__by_AcmeAuthorizationId__count(ctx, acme_authorization_id):
     return counted
 
 
-def get__AcmeOrders__by_AcmeAuthorizationId__paginated(
+def get__AcmeOrder__by_AcmeAuthorizationId__paginated(
     ctx, acme_authorization_id, limit=None, offset=0
 ):
     items_paged = (
@@ -338,7 +465,7 @@ def get__AcmeOrders__by_AcmeAuthorizationId__paginated(
     return items_paged
 
 
-def get__AcmeOrders__by_AcmeAccountKeyId__count(ctx, acme_account_key_id):
+def get__AcmeOrder__by_AcmeAccountKeyId__count(ctx, acme_account_key_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeOrder)
         .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
@@ -347,7 +474,7 @@ def get__AcmeOrders__by_AcmeAccountKeyId__count(ctx, acme_account_key_id):
     return counted
 
 
-def get__AcmeOrders__by_AcmeAccountKeyId__paginated(
+def get__AcmeOrder__by_AcmeAccountKeyId__paginated(
     ctx, acme_account_key_id, limit=None, offset=0
 ):
     items_paged = (
@@ -361,7 +488,50 @@ def get__AcmeOrders__by_AcmeAccountKeyId__paginated(
     return items_paged
 
 
-def get__AcmeOrders__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
+def get__AcmeOrder__by_DomainId__count(ctx, domain_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .join(
+            model_objects.UniqueFqdnSet,
+            model_objects.AcmeOrder.unique_fqdn_set_id
+            == model_objects.UniqueFqdnSet.id,
+        )
+        .join(
+            model_objects.UniqueFQDNSet2Domain,
+            model_objects.UniqueFQDNSet.id
+            == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(model_objects.UniqueFQDNSet2Domain.domain_id == domain_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrder__by_DomainId__paginated(
+    ctx, domain_id, limit=None, offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeOrder)
+        .join(
+            model_objects.UniqueFqdnSet,
+            model_objects.AcmeOrder.unique_fqdn_set_id
+            == model_objects.UniqueFqdnSet.id,
+        )
+        .join(
+            model_objects.UniqueFQDNSet2Domain,
+            model_objects.UniqueFQDNSet.id
+            == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(model_objects.AcmeOrder.domain_id == domain_id)
+        .order_by(model_objects.AcmeOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeOrders = query.all()
+    return dbAcmeOrders
+
+
+def get__AcmeOrder__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeOrder)
         .filter(model_objects.AcmeOrder.unique_fqdn_set_id == unique_fqdn_set_id)
@@ -370,7 +540,7 @@ def get__AcmeOrders__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
     return counted
 
 
-def get__AcmeOrders__by_UniqueFQDNSetId__paginated(
+def get__AcmeOrder__by_UniqueFQDNSetId__paginated(
     ctx, unique_fqdn_set_id, limit=None, offset=0
 ):
     items_paged = (
@@ -1001,7 +1171,7 @@ def get__QueueDomain__by_id(ctx, set_id, eagerload_log=None):
     return item
 
 
-def get__QueueDomain__by_name(ctx, domain_name, active_only=True):
+def get__QueueDomain__by_name__single(ctx, domain_name, active_only=True):
     q = ctx.dbSession.query(model_objects.QueueDomain).filter(
         sqlalchemy.func.lower(model_objects.QueueDomain.domain_name)
         == sqlalchemy.func.lower(domain_name)
@@ -1012,7 +1182,9 @@ def get__QueueDomain__by_name(ctx, domain_name, active_only=True):
     return item
 
 
-def get__QueueDomains__by_name(ctx, domain_name, active_only=None, inactive_only=None):
+def get__QueueDomain__by_name__many(
+    ctx, domain_name, active_only=None, inactive_only=None
+):
     q = ctx.dbSession.query(model_objects.QueueDomain).filter(
         sqlalchemy.func.lower(model_objects.QueueDomain.domain_name)
         == sqlalchemy.func.lower(domain_name)

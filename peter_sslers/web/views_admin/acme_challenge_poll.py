@@ -38,15 +38,13 @@ class ViewAdmin_List(Handler):
         renderer="/admin/acme_challenge_polls.mako",
     )
     def list(self):
-        items_count = lib_db.get.get__AcmeChallengePolls__count(
-            self.request.api_context
-        )
+        items_count = lib_db.get.get__AcmeChallengePoll__count(self.request.api_context)
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/acme-challenge-polls/{0}"
             % self.request.registry.settings["admin_prefix"],
         )
-        items_paged = lib_db.get.get__AcmeChallengePolls__paginated(
+        items_paged = lib_db.get.get__AcmeChallengePoll__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         return {

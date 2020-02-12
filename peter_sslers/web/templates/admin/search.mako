@@ -28,7 +28,7 @@
             <div class="col-sm-9">
 
                 % if show_only['AcmeAccountKey']:
-                    <h4>Acme Account Keys</h4>
+                    <h4>AcmeAccountKeys</h4>
                     % if results['AcmeAccountKey']['count']:
                         <table class="table table-condensed">
                             <thead>

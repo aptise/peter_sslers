@@ -25,7 +25,7 @@
                 ${admin_partials.nav_pagination(pager)}
                 ${admin_partials.table_UniqueFQDNSets(UniqueFQDNSets)}
             % else:
-                No known fqdn sets.
+                No known UniqueFQDNSets.
             % endif
         </div>
     </div>

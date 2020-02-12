@@ -14,7 +14,7 @@ from .. import cert_utils
 def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
     """
     helper utility
-    
+
     :param _tmpfileCert: (required) the tempfile to a PEM encoded certificate
     :param dbServerCertificate: (required) The :class:`model.objects.ServerCertificate`
 

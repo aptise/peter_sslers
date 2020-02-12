@@ -35,7 +35,10 @@ class AccountKeyUploadParser(object):
         # -------------------
         # do a quick parse...
         requirements_either_or = (
-            ("account_key_file_pem",),
+            (
+                "account_key_file_pem",
+                # "acme_account_provider_id",
+            ),
             (
                 "account_key_file_le_meta",
                 "account_key_file_le_pkey",
@@ -131,7 +134,7 @@ def parse_AccountKeySelection(request, formStash, seek_selected=None):
     # handle the explicit-option
 
     accountKeySelection = AccountKeySelection()
-    if seek_selected == "account_key_file":
+    if seek_selected == "account_key_file_pem":
         # this will handle form validation and raise errors.
         parser = AccountKeyUploadParser(formStash)
         parser.require_upload()
@@ -183,10 +186,10 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
     dbPrivateKey = None
     # handle the explicit-option
     if seek_selected:
-        if seek_selected == "private_key_file":
+        if seek_selected == "private_key_file_pem":
             try:
                 private_key_pem = formhandling.slurp_file_field(
-                    formStash, "private_key_file"
+                    formStash, "private_key_file_pem"
                 )
             except Exception as exc:
                 # we'll still error out...'
@@ -194,7 +197,7 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
             if not private_key_pem:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
-                    field="private_key_file",
+                    field="private_key_file_pem",
                     message="There was an error uploading your file.",
                 )
 
@@ -222,8 +225,10 @@ def parse_PrivateKeyPem(request, formStash, seek_selected=None):
         formStash.fatal_form()
 
     # handle the best-option now
-    if formStash.results["private_key_file"] is not None:
-        private_key_pem = formhandling.slurp_file_field(formStash, "private_key_file")
+    if formStash.results["private_key_file_pem"] is not None:
+        private_key_pem = formhandling.slurp_file_field(
+            formStash, "private_key_file_pem"
+        )
     else:
         private_key_pem_md5 = None
         field_source = None

@@ -259,7 +259,6 @@ class AppTest(AppTestCore):
                         selfsigned_1-server.key
 
                     AcmeEventLog
-                    AcmeChallengeLog
                 """
 
                 #
@@ -402,7 +401,7 @@ class AppTest(AppTestCore):
                 self.ctx.dbSession.flush()
                 self.ctx.dbSession.commit()
 
-                # AcmeChallengeLog
+                # AcmeChallenge
                 dbAcmeChallenge = model_objects.AcmeChallenge()
                 dbAcmeChallenge.timestamp_created = datetime.datetime.utcnow()
                 dbAcmeChallenge.acme_event_log_id = dbAcmeEventLog.id
@@ -559,43 +558,6 @@ class FunctionalTests_AcmeEventLog(AppTest):
         focus_id = focus_item.id
         res = self.testapp.get(
             "/.well-known/admin/acme-event-log/%s" % focus_id, status=200
-        )
-
-
-class FunctionalTests_AcmeChallengeLog(AppTest):
-    """python -m unittest peter_sslers.tests.FunctionalTests_AcmeChallengeLog"""
-
-    def _get_item(self):
-        # grab a event
-        focus_item = self.ctx.dbSession.query(model_objects.AcmeChallenge).first()
-        return focus_item
-
-    def test_list(self):
-        # root
-        res = self.testapp.get("/.well-known/admin/acme-challenge-logs", status=200)
-        # paginated
-        res = self.testapp.get("/.well-known/admin/acme-challenge-logs/1", status=200)
-
-    def test_focus(self):
-        # focus
-        focus_item = self._get_item()
-        assert focus_item is not None
-        focus_id = focus_item.id
-        res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-log/%s" % focus_id, status=200
-        )
-
-    def test_filter(self):
-        dbAcmeAccountKey = self.ctx.dbSession.query(
-            model_objects.AcmeAccountKey
-        ).first()
-        res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-logs/filtered", status=302
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/acme-challenge-logs/filtered?acme-account-key-id=%s"
-            % dbAcmeAccountKey.id,
-            status=200,
         )
 
 
@@ -1115,7 +1077,7 @@ class FunctionalTests_Certificate(AppTest):
                 TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
             )
         )
-        form["private_key_file"] = Upload(
+        form["private_key_file_pem"] = Upload(
             self._filepath_testfile(
                 TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["pkey"]
             )
@@ -1140,7 +1102,7 @@ class FunctionalTests_Certificate(AppTest):
                 TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
             )
         )
-        form["private_key_file"] = Upload(
+        form["private_key_file_pem"] = Upload(
             self._filepath_testfile(
                 TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["pkey"]
             )
@@ -1260,7 +1222,7 @@ class FunctionalTests_CertificateRequest(AppTest):
                 TEST_FILES["CertificateRequests"]["acme_test"]["account_key"]
             )
         )
-        form["private_key_file"] = Upload(
+        form["private_key_file_pem"] = Upload(
             self._filepath_testfile(
                 TEST_FILES["CertificateRequests"]["acme_test"]["private_key"]
             )
@@ -1290,7 +1252,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         res2 = form.submit()
         assert res2.status_code == 303
         re_expected = re.compile(
-            """^http://localhost/\.well-known/admin/certificate-request/(\d+)/acme-flow/manage$"""
+            r"""^http://localhost/\.well-known/admin/certificate-request/(\d+)/acme-flow/manage$"""
         )
         matched = re_expected.match(res2.location)
         assert matched
@@ -1565,7 +1527,7 @@ class FunctionalTests_PrivateKeys(AppTest):
         key_filepath = self._filepath_testfile(_key_filename)
         res = self.testapp.get("/.well-known/admin/private-key/upload", status=200)
         form = res.form
-        form["private_key_file"] = Upload(key_filepath)
+        form["private_key_file_pem"] = Upload(key_filepath)
         res2 = form.submit()
         assert res2.status_code == 303
         assert """/.well-known/admin/private-key/""" in res2.location
@@ -1575,7 +1537,7 @@ class FunctionalTests_PrivateKeys(AppTest):
 
         res = self.testapp.get("/.well-known/admin/private-key/upload.json", status=200)
         form = {}
-        form["private_key_file"] = Upload(key_filepath)
+        form["private_key_file_pem"] = Upload(key_filepath)
         res2 = self.testapp.post("/.well-known/admin/private-key/upload.json", form)
         assert res2.status_code == 200
 
@@ -1861,7 +1823,7 @@ class FunctionalTests_Operations(AppTest):
 class ZZZ_FunctionalTests_API(AppTest):
     """python -m unittest peter_sslers.tests.ZZZ_FunctionalTests_API"""
 
-    """this is prefixed `ZZZ_` so it runs last. 
+    """this is prefixed `ZZZ_` so it runs last.
     When run, some API endpoints will deactivate the test certificates – which will
     cause other tests to fail.
     """

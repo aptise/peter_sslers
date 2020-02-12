@@ -38,8 +38,8 @@ openssl_path_conf = "/etc/ssl/openssl.cnf"
 
 ACME_VERSION = "v2"
 openssl_version = None
-_RE_openssl_version = re.compile("OpenSSL ((\d+\.\d+\.\d+)\w*) ", re.I)
-_RE_rn = re.compile("\r\n")
+_RE_openssl_version = re.compile(r"OpenSSL ((\d+\.\d+\.\d+)\w*) ", re.I)
+_RE_rn = re.compile(r"\r\n")
 _openssl_behavior = None  # 'a' or 'b'
 
 

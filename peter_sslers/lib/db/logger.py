@@ -76,7 +76,7 @@ class AcmeLogger(object):
     def log_newOrder(self, acme_version, dbCertificateRequest, transaction_commit=None):
         """
         Logs a call for the ACME Registration event
-        
+
         :param acme_version: (required) The ACME version of the API we are using.
         :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest` for the new order
         :param transaction_commit: (option) Boolean. If True, commit the transaction
@@ -106,7 +106,7 @@ class AcmeLogger(object):
     def log_order_load(self, acme_version, dbAcmeOrder, transaction_commit=None):
         """
         Logs a call for the ACME order's endpint
-        
+
         :param acme_version: (required) The ACME version of the API we are using.
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` for the existing order
         """
@@ -150,6 +150,38 @@ class AcmeLogger(object):
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id if self.dbAcmeOrder else None
+        dbAcmeEventLog.certificate_request_id = (
+            self.dbAcmeOrder.certificate_request.id if self.dbAcmeOrder else None
+        )
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
+
+    def log_challenge_PostAsGet(
+        self, acme_version, dbAcmeChallenge, transaction_commit=None
+    ):
+        """
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-challenge-PostAsGet"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
+        dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
         dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
         self.dbSession.add(dbAcmeEventLog)

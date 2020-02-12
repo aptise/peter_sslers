@@ -146,7 +146,7 @@ class ViewAdmin(Handler):
     )
     def focus__acme_orders(self):
         dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__AcmeOrders__by_UniqueFQDNSetId__count(
+        items_count = lib_db.get.get__AcmeOrder__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
         (pager, offset) = self._paginate(
@@ -154,7 +154,7 @@ class ViewAdmin(Handler):
             url_template="%s/unique-fqdn-set/%s/acme-orders/{0}"
             % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
         )
-        items_paged = lib_db.get.get__AcmeOrders__by_UniqueFQDNSetId__paginated(
+        items_paged = lib_db.get.get__AcmeOrder__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
             limit=items_per_page,

@@ -107,7 +107,9 @@ def queue_domains__add(ctx, domain_names):
                 _result = "exists"
 
         elif not _dbDomain:
-            _dbQueueDomain = lib.db.get.get__QueueDomain__by_name(ctx, domain_name)
+            _dbQueueDomain = lib.db.get.get__QueueDomain__by_name__single(
+                ctx, domain_name
+            )
             if _dbQueueDomain:
                 _logger_args[
                     "event_status_id"

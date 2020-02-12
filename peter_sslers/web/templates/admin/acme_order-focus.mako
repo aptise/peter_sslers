@@ -27,7 +27,6 @@
 <%block name="content_main">
     ${admin_partials.handle_querystring_result()}
     
-
     <p>
         % if AcmeOrder.is_can_acme_server_sync:
             <a
@@ -75,13 +74,13 @@
                     <tr>
                         <th>status</th>
                         <td><code>${AcmeOrder.status_text  or ''}</code>
-                            % if AcmeOrder.status_text != 'invalid':
+                            % if AcmeOrder.is_can_mark_invalid:
                                 <a
                                     href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?operation=invalid"
                                     class="btn btn-xs btn-danger"
                                 >
                                     <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                    Mark `invalid`
+                                    Mark 'invalid'
                                 </a>
                             % endif
                         </td>

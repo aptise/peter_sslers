@@ -83,6 +83,39 @@ class ViewAdmin_Focus(Handler):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         return {"project": "peter_sslers", "AcmeAuthorization": dbAcmeAuthorization}
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_authorization:focus:acme_server_sync", renderer=None
+    )
+    def acme_server_sync(self):
+        """
+        Acme Refresh should just update the record against the acme server.
+        """
+        dbAcmeAuthorization = self._focus(eagerload_web=True)
+        try:
+            if not dbAcmeAuthorization.is_can_acme_server_sync:
+                raise errors.InvalidRequest(
+                    "ACME Server Sync is not allowed for this AcmeAuthorization"
+                )
+            result = lib_db.actions.do__AcmeAuthorization_AcmeV2__acme_server_sync(
+                self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
+            )
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme+server+sync+success" % self._focus_url
+            )
+        except (
+            errors.AcmeCommunicationError,
+            errors.DomainVerificationError,
+            errors.InvalidRequest,
+        ) as exc:
+            return HTTPSeeOther(
+                "%s?error=new-automated&message=%s"
+                % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:acme_authorization:focus:acme_orders",
         renderer="/admin/acme_authorization-focus-acme_orders.mako",
@@ -93,15 +126,13 @@ class ViewAdmin_Focus(Handler):
     )
     def acme_orders(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
-        items_count = lib_db.get.get__AcmeOrders__by_AcmeAuthorizationId__count(
+        items_count = lib_db.get.get__AcmeOrder__by_AcmeAuthorizationId__count(
             self.request.api_context, dbAcmeAuthorization.id
         )
         (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/acme-challenge-unknown-polls/{0}"
-            % self.request.registry.settings["admin_prefix"],
+            items_count, url_template="%s/acme-orders" % self._focus_url,
         )
-        items_paged = lib_db.get.get__AcmeOrders__by_AcmeAuthorizationId__paginated(
+        items_paged = lib_db.get.get__AcmeOrder__by_AcmeAuthorizationId__paginated(
             self.request.api_context,
             dbAcmeAuthorization.id,
             limit=items_per_page,
@@ -112,5 +143,37 @@ class ViewAdmin_Focus(Handler):
             "AcmeAuthorization": dbAcmeAuthorization,
             "AcmeOrders_count": items_count,
             "AcmeOrders": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_authorization:focus:acme_challenges",
+        renderer="/admin/acme_authorization-focus-acme_challenges.mako",
+    )
+    @view_config(
+        route_name="admin:acme_authorization:focus:acme_challenges_paginated",
+        renderer="/admin/acme_authorization-focus-acme_challenges.mako",
+    )
+    def acme_challenges(self):
+        dbAcmeAuthorization = self._focus(eagerload_web=True)
+        items_count = lib_db.get.get__AcmeChallenge__by_AcmeAuthorizationId__count(
+            self.request.api_context, dbAcmeAuthorization.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/acme-challenges" % self._focus_url,
+        )
+        items_paged = lib_db.get.get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
+            self.request.api_context,
+            dbAcmeAuthorization.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeAuthorization": dbAcmeAuthorization,
+            "AcmeChallenges_count": items_count,
+            "AcmeChallenges": items_paged,
             "pager": pager,
         }

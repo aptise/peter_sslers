@@ -74,7 +74,7 @@
                     <tr>
                         <th>Lets Encrypt Account</th>
                         <td>
-                            ${admin_partials.formgroup__account_key_selector_advanced(
+                            ${admin_partials.formgroup__AcmeAccountKey_selector__advanced(
                                 dbAcmeAccountKeyReuse=ServerCertificate.acme_account_key,
                             )}
                         </td>
@@ -82,7 +82,7 @@
                     <tr>
                         <th>Private Key</th>
                         <td>
-                            ${admin_partials.formgroup__private_key_selector_advanced(
+                            ${admin_partials.formgroup__PrivateKey_selector__advanced(
                                 show_text=False,
                                 dbPrivateKeyReuse=ServerCertificate.private_key,
                             )}

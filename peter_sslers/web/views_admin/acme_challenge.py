@@ -17,6 +17,7 @@ from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.handler import Handler, items_per_page
 from ...lib import cert_utils
+from ...lib import errors
 from ...lib import db as lib_db
 from ...lib import utils
 from ...model import utils as model_utils
@@ -37,13 +38,13 @@ class ViewAdmin_List(Handler):
         renderer="/admin/acme_challenges.mako",
     )
     def list(self):
-        items_count = lib_db.get.get__AcmeChallenges__count(self.request.api_context)
+        items_count = lib_db.get.get__AcmeChallenge__count(self.request.api_context)
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/acme-challenge/{0}"
             % self.request.registry.settings["admin_prefix"],
         )
-        items_paged = lib_db.get.get__AcmeChallenges__paginated(
+        items_paged = lib_db.get.get__AcmeChallenge__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
         return {
@@ -76,3 +77,36 @@ class ViewAdmin_Focus(Handler):
     def focus(self):
         dbAcmeChallenge = self._focus(eagerload_web=True)
         return {"project": "peter_sslers", "AcmeChallenge": dbAcmeChallenge}
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_challenge:focus:acme_server_sync", renderer=None
+    )
+    def acme_server_sync(self):
+        """
+        Acme Refresh should just update the record against the acme server.
+        """
+        dbAcmeChallenge = self._focus(eagerload_web=True)
+        try:
+            if not dbAcmeChallenge.is_can_acme_server_sync:
+                raise errors.InvalidRequest(
+                    "ACME Server Sync is not allowed for this AcmeAuthorization"
+                )
+            result = lib_db.actions.do__AcmeChallenge_AcmeV2__acme_server_sync(
+                self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
+            )
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme+server+sync+success" % self._focus_url
+            )
+        except (
+            errors.AcmeCommunicationError,
+            errors.DomainVerificationError,
+            errors.InvalidRequest,
+        ) as exc:
+            return HTTPSeeOther(
+                "%s?error=new-automated&message=%s"
+                % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

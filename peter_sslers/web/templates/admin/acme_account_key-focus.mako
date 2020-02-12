@@ -6,14 +6,14 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-account-keys">Acme Account Keys</a></li>
+        <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
         <li class="active">Focus [${AcmeAccountKey.id}]</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Acme Account Keys - Focus</h2>
+    <h2>AcmeAccountKeys - Focus</h2>
     <p>${request.text_library.info_AcmeAccountKeys[1]}</p>
 
     ${admin_partials.standard_error_display()}
@@ -134,18 +134,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Pending Authorizations?</th>
-                        <td>
-                            <a
-                                class="btn btn-xs btn-info"
-                                href="${admin_prefix}/acme-challenge-logs/filtered?acme-account-key-id=${AcmeAccountKey.id}&status=pending"
-                            >
-                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                                SEARCH
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
                         <th>timestamp_first_seen</th>
                         <td><timestamp>${AcmeAccountKey.timestamp_first_seen  or ''}</timestamp></td>
                     </tr>
@@ -214,6 +202,26 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <tr>
+                        <th>AcmeAuthorizations</th>
+                        <td>
+                            ${admin_partials.table_AcmeAuthorizations(AcmeAccountKey.acme_authorizations__5, perspective="AcmeAccountKey")}
+                            % if AcmeAccountKey.acme_authorizations__5:
+                                ${admin_partials.nav_pager("%s/acme-account-key/%s/acme-authorizations" % (admin_prefix, AcmeAccountKey.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeAuthorizations Pending</th>
+                        <td>
+                            ${admin_partials.table_AcmeAuthorizations(AcmeAccountKey.acme_authorizations_pending__5, perspective="AcmeAccountKey")}
+                            % if AcmeAccountKey.acme_authorizations_pending__5:
+                                ${admin_partials.nav_pager("%s/acme-account-key/%s/acme-authorizations?authorization-status=pending" % (admin_prefix, AcmeAccountKey.id))}
+                            % endif
+                        </td>
+                    </tr>
+
+
                     <tr>
                         <th>AcmeOrder(s)</th>
                         <td>

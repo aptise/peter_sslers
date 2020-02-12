@@ -6,14 +6,14 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-account-keys">Acme Account Keys</a></li>
+        <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
         <li class="active">Upload</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Acme Account Key | Upload</h2>
+    <h2>AcmeAccountKey | Upload</h2>
     <p><em>${request.text_library.info_AcmeAccountKeys[1]}</em></p>
 </%block>
 
@@ -29,7 +29,7 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__account_key_file()}
+                ${admin_partials.formgroup__AcmeAccountKey_file()}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>

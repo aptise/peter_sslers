@@ -11,7 +11,7 @@ from zope.sqlalchemy import mark_changed
 # ==============================================================================
 
 
-RE_domain = re.compile("^(?:[\w\-]+\.)+[\w]{2,5}$")
+RE_domain = re.compile(r"^(?:[\w\-]+\.)+[\w]{2,5}$")
 
 
 # ==============================================================================
@@ -20,7 +20,7 @@ RE_domain = re.compile("^(?:[\w\-]+\.)+[\w]{2,5}$")
 def validate_domains(domain_names):
     """
     Ensures each items of the iterable `domain_names` matches a regular expression.
-    
+
     :param domain_names: (required) An iterable list of strings
     """
     for d in domain_names:
@@ -32,9 +32,9 @@ def validate_domains(domain_names):
 def domains_from_list(domain_names):
     """
     Turns a list of strings into a standardized list of domain names.
-    
+
     Will raise Exceptions if non-conforming elements are encountered.
-    
+
     :param domain_names: (required) An iterable list of strings
     """
     domain_names = [d for d in [d.strip().lower() for d in domain_names] if d]

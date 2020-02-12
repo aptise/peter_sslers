@@ -79,10 +79,6 @@
 
             <h3>Recordkeeping - ACME Logs</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/acme-challenge-logs"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-challenge-logs</a></li>
                 <li><a href="${admin_prefix}/acme-challenge-polls"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -179,7 +175,7 @@
                         title="${request.text_library.info_UploadAccountKey[0]}"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-                    Upload: Acme Account Key</a></li>
+                    Upload: AcmeAccountKey</a></li>
                 <li>
                     <a  href="${admin_prefix}/ca-certificate/upload"
                         title="${request.text_library.info_UploadCACertificate[0]}"

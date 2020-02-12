@@ -285,10 +285,10 @@
                     <tr>
                         <th>acme_account_key_id</th>
                         <td>
-                            % if ServerCertificate.acme_account_key_id:
-                                <a class="label label-info" href="${admin_prefix}/acme-account-key/${ServerCertificate.acme_account_key_id}">
+                            % if ServerCertificate.acme_order and ServerCertificate.acme_order.acme_account_key_id:
+                                <a class="label label-info" href="${admin_prefix}/acme-account-key/${ServerCertificate.acme_order.acme_account_key_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    PrivateKey-${ServerCertificate.acme_account_key_id}</a>
+                                    AcmeAccountKey-${ServerCertificate.acme_order.acme_account_key_id}</a>
                             % endif
                         </td>
                     </tr>

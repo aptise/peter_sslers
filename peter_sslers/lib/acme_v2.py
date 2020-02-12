@@ -203,7 +203,7 @@ def account_key__parse(account_key_path=None):
 class AcmeOrder(object):
     """
     An object wrapping up an ACME server order
-    
+
     Attributes:
 
     :param rfc_object: (required) A Python dict representing the RFC AcmeOrder object
@@ -382,7 +382,7 @@ class AuthenticatedUser(object):
             management actions on this account, as described below.
 
             ...
-        
+
             Example - Request
 
                 POST /acme/new-account HTTP/1.1
@@ -423,7 +423,7 @@ class AuthenticatedUser(object):
                  ],
 
                  "orders": "https://example.com/acme/acct/evOfKhNU60wg/orders"
-               }            
+               }
         """
         if self.acme_directory is None:
             raise ValueError("`acme_directory` is required")
@@ -491,7 +491,7 @@ class AuthenticatedUser(object):
     def acme_order_load(self, ctx, dbAcmeOrder, transaction_commit=None):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
-        :param dbAcmeOrder: (required) The url of the order
+        :param dbAcmeOrder: (required) a :class:`model.objects.AcmeOrder` instance
         """
         if transaction_commit is not True:
             # required for the `AcmeLogger`
@@ -519,6 +519,56 @@ class AuthenticatedUser(object):
 
         return (acmeOrderObject, dbEventLogged)
 
+    def acme_authorization_load(
+        self, ctx, dbAcmeAuthorization, transaction_commit=None
+    ):
+        """
+        This loads the authorization object and pulls the payload
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
+        """
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if not dbAcmeAuthorization.authorization_url:
+            raise ValueError("the order does not have a `resource_url`")
+
+        (authorization_response, _, authorization_headers) = self._send_signed_request(
+            dbAcmeAuthorization.authorization_url, None
+        )
+
+        # log the event
+        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
+            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+        )  # log this to the db
+
+        return (authorization_response, dbAcmeEventLog_authorization_fetch)
+
+    def acme_challenge_load(self, ctx, dbAcmeChallenge, transaction_commit=None):
+        """
+        This loads the authorization object and pulls the payload
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
+        """
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if not dbAcmeChallenge.challenge_url:
+            raise ValueError("the challenge does not have a `challenge_url`")
+
+        (challenge_response, _, challenge_headers) = self._send_signed_request(
+            dbAcmeChallenge.challenge_url, None
+        )
+
+        # log the event
+        dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(
+            "v2", dbAcmeChallenge=dbAcmeChallenge, transaction_commit=True,
+        )  # log this to the db
+
+        return (challenge_response, dbAcmeEventLog_challenge_fetch)
+
     def acme_order_new(
         self, ctx, csr_domains=None, dbCertificateRequest=None, transaction_commit=None,
     ):
@@ -533,7 +583,7 @@ class AuthenticatedUser(object):
 
         https://tools.ietf.org/html/rfc8555#section-7.4
 
-            identifiers (required, array of object):  An array of identifier 
+            identifiers (required, array of object):  An array of identifier
             objects that the client wishes to submit an order for.
 
                 type (required, string):  The type of identifier.
@@ -545,7 +595,7 @@ class AuthenticatedUser(object):
 
                 notAfter (optional, string):  The requested value of the notAfter
                     field in the certificate, in the date format defined in [RFC3339].
-        
+
             Example - Request
 
                 POST /acme/new-order HTTP/1.1
@@ -568,7 +618,7 @@ class AuthenticatedUser(object):
                     "notAfter": "2016-01-08T00:04:00+04:00"
                   }),
                   "signature": "H6ZXtGjTZyUnPeKn...wEA4TklBdh3e454g"
-                }        
+                }
 
             Example - Response
 
@@ -646,9 +696,9 @@ class AuthenticatedUser(object):
         :param handle_challenge_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
         :param is_retry: (required) Boolean. False to indicate a New order; True to indicate this is a retry.
- 
+
         Authorizations
-        
+
             https://tools.ietf.org/html/rfc8555#section-7.1.4
 
                 status (required, string):  The status of this authorization.
@@ -685,11 +735,11 @@ class AuthenticatedUser(object):
         Challenges
 
             https://tools.ietf.org/html/rfc8555#section-8
-            
+
                 status (required, string):  The status of this challenge.  Possible
                    values are "pending", "processing", "valid", and "invalid" (see
                    Section 7.1.6).
-            
+
             https://tools.ietf.org/html/rfc8555#section-7.1.6
 
                 Challenge objects are created in the "pending" state.  They
@@ -703,7 +753,7 @@ class AuthenticatedUser(object):
                 error, the challenge moves to the "invalid" state.
 
             Therefore:
-            
+
                 "pending"
                     newly created
                 "processing"
@@ -737,12 +787,20 @@ class AuthenticatedUser(object):
 
             # in v1, we know the domain before the authorization request
             # in v2, we hit an order's authorization url to get the domain
-            (authorization_response, _, _) = self._send_signed_request(
-                authorization_url, payload=None,
-            )
+            (
+                authorization_response,
+                _,
+                authorization_headers,
+            ) = self._send_signed_request(authorization_url, payload=None,)
             dbAcmeAuthorization = handle_authorization_payload(
                 authorization_url, authorization_response, transaction_commit=True,
             )
+
+            # log the event
+            dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
+                "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+            )  # log this to the db
+
             _response_domain = authorization_response["identifier"]["value"]
             if dbAcmeAuthorization.domain.domain_name != _response_domain:
                 raise ValueError("mismatch on a domain name")
@@ -755,10 +813,6 @@ class AuthenticatedUser(object):
                     dbAcmeAuthorization.domain.domain_name
                 )
             )
-
-            dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-                "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
-            )  # log this to the db
 
             _authorization_status = authorization_response["status"]
             if _authorization_status == "pending":
@@ -799,7 +853,9 @@ class AuthenticatedUser(object):
                 raise ValueError(
                     "`acme_challenge_response` not in `authorization_response`"
                 )
-            _challenge_status_text = dbAcmeAuthorization.acme_challenge_http01.status_text
+            _challenge_status_text = (
+                dbAcmeAuthorization.acme_challenge_http01.status_text
+            )
 
             if _challenge_status_text == "pending":
                 _todo_complete_challenge_http01 = True
@@ -970,8 +1026,8 @@ class AuthenticatedUser(object):
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
         :param update_order_status: (required) Callable function. expects (ctx, dbAcmeOrder, status, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
-        
-        :param csr_path: (required) a 
+
+        :param csr_path: (required) a
         """
         # get the new certificate
         log.info("acme_v2 acme_finalize_order")
@@ -1023,7 +1079,10 @@ class AuthenticatedUser(object):
 
         # acme_order_finalized["status"] == "valid"
         update_order_status(
-            ctx, dbAcmeOrder, acme_order_finalized["status"], transaction_commit=transaction_commit
+            ctx,
+            dbAcmeOrder,
+            acme_order_finalized["status"],
+            transaction_commit=transaction_commit,
         )
 
         url_certificate = acme_order_finalized.get("certificate")

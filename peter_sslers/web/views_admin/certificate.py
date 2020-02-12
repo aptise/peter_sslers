@@ -199,10 +199,10 @@ class ViewAdmin_New(Handler):
         )
         if wants_json:
             return {
-                "instructions": """curl --form 'private_key_file=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' %s/certificate/upload.json"""
+                "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' %s/certificate/upload.json"""
                 % self.request.admin_url,
                 "form_fields": {
-                    "private_key_file": "required",
+                    "private_key_file_pem": "required",
                     "chain_file": "required",
                     "certificate_file": "required",
                 },
@@ -221,7 +221,7 @@ class ViewAdmin_New(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formhandling.slurp_file_field(
-                formStash, "private_key_file"
+                formStash, "private_key_file_pem"
             )
             if six.PY3:
                 if not isinstance(private_key_pem, str):
@@ -233,10 +233,10 @@ class ViewAdmin_New(Handler):
                 self.request.api_context, private_key_pem
             )
 
-            chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
+            ca_chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
             if six.PY3:
-                if not isinstance(chain_pem, str):
-                    chain_pem = chain_pem.decode("utf8")
+                if not isinstance(ca_chain_pem, str):
+                    ca_chain_pem = ca_chain_pem.decode("utf8")
             (
                 dbCACertificate,
                 cacert_is_created,
@@ -585,10 +585,10 @@ class ViewAdmin_Focus(Handler):
                     "account_key_file_le_meta": "letsencrypt file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
                     "account_key_file_le_pkey": "letsencrypt file",
                     "account_key_file_le_reg": "letsencrypt file",
-                    "private_key_option": "One of('private_key_reuse', 'private_key_existing', 'private_key_file'). REQUIRED.",
+                    "private_key_option": "One of('private_key_reuse', 'private_key_existing', 'private_key_file_pem'). REQUIRED.",
                     "private_key_reuse": "pem_md5 of existing key",
                     "private_key_existing": "pem_md5 of existing key",
-                    "private_key_file": "pem to upload",
+                    "private_key_file_pem": "pem to upload",
                 },
                 "form_fields_related": [
                     ["account_key_file_pem", "acme_account_provider_id"],
@@ -667,6 +667,8 @@ class ViewAdmin_Focus(Handler):
                     self.request.api_context, private_key_pem
                 )
                 """
+                raise ValueError("need a dbPrivateKey")
+                dbPrivateKey = None
 
                 dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2__automated(
                     self.request.api_context,

@@ -235,17 +235,17 @@ class AcmeAuthorization(Base):
 
         identifier (required, object):
             this is a domain
-            
+
         expires (optional, string):
             REQUIRED for objects with "valid" in the "status" field.
-    
+
         status (required, string):  The status of this authorization.
               Possible values are "pending", "valid", "invalid", "deactivated",
-              "expired", and "revoked".    
+              "expired", and "revoked".
 
         challenges (required, array of objects):
-        
-        wildcard (optional, boolean):  
+
+        wildcard (optional, boolean):
 
     Additionally, these are our fields:
         authorization_url - our unique-ish way to track this
@@ -269,7 +269,9 @@ class AcmeAuthorization(Base):
     wildcard = sa.Column(sa.Boolean, nullable=True, default=None)
 
     # testing
-    acme_order_id__created = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=False)
+    acme_order_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=False
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -280,13 +282,6 @@ class AcmeAuthorization(Base):
         back_populates="acme_authorizations",
     )
 
-    to_acme_orders = sa_orm_relationship(
-        "AcmeOrder2AcmeAuthorization",
-        primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
-        uselist=False,
-        back_populates="acme_authorization",
-    )
-
     acme_challenge_http01 = sa_orm_relationship(
         "AcmeChallenge",
         primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
@@ -295,17 +290,41 @@ class AcmeAuthorization(Base):
         back_populates="acme_authorization",
     )
 
+    acme_order_created = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="AcmeAuthorization.acme_order_id__created==AcmeOrder.id",
+        uselist=False,
+    )
+
+    to_acme_orders = sa_orm_relationship(
+        "AcmeOrder2AcmeAuthorization",
+        primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
+        uselist=False,
+        back_populates="acme_authorization",
+    )
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def is_can_acme_server_sync(self):
+        # TODO: is there another way to test this?
+        if not self.authorization_url:
+            return False
+        if not self.acme_order_id__created:
+            return False
+        return True
+
+    @property
     def status_text(self):
-        return model_utils.Acme_Status_Authorization.as_string(self.acme_status_authorization_id)
+        return model_utils.Acme_Status_Authorization.as_string(
+            self.acme_status_authorization_id
+        )
 
 
 class AcmeChallenge(Base):
     """
     ACME Challenge Objects [https://tools.ietf.org/html/rfc8555#section-8]
-    
+
     RFC Fields:
        type (required, string):  The type of challenge encoded in the
           object.
@@ -414,8 +433,21 @@ class AcmeChallenge(Base):
         return self.acme_authorization.domain.domain_name
 
     @property
+    def is_can_acme_server_sync(self):
+        # TODO: is there another way to test this?
+        if not self.challenge_url:
+            return False
+        if not self.acme_authorization_id:
+            return False
+        if not self.acme_authorization.acme_order_id__created:
+            return False
+        return True
+
+    @property
     def status_text(self):
-        return model_utils.Acme_Status_Challenge.as_string(self.acme_status_challenge_id)
+        return model_utils.Acme_Status_Challenge.as_string(
+            self.acme_status_challenge_id
+        )
 
     @property
     def timestamp_created_isoformat(self):
@@ -447,7 +479,7 @@ class AcmeOrder(Base):
     ACME Order Object [https://tools.ietf.org/html/rfc8555#section-7.1.3]
 
     An ACME Order is essentially a Certificate Request
-        
+
     It contains the following objects:
         Identifiers (Domains)
         Authorizations (Authorization Objects)
@@ -551,8 +583,21 @@ class AcmeOrder(Base):
 
     @property
     def is_can_acme_server_sync(self):
-        # TODO: this should be conditional
+        # TODO: is there a better test?
+        if not self.resource_url:
+            return False
+        if self.status_text == "valid":
+            return False
         return True
+
+    @property
+    def is_can_mark_invalid(self):
+        if self.acme_status_order_id not in (
+            model_utils.Acme_Status_Order.from_string("invalid"),
+            model_utils.Acme_Status_Order.from_string("valid"),
+        ):
+            return True
+        return False
 
     @property
     def is_can_retry(self):
@@ -617,6 +662,7 @@ class AcmeOrder2AcmeAuthorization(Base):
         uselist=False,
         back_populates="to_acme_orders",
     )
+
 
 # ==============================================================================
 
@@ -1750,11 +1796,72 @@ AcmeOrder.acme_order__retry_of = sa_orm_relationship(
     viewonly=True,
 )
 
+
 # note: AcmeOrder.acme_order__renewal_of
 AcmeOrder.acme_order__renewal_of = sa_orm_relationship(
     AcmeOrderAlt,
     primaryjoin=(AcmeOrder.acme_order_id__renewal_of == AcmeOrderAlt.id),
     uselist=False,
+    viewonly=True,
+)
+
+
+# note: AcmeAccountKey.acme_authorizations__5
+AcmeAccountKey.acme_authorizations__5 = sa_orm_relationship(
+    AcmeAuthorization,
+    primaryjoin="AcmeAccountKey.id == AcmeOrder.acme_account_key_id",
+    secondary=(
+        """join(AcmeOrder,
+                AcmeAuthorization,
+                AcmeOrder.id == AcmeAuthorization.acme_order_id__created
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            AcmeAuthorization.acme_order_id__created == sa.orm.foreign(AcmeOrder.id),
+            AcmeAuthorization.id.in_(
+                sa.select([AcmeAuthorization.id])
+                .where(AcmeAuthorization.acme_order_id__created == AcmeOrder.id)
+                .where(AcmeOrder.acme_account_key_id == AcmeAccountKey.id)
+                .order_by(AcmeAuthorization.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeAuthorization.id.desc(),
+    viewonly=True,
+)
+
+
+# note: AcmeAccountKey.acme_authorizations_pending__5
+AcmeAccountKey.acme_authorizations_pending__5 = sa_orm_relationship(
+    AcmeAuthorization,
+    primaryjoin="AcmeAccountKey.id == AcmeOrder.acme_account_key_id",
+    secondary=(
+        """join(AcmeOrder,
+                AcmeAuthorization,
+                AcmeOrder.id == AcmeAuthorization.acme_order_id__created
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            AcmeAuthorization.acme_order_id__created == sa.orm.foreign(AcmeOrder.id),
+            AcmeAuthorization.id.in_(
+                sa.select([AcmeAuthorization.id])
+                .where(AcmeAuthorization.acme_order_id__created == AcmeOrder.id)
+                .where(AcmeOrder.acme_account_key_id == AcmeAccountKey.id)
+                .where(
+                    AcmeAuthorization.acme_status_authorization_id
+                    == model_utils.Acme_Status_Authorization.from_string("pending")
+                )
+                .order_by(AcmeAuthorization.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeAuthorization.id.desc(),
     viewonly=True,
 )
 
@@ -1822,10 +1929,7 @@ AcmeAccountKey.server_certificates__5 = sa_orm_relationship(
             ServerCertificate.id.in_(
                 sa.select([ServerCertificate.id])
                 .where(ServerCertificate.id == AcmeOrder.server_certificate_id)
-                .where(
-                    AcmeOrder.acme_account_key_id
-                    == AcmeAccountKey.id
-                )
+                .where(AcmeOrder.acme_account_key_id == AcmeAccountKey.id)
                 .order_by(ServerCertificate.id.desc())
                 .limit(5)
                 .correlate()
@@ -1838,6 +1942,26 @@ AcmeAccountKey.server_certificates__5 = sa_orm_relationship(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# note: AcmeAuthorization.acme_challenges__5
+AcmeAuthorization.acme_challenges__5 = sa_orm_relationship(
+    AcmeChallenge,
+    primaryjoin=(
+        sa.and_(
+            AcmeAuthorization.id == AcmeChallenge.acme_authorization_id,
+            AcmeChallenge.id.in_(
+                sa.select([AcmeChallenge.id])
+                .where(AcmeChallenge.acme_authorization_id == AcmeAuthorization.id)
+                .order_by(AcmeChallenge.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeChallenge.id.desc(),
+    viewonly=True,
+)
 
 # note: AcmeAuthorization.acme_orders__5
 AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
@@ -1954,6 +2078,54 @@ CertificateRequest.server_certificates__5 = sa_orm_relationship(
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# note: Domain.acme_authorizations__5
+Domain.acme_authorizations__5 = sa_orm_relationship(
+    AcmeAuthorization,
+    primaryjoin=(
+        sa.and_(
+            Domain.id == AcmeAuthorization.domain_id,
+            AcmeAuthorization.id.in_(
+                sa.select([AcmeAuthorization.id])
+                .where(AcmeAuthorization.domain_id == Domain.id)
+                .order_by(AcmeAuthorization.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeAuthorization.id.desc(),
+    viewonly=True,
+)
+
+
+# note: Domain.acme_challenges__5
+Domain.acme_challenges__5 = sa_orm_relationship(
+    AcmeChallenge,
+    primaryjoin="Domain.id == AcmeAuthorization.domain_id",
+    secondary=(
+        """join(AcmeAuthorization,
+                AcmeChallenge,
+                AcmeAuthorization.id == AcmeChallenge.acme_authorization_id
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            AcmeChallenge.acme_authorization_id == AcmeAuthorization.id,
+            AcmeChallenge.id.in_(
+                sa.select([AcmeChallenge.id])
+                .where(AcmeChallenge.acme_authorization_id == AcmeAuthorization.id)
+                .where(AcmeAuthorization.domain_id == Domain.id)
+                .order_by(AcmeAuthorization.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeChallenge.id.desc(),
+    viewonly=True,
+)
 
 
 # note: Domain.acme_orders__5

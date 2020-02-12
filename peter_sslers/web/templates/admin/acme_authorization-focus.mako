@@ -25,9 +25,20 @@
 <%block name="content_main">
     ${admin_partials.handle_querystring_result()}
     
+    <p>
+        % if AcmeAuthorization.is_can_acme_server_sync:
+            <a
+                href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-sync"
+                class="btn btn-xs btn-info"
+            >
+                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                Sync AcmeAuthorization Against ACME Server
+            </a>
+        % endif
+    </p>   
+
     <div class="row">
         <div class="col-sm-12">
-
 
             <table class="table">
                 <thead>
@@ -87,6 +98,17 @@
                         <td><code>${AcmeAuthorization.wildcard  or ''}</code>
                         </td>
                     </tr>
+
+                    <tr>
+                        <th>acme_challenge_http01</th>
+                        <td>
+                            % if AcmeAuthorization.acme_challenge_http01:
+                                <a class="label label-info" href="${admin_prefix}/acme-challenge/${AcmeAuthorization.acme_challenge_http01}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeChallenge-${AcmeAuthorization.acme_challenge_http01.id}</a>
+                            % endif
+                        </td>
+                    </tr>
                 </tbody>
                 <thead>
                     <tr>
@@ -102,10 +124,19 @@
                 </thead>
                 <tbody>
                     <tr>
+                        <th>AcmeChallenges(s)</th>
+                        <td>
+                            % if AcmeAuthorization.acme_challenges__5:
+                                ${admin_partials.table_AcmeChallenges(AcmeAuthorization.acme_challenges__5, perspective="AcmeChallenges")}
+                                ${admin_partials.nav_pager("%s/acme-authorization/%s/acme-challenges" % (admin_prefix, AcmeAuthorization.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>AcmeOrder(s)</th>
                         <td>
-                            ${admin_partials.table_AcmeOrders(AcmeAuthorization.acme_orders__5, perspective="AcmeAuthorization")}
                             % if AcmeAuthorization.acme_orders__5:
+                                ${admin_partials.table_AcmeOrders(AcmeAuthorization.acme_orders__5, perspective="AcmeAuthorization")}
                                 ${admin_partials.nav_pager("%s/acme-authorization/%s/acme-orders" % (admin_prefix, AcmeAuthorization.id))}
                             % endif
                         </td>

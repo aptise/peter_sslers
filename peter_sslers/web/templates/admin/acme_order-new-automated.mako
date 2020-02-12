@@ -39,12 +39,12 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <h3>ACME Account Key</h3>
-                <p>A LetsEncrypt ACME Account Key</p>
-                ${admin_partials.formgroup__account_key_selector_advanced()}
+                <h3>AcmeAccountKey</h3>
+                ${admin_partials.formgroup__AcmeAccountKey_selector__advanced()}
                 <hr/>
 
-                ${admin_partials.formgroup__private_key_selector(show_text=show_text)}
+                <h3>PrivateKey</h3>
+                ${admin_partials.formgroup__PrivateKey_selector__advanced(show_text=show_text)}
                 <hr/>
 
                 ${admin_partials.formgroup__domain_names()}

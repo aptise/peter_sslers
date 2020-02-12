@@ -134,7 +134,7 @@ class ViewAdmin_Focus(Handler):
     )
     def focus_acme_orders(self):
         dbCertificateRequest = self._focus()
-        items_count = lib_db.get.get__AcmeOrders__by_CertificateRequest__count(
+        items_count = lib_db.get.get__AcmeOrder__by_CertificateRequest__count(
             self.request.api_context, dbCertificateRequest.id
         )
         (pager, offset) = self._paginate(
@@ -142,7 +142,7 @@ class ViewAdmin_Focus(Handler):
             url_template="%s/certificate-request/{0}/acme-orders"
             % self.request.registry.settings["admin_prefix"],
         )
-        items_paged = lib_db.get.get__AcmeOrders__by_CertificateRequest__paginated(
+        items_paged = lib_db.get.get__AcmeOrder__by_CertificateRequest__paginated(
             self.request.api_context,
             dbCertificateRequest.id,
             limit=items_per_page,

@@ -1,4 +1,5 @@
-from .lib.config_utils import *
+from .lib.config_utils import set_bool_setting
+from .lib.config_utils import set_int_setting
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -11,8 +12,8 @@ def includeme(config):
 
     # pyramid_route_7 lets us default repeatable macros for our routes
     config.include("pyramid_route_7")
-    config.add_route_7_kvpattern("id", "\d+")
-    config.add_route_7_kvpattern("page", "\d+")
+    config.add_route_7_kvpattern("id", r"\d+")
+    config.add_route_7_kvpattern("page", r"\d+")
 
     # public
     if enable_views_public:
@@ -58,6 +59,18 @@ def _admin_views(config):
         "admin:acme_authorization:focus:acme_orders_paginated",
         "/acme-authorization/{@id}/acme-orders/{@page}",
     )
+    config.add_route_7(
+        "admin:acme_authorization:focus:acme_challenges",
+        "/acme-authorization/{@id}/acme-challenges",
+    )
+    config.add_route_7(
+        "admin:acme_authorization:focus:acme_challenges_paginated",
+        "/acme-authorization/{@id}/acme-challenges/{@page}",
+    )
+    config.add_route_7(
+        "admin:acme_authorization:focus:acme_server_sync",
+        "/acme-authorization/{@id}/acme-server-sync",
+    )
 
     # !!!: AcmeAccountKeys
     # AccountKeys are the LetsEncrypt accounts
@@ -85,6 +98,14 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_account_key:focus:raw",
         "/acme-account-key/{@id}/key.{format:(key|pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:acme_authorizations",
+        "/acme-account-key/{@id}/acme-authorizations",
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:acme_authorizations_paginated",
+        "/acme-account-key/{@id}/acme-authorizations/{@page}",
     )
     config.add_route_7(
         "admin:acme_account_key:focus:acme_orders",
@@ -133,6 +154,10 @@ def _admin_views(config):
     config.add_route_7("admin:acme_challenges", "/acme-challenges")
     config.add_route_7("admin:acme_challenges_paginated", "/acme-challenges/{@page}")
     config.add_route_7("admin:acme_challenge:focus", "/acme-challenge/{@id}")
+    config.add_route_7(
+        "admin:acme_challenge:focus:acme_server_sync",
+        "/acme-challenge/{@id}/acme-server-sync",
+    )
 
     # !!!: AcmeChallenge Poll
     config.add_route_7("admin:acme_challenge_polls", "/acme-challenge-polls")
@@ -154,20 +179,6 @@ def _admin_views(config):
     config.add_route_7("admin:acme_event_log", "/acme-event-logs")
     config.add_route_7("admin:acme_event_log_paginated", "/acme-event-logs/{@page}")
     config.add_route_7("admin:acme_event_log:focus", "/acme-event-log/{@id}")
-
-    # !!! AcmeChallengeLog - DEPRECATED / REMOVE
-    config.add_route_7("admin:acme_challenge_log", "/acme-challenge-logs")
-    config.add_route_7(
-        "admin:acme_challenge_log_paginated", "/acme-challenge-logs/{@page}"
-    )
-    config.add_route_7("admin:acme_challenge_log:focus", "/acme-challenge-log/{@id}")
-
-    config.add_route_7(
-        "admin:acme_challenge_log:filtered", "/acme-challenge-logs/filtered"
-    )
-    config.add_route_7(
-        "admin:acme_challenge_log:filtered|json", "/acme-challenge-logs/filtered.json"
-    )
 
     # !!! AcmeFlow - our manual system
     # two types of CR handling
@@ -351,11 +362,11 @@ def _admin_views(config):
     )
     config.add_route_7(
         "admin:certificate:focus:nginx_cache_expire",
-        "/certificate/{id:\d}/nginx-cache-expire",
+        r"/certificate/{@id}/nginx-cache-expire",
     )
     config.add_route_7(
         "admin:certificate:focus:nginx_cache_expire|json",
-        "/certificate/{id:\d}/nginx-cache-expire.json",
+        r"/certificate/{@id}/nginx-cache-expire.json",
     )
     config.add_route_7(
         "admin:certificate:focus:renew:queue", "/certificate/{@id}/renew/queue"
@@ -435,6 +446,29 @@ def _admin_views(config):
     )
     config.add_route_7(
         "admin:domain:focus:calendar|json", "/domain/{domain_identifier}/calendar.json"
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_authorizations",
+        "/domain/{domain_identifier}/acme-authorizations",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_authorizations_paginated",
+        "/domain/{domain_identifier}/acme-authorizations/{@page}",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_challenges",
+        "/domain/{domain_identifier}/acme-challenges",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_challenges_paginated",
+        "/domain/{domain_identifier}/acme-challenges/{@page}",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_orders", "/domain/{domain_identifier}/acme-orders"
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_orders_paginated",
+        "/domain/{domain_identifier}/acme-orders/{@page}",
     )
     config.add_route_7(
         "admin:domain:focus:certificates", "/domain/{domain_identifier}/certificates"

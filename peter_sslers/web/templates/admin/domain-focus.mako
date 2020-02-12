@@ -214,6 +214,33 @@
                             % endif
                         </td>
                     </tr>
+                    <tr>
+                        <th>AcmeAuthorizations</th>
+                        <td>
+                            ${admin_partials.table_AcmeAuthorizations(Domain.acme_authorizations__5, perspective="Domain")}
+                            % if Domain.acme_authorizations__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/acme-authorizations" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeChallenges</th>
+                        <td>
+                            ${admin_partials.table_AcmeChallenges(Domain.acme_challenges__5, perspective="Domain")}
+                            % if Domain.acme_challenges__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/acme-challenges" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeOrders</th>
+                        <td>
+                            ${admin_partials.table_AcmeOrders(Domain.acme_orders__5, perspective="Domain")}
+                            % if Domain.acme_orders__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/acme-orders" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>

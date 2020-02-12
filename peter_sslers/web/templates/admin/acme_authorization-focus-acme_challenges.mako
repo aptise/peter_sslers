@@ -8,13 +8,13 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-authorizations">ACME Authorization</a></li>
         <li><a href="${admin_prefix}/acme-authorizations/${AcmeAuthorization.id}">Focus [${AcmeAuthorization.id}]</a></li>
-        <li class="active">Acme Orders</li>
+        <li class="active">Acme Challenges</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>ACME Authorization - Focus - Acme Orders</h2>
+    <h2>ACME Authorization - Focus - Acme Challenges</h2>
 </%block>
 
 
@@ -28,7 +28,7 @@
     <div class="row">
         <div class="col-sm-12">
             ${admin_partials.nav_pagination(pager)}
-            ${admin_partials.table_AcmeOrders(AcmeOrders, perspective="AcmeAuthorization")}
+            ${admin_partials.table_AcmeChallenges(AcmeChallenges, perspective="AcmeAuthorization")}
         </div>
     </div>
 </%block>

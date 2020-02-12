@@ -356,9 +356,9 @@ class ViewAdmin_New(Handler):
         )
         if wants_json:
             return {
-                "instructions": """curl --form 'private_key_file=@privkey1.pem' %s/private-key/upload.json"""
+                "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' %s/private-key/upload.json"""
                 % (self.request.registry.settings["admin_prefix"]),
-                "form_fields": {"private_key_file": "required"},
+                "form_fields": {"private_key_file_pem": "required"},
             }
 
         return render_to_response("/admin/private_key-upload.mako", {}, self.request)
@@ -375,7 +375,7 @@ class ViewAdmin_New(Handler):
                 raise formhandling.FormInvalid()
 
             private_key_pem = formhandling.slurp_file_field(
-                formStash, "private_key_file"
+                formStash, "private_key_file_pem"
             )
             if six.PY3:
                 if not isinstance(private_key_pem, str):

@@ -41,7 +41,7 @@ def upload_fileset(server_url_root, fset):
             [
                 "curl",
                 "--form",
-                "private_key_file=@%s" % fset["private_key"],
+                "private_key_file_pem=@%s" % fset["private_key"],
                 "--form",
                 "certificate_file=@%s" % fset["certificate"],
                 "--form",

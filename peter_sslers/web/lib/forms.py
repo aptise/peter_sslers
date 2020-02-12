@@ -93,6 +93,7 @@ class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
     # if this isn't provided...
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
+
     # require all of these...
     account_key_file_le_meta = FieldStorageUploadConverter(
         not_empty=False, if_missing=None
@@ -110,6 +111,7 @@ class Form_AcmeAccountKey_mark(_Form_Schema_Base):
 
 
 class Form_AcmeOrder_new_automated(_Form_Schema_Base):
+    # `account_key_file` could indictate `account_key_file_pem` or the combo of certbot encoding
     account_key_option = OneOf(
         ("account_key_default", "account_key_existing", "account_key_file")
     )
@@ -130,14 +132,14 @@ class Form_AcmeOrder_new_automated(_Form_Schema_Base):
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
 
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
-    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     private_key_default = UnicodeString(not_empty=False, if_missing=None)
 
     domain_names = UnicodeString(not_empty=True)
 
     chained_validators = [
         OnlyOneOf(
-            ("private_key_existing", "private_key_file", "private_key_default"),
+            ("private_key_existing", "private_key_file_pem", "private_key_default"),
             not_empty=True,
         )
     ]
@@ -167,7 +169,7 @@ for xi in letsencrypt_info.CA_AUTH_X:
 
 
 class Form_Certificate_Upload__file(_Form_Schema_Base):
-    private_key_file = FieldStorageUploadConverter(not_empty=True)
+    private_key_file_pem = FieldStorageUploadConverter(not_empty=True)
     certificate_file = FieldStorageUploadConverter(not_empty=True)
     chain_file = FieldStorageUploadConverter(not_empty=True)
 
@@ -199,11 +201,11 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
 
     private_key_option = OneOf(
-        ("private_key_reuse", "private_key_existing", "private_key_file")
+        ("private_key_reuse", "private_key_existing", "private_key_file_pem")
     )
     private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
-    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
 
 class Form_Certificate_mark(_Form_Schema_Base):
@@ -231,14 +233,14 @@ class Form_Domain_search(_Form_Schema_Base):
 
 class Form_PrivateKey_new__full(_Form_Schema_Base):
     private_key = UnicodeString(not_empty=False, if_missing=None)
-    private_key_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
     chained_validators = [
-        OnlyOneOf(("private_key", "private_key_file"), not_empty=True)
+        OnlyOneOf(("private_key", "private_key_file_pem"), not_empty=True)
     ]
 
 
 class Form_PrivateKey_new__file(_Form_Schema_Base):
-    private_key_file = FieldStorageUploadConverter(not_empty=True)
+    private_key_file_pem = FieldStorageUploadConverter(not_empty=True)
 
 
 class Form_PrivateKey_mark(_Form_Schema_Base):

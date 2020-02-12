@@ -6,13 +6,13 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">Acme Account Keys</li>
+        <li class="active">AcmeAccountKeys</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Acme Account Keys</h2>
+    <h2>AcmeAccountKeys</h2>
     <p>${request.text_library.info_AcmeAccountKeys[1]}</p>
 </%block>
 
@@ -78,7 +78,7 @@
                 </table>
             % else:
                 <em>
-                    No Acme Account Keys
+                    No AcmeAccountKeys
                 </em>
             % endif
         </div>

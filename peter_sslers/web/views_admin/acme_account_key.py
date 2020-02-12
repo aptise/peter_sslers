@@ -287,6 +287,41 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:acme_account_key:focus:acme_authorizations",
+        renderer="/admin/acme_account_key-focus-acme_authorizations.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_authorizations_paginated",
+        renderer="/admin/acme_account_key-focus-acme_authorizations.mako",
+    )
+    def focus__AcmeAuthorizations(self):
+        dbAcmeAccountKey = self._focus()
+        auth_status = self.request.params.get("authorization-status")
+        only_pending = True if (auth_status == 'pending') else None
+        items_count = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__count(
+            self.request.api_context, dbAcmeAccountKey.id
+        )
+        url_template = "%s/acme-authorizations/{0}" % (self._focus_url)
+        if only_pending:
+            url_template += "?authorization-status=pending"
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
+            self.request.api_context,
+            dbAcmeAccountKey.id,
+            only_pending=only_pending,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeAccountKey": dbAcmeAccountKey,
+            "AcmeAuthorizations_count": items_count,
+            "AcmeAuthorizations": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    @view_config(
         route_name="admin:acme_account_key:focus:acme_orders",
         renderer="/admin/acme_account_key-focus-acme_orders.mako",
     )
@@ -296,13 +331,13 @@ class ViewAdmin_Focus(Handler):
     )
     def focus__AcmeOrders(self):
         dbAcmeAccountKey = self._focus()
-        items_count = lib_db.get.get__AcmeOrders__by_AcmeAccountKeyId__count(
+        items_count = lib_db.get.get__AcmeOrder__by_AcmeAccountKeyId__count(
             self.request.api_context, dbAcmeAccountKey.id
         )
         (pager, offset) = self._paginate(
             items_count, url_template="%s/acme-orders/{0}" % (self._focus_url)
         )
-        items_paged = lib_db.get.get__AcmeOrders__by_AcmeAccountKeyId__paginated(
+        items_paged = lib_db.get.get__AcmeOrder__by_AcmeAccountKeyId__paginated(
             self.request.api_context,
             dbAcmeAccountKey.id,
             limit=items_per_page,
@@ -315,6 +350,8 @@ class ViewAdmin_Focus(Handler):
             "AcmeOrders": items_paged,
             "pager": pager,
         }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
         route_name="admin:acme_account_key:focus:certificates",

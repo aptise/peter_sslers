@@ -17,7 +17,9 @@ from .get import get__Domain__by_name
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def update_AcmeAuthorization_from_payload(ctx, dbAcmeAuthorization, authorization_payload):
+def update_AcmeAuthorization_from_payload(
+    ctx, dbAcmeAuthorization, authorization_payload
+):
     timestamp_expires = authorization_payload.get("expires")
     if timestamp_expires:
         timestamp_expires = dateutil_parser.parse(timestamp_expires)
@@ -33,17 +35,19 @@ def update_AcmeAuthorization_from_payload(ctx, dbAcmeAuthorization, authorizatio
         )
 
     authorization_status = authorization_payload["status"]
-    acme_status_authorization_id = model_utils.Acme_Status_Authorization.from_string(authorization_status)
+    acme_status_authorization_id = model_utils.Acme_Status_Authorization.from_string(
+        authorization_status
+    )
 
     _updated = False
     if dbAcmeAuthorization.domain_id != dbDomain.id:
         dbAcmeAuthorization.domain_id = dbDomain.id
         _updated = True
     if dbAcmeAuthorization.timestamp_expires != timestamp_expires:
-        dbAcmeAuthorization.timestamp_expires = timestamp_expires        
+        dbAcmeAuthorization.timestamp_expires = timestamp_expires
         _updated = True
     if dbAcmeAuthorization.acme_status_authorization_id != acme_status_authorization_id:
-        dbAcmeAuthorization.acme_status_authorization_id = acme_status_authorization_id        
+        dbAcmeAuthorization.acme_status_authorization_id = acme_status_authorization_id
         _updated = True
 
     if _updated:

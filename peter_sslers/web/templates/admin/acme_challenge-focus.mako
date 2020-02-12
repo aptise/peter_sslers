@@ -19,6 +19,19 @@
 
 
 <%block name="content_main">
+
+    <p>
+        % if AcmeChallenge.is_can_acme_server_sync:
+            <a
+                href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server-sync"
+                class="btn btn-xs btn-info"
+            >
+                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                Sync AcmeChallenge Against ACME Server
+            </a>
+        % endif
+    </p>   
+
     <div class="row">
         <div class="col-sm-12">
             <table class="table table-striped table-condensed">

@@ -93,7 +93,7 @@ class ViewAdminOperations(Handler):
         )
         return {
             "project": "peter_sslers",
-            "OperationsEvents__count": items_count,
+            "OperationsEvent__count": items_count,
             "OperationsEvents": items_paged,
             "pager": pager,
             "enable_redis": self.request.registry.settings["enable_redis"],
@@ -184,7 +184,7 @@ class ViewAdminOperations(Handler):
         )
         return {
             "project": "peter_sslers",
-            "OperationsEvents__count": items_count,
+            "OperationsEvent__count": items_count,
             "OperationsEvents": items_paged,
             "pager": pager,
             "enable_redis": self.request.registry.settings["enable_redis"],
@@ -229,7 +229,7 @@ class ViewAdminOperations(Handler):
         )
         return {
             "project": "peter_sslers",
-            "OperationsEvents__count": items_count,
+            "OperationsEvent__count": items_count,
             "OperationsEvents": items_paged,
             "pager": pager,
             "enable_nginx": self.request.registry.settings["enable_nginx"],

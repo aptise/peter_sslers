@@ -32,7 +32,7 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__chain_bundle_file(
+                ${admin_partials.formgroup__CACertificateChain_bundle_file(
                     CA_CROSS_SIGNED_X=CA_CROSS_SIGNED_X,
                     CA_AUTH_X=CA_AUTH_X,
                 )}
