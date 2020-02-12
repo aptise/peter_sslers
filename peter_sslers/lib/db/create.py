@@ -3,6 +3,10 @@ import logging
 
 log = logging.getLogger(__name__)
 
+# stdlib
+import datetime
+import pdb
+
 # pypi
 from dateutil import parser as dateutil_parser
 
@@ -56,7 +60,9 @@ def create__AcmeOrder(
         raise ValueError(
             "`create__AcmeOrder` must be invoked with a `acmeOrderRfcObject`."
         )
-    acme_order_status = acmeOrderRfcObject["status"]
+
+    # acme_status_order_id = model_utils.Acme_Status_Order.DEFAULT_ID
+    acme_status_order_id = model_utils.Acme_Status_Order.from_string(acmeOrderRfcObject["status"])
     finalize_url = acmeOrderRfcObject.get("finalize")
     timestamp_expires = acmeOrderRfcObject.get("expires")
     if timestamp_expires:
@@ -74,11 +80,11 @@ def create__AcmeOrder(
     dbAcmeOrder = model_objects.AcmeOrder()
     dbAcmeOrder.timestamp_created = ctx.timestamp
     dbAcmeOrder.resource_url = resource_url
+    dbAcmeOrder.acme_status_order_id = acme_status_order_id
     dbAcmeOrder.acme_account_key_id = dbAcmeAccountKey.id
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
     dbAcmeOrder.certificate_request_id = dbCertificateRequest.id
     dbAcmeOrder.unique_fqdn_set_id = dbCertificateRequest.unique_fqdn_set_id
-    dbAcmeOrder.status = acme_order_status
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.timestamp_expires = timestamp_expires
     dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
@@ -93,7 +99,11 @@ def create__AcmeOrder(
     # then update the event with the order
     dbEventLogged.acme_order_id = dbAcmeOrder.id
     ctx.dbSession.flush(objects=[dbEventLogged])
-
+    
+    # now loop the authorization URLs to create stubs for this order
+    for authorization_url in acmeOrderRfcObject.get('authorizations'):
+        (dbAuthPlacholder, is_auth_created) = lib.db.getcreate.getcreate__AcmeAuthorizationUrl(ctx, authorization_url, dbAcmeOrder)
+    
     # persist this to the db
     if transaction_commit:
         ctx.pyramid_transaction_commit()
@@ -279,7 +289,7 @@ def create__CertificateRequest(
         csr_pem_modulus_md5  # computed in initial block
     )
     dbCertificateRequest.operations_event_id__created = dbOperationsEvent.id
-    dbCertificateRequest.private_key_id__signed_by = dbPrivateKey.id
+    dbCertificateRequest.private_key_id = dbPrivateKey.id
     if dbServerCertificate__renewal_of:
         dbCertificateRequest.server_certificate_id__renewal_of = (
             dbServerCertificate__renewal_of.id
@@ -339,7 +349,7 @@ def create__ServerCertificate(
     :param cert_pem: (required) The certificate in PEM encoding
 
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
-        if provivded, do not submit `dbCertificateRequest`
+        if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
     :param dbCACertificate: (optional) The :class:`model.objects.CACertificate` that signed this certificate
         if not provided, please submit `ca_chain_pem` and `ca_chain_name`
     :param ca_chain_pem: (optional) The CA Certificate's PEM if :param:`dbCACertificate` is not provided
@@ -347,22 +357,28 @@ def create__ServerCertificate(
 
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through. 
         if provivded, do not submit `dbAcmeOrder`
-    :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
+    :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` that signed the certificate, if no `dbAcmeOrder` is provided
     :param dbServerCertificate__renewal_of: (optional) The :class:`model.objects.ServerCertificate` this renews
     :param is_active: (optional) default `None`  do not activate a certificate when uploading unless specified.
     
     :param cert_domains_expected: (required) a list of domains in the cert we expect to see
     
     """
-    if not dbPrivateKey:
+    if all((dbAcmeOrder, dbPrivateKey)) or not any((dbAcmeOrder, dbPrivateKey)):
         raise ValueError(
-            "create__ServerCertificate must be provided with `dbPrivateKey`"
+            "create__ServerCertificate must be provided with `dbPrivateKey` or `dbAcmeOrder`, but never both"
         )
+    if all((dbAcmeOrder, dbCertificateRequest)) or not any((dbAcmeOrder, dbCertificateRequest)):
+        raise ValueError(
+            "create__ServerCertificate must be provided with `dbCertificateRequest` or `dbAcmeOrder`, but never both"
+        )
+    
+    dbAcmeAccountKey = None
     if dbAcmeOrder:
-        if dbCertificateRequest:
-            raise ValueError(
-                "do not submit a `dbCertificateRequest` with a `dbAcmeOrder`"
-            )
+        dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+        dbCertificateRequest = dbAcmeOrder.certificate_request
+        dbPrivateKey = dbAcmeOrder.certificate_request.private_key
+            
     if dbCACertificate:
         if any((ca_chain_pem, ca_chain_name)):
             raise ValueError(
@@ -373,8 +389,6 @@ def create__ServerCertificate(
             raise ValueError(
                 "must submit `ca_chain_pem, ca_chain_name` with a `dbCACertificate`"
             )
-
-    if not dbCACertificate:
         # we need to figure this out; it's the ca_chain_pem
         # ca_certificate_id__upchain
         (
@@ -386,6 +400,16 @@ def create__ServerCertificate(
         if not dbCACertificate:
             raise ValueError("Could not create a `dbCACertificate`")
     ca_certificate_id__upchain = dbCACertificate.id
+
+    # build or interpret this
+    unique_fqdn_set_id = None
+    if dbAcmeOrder:
+        unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
+    elif dbCertificateRequest:    
+        unique_fqdn_set_id = dbCertificateRequest.unique_fqdn_set_id
+    else:
+        # the domains can be generated but is there a system that handles this now?
+        raise ValueError("how did this happen?")
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
@@ -419,42 +443,28 @@ def create__ServerCertificate(
             )
 
         # ok, now pull the dates off the cert
-        cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
 
-        datetime_signed = cert_dates["startdate"]
-        if not datetime_signed.startswith("notBefore="):
-            raise ValueError("unexpected notBefore: %s" % datetime_signed)
-        datetime_signed = datetime_signed[10:]
-        datetime_signed = dateutil_parser.parse(datetime_signed)
-        datetime_signed = datetime_signed.replace(tzinfo=None)
-
-        datetime_expires = cert_dates["enddate"]
-        if not datetime_expires.startswith("notAfter="):
-            raise ValueError("unexpected notAfter: %s" % datetime_expires)
-        datetime_expires = datetime_expires[9:]
-        datetime_expires = dateutil_parser.parse(datetime_expires)
-        datetime_expires = datetime_signed.replace(tzinfo=None)
-
-        pdb.set_trace()
-
-        # pull the domains, so we can get the fqdn
-        (
-            dbUniqueFQDNSet,
-            is_created_fqdn,
-        ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(ctx, dbDomains)
 
         dbServerCertificate = model_objects.ServerCertificate()
-        _certificate_parse_to_record(_tmpfileCert, dbServerCertificate)
-
-        # we don't need these anymore, because we're parsing the cert
-        # dbServerCertificate.timestamp_signed = timestamp_signed
-        # dbServerCertificate.timestamp_expires = timestamp_signed
-
-        dbServerCertificate.is_active = is_active
         dbServerCertificate.cert_pem = cert_pem
         dbServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
+        dbServerCertificate.is_active = is_active
+        dbServerCertificate.unique_fqdn_set_id = unique_fqdn_set_id
+        dbServerCertificate.private_key_id = dbPrivateKey.id
+        dbServerCertificate.operations_event_id__created = dbOperationsEvent.id
+        """
+        The following are set by `_certificate_parse_to_record`
+            :attr:`model.utils.ServerCertificate.cert_pem_modulus_md5`
+            :attr:`model.utils.ServerCertificate.timestamp_signed`
+            :attr:`model.utils.ServerCertificate.timestamp_expires`
+            :attr:`model.utils.ServerCertificate.cert_subject`
+            :attr:`model.utils.ServerCertificate.cert_subject_hash`
+            :attr:`model.utils.ServerCertificate.cert_issuer`
+            :attr:`model.utils.ServerCertificate.cert_issuer_hash`
+        """
+        _certificate_parse_to_record(_tmpfileCert, dbServerCertificate)
         if dbCertificateRequest:
-            dbCertificateRequest.is_active = False
+            # dbCertificateRequest.is_active = False
             dbServerCertificate.certificate_request_id = dbCertificateRequest.id
         dbServerCertificate.ca_certificate_id__upchain = ca_certificate_id__upchain
         if dbServerCertificate__renewal_of:
@@ -462,32 +472,21 @@ def create__ServerCertificate(
                 dbServerCertificate__renewal_of.id
             )
 
-        # note account/private keys
-        dbServerCertificate.acme_account_key_id = dbAcmeAccountKey.id
-        dbServerCertificate.private_key_id__signed_by = dbPrivateKey.id
-
-        # note the fqdn
-        dbServerCertificate.unique_fqdn_set_id = dbUniqueFQDNSet.id
-
-        # note the event
-        dbServerCertificate.operations_event_id__created = dbOperationsEvent.id
-
-        raise ValueError("not sure how we're here")
-
         ctx.dbSession.add(dbServerCertificate)
         ctx.dbSession.flush(objects=[dbServerCertificate])
 
         # increment account/private key counts
-        dbAcmeAccountKey.count_certificates_issued += 1
         dbPrivateKey.count_certificates_issued += 1
-        if not dbAcmeAccountKey.timestamp_last_certificate_issue or (
-            dbAcmeAccountKey.timestamp_last_certificate_issue < timestamp_signed
-        ):
-            dbAcmeAccountKey.timestamp_last_certificate_issue = timestamp_signed
         if not dbPrivateKey.timestamp_last_certificate_issue or (
-            dbPrivateKey.timestamp_last_certificate_issue < timestamp_signed
+            dbPrivateKey.timestamp_last_certificate_issue < dbServerCertificate.timestamp_signed
         ):
-            dbPrivateKey.timestamp_last_certificate_issue = timestamp_signed
+            dbPrivateKey.timestamp_last_certificate_issue = dbServerCertificate.timestamp_signed
+        if dbAcmeAccountKey:
+            dbAcmeAccountKey.count_certificates_issued += 1
+            if not dbAcmeAccountKey.timestamp_last_certificate_issue or (
+                dbAcmeAccountKey.timestamp_last_certificate_issue < dbServerCertificate.timestamp_signed
+            ):
+                dbAcmeAccountKey.timestamp_last_certificate_issue = dbServerCertificate.timestamp_signed
 
         event_payload_dict["server_certificate.id"] = dbServerCertificate.id
         dbOperationsEvent.set_event_payload(event_payload_dict)

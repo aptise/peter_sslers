@@ -4,6 +4,7 @@ import logging
 log = logging.getLogger(__name__)
 
 # stdlib
+import datetime
 import json
 import pdb
 
@@ -17,8 +18,6 @@ from .. import cert_utils
 from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
-
-# local
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__CACertificate__by_pem_text
@@ -27,6 +26,7 @@ from .get import get__Domain__by_name
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
 from .helpers import _certificate_parse_to_record
+from .update import update_AcmeAuthorization_from_payload
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -221,6 +221,37 @@ def getcreate__AcmeAccountKey(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def getcreate__AcmeAuthorizationUrl(
+    ctx,
+    authorization_url,
+    dbAcmeOrder=None
+):
+    """
+    used to create auth objects
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param authorization_url: (required) the url of an RFC-8555 authorization
+    :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
+    """
+    is_created__AcmeAuthorization = False
+    dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
+        ctx, authorization_url
+    )
+    if not dbAcmeAuthorization:
+        dbAcmeAuthorization = model_objects.AcmeAuthorization()
+        dbAcmeAuthorization.authorization_url = authorization_url
+        dbAcmeAuthorization.timestamp_created = ctx.timestamp
+        dbAcmeAuthorization.acme_status_authorization_id = model_utils.Acme_Status_Authorization.DEFAULT_ID
+        dbAcmeAuthorization.acme_order_id__created = dbAcmeOrder.id
+        ctx.dbSession.add(dbAcmeAuthorization)
+        ctx.dbSession.flush(objects=[dbAcmeAuthorization])
+        is_created__AcmeAuthorization = True
+    else:
+        # poop, this
+        # raise ValueError("this should be unique!")
+        pass
+    return dbAcmeAuthorization, is_created__AcmeAuthorization
+
+
 def getcreate__AcmeAuthorization(
     ctx,
     authorization_url,
@@ -252,32 +283,19 @@ def getcreate__AcmeAuthorization(
         ctx, authorization_url
     )
     if not dbAcmeAuthorization:
-        timestamp_expires = authorization_payload.get("expires")
-        if timestamp_expires:
-            timestamp_expires = dateutil_parser.parse(timestamp_expires)
-        identifer = authorization_payload["identifier"]
-        if identifer["type"] != "dns":
-            raise ValueError("unexpected authorization payload: identifier type")
-        domain_name = identifer["value"]
-
-        dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
-        if not dbDomain:
-            raise ValueError(
-                "this domain name has not been seen before. this should not be possible."
-            )
-
-        authorization_status = authorization_payload["status"]
         #
         dbAcmeAuthorization = model_objects.AcmeAuthorization()
         dbAcmeAuthorization.authorization_url = authorization_url
         dbAcmeAuthorization.timestamp_created = ctx.timestamp
-        dbAcmeAuthorization.domain_id = dbDomain.id
-        dbAcmeAuthorization.timestamp_expires = timestamp_expires
-        dbAcmeAuthorization.status = authorization_status
-        dbAcmeAuthorization.timestamp_updated = datetime.datetime.utcnow()
+        dbAcmeAuthorization.acme_status_authorization_id = model_utils.Acme_Status_Authorization.DEFAULT_ID
+        dbAcmeAuthorization.acme_order_id__created = dbAcmeOrder.id
+        
         ctx.dbSession.add(dbAcmeAuthorization)
         ctx.dbSession.flush(objects=[dbAcmeAuthorization])
         is_created__AcmeAuthorization = True
+
+    # no matter what, update
+    _updated = update_AcmeAuthorization_from_payload(ctx, dbAcmeAuthorization, authorization_payload)
 
     # is this associated?
     dbOrder2Auth = (
@@ -304,6 +322,7 @@ def getcreate__AcmeAuthorization(
     )
     challenge_url = acme_challenge["url"]
     challenge_status = acme_challenge["status"]
+    acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(challenge_status)
     dbChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
     is_created_AcmeChallenge = False
     if not dbChallenge:
@@ -315,7 +334,7 @@ def getcreate__AcmeAuthorization(
         dbChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
             "http-01"
         )
-        dbChallenge.status = challenge_status
+        dbChallenge.acme_status_challenge_id = acme_status_challenge_id
         dbChallenge.token = challenge_token
         dbChallenge.timestamp_updated = datetime.datetime.utcnow()
         if authenticatedUser:
@@ -328,8 +347,8 @@ def getcreate__AcmeAuthorization(
         is_created_AcmeChallenge = True
     else:
         pdb.set_trace()
-        if dbChallenge.status != challenge_status:
-            dbChallenge.status = challenge_status
+        if dbChallenge.acme_status_challenge_id != acme_status_challenge_id:
+            dbChallenge.acme_status_challenge_id = acme_status_challenge_id
             dbChallenge.timestamp_updated = datetime.datetime.utcnow()
             ctx.dbSession.add(dbChallenge)
             ctx.dbSession.flush(objects=[dbChallenge])
@@ -348,7 +367,7 @@ def getcreate__AcmeAuthorization(
 def getcreate__CACertificate__by_pem_text(
     ctx,
     cert_pem,
-    chain_name=None,
+    ca_chain_name=None,
     le_authority_name=None,
     is_authority_certificate=None,
     is_cross_signed_authority_certificate=None,
@@ -358,7 +377,7 @@ def getcreate__CACertificate__by_pem_text(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param cert_pem: (required)
-    :param chain_name:
+    :param ca_chain_name:
     :param le_authority_name:
     :param is_authority_certificate:
     :param is_cross_signed_authority_certificate:
@@ -387,7 +406,7 @@ def getcreate__CACertificate__by_pem_text(
             )
 
             dbCACertificate = model_objects.CACertificate()
-            dbCACertificate.name = chain_name or "unknown"
+            dbCACertificate.name = ca_chain_name or "unknown"
 
             dbCACertificate.le_authority_name = le_authority_name
             dbCACertificate.is_ca_certificate = True
@@ -641,12 +660,12 @@ def getcreate__ServerCertificate__by_pem_text(
     )
     if dbServerCertificate:
         if dbPrivateKey and (
-            dbServerCertificate.private_key_id__signed_by != dbPrivateKey.id
+            dbServerCertificate.private_key_id != dbPrivateKey.id
         ):
-            if dbServerCertificate.private_key_id__signed_by:
+            if dbServerCertificate.private_key_id:
                 raise ValueError("Integrity Error. Competing PrivateKey (!?)")
-            elif dbServerCertificate.private_key_id__signed_by is None:
-                dbServerCertificate.private_key_id__signed_by = dbPrivateKey.id
+            elif dbServerCertificate.private_key_id is None:
+                dbServerCertificate.private_key_id = dbPrivateKey.id
                 dbPrivateKey.count_certificates_issued += 1
                 if not dbPrivateKey.timestamp_last_certificate_issue or (
                     dbPrivateKey.timestamp_last_certificate_issue
@@ -719,7 +738,7 @@ def getcreate__ServerCertificate__by_pem_text(
                 != dbPrivateKey.key_pem_modulus_md5
             ):
                 raise ValueError("dbPrivateKey did not sign the certificate")
-            dbServerCertificate.private_key_id__signed_by = dbPrivateKey.id
+            dbServerCertificate.private_key_id = dbPrivateKey.id
             dbPrivateKey.count_certificates_issued += 1
             if not dbPrivateKey.timestamp_last_certificate_issue or (
                 dbPrivateKey.timestamp_last_certificate_issue

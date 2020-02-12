@@ -46,6 +46,10 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>acme_challenge_type</th>
+                        <td><span class="label label-default">${AcmeChallenge.acme_challenge_type}</span></td>
+                    </tr>
+                    <tr>
                         <th>challenge_url</th>
                         <td>${AcmeChallenge.challenge_url}</td>
                     </tr>
@@ -55,7 +59,7 @@
                     </tr>
                     <tr>
                         <th>status</th>
-                        <td><code>${AcmeChallenge.status}</code></td>
+                        <td><code>${AcmeChallenge.status_text}</code></td>
                     </tr>
                     <tr>
                         <th>token</th>
@@ -71,6 +75,10 @@
                     </tr>
                 </tbody>
                 <thead>
+                    <tr>
+                        <th colspan="2">
+                        </th>
+                    </tr>
                     <tr>
                         <th colspan="2">
                             Polls

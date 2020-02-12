@@ -74,8 +74,8 @@
                     </tr>
                     <tr>
                         <th>status</th>
-                        <td><code>${AcmeOrder.status  or ''}</code>
-                            % if AcmeOrder.status != 'invalid':
+                        <td><code>${AcmeOrder.status_text  or ''}</code>
+                            % if AcmeOrder.status_text != 'invalid':
                                 <a
                                     href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?operation=invalid"
                                     class="btn btn-xs btn-danger"

@@ -149,11 +149,12 @@ class ViewAdmin_Focus(Handler):
         operation = self.request.params.get("operation")
         try:
             if operation == "invalid":
-                if dbAcmeOrder.status == "invalid":
+                if dbAcmeOrder.status_text == "invalid":
                     raise errors.InvalidRequest(
                         "Can not mark an `invalid` order as `invalid`."
                     )
-                dbAcmeOrder.status = "invalid"
+                # todo: use the helper
+                dbAcmeOrder.status_text = "invalid"
                 dbAcmeOrder.timestamp_updated = self.request.api_context.timestamp
                 return HTTPSeeOther(
                     "%s?result=success&operation=invalid" % self._focus_url
@@ -245,6 +246,10 @@ class ViewAdmin_New(Handler):
                     dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
                     dbPrivateKey=dbPrivateKey,
                 )
+                return HTTPSeeOther(
+                    "%s/acme-order/%s"
+                    % (self.request.registry.settings["admin_prefix"], dbAcmeOrder.id,)
+                )
             except (
                 errors.AcmeCommunicationError,
                 errors.DomainVerificationError,
@@ -258,17 +263,13 @@ class ViewAdmin_New(Handler):
                     )
                 )
             except Exception as exc:
+                raise
                 if self.request.registry.settings["exception_redirect"]:
                     return HTTPSeeOther(
                         "%s/acme-orders?error=new-automated"
                         % self.request.registry.settings["admin_prefix"]
                     )
                 raise
-
-            return HTTPSeeOther(
-                "%s/acme-order/%s"
-                % (self.request.registry.settings["admin_prefix"], dbAcmeOrder.id,)
-            )
 
         except formhandling.FormInvalid as exc:
             return formhandling.form_reprint(self.request, self._new_automated__print)

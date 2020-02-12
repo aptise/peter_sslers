@@ -87,17 +87,17 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>private_key_id__signed_by</th>
+                        <th>private_key_id</th>
                         <td>
-                            % if CertificateRequest.private_key_id__signed_by:
-                                % if CertificateRequest.private_key__signed_by.is_compromised:
-                                    <a class="label label-danger" href="${admin_prefix}/private-key/${CertificateRequest.private_key_id__signed_by}">
+                            % if CertificateRequest.private_key_id:
+                                % if CertificateRequest.private_key.is_compromised:
+                                    <a class="label label-danger" href="${admin_prefix}/private-key/${CertificateRequest.private_key_id}">
                                         <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                        PrivateKey-${CertificateRequest.private_key_id__signed_by}</a>
+                                        PrivateKey-${CertificateRequest.private_key_id}</a>
                                 % else:
-                                    <a class="label label-info" href="${admin_prefix}/private-key/${CertificateRequest.private_key_id__signed_by}">
+                                    <a class="label label-info" href="${admin_prefix}/private-key/${CertificateRequest.private_key_id}">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        PrivateKey-${CertificateRequest.private_key_id__signed_by}</a>
+                                        PrivateKey-${CertificateRequest.private_key_id}</a>
                                 % endif
                             % endif
                         </td>

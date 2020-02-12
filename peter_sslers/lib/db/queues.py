@@ -445,7 +445,7 @@ def queue_renewals__process(ctx):
         for dbQueueRenewal in items_paged:
             if (
                 (not dbQueueRenewal.server_certificate)
-                or (not dbQueueRenewal.server_certificate.private_key_id__signed_by)
+                or (not dbQueueRenewal.server_certificate.private_key_id)
                 or (not dbQueueRenewal.server_certificate.private_key.is_active)
             ):
                 _need_default_PrivateKey = True

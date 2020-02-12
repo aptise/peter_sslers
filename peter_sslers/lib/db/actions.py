@@ -127,7 +127,7 @@ def ca_certificate_probe(ctx):
                 dbCACertificate,
                 _is_created,
             ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
-                ctx, c["cert_pem"], chain_name=c["name"]
+                ctx, c["cert_pem"], ca_chain_name=c["name"]
             )
             if _is_created:
                 certs_discovered.append(dbCACertificate)
@@ -205,6 +205,21 @@ def do__AcmeAccountKey_AcmeV2_authenticate(
             _tmpfile.close()
 
 
+def update_order_status(ctx, dbAcmeOrder, status_text, transaction_commit=None):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
+    :param status_text: (required) The status_text for the order
+    :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+    """
+    if transaction_commit is not True:
+        raise ValueError("we must invoke this knowing it will commit")
+    if dbAcmeOrder.status_text != status_text:
+        dbAcmeOrder.acme_status_order_id = model_utils.Acme_Status_Order.from_string(status_text)
+        dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
+        if transaction_commit:
+            ctx.pyramid_transaction_commit()
+
 def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
     """
     generates functions for order handling
@@ -214,7 +229,7 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     """
 
-    def handle_discovered_authorization(
+    def handle_authorization_payload(
         authorization_url, authorization_response, transaction_commit=None
     ):
         """
@@ -226,9 +241,11 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
             create/update the Authorization object
             create/update the Challenge object
         """
-        log.info("-handle_discovered_authorization %s", authorization_url)
+        log.info("-handle_authorization_payload %s", authorization_url)
         if transaction_commit is not True:
             raise ValueError("we must invoke this knowing it will commit")
+            
+        # this will sync the payload via `update_AcmeAuthorization_from_payload`
         (
             dbAcmeAuthorization,
             _is_created,
@@ -240,6 +257,9 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
             dbAcmeOrder,
             transaction_commit=transaction_commit,
         )
+        if _is_created:
+            raise ValueError("wtf")
+
         return dbAcmeAuthorization
 
     def handle_challenge_setup(
@@ -277,24 +297,10 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
             raise ValueError("we must invoke this knowing it will commit")
         return True
 
-    def update_order_status(status, transaction_commit=None):
-        """
-        :param status: (required) The status for the order
-        :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
-        """
-        if transaction_commit is not True:
-            raise ValueError("we must invoke this knowing it will commit")
-        if dbAcmeOrder.status != status:
-            dbAcmeOrder.status = status
-            dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
-            if transaction_commit:
-                ctx.pyramid_transaction_commit()
-
     return (
-        handle_discovered_authorization,
+        handle_authorization_payload,
         handle_challenge_setup,
         handle_challenge_cleanup,
-        update_order_status,
     )
 
 
@@ -343,10 +349,9 @@ def _AcmeV2_handle_order(
     """
 
     (
-        handle_discovered_authorization,
+        handle_authorization_payload,
         handle_challenge_setup,
         handle_challenge_cleanup,
-        update_order_status,
     ) = _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder)
 
     _todo_finalize_order = None
@@ -357,7 +362,7 @@ def _AcmeV2_handle_order(
             ctx,
             acmeOrder=acmeOrderObject,
             dbAcmeOrder=dbAcmeOrder,
-            handle_discovered_authorization=handle_discovered_authorization,
+            handle_authorization_payload=handle_authorization_payload,
             handle_challenge_setup=handle_challenge_setup,
             handle_challenge_cleanup=handle_challenge_cleanup,
             transaction_commit=True,
@@ -420,8 +425,8 @@ def do__AcmeOrder_AcmeV2__acme_server_sync(
 
         # update the order if it's not the same on the database
         _server_status = acmeOrderObject.rfc_object["status"]
-        if dbAcmeOrder.status != _server_status:
-            dbAcmeOrder.status = _server_status
+        if dbAcmeOrder.status_text != _server_status:
+            dbAcmeOrder.acme_status_order_id = model_utils.Acme_Status_Order.from_string(_server_status)
             dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
 
             # transaction_commit
@@ -480,9 +485,9 @@ def _do__AcmeOrder__AcmeV2__core(
             )
         if dbAcmeOrder_retry_of:
             # ensure we can transition
-            if dbAcmeOrder_retry_of.status != "invalid":
+            if dbAcmeOrder_retry_of.status_text != "invalid":
                 raise errors.InvalidRequest(
-                    "`dbAcmeOrder_retry_of.status` must be 'invalid'"
+                    "`dbAcmeOrder_retry_of.status_text` must be 'invalid'"
                 )
             if dbAcmeAccountKey:
                 raise ValueError(
@@ -491,15 +496,15 @@ def _do__AcmeOrder__AcmeV2__core(
             # for a `retry`, recycle the `AcmeAccountKey` and `PrivateKey`
             dbAcmeAccountKey = dbAcmeOrder_retry_of.acme_account_key
             dbPrivateKey = (
-                dbAcmeOrder_retry_of.certificate_request.private_key__signed_by
+                dbAcmeOrder_retry_of.certificate_request.private_key
             )
             domain_names = dbAcmeOrder_retry_of.domains_as_list
             dbCertificateRequest = dbAcmeOrder_retry_of.certificate_request
         elif dbAcmeOrder_renewal_of:
             # ensure we can transition
-            if dbAcmeOrder_renewal_of.status != "valid":
+            if dbAcmeOrder_renewal_of.status_text != "valid":
                 raise errors.InvalidRequest(
-                    "`dbAcmeOrder_renewal_of.status` must be 'valid'"
+                    "`dbAcmeOrder_renewal_of.status_text` must be 'valid'"
                 )
             domain_names = dbAcmeOrder_renewal_of.domains_as_list
             # for a `renewal`, specify the `AcmeAccountKey` and `PrivateKey`
@@ -624,6 +629,7 @@ def _do__AcmeOrder__AcmeV2__core(
         if _todo_finalize_order:
             # sign and download
             fullchain_pem = authenticatedUser.acme_finalize_order(
+                ctx,
                 acmeOrder=acmeOrderObject,
                 dbAcmeOrder=dbAcmeOrder,
                 update_order_status=update_order_status,
@@ -652,7 +658,7 @@ def _do__AcmeOrder__AcmeV2__core(
             is_cross_signed_authority_certificate=None,
         )
         if is_created__CACertificate:
-            self.ctx.pyramid_transaction_commit()
+            ctx.pyramid_transaction_commit()
 
         # immediately commit this
         dbServerCertificate = lib.db.create.create__ServerCertificate(
@@ -667,7 +673,6 @@ def _do__AcmeOrder__AcmeV2__core(
             # dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
             is_active=True,
             cert_domains_expected=domain_names,
-            # dbDomains=[v[0] for v in dbDomainObjects.values()],
         )
         if dbServerCertificate__renewal_of:
             dbServerCertificate__renewal_of.is_auto_renew = False
@@ -722,7 +727,7 @@ def do__AcmeOrder__AcmeV2__automated(
     
     :returns: A :class:`model.objects.AcmeOrder` object
     """
-    _do__AcmeOrder__AcmeV2__core(
+    return _do__AcmeOrder__AcmeV2__core(
         ctx,
         domain_names=domain_names,
         dbAcmeAccountKey=dbAcmeAccountKey,
@@ -742,7 +747,7 @@ def do__AcmeOrder_AcmeV2__retry(
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
 
-    _do__AcmeOrder__AcmeV2__core(
+    return _do__AcmeOrder__AcmeV2__core(
         ctx, dbAcmeOrder_retry_of=dbAcmeOrder,
     )
 
@@ -1008,9 +1013,9 @@ def operations_update_recents(ctx):
         .filter(
             sqlalchemy.or_(
                 model_objects.PrivateKey.id
-                == ServerCertificate1.private_key_id__signed_by,
+                == ServerCertificate1.private_key_id,
                 model_objects.PrivateKey.id
-                == ServerCertificate2.private_key_id__signed_by,
+                == ServerCertificate2.private_key_id,
             )
         )
         .subquery()
@@ -1037,11 +1042,11 @@ def operations_update_recents(ctx):
                               )
         # update the counts on Private Keys
         _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.CertificateRequest.id))\
-            .filter(model_objects.CertificateRequest.private_key_id__signed_by == model_objects.PrivateKey.id,
+            .filter(model_objects.CertificateRequest.private_key_id == model_objects.PrivateKey.id,
                     )\
             .subquery().as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
         _q_sub_iss = ctx.dbSession.query(sqlalchemy.func.count(model_objects.ServerCertificate.id))\
-            .filter(model_objects.ServerCertificate.private_key_id__signed_by == model_objects.PrivateKey.id,
+            .filter(model_objects.ServerCertificate.private_key_id == model_objects.PrivateKey.id,
                     )\
             .subquery().as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
 
@@ -1065,11 +1070,11 @@ def operations_update_recents(ctx):
 
     UPDATE private_key SET timestamp_last_certificate_request = (
     SELECT MAX(timestamp_finished) FROM certificate_request
-    WHERE certificate_request.private_key_id__signed_by = private_key.id);
+    WHERE certificate_request.private_key_id = private_key.id);
 
     UPDATE private_key SET timestamp_last_certificate_issue = (
     SELECT MAX(timestamp_signed) FROM server_certificate
-    WHERE server_certificate.private_key_id__signed_by = private_key.id);
+    WHERE server_certificate.private_key_id = private_key.id);
     """
 
     # bookkeeping, doing this will mark the session as changed!
@@ -1416,7 +1421,7 @@ def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
         ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
             ctx,
             cert_pem_text,
-            chain_name=cert_name,
+            ca_chain_name=cert_name,
             le_authority_name=None,
             is_authority_certificate=None,
             is_cross_signed_authority_certificate=None,

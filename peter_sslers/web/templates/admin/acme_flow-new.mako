@@ -113,7 +113,7 @@
                     % if updates_allowed:
                         </table>
                         <br/>
-                            <button type="submit" class="btn btn-default">Submit</button>
+                            <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
                         </form>
                     % endif
 

@@ -25,34 +25,7 @@
         <div class="col-sm-12">
             % if AcmeAuthorizations:
                 ${admin_partials.nav_pagination(pager)}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>id</th>
-                            <th>domain</th>
-                            <th>timestamp_created</th>
-                            <th>status</th>
-                            <th>timestamp_expires</th>
-                            <th>timestamp_updated</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    % for acme_authorization in AcmeAuthorizations:
-                        <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/acme-authorization/${acme_authorization.id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAuthorization-${acme_authorization.id}</a></td>
-                            <td><a class="label label-info" href="${admin_prefix}/domain/${acme_authorization.domain_id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                Domain-${acme_authorization.domain_id}</a></td>
-                            <td><timestamp>${acme_authorization.timestamp_created or ''}</timestamp></td>
-                            <td><code>${acme_authorization.status or ''}</code></td>
-                            <td><timestamp>${acme_authorization.timestamp_expires or ''}</timestamp></td>
-                            <td><timestamp>${acme_authorization.timestamp_updated or ''}</timestamp></td>
-                        </tr>
-                    % endfor
-                    </tbody>
-                </table>
+                ${admin_partials.table_AcmeAuthorizations(AcmeAuthorizations, perspective="AcmeAuthorizations")}
             % else:
                 <em>
                     No ACME Authorizations

@@ -42,7 +42,7 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${acme_order.id}</a></td>
                             <td><timestamp>${acme_order.timestamp_created or ''}</timestamp></td>
-                            <td><code>${acme_order.status or ''}</code></td>
+                            <td><code>${acme_order.status_text or ''}</code></td>
                             <td><timestamp>${acme_order.timestamp_finalized or ''}</timestamp></td>
                         </tr>
                     % endfor

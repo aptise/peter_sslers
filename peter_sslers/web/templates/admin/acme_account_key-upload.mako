@@ -32,7 +32,7 @@
                 ${admin_partials.formgroup__account_key_file()}
                 <hr/>
 
-                <button type="submit" class="btn btn-default">Submit</button>
+                <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
             </form>
         </div>
         <div class="col-sm-6">

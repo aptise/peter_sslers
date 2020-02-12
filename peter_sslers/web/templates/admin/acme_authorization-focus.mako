@@ -58,11 +58,14 @@
                     </tr>
                     <tr>
                         <th>domain</th>
-                        <td><a class="label label-info" href="${admin_prefix}/domain/${AcmeAuthorization.domain_id}">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            Domain-${AcmeAuthorization.domain_id}</a>
-                            <code>${AcmeAuthorization.domain.domain_name}</code>
-                            </td>
+                        <td>
+                            % if AcmeAuthorization.domain_id:
+                                <a class="label label-info" href="${admin_prefix}/domain/${AcmeAuthorization.domain_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                Domain-${AcmeAuthorization.domain_id}</a>
+                                <code>${AcmeAuthorization.domain.domain_name}</code>
+                            % endif
+                        </td>
                     </tr>
                     <tr>
                         <th>timestamp_expires</th>
@@ -71,7 +74,7 @@
                     </tr>
                     <tr>
                         <th>status</th>
-                        <td><code>${AcmeAuthorization.status  or ''}</code>
+                        <td><code>${AcmeAuthorization.status_text or ''}</code>
                         </td>
                     </tr>
                     <tr>

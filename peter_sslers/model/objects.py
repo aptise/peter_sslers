@@ -227,6 +227,221 @@ class AcmeAccountKey(Base):
         }
 
 
+class AcmeAuthorization(Base):
+    """
+    ACME Authorization Object [https://tools.ietf.org/html/rfc8555#section-7.1.4]
+
+    RFC Fields:
+
+        identifier (required, object):
+            this is a domain
+            
+        expires (optional, string):
+            REQUIRED for objects with "valid" in the "status" field.
+    
+        status (required, string):  The status of this authorization.
+              Possible values are "pending", "valid", "invalid", "deactivated",
+              "expired", and "revoked".    
+
+        challenges (required, array of objects):
+        
+        wildcard (optional, boolean):  
+
+    Additionally, these are our fields:
+        authorization_url - our unique-ish way to track this
+        timestamp_created
+        domain_id - `identifer`
+        timestamp_expires - `expires`
+        status - `status`
+        timestamp_updated - last time we updated this object
+    """
+
+    __tablename__ = "acme_authorization"
+    id = sa.Column(sa.Integer, primary_key=True)
+    authorization_url = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    acme_status_authorization_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # Acme_Status_Authorization
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
+    timestamp_expires = sa.Column(sa.DateTime, nullable=True)
+    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+    wildcard = sa.Column(sa.Boolean, nullable=True, default=None)
+
+    # testing
+    acme_order_id__created = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="AcmeAuthorization.domain_id==Domain.id",
+        uselist=False,
+        back_populates="acme_authorizations",
+    )
+
+    to_acme_orders = sa_orm_relationship(
+        "AcmeOrder2AcmeAuthorization",
+        primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
+        uselist=False,
+        back_populates="acme_authorization",
+    )
+
+    acme_challenge_http01 = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
+        % model_utils.AcmeChallengeType.from_string("http-01"),
+        uselist=False,
+        back_populates="acme_authorization",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def status_text(self):
+        return model_utils.Acme_Status_Authorization.as_string(self.acme_status_authorization_id)
+
+
+class AcmeChallenge(Base):
+    """
+    ACME Challenge Objects [https://tools.ietf.org/html/rfc8555#section-8]
+    
+    RFC Fields:
+       type (required, string):  The type of challenge encoded in the
+          object.
+
+       url (required, string):  The URL to which a response can be posted.
+
+       status (required, string):  The status of this challenge.  Possible
+          values are "pending", "processing", "valid", and "invalid" (see
+          Section 7.1.6).
+
+       validated (optional, string):  The time at which the server validated
+          this challenge, encoded in the format specified in [RFC3339].
+          This field is REQUIRED if the "status" field is "valid".
+
+       error (optional, object):  Error that occurred while the server was
+          validating the challenge, if any, structured as a problem document
+          [RFC7807].  Multiple errors can be indicated by using subproblems
+          Section 6.7.1.  A challenge object with an error MUST have status
+          equal to "invalid".
+
+
+    HTTP Challenge https://tools.ietf.org/html/rfc8555#section-8.3
+
+       type (required, string):  The string "http-01".
+
+       token (required, string):  A random value that uniquely identifies
+          the challenge.  This value MUST have at least 128 bits of entropy.
+          It MUST NOT contain any characters outside the base64url alphabet
+          and MUST NOT include base64 padding characters ("=").  See
+          [RFC4086] for additional information on randomness requirements.
+
+    Example Challenge:
+
+       {
+         "type": "http-01",
+         "url": "https://example.com/acme/chall/prV_B7yEyA4",
+         "status": "pending",
+         "token": "LoqXcYV8q5ONbJQxbmR7SCTNo3tiAXDfowyjxAjEuX0"
+       }
+
+    """
+
+    __tablename__ = "acme_challenge"
+    id = sa.Column(sa.Integer, primary_key=True)
+    acme_authorization_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=False
+    )
+    challenge_url = sa.Column(sa.Unicode(255), nullable=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    acme_challenge_type_id = sa.Column(
+        sa.Integer, nullable=True
+    )  # this library only does http-01, `model_utils.AcmeChallengeType`
+    acme_status_challenge_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # Acme_Status_Challenge
+    token = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+
+    #
+    # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http01.token)
+    # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
+    keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    #     acme_event_log = sa_orm_relationship(
+    #         "AcmeEventLog",
+    #         primaryjoin="AcmeChallenge.acme_event_log_id==AcmeEventLog.id",
+    #         uselist=False,
+    #         back_populates="acme_challenges",
+    #     )
+
+    acme_challenge_polls = sa_orm_relationship(
+        "AcmeChallengePoll",
+        primaryjoin="AcmeChallenge.id==AcmeChallengePoll.acme_challenge_id",
+        uselist=True,
+        back_populates="acme_challenge",
+    )
+
+    acme_authorization = sa_orm_relationship(
+        "AcmeAuthorization",
+        primaryjoin="AcmeChallenge.acme_authorization_id==AcmeAuthorization.id",
+        uselist=False,
+        back_populates="acme_challenge_http01",
+    )
+
+    if False:
+        # migrate to fqdns
+        to_certificate_requests = sa_orm_relationship(
+            "CertificateRequest2Domain",
+            primaryjoin="AcmeChallenge.id==CertificateRequest2Domain.acme_challenge_id",
+            uselist=False,
+            back_populates="acme_challenge",
+        )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def acme_challenge_type(self):
+        if self.acme_challenge_type_id:
+            return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
+        return None
+
+    @property
+    def domain_name(self):
+        return self.acme_authorization.domain.domain_name
+
+    @property
+    def status_text(self):
+        return model_utils.Acme_Status_Challenge.as_string(self.acme_status_challenge_id)
+
+    @property
+    def timestamp_created_isoformat(self):
+        if self.timestamp_created:
+            return self.timestamp_created.isoformat()
+        return None
+
+    @property
+    def timestamp_updated_isoformat(self):
+        if self.timestamp_updated:
+            return self.timestamp_updated.isoformat()
+        return None
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "acme_challenge_type": self.acme_challenge_type,
+            "domain": self.domain_name,
+            "status_text": self.status_text,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_updated": self.timestamp_updated_isoformat,
+            # "acme_event_log_id": self.acme_event_log_id,
+        }
+
+
 class AcmeOrder(Base):
     """
     ACME Order Object [https://tools.ietf.org/html/rfc8555#section-7.1.3]
@@ -347,6 +562,10 @@ class AcmeOrder(Base):
             return True
         return False
 
+    @property
+    def status_text(self):
+        return model_utils.Acme_Status_Order.as_string(self.acme_status_order_id)
+
 
 class AcmeOrder2Domain(Base):
     __tablename__ = "acme_order_2_domain"
@@ -398,209 +617,6 @@ class AcmeOrder2AcmeAuthorization(Base):
         uselist=False,
         back_populates="to_acme_orders",
     )
-
-
-class AcmeAuthorization(Base):
-    """
-    ACME Authorization Object [https://tools.ietf.org/html/rfc8555#section-7.1.4]
-
-    RFC Fields:
-
-        identifier (required, object):
-            this is a domain
-            
-        expires (optional, string):
-            REQUIRED for objects with "valid" in the "status" field.
-    
-        status (required, string):  The status of this authorization.
-              Possible values are "pending", "valid", "invalid", "deactivated",
-              "expired", and "revoked".    
-
-        challenges (required, array of objects):
-        
-        wildcard (optional, boolean):  
-
-    Additionally, these are our fields:
-        authorization_url - our unique-ish way to track this
-        timestamp_created
-        domain_id - `identifer`
-        timestamp_expires - `expires`
-        status - `status`
-        timestamp_updated - last time we updated this object
-    """
-
-    __tablename__ = "acme_authorization"
-    id = sa.Column(sa.Integer, primary_key=True)
-    authorization_url = sa.Column(sa.Unicode(255), nullable=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
-    timestamp_expires = sa.Column(sa.DateTime, nullable=True)
-    acme_status_authorization_id = sa.Column(
-        sa.Integer, nullable=False
-    )  # Acme_Status_Authorization
-    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
-    wildcard = sa.Column(sa.Boolean, nullable=True, default=None)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    domain = sa_orm_relationship(
-        "Domain",
-        primaryjoin="AcmeAuthorization.domain_id==Domain.id",
-        uselist=False,
-        back_populates="acme_authorizations",
-    )
-
-    to_acme_orders = sa_orm_relationship(
-        "AcmeOrder2AcmeAuthorization",
-        primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
-        uselist=False,
-        back_populates="acme_authorization",
-    )
-
-    acme_challenge_http01 = sa_orm_relationship(
-        "AcmeChallenge",
-        primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
-        % model_utils.AcmeChallengeType.from_string("http-01"),
-        uselist=False,
-        back_populates="acme_authorization",
-    )
-
-
-class AcmeChallenge(Base):
-    """
-    ACME Challenge Objects [https://tools.ietf.org/html/rfc8555#section-8]
-    
-    RFC Fields:
-       type (required, string):  The type of challenge encoded in the
-          object.
-
-       url (required, string):  The URL to which a response can be posted.
-
-       status (required, string):  The status of this challenge.  Possible
-          values are "pending", "processing", "valid", and "invalid" (see
-          Section 7.1.6).
-
-       validated (optional, string):  The time at which the server validated
-          this challenge, encoded in the format specified in [RFC3339].
-          This field is REQUIRED if the "status" field is "valid".
-
-       error (optional, object):  Error that occurred while the server was
-          validating the challenge, if any, structured as a problem document
-          [RFC7807].  Multiple errors can be indicated by using subproblems
-          Section 6.7.1.  A challenge object with an error MUST have status
-          equal to "invalid".
-
-
-    HTTP Challenge https://tools.ietf.org/html/rfc8555#section-8.3
-
-       type (required, string):  The string "http-01".
-
-       token (required, string):  A random value that uniquely identifies
-          the challenge.  This value MUST have at least 128 bits of entropy.
-          It MUST NOT contain any characters outside the base64url alphabet
-          and MUST NOT include base64 padding characters ("=").  See
-          [RFC4086] for additional information on randomness requirements.
-
-    Example Challenge:
-
-       {
-         "type": "http-01",
-         "url": "https://example.com/acme/chall/prV_B7yEyA4",
-         "status": "pending",
-         "token": "LoqXcYV8q5ONbJQxbmR7SCTNo3tiAXDfowyjxAjEuX0"
-       }
-
-    """
-
-    __tablename__ = "acme_challenge"
-    id = sa.Column(sa.Integer, primary_key=True)
-    acme_authorization_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=False
-    )
-    challenge_url = sa.Column(sa.Unicode(255), nullable=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    acme_challenge_type_id = sa.Column(
-        sa.Integer, nullable=True
-    )  # this library only does http-01, `model_utils.AcmeChallengeType`
-    acme_status_challenge_id = sa.Column(
-        sa.Integer, nullable=False
-    )  # Acme_Status_Challenge
-    token = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
-
-    #
-    # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http01.token)
-    # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
-    keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    #     acme_event_log = sa_orm_relationship(
-    #         "AcmeEventLog",
-    #         primaryjoin="AcmeChallenge.acme_event_log_id==AcmeEventLog.id",
-    #         uselist=False,
-    #         back_populates="acme_challenges",
-    #     )
-
-    acme_challenge_polls = sa_orm_relationship(
-        "AcmeChallengePoll",
-        primaryjoin="AcmeChallenge.id==AcmeChallengePoll.acme_challenge_id",
-        uselist=True,
-        back_populates="acme_challenge",
-    )
-
-    acme_authorization = sa_orm_relationship(
-        "AcmeAuthorization",
-        primaryjoin="AcmeChallenge.acme_authorization_id==AcmeAuthorization.id",
-        uselist=False,
-        back_populates="acme_challenge_http01",
-    )
-
-    if False:
-        # migrate to fqdns
-        to_certificate_requests = sa_orm_relationship(
-            "CertificateRequest2Domain",
-            primaryjoin="AcmeChallenge.id==CertificateRequest2Domain.acme_challenge_id",
-            uselist=False,
-            back_populates="acme_challenge",
-        )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def acme_challenge_type(self):
-        if self.acme_challenge_type_id:
-            return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
-        return None
-
-    @property
-    def domain_name(self):
-        return self.acme_authorization.domain.domain_name
-
-    @property
-    def timestamp_created_isoformat(self):
-        if self.timestamp_created:
-            return self.timestamp_created.isoformat()
-        return None
-
-    @property
-    def timestamp_updated_isoformat(self):
-        if self.timestamp_updated:
-            return self.timestamp_updated.isoformat()
-        return None
-
-    @property
-    def as_json(self):
-        return {
-            "id": self.id,
-            "acme_challenge_type": self.acme_challenge_type,
-            "domain": self.domain_name,
-            "status": self.status,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "timestamp_updated": self.timestamp_updated_isoformat,
-            # "acme_event_log_id": self.acme_event_log_id,
-        }
-
 
 # ==============================================================================
 
@@ -718,7 +734,7 @@ class CertificateRequest(Base):
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    private_key_id__signed_by = sa.Column(
+    private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
     server_certificate_id__renewal_of = sa.Column(
@@ -745,9 +761,9 @@ class CertificateRequest(Base):
         back_populates="certificate_request",
     )
 
-    private_key__signed_by = sa_orm_relationship(
+    private_key = sa_orm_relationship(
         "PrivateKey",
-        primaryjoin="CertificateRequest.private_key_id__signed_by==PrivateKey.id",
+        primaryjoin="CertificateRequest.private_key_id==PrivateKey.id",
         back_populates="certificate_requests",
         uselist=False,
     )
@@ -885,7 +901,7 @@ class CertificateRequest(Base):
             "timestamp_started": self.timestamp_started_isoformat,
             "timestamp_finished": self.timestamp_finished_isoformat,
             "acme_account_key_id": self.acme_account_key_id,
-            "private_key_id__signed_by": self.private_key_id__signed_by,
+            "private_key_id": self.private_key_id,
             "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
@@ -902,7 +918,7 @@ class CertificateRequest(Base):
             "timestamp_started": self.timestamp_started_isoformat,
             "timestamp_finished": self.timestamp_finished_isoformat,
             "acme_account_key_id": self.acme_account_key_id,
-            "private_key_id__signed_by": self.private_key_id__signed_by,
+            "private_key_id": self.private_key_id,
             "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "domains": self.domains_as_list,
@@ -1040,14 +1056,14 @@ class PrivateKey(Base):
 
     certificate_requests = sa_orm_relationship(
         "CertificateRequest",
-        primaryjoin="PrivateKey.id==CertificateRequest.private_key_id__signed_by",
+        primaryjoin="PrivateKey.id==CertificateRequest.private_key_id",
         order_by="CertificateRequest.id.desc()",
-        back_populates="private_key__signed_by",
+        back_populates="private_key",
     )
 
     server_certificates = sa_orm_relationship(
         "ServerCertificate",
-        primaryjoin="PrivateKey.id==ServerCertificate.private_key_id__signed_by",
+        primaryjoin="PrivateKey.id==ServerCertificate.private_key_id",
         order_by="ServerCertificate.id.desc()",
         back_populates="private_key",
     )
@@ -1152,7 +1168,7 @@ class ServerCertificate(Base):
     )
 
     # this is the private key
-    private_key_id__signed_by = sa.Column(
+    private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
 
@@ -1226,7 +1242,7 @@ class ServerCertificate(Base):
 
     private_key = sa_orm_relationship(
         "PrivateKey",
-        primaryjoin="ServerCertificate.private_key_id__signed_by==PrivateKey.id",
+        primaryjoin="ServerCertificate.private_key_id==PrivateKey.id",
         back_populates="server_certificates",
         uselist=False,
     )
@@ -1374,7 +1390,7 @@ class ServerCertificate(Base):
             "cert_pem_md5": self.cert_pem_md5,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "ca_certificate_id__upchain": self.ca_certificate_id__upchain,
-            "private_key_id__signed_by": self.private_key_id__signed_by,
+            "private_key_id": self.private_key_id,
             # "acme_account_key_id": self.acme_account_key_id,
             "domains_as_list": self.domains_as_list,
         }
@@ -1454,6 +1470,10 @@ class UniqueFQDNSet(Base):
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def domains(self):
+        return [to_d.domain for to_d in self.to_domains]
 
     @property
     def domains_as_string(self):
@@ -1857,10 +1877,10 @@ PrivateKey.certificate_requests__5 = sa_orm_relationship(
     CertificateRequest,
     primaryjoin=(
         sa.and_(
-            PrivateKey.id == CertificateRequest.private_key_id__signed_by,
+            PrivateKey.id == CertificateRequest.private_key_id,
             CertificateRequest.id.in_(
                 sa.select([CertificateRequest.id])
-                .where(PrivateKey.id == CertificateRequest.private_key_id__signed_by)
+                .where(PrivateKey.id == CertificateRequest.private_key_id)
                 .order_by(CertificateRequest.id.desc())
                 .limit(5)
                 .correlate()
@@ -1877,10 +1897,10 @@ PrivateKey.server_certificates__5 = sa_orm_relationship(
     ServerCertificate,
     primaryjoin=(
         sa.and_(
-            PrivateKey.id == ServerCertificate.private_key_id__signed_by,
+            PrivateKey.id == ServerCertificate.private_key_id,
             ServerCertificate.id.in_(
                 sa.select([ServerCertificate.id])
-                .where(PrivateKey.id == ServerCertificate.private_key_id__signed_by)
+                .where(PrivateKey.id == ServerCertificate.private_key_id)
                 .order_by(ServerCertificate.id.desc())
                 .limit(5)
                 .correlate()

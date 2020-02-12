@@ -542,7 +542,7 @@ def get__CertificateRequest__by_DomainId__paginated(
 def get__CertificateRequest__by_PrivateKeyId__count(ctx, key_id):
     counted = (
         ctx.dbSession.query(model_objects.CertificateRequest)
-        .filter(model_objects.CertificateRequest.private_key_id__signed_by == key_id)
+        .filter(model_objects.CertificateRequest.private_key_id == key_id)
         .count()
     )
     return counted
@@ -553,7 +553,7 @@ def get__CertificateRequest__by_PrivateKeyId__paginated(
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.CertificateRequest)
-        .filter(model_objects.CertificateRequest.private_key_id__signed_by == key_id)
+        .filter(model_objects.CertificateRequest.private_key_id == key_id)
         .options(
             sqlalchemy.orm.joinedload("unique_fqdn_set")
             .joinedload("to_domains")
@@ -1340,7 +1340,7 @@ def get__ServerCertificate__by_DomainId__latest(ctx, domain_id):
 def get__ServerCertificate__by_PrivateKeyId__count(ctx, key_id):
     counted = (
         ctx.dbSession.query(model_objects.ServerCertificate)
-        .filter(model_objects.ServerCertificate.private_key_id__signed_by == key_id)
+        .filter(model_objects.ServerCertificate.private_key_id == key_id)
         .count()
     )
     return counted
@@ -1351,7 +1351,7 @@ def get__ServerCertificate__by_PrivateKeyId__paginated(
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.ServerCertificate)
-        .filter(model_objects.ServerCertificate.private_key_id__signed_by == key_id)
+        .filter(model_objects.ServerCertificate.private_key_id == key_id)
         .order_by(model_objects.ServerCertificate.id.desc())
         .limit(limit)
         .offset(offset)

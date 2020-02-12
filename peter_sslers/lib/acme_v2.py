@@ -630,7 +630,7 @@ class AuthenticatedUser(object):
         ctx,
         acmeOrder=None,
         dbAcmeOrder=None,
-        handle_discovered_authorization=None,
+        handle_authorization_payload=None,
         handle_challenge_setup=None,
         handle_challenge_cleanup=None,
         transaction_commit=None,
@@ -641,7 +641,7 @@ class AuthenticatedUser(object):
         :param acmeOrder: (required) A :class:`AcmeOrder` object representing the server's response
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
 
-        :param handle_discovered_authorization: (required) Callable function. expects (authorization_url, authorization_response, transaction_commit)
+        :param handle_authorization_payload: (required) Callable function. expects (authorization_url, authorization_response, transaction_commit)
         :param handle_challenge_setup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param handle_challenge_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
@@ -730,7 +730,6 @@ class AuthenticatedUser(object):
                 )
 
         # verify each domain
-        pdb.set_trace()
         for authorization_url in acmeOrder.rfc_object["authorizations"]:
             # scoping, our todo list
             _todo_complete_challenges = None
@@ -741,7 +740,7 @@ class AuthenticatedUser(object):
             (authorization_response, _, _) = self._send_signed_request(
                 authorization_url, payload=None,
             )
-            dbAcmeAuthorization = handle_discovered_authorization(
+            dbAcmeAuthorization = handle_authorization_payload(
                 authorization_url, authorization_response, transaction_commit=True,
             )
             _response_domain = authorization_response["identifier"]["value"]
@@ -800,22 +799,22 @@ class AuthenticatedUser(object):
                 raise ValueError(
                     "`acme_challenge_response` not in `authorization_response`"
                 )
-            _challenge_status = dbAcmeAuthorization.acme_challenge_http01.status
+            _challenge_status_text = dbAcmeAuthorization.acme_challenge_http01.status_text
 
-            if _challenge_status == "pending":
+            if _challenge_status_text == "pending":
                 _todo_complete_challenge_http01 = True
-            elif _challenge_status == "processing":
+            elif _challenge_status_text == "processing":
                 # we may need to trigger again?
                 _todo_complete_challenge_http01 = True
-            elif _challenge_status == "valid":
+            elif _challenge_status_text == "valid":
                 # already completed
                 _todo_complete_challenge_http01 = False
-            elif _challenge_status == "invalid":
+            elif _challenge_status_text == "invalid":
                 # we may need to trigger again?
                 _todo_complete_challenge_http01 = True
             else:
                 raise ValueError(
-                    "unexpected challenge status: `%s`" % _challenge_status
+                    "unexpected challenge status: `%s`" % _challenge_status_text
                 )
 
             if _todo_complete_challenge_http01:
@@ -957,6 +956,7 @@ class AuthenticatedUser(object):
 
     def acme_finalize_order(
         self,
+        ctx,
         acmeOrder=None,  # acme server api response, `AcmeOrder` object
         dbAcmeOrder=None,
         update_order_status=None,
@@ -968,7 +968,7 @@ class AuthenticatedUser(object):
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
         :param acmeOrder: (required) A :class:`AcmeOrder` object representing the server's response
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
-        :param update_order_status: (required) Callable function. expects (status, transaction_commit)
+        :param update_order_status: (required) Callable function. expects (ctx, dbAcmeOrder, status, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
         
         :param csr_path: (required) a 
@@ -1023,7 +1023,7 @@ class AuthenticatedUser(object):
 
         # acme_order_finalized["status"] == "valid"
         update_order_status(
-            acme_order_finalized["status"], transaction_commit=transaction_commit
+            ctx, dbAcmeOrder, acme_order_finalized["status"], transaction_commit=transaction_commit
         )
 
         url_certificate = acme_order_finalized.get("certificate")

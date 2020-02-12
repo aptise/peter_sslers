@@ -289,7 +289,7 @@ class AppTest(AppTestCore):
                 ) = db.getcreate.getcreate__CACertificate__by_pem_text(
                     self.ctx,
                     ca_cert_pem,
-                    chain_name="ISRG Root",
+                    ca_chain_name="ISRG Root",
                     le_authority_name="ISRG ROOT",
                     is_authority_certificate=True,
                     is_cross_signed_authority_certificate=False,
@@ -309,7 +309,7 @@ class AppTest(AppTestCore):
                     _ca_cert_selfsigned1,
                     _is_created,
                 ) = db.getcreate.getcreate__CACertificate__by_pem_text(
-                    self.ctx, ca_cert_pem, chain_name=_ca_cert_filename
+                    self.ctx, ca_cert_pem, ca_chain_name=_ca_cert_filename
                 )
                 # print(_ca_cert_selfsigned1, _is_created)
                 self.ctx.dbSession.commit()

@@ -25,30 +25,7 @@
         <div class="col-sm-12">
             % if AcmeChallenges:
                 ${admin_partials.nav_pagination(pager)}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>id</th>
-                            <th>timestamp_created</th>
-                            <th>status</th>
-                            <th>token</th>
-                            <th>timestamp_updated</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    % for item in AcmeChallenges:
-                        <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/acme-challenge/${item.id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${item.id}</a></td>
-                            <td><timestamp>${item.timestamp_created}</timestamp></td>
-                            <td><code>${item.status}</code></td>
-                            <td><code>${item.token}</code></td>
-                            <td><timestamp>${item.timestamp_updated}</timestamp></td>
-                        </tr>
-                    % endfor
-                    </tbody>
-                </table>
+                ${admin_partials.table_AcmeChallenges(AcmeChallenges, perspective="AcmeChallenges")}
             % else:
                 <em>
                     No AcmeChallenges

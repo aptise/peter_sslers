@@ -43,25 +43,90 @@
                         </td>
                         <td><timestamp>${to_acme_authorization.acme_authorization.timestamp_created or ''}</timestamp></td>
                         <td>
-                            <a href="${admin_prefix}/domain/${to_acme_authorization.acme_authorization.domain_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                Domain-${to_acme_authorization.acme_authorization.domain_id}
-                            </a>
+                            % if to_acme_authorization.acme_authorization.domain_id:
+                                <a href="${admin_prefix}/domain/${to_acme_authorization.acme_authorization.domain_id}" class="label label-info">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    Domain-${to_acme_authorization.acme_authorization.domain_id}
+                                </a>
+                            % endif
                         </td>
                         <td><timestamp>${to_acme_authorization.acme_authorization.timestamp_expires or ''}</timestamp></td>
-                        <td><code>${to_acme_authorization.acme_authorization.status or ''}</code></td>
+                        <td><code>${to_acme_authorization.acme_authorization.status_text or ''}</code></td>
                         <td><timestamp>${to_acme_authorization.acme_authorization.timestamp_updated or ''}</timestamp></td>
                         <td><code>${to_acme_authorization.acme_authorization.wildcard or ''}</code></td>
                     </tr>
                 % endfor
             </tbody>
         </table>
+    % elif perspective == 'AcmeAuthorizations':
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>id</th>
+                    <th>domain</th>
+                    <th>timestamp_created</th>
+                    <th>status</th>
+                    <th>timestamp_expires</th>
+                    <th>timestamp_updated</th>
+                </tr>
+            </thead>
+            <tbody>
+            % for acme_authorization in AcmeAuthorizations:
+                <tr>
+                    <td><a class="label label-info" href="${admin_prefix}/acme-authorization/${acme_authorization.id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeAuthorization-${acme_authorization.id}</a></td>
+                    <td>
+                        % if acme_authorization.domain_id:
+                            <a class="label label-info" href="${admin_prefix}/domain/${acme_authorization.domain_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                Domain-${acme_authorization.domain_id}
+                            </a>
+                        % endif
+                    </td>
+                    <td><timestamp>${acme_authorization.timestamp_created or ''}</timestamp></td>
+                    <td><code>${acme_authorization.status_text or ''}</code></td>
+                    <td><timestamp>${acme_authorization.timestamp_expires or ''}</timestamp></td>
+                    <td><timestamp>${acme_authorization.timestamp_updated or ''}</timestamp></td>
+                </tr>
+            % endfor
+            </tbody>
+        </table>
     % else:
+
+
         <!-- table_AcmeAuthorizations missing perspective -->
     % endif
 </%def>
 
-
+<%def name="table_AcmeChallenges(acme_challenges, perspective=None)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>timestamp_created</th>
+                <th>acme_challenge_type</th>
+                <th>status</th>
+                <th>token</th>
+                <th>timestamp_updated</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for item in acme_challenges:
+            <tr>
+                <td><a class="label label-info" href="${admin_prefix}/acme-challenge/${item.id}">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    ${item.id}</a></td>
+                <td><timestamp>${item.timestamp_created}</timestamp></td>
+                <td><span class="label label-default">${item.acme_challenge_type}</span></td>
+                <td><code>${item.status_text}</code></td>
+                <td><code>${item.token}</code></td>
+                <td><timestamp>${item.timestamp_updated}</timestamp></td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
 
 <%def name="table_AcmeOrders(acme_orders, perspective=None)">
     <%
@@ -104,7 +169,7 @@
                                         AcmeOrder-${acme_order.id}
                                     </a>
                             % elif c == 'status':
-                                <code>${acme_order.status or ''}</code>
+                                <code>${acme_order.status_text or ''}</code>
                             % elif c == 'timestamp_created':
                                 <timestamp>${acme_order.timestamp_created or ''}</timestamp>
                             % elif c == 'timestamp_finalized':
@@ -167,7 +232,7 @@
         elif perspective == 'Domain':
             cols = [c for c in cols]
         elif perspective == 'PrivateKey':
-            cols = [c for c in cols if c != 'private_key_id__signed_by']
+            cols = [c for c in cols if c != 'private_key_id']
         elif perspective == 'ServerCertificate':
             cols = [c for c in cols]
         elif perspective == 'UniqueFQDNSet':
