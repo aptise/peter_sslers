@@ -526,102 +526,6 @@ class AuthenticatedUser(object):
 
         return (acmeOrderObject, dbEventLogged)
 
-    def acme_authorization_load(
-        self, ctx, dbAcmeAuthorization, transaction_commit=None
-    ):
-        """
-        This loads the authorization object and pulls the payload
-        :param ctx: (required) A :class:`lib.utils.ApiContext` object
-        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
-        """
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
-
-        if not dbAcmeAuthorization.authorization_url:
-            raise ValueError("the order does not have a `resource_url`")
-
-        try:
-            (authorization_response, _, authorization_headers) = self._send_signed_request(
-                dbAcmeAuthorization.authorization_url, None
-            )
-        except errors.AcmeServer404 as exc:
-            authorization_response = {'status': '*404*'}
-
-        # log the event
-        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
-        )  # log this to the db
-
-        return (authorization_response, dbAcmeEventLog_authorization_fetch)
-
-    def acme_authorization_deactivate(
-        self, ctx, dbAcmeAuthorization, transaction_commit=None
-    ):
-        """
-        This loads the authorization object and pulls the payload
-        :param ctx: (required) A :class:`lib.utils.ApiContext` object
-        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
-
-        https://tools.ietf.org/html/rfc8555#section-7.5.2
-
-            7.5.2.  Deactivating an Authorization
-
-               If a client wishes to relinquish its authorization to issue
-               certificates for an identifier, then it may request that the server
-               deactivate each authorization associated with it by sending POST
-               requests with the static object {"status": "deactivated"} to each
-               authorization URL.
-
-        """
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
-
-        if not dbAcmeAuthorization.authorization_url:
-            raise ValueError("the order does not have a `resource_url`")
-
-        try:
-            (authorization_response, _, authorization_headers) = self._send_signed_request(
-                dbAcmeAuthorization.authorization_url, {"status": "deactivated"}
-            )
-        except errors.AcmeServer404 as exc:
-            authorization_response = {'status': '*404*'}
-            
-        # log the event
-        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_deactivate(
-            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
-        )  # log this to the db
-
-        return (authorization_response, dbAcmeEventLog_authorization_fetch)
-        
-    def acme_challenge_load(self, ctx, dbAcmeChallenge, transaction_commit=None):
-        """
-        This loads the authorization object and pulls the payload
-        :param ctx: (required) A :class:`lib.utils.ApiContext` object
-        :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
-        """
-        if transaction_commit is not True:
-            # required for the `AcmeLogger`
-            raise ValueError("we must invoke this knowing it will commit")
-
-        if not dbAcmeChallenge.challenge_url:
-            raise ValueError("the challenge does not have a `challenge_url`")
-
-        try:
-            (challenge_response, _, challenge_headers) = self._send_signed_request(
-                dbAcmeChallenge.challenge_url, None
-            )
-        except errors.AcmeServer404 as exc:
-            challenge_response = {'status': '*404*'}
-
-        # log the event
-        dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(
-            "v2", dbAcmeChallenge=dbAcmeChallenge, transaction_commit=True,
-        )  # log this to the db
-
-        return (challenge_response, dbAcmeEventLog_challenge_fetch)
-
     def acme_order_new(
         self, ctx, csr_domains=None, dbCertificateRequest=None, transaction_commit=None,
     ):
@@ -728,7 +632,8 @@ class AuthenticatedUser(object):
 
         return (acmeOrderObject, dbEventLogged)
 
-    def acme_handle_order_authorizations(
+
+    def acme_order_process_authorizations(
         self,
         ctx,
         acmeOrder=None,
@@ -737,7 +642,6 @@ class AuthenticatedUser(object):
         handle_challenge_setup=None,
         handle_challenge_cleanup=None,
         transaction_commit=None,
-        is_retry=None,
     ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
@@ -748,85 +652,18 @@ class AuthenticatedUser(object):
         :param handle_challenge_setup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param handle_challenge_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
-        :param is_retry: (required) Boolean. False to indicate a New order; True to indicate this is a retry.
-
-        Authorizations
-
-            https://tools.ietf.org/html/rfc8555#section-7.1.4
-
-                status (required, string):  The status of this authorization.
-                    Possible values are "pending", "valid", "invalid", "deactivated",
-                    "expired", and "revoked".  See Section 7.1.6.
-
-            https://tools.ietf.org/html/rfc8555#page-31
-
-               Authorization objects are created in the "pending" state.  If one of
-               the challenges listed in the authorization transitions to the "valid"
-               state, then the authorization also changes to the "valid" state.  If
-               the client attempts to fulfill a challenge and fails, or if there is
-               an error while the authorization is still pending, then the
-               authorization transitions to the "invalid" state.  Once the
-               authorization is in the "valid" state, it can expire ("expired"), be
-               deactivated by the client ("deactivated", see Section 7.5.2), or
-               revoked by the server ("revoked").
-
-            Therefore:
-
-                "pending"
-                    newly created
-                "valid"
-                    one or more challenges is valid
-                "invalid"
-                    a challenge failed
-                "deactivated"
-                    deactivated by the client
-                "expired"
-                    a valid challenge has expired
-                "revoked"
-                    revoked by the server
-
-        Challenges
-
-            https://tools.ietf.org/html/rfc8555#section-8
-
-                status (required, string):  The status of this challenge.  Possible
-                   values are "pending", "processing", "valid", and "invalid" (see
-                   Section 7.1.6).
-
-            https://tools.ietf.org/html/rfc8555#section-7.1.6
-
-                Challenge objects are created in the "pending" state.  They
-                transition to the "processing" state when the client responds to the
-                challenge (see Section 7.5.1) and the server begins attempting to
-                validate that the client has completed the challenge.  Note that
-                within the "processing" state, the server may attempt to validate the
-                challenge multiple times (see Section 8.2).  Likewise, client
-                requests for retries do not cause a state change.  If validation is
-                successful, the challenge moves to the "valid" state; if there is an
-                error, the challenge moves to the "invalid" state.
-
-            Therefore:
-
-                "pending"
-                    newly created
-                "processing"
-                    the client has responded to the challenge
-                "valid"
-                    the ACME server has validated the challenge
-                "invalid"
-                    the ACME server encountered an error when validating
         """
-        log.info("acme_v2 acme_handle_order_authorizations...")
+        log.info("acme_v2 acme_order_process_authorizations...")
         if not transaction_commit:
             # !!!: if this were not True, then we can't invoke items with `transaction_commit=True` below
             raise ValueError(
-                "`acme_handle_order_authorizations()` must persist to the database."
+                "`acme_order_process_authorizations()` must persist to the database."
             )
 
         _order_status = acmeOrder.rfc_object["status"]
         if _order_status != "pending":
-            if (_order_status == "invalid") and is_retry:
-                pass
+            if (_order_status == "invalid"):
+                raise ValueError("this order is dead")
             else:
                 raise ValueError(
                     "unsure how to handle this status: `%s`" % _order_status
@@ -834,236 +671,19 @@ class AuthenticatedUser(object):
 
         # verify each domain
         for authorization_url in acmeOrder.rfc_object["authorizations"]:
-            # scoping, our todo list
-            _todo_complete_challenges = None
-            _todo_complete_challenge_http01 = None
-
-            # in v1, we know the domain before the authorization request
-            # in v2, we hit an order's authorization url to get the domain
-            (
-                authorization_response,
-                _,
-                authorization_headers,
-            ) = self._send_signed_request(authorization_url, payload=None,)
-            dbAcmeAuthorization = handle_authorization_payload(
-                authorization_url, authorization_response, transaction_commit=True,
+            auth_result = self.acme_authorization_process(
+                ctx,
+                authorization_url,
+                handle_authorization_payload=handle_authorization_payload,
+                handle_challenge_setup=handle_challenge_setup,
+                handle_challenge_cleanup=handle_challenge_cleanup,
+                transaction_commit=transaction_commit,
             )
-
-            # log the event
-            dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
-                "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
-            )  # log this to the db
-
-            _response_domain = authorization_response["identifier"]["value"]
-            if dbAcmeAuthorization.domain.domain_name != _response_domain:
-                raise ValueError("mismatch on a domain name")
-
-            # once we inspect the url, we have the domain
-            # the domain is in our `authorization_response`
-            # but also on our `dbAcmeAuthorization` object
-            log.info(
-                "acme_v2 Handling Authorization for {0}...".format(
-                    dbAcmeAuthorization.domain.domain_name
-                )
-            )
-
-            _authorization_status = authorization_response["status"]
-            if _authorization_status == "pending":
-                # we need to run the authorization
-                _todo_complete_challenges = True
-            elif _authorization_status == "valid":
-                # noting to do, one or more challenges is valid
-                _todo_complete_challenges = False
-            elif _authorization_status == "invalid":
-                # this failed once, we need to auth again !
-                # !!!: if this is not a `is_retry`, I don't know what is going on!
-                _todo_complete_challenges = True
-            elif _authorization_status == "deactivated":
-                # this has been removed from the order?
-                _todo_complete_challenges = False
-            elif _authorization_status == "expired":
-                # this passed once, BUT we need to auth again
-                _todo_complete_challenges = True
-            elif _authorization_status == "expired":
-                # this failed once, we need to auth again?
-                _todo_complete_challenges = True
-            else:
-                raise ValueError(
-                    "unexpected authorization status: `%s`" % _authorization_status
-                )
-
-            if not _todo_complete_challenges:
-                # short-circuit out of completing the challenge
-                continue
-
-            # we could parse the challenge
-            # however, the call to `process_discovered_auth` should have updated the challenge object already
-
-            acme_challenge_response = get_authorization_challenge(
-                authorization_response, http01=True
-            )
-            if not acme_challenge_response:
-                raise ValueError(
-                    "`acme_challenge_response` not in `authorization_response`"
-                )
-            _challenge_status_text = (
-                dbAcmeAuthorization.acme_challenge_http01.status_text
-            )
-
-            if _challenge_status_text == "pending":
-                _todo_complete_challenge_http01 = True
-            elif _challenge_status_text == "processing":
-                # we may need to trigger again?
-                _todo_complete_challenge_http01 = True
-            elif _challenge_status_text == "valid":
-                # already completed
-                _todo_complete_challenge_http01 = False
-            elif _challenge_status_text == "invalid":
-                # we may need to trigger again?
-                _todo_complete_challenge_http01 = True
-            else:
-                raise ValueError(
-                    "unexpected challenge status: `%s`" % _challenge_status_text
-                )
-
-            if _todo_complete_challenge_http01:
-                # acme_challenge_response
-                keyauthorization = create_challenge_keyauthorization(
-                    dbAcmeAuthorization.acme_challenge_http01.token,
-                    self.accountkey_thumbprint,
-                )
-                if (
-                    dbAcmeAuthorization.acme_challenge_http01.keyauthorization
-                    != keyauthorization
-                ):
-                    raise ValueError("This should never happen!")
-
-                # update the db; this should be integrated with the above
-                wellknown_path = handle_challenge_setup(
-                    dbAcmeAuthorization.domain.domain_name,
-                    dbAcmeAuthorization.acme_challenge_http01.token,
-                    dbAcmeAuthorization.acme_challenge_http01.keyauthorization,
-                    transaction_commit=True,
-                )
-                wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
-                    dbAcmeAuthorization.domain.domain_name,
-                    dbAcmeAuthorization.acme_challenge_http01.token,
-                )
-
-                # check that the file is in place
-                try:
-                    if TESTING_ENVIRONMENT:
-                        log.debug(
-                            "TESTING_ENVIRONMENT, not ensuring the challenge is readable"
-                        )
-                    else:
-                        try:
-                            resp = urlopen(wellknown_url)
-                            resp_data = resp.read().decode("utf8").strip()
-                            assert resp_data == keyauthorization
-                        except (IOError, AssertionError):
-                            handle_challenge_cleanup(
-                                dbAcmeAuthorization.domain.domain_name,
-                                dbAcmeAuthorization.acme_challenge_http01.token,
-                                keyauthorization,
-                                transaction_commit=True,
-                            )
-                            self.acmeLogger.log_challenge_error(
-                                "v2",
-                                dbAcmeAuthorization.acme_challenge_http01,
-                                "pretest-1",
-                                transaction_commit=True,
-                            )
-                            raise errors.DomainVerificationError(
-                                "Wrote keyauth challenge, but couldn't download {0}".format(
-                                    wellknown_url
-                                )
-                            )
-                        except ssl.CertificateError as exc:
-                            self.acmeLogger.log_challenge_error(
-                                "v2",
-                                dbAcmeAuthorization.acme_challenge_http01,
-                                "pretest-2",
-                                transaction_commit=True,
-                            )
-                            if str(exc).startswith("hostname") and (
-                                "doesn't match" in str(exc)
-                            ):
-                                raise errors.DomainVerificationError(
-                                    "Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(
-                                        wellknown_url, str(exc)
-                                    )
-                                )
-                            raise
-                except (AssertionError, ValueError) as e:
-                    raise ValueError(
-                        "Wrote file to {0}, but couldn't download {1}: {2}".format(
-                            wellknown_path, wellknown_url, e
-                        )
-                    )
-
-                # note the challenge
-                self.acmeLogger.log_challenge_trigger(
-                    "v2",
-                    dbAcmeAuthorization.acme_challenge_http01,
-                    transaction_commit=True,
-                )
-
-                # if we had a 'valid' challenge, the payload would be `None`
-                # to trigger a GET-as-POST functionality
-                (challenge_response, _, _) = self._send_signed_request(
-                    dbAcmeAuthorization.acme_challenge_http01.challenge_url, payload={},
-                )
-
-                # todo - would an accepted challenge require this?
-                log.info(
-                    "checking domain {0}".format(dbAcmeAuthorization.domain.domain_name)
-                )
-                authorization_response = self._poll_until_not(
-                    authorization_url,
-                    ["pending"],
-                    "checking challenge status for {0}".format(
-                        dbAcmeAuthorization.domain.domain_name
-                    ),
-                )
-                if authorization_response["status"] == "valid":
-                    log.info(
-                        "acme_v2 {0} verified!".format(
-                            dbAcmeAuthorization.domain.domain_name
-                        )
-                    )
-                    handle_challenge_cleanup(
-                        dbAcmeAuthorization.domain.domain_name,
-                        dbAcmeAuthorization.acme_challenge_http01.token,
-                        dbAcmeAuthorization.acme_challenge_http01.keyauthorization,
-                        transaction_commit=True,
-                    )
-                elif authorization_response["status"] != "valid":
-
-                    self.acmeLogger.log_challenge_error(
-                        "v2",
-                        dbAcmeAuthorization.acme_challenge_http01,
-                        "fail-2",
-                        transaction_commit=True,
-                    )
-                    raise errors.DomainVerificationError(
-                        "{0} challenge did not pass: {1}".format(
-                            dbAcmeAuthorization.domain.domain_name,
-                            authorization_response,
-                        )
-                    )
-
-                # log this
-                self.acmeLogger.log_challenge_pass(
-                    "v2",
-                    dbAcmeAuthorization.acme_challenge_http01,
-                    transaction_commit=True,
-                )
 
         # no more domains!
         return True
 
-    def acme_finalize_order(
+    def acme_order_finalize(
         self,
         ctx,
         acmeOrder=None,  # acme server api response, `AcmeOrder` object
@@ -1083,7 +703,7 @@ class AuthenticatedUser(object):
         :param csr_path: (required) a
         """
         # get the new certificate
-        log.info("acme_v2 acme_finalize_order")
+        log.info("acme_v2 acme_order_finalize")
 
         if transaction_commit is not True:
             # required for the `update_order_status`
@@ -1153,6 +773,429 @@ class AuthenticatedUser(object):
         log.info("acme_v2 recived signed Certificate!")
 
         return fullchain_pem
+
+
+    def acme_authorization_process(
+        self,
+        ctx,
+        authorization_url,
+        handle_authorization_payload=None,
+        handle_challenge_setup=None,
+        handle_challenge_cleanup=None,
+        transaction_commit=None,
+    ):
+        """
+        Process a single Authorization
+
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param authorization_url: (required) The url of the authorization
+
+        :param handle_authorization_payload: (required) Callable function. expects (authorization_url, authorization_response, transaction_commit)
+        :param handle_challenge_setup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
+        :param handle_challenge_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
+        :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
+
+        Returns:
+        
+            True: Authorization Valid
+            None: No Authorization Action
+        
+        If the challenge fails, we raise a `errors.DomainVerificationError`.
+        This will 
+
+        ------------------------------------------------------------------------
+
+        Authorizations
+
+            https://tools.ietf.org/html/rfc8555#section-7.1.4
+
+                status (required, string):  The status of this authorization.
+                    Possible values are "pending", "valid", "invalid", "deactivated",
+                    "expired", and "revoked".  See Section 7.1.6.
+
+            https://tools.ietf.org/html/rfc8555#page-31
+
+               Authorization objects are created in the "pending" state.  If one of
+               the challenges listed in the authorization transitions to the "valid"
+               state, then the authorization also changes to the "valid" state.  If
+               the client attempts to fulfill a challenge and fails, or if there is
+               an error while the authorization is still pending, then the
+               authorization transitions to the "invalid" state.  Once the
+               authorization is in the "valid" state, it can expire ("expired"), be
+               deactivated by the client ("deactivated", see Section 7.5.2), or
+               revoked by the server ("revoked").
+
+            Therefore:
+
+                "pending"
+                    newly created
+                "valid"
+                    one or more challenges is valid
+                "invalid"
+                    a challenge failed
+                "deactivated"
+                    deactivated by the client
+                "expired"
+                    a valid challenge has expired
+                "revoked"
+                    revoked by the server
+
+        Challenges
+
+            https://tools.ietf.org/html/rfc8555#section-8
+
+                status (required, string):  The status of this challenge.  Possible
+                   values are "pending", "processing", "valid", and "invalid" (see
+                   Section 7.1.6).
+
+            https://tools.ietf.org/html/rfc8555#section-7.1.6
+
+                Challenge objects are created in the "pending" state.  They
+                transition to the "processing" state when the client responds to the
+                challenge (see Section 7.5.1) and the server begins attempting to
+                validate that the client has completed the challenge.  Note that
+                within the "processing" state, the server may attempt to validate the
+                challenge multiple times (see Section 8.2).  Likewise, client
+                requests for retries do not cause a state change.  If validation is
+                successful, the challenge moves to the "valid" state; if there is an
+                error, the challenge moves to the "invalid" state.
+
+            Therefore:
+
+                "pending"
+                    newly created
+                "processing"
+                    the client has responded to the challenge
+                "valid"
+                    the ACME server has validated the challenge
+                "invalid"
+                    the ACME server encountered an error when validating        """
+        # scoping, our todo list
+        _todo_complete_challenges = None
+        _todo_complete_challenge_http01 = None
+
+        # in v1, we know the domain before the authorization request
+        # in v2, we hit an order's authorization url to get the domain
+        (
+            authorization_response,
+            _,
+            authorization_headers,
+        ) = self._send_signed_request(authorization_url, payload=None,)
+        dbAcmeAuthorization = handle_authorization_payload(
+            authorization_url, authorization_response, transaction_commit=True,
+        )
+
+        # log the event
+        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
+            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+        )  # log this to the db
+
+        _response_domain = authorization_response["identifier"]["value"]
+        if dbAcmeAuthorization.domain.domain_name != _response_domain:
+            raise ValueError("mismatch on a domain name")
+
+        # once we inspect the url, we have the domain
+        # the domain is in our `authorization_response`
+        # but also on our `dbAcmeAuthorization` object
+        log.info(
+            "acme_v2 Handling Authorization for {0}...".format(
+                dbAcmeAuthorization.domain.domain_name
+            )
+        )
+
+        _authorization_status = authorization_response["status"]
+        if _authorization_status == "pending":
+            # we need to run the authorization
+            _todo_complete_challenges = True
+        elif _authorization_status == "valid":
+            # noting to do, one or more challenges is valid
+            _todo_complete_challenges = False
+        elif _authorization_status == "invalid":
+            # this failed once, we need to auth again !
+            _todo_complete_challenges = False
+        elif _authorization_status == "deactivated":
+            # this has been removed from the order?
+            _todo_complete_challenges = False
+        elif _authorization_status == "expired":
+            # this passed once, BUT we need to auth again
+            _todo_complete_challenges = True
+        elif _authorization_status == "expired":
+            # this failed once, we need to auth again?
+            _todo_complete_challenges = True
+        else:
+            raise ValueError(
+                "unexpected authorization status: `%s`" % _authorization_status
+            )
+
+        if not _todo_complete_challenges:
+            # short-circuit out of completing the challenge
+            return None
+
+        # we could parse the challenge
+        # however, the call to `process_discovered_auth` should have updated the challenge object already
+
+        acme_challenge_response = get_authorization_challenge(
+            authorization_response, http01=True
+        )
+        if not acme_challenge_response:
+            raise ValueError(
+                "`acme_challenge_response` not in `authorization_response`"
+            )
+        _challenge_status_text = (
+            dbAcmeAuthorization.acme_challenge_http01.status_text
+        )
+
+        if _challenge_status_text == "pending":
+            _todo_complete_challenge_http01 = True
+        elif _challenge_status_text == "processing":
+            # we may need to trigger again?
+            _todo_complete_challenge_http01 = True
+        elif _challenge_status_text == "valid":
+            # already completed
+            _todo_complete_challenge_http01 = False
+        elif _challenge_status_text == "invalid":
+            # we may need to trigger again?
+            _todo_complete_challenge_http01 = True
+        else:
+            raise ValueError(
+                "unexpected challenge status: `%s`" % _challenge_status_text
+            )
+
+        if _todo_complete_challenge_http01:
+            # acme_challenge_response
+            keyauthorization = create_challenge_keyauthorization(
+                dbAcmeAuthorization.acme_challenge_http01.token,
+                self.accountkey_thumbprint,
+            )
+            if (
+                dbAcmeAuthorization.acme_challenge_http01.keyauthorization
+                != keyauthorization
+            ):
+                raise ValueError("This should never happen!")
+
+            # update the db; this should be integrated with the above
+            wellknown_path = handle_challenge_setup(
+                dbAcmeAuthorization.domain.domain_name,
+                dbAcmeAuthorization.acme_challenge_http01.token,
+                dbAcmeAuthorization.acme_challenge_http01.keyauthorization,
+                transaction_commit=True,
+            )
+            wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
+                dbAcmeAuthorization.domain.domain_name,
+                dbAcmeAuthorization.acme_challenge_http01.token,
+            )
+
+            # check that the file is in place
+            try:
+                if TESTING_ENVIRONMENT:
+                    log.debug(
+                        "TESTING_ENVIRONMENT, not ensuring the challenge is readable"
+                    )
+                else:
+                    try:
+                        resp = urlopen(wellknown_url)
+                        resp_data = resp.read().decode("utf8").strip()
+                        assert resp_data == keyauthorization
+                    except (IOError, AssertionError):
+                        handle_challenge_cleanup(
+                            dbAcmeAuthorization.domain.domain_name,
+                            dbAcmeAuthorization.acme_challenge_http01.token,
+                            keyauthorization,
+                            transaction_commit=True,
+                        )
+                        self.acmeLogger.log_challenge_error(
+                            "v2",
+                            dbAcmeAuthorization.acme_challenge_http01,
+                            "pretest-1",
+                            transaction_commit=True,
+                        )
+                        raise errors.DomainVerificationError(
+                            "Wrote keyauth challenge, but couldn't download {0}".format(
+                                wellknown_url
+                            )
+                        )
+                    except ssl.CertificateError as exc:
+                        self.acmeLogger.log_challenge_error(
+                            "v2",
+                            dbAcmeAuthorization.acme_challenge_http01,
+                            "pretest-2",
+                            transaction_commit=True,
+                        )
+                        if str(exc).startswith("hostname") and (
+                            "doesn't match" in str(exc)
+                        ):
+                            raise errors.DomainVerificationError(
+                                "Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(
+                                    wellknown_url, str(exc)
+                                )
+                            )
+                        raise
+            except (AssertionError, ValueError) as e:
+                raise ValueError(
+                    "Wrote file to {0}, but couldn't download {1}: {2}".format(
+                        wellknown_path, wellknown_url, e
+                    )
+                )
+
+            # note that we are about to trigger the challenge:
+            self.acmeLogger.log_challenge_trigger(
+                "v2",
+                dbAcmeAuthorization.acme_challenge_http01,
+                transaction_commit=True,
+            )
+
+            # if we had a 'valid' challenge, the payload would be `None`
+            # to invoke a GET-as-POST functionality and load the challenge resource
+            # POSTing an empty `dict` will trigger the challenge
+            (challenge_response, _, _) = self._send_signed_request(
+                dbAcmeAuthorization.acme_challenge_http01.challenge_url, payload={},
+            )
+
+            # todo - would an accepted challenge require this?
+            log.info(
+                "checking domain {0}".format(dbAcmeAuthorization.domain.domain_name)
+            )
+            authorization_response = self._poll_until_not(
+                authorization_url,
+                ["pending"],
+                "checking challenge status for {0}".format(
+                    dbAcmeAuthorization.domain.domain_name
+                ),
+            )
+            if authorization_response["status"] == "valid":
+                log.info(
+                    "acme_v2 {0} verified!".format(
+                        dbAcmeAuthorization.domain.domain_name
+                    )
+                )
+                handle_challenge_cleanup(
+                    dbAcmeAuthorization.domain.domain_name,
+                    dbAcmeAuthorization.acme_challenge_http01.token,
+                    dbAcmeAuthorization.acme_challenge_http01.keyauthorization,
+                    transaction_commit=True,
+                )
+
+                # log this
+                self.acmeLogger.log_challenge_pass(
+                    "v2",
+                    dbAcmeAuthorization.acme_challenge_http01,
+                    transaction_commit=True,
+                )
+                
+                # TODO: update the authorization?
+                return True   
+
+            elif authorization_response["status"] != "valid":
+
+                self.acmeLogger.log_challenge_error(
+                    "v2",
+                    dbAcmeAuthorization.acme_challenge_http01,
+                    "fail-2",
+                    transaction_commit=True,
+                )
+                raise errors.AcmeAuthorizationFailure(
+                    "{0} challenge did not pass: {1}".format(
+                        dbAcmeAuthorization.domain.domain_name,
+                        authorization_response,
+                    )
+                )
+
+
+    def acme_authorization_load(
+        self, ctx, dbAcmeAuthorization, transaction_commit=None
+    ):
+        """
+        This loads the authorization object and pulls the payload
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
+        """
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if not dbAcmeAuthorization.authorization_url:
+            raise ValueError("the order does not have a `resource_url`")
+
+        try:
+            (authorization_response, _, authorization_headers) = self._send_signed_request(
+                dbAcmeAuthorization.authorization_url, None
+            )
+        except errors.AcmeServer404 as exc:
+            authorization_response = {'status': '*404*'}
+
+        # log the event
+        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
+            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+        )  # log this to the db
+
+        return (authorization_response, dbAcmeEventLog_authorization_fetch)
+
+    def acme_authorization_deactivate(
+        self, ctx, dbAcmeAuthorization, transaction_commit=None
+    ):
+        """
+        This loads the authorization object and pulls the payload
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
+
+        https://tools.ietf.org/html/rfc8555#section-7.5.2
+
+            7.5.2.  Deactivating an Authorization
+
+               If a client wishes to relinquish its authorization to issue
+               certificates for an identifier, then it may request that the server
+               deactivate each authorization associated with it by sending POST
+               requests with the static object {"status": "deactivated"} to each
+               authorization URL.
+
+        """
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if not dbAcmeAuthorization.authorization_url:
+            raise ValueError("the order does not have a `resource_url`")
+
+        try:
+            (authorization_response, _, authorization_headers) = self._send_signed_request(
+                dbAcmeAuthorization.authorization_url, {"status": "deactivated"}
+            )
+        except errors.AcmeServer404 as exc:
+            authorization_response = {'status': '*404*'}
+            
+        # log the event
+        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_deactivate(
+            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+        )  # log this to the db
+
+        return (authorization_response, dbAcmeEventLog_authorization_fetch)
+        
+    def acme_challenge_load(self, ctx, dbAcmeChallenge, transaction_commit=None):
+        """
+        This loads the authorization object and pulls the payload
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
+        """
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if not dbAcmeChallenge.challenge_url:
+            raise ValueError("the challenge does not have a `challenge_url`")
+
+        try:
+            (challenge_response, _, challenge_headers) = self._send_signed_request(
+                dbAcmeChallenge.challenge_url, None
+            )
+        except errors.AcmeServer404 as exc:
+            challenge_response = {'status': '*404*'}
+
+        # log the event
+        dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(
+            "v2", dbAcmeChallenge=dbAcmeChallenge, transaction_commit=True,
+        )  # log this to the db
+
+        return (challenge_response, dbAcmeEventLog_challenge_fetch)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

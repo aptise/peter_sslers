@@ -21,7 +21,16 @@ class OpenSslError_InvalidCertificate(OpenSslError):
 class AcmeServer404(Exception):
     pass
 
+
 class AcmeCommunicationError(Exception):
+    pass
+
+
+class AcmeAuthorizationFailure(Exception):
+    pass
+
+
+class AcmeChallengeFailure(Exception):
     pass
 
 

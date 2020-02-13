@@ -348,7 +348,7 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
 
 
 def _AcmeV2_handle_order(
-    ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject, is_retry=None
+    ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject
 ):
     """
     Consolidated AcmeOrder routine
@@ -357,7 +357,6 @@ def _AcmeV2_handle_order(
     :param authenticatedUser: (required) a :class:`lib.acme_v2.AuthenticatedUser` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     :param acmeOrderObject: (required) a :class:`lib.acme_v2.AcmeOrder` instance
-    :param is_retry: (optional) If this is a retry, we may behave differently
 
     -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
 
@@ -399,21 +398,25 @@ def _AcmeV2_handle_order(
 
     _todo_finalize_order = None
     _order_status = acmeOrderObject.rfc_object["status"]
-    if _order_status == "pending" or (is_retry and _order_status == "invalid"):
+    if _order_status == "pending":
         # if we are retrying an order, we can try to handle it
-        _handled = authenticatedUser.acme_handle_order_authorizations(
-            ctx,
-            acmeOrder=acmeOrderObject,
-            dbAcmeOrder=dbAcmeOrder,
-            handle_authorization_payload=handle_authorization_payload,
-            handle_challenge_setup=handle_challenge_setup,
-            handle_challenge_cleanup=handle_challenge_cleanup,
-            transaction_commit=True,
-            is_retry=is_retry,
-        )
-        if not _handled:
-            raise ValueError("Order Authorizations failed")
-        _todo_finalize_order = True
+        try:
+            _handled = authenticatedUser.acme_order_process_authorizations(
+                ctx,
+                acmeOrder=acmeOrderObject,
+                dbAcmeOrder=dbAcmeOrder,
+                handle_authorization_payload=handle_authorization_payload,
+                handle_challenge_setup=handle_challenge_setup,
+                handle_challenge_cleanup=handle_challenge_cleanup,
+                transaction_commit=True,
+            )
+            if not _handled:
+                raise ValueError("Order Authorizations failed")
+            _todo_finalize_order = True
+        except errors.AcmeAuthorizationFailure as exc:
+            # todo - mark this order as failed
+            pass
+            pdb.set_trace()
     else:
         if _order_status == "invalid":
             # order abandoned
@@ -903,7 +906,7 @@ def _do__AcmeOrder__AcmeV2__core(
         )
         if _todo_finalize_order:
             # sign and download
-            fullchain_pem = authenticatedUser.acme_finalize_order(
+            fullchain_pem = authenticatedUser.acme_order_finalize(
                 ctx,
                 acmeOrder=acmeOrderObject,
                 dbAcmeOrder=dbAcmeOrder,
