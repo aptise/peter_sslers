@@ -302,7 +302,7 @@ def _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject):
                 acmeOrderObject.rfc_object["status"],
                 transaction_commit=True,
             )
-            raise
+            return False
     else:
         if _order_status == "invalid":
             # order abandoned
@@ -867,8 +867,7 @@ def _do__AcmeOrder__AcmeV2__core(
                 transaction_commit=True,
             )
         else:
-            pdb.set_trace()
-            raise ValueError("wtf am i supposed to do")
+            raise errors.AcmeError('AcmeOrder can not be finalized')
 
         # ######################################################################
         # ######################################################################

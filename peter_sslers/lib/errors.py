@@ -18,23 +18,27 @@ class OpenSslError_InvalidCertificate(OpenSslError):
     pass
 
 
-class AcmeServer404(Exception):
+class AcmeError(Exception):
     pass
 
 
-class AcmeCommunicationError(Exception):
+class AcmeServer404(AcmeError):
     pass
 
 
-class AcmeAuthorizationFailure(Exception):
+class AcmeCommunicationError(AcmeError):
     pass
 
 
-class AcmeChallengeFailure(Exception):
+class AcmeAuthorizationFailure(AcmeError):
     pass
 
 
-class InvalidRequest(Exception):
+class AcmeOrderError(AcmeError):
+    pass
+
+
+class AcmeChallengeFailure(AcmeError):
     pass
 
 
@@ -43,6 +47,10 @@ class DomainVerificationError(Exception):
 
 
 class DisplayableError(Exception):
+    pass
+
+
+class InvalidRequest(Exception):
     pass
 
 

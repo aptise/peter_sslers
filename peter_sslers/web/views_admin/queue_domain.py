@@ -193,7 +193,7 @@ class ViewAdmin_New(Handler):
                 "%s/queue-domains?processed=1"
                 % self.request.registry.settings["admin_prefix"]
             )
-        except (errors.DisplayableError, errors.DomainVerificationError) as exc:
+        except (errors.AcmeError, errors.DisplayableError, errors.DomainVerificationError) as exc:
             # return, don't raise
             # we still commit the bookkeeping
             if wants_json:

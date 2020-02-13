@@ -383,8 +383,9 @@ class CertificateRequestSource(_mixin_mapping):
     RECORDED = 1
     ACME_FLOW = 2
     ACME_AUTOMATED = 3
+    QUEUED_DOMAIN = 4
 
-    _mapping = {1: "RECORDED", 2: "ACME_FLOW", 3: "ACME_AUTOMATED"}
+    _mapping = {1: "RECORDED", 2: "ACME_FLOW", 3: "ACME_AUTOMATED", 4: "QUEUED_DOMAIN"}
 
 
 class _mixin_OperationsEventType(object):

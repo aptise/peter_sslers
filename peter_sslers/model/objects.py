@@ -1051,6 +1051,13 @@ class Domain(Base):
         back_populates="domain",
     )
 
+    queue_domain = sa.orm.relationship(
+        "QueueDomain",
+        primaryjoin="Domain.id==QueueDomain.domain_id",
+        uselist=False,
+        back_populates="domain",
+    )
+
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="Domain.id==OperationsObjectEvent.domain_id",
@@ -1214,6 +1221,191 @@ class PrivateKey(Base):
         }
 
 
+
+class QueueDomain(Base):
+    """
+    A list of domains to be queued into certificates.
+    This is only used for batch processing consumer domains
+    Domains that are included in CertificateRequests or Certificates
+    The DomainQueue will allow you to queue-up domain names for management
+    """
+    __tablename__ = "queue_domain"
+    id = sa.Column(sa.Integer, primary_key=True)
+    domain_name = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_entered = sa.Column(sa.DateTime, nullable=False)
+    timestamp_processed = sa.Column(sa.DateTime, nullable=True)
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    domain = sa.orm.relationship(
+        "Domain",
+        primaryjoin="QueueDomain.domain_id==Domain.id",
+        uselist=False,
+        back_populates="queue_domain",
+    )
+
+    operations_event__created = sa.orm.relationship(
+        "OperationsEvent",
+        primaryjoin="QueueDomain.operations_event_id__created==OperationsEvent.id",
+        uselist=False,
+    )
+
+    operations_object_events = sa.orm.relationship(
+        "OperationsObjectEvent",
+        primaryjoin="QueueDomain.id==OperationsObjectEvent.queue_domain_id",
+        back_populates="queue_domain",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def timestamp_entered_isoformat(self):
+        if self.timestamp_entered:
+            return self.timestamp_entered.isoformat()
+        return None
+
+    @property
+    def timestamp_processed_isoformat(self):
+        if self.timestamp_processed:
+            return self.timestamp_processed.isoformat()
+        return None
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "domain_name": self.domain_name,
+            "timestamp_entered": self.timestamp_entered_isoformat,
+            "timestamp_processed": self.timestamp_processed_isoformat,
+            "domain_id": self.domain_id,
+            "is_active": True if self.is_active else False,
+        }
+
+
+class QueueRenewal(Base):
+    """
+    An item to be renewed.
+    If something is expired, it will be placed here for renewal
+    """
+
+    __tablename__ = "queue_renewal"
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_entered = sa.Column(sa.DateTime, nullable=False)
+    timestamp_processed = sa.Column(sa.DateTime, nullable=True)
+    timestamp_process_attempt = sa.Column(
+        sa.DateTime, nullable=True
+    )  # if not-null then an attempt was made on this item
+    process_result = sa.Column(sa.Boolean, nullable=True, default=None)
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )  # could be null if we're renewing a fqdnset
+    unique_fqdn_set_id = sa.Column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
+    )
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+    server_certificate_id__renewed = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    operations_event__created = sa.orm.relationship(
+        "OperationsEvent",
+        primaryjoin="QueueRenewal.operations_event_id__created==OperationsEvent.id",
+        uselist=False,
+    )
+
+    operations_object_events = sa.orm.relationship(
+        "OperationsObjectEvent",
+        primaryjoin="QueueRenewal.id==OperationsObjectEvent.queue_renewal_id",
+        back_populates="queue_renewal",
+    )
+
+    server_certificate = sa.orm.relationship(
+        "ServerCertificate",
+        primaryjoin="QueueRenewal.server_certificate_id==ServerCertificate.id",
+        uselist=False,
+    )
+
+    server_certificate__renewed = sa.orm.relationship(
+        "ServerCertificate",
+        primaryjoin="QueueRenewal.server_certificate_id__renewed==ServerCertificate.id",
+        uselist=False,
+    )
+
+    unique_fqdn_set = sa.orm.relationship(
+        "UniqueFQDNSet",
+        primaryjoin="QueueRenewal.unique_fqdn_set_id==UniqueFQDNSet.id",
+        uselist=False,
+        back_populates="queue_renewals",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def renewal_AccountKey(self):
+        "returns a valid AccountKey or NONE"
+        if self.server_certificate:
+            if self.server_certificate.acme_account_key_id:
+                if self.server_certificate.acme_account_key.is_active:
+                    return self.server_certificate.acme_account_key
+        return None
+
+    @property
+    def renewal_PrivateKey(self):
+        "returns a valid Private or NONE"
+        if self.server_certificate:
+            if self.server_certificate.private_key_id:
+                if self.server_certificate.private_key.is_active:
+                    return self.server_certificate.private_key
+        return None
+
+    @property
+    def domains_as_list(self):
+        return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def timestamp_entered_isoformat(self):
+        if self.timestamp_entered:
+            return self.timestamp_entered.isoformat()
+        return None
+
+    @property
+    def timestamp_processed_isoformat(self):
+        if self.timestamp_processed:
+            return self.timestamp_processed.isoformat()
+        return None
+
+    @property
+    def timestamp_process_attempt_isoformat(self):
+        if self.timestamp_process_attempt:
+            return self.timestamp_process_attempt.isoformat()
+        return None
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "server_certificate_id": self.server_certificate_id,
+            "process_result": self.process_result,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
+            "timestamp_entered": self.timestamp_entered_isoformat,
+            "timestamp_processed": self.timestamp_processed_isoformat,
+            "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
+            "is_active": True if self.is_active else False,
+            "server_certificate_id__renewed": self.server_certificate_id__renewed,
+        }
+
+
+
 class ServerCertificate(Base):
     """
     A signed Server Certificate.
@@ -1332,17 +1524,16 @@ class ServerCertificate(Base):
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="ServerCertificate.private_key_id==PrivateKey.id",
-        back_populates="server_certificates",
         uselist=False,
+        back_populates="server_certificates",
     )
 
-    # TODO: queue
-    if False:
-        queue_renewal = sa_orm_relationship(
-            "QueueRenewal",
-            primaryjoin="ServerCertificate.id==QueueRenewal.server_certificate_id",
-            back_populates="server_certificate",
-        )
+    queue_renewal = sa_orm_relationship(
+        "QueueRenewal",
+        primaryjoin="ServerCertificate.id==QueueRenewal.server_certificate_id",
+        uselist=False,
+        back_populates="server_certificate",
+    )
 
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
@@ -1532,19 +1723,17 @@ class UniqueFQDNSet(Base):
         back_populates="unique_fqdn_set",
     )
 
-    # TODO: queue
-    if False:
-        queue_renewal = sa_orm_relationship(
-            "QueueRenewal",
-            primaryjoin="UniqueFQDNSet.id==QueueRenewal.unique_fqdn_set_id",
-            back_populates="unique_fqdn_set",
-        )
+    queue_renewals = sa_orm_relationship(
+        "QueueRenewal",
+        primaryjoin="UniqueFQDNSet.id==QueueRenewal.unique_fqdn_set_id",
+        back_populates="unique_fqdn_set",
+    )
 
-        queue_renewal__active = sa_orm_relationship(
-            "QueueRenewal",
-            primaryjoin="and_(UniqueFQDNSet.id==QueueRenewal.unique_fqdn_set_id, QueueRenewal.is_active==True)",
-            back_populates="unique_fqdn_set",
-        )
+    queue_renewals__active = sa_orm_relationship(
+        "QueueRenewal",
+        primaryjoin="and_(UniqueFQDNSet.id==QueueRenewal.unique_fqdn_set_id, QueueRenewal.is_active==True)",
+        back_populates="unique_fqdn_set",
+    )
 
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
@@ -1702,14 +1891,12 @@ class OperationsObjectEvent(Base):
     private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
-    if False:
-        # TODO: Queue
-        queue_domain_id = sa.Column(
-            sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
-        )
-        queue_renewal_id = sa.Column(
-            sa.Integer, sa.ForeignKey("queue_renewal.id"), nullable=True
-        )
+    queue_domain_id = sa.Column(
+        sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
+    )
+    queue_renewal_id = sa.Column(
+        sa.Integer, sa.ForeignKey("queue_renewal.id"), nullable=True
+    )
     server_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
@@ -1717,13 +1904,6 @@ class OperationsObjectEvent(Base):
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
     )
 
-    # TODO: Queue
-    """
-        CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-    """
     check1 = sa.CheckConstraint(
         """(
         CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END
@@ -1735,6 +1915,10 @@ class OperationsObjectEvent(Base):
         CASE WHEN acme_account_key_id IS NOT NULL THEN 1 ELSE 0 END
         +
         CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END
+        +
+        CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END
+        +
+        CASE WHEN queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END
         +
         CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END
         +
@@ -1785,20 +1969,19 @@ class OperationsObjectEvent(Base):
         back_populates="operations_object_events",
     )
 
-    if False:
-        # TODO: Queue
-        queue_domain = sa_orm_relationship(
-            "QueueDomain",
-            primaryjoin="OperationsObjectEvent.queue_domain_id==QueueDomain.id",
-            uselist=False,
-            back_populates="operations_object_events",
-        )
-        queue_renewal = sa_orm_relationship(
-            "QueueRenewal",
-            primaryjoin="OperationsObjectEvent.queue_renewal_id==QueueRenewal.id",
-            uselist=False,
-            back_populates="operations_object_events",
-        )
+    queue_domain = sa_orm_relationship(
+        "QueueDomain",
+        primaryjoin="OperationsObjectEvent.queue_domain_id==QueueDomain.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    queue_renewal = sa_orm_relationship(
+        "QueueRenewal",
+        primaryjoin="OperationsObjectEvent.queue_renewal_id==QueueRenewal.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
 
     server_certificate = sa_orm_relationship(
         "ServerCertificate",

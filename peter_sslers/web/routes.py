@@ -205,10 +205,6 @@ def _admin_views(config):
     config.add_route_7("admin:acme_orders_paginated", "/acme-orders/{@page}")
     config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
     config.add_route_7(
-        "admin:acme_order:focus:acme_authorizations",
-        "/acme-order/{@id}/acme-authorizations",
-    )
-    config.add_route_7(
         "admin:acme_order:focus:acme_server_sync", "/acme-order/{@id}/acme-server-sync"
     )
     config.add_route_7(

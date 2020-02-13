@@ -219,13 +219,7 @@
                     <tr>
                         <th>ACME Authorizations</th>
                         <td>
-                            <a
-                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-authorizations"
-                                class="label label-info"
-                            >
-                                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                                Related AcmeAuthorizations
-                            </a>
+                            ${admin_partials.table_AcmeAuthorizations(AcmeOrder, perspective='AcmeOrder.to_acme_authorizations')}
                         </td>
                     </tr>
                 </tbody>
