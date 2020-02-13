@@ -284,8 +284,9 @@ class ViewAdmin_New(Handler):
                 )
             except (
                 errors.AcmeCommunicationError,
-                errors.DomainVerificationError,
+                errors.DomainVerificationError,  # the order may be wedged?
                 errors.InvalidRequest,
+                errors.AcmeAuthorizationFailure,  # the order is dead
             ) as exc:
                 return HTTPSeeOther(
                     "%s/acme-orders?error=new-automated&message=%s"

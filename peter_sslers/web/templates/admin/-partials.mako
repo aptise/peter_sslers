@@ -33,7 +33,7 @@
             cols = [c for c in cols]
         elif perspective == 'AcmeOrder.to_acme_authorizations':
             cols = [c for c in cols if c != 'acme_order_id__created']
-            data = [d for d in data.to_acme_authorizations]
+            data = [d.acme_authorization for d in data.to_acme_authorizations]
         elif perspective == 'AcmeAuthorizations':
             cols = [c for c in cols]
         elif perspective == 'Domain':

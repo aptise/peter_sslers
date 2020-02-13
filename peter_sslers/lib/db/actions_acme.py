@@ -275,15 +275,29 @@ def _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject):
                 handle_authorization_payload=handle_authorization_payload,
                 handle_challenge_setup=handle_challenge_setup,
                 handle_challenge_cleanup=handle_challenge_cleanup,
+                update_AcmeAuthorization_status=update_AcmeAuthorization_status,
+                update_AcmeChallenge_status=update_AcmeChallenge_status,
                 transaction_commit=True,
             )
             if not _handled:
                 raise ValueError("Order Authorizations failed")
             _todo_finalize_order = True
         except errors.AcmeAuthorizationFailure as exc:
-            # todo - mark this order as failed
-            pass
-            pdb.set_trace()
+            # this order is essentially failed
+            (
+                acmeOrderObject,
+                dbAcmeOrderEventLogged,
+            ) = authenticatedUser.acme_order_load(
+                ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+            )
+            _status = acmeOrderObject.rfc_object["status"]
+            update_AcmeOrder_status(
+                ctx,
+                dbAcmeOrder,
+                acmeOrderObject.rfc_object["status"],
+                transaction_commit=True,
+            )
+            raise
     else:
         if _order_status == "invalid":
             # order abandoned
@@ -559,12 +573,21 @@ def do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
         )
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
+        # first, load the order
+        try:
+            (
+                acmeOrderObject,
+                dbAcmeOrderEventLogged,
+            ) = authenticatedUser.acme_order_load(
+                ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+            )
+        except errors.AcmeServer404 as exc:
+            update_AcmeOrder_status(ctx, dbAcmeOrder, "*404*", transaction_commit=True)
+
+        pdb.set_trace()
+
         # ok, kill this!
         raise ValueError("todo")
-
-        (acmeOrderObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_load(
-            ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
-        )
 
         # TODO: raise an exception if we don't have an acmeOrder
         # TODO: update the authorizations/challenges from the order
@@ -783,6 +806,7 @@ def _do__AcmeOrder__AcmeV2__core(
             )
         else:
             pdb.set_trace()
+            raise ValueError("wtf am i supposed to do")
 
         # ######################################################################
         # ######################################################################
