@@ -92,6 +92,8 @@ def update_AcmeAuthorization_status(
         dbAcmeAuthorization.timestamp_updated = datetime.datetime.utcnow()
         if transaction_commit:
             ctx.pyramid_transaction_commit()
+        return True
+    return False
 
 
 def update_AcmeChallenge_status(
@@ -112,6 +114,8 @@ def update_AcmeChallenge_status(
         dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
         if transaction_commit:
             ctx.pyramid_transaction_commit()
+        return True
+    return False
 
 
 def update_AcmeOrder_status(ctx, dbAcmeOrder, status_text, transaction_commit=None):
@@ -130,6 +134,8 @@ def update_AcmeOrder_status(ctx, dbAcmeOrder, status_text, transaction_commit=No
         dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
         if transaction_commit:
             ctx.pyramid_transaction_commit()
+        return True
+    return False
 
 
 def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
@@ -290,7 +296,6 @@ def _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject):
             ) = authenticatedUser.acme_order_load(
                 ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
             )
-            _status = acmeOrderObject.rfc_object["status"]
             update_AcmeOrder_status(
                 ctx,
                 dbAcmeOrder,
@@ -354,23 +359,26 @@ def do__AcmeAuthorization_AcmeV2__acme_server_deactivate(
         authenticatedUser.acmeLogger.register_dbAcmeOrder(
             dbAcmeOrder
         )  # required for logging
-        (
-            authorization_response,
-            dbAcmeEventLog_authorization_fetch,
-        ) = authenticatedUser.acme_authorization_deactivate(
-            ctx, dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
-        )
-
-        # todo: update the other fields and challenges from this authorization
-
-        # update the AcmeAuthorization if it's not the same on the database
-        _server_status = authorization_response["status"]
-        if _server_status != dbAcmeAuthorization.status_text:
-            update_AcmeAuthorization_status(
-                ctx, dbAcmeAuthorization, _server_status, transaction_commit=True
+        try:
+            (
+                authorization_response,
+                dbAcmeEventLog_authorization_fetch,
+            ) = authenticatedUser.acme_authorization_deactivate(
+                ctx, dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
             )
+            _result = update_AcmeAuthorization_status(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response["status"],
+                transaction_commit=True,
+            )
+            # todo: update the other fields and challenges from this authorization
             return True
-        return None
+        except errors.AcmeServer404 as exc:
+            update_AcmeAuthorization_status(
+                ctx, dbAcmeAuthorization, "*404*", transaction_commit=True
+            )
+            return False
 
     finally:
         # cleanup tmpfiles
@@ -413,23 +421,26 @@ def do__AcmeAuthorization_AcmeV2__acme_server_sync(
         authenticatedUser.acmeLogger.register_dbAcmeOrder(
             dbAcmeOrder
         )  # required for logging
-        (
-            authorization_response,
-            dbAcmeEventLog_authorization_fetch,
-        ) = authenticatedUser.acme_authorization_load(
-            ctx, dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
-        )
-
-        # todo: update the other fields and challenges from this authorization
-
-        # update the AcmeAuthorization if it's not the same on the database
-        _server_status = authorization_response["status"]
-        if _server_status != dbAcmeAuthorization.status_text:
-            update_AcmeAuthorization_status(
-                ctx, dbAcmeAuthorization, _server_status, transaction_commit=True
+        try:
+            (
+                authorization_response,
+                dbAcmeEventLog_authorization_fetch,
+            ) = authenticatedUser.acme_authorization_load(
+                ctx, dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
             )
+            _result = update_AcmeAuthorization_status(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response["status"],
+                transaction_commit=True,
+            )
+            # todo: update the other fields and challenges from this authorization
             return True
-        return None
+        except errors.AcmeServer404 as exc:
+            update_AcmeAuthorization_status(
+                ctx, dbAcmeAuthorization, "*404*", transaction_commit=True
+            )
+            return False
 
     finally:
         # cleanup tmpfiles
@@ -476,12 +487,17 @@ def do__AcmeChallenge_AcmeV2__acme_server_sync(
         authenticatedUser.acmeLogger.register_dbAcmeOrder(
             dbAcmeOrder
         )  # required for logging
-        (
-            challenge_response,
-            dbAcmeEventLog_challenge_fetch,
-        ) = authenticatedUser.acme_challenge_load(
-            ctx, dbAcmeChallenge=dbAcmeChallenge, transaction_commit=True,
-        )
+        try:
+            (
+                challenge_response,
+                dbAcmeEventLog_challenge_fetch,
+            ) = authenticatedUser.acme_challenge_load(
+                ctx, dbAcmeChallenge=dbAcmeChallenge, transaction_commit=True,
+            )
+        except errors.AcmeServer404 as exc:
+            update_AcmeChallenge_status(
+                ctx, dbAcmeChallenge, "*404*", transaction_commit=True
+            )
 
         # todo: update the other fields from this challenge
         # todo: log the payload and error
@@ -525,12 +541,24 @@ def do__AcmeOrder_AcmeV2__acme_server_sync(
             ctx, dbAcmeOrder.acme_account_key, account_key_path=account_key_path,
         )
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
-        (acmeOrderObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_load(
-            ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
-        )
+        is_order_404 = None
+        try:
+            (
+                acmeOrderObject,
+                dbAcmeOrderEventLogged,
+            ) = authenticatedUser.acme_order_load(
+                ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+            )
+            is_order_404 = False
+        except errors.AcmeServer404 as exc:
+            is_order_404 = True
+            update_AcmeOrder_status(ctx, dbAcmeOrder, "*404*", transaction_commit=True)
+            return True
 
-        # TODO: raise an exception if we don't have an acmeOrder
-        # TODO: update the authorizations/challenges from the order
+        if is_order_404:
+            # TODO: raise an exception if we don't have an acmeOrder
+            # TODO: update the authorizations/challenges from the order
+            pass
 
         # update the AcmeOrder if it's not the same on the database
         _server_status = acmeOrderObject.rfc_object["status"]
@@ -574,6 +602,8 @@ def do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
         # first, load the order
+        acmeOrderObject = None
+        is_order_404 = None
         try:
             (
                 acmeOrderObject,
@@ -581,24 +611,56 @@ def do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
             ) = authenticatedUser.acme_order_load(
                 ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
             )
+            is_order_404 = False
+            print("which authorizations are okay to kill?")
+            pdb.set_trace()
         except errors.AcmeServer404 as exc:
+            is_order_404 = True
             update_AcmeOrder_status(ctx, dbAcmeOrder, "*404*", transaction_commit=True)
 
-        pdb.set_trace()
-
-        # ok, kill this!
-        raise ValueError("todo")
+        is_auth_404 = None
+        for dbAcmeAuthorization in dbAcmeOrder.authorizations_can_deactivate:
+            is_auth_404 = None
+            try:
+                (
+                    authorization_response,
+                    dbAcmeEventLog_authorization_fetch,
+                ) = authenticatedUser.acme_authorization_deactivate(
+                    ctx,
+                    dbAcmeAuthorization=dbAcmeAuthorization,
+                    transaction_commit=True,
+                )
+                is_auth_404 = False
+            except errors.AcmeServer404 as exc:
+                is_auth_404 = True
+                authorization_response = {"status": "*404*"}
+            update_AcmeAuthorization_status(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response["status"],
+                transaction_commit=True,
+            )
 
         # TODO: raise an exception if we don't have an acmeOrder
         # TODO: update the authorizations/challenges from the order
 
         # update the AcmeOrder if it's not the same on the database
-        _server_status = acmeOrderObject.rfc_object["status"]
-        if dbAcmeOrder.status_text != _server_status:
-            update_AcmeOrder_status(
-                ctx, dbAcmeOrder, _server_status, transaction_commit=True
-            )
-            return True
+        if not is_order_404:
+            try:
+                (
+                    acmeOrderObject,
+                    dbAcmeOrderEventLogged,
+                ) = authenticatedUser.acme_order_load(
+                    ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
+                )
+                _server_status = acmeOrderObject.rfc_object["status"]
+                if dbAcmeOrder.status_text != _server_status:
+                    update_AcmeOrder_status(
+                        ctx, dbAcmeOrder, _server_status, transaction_commit=True
+                    )
+                    return True
+            except:
+                raise
 
         return False
 

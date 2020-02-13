@@ -608,7 +608,7 @@ class AcmeOrder(Base):
 
     @property
     def is_can_acme_server_sync(self):
-        # TODO: is there a better test?
+        # note: is there a better test?
         if not self.resource_url:
             return False
         if self.status_text in model_utils.Acme_Status_Order.OPTIONS_X_ACME_SYNC:
@@ -617,22 +617,22 @@ class AcmeOrder(Base):
 
     @property
     def is_can_acme_server_deactivate_authorizations(self):
-        # TODO: is there a better test?
+        # note: is there a better test?
         if not self.resource_url:
-            print("no url")
             return False
         if (
             self.status_text
             in model_utils.Acme_Status_Order.OPTIONS_X_DEACTIVATE_AUTHORIZATIONS
         ):
-            print("bad status text")
             return False
 
         # now loop the authorizations...
         auths_deactivate = self.authorizations_can_deactivate
         if not auths_deactivate:
-            print("no auths_deactivate")
             return False
+        print("=======================")
+        print(auths_deactivate)
+        print("=======================")
 
         return True
 

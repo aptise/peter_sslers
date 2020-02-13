@@ -317,7 +317,10 @@ class Acme_Status_Order(_mixin_mapping):
         "invalid",
         "valid",
     )
-    OPTIONS_X_DEACTIVATE_AUTHORIZATIONS = ("valid",)
+    OPTIONS_X_DEACTIVATE_AUTHORIZATIONS = (
+        "valid",
+        "*404*",
+    )
 
     _mapping = {
         0: "*discovered*",  # not an ACME status, but our internal marker
