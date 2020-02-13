@@ -279,6 +279,7 @@ class Acme_Status_Authorization(_mixin_mapping):
     """The status of an authorization"""
 
     DEFAULT_ID = 0
+    OPTIONS_DEACTIVATE = ("pending", "valid", "*discovered*")
 
     _mapping = {
         0: "*discovered*",  # not an ACME status, but our internal marker
@@ -288,6 +289,7 @@ class Acme_Status_Authorization(_mixin_mapping):
         4: "deactivated",
         5: "expired",
         6: "revoked",
+        404: "*404*",  # not found on server
     }
 
 
@@ -302,6 +304,7 @@ class Acme_Status_Challenge(_mixin_mapping):
         2: "processing",
         3: "valid",
         4: "invalid",
+        404: "*404*",  # not found on server
     }
 
 
@@ -309,6 +312,9 @@ class Acme_Status_Order(_mixin_mapping):
     """The status of an order"""
 
     DEFAULT_ID = 0
+    OPTIONS_X_ACME_SYNC = ("valid", )
+    OPTIONS_X_MARK_INVALID = ("invalid", "valid", )
+    OPTIONS_X_DEACTIVATE_AUTHORIZATIONS = ("valid", )
 
     _mapping = {
         0: "*discovered*",  # not an ACME status, but our internal marker
@@ -317,6 +323,7 @@ class Acme_Status_Order(_mixin_mapping):
         3: "processing",
         4: "valid",
         5: "invalid",
+        404: "*404*",  # not found on server
     }
 
 
@@ -355,6 +362,7 @@ class AcmeEvent(_mixin_mapping):
         11: "v2|-challenge-fail",
         12: "v2|Certificate-procured",  # we downloaded and enrolled the certificate
         13: "v2|-challenge-PostAsGet",
+        14: "v2|-authorization-deactivate",
     }
 
 

@@ -247,7 +247,7 @@ class ViewAdmin_Focus(Handler):
         )
         dbDomain = self._focus(eagerload_web=True)
         if not self.request.registry.settings["enable_nginx"]:
-            raise HTTPSeeOther("%s?error=no_nginx" % self._focus_url)
+            raise HTTPSeeOther("%s?error=no+nginx" % self._focus_url)
         success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=[dbDomain]
         )

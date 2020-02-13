@@ -35,6 +35,15 @@
                 Sync AcmeAuthorization Against ACME Server
             </a>
         % endif
+        % if AcmeAuthorization.is_can_acme_server_deactivate:
+            <a
+                href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-deactivate"
+                class="btn btn-xs btn-info"
+            >
+                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                Deactivate Against ACME Server
+            </a>
+        % endif
     </p>   
 
     <div class="row">
@@ -103,7 +112,7 @@
                         <th>acme_challenge_http01</th>
                         <td>
                             % if AcmeAuthorization.acme_challenge_http01:
-                                <a class="label label-info" href="${admin_prefix}/acme-challenge/${AcmeAuthorization.acme_challenge_http01}">
+                                <a class="label label-info" href="${admin_prefix}/acme-challenge/${AcmeAuthorization.acme_challenge_http01.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeChallenge-${AcmeAuthorization.acme_challenge_http01.id}</a>
                             % endif

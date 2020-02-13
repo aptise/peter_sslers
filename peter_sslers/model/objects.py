@@ -306,6 +306,17 @@ class AcmeAuthorization(Base):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def is_can_acme_server_deactivate(self):
+        # TODO: is there another way to test this?
+        if not self.authorization_url:
+            return False
+        if not self.acme_order_id__created:
+            return False
+        if self.status_text not in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE:
+            return False
+        return True
+
+    @property
     def is_can_acme_server_sync(self):
         # TODO: is there another way to test this?
         if not self.authorization_url:
@@ -573,6 +584,14 @@ class AcmeOrder(Base):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def authorizations_can_deactivate(self):
+        authorizations = []
+        for _to_auth in self.to_acme_authorizations:
+            if _to_auth.acme_authorization.status_text in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE:
+                authorizations.append(_to_auth.acme_authorization)
+        return authorizations
+
+    @property
     def domains_as_list(self):
         domain_names = [
             to_d.domain.domain_name.lower() for to_d in self.unique_fqdn_set.to_domains
@@ -586,16 +605,31 @@ class AcmeOrder(Base):
         # TODO: is there a better test?
         if not self.resource_url:
             return False
-        if self.status_text == "valid":
+        if self.status_text in model_utils.Acme_Status_Order.OPTIONS_X_ACME_SYNC:
             return False
+        return True
+        
+    @property
+    def is_can_acme_server_deactivate_authorizations(self):
+        # TODO: is there a better test?
+        if not self.resource_url:
+            print("no url")
+            return False
+        if self.status_text in model_utils.Acme_Status_Order.OPTIONS_X_DEACTIVATE_AUTHORIZATIONS:
+            print("bad status text")
+            return False
+        
+        # now loop the authorizations...
+        auths_deactivate = self.authorizations_can_deactivate
+        if not auths_deactivate:
+            print("no auths_deactivate")
+            return False
+
         return True
 
     @property
     def is_can_mark_invalid(self):
-        if self.acme_status_order_id not in (
-            model_utils.Acme_Status_Order.from_string("invalid"),
-            model_utils.Acme_Status_Order.from_string("valid"),
-        ):
+        if self.status_text not in model_utils.Acme_Status_Order.OPTIONS_X_MARK_INVALID:
             return True
         return False
 

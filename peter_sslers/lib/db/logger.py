@@ -162,6 +162,32 @@ class AcmeLogger(object):
             self.ctx.pyramid_transaction_commit()
 
         return dbAcmeEventLog
+        
+    def log_authorization_deactivate(
+        self, acme_version, dbAcmeAuthorization, transaction_commit=None
+    ):    
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-authorization-deactivate"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id if self.dbAcmeOrder else None
+        dbAcmeEventLog.certificate_request_id = (
+            self.dbAcmeOrder.certificate_request.id if self.dbAcmeOrder else None
+        )
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
 
     def log_challenge_PostAsGet(
         self, acme_version, dbAcmeChallenge, transaction_commit=None

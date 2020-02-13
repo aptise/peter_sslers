@@ -28,15 +28,24 @@
     ${admin_partials.handle_querystring_result()}
     
     <p>
-        % if AcmeOrder.is_can_acme_server_sync:
-            <a
-                href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
-                class="btn btn-xs btn-info"
-            >
-                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                Sync Order Against ACME Server
-            </a>
-        % endif
+        <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
+        <a
+            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
+            class="btn btn-xs btn-info ${sync_btn_class}"
+        >
+            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+            Sync Order Against ACME Server
+        </a>
+
+        <% deactivate_btn_class = '' if AcmeOrder.is_can_acme_server_deactivate_authorizations else 'disabled' %>
+        <a
+            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-deactivate-authorizations"
+            class="btn btn-xs btn-info ${deactivate_btn_class}"
+        >
+            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+            Deactivate Authorizations on ACME Server
+        </a>
+
         <% retry_btn_class = '' if AcmeOrder.is_can_retry else 'disabled' %>
         <a
             href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"

@@ -105,7 +105,7 @@ class ViewAdmin_Focus(Handler):
             errors.InvalidRequest,
         ) as exc:
             return HTTPSeeOther(
-                "%s?error=new-automated&message=%s"
+                "%s?error=acme+server+sync&message=%s"
                 % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
             )
 

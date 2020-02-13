@@ -109,7 +109,34 @@ class ViewAdmin_Focus(Handler):
             errors.InvalidRequest,
         ) as exc:
             return HTTPSeeOther(
-                "%s?error=new-automated&message=%s"
+                "%s?error=acme+server+sync&message=%s"
+                % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+            )
+
+    @view_config(route_name="admin:acme_order:focus:acme_server_deactivate_authorizations", renderer=None)
+    def acme_server_deactivate_authorizations(self):
+        """
+        deactivate any auths on the server.
+        """
+        dbAcmeOrder = self._focus(eagerload_web=True)
+        try:
+            if not dbAcmeOrder.is_can_acme_server_deactivate_authorizations:
+                raise errors.InvalidRequest(
+                    "ACME Server Deactivate Authorizations is not allowed for this AcmeOrder"
+                )
+            result = lib_db.actions.do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
+                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+            )
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme+server+deactivate+authorizations+success" % self._focus_url
+            )
+        except (
+            errors.AcmeCommunicationError,
+            errors.DomainVerificationError,
+            errors.InvalidRequest,
+        ) as exc:
+            return HTTPSeeOther(
+                "%s?error=acme+server+deactivate+authorizations&message=%s"
                 % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
             )
 
@@ -136,7 +163,7 @@ class ViewAdmin_Focus(Handler):
             errors.InvalidRequest,
         ) as exc:
             return HTTPSeeOther(
-                "%s?error=new-automated&message=%s"
+                "%s?error=retry&message=%s"
                 % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
             )
 

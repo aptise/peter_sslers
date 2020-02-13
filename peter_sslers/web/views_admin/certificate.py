@@ -421,7 +421,7 @@ class ViewAdmin_Focus(Handler):
         )
         dbServerCertificate = self._focus()
         if not self.request.registry.settings["enable_nginx"]:
-            raise HTTPSeeOther("%s?error=no_nginx" % self._focus_url)
+            raise HTTPSeeOther("%s?error=no+nginx" % self._focus_url)
         dbDomains = [
             c2d.domain for c2d in dbServerCertificate.unique_fqdn_set.to_domains
         ]
@@ -433,7 +433,7 @@ class ViewAdmin_Focus(Handler):
         if wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
-            "%s?operation=nginx_cache_expire&result=success&event.id=%s"
+            "%s?operation=nginx+cache+expire&result=success&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
 

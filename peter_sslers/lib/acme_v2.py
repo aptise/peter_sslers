@@ -94,6 +94,8 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
         resp_data = json.loads(resp_data)  # try to parse json results
     except ValueError:
         pass  # ignore json parsing errors
+    if code == 404:
+        raise errors.AcmeServer404(resp_data)
     if code == 400:
         # this happens on pebble if we set it to https, not https
         if resp_data == "Client sent an HTTP request to an HTTPS server.\n":
@@ -500,10 +502,15 @@ class AuthenticatedUser(object):
         if not dbAcmeOrder.resource_url:
             raise ValueError("the order does not have a `resource_url`")
 
-        (acme_order_object, _code, acme_order_headers) = self._send_signed_request(
-            dbAcmeOrder.resource_url, None
-        )
-        log.info("acme_v2 Order loaded!")
+        try:
+            (acme_order_object, _code, acme_order_headers) = self._send_signed_request(
+                dbAcmeOrder.resource_url, None
+            )
+            log.info("acme_v2 Order loaded!")
+        except errors.AcmeServer404 as exc:
+            # todo: not finished with this logic flow
+            acme_order_object = {'status': '*404*'}
+            raise
 
         # log the event to the db
         dbEventLogged = self.acmeLogger.log_order_load(
@@ -534,9 +541,12 @@ class AuthenticatedUser(object):
         if not dbAcmeAuthorization.authorization_url:
             raise ValueError("the order does not have a `resource_url`")
 
-        (authorization_response, _, authorization_headers) = self._send_signed_request(
-            dbAcmeAuthorization.authorization_url, None
-        )
+        try:
+            (authorization_response, _, authorization_headers) = self._send_signed_request(
+                dbAcmeAuthorization.authorization_url, None
+            )
+        except errors.AcmeServer404 as exc:
+            authorization_response = {'status': '*404*'}
 
         # log the event
         dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
@@ -545,6 +555,46 @@ class AuthenticatedUser(object):
 
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
 
+    def acme_authorization_deactivate(
+        self, ctx, dbAcmeAuthorization, transaction_commit=None
+    ):
+        """
+        This loads the authorization object and pulls the payload
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
+
+        https://tools.ietf.org/html/rfc8555#section-7.5.2
+
+            7.5.2.  Deactivating an Authorization
+
+               If a client wishes to relinquish its authorization to issue
+               certificates for an identifier, then it may request that the server
+               deactivate each authorization associated with it by sending POST
+               requests with the static object {"status": "deactivated"} to each
+               authorization URL.
+
+        """
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        if not dbAcmeAuthorization.authorization_url:
+            raise ValueError("the order does not have a `resource_url`")
+
+        try:
+            (authorization_response, _, authorization_headers) = self._send_signed_request(
+                dbAcmeAuthorization.authorization_url, {"status": "deactivated"}
+            )
+        except errors.AcmeServer404 as exc:
+            authorization_response = {'status': '*404*'}
+            
+        # log the event
+        dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_deactivate(
+            "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
+        )  # log this to the db
+
+        return (authorization_response, dbAcmeEventLog_authorization_fetch)
+        
     def acme_challenge_load(self, ctx, dbAcmeChallenge, transaction_commit=None):
         """
         This loads the authorization object and pulls the payload
@@ -558,9 +608,12 @@ class AuthenticatedUser(object):
         if not dbAcmeChallenge.challenge_url:
             raise ValueError("the challenge does not have a `challenge_url`")
 
-        (challenge_response, _, challenge_headers) = self._send_signed_request(
-            dbAcmeChallenge.challenge_url, None
-        )
+        try:
+            (challenge_response, _, challenge_headers) = self._send_signed_request(
+                dbAcmeChallenge.challenge_url, None
+            )
+        except errors.AcmeServer404 as exc:
+            challenge_response = {'status': '*404*'}
 
         # log the event
         dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(

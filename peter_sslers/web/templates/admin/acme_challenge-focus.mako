@@ -50,10 +50,10 @@
                     <tr>
                         <th>AcmeAuthorization</th>
                         <td>
-                            via log event
                             <a  class="label label-info"
                                 href="${admin_prefix}/acme-authorization/${AcmeChallenge.acme_authorization_id}"
                             >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeAuthorization-${AcmeChallenge.acme_authorization_id}
                             </a>
                         </td>
@@ -105,6 +105,7 @@
                                 <a  class="label label-info"
                                     href="${admin_prefix}/acme-challenge-poll/${poll.id}"
                                 >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeChallengePoll-${poll.id}
                                 </a>
                             </td>
