@@ -272,7 +272,7 @@ class ViewAdmin_Focus(Handler):
     def _focus__authenticate__submit(self, dbAcmeAccountKey):
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
-        result = lib_db.actions.do__AcmeAccountKey_AcmeV2_authenticate(
+        result = lib_db.actions_acme.do__AcmeAccountKey_AcmeV2_authenticate(
             self.request.api_context, dbAcmeAccountKey
         )
         wants_json = (
@@ -297,7 +297,7 @@ class ViewAdmin_Focus(Handler):
     def focus__AcmeAuthorizations(self):
         dbAcmeAccountKey = self._focus()
         auth_status = self.request.params.get("authorization-status")
-        only_pending = True if (auth_status == 'pending') else None
+        only_pending = True if (auth_status == "pending") else None
         items_count = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__count(
             self.request.api_context, dbAcmeAccountKey.id
         )

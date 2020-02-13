@@ -97,7 +97,7 @@ class ViewAdmin_Focus(Handler):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeOrder"
                 )
-            result = lib_db.actions.do__AcmeOrder_AcmeV2__acme_server_sync(
+            result = lib_db.actions_acme.do__AcmeOrder_AcmeV2__acme_server_sync(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
             return HTTPSeeOther(
@@ -113,7 +113,10 @@ class ViewAdmin_Focus(Handler):
                 % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
             )
 
-    @view_config(route_name="admin:acme_order:focus:acme_server_deactivate_authorizations", renderer=None)
+    @view_config(
+        route_name="admin:acme_order:focus:acme_server_deactivate_authorizations",
+        renderer=None,
+    )
     def acme_server_deactivate_authorizations(self):
         """
         deactivate any auths on the server.
@@ -124,11 +127,12 @@ class ViewAdmin_Focus(Handler):
                 raise errors.InvalidRequest(
                     "ACME Server Deactivate Authorizations is not allowed for this AcmeOrder"
                 )
-            result = lib_db.actions.do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
+            result = lib_db.actions_acme.do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
             return HTTPSeeOther(
-                "%s?result=success&operation=acme+server+deactivate+authorizations+success" % self._focus_url
+                "%s?result=success&operation=acme+server+deactivate+authorizations+success"
+                % self._focus_url
             )
         except (
             errors.AcmeCommunicationError,
@@ -151,7 +155,7 @@ class ViewAdmin_Focus(Handler):
                 raise errors.InvalidRequest(
                     "ACME Retry is not allowed for this AcmeOrder"
                 )
-            result = lib_db.actions.do__AcmeOrder_AcmeV2__retry(
+            result = lib_db.actions_acme.do__AcmeOrder_AcmeV2__retry(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
             return HTTPSeeOther(
@@ -178,7 +182,7 @@ class ViewAdmin_Focus(Handler):
             if operation == "invalid":
                 if not dbAcmeOrder.is_can_mark_invalid:
                     raise errors.InvalidRequest("Can not mark this order as 'invalid'.")
-                lib_db.actions.update_AcmeOrder_status(
+                lib_db.actions_acme.update_AcmeOrder_status(
                     self.request.api_context,
                     dbAcmeOrder,
                     "invalid",
@@ -268,7 +272,7 @@ class ViewAdmin_New(Handler):
             )
 
             try:
-                dbAcmeOrder = lib_db.actions.do__AcmeOrder__AcmeV2__automated(
+                dbAcmeOrder = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
                     self.request.api_context,
                     domain_names=domain_names,
                     dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,

@@ -312,9 +312,12 @@ class Acme_Status_Order(_mixin_mapping):
     """The status of an order"""
 
     DEFAULT_ID = 0
-    OPTIONS_X_ACME_SYNC = ("valid", )
-    OPTIONS_X_MARK_INVALID = ("invalid", "valid", )
-    OPTIONS_X_DEACTIVATE_AUTHORIZATIONS = ("valid", )
+    OPTIONS_X_ACME_SYNC = ("valid",)
+    OPTIONS_X_MARK_INVALID = (
+        "invalid",
+        "valid",
+    )
+    OPTIONS_X_DEACTIVATE_AUTHORIZATIONS = ("valid",)
 
     _mapping = {
         0: "*discovered*",  # not an ACME status, but our internal marker

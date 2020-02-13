@@ -312,7 +312,10 @@ class AcmeAuthorization(Base):
             return False
         if not self.acme_order_id__created:
             return False
-        if self.status_text not in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE:
+        if (
+            self.status_text
+            not in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+        ):
             return False
         return True
 
@@ -587,7 +590,10 @@ class AcmeOrder(Base):
     def authorizations_can_deactivate(self):
         authorizations = []
         for _to_auth in self.to_acme_authorizations:
-            if _to_auth.acme_authorization.status_text in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE:
+            if (
+                _to_auth.acme_authorization.status_text
+                in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+            ):
                 authorizations.append(_to_auth.acme_authorization)
         return authorizations
 
@@ -608,17 +614,20 @@ class AcmeOrder(Base):
         if self.status_text in model_utils.Acme_Status_Order.OPTIONS_X_ACME_SYNC:
             return False
         return True
-        
+
     @property
     def is_can_acme_server_deactivate_authorizations(self):
         # TODO: is there a better test?
         if not self.resource_url:
             print("no url")
             return False
-        if self.status_text in model_utils.Acme_Status_Order.OPTIONS_X_DEACTIVATE_AUTHORIZATIONS:
+        if (
+            self.status_text
+            in model_utils.Acme_Status_Order.OPTIONS_X_DEACTIVATE_AUTHORIZATIONS
+        ):
             print("bad status text")
             return False
-        
+
         # now loop the authorizations...
         auths_deactivate = self.authorizations_can_deactivate
         if not auths_deactivate:

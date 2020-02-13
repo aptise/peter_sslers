@@ -98,7 +98,7 @@ class ViewAdmin_Focus(Handler):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
-            result = lib_db.actions.do__AcmeAuthorization_AcmeV2__acme_server_sync(
+            result = lib_db.actions_acme.do__AcmeAuthorization_AcmeV2__acme_server_sync(
                 self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
             )
             return HTTPSeeOther(
@@ -117,7 +117,8 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_server_deactivate", renderer=None
+        route_name="admin:acme_authorization:focus:acme_server_deactivate",
+        renderer=None,
     )
     def acme_server_deactivate(self):
         """
@@ -129,11 +130,12 @@ class ViewAdmin_Focus(Handler):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
-            result = lib_db.actions.do__AcmeAuthorization_AcmeV2__acme_server_deactivate(
+            result = lib_db.actions_acme.do__AcmeAuthorization_AcmeV2__acme_server_deactivate(
                 self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
             )
             return HTTPSeeOther(
-                "%s?result=success&operation=acme+server+deactivate+success" % self._focus_url
+                "%s?result=success&operation=acme+server+deactivate+success"
+                % self._focus_url
             )
         except (
             errors.AcmeCommunicationError,

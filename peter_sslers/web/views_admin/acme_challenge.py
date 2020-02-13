@@ -93,7 +93,7 @@ class ViewAdmin_Focus(Handler):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
-            result = lib_db.actions.do__AcmeChallenge_AcmeV2__acme_server_sync(
+            result = lib_db.actions_acme.do__AcmeChallenge_AcmeV2__acme_server_sync(
                 self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
             )
             return HTTPSeeOther(

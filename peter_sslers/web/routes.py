@@ -216,7 +216,6 @@ def _admin_views(config):
         "/acme-order/{@id}/acme-server-deactivate-authorizations",
     )
 
-
     config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
     config.add_route_7("admin:acme_order:focus:mark", "/acme-order/{@id}/mark")
     config.add_route_7("admin:acme_order:new:automated", "/acme-order/new/automated")

@@ -186,7 +186,7 @@ def create__CertificateRequest(
     :param dbPrivateKey: (required) Private Key used to sign the CSR
 
     invoked by:
-        lib.db.actions.do__AcmeOrder__AcmeV2__automated
+        lib.db.actions_acme.do__AcmeOrder__AcmeV2__automated
             ctx,
             csr_pem,
             certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED,

@@ -509,7 +509,7 @@ class AuthenticatedUser(object):
             log.info("acme_v2 Order loaded!")
         except errors.AcmeServer404 as exc:
             # todo: not finished with this logic flow
-            acme_order_object = {'status': '*404*'}
+            acme_order_object = {"status": "*404*"}
             raise
 
         # log the event to the db
@@ -632,7 +632,6 @@ class AuthenticatedUser(object):
 
         return (acmeOrderObject, dbEventLogged)
 
-
     def acme_order_process_authorizations(
         self,
         ctx,
@@ -662,7 +661,7 @@ class AuthenticatedUser(object):
 
         _order_status = acmeOrder.rfc_object["status"]
         if _order_status != "pending":
-            if (_order_status == "invalid"):
+            if _order_status == "invalid":
                 raise ValueError("this order is dead")
             else:
                 raise ValueError(
@@ -774,7 +773,6 @@ class AuthenticatedUser(object):
 
         return fullchain_pem
 
-
     def acme_authorization_process(
         self,
         ctx,
@@ -876,11 +874,9 @@ class AuthenticatedUser(object):
 
         # in v1, we know the domain before the authorization request
         # in v2, we hit an order's authorization url to get the domain
-        (
-            authorization_response,
-            _,
-            authorization_headers,
-        ) = self._send_signed_request(authorization_url, payload=None,)
+        (authorization_response, _, authorization_headers,) = self._send_signed_request(
+            authorization_url, payload=None,
+        )
         dbAcmeAuthorization = handle_authorization_payload(
             authorization_url, authorization_response, transaction_commit=True,
         )
@@ -941,9 +937,7 @@ class AuthenticatedUser(object):
             raise ValueError(
                 "`acme_challenge_response` not in `authorization_response`"
             )
-        _challenge_status_text = (
-            dbAcmeAuthorization.acme_challenge_http01.status_text
-        )
+        _challenge_status_text = dbAcmeAuthorization.acme_challenge_http01.status_text
 
         if _challenge_status_text == "pending":
             _todo_complete_challenge_http01 = True
@@ -1081,9 +1075,9 @@ class AuthenticatedUser(object):
                     dbAcmeAuthorization.acme_challenge_http01,
                     transaction_commit=True,
                 )
-                
+
                 # TODO: update the authorization?
-                return True   
+                return True
 
             elif authorization_response["status"] != "valid":
 
@@ -1095,11 +1089,9 @@ class AuthenticatedUser(object):
                 )
                 raise errors.AcmeAuthorizationFailure(
                     "{0} challenge did not pass: {1}".format(
-                        dbAcmeAuthorization.domain.domain_name,
-                        authorization_response,
+                        dbAcmeAuthorization.domain.domain_name, authorization_response,
                     )
                 )
-
 
     def acme_authorization_load(
         self, ctx, dbAcmeAuthorization, transaction_commit=None
@@ -1117,11 +1109,13 @@ class AuthenticatedUser(object):
             raise ValueError("the order does not have a `resource_url`")
 
         try:
-            (authorization_response, _, authorization_headers) = self._send_signed_request(
-                dbAcmeAuthorization.authorization_url, None
-            )
+            (
+                authorization_response,
+                _,
+                authorization_headers,
+            ) = self._send_signed_request(dbAcmeAuthorization.authorization_url, None)
         except errors.AcmeServer404 as exc:
-            authorization_response = {'status': '*404*'}
+            authorization_response = {"status": "*404*"}
 
         # log the event
         dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
@@ -1157,19 +1151,23 @@ class AuthenticatedUser(object):
             raise ValueError("the order does not have a `resource_url`")
 
         try:
-            (authorization_response, _, authorization_headers) = self._send_signed_request(
+            (
+                authorization_response,
+                _,
+                authorization_headers,
+            ) = self._send_signed_request(
                 dbAcmeAuthorization.authorization_url, {"status": "deactivated"}
             )
         except errors.AcmeServer404 as exc:
-            authorization_response = {'status': '*404*'}
-            
+            authorization_response = {"status": "*404*"}
+
         # log the event
         dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_deactivate(
             "v2", dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
         )  # log this to the db
 
         return (authorization_response, dbAcmeEventLog_authorization_fetch)
-        
+
     def acme_challenge_load(self, ctx, dbAcmeChallenge, transaction_commit=None):
         """
         This loads the authorization object and pulls the payload
@@ -1188,7 +1186,7 @@ class AuthenticatedUser(object):
                 dbAcmeChallenge.challenge_url, None
             )
         except errors.AcmeServer404 as exc:
-            challenge_response = {'status': '*404*'}
+            challenge_response = {"status": "*404*"}
 
         # log the event
         dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(

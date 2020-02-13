@@ -162,10 +162,10 @@ class AcmeLogger(object):
             self.ctx.pyramid_transaction_commit()
 
         return dbAcmeEventLog
-        
+
     def log_authorization_deactivate(
         self, acme_version, dbAcmeAuthorization, transaction_commit=None
-    ):    
+    ):
         if acme_version != "v2":
             raise ValueError("invalid version: %s" % acme_version)
 

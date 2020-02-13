@@ -151,7 +151,8 @@ def get__AcmeAuthorization__by_AcmeAccountKeyId__count(
         ctx.dbSession.query(model_objects.AcmeAuthorization)
         .join(
             model_objects.AcmeOrder,
-            model_objects.AcmeAuthorization.acme_order_id__created == model_objects.AcmeOrder.id,
+            model_objects.AcmeAuthorization.acme_order_id__created
+            == model_objects.AcmeOrder.id,
         )
         .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
     )
@@ -170,7 +171,8 @@ def get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
         ctx.dbSession.query(model_objects.AcmeAuthorization)
         .join(
             model_objects.AcmeOrder,
-            model_objects.AcmeAuthorization.acme_order_id__created == model_objects.AcmeOrder.id,
+            model_objects.AcmeAuthorization.acme_order_id__created
+            == model_objects.AcmeOrder.id,
         )
         .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
     )
