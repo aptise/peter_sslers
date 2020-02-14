@@ -493,7 +493,7 @@ class UnitTestCSR(AppTestCore):
         dbAcmeAccountKey = (None,)
         dbPrivateKey = (None,)
         private_key_pem = (None,)
-        dbAcmeOrder = db.actions_acme.do__AcmeOrder__AcmeV2__automated(
+        (dbAcmeOrder, result) = db.actions_acme.do__AcmeOrder__AcmeV2__automated(
             ctx,
             domain_names=domain_names,
             dbAcmeAccountKey=None,

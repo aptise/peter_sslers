@@ -349,8 +349,8 @@ def getcreate__AcmeAuthorization(
         ctx.dbSession.flush(objects=[dbChallenge])
         is_created_AcmeChallenge = True
     else:
-        pdb.set_trace()
         if dbChallenge.acme_status_challenge_id != acme_status_challenge_id:
+            pdb.set_trace()
             dbChallenge.acme_status_challenge_id = acme_status_challenge_id
             dbChallenge.timestamp_updated = datetime.datetime.utcnow()
             ctx.dbSession.add(dbChallenge)
@@ -813,6 +813,41 @@ def getcreate__ServerCertificate__by_pem_text(
                 _tmpfileCert.close()
 
     return dbServerCertificate, is_created
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def getcreate__UniqueFQDNSet__by_domains(ctx, domain_names):
+    """
+    getcreate wrapping unique fqdn
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param domain_names: a list of domains names (strings)
+    """
+    # we should have cleaned this up before submitting, but just be safe!
+    domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
+    domain_names = list(set(domain_names))
+    if not domain_names:
+        raise ValueError("no domain names!")
+
+    # ensure the domains are registered into our system
+    dbDomainObjects = {
+        _domain_name: getcreate__Domain__by_domainName(
+            ctx, _domain_name
+        )[0]
+        for _domain_name in domain_names
+    }
+    # we'll use this tuple in a bit...
+    # getcreate__Domain__by_domainName returns a tuple of (domainObject, is_created)
+    (
+        dbUniqueFQDNSet,
+        is_created_fqdn,
+    ) = getcreate__UniqueFQDNSet__by_domainObjects(
+        ctx, dbDomainObjects.values()
+    )
+
+    return (dbUniqueFQDNSet, is_created_fqdn)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -222,14 +222,14 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
     )
 
 
-def _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject):
+def _AcmeV2_AcmeOrder_process(ctx, authenticatedUser, dbAcmeOrder, acmeOrderRfcObject):
     """
     Consolidated AcmeOrder routine
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param authenticatedUser: (required) a :class:`lib.acme_v2.AuthenticatedUser` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
-    :param acmeOrderObject: (required) a :class:`lib.acme_v2.AcmeOrder` instance
+    :param acmeRfcOrder: (required) a :class:`lib.acme_v2.AcmeOrderRFC` instance
 
     -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
 
@@ -270,13 +270,13 @@ def _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject):
     ) = _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder)
 
     _todo_finalize_order = None
-    _order_status = acmeOrderObject.rfc_object["status"]
+    _order_status = acmeOrderRfcObject.rfc_object["status"]
     if _order_status == "pending":
         # if we are retrying an order, we can try to handle it
         try:
             _handled = authenticatedUser.acme_order_process_authorizations(
                 ctx,
-                acmeOrder=acmeOrderObject,
+                acmeOrderRfcObject=acmeOrderRfcObject,
                 dbAcmeOrder=dbAcmeOrder,
                 handle_authorization_payload=handle_authorization_payload,
                 handle_challenge_setup=handle_challenge_setup,
@@ -291,7 +291,7 @@ def _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject):
         except errors.AcmeAuthorizationFailure as exc:
             # this order is essentially failed
             (
-                acmeOrderObject,
+                acmeOrderRfcObject,
                 dbAcmeOrderEventLogged,
             ) = authenticatedUser.acme_order_load(
                 ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
@@ -299,7 +299,7 @@ def _AcmeV2_handle_order(ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject):
             update_AcmeOrder_status(
                 ctx,
                 dbAcmeOrder,
-                acmeOrderObject.rfc_object["status"],
+                acmeOrderRfcObject.rfc_object["status"],
                 transaction_commit=True,
             )
             return False
@@ -544,7 +544,7 @@ def do__AcmeOrder_AcmeV2__acme_server_sync(
         is_order_404 = None
         try:
             (
-                acmeOrderObject,
+                acmeOrderRfcObject,
                 dbAcmeOrderEventLogged,
             ) = authenticatedUser.acme_order_load(
                 ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
@@ -561,7 +561,7 @@ def do__AcmeOrder_AcmeV2__acme_server_sync(
             pass
 
         # update the AcmeOrder if it's not the same on the database
-        _server_status = acmeOrderObject.rfc_object["status"]
+        _server_status = acmeOrderRfcObject.rfc_object["status"]
         if dbAcmeOrder.status_text != _server_status:
             update_AcmeOrder_status(
                 ctx, dbAcmeOrder, _server_status, transaction_commit=True
@@ -602,11 +602,11 @@ def do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
         # first, load the order
-        acmeOrderObject = None
+        acmeOrderRfcObject = None
         is_order_404 = None
         try:
             (
-                acmeOrderObject,
+                acmeOrderRfcObject,
                 dbAcmeOrderEventLogged,
             ) = authenticatedUser.acme_order_load(
                 ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
@@ -641,19 +641,19 @@ def do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
                 transaction_commit=True,
             )
 
-        # TODO: raise an exception if we don't have an acmeOrder
+        # TODO: raise an exception if we don't have an acmeOrderRfcObject
         # TODO: update the authorizations/challenges from the order
 
         # update the AcmeOrder if it's not the same on the database
         if not is_order_404:
             try:
                 (
-                    acmeOrderObject,
+                    acmeOrderRfcObject,
                     dbAcmeOrderEventLogged,
                 ) = authenticatedUser.acme_order_load(
                     ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
                 )
-                _server_status = acmeOrderObject.rfc_object["status"]
+                _server_status = acmeOrderRfcObject.rfc_object["status"]
                 if dbAcmeOrder.status_text != _server_status:
                     update_AcmeOrder_status(
                         ctx, dbAcmeOrder, _server_status, transaction_commit=True
@@ -670,125 +670,23 @@ def do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
             tf.close()
 
 
-def _do__AcmeOrder__AcmeV2__core(
+def _do__AcmeOrder__AcmeV2__core_finalize(
     ctx,
-    domain_names=None,
-    dbAcmeAccountKey=None,
-    dbPrivateKey=None,
-    dbServerCertificate__renewal_of=None,
+    authenticatedUser=None,  # optional?
+    acmeOrderRfcObject=None,
+    dbAcmeOrder=None,  # required
+    dbPrivateKey=None,  # required
+    dbCertificateRequest=None,  # optional
     dbQueueRenewal__of=None,
-    dbAcmeOrder_retry_of=None,
-    dbAcmeOrder_renewal_of=None,
+    certificate_request_source_id=None,  # required
+    dbServerCertificate__renewal_of=None,  # optional
+    domain_names=None,  # required
+    update_AcmeOrder_status=None,
 ):
-    """
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param domain_names: (required) An iteratble list of domain names
-    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
-    :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
-    :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
-    :param dbQueueRenewal__of: (optional) A :class:`model.objects.QueueRenewal` object
-
-    :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
-    :param dbAcmeOrder_renewal_of: (optional) A :class:`model.objects.AcmeOrder` object
-
-    :returns: A :class:`model.objects.AcmeOrder` object
-    """
-    dbCertificateRequest = None  # scoping
-    if not any((dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of)):
-        if not dbAcmeAccountKey:
-            raise ValueError("Must submit `dbAcmeAccountKey`")
-        if not dbPrivateKey:
-            raise ValueError("Must submit `dbPrivateKey`")
-        if all((dbServerCertificate__renewal_of, domain_names)):
-            raise ValueError("do not pass `domain_names` with `dbServerCertificate`")
-        if dbServerCertificate__renewal_of:
-            domain_names = dbServerCertificate__renewal_of.domains_as_list
-    else:
-        if all((dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of)):
-            raise ValueError("renew OR retry; not both")
-        if domain_names:
-            raise ValueError(
-                "do not pass `domain_names` with (`dbAcmeOrder_retry_of` or `dbAcmeOrder_renewal_of`)"
-            )
-        if dbServerCertificate__renewal_of:
-            raise ValueError(
-                "do not pass `dbServerCertificate__renewal_of` with (`dbAcmeOrder_retry_of` or `dbAcmeOrder_renewal_of`)"
-            )
-        if dbAcmeOrder_retry_of:
-            # ensure we can transition
-            if dbAcmeOrder_retry_of.status_text != "invalid":
-                raise errors.InvalidRequest(
-                    "`dbAcmeOrder_retry_of.status_text` must be 'invalid'"
-                )
-            if dbAcmeAccountKey:
-                raise ValueError(
-                    "Must NOT submit `dbAcmeAccountKey` with `dbAcmeOrder_retry_of`"
-                )
-            # for a `retry`, recycle the `AcmeAccountKey` and `PrivateKey`
-            dbAcmeAccountKey = dbAcmeOrder_retry_of.acme_account_key
-            dbPrivateKey = dbAcmeOrder_retry_of.certificate_request.private_key
-            domain_names = dbAcmeOrder_retry_of.domains_as_list
-            dbCertificateRequest = dbAcmeOrder_retry_of.certificate_request
-        elif dbAcmeOrder_renewal_of:
-            # ensure we can transition
-            if dbAcmeOrder_renewal_of.status_text != "valid":
-                raise errors.InvalidRequest(
-                    "`dbAcmeOrder_renewal_of.status_text` must be 'valid'"
-                )
-            domain_names = dbAcmeOrder_renewal_of.domains_as_list
-            # for a `renewal`, specify the `AcmeAccountKey` and `PrivateKey`
-            if not dbAcmeAccountKey:
-                raise ValueError(
-                    "Must submit `dbAcmeAccountKey` with `dbAcmeOrder_renewal_of`"
-                )
-            if not dbPrivateKey:
-                raise ValueError("Must submit `dbPrivateKey`")
-            dbCertificateRequest = None  # we should make a new CSR for renewals
-
-    if not dbPrivateKey.is_key_usable:
-        raise errors.InvalidRequest(
-            "The `dbPrivateKey` is not usable. It was deactivated or compromised.`"
-        )
-
-    # ensure domains names!
-    if not domain_names:
-        raise ValueError(
-            "`domain_names` must be provided unless this is a renewal or retry"
-        )
-
-    # we should have cleaned this up before submitting, but just be safe!
-    domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
-    domain_names = set(domain_names)
-    if not domain_names:
-        raise ValueError("no domain names!")
-    # we need a list
-    domain_names = list(domain_names)
-
-    # bookkeeping
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__OperationsEvent(
-        ctx,
-        model_utils.OperationsEventType.from_string(
-            "certificate_request__do__automated"
-        ),
-    )
-
     tmpfiles = []
-    dbAcmeOrder = None
-    dbServerCertificate = None
     try:
-        # pull the pem out of the account_key
-        account_key_pem = dbAcmeAccountKey.key_pem
-
-        # we need to use tmpfiles on the disk
-        tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-        tmpfiles.append(tmpfile_account)
-        account_key_path = tmpfile_account.name
-
+        # we need to use tmpfiles on the disk for the Private Key signing
         private_key_pem = dbPrivateKey.key_pem
-
-        # we need to use tmpfiles on the disk
         tmpfile_pkey = cert_utils.new_pem_tempfile(private_key_pem)
         tmpfiles.append(tmpfile_pkey)
 
@@ -809,13 +707,16 @@ def _do__AcmeOrder__AcmeV2__core(
             dbCertificateRequest = lib.db.create.create__CertificateRequest(
                 ctx,
                 csr_pem,
-                certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED,
+                certificate_request_source_id=certificate_request_source_id,
                 dbPrivateKey=dbPrivateKey,
                 dbServerCertificate__issued=None,
                 dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
                 domain_names=domain_names,
             )
             ctx.pyramid_transaction_commit()
+        
+        if not dbAcmeOrder.certificate_request:
+            dbAcmeOrder.certificate_request = dbCertificateRequest
 
         # pull domains from csr
         csr_domains = cert_utils.parse_csr_domains(
@@ -824,53 +725,15 @@ def _do__AcmeOrder__AcmeV2__core(
         if set(csr_domains) != set(domain_names):
             raise ValueError("Did not make a valid set")
 
-        # register the account / ensure that it is registered
-        # the authenticatedUser will have an `acmeLogger`
-        authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-            ctx, dbAcmeAccountKey, account_key_path=account_key_path,
-        )
-
-        # create the order on the ACME server
-        (acmeOrderObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
+        # sign and download
+        fullchain_pem = authenticatedUser.acme_order_finalize(
             ctx,
-            csr_domains=csr_domains,
-            dbCertificateRequest=dbCertificateRequest,
+            acmeOrderRfcObject=acmeOrderRfcObject,
+            dbAcmeOrder=dbAcmeOrder,
+            update_order_status=update_AcmeOrder_status,
+            csr_path=tmpfile_csr.name,
             transaction_commit=True,
         )
-        # enroll the Acme Order into our database
-        dbAcmeOrder = lib.db.create.create__AcmeOrder(
-            ctx,
-            dbAcmeAccountKey=dbAcmeAccountKey,
-            dbCertificateRequest=dbCertificateRequest,
-            dbEventLogged=dbAcmeOrderEventLogged,
-            acmeOrderRfcObject=acmeOrderObject.rfc_object,
-            acmeOrderResponseHeaders=acmeOrderObject.response_headers,
-            dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
-            dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
-            transaction_commit=True,
-        )
-        # register the order into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
-
-        # handle the order towards finalized?
-        _todo_finalize_order = _AcmeV2_handle_order(
-            ctx, authenticatedUser, dbAcmeOrder, acmeOrderObject
-        )
-        if _todo_finalize_order:
-            # sign and download
-            fullchain_pem = authenticatedUser.acme_order_finalize(
-                ctx,
-                acmeOrder=acmeOrderObject,
-                dbAcmeOrder=dbAcmeOrder,
-                update_order_status=update_AcmeOrder_status,
-                csr_path=tmpfile_csr.name,
-                transaction_commit=True,
-            )
-        else:
-            raise errors.AcmeError('AcmeOrder can not be finalized')
-
-        # ######################################################################
-        # ######################################################################
 
         (certificate_pem, ca_chain_pem) = utils_certbot.cert_and_chain_from_fullchain(
             fullchain_pem
@@ -921,14 +784,283 @@ def _do__AcmeOrder__AcmeV2__core(
         )
 
         # don't commit here, as that will trigger an error on object refresh
-        return dbAcmeOrder
+        return (dbAcmeOrder, True)
 
     except Exception as exc:
-        if dbCertificateRequest:
-            dbCertificateRequest.is_active = False
-            dbCertificateRequest.is_error = True
-            ctx.dbSession.flush(objects=[dbCertificateRequest])
-            ctx.pyramid_transaction_commit()
+        raise
+
+    finally:
+        # cleanup tmpfiles
+        for tf in tmpfiles:
+            tf.close()
+
+
+def _do__AcmeOrder__AcmeV2__core(
+    ctx,
+    domain_names=None,
+    certificate_request_source_id=None,
+    single_process=None,
+    dbAcmeAccountKey=None,
+    dbAcmeOrder_renewal_of=None,
+    dbAcmeOrder_retry_of=None,
+    dbCertificateRequest=None,
+    dbUniqueFQDNSet=None,
+    dbPrivateKey=None,
+    dbQueueRenewal__of=None,
+    dbServerCertificate__renewal_of=None,
+):
+    """
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param domain_names: (optional) An iteratble list of domain names
+    :param certificate_request_source_id: (optional)
+    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param dbAcmeOrder_renewal_of: (optional) A :class:`model.objects.AcmeOrder` object
+    :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
+    :param dbCertificateRequest: (optional) A :class:`model.objects.CertificateRequest` object
+    :param dbUniqueFQDNSet: (optional) A :class:`model.objects.dbUniqueFQDNSet` object
+    :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
+    :param dbQueueRenewal__of: (optional) A :class:`model.objects.QueueRenewal` object
+    :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
+    :param single_process: (optional) Should this be attempted in a single, long, process?
+
+    One and only one of the following items must be provided:
+        dbAcmeOrder_retry_of
+        dbAcmeOrder_renewal_of
+        dbCertificateRequest
+        dbQueueRenewal__of
+        dbServerCertificate__renewal_of
+        
+    One and only one of the following items must be provided:
+        domain_names        
+        dbUniqueFQDNSet        
+
+    :returns: A two element tuple consisting of:
+        0 :class:`model.objects.AcmeOrder` object
+        1 A `Boolean` representing success or failure)
+    """
+    # some things can't be triggered together
+    if all((domain_names, dbUniqueFQDNSet)) or not any((domain_names, dbUniqueFQDNSet)):
+        raise ValueError("must submit one and only one of: `domain_names, dbUniqueFQDNSet`")
+    if domain_names:
+        if any(
+            (
+                dbAcmeOrder_retry_of,
+                dbAcmeOrder_renewal_of,
+                dbCertificateRequest,
+                dbQueueRenewal__of,
+                dbServerCertificate__renewal_of,
+                dbUniqueFQDNSet,
+            )
+        ):
+            raise ValueError(
+                "do not pass `domain_names` with any of `(dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbCertificateRequest, dbQueueRenewal__of, dbServerCertificate__renewal_of, dbUniqueFQDNSet)`"
+            )
+
+    if (
+        sum(
+            bool(i)
+            for i in (
+                dbAcmeOrder_retry_of,
+                dbAcmeOrder_renewal_of,
+                dbCertificateRequest,
+                dbQueueRenewal__of,
+                dbServerCertificate__renewal_of,
+                dbUniqueFQDNSet,
+            )
+        )
+        >= 2
+    ):
+        raise ValueError(
+            "At most, provide one of (`dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbCertificateRequest, dbQueueRenewal__of, dbServerCertificate__renewal_of`)"
+        )
+
+    # switch this
+    if dbAcmeOrder_retry_of:
+        # kwargs validation
+        if dbAcmeAccountKey:
+            raise ValueError(
+                "Must NOT submit `dbAcmeAccountKey` with `dbAcmeOrder_retry_of`"
+            )
+
+        # ensure we can transition
+        if dbAcmeOrder_retry_of.status_text != "invalid":
+            raise errors.InvalidRequest(
+                "`dbAcmeOrder_retry_of.status_text` must be 'invalid'"
+            )
+
+        # re-use these related objects
+        dbAcmeAccountKey = dbAcmeOrder_retry_of.acme_account_key
+        dbCertificateRequest = dbAcmeOrder_retry_of.certificate_request
+        dbPrivateKey = dbAcmeOrder_retry_of.certificate_request.private_key
+        dbUniqueFQDNSet = dbAcmeOrder_retry_of.unique_fqdn_set
+        certificate_request_source_id = (
+            dbAcmeOrder_retry_of.certificate_request_source_id
+        )
+        domain_names = dbAcmeOrder_retry_of.domains_as_list
+
+    elif dbAcmeOrder_renewal_of:
+        # kwargs validation
+        if not dbAcmeAccountKey:
+            raise ValueError(
+                "Must submit `dbAcmeAccountKey` with `dbAcmeOrder_renewal_of`"
+            )
+        if not dbPrivateKey:
+            raise ValueError("Must submit `dbPrivateKey`")
+
+        # ensure we can transition
+        if dbAcmeOrder_renewal_of.status_text != "valid":
+            raise errors.InvalidRequest(
+                "`dbAcmeOrder_renewal_of.status_text` must be 'valid'"
+            )
+
+        # re-use these related objects
+        if dbPrivateKey == dbAcmeOrder_renewal_of.certificate_request.private_key:
+            dbCertificateRequest = dbAcmeOrder_renewal_of.certificate_request
+        dbUniqueFQDNSet = dbAcmeOrder_renewal_of.unique_fqdn_set
+        domain_names = dbAcmeOrder_renewal_of.domains_as_list
+
+        # set this
+        certificate_request_source_id = (
+            model_utils.CertificateRequestSource.ACME_AUTOMATED_ORDER_RENEW
+        )
+
+    elif dbCertificateRequest:
+        # kwargs validation
+        if not dbAcmeAccountKey:
+            raise ValueError(
+                "Must submit `dbAcmeAccountKey` with `dbCertificateRequest`"
+            )
+        if dbPrivateKey:
+            raise ValueError("do not pass `dbPrivateKey` with `dbCertificateRequest`")
+
+        # re-use these related objects
+        dbUniqueFQDNSet = dbCertificateRequest.unique_fqdn_set
+        domain_names = dbCertificateRequest.domains_as_list
+
+    elif dbQueueRenewal__of:
+        # kwargs validation
+
+        # TODO - dbQueueRenewal__of
+        raise ValueError("#TODO")
+
+    elif dbServerCertificate__renewal_of:
+        # kwargs validation
+        if not dbAcmeAccountKey:
+            raise ValueError(
+                "Must submit `dbAcmeAccountKey` with `dbAcmeOrder_renewal_of`"
+            )
+        if not dbPrivateKey:
+            raise ValueError("Must submit `dbPrivateKey`")
+
+        # re-use these related objects
+        if dbPrivateKey == dbServerCertificate__renewal_of.private_key:
+            dbCertificateRequest = dbServerCertificate__renewal_of.certificate_request
+        else:
+            certificate_request_source_id = (
+                model_utils.CertificateRequestSource.ACME_AUTOMATED_CERT_RENEW
+            )
+        dbUniqueFQDNSet = dbServerCertificate__renewal_of.unique_fqdn_set
+        domain_names = dbServerCertificate__renewal_of.domains_as_list
+
+    elif dbUniqueFQDNSet:
+        # kwargs validation
+        if not dbAcmeAccountKey:
+            raise ValueError(
+                "Must submit `dbAcmeAccountKey` with `dbUniqueFQDNSet`"
+            )
+        if not dbPrivateKey:
+            raise ValueError("Must submit `dbPrivateKey`")
+        certificate_request_source_id = (
+            model_utils.CertificateRequestSource.ACME_AUTOMATED_NEW
+        )
+
+    # ensure the private key is usable!
+    if not dbPrivateKey.is_key_usable:
+        raise errors.InvalidRequest(
+            "The `dbPrivateKey` is not usable. It was deactivated or compromised.`"
+        )
+
+    # ensure we have domains names!
+    if not any((domain_names, dbUniqueFQDNSet)):
+        raise ValueError("No `domain_names` detected for this request")
+
+    if not dbUniqueFQDNSet:
+        (dbUniqueFQDNSet, is_created_fqdn) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domains(ctx, domain_names)
+        ctx.pyramid_transaction_commit()
+
+    tmpfiles = []
+    dbAcmeOrder = None
+    dbServerCertificate = None
+    try:
+        # pull the pem out of the account_key
+        account_key_pem = dbAcmeAccountKey.key_pem
+
+        # we need to use tmpfiles on the disk
+        tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
+        tmpfiles.append(tmpfile_account)
+        account_key_path = tmpfile_account.name
+
+        # register the account / ensure that it is registered
+        # the authenticatedUser will have an `acmeLogger`
+        authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
+            ctx, dbAcmeAccountKey, account_key_path=account_key_path,
+        )
+
+        # create the order on the ACME server
+        (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
+            ctx,
+            domain_names=domain_names,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
+            transaction_commit=True,
+        )
+
+        try:
+            resource_url = acmeOrderRfcObject.response_headers["location"]
+        except:
+            resource_url = None
+
+        # enroll the Acme Order into our database
+        dbAcmeOrder = lib.db.create.create__AcmeOrder(
+            ctx,
+            acme_order_response=acmeOrderRfcObject.rfc_object,
+            resource_url=resource_url,
+            dbAcmeAccountKey=dbAcmeAccountKey,
+            dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
+            dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
+            dbCertificateRequest=dbCertificateRequest,
+            dbEventLogged=dbAcmeOrderEventLogged,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
+            transaction_commit=True,
+        )
+
+        # register the order into the logging utility
+        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+        # handle the order towards finalized?
+        _todo_finalize_order = _AcmeV2_AcmeOrder_process(
+            ctx, authenticatedUser, dbAcmeOrder, acmeOrderRfcObject
+        )
+        if not _todo_finalize_order:
+            return (dbAcmeOrder, False)
+
+        (dbAcmeOrder, result) = _do__AcmeOrder__AcmeV2__core_finalize(
+            ctx,
+            authenticatedUser=authenticatedUser,
+            dbAcmeOrder=dbAcmeOrder,
+            dbPrivateKey=dbPrivateKey,
+            dbCertificateRequest=dbCertificateRequest,
+            certificate_request_source_id=certificate_request_source_id,
+            dbQueueRenewal__of=dbQueueRenewal__of,
+            dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
+            domain_names=domain_names,
+            acmeOrderRfcObject=acmeOrderRfcObject,
+            update_AcmeOrder_status=update_AcmeOrder_status,
+        )
+        
+        return (dbAcmeOrder, result)
+
+    except Exception as exc:
         raise
 
     finally:
@@ -944,6 +1076,7 @@ def do__AcmeOrder__AcmeV2__automated(
     dbPrivateKey=None,
     dbServerCertificate__renewal_of=None,
     dbQueueRenewal__of=None,
+    single_process=None,
 ):
     """
     Automates a Certificate deployment from LetsEncrypt
@@ -952,31 +1085,45 @@ def do__AcmeOrder__AcmeV2__automated(
     :param domain_names: (required) An iteratble list of domain names
     :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
-    :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
     :param dbQueueRenewal__of: (optional) A :class:`model.objects.QueueRenewal` object
+    :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
+    :param single_process: (optional) Should this be attempted in a single, long, process?
 
     :returns: A :class:`model.objects.AcmeOrder` object
     """
+    # bookkeeping
+    dbOperationsEvent = log__OperationsEvent(
+        ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Automated"),
+    )
     return _do__AcmeOrder__AcmeV2__core(
         ctx,
         domain_names=domain_names,
+        certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED_NEW,
+        single_process=single_process,
         dbAcmeAccountKey=dbAcmeAccountKey,
         dbPrivateKey=dbPrivateKey,
-        dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
         dbQueueRenewal__of=dbQueueRenewal__of,
+        dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
     )
 
 
 def do__AcmeOrder_AcmeV2__retry(
-    ctx, dbAcmeOrder=None,
+    ctx, dbAcmeOrder=None, single_process=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
+    :param single_process: (optional) Should this be attempted in a single, long, process?
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
-    return _do__AcmeOrder__AcmeV2__core(ctx, dbAcmeOrder_retry_of=dbAcmeOrder,)
+    # bookkeeping
+    dbOperationsEvent = log__OperationsEvent(
+        ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Retry"),
+    )
+    return _do__AcmeOrder__AcmeV2__core(
+        ctx, dbAcmeOrder_retry_of=dbAcmeOrder, single_process=single_process,
+    )
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

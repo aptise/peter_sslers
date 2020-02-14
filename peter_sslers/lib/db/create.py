@@ -29,50 +29,61 @@ from ._utils import get_dbSessionLogItem
 
 def create__AcmeOrder(
     ctx,
+    acme_order_response=None,
+    resource_url=None,
     dbAcmeAccountKey=None,
+    dbAcmeOrder_renewal_of=None,
+    dbAcmeOrder_retry_of=None,
     dbCertificateRequest=None,
     dbEventLogged=None,
-    acmeOrderRfcObject=None,
-    acmeOrderResponseHeaders=None,
-    dbAcmeOrder_retry_of=None,
-    dbAcmeOrder_renewal_of=None,
+    dbUniqueFQDNSet=None,
     transaction_commit=None,
 ):
     """
     Create a new ACME Order
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` associated with the order
-    :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest` associated with the order
-    :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
-    :param acmeOrderRfcObject: (required) dictionary object from the server, representing an ACME payload
-    :param acmeOrderResponseHeaders: (required) headers from the ACME order
+    :param acme_order_response: (required) dictionary object from the server, representing an ACME payload
+    :param resource_url: (required) the url of the object
 
+    :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` associated with the order
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbAcmeOrder_renewal_of: (optional) A :class:`model.objects.AcmeOrder` object
+    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
+    :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
+    :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
+
 
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
     """
     if not transaction_commit:
         raise ValueError("`create__AcmeOrder` must persist to the database.")
 
-    if acmeOrderRfcObject is None:
+    if acme_order_response is None:
         raise ValueError(
-            "`create__AcmeOrder` must be invoked with a `acmeOrderRfcObject`."
+            "`create__AcmeOrder` must be invoked with a `acme_order_response`."
         )
+
+    if not any((dbCertificateRequest, dbUniqueFQDNSet)):
+        raise ValueError(
+            "`create__AcmeOrder` must have at least one of (dbCertificateRequest, dbUniqueFQDNSet)."
+        )
+
+    if all((dbCertificateRequest, dbUniqueFQDNSet)):
+        if dbCertificateRequest.unique_fqdn_set_id != dbUniqueFQDNSet.id:
+            raise ValueError(
+                "`create__AcmeOrder` mismatch of (dbCertificateRequest, dbUniqueFQDNSet)."
+            )
 
     # acme_status_order_id = model_utils.Acme_Status_Order.DEFAULT_ID
     acme_status_order_id = model_utils.Acme_Status_Order.from_string(
-        acmeOrderRfcObject["status"]
+        acme_order_response["status"]
     )
-    finalize_url = acmeOrderRfcObject.get("finalize")
-    timestamp_expires = acmeOrderRfcObject.get("expires")
+    finalize_url = acme_order_response.get("finalize")
+    timestamp_expires = acme_order_response.get("expires")
     if timestamp_expires:
         timestamp_expires = dateutil_parser.parse(timestamp_expires)
-    try:
-        resource_url = acmeOrderResponseHeaders["location"]
-    except:
-        pass
+        timestamp_expires = timestamp_expires.replace(tzinfo=None)
 
     if all((dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of)):
         raise ValueError(
@@ -85,8 +96,8 @@ def create__AcmeOrder(
     dbAcmeOrder.acme_status_order_id = acme_status_order_id
     dbAcmeOrder.acme_account_key_id = dbAcmeAccountKey.id
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
-    dbAcmeOrder.certificate_request_id = dbCertificateRequest.id
-    dbAcmeOrder.unique_fqdn_set_id = dbCertificateRequest.unique_fqdn_set_id
+    dbAcmeOrder.certificate_request_id = dbCertificateRequest.id if dbCertificateRequest else None
+    dbAcmeOrder.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.timestamp_expires = timestamp_expires
     dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
@@ -103,7 +114,7 @@ def create__AcmeOrder(
     ctx.dbSession.flush(objects=[dbEventLogged])
 
     # now loop the authorization URLs to create stubs for this order
-    for authorization_url in acmeOrderRfcObject.get("authorizations"):
+    for authorization_url in acme_order_response.get("authorizations"):
         (
             dbAuthPlacholder,
             is_auth_created,
@@ -189,7 +200,7 @@ def create__CertificateRequest(
         lib.db.actions_acme.do__AcmeOrder__AcmeV2__automated
             ctx,
             csr_pem,
-            certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED,
+            certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED_NEW,
             dbAcmeAccountKey=dbAcmeAccountKey,
             dbPrivateKey=dbPrivateKey,
             dbServerCertificate__issued=None,
@@ -204,18 +215,16 @@ def create__CertificateRequest(
             dbServerCertificate__issued=dbServerCertificate__issued,
             dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
     """
-    if certificate_request_source_id not in (
-        model_utils.CertificateRequestSource.ACME_AUTOMATED,
-    ):
+    if certificate_request_source_id not in model_utils.CertificateRequestSource._mapping:
         raise ValueError("Unsupported `certificate_request_source_id`")
 
     _event_type_id = None
     if (
         certificate_request_source_id
-        == model_utils.CertificateRequestSource.ACME_AUTOMATED
+        == model_utils.CertificateRequestSource.ACME_AUTOMATED_NEW
     ):
         _event_type_id = model_utils.OperationsEventType.from_string(
-            "certificate_request__new__automated"
+            "CertificateRequest__new__automated"
         )
     else:
         # this is probably the ".REPORTING" which is used for historical stuff
@@ -314,7 +323,7 @@ def create__CertificateRequest(
         ctx,
         dbOperationsEvent=dbOperationsEvent,
         event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            "certificate_request__insert"
+            "CertificateRequest__insert"
         ),
         dbCertificateRequest=dbCertificateRequest,
     )
@@ -330,6 +339,22 @@ def create__CertificateRequest(
     ctx.dbSession.flush(objects=[dbPrivateKey])
 
     return dbCertificateRequest
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def create__PrivateKey__autogenerated(ctx):
+    """
+    Generates a new :class:`model.objects.PrivateKey` for the datastore
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    """
+    key_pem = cert_utils.new_private_key()
+    dbPrivateKey, _is_created = lib.db.getcreate.getcreate__PrivateKey__by_pem_text(
+        ctx, key_pem, is_autogenerated_key=True
+    )
+    return dbPrivateKey
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -384,6 +409,7 @@ def create__ServerCertificate(
     dbAcmeAccountKey = None
     if dbAcmeOrder:
         dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+        dbUniqueFqdnSet = dbAcmeOrder.unique_fqdn_set
         dbCertificateRequest = dbAcmeOrder.certificate_request
         dbPrivateKey = dbAcmeOrder.certificate_request.private_key
 
@@ -524,22 +550,6 @@ def create__ServerCertificate(
             _tmpfileCert.close()
 
     return dbServerCertificate
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def create__PrivateKey__autogenerated(ctx):
-    """
-    Generates a new :class:`model.objects.PrivateKey` for the datastore
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    """
-    key_pem = cert_utils.new_private_key()
-    dbPrivateKey, _is_created = lib.db.getcreate.getcreate__PrivateKey__by_pem_text(
-        ctx, key_pem, is_autogenerated_key=True
-    )
-    return dbPrivateKey
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

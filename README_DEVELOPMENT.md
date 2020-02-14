@@ -62,6 +62,7 @@ Good to go?  Ok, run pebble!
 
 To have all challenge POST requests succeed without performing any validation run:
 
+	cd $GOPATH/src/github.com/letsencrypt/pebble
 	PEBBLE_VA_ALWAYS_VALID=1 pebble -config ./test/config/pebble-config.json
 
 ## ACME v1 Testing

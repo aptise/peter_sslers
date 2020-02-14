@@ -147,11 +147,19 @@ class ViewAdmin_Focus(Handler):
                 raise errors.InvalidRequest(
                     "ACME Retry is not allowed for this AcmeOrder"
                 )
-            result = lib_db.actions_acme.do__AcmeOrder_AcmeV2__retry(
+            (dbAcmeOrderNew, result) = lib_db.actions_acme.do__AcmeOrder_AcmeV2__retry(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
+            retry_url = "%s/acme-order/%s" % (
+                self.request.admin_url,
+                dbAcmeOrderNew.id,
+            )
+            if result:
+                return HTTPSeeOther(
+                    "%s?result=success&operation=retry+order" % retry_url
+                )
             return HTTPSeeOther(
-                "%s?result=success&operation=retry+success" % self._focus_url
+                "%s?error=could+not+retry&operation=retry+order" % retry_url
             )
         except (
             errors.AcmeCommunicationError,
@@ -264,7 +272,10 @@ class ViewAdmin_New(Handler):
             )
 
             try:
-                dbAcmeOrder = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
+                (
+                    dbAcmeOrder,
+                    result,
+                ) = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
                     self.request.api_context,
                     domain_names=domain_names,
                     dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
@@ -288,7 +299,8 @@ class ViewAdmin_New(Handler):
                     )
                 )
             except Exception as exc:
-                raise
+                # note: allow this on testing
+                # raise
                 if self.request.registry.settings["exception_redirect"]:
                     return HTTPSeeOther(
                         "%s/acme-orders?error=new-automated"

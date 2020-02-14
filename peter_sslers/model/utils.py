@@ -159,11 +159,12 @@ class _OperationsUnified(_mixin_mapping):
         421: "domain__mark__active",
         422: "domain__mark__inactive",
         510: "unqiue_fqdn__insert",
-        610: "certificate_request__insert",
-        620: "certificate_request__new",
-        630: "certificate_request__new__flow",
-        640: "certificate_request__new__automated",
-        650: "certificate_request__do__automated",
+        610: "CertificateRequest__insert",
+        620: "CertificateRequest__new",
+        621: "CertificateRequest__new__automated",
+        630: "CertificateRequest__new__flow",
+        640: "AcmeOrder_New_Automated",
+        650: "AcmeOrder_New_Retry",
         710: "certificate__insert",
         720: "certificate__mark",
         721: "certificate__mark__active",
@@ -312,6 +313,7 @@ class Acme_Status_Order(_mixin_mapping):
     """The status of an order"""
 
     DEFAULT_ID = 0
+    OPTIONS_RETRY = ("invalid",)
     OPTIONS_X_ACME_SYNC = ("valid",)
     OPTIONS_X_MARK_INVALID = (
         "invalid",
@@ -377,15 +379,26 @@ class CertificateRequestSource(_mixin_mapping):
     How was the CertificateRequest generated?
     - RECORDED - just records the CSR; uploaded into our system
     - ACME_FLOW - Creates a flow
-    - ACME_AUTOMATED = acting as the full LE Client
+    - ACME_AUTOMATED_NEW = acting as the full LE Client, new order
+    - ACME_AUTOMATED_ORDER_RENEW - ACME_AUTOMATED, for renewing an order
+    - ACME_AUTOMATED_CERT_RENEW - ACME_AUTOMATED, for renewing a certificate
     """
 
     RECORDED = 1
     ACME_FLOW = 2
-    ACME_AUTOMATED = 3
+    ACME_AUTOMATED_NEW = 3
     QUEUED_DOMAIN = 4
+    ACME_AUTOMATED_ORDER_RENEW = 5
+    ACME_AUTOMATED_CERT_RENEW = 6
 
-    _mapping = {1: "RECORDED", 2: "ACME_FLOW", 3: "ACME_AUTOMATED", 4: "QUEUED_DOMAIN"}
+    _mapping = {
+        1: "RECORDED",
+        2: "ACME_FLOW",
+        3: "ACME_AUTOMATED_NEW",
+        4: "QUEUED_DOMAIN",
+        5: "ACME_AUTOMATED_ORDER_RENEW",
+        6: "ACME_AUTOMATED_CERT_RENEW",
+    }
 
 
 class _mixin_OperationsEventType(object):

@@ -525,8 +525,6 @@ class AcmeOrder(Base):
     server_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
-
-    # TODO - this is on the certificate request; we could just use that
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
@@ -630,9 +628,6 @@ class AcmeOrder(Base):
         auths_deactivate = self.authorizations_can_deactivate
         if not auths_deactivate:
             return False
-        print("=======================")
-        print(auths_deactivate)
-        print("=======================")
 
         return True
 
@@ -644,11 +639,9 @@ class AcmeOrder(Base):
 
     @property
     def is_can_retry(self):
-        if self.acme_status_order_id == model_utils.Acme_Status_Order.from_string(
-            "invalid"
-        ):
-            return True
-        return False
+        if self.status_text not in model_utils.Acme_Status_Order.OPTIONS_RETRY:
+            return False
+        return True
 
     @property
     def status_text(self):
@@ -1221,7 +1214,6 @@ class PrivateKey(Base):
         }
 
 
-
 class QueueDomain(Base):
     """
     A list of domains to be queued into certificates.
@@ -1229,6 +1221,7 @@ class QueueDomain(Base):
     Domains that are included in CertificateRequests or Certificates
     The DomainQueue will allow you to queue-up domain names for management
     """
+
     __tablename__ = "queue_domain"
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
@@ -1403,7 +1396,6 @@ class QueueRenewal(Base):
             "is_active": True if self.is_active else False,
             "server_certificate_id__renewed": self.server_certificate_id__renewed,
         }
-
 
 
 class ServerCertificate(Base):

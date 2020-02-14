@@ -73,12 +73,12 @@ class AcmeLogger(object):
 
         return dbAcmeEventLog
 
-    def log_newOrder(self, acme_version, dbCertificateRequest, transaction_commit=None):
+    def log_newOrder(self, acme_version, dbUniqueFQDNSet, transaction_commit=None):
         """
         Logs a call for the ACME Registration event
 
         :param acme_version: (required) The ACME version of the API we are using.
-        :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest` for the new order
+        :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` for the new order
         :param transaction_commit: (option) Boolean. If True, commit the transaction
 
         This WILL NOT SET:
@@ -93,7 +93,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = acme_event_id
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
-        dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
+        dbAcmeEventLog.unique_fqdn_set_id = dbUniqueFQDNSet.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -120,7 +120,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -151,8 +151,8 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id if self.dbAcmeOrder else None
-        dbAcmeEventLog.certificate_request_id = (
-            self.dbAcmeOrder.certificate_request.id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         )
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
@@ -177,9 +177,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id if self.dbAcmeOrder else None
-        dbAcmeEventLog.certificate_request_id = (
-            self.dbAcmeOrder.certificate_request.id if self.dbAcmeOrder else None
-        )
+        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -209,7 +207,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -241,7 +239,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -286,7 +284,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -316,7 +314,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -346,7 +344,7 @@ class AcmeLogger(object):
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -383,7 +381,7 @@ class AcmeLogger(object):
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.certificate_request_id = self.dbAcmeOrder.certificate_request.id
+        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         dbAcmeEventLog.server_certificate_id = dbServerCertificate.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()

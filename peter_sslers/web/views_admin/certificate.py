@@ -463,7 +463,10 @@ class ViewAdmin_Focus(Handler):
                 )
 
             try:
-                dbAcmeOrder = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
+                (
+                    dbAcmeOrder,
+                    result,
+                ) = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
                     self.request.api_context,
                     domain_names=None,  # domain_names, handle via the certificate...
                     dbAcmeAccountKey=dbServerCertificate.acme_account_key,
@@ -670,7 +673,10 @@ class ViewAdmin_Focus(Handler):
                 raise ValueError("need a dbPrivateKey")
                 dbPrivateKey = None
 
-                dbAcmeOrder = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
+                (
+                    dbAcmeOrder,
+                    result,
+                ) = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
                     self.request.api_context,
                     domain_names=None,
                     dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,

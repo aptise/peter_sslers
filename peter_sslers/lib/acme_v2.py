@@ -202,7 +202,7 @@ def account_key__parse(account_key_path=None):
 # ------------------------------------------------------------------------------
 
 
-class AcmeOrder(object):
+class AcmeOrderRFC(object):
     """
     An object wrapping up an ACME server order
 
@@ -210,19 +210,19 @@ class AcmeOrder(object):
 
     :param rfc_object: (required) A Python dict representing the RFC AcmeOrder object
     :param response_headers: (required) The headers of the ACME Server's response
-    :param dbCertificateRequest: (required) A :class:`model.objects.CertificateRequest` object
+    :param dbUniqueFQDNSet: (required) A :class:`model.objects.UniqueFQDNSet` object
     """
 
     rfc_object = None
     response_headers = None
-    dbCertificateRequest = None
+    dbUniqueFQDNSet = None
 
     def __init__(
-        self, rfc_object=None, response_headers=None, dbCertificateRequest=None
+        self, rfc_object=None, response_headers=None, dbUniqueFQDNSet=None
     ):
         self.rfc_object = rfc_object
         self.response_headers = response_headers
-        self.dbCertificateRequest = dbCertificateRequest
+        self.dbUniqueFQDNSet = dbUniqueFQDNSet
 
 
 # ------------------------------------------------------------------------------
@@ -281,6 +281,7 @@ class AuthenticatedUser(object):
         self.accountkey_thumbprint = accountkey_thumbprint
         self.alg = alg
         self.log__OperationsEvent = log__OperationsEvent
+        self._next_nonce = None
 
     def _send_signed_request(self, url, payload=None, depth=0):
         """
@@ -290,8 +291,13 @@ class AuthenticatedUser(object):
         :param depth: (optional) An integer nothing the depth of this function being called
         """
         payload64 = "" if payload is None else _b64(json.dumps(payload).encode("utf8"))
-        new_nonce = url_request(self.acme_directory["newNonce"])[2]["Replay-Nonce"]
-        protected = {"url": url, "alg": self.alg, "nonce": new_nonce}
+        if self._next_nonce:
+            nonce = self._next_nonce
+        else:
+            self._next_nonce = nonce = url_request(self.acme_directory["newNonce"])[
+                2
+            ]["Replay-Nonce"]
+        protected = {"url": url, "alg": self.alg, "nonce": nonce}
         protected.update(
             {"jwk": self.accountkey_jwk}
             if self._api_account_headers is None
@@ -313,18 +319,30 @@ class AuthenticatedUser(object):
         ) as proc:
             out, err = proc.communicate(protected_input)
             if proc.returncode != 0:
+                self._next_nonce = None
                 raise IOError("_send_signed_request\n{1}".format(err))
         data = json.dumps(
             {"protected": protected64, "payload": payload64, "signature": _b64(out)}
         )
         try:
-            return url_request(
+            result = url_request(
                 url,
                 post_data=data.encode("utf8"),
                 err_msg="_send_signed_request",
                 depth=depth,
             )
+            try:
+                _next_nonce = result[2]["Replay-Nonce"]
+                if (not _next_nonce) or (nonce == _next_nonce):
+                    self._next_nonce = None
+                else:
+                    self._next_nonce = _next_nonce
+            except Exception as exc:
+                self._next_nonce = None
+                pass
+            return result
         except IndexError:  # retry bad nonces (they raise IndexError)
+            self._next_nonce = None
             return self._send_signed_request(url, payload=payload, depth=(depth + 1),)
 
     def _poll_until_not(self, _url, _pending_statuses, _log_message):
@@ -518,25 +536,29 @@ class AuthenticatedUser(object):
         )
 
         # this is just a convenience wrapper for our order object
-        acmeOrderObject = AcmeOrder(
+        acmeOrderRfcObject = AcmeOrderRFC(
             rfc_object=acme_order_object,
             response_headers=acme_order_headers,
-            dbCertificateRequest=dbAcmeOrder.certificate_request,
+            AcmeOrderRFC=dbAcmeOrder.unique_fqdn_set,
         )
 
-        return (acmeOrderObject, dbEventLogged)
+        return (acmeOrderRfcObject, dbEventLogged)
 
     def acme_order_new(
-        self, ctx, csr_domains=None, dbCertificateRequest=None, transaction_commit=None,
+        self,
+        ctx,
+        domain_names=None,
+        dbUniqueFQDNSet=None,
+        transaction_commit=None,
     ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
-        :param csr_domains: (required) The domains for our order
-        :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest` associated with the order
+        :param domain_names: (required) The domains for our order
+        :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
 
         returns
-            AcmeOrderObject, dbEventLogged
+            acmeOrderRfcObject, dbEventLogged
 
         https://tools.ietf.org/html/rfc8555#section-7.4
 
@@ -611,7 +633,7 @@ class AuthenticatedUser(object):
             raise ValueError("we must invoke this knowing it will commit")
 
         payload_order = {
-            "identifiers": [{"type": "dns", "value": d} for d in csr_domains]
+            "identifiers": [{"type": "dns", "value": d} for d in domain_names]
         }
         (acme_order_object, _code, acme_order_headers) = self._send_signed_request(
             self.acme_directory["newOrder"], payload=payload_order,
@@ -620,22 +642,22 @@ class AuthenticatedUser(object):
 
         # log the event to the db
         dbEventLogged = self.acmeLogger.log_newOrder(
-            "v2", dbCertificateRequest, transaction_commit=True
+            "v2", dbUniqueFQDNSet, transaction_commit=True
         )
 
         # this is just a convenience wrapper for our order object
-        acmeOrderObject = AcmeOrder(
+        acmeOrderRfcObject = AcmeOrderRFC(
             rfc_object=acme_order_object,
             response_headers=acme_order_headers,
-            dbCertificateRequest=dbCertificateRequest,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
         )
 
-        return (acmeOrderObject, dbEventLogged)
+        return (acmeOrderRfcObject, dbEventLogged)
 
     def acme_order_process_authorizations(
         self,
         ctx,
-        acmeOrder=None,
+        acmeOrderRfcObject=None,
         dbAcmeOrder=None,
         handle_authorization_payload=None,
         handle_challenge_setup=None,
@@ -646,7 +668,7 @@ class AuthenticatedUser(object):
     ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
-        :param acmeOrder: (required) A :class:`AcmeOrder` object representing the server's response
+        :param acmeOrderRfcObject: (required) A :class:`AcmeOrderRFC` object representing the server's response
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
 
         :param handle_authorization_payload: (required) Callable function. expects (authorization_url, authorization_response, transaction_commit)
@@ -665,7 +687,7 @@ class AuthenticatedUser(object):
                 "`acme_order_process_authorizations()` must persist to the database."
             )
 
-        _order_status = acmeOrder.rfc_object["status"]
+        _order_status = acmeOrderRfcObject.rfc_object["status"]
         if _order_status != "pending":
             if _order_status == "invalid":
                 raise ValueError("this order is dead")
@@ -675,7 +697,7 @@ class AuthenticatedUser(object):
                 )
 
         # verify each domain
-        for authorization_url in acmeOrder.rfc_object["authorizations"]:
+        for authorization_url in acmeOrderRfcObject.rfc_object["authorizations"]:
             auth_result = self.acme_authorization_process(
                 ctx,
                 authorization_url,
@@ -693,7 +715,7 @@ class AuthenticatedUser(object):
     def acme_order_finalize(
         self,
         ctx,
-        acmeOrder=None,  # acme server api response, `AcmeOrder` object
+        acmeOrderRfcObject=None,
         dbAcmeOrder=None,
         update_order_status=None,
         transaction_commit=None,
@@ -702,7 +724,7 @@ class AuthenticatedUser(object):
     ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
-        :param acmeOrder: (required) A :class:`AcmeOrder` object representing the server's response
+        :param acmeOrderRfcObject: (required) A :class:`AcmeOrderRFC` object representing the server's response
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
         :param update_order_status: (required) Callable function. expects (ctx, dbAcmeOrder, status, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
@@ -738,14 +760,14 @@ class AuthenticatedUser(object):
         payload_finalize = {"csr": _b64(csr_der)}
         try:
             (finalize_response, _, _) = self._send_signed_request(
-                acmeOrder.rfc_object["finalize"], payload=payload_finalize,
+                acmeOrderRfcObject.rfc_object["finalize"], payload=payload_finalize,
             )
         except Exception as exc:
             pdb.set_trace()
             raise
 
         # poll the order to monitor when it's done
-        # url_order_status = acmeOrder.response_headers["Location"]
+        # url_order_status = acmeOrderRfcObject.response_headers["Location"]
         url_order_status = dbAcmeOrder.resource_url
 
         log.info("checking order {0}".format("order"))
@@ -807,12 +829,11 @@ class AuthenticatedUser(object):
         :param update_AcmeChallenge_status: callable. expects (ctx, dbAcmeChallenge, status_text, transaction_commit)
 
         Returns:
-        
+
             True: Authorization Valid
             None: No Authorization Action
-        
+
         If the challenge fails, we raise a `errors.DomainVerificationError`.
-        This will 
 
         ------------------------------------------------------------------------
 
