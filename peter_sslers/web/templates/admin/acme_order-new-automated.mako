@@ -6,14 +6,14 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificate-requests">Certificate Requests</a></li>
+        <li><a href="${admin_prefix}/acme-orders">AcmeOrder</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Certificate Request - FULL | New</h2>
+    <h2>AcmeOrder | New</h2>
     <p><em>${request.text_library.info_AcmeOrder_new_Automated[1]}</em></p>
     <div class="alert alert-info">
         <em>

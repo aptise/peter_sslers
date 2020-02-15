@@ -6,9 +6,9 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-orderlesss">ACME Orderless</a></li>
+        <li><a href="${admin_prefix}/acme-orderlesss">AcmeOrderless</a></li>
         <li><a href="${admin_prefix}/acme-orderlesss/${AcmeOrderless.id}">Focus - ${AcmeOrderless.id}</a></li>
-        <li><a href="#">Challenge Focus</a></li>
+        <li><a href="#">AcmeOrderlessChallenge Focus</a></li>
     </ol>
 </%block>
 
@@ -28,6 +28,15 @@
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     AcmeOrderless-${AcmeOrderless.id}
                 </a>
+            </p>
+
+            <p>
+                The AcmeOrderless, and this challenge, is
+                % if AcmeOrderless.is_active:
+                    <span class="label label-success">active</span>
+                % else:
+                    <span class="label label-danger">deactivated</span>
+                % endif
             </p>
 
         </div>
@@ -89,13 +98,30 @@
                         (this is not the URL on your server, but the ACME Server URL)
                     </td>
                 </tr>
-
                 <tr>
                     <th>timestamp_updated</th>
                     <td>
                         <timestamp>${AcmeOrderlessChallenge.timestamp_updated or ''}</timestamp>
                     </td>
                 </tr>
+
+                <tr>
+                    <th>test</th>
+                    <td>
+                        % if AcmeOrderlessChallenge.acme_challenge_type == "http-01":
+                            % if AcmeOrderlessChallenge.token:
+                                <a href="http://${AcmeOrderlessChallenge.domain.domain_name}/.well-known/acme-challenge/${AcmeOrderlessChallenge.token}?test=1"
+                                   target="_blank"
+                                   class="btn btn-${"success" if AcmeOrderless.is_active else "danger"}"
+                                >
+                                    <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
+                                </a>
+                            % endif
+                        % endif
+                    </td>
+                </tr>
+                
+                
             </table>
 
             <h5>AcmeOrderlessChallengePolls</h5>

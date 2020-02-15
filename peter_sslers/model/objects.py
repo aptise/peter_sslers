@@ -490,7 +490,7 @@ class AcmeChallenge(Base):
 
 class AcmeOrderless(Base):
     """
-    ACME Orderless allows us to support the "AcmeFlow"
+    AcmeOrderless allows us to support the "AcmeFlow"
     """
 
     __tablename__ = "acme_orderless"

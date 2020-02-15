@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-orders">ACME Orders</a></li>
+        <li><a href="${admin_prefix}/acme-orders">AcmeOrder</a></li>
         <li class="active">Focus [${AcmeOrder.id}]</li>
     </ol>
 </%block>

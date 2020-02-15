@@ -36,7 +36,7 @@ def create__AcmeOrderlessChallenge(
     challenge_url=None,
 ):
     """
-    Create a new ACME Orderless Tracker
+    Create a new AcmeOrderless Challenge
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param dbAcmeOrderless: (required) The :class:`model.objects.AcmeOrderless`
     :param dbDomain: (required) The :class:`model.objects.Domain`
@@ -100,7 +100,7 @@ def create__AcmeOrderless(
     ctx, domain_names=None,
 ):
     """
-    Create a new ACME Orderless Tracker
+    Create a new AcmeOrderless Tracker
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param domain_names: (required) An iteratble list of domain names
     """

@@ -6,13 +6,13 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">ACME Orderless</li>
+        <li class="active">AcmeOrderless</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>ACME Orderless</h2>
+    <h2>AcmeOrderless</h2>
 </%block>
 
 
@@ -29,7 +29,7 @@
                         title="${request.text_library.info_AcmeOrderless_new[0]}"
                     >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                    New: ACME Orderless Flow</a></li>
+                    New: AcmeOrderless Flow</a></li>
             </ul>
             % if AcmeOrderlesss:
                 ${admin_partials.nav_pagination(pager)}

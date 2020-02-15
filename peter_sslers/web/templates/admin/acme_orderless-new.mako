@@ -6,16 +6,16 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-orderlesss" class="active">ACME Orderlesss</a></li>
+        <li><a href="${admin_prefix}/acme-orderlesss" class="active">AcmeOrderless</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
 
 <%block name="page_header_col">
-    <h2>ACME Orderless Flow | New</h2>
+    <h2>AcmeOrderless Flow | New</h2>
     <p><em>${request.text_library.info_AcmeOrderless_new[1]}</em></p>
     <p>
-        The Acme Orderless Flow system was designed to manage challeneges for a LetsEncrypt certificate issuance initiated with other software.
+        The AcmeOrderless Flow system was designed to manage challeneges for a LetsEncrypt certificate issuance initiated with other software.
         This subsystem allows you enter the challenge/response codes via HTML or a JSON API, and tracks when LetsEncrypt makes the validation.
         This is most useful in a clustered environment with the 'manual' certbot plugin populating the challenges.
     </p>

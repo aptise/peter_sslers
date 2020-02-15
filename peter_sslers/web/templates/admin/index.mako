@@ -164,7 +164,7 @@
                             title="${request.text_library.info_AcmeOrderless_new[0]}"
                         >
                         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                        New: ACME Orderless Flow</a></li>
+                        New: AcmeOrderless Flow</a></li>
                 % endif
             </ul>
 
