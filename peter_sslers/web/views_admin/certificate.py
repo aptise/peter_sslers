@@ -22,6 +22,7 @@ from ..lib.forms import Form_Certificate_Renewal_Custom
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.handler import Handler, items_per_page
 from ...lib import errors
+from ...lib import events
 from ...lib import db as lib_db
 from ...lib import cert_utils
 from ...lib import letsencrypt_info
@@ -916,7 +917,7 @@ class ViewAdmin_Focus(Handler):
 
             if deactivated:
                 # this will handle requeuing
-                lib.events.Certificate_deactivated(
+                events.Certificate_deactivated(
                     self.request.api_context, dbServerCertificate
                 )
 
@@ -927,7 +928,7 @@ class ViewAdmin_Focus(Handler):
             if wants_json:
                 return {"result": "success", "Domain": dbServerCertificate.as_json}
             url_success = "%s?operation=mark&action=%s&result=success" % (
-                self._focus_url.id,
+                self._focus_url,
                 action,
             )
             return HTTPSeeOther(url_success)
