@@ -241,6 +241,28 @@
                             % endif
                         </td>
                     </tr>
+
+                    <tr>
+                        <th>AcmeOrderless</th>
+                        <td>
+                            ${admin_partials.table_AcmeOrderlesss(Domain.acme_orderlesss__5, perspective="Domain")}
+                            % if Domain.acme_orderlesss__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/acme-orderlesss" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeOrderlessChallenges</th>
+                        <td>
+                            ${admin_partials.table_AcmeOrderlessChallenges(Domain.acme_orderless_challenges__5, perspective="Domain")}
+                            % if Domain.acme_orderless_challenges__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/acme-orderless-challenges" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+
+
+
                 </tbody>
             </table>
         </div>

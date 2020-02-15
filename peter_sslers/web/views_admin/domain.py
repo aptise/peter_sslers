@@ -295,6 +295,65 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:domain:focus:acme_orderlesss",
+        renderer="/admin/domain-focus-acme_orderless.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_orderlesss_paginated",
+        renderer="/admin/domain-focus-acme_orderless.mako",
+    )
+    def focus__acme_orderlesss(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__AcmeOrderless__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/acme-orderlesss/{0}" % self._focus_url
+        )
+        items_paged = lib_db.get.get__AcmeOrderless__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeOrderlesss_count": items_count,
+            "AcmeOrderlesss": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:domain:focus:acme_orderless_challenges",
+        renderer="/admin/domain-focus-acme_orderless_challenge.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_orderless_challenges_paginated",
+        renderer="/admin/domain-focus-acme_orderless_challenge.mako",
+    )
+    def focus__acme_orderless_challenges(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__AcmeOrderlessChallenge__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count,
+            url_template="%s/acme-orderless-challenge/{0}" % self._focus_url,
+        )
+        items_paged = lib_db.get.get__AcmeOrderlessChallenge__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeOrderlessChallenges_count": items_count,
+            "AcmeOrderlessChallenges": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
         route_name="admin:domain:focus:certificates",
         renderer="/admin/domain-focus-certificates.mako",
     )

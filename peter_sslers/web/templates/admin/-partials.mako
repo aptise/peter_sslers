@@ -124,6 +124,83 @@
 </%def>
 
 
+<%def name="table_AcmeOrderlesss(acme_orderlesss, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>is active</th>
+                <th>timestamp_created</th>
+                <th>timestamp_finalized</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for order_ in acme_orderlesss:
+                <tr>
+                    <td>
+                        <a href="${admin_prefix}/acme-orderless/${order_.id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeOrderless-${order_.id}
+                        </a>
+                    </td>
+                    <td>
+                        % if order_.is_active:
+                            <div class="label label-success">
+                                <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                            </div>
+                        % else:
+                            <div class="label label-danger">
+                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                            </div>
+                        % endif
+                    </td>
+                    <td><timestamp>${order_.timestamp_created or ''}</timestamp></td>
+                    <td><timestamp>${order_.timestamp_finalized or ''}</timestamp></td>
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
+<%def name="table_AcmeOrderlessChallenges(acme_orderless_challenges, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>AcmeOrderless</th>
+                <th>AcmeOrderlessChallenge</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>created</th>
+                <th>updated</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for challenge in acme_orderless_challenges:
+                <tr>
+                    <td>
+                        <a href="${admin_prefix}/acme-orderless/${challenge.acme_orderless_id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeOrderless-${challenge.acme_orderless_id}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="${admin_prefix}/acme-orderless/${challenge.acme_orderless_id}/acme-orderless-challenge/${challenge.id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeOrderlessChallenge-${challenge.id}
+                        </a>
+                    </td>
+                    <td><span class="label label-default">${challenge.acme_challenge_type}</span></td>
+                    <td><span class="label label-default">${challenge.acme_status_challenge}</span></td>
+                    <td><timestamp>${challenge.timestamp_created if challenge.timestamp_created else ''}</timestamp></td>
+                    <td><timestamp>${challenge.timestamp_updated if challenge.timestamp_updated else ''}</timestamp></td>
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_AcmeOrders(acme_orders, perspective=None)">
     <%
         cols = ("id", 

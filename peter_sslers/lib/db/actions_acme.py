@@ -714,7 +714,7 @@ def _do__AcmeOrder__AcmeV2__core_finalize(
                 domain_names=domain_names,
             )
             ctx.pyramid_transaction_commit()
-        
+
         if not dbAcmeOrder.certificate_request:
             dbAcmeOrder.certificate_request = dbCertificateRequest
 
@@ -841,7 +841,9 @@ def _do__AcmeOrder__AcmeV2__core(
     """
     # some things can't be triggered together
     if all((domain_names, dbUniqueFQDNSet)) or not any((domain_names, dbUniqueFQDNSet)):
-        raise ValueError("must submit one and only one of: `domain_names, dbUniqueFQDNSet`")
+        raise ValueError(
+            "must submit one and only one of: `domain_names, dbUniqueFQDNSet`"
+        )
     if domain_names:
         if any(
             (
@@ -966,9 +968,7 @@ def _do__AcmeOrder__AcmeV2__core(
     elif dbUniqueFQDNSet:
         # kwargs validation
         if not dbAcmeAccountKey:
-            raise ValueError(
-                "Must submit `dbAcmeAccountKey` with `dbUniqueFQDNSet`"
-            )
+            raise ValueError("Must submit `dbAcmeAccountKey` with `dbUniqueFQDNSet`")
         if not dbPrivateKey:
             raise ValueError("Must submit `dbPrivateKey`")
         certificate_request_source_id = (
@@ -986,7 +986,10 @@ def _do__AcmeOrder__AcmeV2__core(
         raise ValueError("No `domain_names` detected for this request")
 
     if not dbUniqueFQDNSet:
-        (dbUniqueFQDNSet, is_created_fqdn) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domains(ctx, domain_names)
+        (
+            dbUniqueFQDNSet,
+            is_created_fqdn,
+        ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domains(ctx, domain_names)
         ctx.pyramid_transaction_commit()
 
     tmpfiles = []
@@ -1057,7 +1060,7 @@ def _do__AcmeOrder__AcmeV2__core(
             acmeOrderRfcObject=acmeOrderRfcObject,
             update_AcmeOrder_status=update_AcmeOrder_status,
         )
-        
+
         return (dbAcmeOrder, result)
 
     except Exception as exc:

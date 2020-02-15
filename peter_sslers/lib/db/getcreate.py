@@ -832,19 +832,14 @@ def getcreate__UniqueFQDNSet__by_domains(ctx, domain_names):
         raise ValueError("no domain names!")
 
     # ensure the domains are registered into our system
-    dbDomainObjects = {
-        _domain_name: getcreate__Domain__by_domainName(
-            ctx, _domain_name
-        )[0]
+    domain_objects = {
+        _domain_name: getcreate__Domain__by_domainName(ctx, _domain_name)[0]
         for _domain_name in domain_names
     }
     # we'll use this tuple in a bit...
     # getcreate__Domain__by_domainName returns a tuple of (domainObject, is_created)
-    (
-        dbUniqueFQDNSet,
-        is_created_fqdn,
-    ) = getcreate__UniqueFQDNSet__by_domainObjects(
-        ctx, dbDomainObjects.values()
+    (dbUniqueFQDNSet, is_created_fqdn,) = getcreate__UniqueFQDNSet__by_domainObjects(
+        ctx, domain_objects.values()
     )
 
     return (dbUniqueFQDNSet, is_created_fqdn)

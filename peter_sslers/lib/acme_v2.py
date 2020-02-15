@@ -217,9 +217,7 @@ class AcmeOrderRFC(object):
     response_headers = None
     dbUniqueFQDNSet = None
 
-    def __init__(
-        self, rfc_object=None, response_headers=None, dbUniqueFQDNSet=None
-    ):
+    def __init__(self, rfc_object=None, response_headers=None, dbUniqueFQDNSet=None):
         self.rfc_object = rfc_object
         self.response_headers = response_headers
         self.dbUniqueFQDNSet = dbUniqueFQDNSet
@@ -294,9 +292,9 @@ class AuthenticatedUser(object):
         if self._next_nonce:
             nonce = self._next_nonce
         else:
-            self._next_nonce = nonce = url_request(self.acme_directory["newNonce"])[
-                2
-            ]["Replay-Nonce"]
+            self._next_nonce = nonce = url_request(self.acme_directory["newNonce"])[2][
+                "Replay-Nonce"
+            ]
         protected = {"url": url, "alg": self.alg, "nonce": nonce}
         protected.update(
             {"jwk": self.accountkey_jwk}
@@ -545,11 +543,7 @@ class AuthenticatedUser(object):
         return (acmeOrderRfcObject, dbEventLogged)
 
     def acme_order_new(
-        self,
-        ctx,
-        domain_names=None,
-        dbUniqueFQDNSet=None,
-        transaction_commit=None,
+        self, ctx, domain_names=None, dbUniqueFQDNSet=None, transaction_commit=None,
     ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object

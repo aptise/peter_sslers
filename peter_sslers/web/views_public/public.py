@@ -30,7 +30,7 @@ class ViewPublic(Handler):
         challenge = self.request.matchdict["challenge"]
 
         dbAcmeChallenge = lib_db.get.get__AcmeChallenge__challenged(
-            self.request.api_context, challenge, self.request.active_domain_name
+            self.request.api_context, self.request.active_domain_name, challenge,
         )
         # this will log a tuple of (acme_authorization_id, domain_id) for activeRequest
         log.info(
@@ -53,6 +53,20 @@ class ViewPublic(Handler):
                 remote_ip_address=self.request.environ["REMOTE_ADDR"],
             )
             return dbAcmeChallenge.keyauthorization
+
+        # we may have the challenge on a non-order
+        dbAcmeOrderlessChallenge = lib_db.get.get__AcmeOrderlessChallenge__challenged(
+            self.request.api_context, self.request.active_domain_name, challenge
+        )
+        if dbAcmeOrderlessChallenge:
+            lib_db.create.create__AcmeOrderlessChallengePoll(
+                self.request.api_context,
+                dbAcmeOrderlessChallenge=dbAcmeOrderlessChallenge,
+                remote_ip_address=self.request.environ["REMOTE_ADDR"],
+            )
+            return dbAcmeOrderlessChallenge.keyauthorization
+
+        # okay this is unkonwn
         lib_db.create.create__AcmeChallengeUnknownPoll(
             self.request.api_context,
             domain=self.request.active_domain_name,

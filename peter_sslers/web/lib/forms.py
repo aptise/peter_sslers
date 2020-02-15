@@ -214,11 +214,11 @@ class Form_Certificate_mark(_Form_Schema_Base):
     )
 
 
-class Form_CertificateRequest_new_AcmeFlow(_Form_Schema_Base):
+class Form_AcmeOrderless_new(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
 
 
-class Form_CertificateRequest_AcmeFlow_manage_domain(_Form_Schema_Base):
+class Form_AcmeOrderless_manage_domain(_Form_Schema_Base):
     challenge_key = UnicodeString(not_empty=True)
     challenge_text = UnicodeString(not_empty=True)
 

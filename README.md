@@ -3,27 +3,27 @@ peter_sslers README
 
 Peter SSLers *or how i stopped worrying and learned to love the ssl certificate*.
 
-`peter_sslers` is a package designed to help *experienced* admins and devops people manage SSL Certificates and deploy them on larger systems.
+`peter_sslers` is a package designed to help *experienced* admins and devops people manage SSL Certificates and deploy them on larger systems (lots of domains and/or nodes).
 
-What's in the box ?
+What's in the "box" ?
 
-* SSL Certificate Manager
-* ACME V2 Client for LetsEncrypt Certificate Authority
-* OpenResty Lua module for Dynamic SSL Certificate Handling on the Nginx webserver
+* OpenResty Lua module for Dynamic SSL Certificate Handling on the Nginx webserver !!!
+* A robust SSL Certificate Manager
+* An integrated ACME V2 Client for LetsEncrypt Certificate Authority
 
 THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
 
 AMAZING, RIGHT?
 
-This package is *not* aimed at casual or single-site users. This package is *not* aimed at novice users.
+This package is *not* aimed at casual users or people concerned with a handful of websites or servers.
 
-Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
+Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.  PostgreSQL is recommended; sqlite is supported.  A good-faith effort is made to get this to work on MySQL.
 
 Peter combines an ACME V2 Client designed to operate against the LetsEncrypt service, alongside tools designed to manage & deploy certificates.
 
 The client supported ACME v1 until version `0.4.0`. 
 
-**Only ACME V2 is now supported.**
+**As of 0.4.0, Only ACME V2 is now supported.**
 **Only LetsEncrypt is supported as a target ACME Server.**
 
 Peter's core tool is a lightweight database-backed `Pyramid` application that can:
@@ -34,6 +34,7 @@ Peter's core tool is a lightweight database-backed `Pyramid` application that ca
 * browse certificate data and easily see what needs to be renewed
 * communicate with a properly configured `OpenResty` enabled `Nginx` web server (see next section)
 * translate certificates into different formats
+* be the source of lots of puns!
 
 Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the `Nginx` server which will:
 
@@ -41,24 +42,23 @@ Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the 
 * store data in shared `Nginx` worker memory and
 * expose routes to flush the worker shared memory or expire select keys. 
 
-The module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your OpenResty/Nginx server via the `opm` package installer
+The OpenResty module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your OpenResty/Nginx server via the `opm` package installer.  It has been used in production for several years.
 
-The `Pyramid` based application can function as a daemon or a commandline script. Most pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window. Don't want to do things manually? Ok - everything was built to be readable on commandline browsers... yes, this is actually developed-for and tested-with lynx.
+The `Pyramid` based application can function as a daemon for Admin or API access, or even a commandline script. Most web pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window. Don't want to do things manually? Ok - everything was built to be readable on commandline browsers... yes, this is actually developed-for and tested-with Lynx. I shit you not, Lynx.
 
-Do you like book-keeping?  Peter's `Pryamid` component logs everything into sql.
+Do you like book-keeping?  Peter's `Pryamid` component logs everything into SQL.   THIS PACKAGE IS EXTREME!!!
 
 Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable within Peter as well.
 
-Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool). Peter is a honeybadger, he don't care. He just takes what he wants.
+Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool). Peter is a honeybadger, he don't care. He does what he wants.
 
 Peter offers several commandline tools -- so spinning up a tool "webserver" mode may not be necessary at all -- or might only be needed for brief periods of time.
 
 SqlAlchemy is the backing database library, so virtually any database can be used (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but the package has been tested against PostgreSQL. SQLite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
 
-Peter tries to leverage the system's OpenSSL instead of using Python's modules whenever possible. The reason is to minimize the amount of downloads/packages.
+Peter tries to leverage the system's OpenSSL instead of using Python's modules whenever possible. The reason is to minimize the amount of downloads/packages.  A future version will allow switching between the two.
 
-
-Although Python2 is no longer supported by Python, Python2 and Python3 are targeted platforms for this library.
+Although Python2 is no longer supported by Python itself, Python2 and Python3 are targeted platforms for this library because we all have legacy systems and "".
 
 
 ## Why?
@@ -88,7 +88,7 @@ The endpoint related to "requesting" domains and handling dynamic queues of new 
 
 ## "SSL Minnow" - The Datastore
 
-By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`. It is the backing datastore for SSL Certificates and the operations log. Your data is ONLY saved to the SSL Minnow - not to the filesystem like other LE clients - so you should be careful with it. If the Minnow would be lost, it can not be recovered. Be a good skipper, or your three hour tour could end up taking many years and might involve the Harlem Globetrotters.
+By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`. It is the backing datastore for SSL Certificates and the operations log. Your data is ONLY saved to the SSL Minnow - not to the filesystem like other LE clients - so you should be careful with it. If the Minnow would be lost, it can not be recovered. Be a good skipper, or your three hour tour could end up taking many years and might involve the Harlem Globetrotters, who are great to watch but do you want to be stuck on a remote desert island with them?!?! No.
 
 ## "Tools"
 
@@ -589,7 +589,7 @@ There are simple ways to process the entire queue though:
 
 ## Does this reformat certs?
 
-Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input). This seems to be one of the more common standards people have for saving certs. Otherwise certs are left as-is.
+Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input) and newlines are standardized to unix ("\n"). This seems to be one of the more common standards people have for saving certs. Otherwise certs are left as-is.
 
 
 ## Is there a fast way to import existing certs?

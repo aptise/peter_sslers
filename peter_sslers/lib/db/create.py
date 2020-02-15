@@ -27,6 +27,117 @@ from ._utils import get_dbSessionLogItem
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def create__AcmeOrderlessChallenge(
+    ctx,
+    dbAcmeOrderless=None,
+    dbDomain=None,
+    token=None,
+    keyauthorization=None,
+    challenge_url=None,
+):
+    """
+    Create a new ACME Orderless Tracker
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbAcmeOrderless: (required) The :class:`model.objects.AcmeOrderless`
+    :param dbDomain: (required) The :class:`model.objects.Domain`
+    :param token: (optional) string token
+    :param keyauthorization: (optional) string keyauthorization
+    :param challenge_url: (optional) challenge_url token
+    """
+    if not dbAcmeOrderless:
+        raise ValueError("must be invoked with `dbAcmeOrderless`")
+    if not dbDomain:
+        raise ValueError("must be invoked with `dbDomain`")
+
+    orderless_domain_ids = [
+        c.domain_id for c in dbAcmeOrderless.acme_orderless_challenges
+    ]
+    if dbDomain in orderless_domain_ids:
+        raise ValueError("domain already in this orderless")
+
+    dbAcmeOrderlessChallenge = model_objects.AcmeOrderlessChallenge()
+    dbAcmeOrderlessChallenge.acme_orderless_id = dbAcmeOrderless.id
+    dbAcmeOrderlessChallenge.timestamp_created = ctx.timestamp
+    dbAcmeOrderlessChallenge.domain_id = dbDomain.id
+    dbAcmeOrderlessChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
+        "http-01"
+    )
+    dbAcmeOrderlessChallenge.acme_status_challenge_id = (
+        model_utils.Acme_Status_Challenge.DEFAULT_ID
+    )
+    dbAcmeOrderlessChallenge.token = token
+    dbAcmeOrderlessChallenge.keyauthorization = keyauthorization
+    dbAcmeOrderlessChallenge.challenge_url = challenge_url
+
+    ctx.dbSession.add(dbAcmeOrderlessChallenge)
+    ctx.dbSession.flush(objects=[dbAcmeOrderlessChallenge])
+
+    return dbAcmeOrderless
+
+
+def create__AcmeOrderlessChallengePoll(
+    ctx, dbAcmeOrderlessChallenge=None, remote_ip_address=None
+):
+    """
+    Create a new AcmeOrderlessChallengePoll - this is a log
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbAcmeOrderlessChallenge: (required) The challenge which was polled
+    :param remote_ip_address: (required) The remote ip address (string)
+    """
+    dbAcmeOrderlessChallengePoll = model_objects.AcmeOrderlessChallengePoll()
+    dbAcmeOrderlessChallengePoll.acme_orderless_challenge_id = (
+        dbAcmeOrderlessChallenge.id
+    )
+    dbAcmeOrderlessChallengePoll.timestamp_polled = ctx.timestamp
+    dbAcmeOrderlessChallengePoll.remote_ip_address = remote_ip_address
+    ctx.dbSession.add(dbAcmeOrderlessChallengePoll)
+    ctx.dbSession.flush(objects=[dbAcmeOrderlessChallengePoll])
+    return dbAcmeOrderlessChallengePoll
+
+
+def create__AcmeOrderless(
+    ctx, domain_names=None,
+):
+    """
+    Create a new ACME Orderless Tracker
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param domain_names: (required) An iteratble list of domain names
+    """
+    domain_names = list(set(domain_names))
+    if not domain_names:
+        raise ValueError("Did not make a valid set of domain names")
+
+    dbAcmeOrderless = model_objects.AcmeOrderless()
+    dbAcmeOrderless.timestamp_created = ctx.timestamp
+    ctx.dbSession.add(dbAcmeOrderless)
+    ctx.dbSession.flush(objects=[dbAcmeOrderless])
+
+    domain_objects = {
+        _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
+            ctx, _domain_name
+        )[0]
+        for _domain_name in domain_names
+    }
+
+    for (domain_name, dbDomain) in domain_objects.items():
+        dbAcmeOrderlessChallenge = model_objects.AcmeOrderlessChallenge()
+        dbAcmeOrderlessChallenge.acme_orderless_id = dbAcmeOrderless.id
+        dbAcmeOrderlessChallenge.timestamp_created = ctx.timestamp
+        dbAcmeOrderlessChallenge.domain_id = dbDomain.id
+        dbAcmeOrderlessChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
+            "http-01"
+        )
+        dbAcmeOrderlessChallenge.acme_status_challenge_id = (
+            model_utils.Acme_Status_Challenge.DEFAULT_ID
+        )
+
+        ctx.dbSession.add(dbAcmeOrderlessChallenge)
+        ctx.dbSession.flush(objects=[dbAcmeOrderlessChallenge])
+
+    return dbAcmeOrderless
+
+
 def create__AcmeOrder(
     ctx,
     acme_order_response=None,
@@ -96,7 +207,9 @@ def create__AcmeOrder(
     dbAcmeOrder.acme_status_order_id = acme_status_order_id
     dbAcmeOrder.acme_account_key_id = dbAcmeAccountKey.id
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
-    dbAcmeOrder.certificate_request_id = dbCertificateRequest.id if dbCertificateRequest else None
+    dbAcmeOrder.certificate_request_id = (
+        dbCertificateRequest.id if dbCertificateRequest else None
+    )
     dbAcmeOrder.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.timestamp_expires = timestamp_expires
@@ -215,7 +328,10 @@ def create__CertificateRequest(
             dbServerCertificate__issued=dbServerCertificate__issued,
             dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
     """
-    if certificate_request_source_id not in model_utils.CertificateRequestSource._mapping:
+    if (
+        certificate_request_source_id
+        not in model_utils.CertificateRequestSource._mapping
+    ):
         raise ValueError("Unsupported `certificate_request_source_id`")
 
     _event_type_id = None
@@ -279,7 +395,7 @@ def create__CertificateRequest(
         _tmpfile.close()
 
     # ensure the domains are registered into our system
-    dbDomainObjects = {
+    domain_objects = {
         _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
             ctx, _domain_name
         )[0]
@@ -291,7 +407,7 @@ def create__CertificateRequest(
         dbUniqueFQDNSet,
         is_created_fqdn,
     ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domainObjects(
-        ctx, dbDomainObjects.values()
+        ctx, domain_objects.values()
     )
 
     # build the cert

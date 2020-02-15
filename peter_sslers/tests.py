@@ -1245,14 +1245,14 @@ class FunctionalTests_CertificateRequest(AppTest):
             if "/.well-known/admin/certificate/2" not in res2.location:
                 raise ValueError("Expected certificate/2")
 
-    def tests_acme_flow(self):
-        res = self.testapp.get("/.well-known/admin/acme-flow/new", status=200)
+    def tests_acme_orderless(self):
+        res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
         form = res.form
         form["domain_names"] = TEST_FILES["CertificateRequests"]["1"]["domains"]
         res2 = form.submit()
         assert res2.status_code == 303
         re_expected = re.compile(
-            r"""^http://localhost/\.well-known/admin/certificate-request/(\d+)/acme-flow/manage$"""
+            r"""^http://localhost/\.well-known/admin/certificate-request/(\d+)/acme-orderless/manage$"""
         )
         matched = re_expected.match(res2.location)
         assert matched
@@ -1260,7 +1260,7 @@ class FunctionalTests_CertificateRequest(AppTest):
 
         # make sure we can get this
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s/acme-flow/manage" % url_id,
+            "/.well-known/admin/certificate-request/%s/acme-orderless/manage" % url_id,
             status=200,
         )
         domains = [
@@ -1269,7 +1269,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         ]
         for _domain in domains:
             res = self.testapp.get(
-                "/.well-known/admin/certificate-request/%s/acme-flow/manage/domain/%s"
+                "/.well-known/admin/certificate-request/%s/acme-orderless/manage/domain/%s"
                 % (url_id, _domain),
                 status=200,
             )
@@ -1282,13 +1282,14 @@ class FunctionalTests_CertificateRequest(AppTest):
 
         # deactivate!
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s/acme-flow/deactivate" % url_id,
+            "/.well-known/admin/certificate-request/%s/acme-orderless/deactivate"
+            % url_id,
             status=303,
         )
         assert "?result=success" in res.location
 
         res = self.testapp.get(
-            "/.well-known/admin/certificate-request/%s/acme-flow/deactivate.json"
+            "/.well-known/admin/certificate-request/%s/acme-orderless/deactivate.json"
             % url_id,
             status=200,
         )

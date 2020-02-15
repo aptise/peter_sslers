@@ -488,6 +488,194 @@ class AcmeChallenge(Base):
         }
 
 
+class AcmeOrderless(Base):
+    """
+    ACME Orderless allows us to support the "AcmeFlow"
+    """
+
+    __tablename__ = "acme_orderless"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    timestamp_finalized = sa.Column(sa.DateTime, nullable=True)
+    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+    is_active = sa.Column(sa.Boolean, nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_orderless_challenges = sa_orm_relationship(
+        "AcmeOrderlessChallenge",
+        primaryjoin="AcmeOrderless.id==AcmeOrderlessChallenge.acme_orderless_id",
+        uselist=True,
+        back_populates="acme_orderless",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def domains_status(self):
+        _status = {}
+        for challenge in self.acme_orderless_challenges:
+            _status[challenge.domain_name] = {
+                "acme_challenge_type": challenge.acme_challenge_type,
+                "acme_status_challenge": challenge.acme_status_challenge,
+            }
+        return _status
+
+    @property
+    def timestamp_created_isoformat(self):
+        if self.timestamp_created:
+            return self.timestamp_created.isoformat()
+        return None
+
+    @property
+    def timestamp_finalized_isoformat(self):
+        if self.timestamp_finalized:
+            return self.timestamp_finalized.isoformat()
+        return None
+
+    @property
+    def timestamp_updated_isoformat(self):
+        if self.timestamp_updated:
+            return self.timestamp_updated.isoformat()
+        return None
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_finalized": self.timestamp_finalized_isoformat,
+            "timestamp_updated": self.timestamp_updated_isoformat,
+            "domains_status": self.domains_status,
+        }
+
+
+class AcmeOrderlessChallenge(Base):
+    """
+    """
+
+    __tablename__ = "acme_orderless_challenge"
+    id = sa.Column(sa.Integer, primary_key=True)
+    acme_orderless_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_orderless.id"), nullable=False
+    )
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
+    acme_challenge_type_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # this library only does http-01, `model_utils.AcmeChallengeType`
+    acme_status_challenge_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # Acme_Status_Challenge
+    token = sa.Column(sa.Unicode(255), nullable=True)
+    keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
+    challenge_url = sa.Column(sa.Unicode(255), nullable=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_orderless = sa_orm_relationship(
+        "AcmeOrderless",
+        primaryjoin="AcmeOrderlessChallenge.acme_orderless_id==AcmeOrderless.id",
+        uselist=False,
+        back_populates="acme_orderless_challenges",
+    )
+
+    acme_orderless_challenge_polls = sa_orm_relationship(
+        "AcmeOrderlessChallengePoll",
+        primaryjoin="AcmeOrderlessChallenge.id==AcmeOrderlessChallengePoll.acme_orderless_challenge_id",
+        uselist=True,
+        back_populates="acme_orderless_challenge",
+    )
+
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="AcmeOrderlessChallenge.domain_id==Domain.id",
+        uselist=False,
+        back_populates="acme_orderless_challenges",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def acme_status_challenge(self):
+        return model_utils.Acme_Status_Challenge.as_string(
+            self.acme_status_challenge_id
+        )
+
+    @property
+    def acme_challenge_type(self):
+        if self.acme_challenge_type_id:
+            return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
+        return None
+
+    @property
+    def domain_name(self):
+        return self.domain.domain_name
+
+    @property
+    def is_can_acme_server_sync(self):
+        # NOTE: is there another way to test this?
+        if not self.challenge_url:
+            return False
+        return True
+
+    @property
+    def timestamp_created_isoformat(self):
+        if self.timestamp_created:
+            return self.timestamp_created.isoformat()
+        return None
+
+    @property
+    def timestamp_finalized_isoformat(self):
+        if self.timestamp_finalized:
+            return self.timestamp_finalized.isoformat()
+        return None
+
+    @property
+    def timestamp_updated_isoformat(self):
+        if self.timestamp_updated:
+            return self.timestamp_updated.isoformat()
+        return None
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "acme_status_challenge": self.acme_status_challenge,
+            "acme_challenge_type": self.acme_challenge_type,
+            "domain": self.domain_name,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_finalized_isoformat": self.timestamp_finalized_isoformat,
+            "timestamp_updated": self.timestamp_updated_isoformat,
+        }
+
+
+class AcmeOrderlessChallengePoll(Base):
+    """
+    log ACME Challenge polls
+    """
+
+    __tablename__ = "acme_orderless_challenge_poll"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    acme_orderless_challenge_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_orderless_challenge.id"), nullable=False
+    )
+    timestamp_polled = sa.Column(sa.DateTime, nullable=False)
+    remote_ip_address = sa.Column(sa.Unicode(255), nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_orderless_challenge = sa_orm_relationship(
+        "AcmeOrderlessChallenge",
+        primaryjoin="AcmeOrderlessChallengePoll.acme_orderless_challenge_id==AcmeOrderlessChallenge.id",
+        uselist=False,
+        back_populates="acme_orderless_challenge_polls",
+    )
+
+
 class AcmeOrder(Base):
     """
     ACME Order Object [https://tools.ietf.org/html/rfc8555#section-7.1.3]
@@ -902,40 +1090,9 @@ class CertificateRequest(Base):
 
     @reify
     def certificate_request_source(self):
-        if (
+        return model_utils.CertificateRequestSource.as_string(
             self.certificate_request_source_id
-            == model_utils.CertificateRequestSource.RECORDED
-        ):
-            return "Recorded"
-        elif (
-            self.certificate_request_source_id
-            == model_utils.CertificateRequestSource.ACME_FLOW
-        ):
-            return "Acme Flow"
-        elif (
-            self.certificate_request_source_id
-            == model_utils.CertificateRequestSource.ACME_AUTOMATED
-        ):
-            return "Acme Automated"
-        raise ValueError("invalid `self.certificate_request_source_id`")
-
-    def certificate_request_source_is(self, check):
-        if (check.lower() == "recorded") and (
-            self.certificate_request_source_id
-            == model_utils.CertificateRequestSource.RECORDED
-        ):
-            return True
-        elif (check.lower() == "acme flow") and (
-            self.certificate_request_source_id
-            == model_utils.CertificateRequestSource.ACME_FLOW
-        ):
-            return True
-        elif (check.lower() == "acme automated") and (
-            self.certificate_request_source_id
-            == model_utils.CertificateRequestSource.ACME_AUTOMATED
-        ):
-            return True
-        return False
+        )
 
     @property
     def domains_as_string(self):
@@ -1040,6 +1197,13 @@ class Domain(Base):
         "AcmeAuthorization",
         primaryjoin="Domain.id==AcmeAuthorization.domain_id",
         order_by="AcmeAuthorization.id.desc()",
+        uselist=True,
+        back_populates="domain",
+    )
+
+    acme_orderless_challenges = sa_orm_relationship(
+        "AcmeOrderlessChallenge",
+        primaryjoin="Domain.id==AcmeOrderlessChallenge.domain_id",
         uselist=True,
         back_populates="domain",
     )
@@ -2376,6 +2540,55 @@ Domain.acme_orders__5 = sa_orm_relationship(
     order_by=AcmeOrder.id.desc(),
     viewonly=True,
 )
+
+# note: Domain.acme_orderlesss__5
+Domain.acme_orderlesss__5 = sa_orm_relationship(
+    AcmeOrderless,
+    primaryjoin="Domain.id == AcmeOrderlessChallenge.domain_id",
+    secondary=(
+        """join(AcmeOrderlessChallenge,
+                AcmeOrderless,
+                AcmeOrderlessChallenge.acme_orderless_id == AcmeOrderless.id
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            AcmeOrderless.id
+            == sa.orm.foreign(AcmeOrderlessChallenge.acme_orderless_id),
+            AcmeOrderless.id.in_(
+                sa.select([AcmeOrderless.id])
+                .where(AcmeOrderless.id == AcmeOrderlessChallenge.acme_orderless_id)
+                .where(AcmeOrderlessChallenge.domain_id == Domain.id)
+                .order_by(AcmeOrderless.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeOrderless.id.desc(),
+    viewonly=True,
+)
+
+
+# note: Domain.acme_orderless_challenges__5
+Domain.acme_orderless_challenges__5 = sa_orm_relationship(
+    AcmeOrderlessChallenge,
+    primaryjoin=(
+        sa.and_(
+            Domain.id == AcmeOrderlessChallenge.domain_id,
+            AcmeOrderlessChallenge.id.in_(
+                sa.select([AcmeOrderlessChallenge.id])
+                .where(Domain.id == AcmeOrderlessChallenge.domain_id)
+                .order_by(AcmeOrderlessChallenge.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeOrderlessChallenge.id.desc(),
+    viewonly=True,
+)
+
 
 # note: Domain.certificate_requests__5
 # returns an object with a `certificate` on it

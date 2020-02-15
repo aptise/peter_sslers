@@ -160,11 +160,11 @@
                     New ACME Order: Automated</a></li>
                 % if request.registry.settings['enable_acme_flow']:
                     <li>
-                        <a  href="${admin_prefix}/acme-flow/new"
-                            title="${request.text_library.info_AcmeFlow_new[0]}"
+                        <a  href="${admin_prefix}/acme-orderless/new"
+                            title="${request.text_library.info_AcmeOrderless_new[0]}"
                         >
                         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                        New: ACME Flow</a></li>
+                        New: ACME Orderless Flow</a></li>
                 % endif
             </ul>
 

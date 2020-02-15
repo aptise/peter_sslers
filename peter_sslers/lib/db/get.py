@@ -379,6 +379,110 @@ def get__AcmeChallengeUnknownPoll__by_id(ctx, id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__AcmeOrderless__count(ctx):
+    counted = ctx.dbSession.query(model_objects.AcmeOrderless).count()
+    return counted
+
+
+def get__AcmeOrderless__paginated(ctx, limit=None, offset=0):
+    query = ctx.dbSession.query(model_objects.AcmeOrderless)
+    query = (
+        query.order_by(model_objects.AcmeOrderless.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    dbAcmeOrderlesss = query.all()
+    return dbAcmeOrderlesss
+
+
+def get__AcmeOrderless__by_id(ctx, order_id, eagerload_web=False):
+    q = ctx.dbSession.query(model_objects.AcmeOrderless).filter(
+        model_objects.AcmeOrderless.id == order_id
+    )
+    item = q.first()
+    return item
+
+
+def get__AcmeOrderless__by_DomainId__count(ctx, domain_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeOrderless)
+        .join(
+            model_objects.AcmeOrderlessChallenge,
+            model_objects.AcmeOrderless.id
+            == model_objects.AcmeOrderlessChallenge.acme_orderless_id,
+        )
+        .filter(model_objects.AcmeOrderlessChallenge.domain_id == domain_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrderless__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
+    items_paged = (
+        ctx.dbSession.query(model_objects.AcmeOrderless)
+        .join(
+            model_objects.AcmeOrderlessChallenge,
+            model_objects.AcmeOrderless.id
+            == model_objects.AcmeOrderlessChallenge.acme_orderless_id,
+        )
+        .filter(model_objects.AcmeOrderlessChallenge.domain_id == domain_id)
+        .order_by(model_objects.AcmeOrderlessChallenge.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__AcmeOrderlessChallenge__by_DomainId__count(ctx, domain_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeOrderlessChallenge)
+        .filter(model_objects.AcmeOrderlessChallenge.domain_id == domain_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeOrderlessChallenge__by_DomainId__paginated(
+    ctx, domain_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.AcmeOrderlessChallenge)
+        .filter(model_objects.AcmeOrderlessChallenge.domain_id == domain_id)
+        .order_by(model_objects.AcmeOrderlessChallenge.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__AcmeOrderlessChallenge__challenged(ctx, domain_name, token):
+    active_request = (
+        ctx.dbSession.query(model_objects.AcmeOrderlessChallenge)
+        .join(
+            model_objects.Domain,
+            model_objects.AcmeOrderlessChallenge.domain_id == model_objects.Domain.id,
+        )
+        .join(
+            model_objects.AcmeOrderless,
+            model_objects.AcmeOrderlessChallenge.acme_orderless_id
+            == model_objects.AcmeOrderless.id,
+        )
+        .filter(
+            model_objects.AcmeOrderlessChallenge.token == token,
+            sqlalchemy.func.lower(model_objects.Domain.domain_name)
+            == sqlalchemy.func.lower(domain_name),
+            model_objects.AcmeOrderless.is_active.op("IS")(True),
+        )
+        .first()
+    )
+    return active_request
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__AcmeOrder__count(ctx):
     counted = ctx.dbSession.query(model_objects.AcmeOrder).count()
     return counted
@@ -769,7 +873,7 @@ def get__CertificateRequest__by_UniqueFQDNSetId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeChallenge__challenged(ctx, token, domain_name):
+def get__AcmeChallenge__challenged(ctx, domain_name, token):
     active_request = (
         ctx.dbSession.query(model_objects.AcmeChallenge)
         .join(

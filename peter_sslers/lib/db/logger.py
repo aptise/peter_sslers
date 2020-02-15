@@ -177,7 +177,9 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id if self.dbAcmeOrder else None
-        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -207,7 +209,9 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -239,7 +243,9 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -284,7 +290,9 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -314,7 +322,9 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -344,7 +354,9 @@ class AcmeLogger(object):
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -381,7 +393,9 @@ class AcmeLogger(object):
         )
         dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
-        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
         dbAcmeEventLog.server_certificate_id = dbServerCertificate.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()

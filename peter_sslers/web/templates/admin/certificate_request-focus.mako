@@ -194,26 +194,6 @@
                 </tbody>
             </table>
 
-            % if CertificateRequest.is_active and CertificateRequest.certificate_request_source_is('acme flow'):
-                <a
-                    href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/manage"
-                    class="btn btn-info"
-                >
-                    <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                    Edit Codes
-                </a>
-                <a
-                    href="${admin_prefix}/certificate-request/${CertificateRequest.id}/acme-flow/deactivate"
-                    class="btn btn-primary"
-                >
-                    <span class="glyphicon glyphicon-play-circle" aria-hidden="true"></span>
-                    deactivate
-                </a>
-            % endif
-
-
-
-
         </div>
     </div>
 </%block>

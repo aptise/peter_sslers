@@ -45,9 +45,9 @@ info_CertificateRequests = [
 ]
 
 
-info_AcmeFlow_new = [
-    "ACME-flow lets you manage the well-known placements only.",
-    "ACME-flow lets you manage the well-known placements only.",
+info_AcmeOrderless_new = [
+    "ACME-Orderless lets you manage the well-known placements only.",
+    "ACME-Orderless lets you manage the well-known placements only.",
 ]
 info_AcmeOrder_new_Automated = [
     "ACME-Automated automates the entire certifcate request process.",
