@@ -134,7 +134,7 @@ def parse_AccountKeySelection(request, formStash, seek_selected=None):
     # handle the explicit-option
 
     accountKeySelection = AccountKeySelection()
-    if seek_selected == "account_key_file_pem":
+    if seek_selected == "account_key_file":
         # this will handle form validation and raise errors.
         parser = AccountKeyUploadParser(formStash)
         parser.require_upload()

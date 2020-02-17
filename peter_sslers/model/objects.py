@@ -397,7 +397,6 @@ class AcmeChallenge(Base):
     token = sa.Column(sa.Unicode(255), nullable=False)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
 
-    #
     # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http01.token)
     # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
     keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
@@ -549,6 +548,53 @@ class AcmeOrderless(Base):
             "timestamp_updated": self.timestamp_updated_isoformat,
             "domains_status": self.domains_status,
         }
+
+
+class AcmeChallenge_Unified(Base):
+    __tablename__ = "acme_challenge_unified"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "((acme_authorization_id IS NOT NULL AND acme_orderless_id IS NULL)"
+            " OR "
+            " (acme_authorization_id IS NULL AND acme_orderless_id IS NOT NULL)"
+            ")",
+            # name="check_authorization_or_orderless",
+        ),
+    )
+
+    id = sa.Column(sa.Integer, primary_key=True)
+
+    # our challenge will either be from:
+    # 1) an `AcmeOrde``->`AcmeAuthorization`
+    acme_authorization_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True
+    )
+    # 2) an `AcmeOrderless`
+    acme_orderless_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_orderless.id"), nullable=True
+    )
+
+    # `AcmeOrderless` requires a domain; duplicating this for `AcmeOrder` is fine
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
+
+    # in all situations, we need to track these:
+    acme_challenge_type_id = sa.Column(
+        sa.Integer, nullable=True
+    )  # this library only does http-01, `model_utils.AcmeChallengeType`
+    acme_status_challenge_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # Acme_Status_Challenge
+
+    token = sa.Column(sa.Unicode(255), nullable=False)
+    # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http01.token)
+    # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
+    keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
+
+    challenge_url = sa.Column(sa.Unicode(255), nullable=True)
+
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+
 
 
 class AcmeOrderlessChallenge(Base):
@@ -986,8 +1032,8 @@ class CertificateRequest(Base):
     The domains will be stored in the UniqueFQDNSet table
     * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
     """
-
     __tablename__ = "certificate_request"
+
     id = sa.Column(sa.Integer, primary_key=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     # ???: deprecation candidate: `is_error`
@@ -997,9 +1043,9 @@ class CertificateRequest(Base):
         sa.Integer, nullable=False
     )  # see CertificateRequestSource
 
-    csr_pem = sa.Column(sa.Text, nullable=True)
-    csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
-    csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
+    csr_pem = sa.Column(sa.Text, nullable=False)
+    csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
+    csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
 
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -1068,16 +1114,6 @@ class CertificateRequest(Base):
         back_populates="certificate_requests",
     )
 
-    check1 = sa.CheckConstraint(
-        """(certificate_request_source_id = 1
-                                    and (csr_pem is NULL and csr_pem_md5 is NULL and csr_pem_modulus_md5 is NULL)
-                                    )
-                                   or
-                                   (certificate_request_source_id = 2
-                                    and (csr_pem is NOT NULL and csr_pem_md5 is NOT NULL and csr_pem_modulus_md5 is NOT NULL)
-                                    )""",
-        name="check1",
-    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -2026,6 +2062,30 @@ class OperationsObjectEvent(Base):
     """
 
     __tablename__ = "operations_object_event"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END"
+            " + "
+            " CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN domain_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN acme_account_key_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
+            " ) = 1",
+            name="check1",
+        ),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     operations_event_id = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=True
@@ -2058,29 +2118,6 @@ class OperationsObjectEvent(Base):
     )
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
-    )
-
-    check1 = sa.CheckConstraint(
-        """(
-        CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN domain_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN acme_account_key_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END
-        +
-        CASE WHEN unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END
-    ) = 1""",
-        name="check1",
     )
 
     operations_event = sa_orm_relationship(
