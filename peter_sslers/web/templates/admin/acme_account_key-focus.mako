@@ -240,15 +240,6 @@
                             % endif
                         </td>
                     </tr>
-                    <tr>
-                        <th>CertificateRequest(s)</th>
-                        <td>
-                            ${admin_partials.table_CertificateRequests(AcmeAccountKey.certificate_requests__5, perspective='AcmeAccountKey')}
-                            % if AcmeAccountKey.certificate_requests__5:
-                                ${admin_partials.nav_pager("%s/acme-account-key/%s/certificate-requests" % (admin_prefix, AcmeAccountKey.id))}
-                            % endif
-                        </td>
-                    </tr>
                 </tbody>
             </table>
         </div>

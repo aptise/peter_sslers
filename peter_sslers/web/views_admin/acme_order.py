@@ -88,6 +88,30 @@ class ViewAdmin_Focus(Handler):
             }
         return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
 
+    @view_config(
+        route_name="admin:acme_order:focus:acme_events", renderer="/admin/acme_order-focus-acme_events.mako"
+    )
+    @view_config(route_name="admin:acme_order:focus:acme_events_paginated", renderer="/admin/acme_order-focus-acme_events.mako")
+    def acme_events(self):
+        dbAcmeOrder = self._focus(eagerload_web=True)
+
+        items_count = lib_db.get.get__AcmeEventLogs__by_AcmeOrderId__count(self.request.api_context, dbAcmeOrder.id)
+        (pager, offset) = self._paginate(
+            items_count,
+            url_template="%s/acme-events/{0}"
+            % self._focus_url,
+        )
+        items_paged = lib_db.get.get__AcmeEventLogs__by_AcmeOrderId__paginated(
+            self.request.api_context, dbAcmeOrder.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeOrder": dbAcmeOrder,
+            "AcmeEventLogs_count": items_count,
+            "AcmeEventLogs": items_paged,
+            "pager": pager,
+        }
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_order:focus:acme_server_sync", renderer=None)

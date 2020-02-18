@@ -45,7 +45,7 @@
                             <td><code>${item.domain}</code></td>
                             <td><code>${item.challenge}</code></td>
                             <td><timestamp>${item.timestamp_polled}</timestamp></td>
-                            <td><code>${item.remote_ip_address}</code></td>
+                            <td><code>${item.remote_ip_address.remote_ip_address}</code></td>
                         </tr>
                     % endfor
                     </tbody>

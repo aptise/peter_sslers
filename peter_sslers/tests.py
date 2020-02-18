@@ -31,6 +31,12 @@ from .model import objects as model_objects
 from .model import utils as model_utils
 
 
+class FakeRequest(testing.DummyRequest):
+    @property
+    def tm(self):
+        return transaction.manager
+
+
 # ==============================================================================
 
 DEFAULT_acme_account_provider = "letsencrypt-v2-staging"
@@ -273,7 +279,7 @@ class AppTest(AppTestCore):
                     acme_account_provider_id=DEFAULT_acme_account_provider_id,
                 )
                 # print(_key_account1, _is_created)
-                self.ctx.dbSession.commit()
+                # self.ctx.pyramid_transaction_commit()
 
                 #
                 # insert CACertificate
@@ -294,7 +300,7 @@ class AppTest(AppTestCore):
                     is_cross_signed_authority_certificate=False,
                 )
                 # print(_ca_cert_1, _is_created)
-                self.ctx.dbSession.commit()
+                # self.ctx.pyramid_transaction_commit()
 
                 #
                 # insert CACertificate - self signed
@@ -311,7 +317,7 @@ class AppTest(AppTestCore):
                     self.ctx, ca_cert_pem, ca_chain_name=_ca_cert_filename
                 )
                 # print(_ca_cert_selfsigned1, _is_created)
-                self.ctx.dbSession.commit()
+                # self.ctx.pyramid_transaction_commit()
 
                 #
                 # insert PrivateKey
@@ -326,7 +332,7 @@ class AppTest(AppTestCore):
                     _is_created,
                 ) = db.getcreate.getcreate__PrivateKey__by_pem_text(self.ctx, pkey_pem)
                 # print(_key_private1, _is_created)
-                self.ctx.dbSession.commit()
+                # self.ctx.pyramid_transaction_commit()
 
                 #
                 # insert ServerCertificate
@@ -347,7 +353,7 @@ class AppTest(AppTestCore):
                     dbPrivateKey=_key_private1,
                 )
                 # print(_cert_1, _is_created)
-                self.ctx.dbSession.commit()
+                # self.ctx.pyramid_transaction_commit()
 
                 # ensure we have domains?
                 domains = db.get.get__Domain__paginated(self.ctx)
@@ -358,22 +364,6 @@ class AppTest(AppTestCore):
                     ].lower()
                     in domain_names
                 )
-
-                # this shouldn't need to be handled here, because creating a cert would populate this table
-                if False:
-                    # insert a domain name
-                    # one should be extracted from uploading a ServerCertificate though
-                    (
-                        _domain,
-                        _is_created,
-                    ) = db.getcreate.getcreate__Domain__by_domainName(
-                        self.ctx, "www.example.com"
-                    )
-                    self.ctx.dbSession.commit()
-
-                    # insert a domain name
-                    # one should be extracted from uploading a ServerCertificate though
-                    # getcreate__UniqueFQDNSet__by_domainObjects
 
                 # upload a csr
                 _csr_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -388,34 +378,17 @@ class AppTest(AppTestCore):
                     csr_pem,
                     certificate_request_source_id=model_utils.CertificateRequestSource.ACME_FLOW,
                     dbPrivateKey=_key_private1,
+                    domain_names=[
+                        TEST_FILES["ServerCertificates"]["SelfSigned"]["1"]["domain"],
+                    ],  # make it an iterable
                 )
-                self.ctx.dbSession.commit()
-
-                # AcmeEventLog
-                dbAcmeEventLog = model_objects.AcmeEventLog()
-                dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-                dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
-                    "v1|/acme/new-reg"
-                )
-                self.ctx.dbSession.add(dbAcmeEventLog)
-                self.ctx.dbSession.flush()
-                self.ctx.dbSession.commit()
-
-                # AcmeChallenge
-                dbAcmeChallenge = model_objects.AcmeChallenge()
-                dbAcmeChallenge.timestamp_created = datetime.datetime.utcnow()
-                dbAcmeChallenge.acme_event_log_id = dbAcmeEventLog.id
-                dbAcmeChallenge.domain = "example.com"
-                dbAcmeChallenge.acme_account_key_id = _key_account1.id
-                self.ctx.dbSession.add(dbAcmeChallenge)
-                self.ctx.dbSession.flush()
-                self.ctx.dbSession.commit()
+                # self.ctx.pyramid_transaction_commit()
 
                 # queue a domain
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
                 db.queues.queue_domains__add(self.ctx, ["queue.example.com"])
-                self.ctx.dbSession.commit()
+                # self.ctx.pyramid_transaction_commit()
 
                 # renew a csr
                 # this MUST be a new domain to add to the queue
@@ -428,7 +401,9 @@ class AppTest(AppTestCore):
                     self.ctx, event_type, event_payload_dict
                 )
                 dbQueue = db.create._create__QueueRenewal(self.ctx, _cert_1)
-                self.ctx.dbSession.commit()
+                # self.ctx.pyramid_transaction_commit()
+
+                self.ctx.pyramid_transaction_commit()
 
             except Exception as exc:
                 print("")
@@ -437,6 +412,7 @@ class AppTest(AppTestCore):
                 print("EXCEPTION IN SETUP")
                 print("")
                 print(exc)
+
                 print("")
                 print("")
                 print("")
@@ -457,6 +433,7 @@ class AppTest(AppTestCore):
                 "dbSessionLogger_factory"
             ]
             self._ctx = utils.ApiContext(
+                request=FakeRequest(),
                 dbSession=dbSession_factory(),
                 dbSessionLogger=dbSessionLogger_factory(),
                 timestamp=datetime.datetime.utcnow(),
@@ -551,7 +528,12 @@ class FunctionalTests_AcmeEventLog(AppTest):
         # paginated
         res = self.testapp.get("/.well-known/admin/acme-event-logs/1", status=200)
 
+    @unittest.skipUnless(
+        RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api"
+    )
     def test_focus(self):
+        """logs are only populated when running against the letsencrypt api
+        """
         # focus
         focus_item = self._get_item()
         assert focus_item is not None
@@ -574,10 +556,10 @@ class FunctionalTests_AcmeProviders(AppTest):
         assert "AcmeProviders" in res_json
 
 
-class FunctionalTests_AccountKeys(AppTest):
-    """python -m unittest peter_sslers.tests.FunctionalTests_AccountKeys"""
+class FunctionalTests_AcmeAccountKeys(AppTest):
+    """python -m unittest peter_sslers.tests.FunctionalTests_AcmeAccountKeys"""
 
-    """python -m unittest peter_sslers.tests.FunctionalTests_AccountKeys.test_new"""
+    """python -m unittest peter_sslers.tests.FunctionalTests_AcmeAccountKeys.test_new"""
 
     def _get_item(self):
         # grab a Key
@@ -628,14 +610,25 @@ class FunctionalTests_AccountKeys(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/acme-account-key/%s/key.pem.txt" % focus_id, status=200
         )
+
         res = self.testapp.get(
-            "/.well-known/admin/acme-account-key/%s/certificate-requests" % focus_id,
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations" % focus_id,
             status=200,
         )
         res = self.testapp.get(
-            "/.well-known/admin/acme-account-key/%s/certificate-requests/1" % focus_id,
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations/1" % focus_id,
             status=200,
         )
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-orders" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-orders/1" % focus_id,
+            status=200,
+        )
+
         res = self.testapp.get(
             "/.well-known/admin/acme-account-key/%s/certificates" % focus_id, status=200
         )
@@ -1349,6 +1342,34 @@ class FunctionalTests_Domain(AppTest):
         )
 
         res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-authorizations" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-authorizations/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-challenges" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-challenges/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-orders" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-orders/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-orderlesss" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-orderlesss/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
             "/.well-known/admin/domain/%s/certificates" % focus_id, status=200
         )
         res = self.testapp.get(
@@ -1577,6 +1598,16 @@ class FunctionalTests_UniqueFQDNSets(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/unique-fqdn-set/%s/calendar.json" % focus_id, status=200
         )
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/acme-orders" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/acme-orders/1" % focus_id,
+            status=200,
+        )
+
         res = self.testapp.get(
             "/.well-known/admin/unique-fqdn-set/%s/certificate-requests" % focus_id,
             status=200,
@@ -1585,6 +1616,7 @@ class FunctionalTests_UniqueFQDNSets(AppTest):
             "/.well-known/admin/unique-fqdn-set/%s/certificate-requests/1" % focus_id,
             status=200,
         )
+
         res = self.testapp.get(
             "/.well-known/admin/unique-fqdn-set/%s/certificates" % focus_id, status=200
         )
@@ -1825,7 +1857,7 @@ class ZZZ_FunctionalTests_API(AppTest):
     """python -m unittest peter_sslers.tests.ZZZ_FunctionalTests_API"""
 
     """this is prefixed `ZZZ_` so it runs last.
-    When run, some API endpoints will deactivate the test certificates – which will
+    When run, some API endpoints will deactivate the test certificates - which will
     cause other tests to fail.
     """
 

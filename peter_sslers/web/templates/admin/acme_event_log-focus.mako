@@ -41,7 +41,47 @@
                             <a  class="label label-info"
                                 href="${admin_prefix}/acme-account-key/${AcmeEventLog.acme_account_key_id}"
                             >
-                                account-${AcmeEventLog.acme_account_key_id}
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeAccountKey-${AcmeEventLog.acme_account_key_id}
+                            </a>
+                        % endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>acme_authorization_id</th>
+                    <td>
+                        % if AcmeEventLog.acme_authorization_id:
+                            <a  class="label label-info"
+                                href="${admin_prefix}/acme-authorization/${AcmeEventLog.acme_authorization_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeAuthorization-${AcmeEventLog.acme_authorization_id}
+                            </a>
+                        % endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>acme_challenge_id</th>
+                    <td>
+                        % if AcmeEventLog.acme_challenge_id:
+                            <a  class="label label-info"
+                                href="${admin_prefix}/acme-challenge/${AcmeEventLog.acme_challenge_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeChallenge-${AcmeEventLog.acme_challenge_id}
+                            </a>
+                        % endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>acme_order_id</th>
+                    <td>
+                        % if AcmeEventLog.acme_order_id:
+                            <a  class="label label-info"
+                                href="${admin_prefix}/acme-order/${AcmeEventLog.acme_order_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeOrder-${AcmeEventLog.acme_order_id}
                             </a>
                         % endif
                     </td>
@@ -53,26 +93,22 @@
                             <a  class="label label-info"
                                 href="${admin_prefix}/certificate-request/${AcmeEventLog.certificate_request_id}"
                             >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 CertificateRequest-${AcmeEventLog.certificate_request_id}
                             </a>
                         % endif
                     </td>
                 </tr>
                 <tr>
-                    <th>challenges?</th>
+                    <th>server_certificate_id</th>
                     <td>
-                        % if AcmeEventLog.acme_challenge_logs:
-                            <ul>
-                            % for challenge in AcmeEventLog.acme_challenge_logs:
-                                <li>
-                                    <a  class="label label-info"
-                                        href="${admin_prefix}/acme-challenge-log/${challenge.id}"
-                                    >
-                                        challenge-${challenge.id}
-                                    </a>
-                                </li>
-                            % endfor
-                            </ul>
+                        % if AcmeEventLog.server_certificate_id:
+                            <a  class="label label-info"
+                                href="${admin_prefix}/certificate/${AcmeEventLog.server_certificate_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                Certificate-${AcmeEventLog.server_certificate_id}
+                            </a>
                         % endif
                     </td>
                 </tr>

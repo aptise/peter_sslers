@@ -141,7 +141,7 @@
                             <tr>
                                 <td>${poll.id}</td>
                                 <td>${poll.timestamp_polled}</td>
-                                <td>${poll.remote_ip_address}</td>
+                                <td>${poll.remote_ip_address.remote_ip_address}</td>
                             </tr>
                         % endfor
                     </tbody>

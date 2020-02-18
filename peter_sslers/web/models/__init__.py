@@ -59,7 +59,7 @@ def get_tm_session(request, session_factory, transaction_manager):
 
 
 def get_session_simple(request, session_factory):
-    """just gets a session wiuthout any transaction registration"""
+    """just gets a session without any transaction registration"""
     dbSession = session_factory()
     if request is not None:
 

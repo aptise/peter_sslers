@@ -6,27 +6,29 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
-        <li><a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}">Focus [${AcmeAccountKey.id}]</a></li>
-        <li class="active">Certificate Requests</li>
+        <li><a href="${admin_prefix}/acme-orders">AcmeOrder</a></li>
+        <li><a href="${admin_prefix}/acme-order/${AcmeOrder.id}">Focus [${AcmeOrder.id}</a></li>
+        <li class="active">Events</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeAccountKey - Focus | Certificate Requests</h2>
+    <h2>ACME Order - Focus - Acme Event Logs</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if CertificateRequests:
+
+            % if AcmeEventLogs:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_CertificateRequests(CertificateRequests, perspective='AcmeAccountKey')}
+                ${admin_partials.table_AcmeEventLogs(AcmeEventLogs, perspective="AcmeOrder")}
             % else:
-                No known certificate requests.
+                No AcmeEventLogs
             % endif
+
         </div>
     </div>
 </%block>

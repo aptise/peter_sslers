@@ -124,6 +124,10 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:certificate_request:focus:acme_orders",
         renderer="/admin/certificate_request-focus-acme_orders.mako",
     )
+    @view_config(
+        route_name="admin:certificate_request:focus:acme_orders_paginated",
+        renderer="/admin/certificate_request-focus-acme_orders.mako",
+    )
     def focus_acme_orders(self):
         dbCertificateRequest = self._focus()
         items_count = lib_db.get.get__AcmeOrder__by_CertificateRequest__count(

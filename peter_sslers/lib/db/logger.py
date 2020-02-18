@@ -11,7 +11,8 @@ import pdb
 from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
-from ._utils import get_dbSessionLogItem
+
+# from ._utils import get_dbSessionLogItem
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -37,7 +38,6 @@ class AcmeLogger(object):
 
     @property
     def dbSession(self):
-        # return get_dbSessionLogItem(self.ctx)
         return self.ctx.dbSession
 
     def register_dbAcmeOrder(self, dbAcmeOrder):
@@ -369,13 +369,14 @@ class AcmeLogger(object):
     # ==========================================================================
 
     def log_CertificateProcured(
-        self, acme_version, dbServerCertificate, transaction_commit=True
+        self, acme_version, dbServerCertificate=None, dbCertificateRequest=None, transaction_commit=True
     ):
         """
         Logs an AcmeOrder as finalized
 
         :param acme_version: (required) The ACME version of the API we are using.
         :param dbServerCertificate: (required) The :class:`model.objects.ServerCertificate`
+        :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest`
         :param transaction_commit: (option) Boolean. If True, commit the transaction
         """
         if acme_version != "v2":
@@ -396,6 +397,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.unique_fqdn_set_id = (
             self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         )
+        dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
         dbAcmeEventLog.server_certificate_id = dbServerCertificate.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()

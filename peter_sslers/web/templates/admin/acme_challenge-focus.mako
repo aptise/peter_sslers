@@ -136,7 +136,7 @@
                                 </a>
                             </td>
                             <td><timestamp>${poll.timestamp_polled}</timestamp></td>
-                            <td>${poll.remote_ip_address}</td>
+                            <td>${poll.remote_ip_address.remote_ip_address}</td>
                         </tr>
                     % endfor
                 </tbody>

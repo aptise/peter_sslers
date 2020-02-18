@@ -365,36 +365,6 @@ class ViewAdmin_Focus(Handler):
             "pager": pager,
         }
 
-    @view_config(
-        route_name="admin:acme_account_key:focus:certificate_requests",
-        renderer="/admin/acme_account_key-focus-certificate_requests.mako",
-    )
-    @view_config(
-        route_name="admin:acme_account_key:focus:certificate_requests_paginated",
-        renderer="/admin/acme_account_key-focus-certificate_requests.mako",
-    )
-    def focus__certificate_requests(self):
-        dbAcmeAccountKey = self._focus()
-        items_count = lib_db.get.get__CertificateRequest__by_AcmeAccountKeyId__count(
-            self.request.api_context, dbAcmeAccountKey.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/certificate-requests/{0}" % (self._focus_url)
-        )
-        items_paged = lib_db.get.get__CertificateRequest__by_AcmeAccountKeyId__paginated(
-            self.request.api_context,
-            dbAcmeAccountKey.id,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "AcmeAccountKey": dbAcmeAccountKey,
-            "CertificateRequests_count": items_count,
-            "CertificateRequests": items_paged,
-            "pager": pager,
-        }
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_account_key:focus:mark", renderer=None)

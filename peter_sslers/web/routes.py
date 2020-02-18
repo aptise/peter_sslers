@@ -132,14 +132,6 @@ def _admin_views(config):
         "/acme-account-key/{@id}/acme-orders/{@page}",
     )
     config.add_route_7(
-        "admin:acme_account_key:focus:certificate_requests",
-        "/acme-account-key/{@id}/certificate-requests",
-    )
-    config.add_route_7(
-        "admin:acme_account_key:focus:certificate_requests_paginated",
-        "/acme-account-key/{@id}/certificate-requests/{@page}",
-    )
-    config.add_route_7(
         "admin:acme_account_key:focus:certificates",
         "/acme-account-key/{@id}/certificates",
     )
@@ -246,6 +238,9 @@ def _admin_views(config):
     config.add_route_7("admin:acme_orders_paginated", "/acme-orders/{@page}")
     config.add_route_7("admin:acme_order:focus|json", "/acme-order/{@id}.json")
     config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
+
+    config.add_route_7("admin:acme_order:focus:acme_events", "/acme-order/{@id}/acme-events")
+    config.add_route_7("admin:acme_order:focus:acme_events_paginated", "/acme-order/{@id}/acme-events/{@page}")
 
     config.add_route_7("admin:acme_order:focus:process", "/acme-order/{@id}/process")
     config.add_route_7(
@@ -475,6 +470,10 @@ def _admin_views(config):
     config.add_route_7(
         "admin:certificate_request:focus:acme_orders",
         "/certificate-request/{@id}/acme-orders",
+    )
+    config.add_route_7(
+        "admin:certificate_request:focus:acme_orders_paginated",
+        "/certificate-request/{@id}/acme-orders/{@page}",
     )
     config.add_route_7(
         "admin:certificate_request:focus:raw",

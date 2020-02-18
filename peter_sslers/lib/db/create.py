@@ -22,7 +22,6 @@ from ...lib import errors
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
 from .helpers import _certificate_parse_to_record
-from ._utils import get_dbSessionLogItem
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -220,8 +219,6 @@ def create__AcmeChallenge(
     if _active_challenge:
         raise errors.AcmeDuplicateChallenge(_active_challenge)
 
-    pdb.set_trace()
-
     dbAcmeChallenge = model_objects.AcmeChallenge()
     if dbAcmeOrderless:
         dbAcmeChallenge.acme_orderless_id = dbAcmeOrderless.id
@@ -253,10 +250,17 @@ def create__AcmeChallengePoll(ctx, dbAcmeChallenge=None, remote_ip_address=None)
     :param dbAcmeChallenge: (required) The challenge which was polled
     :param remote_ip_address: (required) The remote ip address (string)
     """
+    remote_ip_address_id = None
+    if remote_ip_address:
+        dbRemoteIpAddress = lib.db.getcreate.getcreate__RemoteIpAddress(
+            ctx, remote_ip_address
+        )
+        remote_ip_address_id = dbRemoteIpAddress.id
+
     dbAcmeChallengePoll = model_objects.AcmeChallengePoll()
     dbAcmeChallengePoll.acme_challenge_id = dbAcmeChallenge.id
     dbAcmeChallengePoll.timestamp_polled = ctx.timestamp
-    dbAcmeChallengePoll.remote_ip_address = remote_ip_address
+    dbAcmeChallengePoll.remote_ip_address_id = remote_ip_address_id
     ctx.dbSession.add(dbAcmeChallengePoll)
     ctx.dbSession.flush(objects=[dbAcmeChallengePoll])
     return dbAcmeChallengePoll
@@ -273,14 +277,20 @@ def create__AcmeChallengeUnknownPoll(
     :param challenge: (required) challenge (string)
     :param remote_ip_address: (required) remote_ip_address (string)
     """
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
+    remote_ip_address_id = None
+    if remote_ip_address:
+        dbRemoteIpAddress = lib.db.getcreate.getcreate__RemoteIpAddress(
+            ctx, remote_ip_address
+        )
+        remote_ip_address_id = dbRemoteIpAddress.id
+
     dbAcmeChallengeUnknownPoll = model_objects.AcmeChallengeUnknownPoll()
     dbAcmeChallengeUnknownPoll.domain = domain
     dbAcmeChallengeUnknownPoll.challenge = challenge
     dbAcmeChallengeUnknownPoll.timestamp_polled = ctx.timestamp
-    dbAcmeChallengeUnknownPoll.remote_ip_address = remote_ip_address
-    dbSessionLogItem.add(dbAcmeChallengeUnknownPoll)
-    dbSessionLogItem.flush(objects=[dbAcmeChallengeUnknownPoll])
+    dbAcmeChallengeUnknownPoll.remote_ip_address_id = remote_ip_address_id
+    ctx.dbSession.add(dbAcmeChallengeUnknownPoll)
+    ctx.dbSession.flush(objects=[dbAcmeChallengeUnknownPoll])
     return dbAcmeChallengeUnknownPoll
 
 
@@ -312,22 +322,41 @@ def create__CertificateRequest(
         certificate_request_source_id
         not in model_utils.CertificateRequestSource._mapping
     ):
-        raise ValueError("Unsupported `certificate_request_source_id`")
+        raise ValueError(
+            "Unsupported `certificate_request_source_id`: %s"
+            % certificate_request_source_id
+        )
 
     _event_type_id = None
     if (
         certificate_request_source_id
-        == model_utils.CertificateRequestSource.ACME_AUTOMATED_NEW
+        in model_utils.CertificateRequestSource.OPTIONS_CertificateRequest__new__automated
     ):
         _event_type_id = model_utils.OperationsEventType.from_string(
             "CertificateRequest__new__automated"
         )
+    elif (
+        certificate_request_source_id
+        in model_utils.CertificateRequestSource.CertificateRequest__new__flow
+    ):
+        _event_type_id = model_utils.OperationsEventType.from_string(
+            "CertificateRequest__new__flow"
+        )
+    elif (
+        certificate_request_source_id
+        in model_utils.CertificateRequestSource.CertificateRequest__new
+    ):
+        _event_type_id = model_utils.OperationsEventType.from_string(
+            "CertificateRequest__new"
+        )
     else:
-        # this is probably the ".REPORTING" which is used for historical stuff
-        raise ValueError("unsupported `certificate_request_source_id`")
+        raise ValueError(
+            "Unsupported `certificate_request_source_id`: %s"
+            % certificate_request_source_id
+        )
 
-    event_payload_dict = utils.new_event_payload_dict()
-    dbOperationsEvent = log__OperationsEvent(ctx, _event_type_id)
+    if domain_names is None:
+        raise ValueError("Must submit `domain_names` for creation")
 
     if dbPrivateKey is None:
         raise ValueError("Must submit `dbPrivateKey` for creation")
@@ -340,6 +369,9 @@ def create__CertificateRequest(
     csr_domain_names = None
     csr_pem_md5 = None
     csr_pem_modulus_md5 = None
+
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(ctx, _event_type_id)
 
     _tmpfile = None
     try:

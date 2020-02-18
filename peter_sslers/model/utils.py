@@ -401,6 +401,20 @@ class CertificateRequestSource(_mixin_mapping):
     }
 
 
+CertificateRequestSource.OPTIONS_CertificateRequest__new__automated = (
+    CertificateRequestSource.ACME_AUTOMATED_NEW,
+    CertificateRequestSource.ACME_AUTOMATED_ORDER_RENEW,
+    CertificateRequestSource.ACME_AUTOMATED_CERT_RENEW,
+)
+CertificateRequestSource.CertificateRequest__new__flow = (
+    CertificateRequestSource.ACME_FLOW,
+)
+CertificateRequestSource.CertificateRequest__new = (
+    CertificateRequestSource.RECORDED,
+    CertificateRequestSource.QUEUED_DOMAIN,
+)
+
+
 class _mixin_OperationsEventType(object):
     @property
     def event_type_text(self):

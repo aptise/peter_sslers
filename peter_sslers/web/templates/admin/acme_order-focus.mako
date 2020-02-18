@@ -253,6 +253,18 @@
                             ${admin_partials.table_AcmeAuthorizations(AcmeOrder, perspective='AcmeOrder.to_acme_authorizations')}
                         </td>
                     </tr>
+                    
+                    <tr>
+                        <th>ACME Events</th>
+                        <td>
+                            % if AcmeOrder.acme_event_logs__5:
+                                ${admin_partials.table_AcmeEventLogs(AcmeOrder.acme_event_logs__5, perspective='AcmeOrder')}
+                                ${admin_partials.nav_pager("%s/acme-order/%s/acme-events" % (admin_prefix, AcmeOrder.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    
+                    
                 </tbody>
         </div>
     </div>

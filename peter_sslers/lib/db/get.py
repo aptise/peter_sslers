@@ -14,22 +14,19 @@ from .. import cert_utils
 from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
-from ._utils import get_dbSessionLogItem
 
 
 # ==============================================================================
 
 
 def get__AcmeEventLog__count(ctx):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.AcmeEventLog).count()
+    counted = ctx.dbSession.query(model_objects.AcmeEventLog).count()
     return counted
 
 
 def get__AcmeEventLog__paginated(ctx, limit=None, offset=0):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
     query = (
-        dbSessionLogItem.query(model_objects.AcmeEventLog)
+        ctx.dbSession.query(model_objects.AcmeEventLog)
         .order_by(model_objects.AcmeEventLog.id.desc())
         .limit(limit)
         .offset(offset)
@@ -39,8 +36,7 @@ def get__AcmeEventLog__paginated(ctx, limit=None, offset=0):
 
 
 def get__AcmeEventLog__by_id(ctx, id):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    item = dbSessionLogItem.query(model_objects.AcmeEventLog).get(id)
+    item = ctx.dbSession.query(model_objects.AcmeEventLog).get(id)
     return item
 
 
@@ -71,7 +67,7 @@ def get__AcmeAccountKey__by_id(ctx, key_id, eagerload_web=False):
     )
     if eagerload_web:
         q = q.options(
-            sqlalchemy.orm.subqueryload("certificate_requests__5")
+            sqlalchemy.orm.subqueryload("acme_orders__5")
             .joinedload("unique_fqdn_set")
             .joinedload("to_domains")
             .joinedload("domain"),
@@ -217,16 +213,14 @@ def get__AcmeAuthorization__by_DomainId__paginated(
 
 
 def get__AcmeChallenge__count(ctx):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.AcmeChallenge).count()
+    counted = ctx.dbSession.query(model_objects.AcmeChallenge).count()
     return counted
 
 
 def get__AcmeChallenge__paginated(
     ctx, limit=None, offset=0, acme_account_key_id=None, pending_only=None
 ):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    query = dbSessionLogItem.query(model_objects.AcmeChallenge)
+    query = ctx.dbSession.query(model_objects.AcmeChallenge)
     if acme_account_key_id:
         query = query.join(
             model_objects.AcmeEventLog,
@@ -245,8 +239,7 @@ def get__AcmeChallenge__paginated(
 
 
 def get__AcmeChallenge__by_id(ctx, id):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    item = dbSessionLogItem.query(model_objects.AcmeChallenge).get(id)
+    item = ctx.dbSession.query(model_objects.AcmeChallenge).get(id)
     return item
 
 
@@ -361,16 +354,14 @@ def get__AcmeChallenge__by_DomainId__paginated(ctx, domain_id, limit=None, offse
 
 
 def get__AcmeChallengePoll__count(ctx):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.AcmeChallengePoll).count()
+    counted = ctx.dbSession.query(model_objects.AcmeChallengePoll).count()
     return counted
 
 
 def get__AcmeChallengePoll__paginated(
     ctx, limit=None, offset=0,
 ):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    query = dbSessionLogItem.query(model_objects.AcmeChallengePoll)
+    query = ctx.dbSession.query(model_objects.AcmeChallengePoll)
     query = (
         query.order_by(model_objects.AcmeChallengePoll.id.desc())
         .limit(limit)
@@ -381,8 +372,7 @@ def get__AcmeChallengePoll__paginated(
 
 
 def get__AcmeChallengePoll__by_id(ctx, id):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    item = dbSessionLogItem.query(model_objects.AcmeChallengePoll).get(id)
+    item = ctx.dbSession.query(model_objects.AcmeChallengePoll).get(id)
     return item
 
 
@@ -390,16 +380,14 @@ def get__AcmeChallengePoll__by_id(ctx, id):
 
 
 def get__AcmeChallengeUnknownPoll__count(ctx):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    counted = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll).count()
+    counted = ctx.dbSession.query(model_objects.AcmeChallengeUnknownPoll).count()
     return counted
 
 
 def get__AcmeChallengeUnknownPoll__paginated(
     ctx, limit=None, offset=0,
 ):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    query = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll)
+    query = ctx.dbSession.query(model_objects.AcmeChallengeUnknownPoll)
     query = (
         query.order_by(model_objects.AcmeChallengeUnknownPoll.id.desc())
         .limit(limit)
@@ -410,10 +398,33 @@ def get__AcmeChallengeUnknownPoll__paginated(
 
 
 def get__AcmeChallengeUnknownPoll__by_id(ctx, id):
-    dbSessionLogItem = get_dbSessionLogItem(ctx)
-    item = dbSessionLogItem.query(model_objects.AcmeChallengeUnknownPoll).get(id)
+    item = ctx.dbSession.query(model_objects.AcmeChallengeUnknownPoll).get(id)
     return item
 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmeEventLogs__by_AcmeOrderId__count(ctx, acme_order_id):
+    counted = (
+        ctx.dbSession.query(model_objects.AcmeEventLog)
+        .filter(model_objects.AcmeEventLog.acme_order_id == acme_order_id)
+        .count()
+    )
+    return counted
+
+
+def get__AcmeEventLogs__by_AcmeOrderId__paginated(
+    ctx, acme_order_id, limit=None, offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeEventLog)
+        .filter(model_objects.AcmeEventLog.acme_order_id == acme_order_id)
+        .order_by(model_objects.AcmeEventLog.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return query.all()
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -591,9 +602,9 @@ def get__AcmeOrder__by_DomainId__count(ctx, domain_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeOrder)
         .join(
-            model_objects.UniqueFqdnSet,
+            model_objects.UniqueFQDNSet,
             model_objects.AcmeOrder.unique_fqdn_set_id
-            == model_objects.UniqueFqdnSet.id,
+            == model_objects.UniqueFQDNSet.id,
         )
         .join(
             model_objects.UniqueFQDNSet2Domain,
@@ -612,16 +623,16 @@ def get__AcmeOrder__by_DomainId__paginated(
     query = (
         ctx.dbSession.query(model_objects.AcmeOrder)
         .join(
-            model_objects.UniqueFqdnSet,
+            model_objects.UniqueFQDNSet,
             model_objects.AcmeOrder.unique_fqdn_set_id
-            == model_objects.UniqueFqdnSet.id,
+            == model_objects.UniqueFQDNSet.id,
         )
         .join(
             model_objects.UniqueFQDNSet2Domain,
             model_objects.UniqueFQDNSet.id
             == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
         )
-        .filter(model_objects.AcmeOrder.domain_id == domain_id)
+        .filter(model_objects.UniqueFQDNSet2Domain.domain_id == domain_id)
         .order_by(model_objects.AcmeOrder.id.desc())
         .limit(limit)
         .offset(offset)
@@ -747,44 +758,20 @@ def get__CertificateRequest__by_pem_text(ctx, csr_pem):
     return dbCertificateRequest
 
 
-def get__CertificateRequest__by_AcmeAccountKeyId__count(ctx, key_id):
-    counted = (
-        ctx.dbSession.query(model_objects.CertificateRequest)
-        .filter(model_objects.CertificateRequest.acme_account_key_id == key_id)
-        .count()
-    )
-    return counted
-
-
-def get__CertificateRequest__by_AcmeAccountKeyId__paginated(
-    ctx, key_id, limit=None, offset=0
-):
-    items_paged = (
-        ctx.dbSession.query(model_objects.CertificateRequest)
-        .filter(model_objects.CertificateRequest.acme_account_key_id == key_id)
-        .options(
-            sqlalchemy.orm.joinedload("unique_fqdn_set")
-            .joinedload("to_domains")
-            .joinedload("domain")
-        )
-        .order_by(model_objects.CertificateRequest.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
 def get__CertificateRequest__by_DomainId__count(ctx, domain_id):
-    raise ValueError("DEPRECATED")
     counted = (
         ctx.dbSession.query(model_objects.CertificateRequest)
         .join(
-            model_objects.CertificateRequest2Domain,
-            model_objects.CertificateRequest.id
-            == model_objects.CertificateRequest2Domain.certificate_request_id,
+            model_objects.UniqueFQDNSet,
+            model_objects.CertificateRequest.unique_fqdn_set_id
+            == model_objects.UniqueFQDNSet.id,
         )
-        .filter(model_objects.CertificateRequest2Domain.domain_id == domain_id)
+        .join(
+            model_objects.UniqueFQDNSet2Domain,
+            model_objects.UniqueFQDNSet.id
+            == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(model_objects.UniqueFQDNSet2Domain.domain_id == domain_id)
         .count()
     )
     return counted
@@ -793,15 +780,19 @@ def get__CertificateRequest__by_DomainId__count(ctx, domain_id):
 def get__CertificateRequest__by_DomainId__paginated(
     ctx, domain_id, limit=None, offset=0
 ):
-    raise ValueError("DEPRECATED")
     items_paged = (
         ctx.dbSession.query(model_objects.CertificateRequest)
         .join(
-            model_objects.CertificateRequest2Domain,
-            model_objects.CertificateRequest.id
-            == model_objects.CertificateRequest2Domain.certificate_request_id,
+            model_objects.UniqueFQDNSet,
+            model_objects.CertificateRequest.unique_fqdn_set_id
+            == model_objects.UniqueFQDNSet.id,
         )
-        .filter(model_objects.CertificateRequest2Domain.domain_id == domain_id)
+        .join(
+            model_objects.UniqueFQDNSet2Domain,
+            model_objects.UniqueFQDNSet.id
+            == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(model_objects.UniqueFQDNSet2Domain.domain_id == domain_id)
         .order_by(model_objects.CertificateRequest.id.desc())
         .limit(limit)
         .offset(offset)
@@ -1458,7 +1449,10 @@ def get__ServerCertificate__by_id(ctx, cert_id):
 def get__ServerCertificate__by_AcmeAccountKeyId__count(ctx, key_id):
     counted = (
         ctx.dbSession.query(model_objects.ServerCertificate)
-        .filter(model_objects.ServerCertificate.acme_account_key_id == key_id)
+        .join(model_objects.AcmeOrder,
+              model_objects.ServerCertificate.id==model_objects.AcmeOrder.server_certificate_id
+              )
+        .filter(model_objects.AcmeOrder.acme_account_key_id == key_id)
         .count()
     )
     return counted
@@ -1469,7 +1463,10 @@ def get__ServerCertificate__by_AcmeAccountKeyId__paginated(
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.ServerCertificate)
-        .filter(model_objects.ServerCertificate.acme_account_key_id == key_id)
+        .join(model_objects.AcmeOrder,
+              model_objects.ServerCertificate.id==model_objects.AcmeOrder.server_certificate_id
+              )
+        .filter(model_objects.AcmeOrder.acme_account_key_id == key_id)
         .options(
             sqlalchemy.orm.joinedload("unique_fqdn_set")
             .joinedload("to_domains")

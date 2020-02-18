@@ -124,6 +124,100 @@
 </%def>
 
 
+<%def name="table_AcmeEventLogs(acme_event_logs, perspective=None)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>timestamp_event</th>
+                <th>acme_event_id</th>
+                <th>acme_account_key_id</th>
+                <th>acme_authorization_id</th>
+                <th>acme_challenge_id</th>
+                <th>acme_order_id</th>
+                <th>certificate_request_id</th>
+                <th>server_certificate_id</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for logged in acme_event_logs:
+            <tr>
+                <td>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/acme-event-log/${logged.id}"
+                    >
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeEvent-${logged.id}
+                    </a>
+                </td>
+                <td><timestamp>${logged.timestamp_event}</timestamp></td>
+                <td><span class="label label-default">${logged.acme_event}</span></td>
+                <td>
+                    % if logged.acme_account_key_id:
+                        <a  class="label label-info"
+                            href="${admin_prefix}/acme-account-key/${logged.acme_account_key_id}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeAccountKey-${logged.acme_account_key_id}
+                        </a>
+                    % endif
+                </td>
+            <td>
+                % if logged.acme_authorization_id:
+                    <a  class="label label-info"
+                        href="${admin_prefix}/acme-authorization/${logged.acme_authorization_id}"
+                    >
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeAuthorization-${logged.acme_authorization_id}
+                    </a>
+                % endif
+            </td>
+            <td>
+                % if logged.acme_challenge_id:
+                    <a  class="label label-info"
+                        href="${admin_prefix}/acme-challenge/${logged.acme_challenge_id}"
+                    >
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeChallenge-${logged.acme_challenge_id}
+                    </a>
+                % endif
+            </td>
+            <td>
+                % if logged.acme_order_id:
+                    <a  class="label label-info"
+                        href="${admin_prefix}/acme-order/${logged.acme_order_id}"
+                    >
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeOrder-${logged.acme_order_id}
+                    </a>
+                % endif
+            </td>
+                <td>
+                    % if logged.certificate_request_id:
+                        <a  class="label label-info"
+                            href="${admin_prefix}/certificate-request/${logged.certificate_request_id}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            CertificateRequest-${logged.certificate_request_id}
+                        </a>
+                    % endif
+                </td>
+                <td>
+                    % if logged.server_certificate_id:
+                        <a  class="label label-info"
+                            href="${admin_prefix}/certificate/${logged.server_certificate_id}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            Certificate-${logged.server_certificate_id}
+                        </a>
+                    % endif
+                </td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
 <%def name="table_AcmeOrderlesss(acme_orderlesss, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
@@ -792,7 +886,7 @@
                             </label>
                         </th>
                         <td>
-                            <select class="form-control" id="f1-acme_account_provider_id" name="acme_account_provider_id" />
+                            <select class="form-control" id="f1-acme_account_provider_id" name="acme_account_provider_id">
                                 % for option in AcmeAccountProviderOptions:
                                     <option value="${option['id']}" ${'selected' if option['is_default'] else ''}>${option['name']}</option>
                                 % endfor

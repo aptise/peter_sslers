@@ -1,5 +1,7 @@
-<html>
+<!DOCTYPE html>.
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
+<title>SSL Certificate Administration</title>
 
 <!-- Latest compiled and minified CSS -->
 <link rel="stylesheet" href="${admin_prefix}/static/bootstrap-3.3.6/bootstrap.min.css" >
@@ -23,10 +25,6 @@
                 }
     .nav>li>a{padding:5px 10px;}
 </style>
-
-<title>
-SSL Certificate Administration
-</title>
 
 </head>
 <body>

@@ -153,11 +153,22 @@ class AcmeChallengePoll(Base):
         sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=False
     )
     timestamp_polled = sa.Column(sa.DateTime, nullable=False)
-    remote_ip_address = sa.Column(sa.Unicode(255), nullable=False)
+    remote_ip_address_id = sa.Column(
+        sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_challenge = sa_orm_relationship(
         "AcmeChallenge",
         primaryjoin="AcmeChallengePoll.acme_challenge_id==AcmeChallenge.id",
+        uselist=False,
+        back_populates="acme_challenge_polls",
+    )
+
+    remote_ip_address = sa_orm_relationship(
+        "RemoteIpAddress",
+        primaryjoin="AcmeChallengePoll.remote_ip_address_id==RemoteIpAddress.id",
         uselist=False,
         back_populates="acme_challenge_polls",
     )
@@ -174,7 +185,45 @@ class AcmeChallengeUnknownPoll(Base):
     domain = sa.Column(sa.Unicode(255), nullable=False)
     challenge = sa.Column(sa.Unicode(255), nullable=False)
     timestamp_polled = sa.Column(sa.DateTime, nullable=False)
+    remote_ip_address_id = sa.Column(
+        sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    remote_ip_address = sa_orm_relationship(
+        "RemoteIpAddress",
+        primaryjoin="AcmeChallengeUnknownPoll.remote_ip_address_id==RemoteIpAddress.id",
+        uselist=False,
+        back_populates="acme_challenge_unknown_polls",
+    )
+
+
+class RemoteIpAddress(Base):
+    """
+    tracking remote ips, we should only see our tests and the letsencrypt service
+    """
+
+    __tablename__ = "remote_ip_address"
+
+    id = sa.Column(sa.Integer, primary_key=True)
     remote_ip_address = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_challenge_polls = sa_orm_relationship(
+        "AcmeChallengePoll",
+        primaryjoin="RemoteIpAddress.id==AcmeChallengePoll.remote_ip_address_id",
+        uselist=True,
+        back_populates="remote_ip_address",
+    )
+    acme_challenge_unknown_polls = sa_orm_relationship(
+        "AcmeChallengeUnknownPoll",
+        primaryjoin="RemoteIpAddress.id==AcmeChallengeUnknownPoll.remote_ip_address_id",
+        uselist=True,
+        back_populates="remote_ip_address",
+    )
 
 
 # ==============================================================================
@@ -2081,6 +2130,26 @@ AcmeOrder.acme_order__renewal_of = sa_orm_relationship(
 )
 
 
+# note: AcmeOrder.acme_event_logs__5
+AcmeOrder.acme_event_logs__5 = sa_orm_relationship(
+    AcmeEventLog,
+    primaryjoin=(
+        sa.and_(
+            AcmeOrder.id == AcmeEventLog.acme_order_id,
+            AcmeOrder.id.in_(
+                sa.select([AcmeOrder.id])
+                .where(AcmeOrder.id == AcmeEventLog.acme_order_id)
+                .order_by(AcmeEventLog.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeEventLog.id.desc(),
+    viewonly=True,
+)
+
+
 # note: AcmeAccountKey.acme_authorizations__5
 AcmeAccountKey.acme_authorizations__5 = sa_orm_relationship(
     AcmeAuthorization,
@@ -2157,33 +2226,6 @@ AcmeAccountKey.acme_orders__5 = sa_orm_relationship(
         )
     ),
     order_by=AcmeOrder.id.desc(),
-    viewonly=True,
-)
-
-# note: AcmeAccountKey.certificate_requests__5
-AcmeAccountKey.certificate_requests__5 = sa_orm_relationship(
-    CertificateRequest,
-    primaryjoin="AcmeAccountKey.id == AcmeOrder.acme_account_key_id",
-    secondary=(
-        """join(AcmeOrder,
-                CertificateRequest,
-                AcmeOrder.certificate_request_id == CertificateRequest.id
-                )"""
-    ),
-    secondaryjoin=(
-        sa.and_(
-            CertificateRequest.id == sa.orm.foreign(AcmeOrder.certificate_request_id),
-            CertificateRequest.id.in_(
-                sa.select([CertificateRequest.id])
-                .where(CertificateRequest.id == AcmeOrder.certificate_request_id)
-                .where(AcmeOrder.acme_account_key_id == AcmeAccountKey.id)
-                .order_by(CertificateRequest.id.desc())
-                .limit(5)
-                .correlate()
-            ),
-        )
-    ),
-    order_by=CertificateRequest.id.desc(),
     viewonly=True,
 )
 
