@@ -42,6 +42,12 @@
         </div>
         <div class="col-sm-6">
             ${admin_partials.info_PrivateKey()}
+
+            <h3>This form accepts JSON</h3>
+            <p>
+                <code>curl ${request.api_host}${admin_prefix}/private-key/upload.json</code>
+            </p>
+
         </div>
     </div>
 </%block>

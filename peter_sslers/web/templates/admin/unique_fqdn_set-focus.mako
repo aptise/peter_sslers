@@ -58,7 +58,7 @@
                         <th>first seen</th>
                         <td>
                             <timestamp>
-                                ${UniqueFQDNSet.timestamp_first_seen}
+                                ${UniqueFQDNSet.timestamp_created}
                             </timestamp>
                         </td>
                     </tr>

@@ -42,11 +42,8 @@ class ViewAdmin_List(Handler):
     @view_config(route_name="admin:acme_account_keys|json", renderer="json")
     @view_config(route_name="admin:acme_account_keys_paginated|json", renderer="json")
     def list(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         items_count = lib_db.get.get__AcmeAccountKey__count(self.request.api_context)
-        if wants_json:
+        if self.request.wants_json:
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/acme-account-keys/{0}.json"
@@ -61,7 +58,7 @@ class ViewAdmin_List(Handler):
         items_paged = lib_db.get.get__AcmeAccountKey__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
-        if wants_json:
+        if self.request.wants_json:
             _accountKeys = {k.id: k.as_json for k in items_paged}
             return {
                 "AcmeAccountKeys": _accountKeys,
@@ -88,10 +85,7 @@ class ViewAdmin_New(Handler):
         return self._upload__print()
 
     def _upload__print(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": [
                     """curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/acme-account-key/upload.json"""
@@ -123,9 +117,6 @@ class ViewAdmin_New(Handler):
         )
 
     def _upload__submit(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_AcmeAccountKey_new__file, validate_get=False
@@ -144,7 +135,7 @@ class ViewAdmin_New(Handler):
                 self.request.api_context, **key_create_args
             )
 
-            if wants_json:
+            if self.request.wants_json:
                 return {
                     "result": "success",
                     "AcmeAccountKey": dbAcmeAccountKey.as_json,
@@ -161,7 +152,7 @@ class ViewAdmin_New(Handler):
             )
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._upload__print)
 
@@ -189,11 +180,8 @@ class ViewAdmin_Focus(Handler):
     )
     @view_config(route_name="admin:acme_account_key:focus|json", renderer="json")
     def focus(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbAcmeAccountKey = self._focus(eagerload_web=True)
-        if wants_json:
+        if self.request.wants_json:
             _prefix = "%s" % (self._focus_url)
             return {
                 "LetsEncryptAccountKey": dbAcmeAccountKey.as_json,
@@ -255,10 +243,7 @@ class ViewAdmin_Focus(Handler):
         return self._focus__authenticate__print(dbAcmeAccountKey)
 
     def _focus__authenticate__print(self, dbAcmeAccountKey):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": [
                     """curl -X POST %s/authenticate.json""" % self._focus_url
@@ -275,10 +260,7 @@ class ViewAdmin_Focus(Handler):
         result = lib_db.actions_acme.do__AcmeAccountKey_AcmeV2_authenticate(
             self.request.api_context, dbAcmeAccountKey
         )
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {"LetsEncryptAccountKey": dbAcmeAccountKey.as_json}
         return HTTPSeeOther(
             "%s?result=success&is_authenticated=%s" % (self._focus_url, result)
@@ -424,10 +406,7 @@ class ViewAdmin_Focus(Handler):
         return self._focus_mark__print(dbAcmeAccountKey)
 
     def _focus_mark__print(self, dbAcmeAccountKey):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": [
                     """curl --form 'action=active' %s/mark.json""" % self._focus_url
@@ -439,9 +418,6 @@ class ViewAdmin_Focus(Handler):
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbAcmeAccountKey):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -530,7 +506,7 @@ class ViewAdmin_Focus(Handler):
                     ),
                     dbAcmeAccountKey=event_alt[1],
                 )
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "success", "AcmeAccountKey": dbAcmeAccountKey}
             url_success = "%s?operation=mark&action=%s&result=success" % (
                 self._focus_url,
@@ -539,7 +515,7 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s/operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,

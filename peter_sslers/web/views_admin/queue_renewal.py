@@ -72,9 +72,6 @@ class ViewList(Handler):
         renderer="json",
     )
     def list(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         get_kwargs = {}
         url_template = None
         sidenav_option = None
@@ -83,7 +80,7 @@ class ViewList(Handler):
             "admin:queue_renewals_paginated",
         ):
             get_kwargs["unprocessed_only"] = True
-            if wants_json:
+            if self.request.wants_json:
                 url_template = (
                     "%s/queue-renewals/{0}.json"
                     % self.request.registry.settings["admin_prefix"]
@@ -98,7 +95,7 @@ class ViewList(Handler):
             "admin:queue_renewals:all",
             "admin:queue_renewals:all_paginated",
         ):
-            if wants_json:
+            if self.request.wants_json:
                 url_template = (
                     "%s/queue-renewals/{0}.json"
                     % self.request.registry.settings["admin_prefix"]
@@ -114,7 +111,7 @@ class ViewList(Handler):
             "admin:queue_renewals:active_failures_paginated",
         ):
             get_kwargs["unprocessed_failures_only"] = True
-            if wants_json:
+            if self.request.wants_json:
                 url_template = (
                     "%s/queue-renewals/{0}.json"
                     % self.request.registry.settings["admin_prefix"]
@@ -145,7 +142,7 @@ class ViewList(Handler):
             except Exception as exc:
                 # this could be a json or int() error
                 pass
-        if wants_json:
+        if self.request.wants_json:
             _domains = {d.id: d.as_json for d in items_paged}
             return {
                 "QueueRenewals": _domains,
@@ -186,10 +183,7 @@ class ViewFocus(Handler):
     @view_config(route_name="admin:queue_renewal:focus|json", renderer="json")
     def focus(self):
         dbRenewalQueueItem = self._focus()
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {"status": "success", "QueueRenewal": dbRenewalQueueItem.as_json}
         return {"project": "peter_sslers", "RenewalQueueItem": dbRenewalQueueItem}
 
@@ -204,10 +198,7 @@ class ViewFocus(Handler):
         return self._focus_mark__print(dbRenewalQueueItem)
 
     def _focus_mark__print(self, dbRenewalQueueItem):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": [
                     """curl --form 'action=active' %s/mark.json""" % self._focus_url
@@ -219,9 +210,6 @@ class ViewFocus(Handler):
         return HTTPSeeOther(url_huh)
 
     def _focus_mark__submit(self, dbRenewalQueueItem):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_QueueRenewal_mark, validate_get=True
@@ -265,7 +253,7 @@ class ViewFocus(Handler):
                 ),
                 dbQueueRenewal=dbRenewalQueueItem,
             )
-            if wants_json:
+            if self.request.wants_json:
                 return {
                     "result": "success",
                     "QueueRenewal": dbRenewalQueueItem.as_json,
@@ -275,7 +263,7 @@ class ViewFocus(Handler):
             return HTTPSeeOther(url_post_required)
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,

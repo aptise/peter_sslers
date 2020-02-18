@@ -60,7 +60,7 @@
                                     AcmeAuthorization-${acme_authorization.id}
                                 </a>
                             % elif c == 'status':
-                                <code>${acme_authorization.status_text or ''}</code>
+                                <code>${acme_authorization.acme_status_authorization or ''}</code>
                             % elif c == 'domain_id':
                                 % if acme_authorization.domain_id:
                                     <a class="label label-info" href="${admin_prefix}/domain/${acme_authorization.domain_id}">
@@ -114,7 +114,7 @@
                     ${item.id}</a></td>
                 <td><timestamp>${item.timestamp_created}</timestamp></td>
                 <td><span class="label label-default">${item.acme_challenge_type}</span></td>
-                <td><code>${item.status_text}</code></td>
+                <td><code>${item.acme_status_challenge}</code></td>
                 <td><code>${item.token}</code></td>
                 <td><timestamp>${item.timestamp_updated}</timestamp></td>
             </tr>
@@ -163,47 +163,10 @@
 </%def>
 
 
-<%def name="table_AcmeOrderlessChallenges(acme_orderless_challenges, perspective=None)">
-    <table class="table table-striped table-condensed">
-        <thead>
-            <tr>
-                <th>AcmeOrderless</th>
-                <th>AcmeOrderlessChallenge</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>created</th>
-                <th>updated</th>
-            </tr>
-        </thead>
-        <tbody>
-            % for challenge in acme_orderless_challenges:
-                <tr>
-                    <td>
-                        <a href="${admin_prefix}/acme-orderless/${challenge.acme_orderless_id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeOrderless-${challenge.acme_orderless_id}
-                        </a>
-                    </td>
-                    <td>
-                        <a href="${admin_prefix}/acme-orderless/${challenge.acme_orderless_id}/acme-orderless-challenge/${challenge.id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeOrderlessChallenge-${challenge.id}
-                        </a>
-                    </td>
-                    <td><span class="label label-default">${challenge.acme_challenge_type}</span></td>
-                    <td><span class="label label-default">${challenge.acme_status_challenge}</span></td>
-                    <td><timestamp>${challenge.timestamp_created if challenge.timestamp_created else ''}</timestamp></td>
-                    <td><timestamp>${challenge.timestamp_updated if challenge.timestamp_updated else ''}</timestamp></td>
-                </tr>
-            % endfor
-        </tbody>
-    </table>
-</%def>
-
-
 <%def name="table_AcmeOrders(acme_orders, perspective=None)">
     <%
         cols = ("id", 
+                "is_active",
                 "status",
                 "timestamp_created",
                 "timestamp_finalized",
@@ -212,7 +175,9 @@
                 "server_certificate_id",
                 "unique_fqdn_set_id",
                )
-        if perspective == 'CertificateRequest':
+        if perspective == 'AcmeOrders':
+            cols = [c for c in cols if c != 'certificate_request_id']
+        elif perspective == 'CertificateRequest':
             cols = [c for c in cols if c != 'certificate_request_id']
         elif perspective == 'Domain':
             cols = [c for c in cols]
@@ -243,8 +208,18 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeOrder-${acme_order.id}
                                 </a>
+                            % elif c == 'is_active':
+                                % if acme_order.is_active:
+                                    <div class="label label-success">
+                                        <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                    </div>
+                                % else:
+                                    <div class="label label-danger">
+                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    </div>
+                                % endif
                             % elif c == 'status':
-                                <code>${acme_order.status_text or ''}</code>
+                                <code>${acme_order.acme_status_order or ''}</code>
                             % elif c == 'timestamp_created':
                                 <timestamp>${acme_order.timestamp_created or ''}</timestamp>
                             % elif c == 'timestamp_finalized':
@@ -295,7 +270,6 @@
     <%
         cols = ("id", 
                 "type"
-                "is_active",
                 "timestamp_created",
                 "certificate_request_source_id",
                 "unique_fqdn_set_id",
@@ -338,10 +312,6 @@
                                     CertificateRequest-${certificate_request.id}</a>
                             % elif c == 'type':
                                 <span class="label label-default">${certificate_request.certificate_request_source}</span>
-                            % elif c == 'is_active':
-                                <span class="label label-${'success' if certificate_request.is_active else 'warning'}">
-                                    ${'Active' if certificate_request.is_active else 'inactive'}
-                                </span>
                             % elif c == 'timestamp_created':
                                 <timestamp>${certificate_request.timestamp_created}</timestamp>
                             % elif c == 'certificate_request_source_id':
@@ -618,7 +588,7 @@
                     </a>
                 </td>
                 <td>
-                    <timestamp>${i.timestamp_first_seen}</timestamp>
+                    <timestamp>${i.timestamp_created}</timestamp>
                 </td>
                 <td>
                     <code>${i.domain_ids_string}</code>

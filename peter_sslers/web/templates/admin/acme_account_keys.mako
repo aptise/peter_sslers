@@ -68,7 +68,7 @@
                                     % endif
                                 </td>
                                 <td>${key.acme_account_provider}</td>
-                                <td><timestamp>${key.timestamp_first_seen}</timestamp></td>
+                                <td><timestamp>${key.timestamp_created}</timestamp></td>
                                 <td><code>${key.key_pem_md5}</code></td>
                                 <td><span class="badge">${key.count_certificate_requests or ''}</span></td>
                                 <td><span class="badge">${key.count_certificates_issued or ''}</span></td>

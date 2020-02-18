@@ -8,7 +8,7 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-orderlesss">AcmeOrderless</a></li>
         <li><a href="${admin_prefix}/acme-orderlesss/${AcmeOrderless.id}">Focus - ${AcmeOrderless.id}</a></li>
-        <li><a href="#">AcmeOrderlessChallenge Focus</a></li>
+        <li><a href="#">AcmeChallenge Focus</a></li>
     </ol>
 </%block>
 
@@ -43,7 +43,7 @@
     </div>
     <div class="row">
         <div class="col-sm-12">
-            <h5>AcmeOrderlessChallenge Details</h5>
+            <h5>AcmeChallenge Details</h5>
             
             <table class="table table-condensed table-striped">
                 <tr>
@@ -51,66 +51,66 @@
                     <td>
                         <span class="label label-default">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeOrderlessChallenge-${AcmeOrderlessChallenge.id}
+                            AcmeChallenge-${AcmeChallenge.id}
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <th>domain</th>
                     <td>
-                        <a class="label label-info" href="${admin_prefix}/domain/${AcmeOrderlessChallenge.domain_id}">
+                        <a class="label label-info" href="${admin_prefix}/domain/${AcmeChallenge.domain_id}">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            ${AcmeOrderlessChallenge.domain_id}
+                            ${AcmeChallenge.domain_id}
                             |
-                            ${AcmeOrderlessChallenge.domain_name}
+                            ${AcmeChallenge.domain_name}
                         </a>
                     </td>
                 </tr>
                 <tr>
                     <th>type</th>
                     <td>
-                        <span class="label label-default">${AcmeOrderlessChallenge.acme_challenge_type}</span>
+                        <span class="label label-default">${AcmeChallenge.acme_challenge_type}</span>
                     </td>
                 </tr>
                 <tr>
                     <th>status</th>
                     <td>
-                        <span class="label label-default">${AcmeOrderlessChallenge.acme_status_challenge}</span>
+                        <span class="label label-default">${AcmeChallenge.acme_status_challenge}</span>
                     </td>
                 </tr>
 
                 <tr>
                     <th>token</th>
                     <td>
-                        <code>${AcmeOrderlessChallenge.token or ''}</code>
+                        <code>${AcmeChallenge.token or ''}</code>
                     </td>
                 </tr>
                 <tr>
                     <th>keyauthorization</th>
                     <td>
-                        <code>${AcmeOrderlessChallenge.keyauthorization or ''}</code>
+                        <code>${AcmeChallenge.keyauthorization or ''}</code>
                     </td>
                 </tr>
                 <tr>
                     <th>challenge_url</th>
                     <td>
-                        <code>${AcmeOrderlessChallenge.challenge_url or ''}</code>
+                        <code>${AcmeChallenge.challenge_url or ''}</code>
                         (this is not the URL on your server, but the ACME Server URL)
                     </td>
                 </tr>
                 <tr>
                     <th>timestamp_updated</th>
                     <td>
-                        <timestamp>${AcmeOrderlessChallenge.timestamp_updated or ''}</timestamp>
+                        <timestamp>${AcmeChallenge.timestamp_updated or ''}</timestamp>
                     </td>
                 </tr>
 
                 <tr>
                     <th>test</th>
                     <td>
-                        % if AcmeOrderlessChallenge.acme_challenge_type == "http-01":
-                            % if AcmeOrderlessChallenge.token:
-                                <a href="http://${AcmeOrderlessChallenge.domain.domain_name}/.well-known/acme-challenge/${AcmeOrderlessChallenge.token}?test=1"
+                        % if AcmeChallenge.acme_challenge_type == "http-01":
+                            % if AcmeChallenge.token:
+                                <a href="http://${AcmeChallenge.domain.domain_name}/.well-known/acme-challenge/${AcmeChallenge.token}?test=1"
                                    target="_blank"
                                    class="btn btn-${"success" if AcmeOrderless.is_active else "danger"}"
                                 >
@@ -124,8 +124,8 @@
                 
             </table>
 
-            <h5>AcmeOrderlessChallengePolls</h5>
-            % if not AcmeOrderlessChallenge.acme_orderless_challenge_polls:
+            <h5>AcmeChallengePolls</h5>
+            % if not AcmeChallenge.acme_challenge_polls:
                 <p>no polls</p>
             % else:
                 <table class="table table-condensed table-striped">
@@ -137,7 +137,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        % for poll in AcmeOrderlessChallenge.acme_orderless_challenge_polls:
+                        % for poll in AcmeChallenge.acme_challenge_polls:
                             <tr>
                                 <td>${poll.id}</td>
                                 <td>${poll.timestamp_polled}</td>

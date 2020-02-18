@@ -49,7 +49,7 @@
                             <th>id</th>
                             <th>count active certificates (signed)</th>
                             <th>name</th>
-                            <th>timestamp_first_seen</th>
+                            <th>timestamp_created</th>
                             <th>cert_pem_md5</th>
                         </tr>
                     </thead>
@@ -60,7 +60,7 @@
                                 cacert-${cert.id}</a></td>
                             <td><span class="badge">${cert.count_active_certificates or ''}</span></td>
                             <td>${cert.name or ''}</td>
-                            <td><timestamp>${cert.timestamp_first_seen}</timestamp></td>
+                            <td><timestamp>${cert.timestamp_created}</timestamp></td>
                             <td><code>${cert.cert_pem_md5}</code></td>
                         </tr>
                     % endfor

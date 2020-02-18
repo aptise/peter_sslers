@@ -82,7 +82,7 @@
                                     </span>
                                 % endif
                             </td>
-                            <td><timestamp>${key.timestamp_first_seen}</timestamp></td>
+                            <td><timestamp>${key.timestamp_created}</timestamp></td>
                             <td><code>${key.key_pem_md5}</code></td>
                             <td><span class="badge">${key.count_active_certificates or ''}</span></td>
                             <td><span class="badge">${key.count_certificate_requests or ''}</span></td>

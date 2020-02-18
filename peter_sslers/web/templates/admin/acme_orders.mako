@@ -18,6 +18,12 @@
 
 
 <%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/acme-orders.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
 </%block>
 
 
@@ -26,28 +32,7 @@
         <div class="col-sm-12">
             % if AcmeOrders:
                 ${admin_partials.nav_pagination(pager)}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>id</th>
-                            <th>timestamp_created</th>
-                            <th>status</th>
-                            <th>timestamp_finalized</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    % for acme_order in AcmeOrders:
-                        <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/acme-order/${acme_order.id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${acme_order.id}</a></td>
-                            <td><timestamp>${acme_order.timestamp_created or ''}</timestamp></td>
-                            <td><code>${acme_order.status_text or ''}</code></td>
-                            <td><timestamp>${acme_order.timestamp_finalized or ''}</timestamp></td>
-                        </tr>
-                    % endfor
-                    </tbody>
-                </table>
+                ${admin_partials.table_AcmeOrders(AcmeOrders, perspective="AcmeOrders")}
             % else:
                 <em>
                     No ACME Orders

@@ -74,14 +74,26 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:acme_challenge:focus",
         renderer="/admin/acme_challenge-focus.mako",
     )
+    @view_config(
+        route_name="admin:acme_challenge:focus|json", renderer="json",
+    )
     def focus(self):
         dbAcmeChallenge = self._focus(eagerload_web=True)
+        if self.request.wants_json:
+            return {
+                "AcmeChallenge": dbAcmeChallenge._as_json(
+                    admin_url=self.request.admin_url
+                )
+            }
         return {"project": "peter_sslers", "AcmeChallenge": dbAcmeChallenge}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
         route_name="admin:acme_challenge:focus:acme_server_sync", renderer=None
+    )
+    @view_config(
+        route_name="admin:acme_challenge:focus:acme_server_sync|json", renderer="json"
     )
     def acme_server_sync(self):
         """
@@ -96,6 +108,11 @@ class ViewAdmin_Focus(Handler):
             result = lib_db.actions_acme.do__AcmeChallenge_AcmeV2__acme_server_sync(
                 self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
             )
+            if self.request.wants_json:
+                return HTTPSeeOther(
+                    "%s.json?result=success&operation=acme+server+sync+success"
+                    % self._focus_url
+                )
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+sync+success" % self._focus_url
             )
@@ -104,6 +121,11 @@ class ViewAdmin_Focus(Handler):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
+            if self.request.wants_json:
+                return HTTPSeeOther(
+                    "%s.json?error=acme+server+sync&message=%s"
+                    % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+                )
             return HTTPSeeOther(
                 "%s?error=acme+server+sync&message=%s"
                 % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)

@@ -16,6 +16,7 @@ from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 from ... import lib  # from . import db?
+from ...lib import errors
 
 # local
 from .logger import log__OperationsEvent
@@ -25,75 +26,6 @@ from ._utils import get_dbSessionLogItem
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def create__AcmeOrderlessChallenge(
-    ctx,
-    dbAcmeOrderless=None,
-    dbDomain=None,
-    token=None,
-    keyauthorization=None,
-    challenge_url=None,
-):
-    """
-    Create a new AcmeOrderless Challenge
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param dbAcmeOrderless: (required) The :class:`model.objects.AcmeOrderless`
-    :param dbDomain: (required) The :class:`model.objects.Domain`
-    :param token: (optional) string token
-    :param keyauthorization: (optional) string keyauthorization
-    :param challenge_url: (optional) challenge_url token
-    """
-    if not dbAcmeOrderless:
-        raise ValueError("must be invoked with `dbAcmeOrderless`")
-    if not dbDomain:
-        raise ValueError("must be invoked with `dbDomain`")
-
-    orderless_domain_ids = [
-        c.domain_id for c in dbAcmeOrderless.acme_orderless_challenges
-    ]
-    if dbDomain in orderless_domain_ids:
-        raise ValueError("domain already in this orderless")
-
-    dbAcmeOrderlessChallenge = model_objects.AcmeOrderlessChallenge()
-    dbAcmeOrderlessChallenge.acme_orderless_id = dbAcmeOrderless.id
-    dbAcmeOrderlessChallenge.timestamp_created = ctx.timestamp
-    dbAcmeOrderlessChallenge.domain_id = dbDomain.id
-    dbAcmeOrderlessChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
-        "http-01"
-    )
-    dbAcmeOrderlessChallenge.acme_status_challenge_id = (
-        model_utils.Acme_Status_Challenge.DEFAULT_ID
-    )
-    dbAcmeOrderlessChallenge.token = token
-    dbAcmeOrderlessChallenge.keyauthorization = keyauthorization
-    dbAcmeOrderlessChallenge.challenge_url = challenge_url
-
-    ctx.dbSession.add(dbAcmeOrderlessChallenge)
-    ctx.dbSession.flush(objects=[dbAcmeOrderlessChallenge])
-
-    return dbAcmeOrderless
-
-
-def create__AcmeOrderlessChallengePoll(
-    ctx, dbAcmeOrderlessChallenge=None, remote_ip_address=None
-):
-    """
-    Create a new AcmeOrderlessChallengePoll - this is a log
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param dbAcmeOrderlessChallenge: (required) The challenge which was polled
-    :param remote_ip_address: (required) The remote ip address (string)
-    """
-    dbAcmeOrderlessChallengePoll = model_objects.AcmeOrderlessChallengePoll()
-    dbAcmeOrderlessChallengePoll.acme_orderless_challenge_id = (
-        dbAcmeOrderlessChallenge.id
-    )
-    dbAcmeOrderlessChallengePoll.timestamp_polled = ctx.timestamp
-    dbAcmeOrderlessChallengePoll.remote_ip_address = remote_ip_address
-    ctx.dbSession.add(dbAcmeOrderlessChallengePoll)
-    ctx.dbSession.flush(objects=[dbAcmeOrderlessChallengePoll])
-    return dbAcmeOrderlessChallengePoll
 
 
 def create__AcmeOrderless(
@@ -109,6 +41,7 @@ def create__AcmeOrderless(
         raise ValueError("Did not make a valid set of domain names")
 
     dbAcmeOrderless = model_objects.AcmeOrderless()
+    dbAcmeOrderless.is_active = True
     dbAcmeOrderless.timestamp_created = ctx.timestamp
     ctx.dbSession.add(dbAcmeOrderless)
     ctx.dbSession.flush(objects=[dbAcmeOrderless])
@@ -120,20 +53,21 @@ def create__AcmeOrderless(
         for _domain_name in domain_names
     }
 
+    active_challenges = []
     for (domain_name, dbDomain) in domain_objects.items():
-        dbAcmeOrderlessChallenge = model_objects.AcmeOrderlessChallenge()
-        dbAcmeOrderlessChallenge.acme_orderless_id = dbAcmeOrderless.id
-        dbAcmeOrderlessChallenge.timestamp_created = ctx.timestamp
-        dbAcmeOrderlessChallenge.domain_id = dbDomain.id
-        dbAcmeOrderlessChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
-            "http-01"
+        _active_challenge = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+            ctx, dbDomain.id
         )
-        dbAcmeOrderlessChallenge.acme_status_challenge_id = (
-            model_utils.Acme_Status_Challenge.DEFAULT_ID
-        )
+        if _active_challenge:
+            active_challenges.append(_active_challenge)
 
-        ctx.dbSession.add(dbAcmeOrderlessChallenge)
-        ctx.dbSession.flush(objects=[dbAcmeOrderlessChallenge])
+    if active_challenges:
+        raise errors.AcmeDuplicateChallengesExisting(active_challenges)
+
+    for (domain_name, dbDomain) in domain_objects.items():
+        dbAcmeChallenge = create__AcmeChallenge(
+            ctx, dbAcmeOrderless=dbAcmeOrderless, dbDomain=dbDomain,
+        )
 
     return dbAcmeOrderless
 
@@ -163,7 +97,6 @@ def create__AcmeOrder(
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
     :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
-
 
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
     """
@@ -246,10 +179,70 @@ def create__AcmeAuthorization(*args, **kwargs):
     raise ValueError("use `getcreate__AcmeAuthorization`")
 
 
-def create__AcmeChallenge(*args, **kwargs):
-    raise ValueError(
-        "use `getcreate__AcmeAuthorization` for implicit AcmeChallenge creation"
+def create__AcmeChallenge(
+    ctx,
+    dbAcmeOrderless=None,
+    dbAcmeAuthorization=None,
+    dbDomain=None,
+    challenge_url=None,
+    token=None,
+    keyauthorization=None,
+):
+    """
+    Create a new Challenge
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbAcmeOrderless: (optional) The :class:`model.objects.AcmeOrderless`
+    :param dbAcmeAuthorization: (optional) The :class:`model.objects.AcmeAuthorization`
+    :param dbDomain: (required) The :class:`model.objects.Domain`
+    :param challenge_url: (optional) challenge_url token
+    :param token: (optional) string token
+    :param keyauthorization: (optional) string keyauthorization
+    """
+    if not any((dbAcmeOrderless, dbAcmeAuthorization)) or all(
+        (dbAcmeOrderless, dbAcmeAuthorization)
+    ):
+        raise ValueError(
+            "must be invoked with one and only one of `dbAcmeOrderless` or `dbAcmeAuthorization`"
+        )
+    if not dbDomain:
+        raise ValueError("must be invoked with `dbDomain`")
+
+    if dbAcmeOrderless:
+        orderless_domain_ids = [c.domain_id for c in dbAcmeOrderless.acme_challenges]
+        if dbDomain in orderless_domain_ids:
+            raise AcmeDuplicateOrderlessDomain(
+                "Domain `%s` already in this AcmeOrderless." % c.domain.domain_name
+            )
+
+    _active_challenge = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+        ctx, dbDomain.id
     )
+    if _active_challenge:
+        raise errors.AcmeDuplicateChallenge(_active_challenge)
+
+    pdb.set_trace()
+
+    dbAcmeChallenge = model_objects.AcmeChallenge()
+    if dbAcmeOrderless:
+        dbAcmeChallenge.acme_orderless_id = dbAcmeOrderless.id
+    elif dbAcmeAuthorization:
+        dbAcmeChallenge.acme_authorization_id = dbAcmeAuthorization.id
+    dbAcmeChallenge.timestamp_created = ctx.timestamp
+    dbAcmeChallenge.domain_id = dbDomain.id
+    dbAcmeChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
+        "http-01"
+    )
+    dbAcmeChallenge.acme_status_challenge_id = (
+        model_utils.Acme_Status_Challenge.DEFAULT_ID
+    )
+    dbAcmeChallenge.token = token
+    dbAcmeChallenge.keyauthorization = keyauthorization
+    dbAcmeChallenge.challenge_url = challenge_url
+
+    ctx.dbSession.add(dbAcmeChallenge)
+    ctx.dbSession.flush(objects=[dbAcmeChallenge])
+
+    return dbAcmeChallenge
 
 
 def create__AcmeChallengePoll(ctx, dbAcmeChallenge=None, remote_ip_address=None):
@@ -298,6 +291,7 @@ def create__CertificateRequest(
     dbPrivateKey=None,
     dbServerCertificate__issued=None,
     dbServerCertificate__renewal_of=None,
+    dbCertificateRequest__renewal_of=None,
     domain_names=None,
 ):
     """
@@ -309,24 +303,10 @@ def create__CertificateRequest(
         Valid options are in `model_utils.CertificateRequestSource`
     :param dbPrivateKey: (required) Private Key used to sign the CSR
 
-    invoked by:
-        lib.db.actions_acme.do__AcmeOrder__AcmeV2__automated
-            ctx,
-            csr_pem,
-            certificate_request_source_id=model_utils.CertificateRequestSource.ACME_AUTOMATED_NEW,
-            dbAcmeAccountKey=dbAcmeAccountKey,
-            dbPrivateKey=dbPrivateKey,
-            dbServerCertificate__issued=None,
-            dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
-            domain_names=domain_names,
-        lib.db.getcreate__CertificateRequest__by_pem_text
-            ctx,
-            csr_pem,
-            certificate_request_source_id=certificate_request_source_id,
-            dbAcmeAccountKey=dbAcmeAccountKey,
-            dbPrivateKey=dbPrivateKey,
-            dbServerCertificate__issued=dbServerCertificate__issued,
-            dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
+    :param dbServerCertificate__issued: (optional) a `model_objects.ServerCertificate`
+    :param dbServerCertificate__renewal_of: (optional) a `model_objects.ServerCertificate`
+    :param dbCertificateRequest__renewal_of: (optional) a `model_objects.CertificateRequest`
+    :param domain_names: (required) A list of domain names
     """
     if (
         certificate_request_source_id
@@ -412,7 +392,6 @@ def create__CertificateRequest(
 
     # build the cert
     dbCertificateRequest = model_objects.CertificateRequest()
-    dbCertificateRequest.is_active = True
     dbCertificateRequest.timestamp_created = ctx.timestamp
     dbCertificateRequest.certificate_request_source_id = certificate_request_source_id
     dbCertificateRequest.csr_pem = csr_pem
@@ -422,6 +401,10 @@ def create__CertificateRequest(
     )
     dbCertificateRequest.operations_event_id__created = dbOperationsEvent.id
     dbCertificateRequest.private_key_id = dbPrivateKey.id
+    if dbCertificateRequest__renewal_of:
+        dbCertificateRequest.certificate_request_id__renewal_of = (
+            dbCertificateRequest__renewal_of.id
+        )
     if dbServerCertificate__renewal_of:
         dbCertificateRequest.server_certificate_id__renewal_of = (
             dbServerCertificate__renewal_of.id
@@ -613,7 +596,6 @@ def create__ServerCertificate(
         """
         _certificate_parse_to_record(_tmpfileCert, dbServerCertificate)
         if dbCertificateRequest:
-            # dbCertificateRequest.is_active = False
             dbServerCertificate.certificate_request_id = dbCertificateRequest.id
         dbServerCertificate.ca_certificate_id__upchain = ca_certificate_id__upchain
         if dbServerCertificate__renewal_of:

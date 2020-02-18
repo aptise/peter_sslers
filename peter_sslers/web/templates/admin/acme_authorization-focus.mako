@@ -19,6 +19,12 @@
 
 
 <%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
 </%block>
 
 
@@ -73,7 +79,7 @@
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
-                        <td><timestamp>${AcmeAuthorization.timestamp_created  or ''}</timestamp>
+                        <td><timestamp>${AcmeAuthorization.timestamp_created or ''}</timestamp>
                         </td>
                     </tr>
                     <tr>
@@ -89,22 +95,22 @@
                     </tr>
                     <tr>
                         <th>timestamp_expires</th>
-                        <td><timestamp>${AcmeAuthorization.timestamp_expires  or ''}</timestamp>
+                        <td><timestamp>${AcmeAuthorization.timestamp_expires or ''}</timestamp>
                         </td>
                     </tr>
                     <tr>
                         <th>status</th>
-                        <td><code>${AcmeAuthorization.status_text or ''}</code>
+                        <td><code>${AcmeAuthorization.acme_status_authorization or ''}</code>
                         </td>
                     </tr>
                     <tr>
                         <th>timestamp_updated</th>
-                        <td><timestamp>${AcmeAuthorization.timestamp_updated  or ''}</timestamp>
+                        <td><timestamp>${AcmeAuthorization.timestamp_updated or ''}</timestamp>
                         </td>
                     </tr>
                     <tr>
                         <th>wildcard</th>
-                        <td><code>${AcmeAuthorization.wildcard  or ''}</code>
+                        <td><code>${AcmeAuthorization.wildcard or ''}</code>
                         </td>
                     </tr>
 

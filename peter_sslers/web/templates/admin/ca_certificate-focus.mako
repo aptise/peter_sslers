@@ -76,19 +76,19 @@
                     </tr>
                     <tr>
                         <th>timestamp_signed</th>
-                        <td><timestamp>${CACertificate.timestamp_signed  or ''}</timestamp></td>
+                        <td><timestamp>${CACertificate.timestamp_signed or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_expires</th>
-                        <td><timestamp>${CACertificate.timestamp_expires  or ''}</timestamp></td>
+                        <td><timestamp>${CACertificate.timestamp_expires or ''}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>timestamp_first_seen</th>
-                        <td><timestamp>${CACertificate.timestamp_first_seen  or ''}</timestamp></td>
+                        <th>timestamp_created</th>
+                        <td><timestamp>${CACertificate.timestamp_created or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>count_active_certificates</th>
-                        <td><span class="badge">${CACertificate.count_active_certificates  or ''}</span></td>
+                        <td><span class="badge">${CACertificate.count_active_certificates or ''}</span></td>
                     </tr>
                     <tr>
                         <th>cert_pem_md5</th>

@@ -34,6 +34,7 @@ class ViewAdmin_List(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_orders", renderer="/admin/acme_orders.mako")
+    @view_config(route_name="admin:acme_orders|json", renderer="json")
     @view_config(
         route_name="admin:acme_orders_paginated", renderer="/admin/acme_orders.mako"
     )
@@ -47,6 +48,12 @@ class ViewAdmin_List(Handler):
         items_paged = lib_db.get.get__AcmeOrder__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
+        if self.request.wants_json:
+            admin_url = self.request.admin_url
+            return {
+                "AcmeOrders_count": items_count,
+                "AcmeOrders": [i._as_json(admin_url=admin_url) for i in items_paged],
+            }
         return {
             "project": "peter_sslers",
             "AcmeOrders_count": items_count,
@@ -72,8 +79,13 @@ class ViewAdmin_Focus(Handler):
     @view_config(
         route_name="admin:acme_order:focus", renderer="/admin/acme_order-focus.mako"
     )
+    @view_config(route_name="admin:acme_order:focus|json", renderer="json")
     def focus(self):
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.wants_json:
+            return {
+                "AcmeOrder": dbAcmeOrder._as_json(admin_url=self.request.admin_url),
+            }
         return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -172,6 +184,7 @@ class ViewAdmin_Focus(Handler):
             )
 
     @view_config(route_name="admin:acme_order:focus:mark", renderer=None)
+    @view_config(route_name="admin:acme_order:focus:mark|json", renderer="json")
     def mark_order(self):
         """
         Mark an order
@@ -190,6 +203,18 @@ class ViewAdmin_Focus(Handler):
                 )
                 return HTTPSeeOther(
                     "%s?result=success&operation=invalid" % self._focus_url
+                )
+            elif operation == "deactivate":
+                if not dbAcmeOrder.is_active:
+                    raise errors.InvalidRequest("This order is not active.")
+
+                # todo: use the api
+                dbAcmeOrder.is_active = False
+                dbAcmeOrder.timestamp_updated = self.request.api_context.timestamp
+                self.request.api_context.dbSession.flush(objects=[dbAcmeOrder])
+
+                return HTTPSeeOther(
+                    "%s?result=success&operation=deactivate" % self._focus_url
                 )
             else:
                 raise errors.InvalidRequest("invalid `operation`")
@@ -285,6 +310,9 @@ class ViewAdmin_New(Handler):
                     "%s/acme-order/%s"
                     % (self.request.registry.settings["admin_prefix"], dbAcmeOrder.id,)
                 )
+            except errors.AcmeDuplicateChallenges as exc:
+                formStash.fatal_field(field="domain_names", message=str(exc))
+
             except (
                 errors.AcmeCommunicationError,
                 errors.DomainVerificationError,  # the order may be wedged?

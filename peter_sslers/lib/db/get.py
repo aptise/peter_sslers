@@ -258,6 +258,25 @@ def get__AcmeChallenge__by_challenge_url(ctx, challenge_url):
     return item
 
 
+def get__AcmeChallenge__challenged(ctx, domain_name, token):
+    # todo - ensure the AcmeAuthorization or AcmeOrderless is active
+    active_request = (
+        ctx.dbSession.query(model_objects.AcmeChallenge)
+        .join(
+            model_objects.Domain,
+            model_objects.AcmeChallenge.domain_id == model_objects.Domain.id,
+        )
+        .filter(
+            model_objects.AcmeChallenge.token == token,
+            sqlalchemy.func.lower(model_objects.Domain.domain_name)
+            == sqlalchemy.func.lower(domain_name),
+        )
+        .options(sqlalchemy.orm.contains_eager("domain"),)
+        .first()
+    )
+    return active_request
+
+
 def get__AcmeChallenge__by_AcmeAuthorizationId__count(ctx, acme_authorization_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeChallenge)
@@ -285,37 +304,57 @@ def get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
     return items_paged
 
 
+def get__AcmeChallenge__by_DomainId__active(ctx, domain_id):
+    # a domain can have one and only one active challenge
+    query = (
+        ctx.dbSession.query(model_objects.AcmeChallenge)
+        .join(
+            model_objects.AcmeOrderless,
+            model_objects.AcmeChallenge.acme_orderless_id
+            == model_objects.AcmeOrderless.id,
+            isouter=True,
+        )
+        .join(
+            model_objects.AcmeAuthorization,
+            model_objects.AcmeChallenge.acme_authorization_id
+            == model_objects.AcmeAuthorization.id,
+            isouter=True,
+        )
+        .join(
+            model_objects.AcmeOrder,
+            model_objects.AcmeAuthorization.id == model_objects.AcmeOrder.id,
+            isouter=True,
+        )
+        .filter(
+            model_objects.AcmeChallenge.domain_id == domain_id,
+            sqlalchemy.or_(
+                model_objects.AcmeOrderless.is_active.op("IS")(True),
+                model_objects.AcmeOrder.is_active.op("IS")(True),
+            ),
+        )
+    )
+    return query.first()
+
+
 def get__AcmeChallenge__by_DomainId__count(ctx, domain_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeChallenge)
-        .join(
-            model_objects.AcmeAuthorization,
-            model_objects.AcmeAuthorization.id
-            == model_objects.AcmeChallenge.acme_authorization_id,
-        )
-        .filter(model_objects.AcmeAuthorization.domain_id == domain_id)
+        .filter(model_objects.AcmeChallenge.domain_id == domain_id)
         .count()
     )
     return counted
 
 
-def get__AcmeChallenge__by_DomainId__paginated(
-    ctx, domain_id, limit=None, offset=0,
-):
-    query = (
+def get__AcmeChallenge__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
+    items_paged = (
         ctx.dbSession.query(model_objects.AcmeChallenge)
-        .join(
-            model_objects.AcmeAuthorization,
-            model_objects.AcmeAuthorization.id
-            == model_objects.AcmeChallenge.acme_authorization_id,
-        )
-        .filter(model_objects.AcmeAuthorization.domain_id == domain_id)
+        .filter(model_objects.AcmeChallenge.domain_id == domain_id)
         .order_by(model_objects.AcmeChallenge.id.desc())
         .limit(limit)
         .offset(offset)
+        .all()
     )
-    dbAcmeChallenges = query.all()
-    return dbAcmeChallenges
+    return items_paged
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -407,11 +446,11 @@ def get__AcmeOrderless__by_DomainId__count(ctx, domain_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeOrderless)
         .join(
-            model_objects.AcmeOrderlessChallenge,
+            model_objects.AcmeChallenge,
             model_objects.AcmeOrderless.id
-            == model_objects.AcmeOrderlessChallenge.acme_orderless_id,
+            == model_objects.AcmeChallenge.acme_orderless_id,
         )
-        .filter(model_objects.AcmeOrderlessChallenge.domain_id == domain_id)
+        .filter(model_objects.AcmeChallenge.domain_id == domain_id)
         .count()
     )
     return counted
@@ -421,63 +460,17 @@ def get__AcmeOrderless__by_DomainId__paginated(ctx, domain_id, limit=None, offse
     items_paged = (
         ctx.dbSession.query(model_objects.AcmeOrderless)
         .join(
-            model_objects.AcmeOrderlessChallenge,
+            model_objects.AcmeChallenge,
             model_objects.AcmeOrderless.id
-            == model_objects.AcmeOrderlessChallenge.acme_orderless_id,
+            == model_objects.AcmeChallenge.acme_orderless_id,
         )
-        .filter(model_objects.AcmeOrderlessChallenge.domain_id == domain_id)
-        .order_by(model_objects.AcmeOrderlessChallenge.id.desc())
+        .filter(model_objects.AcmeChallenge.domain_id == domain_id)
+        .order_by(model_objects.AcmeChallenge.id.desc())
         .limit(limit)
         .offset(offset)
         .all()
     )
     return items_paged
-
-
-def get__AcmeOrderlessChallenge__by_DomainId__count(ctx, domain_id):
-    counted = (
-        ctx.dbSession.query(model_objects.AcmeOrderlessChallenge)
-        .filter(model_objects.AcmeOrderlessChallenge.domain_id == domain_id)
-        .count()
-    )
-    return counted
-
-
-def get__AcmeOrderlessChallenge__by_DomainId__paginated(
-    ctx, domain_id, limit=None, offset=0
-):
-    items_paged = (
-        ctx.dbSession.query(model_objects.AcmeOrderlessChallenge)
-        .filter(model_objects.AcmeOrderlessChallenge.domain_id == domain_id)
-        .order_by(model_objects.AcmeOrderlessChallenge.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-def get__AcmeOrderlessChallenge__challenged(ctx, domain_name, token):
-    active_request = (
-        ctx.dbSession.query(model_objects.AcmeOrderlessChallenge)
-        .join(
-            model_objects.Domain,
-            model_objects.AcmeOrderlessChallenge.domain_id == model_objects.Domain.id,
-        )
-        .join(
-            model_objects.AcmeOrderless,
-            model_objects.AcmeOrderlessChallenge.acme_orderless_id
-            == model_objects.AcmeOrderless.id,
-        )
-        .filter(
-            model_objects.AcmeOrderlessChallenge.token == token,
-            sqlalchemy.func.lower(model_objects.Domain.domain_name)
-            == sqlalchemy.func.lower(domain_name),
-            model_objects.AcmeOrderless.is_active.op("IS")(True),
-        )
-        .first()
-    )
-    return active_request
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -735,7 +728,7 @@ def get__CertificateRequest__by_id(ctx, certificate_request_id):
             .joinedload("to_domains")
             .joinedload("domain"),
         )
-        .one()
+        .first()
     )
     return dbCertificateRequest
 
@@ -783,6 +776,7 @@ def get__CertificateRequest__by_AcmeAccountKeyId__paginated(
 
 
 def get__CertificateRequest__by_DomainId__count(ctx, domain_id):
+    raise ValueError("DEPRECATED")
     counted = (
         ctx.dbSession.query(model_objects.CertificateRequest)
         .join(
@@ -799,6 +793,7 @@ def get__CertificateRequest__by_DomainId__count(ctx, domain_id):
 def get__CertificateRequest__by_DomainId__paginated(
     ctx, domain_id, limit=None, offset=0
 ):
+    raise ValueError("DEPRECATED")
     items_paged = (
         ctx.dbSession.query(model_objects.CertificateRequest)
         .join(
@@ -868,35 +863,6 @@ def get__CertificateRequest__by_UniqueFQDNSetId__paginated(
         .all()
     )
     return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__AcmeChallenge__challenged(ctx, domain_name, token):
-    active_request = (
-        ctx.dbSession.query(model_objects.AcmeChallenge)
-        .join(
-            model_objects.AcmeAuthorization,
-            model_objects.AcmeChallenge.acme_authorization_id
-            == model_objects.AcmeAuthorization.id,
-        )
-        .join(
-            model_objects.Domain,
-            model_objects.AcmeAuthorization.domain_id == model_objects.Domain.id,
-        )
-        .filter(
-            model_objects.AcmeChallenge.token == token,
-            sqlalchemy.func.lower(model_objects.Domain.domain_name)
-            == sqlalchemy.func.lower(domain_name),
-        )
-        .options(
-            sqlalchemy.orm.contains_eager("acme_authorization"),
-            sqlalchemy.orm.contains_eager("acme_authorization.domain"),
-        )
-        .first()
-    )
-    return active_request
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1203,7 +1169,7 @@ def get__PrivateKey__by_id(ctx, cert_id, eagerload_web=False):
 def get__PrivateKey__current_week(ctx):
     q = ctx.dbSession.query(model_objects.PrivateKey).filter(
         model_objects.PrivateKey.is_autogenerated_key.op("IS")(True),
-        model_utils.year_week(model_objects.PrivateKey.timestamp_first_seen)
+        model_utils.year_week(model_objects.PrivateKey.timestamp_created)
         == model_utils.year_week(ctx.timestamp),
     )
     item = q.first()

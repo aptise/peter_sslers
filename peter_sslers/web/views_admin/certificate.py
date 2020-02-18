@@ -76,9 +76,6 @@ class ViewAdmin_List(Handler):
     )
     def list(self):
         expiring_days = self.request.registry.settings["expiring_days"]
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         if self.request.matched_route.name in (
             "admin:certificates:expiring",
             "admin:certificates:expiring_paginated",
@@ -90,7 +87,7 @@ class ViewAdmin_List(Handler):
                 "%s/certificates/expiring/{0}"
                 % self.request.registry.settings["admin_prefix"]
             )
-            if wants_json:
+            if self.request.wants_json:
                 url_template = "%s.json" % url_template
             items_count = lib_db.get.get__ServerCertificate__count(
                 self.request.api_context, expiring_days=expiring_days
@@ -113,7 +110,7 @@ class ViewAdmin_List(Handler):
                 "%s/certificates/active/{0}"
                 % self.request.registry.settings["admin_prefix"]
             )
-            if wants_json:
+            if self.request.wants_json:
                 url_template = "%s.json" % url_template
             items_count = lib_db.get.get__ServerCertificate__count(
                 self.request.api_context, is_active=True
@@ -136,7 +133,7 @@ class ViewAdmin_List(Handler):
                 "%s/certificates/active/{0}"
                 % self.request.registry.settings["admin_prefix"]
             )
-            if wants_json:
+            if self.request.wants_json:
                 url_template = "%s.json" % url_template
             items_count = lib_db.get.get__ServerCertificate__count(
                 self.request.api_context, is_active=False
@@ -153,7 +150,7 @@ class ViewAdmin_List(Handler):
             url_template = (
                 "%s/certificates/{0}" % self.request.registry.settings["admin_prefix"]
             )
-            if wants_json:
+            if self.request.wants_json:
                 url_template = "%s.json" % url_template
             items_count = lib_db.get.get__ServerCertificate__count(
                 self.request.api_context
@@ -195,10 +192,7 @@ class ViewAdmin_New(Handler):
         return self._upload__print()
 
     def _upload__print(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' %s/certificate/upload.json"""
                 % self.request.admin_url,
@@ -211,9 +205,6 @@ class ViewAdmin_New(Handler):
         return render_to_response("/admin/certificate-upload.mako", {}, self.request)
 
     def _upload__submit(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_Certificate_Upload__file, validate_get=False
@@ -262,7 +253,7 @@ class ViewAdmin_New(Handler):
                 dbAcmeAccountKey=None,
             )
 
-            if wants_json:
+            if self.request.wants_json:
                 return {
                     "result": "success",
                     "certificate": {
@@ -289,7 +280,7 @@ class ViewAdmin_New(Handler):
             )
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._upload__print)
 
@@ -300,7 +291,7 @@ class ViewAdmin_Focus(Handler):
             self.request.api_context, self.request.matchdict["id"]
         )
         if not dbServerCertificate:
-            raise HTTPNotFound("the certificate was not found")
+            raise HTTPNotFound("invalid ServerCertificate")
         self._focus_item = dbServerCertificate
         self._focus_url = "%s/certificate/%s" % (
             self.request.registry.settings["admin_prefix"],
@@ -313,11 +304,8 @@ class ViewAdmin_Focus(Handler):
     )
     @view_config(route_name="admin:certificate:focus|json", renderer="json")
     def focus(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbServerCertificate = self._focus()
-        if wants_json:
+        if self.request.wants_json:
             return {"ServerCertificate": dbServerCertificate.as_json}
         # x-x509-server-cert
         return {"project": "peter_sslers", "ServerCertificate": dbServerCertificate}
@@ -417,9 +405,6 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:certificate:focus:nginx_cache_expire|json", renderer="json"
     )
     def focus_nginx_expire(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbServerCertificate = self._focus()
         if not self.request.registry.settings["enable_nginx"]:
             raise HTTPSeeOther("%s?error=no+nginx" % self._focus_url)
@@ -431,7 +416,7 @@ class ViewAdmin_Focus(Handler):
         success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=dbDomains
         )
-        if wants_json:
+        if self.request.wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
             "%s?operation=nginx+cache+expire&result=success&event.id=%s"
@@ -444,9 +429,6 @@ class ViewAdmin_Focus(Handler):
     @view_config(route_name="admin:certificate:focus:renew:quick|json", renderer="json")
     def focus_renew_quick__acmeA1(self):
         """this endpoint is for immediately renewing the certificate acme-auto protocol"""
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbServerCertificate = self._focus()
         try:
             if (
@@ -480,7 +462,7 @@ class ViewAdmin_Focus(Handler):
             ) as exc:
                 raise errors.DisplayableError(str(exc))
 
-            if wants_json:
+            if self.request.wants_json:
                 return {
                     "status": "success",
                     "acme_order.id": dbAcmeOrder.id,
@@ -493,7 +475,7 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except errors.DisplayableError as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"status": "error", "error": str(exc)}
             url_failure = (
                 "%s?operation=renewal&renewal_type=quick&error=%s&result=error"
@@ -507,9 +489,6 @@ class ViewAdmin_Focus(Handler):
     @view_config(route_name="admin:certificate:focus:renew:queue|json", renderer="json")
     def focus_renew_queue(self):
         """this endpoint is for adding the certificate to the renewal queue immediately"""
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbServerCertificate = self._focus()
         try:
             # first check to see if this is already queued
@@ -541,7 +520,7 @@ class ViewAdmin_Focus(Handler):
             dbOperationsEvent.set_event_payload(event_payload_dict)
             self.request.api_context.dbSession.flush(objects=[dbOperationsEvent])
 
-            if wants_json:
+            if self.request.wants_json:
                 return {"status": "success", "queue_item": dbQueue.id}
             url_success = (
                 "%s?operation=renewal&renewal_type=queue&success=%s&result=success"
@@ -550,7 +529,7 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except errors.DisplayableError as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"status": "error", "error": str(exc)}
             url_failure = (
                 "%s?operation=renewal&renewal_type=queue&error=%s&result=error"
@@ -574,10 +553,7 @@ class ViewAdmin_Focus(Handler):
 
     def _focus_renew_custom__print(self):
         providers = list(model_utils.AcmeAccountProvider.registry.values())
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "form_fields": {
                     "account_key_option": "One of ('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file'). REQUIRED.",
@@ -724,10 +700,7 @@ class ViewAdmin_Focus(Handler):
         return self._focus_mark__print(dbServerCertificate)
 
     def _focus_mark__print(self, dbServerCertificate):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": [
                     """curl --form 'action=active' %s/certificate/1/mark.json"""
@@ -749,9 +722,6 @@ class ViewAdmin_Focus(Handler):
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbServerCertificate):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_Certificate_mark, validate_get=True
@@ -925,7 +895,7 @@ class ViewAdmin_Focus(Handler):
                 # nothing to do?
                 pass
 
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "success", "Domain": dbServerCertificate.as_json}
             url_success = "%s?operation=mark&action=%s&result=success" % (
                 self._focus_url,
@@ -934,7 +904,7 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,

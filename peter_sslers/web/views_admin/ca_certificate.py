@@ -39,10 +39,7 @@ class ViewAdmin_List(Handler):
     @view_config(route_name="admin:ca_certificates_paginated|json", renderer="json")
     def list(self):
         items_count = lib_db.get.get__CACertificate__count(self.request.api_context)
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/ca-certificates/{0}"
@@ -57,7 +54,7 @@ class ViewAdmin_List(Handler):
         items_paged = lib_db.get.get__CACertificate__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
-        if wants_json:
+        if self.request.wants_json:
             _certs = {c.id: c.as_json for c in items_paged}
             return {
                 "Domains": _certs,
@@ -95,9 +92,6 @@ class ViewAdmin_Focus(Handler):
     )
     @view_config(route_name="admin:ca_certificate:focus|json", renderer="json")
     def focus(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbCACertificate = self._focus()
         items_count = lib_db.get.get__ServerCertificate__by_CACertificateId__count(
             self.request.api_context, dbCACertificate.id
@@ -105,7 +99,7 @@ class ViewAdmin_Focus(Handler):
         items_paged = lib_db.get.get__ServerCertificate__by_CACertificateId__paginated(
             self.request.api_context, dbCACertificate.id, limit=10, offset=0
         )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "CACertificate": dbCACertificate.as_json,
                 "ServerCertificates_count": items_count,
@@ -138,9 +132,6 @@ class ViewAdmin_Focus(Handler):
 
     @view_config(route_name="admin:ca_certificate:focus:parse|json", renderer="json")
     def focus_parse_json(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbCACertificate = self._focus()
         return {
             "%s"
@@ -191,10 +182,7 @@ class ViewAdmin_New(Handler):
         return self._upload__print()
 
     def _upload__print(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": """curl --form 'chain_file=@chain1.pem' --form %s/ca-certificate/upload.json"""
                 % self.request.admin_url,
@@ -203,9 +191,6 @@ class ViewAdmin_New(Handler):
         return render_to_response("/admin/ca_certificate-upload.mako", {}, self.request)
 
     def _upload__submit(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_CACertificate_Upload__file, validate_get=False
@@ -226,7 +211,7 @@ class ViewAdmin_New(Handler):
                 self.request.api_context, ca_chain_pem, ca_chain_name=chain_file_name
             )
 
-            if wants_json:
+            if self.request.wants_json:
                 return {
                     "result": "success",
                     "ca_certificate": {
@@ -244,7 +229,7 @@ class ViewAdmin_New(Handler):
             )
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._upload__print)
 
@@ -258,10 +243,7 @@ class ViewAdmin_New(Handler):
         return self._upload_bundle__print()
 
     def _upload_bundle__print(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             _instructions = ["curl --form 'isrgrootx1_file=@isrgrootx1.pem'"]
             _form_fields = {"isrgrootx1_file": "optional"}
             for xi in letsencrypt_info.CA_CROSS_SIGNED_X:
@@ -294,9 +276,6 @@ class ViewAdmin_New(Handler):
         )
 
     def _upload_bundle__submit(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -349,7 +328,7 @@ class ViewAdmin_New(Handler):
                 self.request.api_context, bundle_data
             )
 
-            if wants_json:
+            if self.request.wants_json:
                 rval = {"result": "success"}
                 for (cert_type, cert_result) in dbResults.items():
                     rval[cert_type] = {
@@ -363,6 +342,6 @@ class ViewAdmin_New(Handler):
             )
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._upload_bundle__print)

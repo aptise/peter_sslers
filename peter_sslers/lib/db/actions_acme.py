@@ -85,7 +85,7 @@ def update_AcmeAuthorization_status(
     """
     if transaction_commit is not True:
         raise ValueError("we must invoke this knowing it will commit")
-    if dbAcmeAuthorization.status_text != status_text:
+    if dbAcmeAuthorization.acme_status_authorization != status_text:
         dbAcmeAuthorization.acme_status_authorization_id = model_utils.Acme_Status_Authorization.from_string(
             status_text
         )
@@ -107,7 +107,7 @@ def update_AcmeChallenge_status(
     """
     if transaction_commit is not True:
         raise ValueError("we must invoke this knowing it will commit")
-    if dbAcmeChallenge.status_text != status_text:
+    if dbAcmeChallenge.acme_status_challenge != status_text:
         dbAcmeChallenge.acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
             status_text
         )
@@ -127,7 +127,7 @@ def update_AcmeOrder_status(ctx, dbAcmeOrder, status_text, transaction_commit=No
     """
     if transaction_commit is not True:
         raise ValueError("we must invoke this knowing it will commit")
-    if dbAcmeOrder.status_text != status_text:
+    if dbAcmeOrder.acme_status_order != status_text:
         dbAcmeOrder.acme_status_order_id = model_utils.Acme_Status_Order.from_string(
             status_text
         )
@@ -504,7 +504,9 @@ def do__AcmeChallenge_AcmeV2__acme_server_sync(
 
         # update the AcmeAuthorization if it's not the same on the database
         _server_status = challenge_response["status"]
-        if _server_status != dbAcmeChallenge.status_text:
+        if _server_status:
+            _server_status = _server_status.lower()
+        if _server_status != dbAcmeChallenge.acme_status_challenge:
             update_AcmeChallenge_status(
                 ctx, dbAcmeChallenge, _server_status, transaction_commit=True
             )
@@ -562,7 +564,9 @@ def do__AcmeOrder_AcmeV2__acme_server_sync(
 
         # update the AcmeOrder if it's not the same on the database
         _server_status = acmeOrderRfcObject.rfc_object["status"]
-        if dbAcmeOrder.status_text != _server_status:
+        if _server_status:
+            _server_status = _server_status.lower()
+        if dbAcmeOrder.acme_status_order != _server_status:
             update_AcmeOrder_status(
                 ctx, dbAcmeOrder, _server_status, transaction_commit=True
             )
@@ -654,7 +658,9 @@ def do__AcmeOrder_AcmeV2__acme_server_deactivate_authorizations(
                     ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
                 )
                 _server_status = acmeOrderRfcObject.rfc_object["status"]
-                if dbAcmeOrder.status_text != _server_status:
+                if _server_status:
+                    _server_status = _server_status.lower()
+                if dbAcmeOrder.acme_status_order != _server_status:
                     update_AcmeOrder_status(
                         ctx, dbAcmeOrder, _server_status, transaction_commit=True
                     )
@@ -886,9 +892,9 @@ def _do__AcmeOrder__AcmeV2__core(
             )
 
         # ensure we can transition
-        if dbAcmeOrder_retry_of.status_text != "invalid":
+        if dbAcmeOrder_retry_of.acme_status_order != "invalid":
             raise errors.InvalidRequest(
-                "`dbAcmeOrder_retry_of.status_text` must be 'invalid'"
+                "`dbAcmeOrder_retry_of.acme_status_order` must be 'invalid'"
             )
 
         # re-use these related objects
@@ -911,9 +917,9 @@ def _do__AcmeOrder__AcmeV2__core(
             raise ValueError("Must submit `dbPrivateKey`")
 
         # ensure we can transition
-        if dbAcmeOrder_renewal_of.status_text != "valid":
+        if dbAcmeOrder_renewal_of.acme_status_order != "valid":
             raise errors.InvalidRequest(
-                "`dbAcmeOrder_renewal_of.status_text` must be 'valid'"
+                "`dbAcmeOrder_renewal_of.acme_status_order` must be 'valid'"
             )
 
         # re-use these related objects
@@ -991,6 +997,17 @@ def _do__AcmeOrder__AcmeV2__core(
             is_created_fqdn,
         ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domains(ctx, domain_names)
         ctx.pyramid_transaction_commit()
+
+    # check each domain for an existing active challenge
+    active_challenges = []
+    for to_domain in dbUniqueFQDNSet.to_domains:
+        _active_challenge = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+            ctx, to_domain.domain_id
+        )
+        if _active_challenge:
+            active_challenges.append(_active_challenge)
+    if active_challenges:
+        raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
     tmpfiles = []
     dbAcmeOrder = None

@@ -48,14 +48,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>is_active</th>
-                        <td>
-                            <span class="label label-${'success' if CertificateRequest.is_active else 'warning'}">
-                                ${'Active' if CertificateRequest.is_active else 'inactive'}
-                            </span>
-                        </td>
-                    </tr>
-                    <tr>
                         <th>certificate_request_source</th>
                         <td>
                             <span class="label label-default">${CertificateRequest.certificate_request_source}</span>
@@ -73,16 +65,21 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>is renewal?</th>
+                        <th>Renewals?</th>
                         <td>
                             % if CertificateRequest.server_certificate_id__renewal_of:
                                 <span class="label label-success">Yes</span>&nbsp;
-                                renewal of Certificate
                                 <a class="label label-info" href="${admin_prefix}/certificate/${CertificateRequest.server_certificate_id__renewal_of}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    cert-${CertificateRequest.server_certificate_id__renewal_of}</a>
-                            % else:
-                                <span class="label label-default">No</span>
+                                    ServerCertificate-${CertificateRequest.server_certificate_id__renewal_of}</a>
+                            % endif
+                            <br/>
+                            % if CertificateRequest.certificate_request_id__renewal_of:
+                                <span class="label label-success">Yes</span>&nbsp;
+                                renewal of Certificate
+                                <a class="label label-info" href="${admin_prefix}/certificate-request/${CertificateRequest.certificate_request_id__renewal_of}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    CertificateRequest-${CertificateRequest.certificate_request_id__renewal_of}</a>
                             % endif
                         </td>
                     </tr>

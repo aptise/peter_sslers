@@ -137,20 +137,20 @@
                     </tr>
 
                     <tr>
-                        <th>timestamp_first_seen</th>
-                        <td><timestamp>${PrivateKey.timestamp_first_seen  or ''}</timestamp></td>
+                        <th>timestamp_created</th>
+                        <td><timestamp>${PrivateKey.timestamp_created or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_last_certificate_request</th>
-                        <td><timestamp>${PrivateKey.timestamp_last_certificate_request  or ''}</timestamp></td>
+                        <td><timestamp>${PrivateKey.timestamp_last_certificate_request or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_last_certificate_issue</th>
-                        <td><timestamp>${PrivateKey.timestamp_last_certificate_issue  or ''}</timestamp></td>
+                        <td><timestamp>${PrivateKey.timestamp_last_certificate_issue or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>count_active_certificates</th>
-                        <td><span class="badge">${PrivateKey.count_active_certificates  or ''}</span></td>
+                        <td><span class="badge">${PrivateKey.count_active_certificates or ''}</span></td>
                     </tr>
                     <tr>
                         <th>count_certificate_requests</th>

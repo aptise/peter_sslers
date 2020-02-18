@@ -17,6 +17,7 @@ from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.forms import Form_AcmeOrderless_manage_domain
+from ..lib.forms import Form_AcmeOrderless_AcmeChallenge_add
 from ..lib.forms import Form_AcmeOrderless_new
 from ..lib.handler import Handler, items_per_page
 from ...lib import db as lib_db
@@ -63,8 +64,8 @@ class ViewAdmin_List(Handler):
 
 class ViewAdmin_New(Handler):
     @view_config(route_name="admin:acme_orderless:new")
+    @view_config(route_name="admin:acme_orderless:new|json", renderer="json")
     def new_AcmeOrderless(self):
-
         if not self.request.registry.settings["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
 
@@ -73,6 +74,19 @@ class ViewAdmin_New(Handler):
         return self._new_AcmeOrderless__print()
 
     def _new_AcmeOrderless__print(self):
+        if self.request.wants_json:
+            return {
+                "instructions": [
+                    """curl --form 'domain_names=@domain_names' %s/acme-orderless/new.json"""
+                    % self.request.registry.settings["admin_prefix"]
+                ],
+                "form_fields": {
+                    "domain_names": "a comma separated list of domain names"
+                },
+                "notes": [
+                    "You can configure the challenges and add domain names to an existing AcmeOrderless"
+                ],
+            }
         return render_to_response("/admin/acme_orderless-new.mako", {}, self.request,)
 
     def _new_AcmeOrderless__submit(self):
@@ -85,11 +99,24 @@ class ViewAdmin_New(Handler):
 
             domain_names = utils.domains_from_string(formStash.results["domain_names"])
             if not domain_names:
-                raise ValueError("missing valid domain names")
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names", message="missing valid domain names"
+                )
 
-            dbAcmeOrderless = lib_db.create.create__AcmeOrderless(
-                self.request.api_context, domain_names=domain_names,
-            )
+            try:
+                dbAcmeOrderless = lib_db.create.create__AcmeOrderless(
+                    self.request.api_context, domain_names=domain_names,
+                )
+            except errors.AcmeDuplicateChallenges as exc:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_form(message=str(exc))
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "AcmeOrderless": dbAcmeOrderless.as_json,
+                }
 
             return HTTPSeeOther(
                 "%s/acme-orderless/%s"
@@ -103,6 +130,8 @@ class ViewAdmin_New(Handler):
 
 
 class ViewAdmin_Focus(Handler):
+    _dbAcmeOrderless = None
+
     def _focus(self, eagerload_web=False):
         dbAcmeOrderless = lib_db.get.get__AcmeOrderless__by_id(
             self.request.api_context,
@@ -115,7 +144,17 @@ class ViewAdmin_Focus(Handler):
             self.request.admin_url,
             dbAcmeOrderless.id,
         )
+        self._dbAcmeOrderless = dbAcmeOrderless
         return dbAcmeOrderless
+
+    def _focus_print(self):
+        if self._dbAcmeOrderless is None:
+            self._focus()
+        return render_to_response(
+            "/admin/acme_orderless-focus.mako",
+            {"AcmeOrderless": self._dbAcmeOrderless,},
+            self.request,
+        )
 
     @view_config(
         route_name="admin:acme_orderless:focus",
@@ -125,36 +164,27 @@ class ViewAdmin_Focus(Handler):
     def focus(self):
         if not self.request.registry.settings["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbAcmeOrderless = self._focus()
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "AcmeOrderless": dbAcmeOrderless.as_json,
             }
-        return {
-            "project": "peter_sslers",
-            "AcmeOrderless": dbAcmeOrderless,
-        }
+        return self._focus_print()
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_orderless:focus:update")
     @view_config(route_name="admin:acme_orderless:focus:update|json", renderer="json")
     def focus_update(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbAcmeOrderless = self._focus()
         if self.request.method != "POST":
-            if wants_json:
+            if self.request.wants_json:
                 return {"error": "This route requires a POST"}
             return HTTPSeeOther("%s?error=must+POST" % self._focus_url)
 
         _changes = []
         _post = self.request.POST
-        for dbChallenge in dbAcmeOrderless.acme_orderless_challenges:
+        for dbChallenge in dbAcmeOrderless.acme_challenges:
             _changed = None
             challenge_id = dbChallenge.id
 
@@ -177,10 +207,10 @@ class ViewAdmin_Focus(Handler):
                 _changed = True
 
             if _changed:
-                dbChallenge.timestamp_updated = ctx.timestamp
+                dbChallenge.timestamp_updated = self.request.api_context.timestamp
                 _changes.append(dbChallenge)
 
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "AcmeOrderless": dbAcmeOrderless.as_json,
                 "changed": True if _changes else False,
@@ -194,20 +224,18 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:acme_orderless:focus:deactivate|json", renderer="json",
     )
     def focus_deactivate(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbAcmeOrderless = self._focus()
         if self.request.method != "POST":
-            if wants_json:
+            if self.request.wants_json:
                 return {"error": "This route requires a POST"}
             return HTTPSeeOther("%s?error=must+POST" % self._focus_url)
+
         # todo: use the api
         dbAcmeOrderless.is_active = False
         dbAcmeOrderless.timestamp_updated = self.request.api_context.timestamp
         self.request.api_context.dbSession.flush(objects=[dbAcmeOrderless])
 
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "result": "success",
                 "dbAcmeOrderless": dbAcmeOrderless.as_json,
@@ -219,84 +247,104 @@ class ViewAdmin_Focus(Handler):
     @view_config(route_name="admin:acme_orderless:focus:add")
     @view_config(route_name="admin:acme_orderless:focus:add|json", renderer="json")
     def focus_add(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        dbAcmeOrderless = self._focus()
-        if self.request.method != "POST":
-            if wants_json:
-                return {"error": "This route requires a POST"}
-            return HTTPSeeOther("%s?error=must+POST" % self._focus_url)
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_AcmeOrderless_AcmeChallenge_add,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
 
-        _post = self.request.POST
-        domain_name = _post.get("add_domain")
-        if not domain_name:
-            # todo: clenaup
-            raise ValueError("must have a domain")
+            dbAcmeOrderless = self._focus()
+            if self.request.method != "POST":
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form("This route requires a POST")
 
-        (dbDomain, is_domain_added) = lib_db.getcreate.getcreate__Domain__by_domainName(
-            self.request.api_context, domain_name
-        )
-        if not dbDomain:
-            raise ValueError("invalid domain")
+            _post = self.request.POST
+            if not formStash.results["domain"]:
+                formStash.fatal_field(field="domain", message="A Domain is required")
+            domain_names = utils.domains_from_string(formStash.results["domain"])
+            if len(domain_names) != 1:
+                formStash.fatal_field(
+                    field="domain", message="A valid Domain is required"
+                )
+            domain_name = domain_names[0]
 
-        token = _post.get("add_token")
-        keyauthorization = _post.get("add_keyauthorization")
-        challenge_url = _post.get("add_challenge_url")
+            (
+                dbDomain,
+                is_domain_added,
+            ) = lib_db.getcreate.getcreate__Domain__by_domainName(
+                self.request.api_context, domain_name
+            )
+            if not dbDomain:
+                formStash.fatal_field(field="domain", message="invalid domain")
 
-        dbChallenge = lib_db.create.create__AcmeOrderlessChallenge(
-            self.request.api_context,
-            dbAcmeOrderless=dbAcmeOrderless,
-            dbDomain=dbDomain,
-            token=token,
-            keyauthorization=keyauthorization,
-            challenge_url=challenge_url,
-        )
+            # okay, what if the domain is already IN this orderless?
+            orderless_domain_ids = [
+                dbChallenge.domain_id for dbChallenge in dbAcmeOrderless.acme_challenges
+            ]
+            if dbDomain.id in orderless_domain_ids:
+                formStash.fatal_field(
+                    field="domain",
+                    message="This domain is already configured for this AcmeOrderless.",
+                )
 
-        if wants_json:
-            return {
-                "AcmeOrderless": dbAcmeOrderless.as_json,
-                "changed": True if _changes else False,
-            }
-        return HTTPSeeOther("%s?status=success" % self._focus_url)
+            token = formStash.results["token"]
+            keyauthorization = formStash.results["keyauthorization"]
+            challenge_url = formStash.results["challenge_url"]
+
+            dbChallenge = lib_db.create.create__AcmeChallenge(
+                self.request.api_context,
+                dbAcmeOrderless=dbAcmeOrderless,
+                dbDomain=dbDomain,
+                token=token,
+                keyauthorization=keyauthorization,
+                challenge_url=challenge_url,
+            )
+
+            if self.request.wants_json:
+                return {
+                    "AcmeOrderless": dbAcmeOrderless.as_json,
+                }
+            return HTTPSeeOther("%s?status=success" % self._focus_url)
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._focus_print)
 
 
 class ViewAdmin_Focus_Challenge(ViewAdmin_Focus):
     @view_config(
-        route_name="admin:acme_orderless:focus:acme_orderless_challenge",
-        renderer="/admin/acme_orderless-focus-acme_orderless_challenge.mako",
+        route_name="admin:acme_orderless:focus:acme_challenge",
+        renderer="/admin/acme_orderless-focus-acme_challenge.mako",
     )
     @view_config(
-        route_name="admin:acme_orderless:focus:acme_orderless_challenge|json",
-        renderer="json",
+        route_name="admin:acme_orderless:focus:acme_challenge|json", renderer="json",
     )
     def focus(self):
         if not self.request.registry.settings["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbAcmeOrderless = self._focus()
         id_challenge = int(self.request.matchdict["id_challenge"])
         try:
             dbChallenge = [
-                i
-                for i in dbAcmeOrderless.acme_orderless_challenges
-                if i.id == id_challenge
+                i for i in dbAcmeOrderless.acme_challenges if i.id == id_challenge
             ]
             if len(dbChallenge) != 1:
-                raise ValueEror("invalid challenge")
+                raise ValueError("invalid challenge")
             dbChallenge = dbChallenge[0]
         except:
             return HTTPSeeOther("%s?status=error" % self._focus_url)
 
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "AcmeOrderless": dbAcmeOrderless.as_json,
-                "AcmeOrderlessChallenge": dbChallenge.as_json,
+                "AcmeChallenge": dbChallenge.as_json,
             }
         return {
             "project": "peter_sslers",
             "AcmeOrderless": dbAcmeOrderless,
-            "AcmeOrderlessChallenge": dbChallenge,
+            "AcmeChallenge": dbChallenge,
         }

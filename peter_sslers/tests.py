@@ -1160,7 +1160,6 @@ class FunctionalTests_CertificateRequest(AppTest):
         # grab a certificate
         focus_item = (
             self.ctx.dbSession.query(model_objects.CertificateRequest)
-            .filter(model_objects.CertificateRequest.is_active.op("IS")(True))
             .order_by(model_objects.CertificateRequest.id.asc())
             .first()
         )
@@ -1288,6 +1287,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         )
         assert "?result=success" in res.location
 
+        # acme-orderless/{@id}/deactivate.json
         res = self.testapp.get(
             "/.well-known/admin/certificate-request/%s/acme-orderless/deactivate.json"
             % url_id,

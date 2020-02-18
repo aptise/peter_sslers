@@ -252,6 +252,13 @@ def main(global_config, **settings):
         "admin_server",
         reify=True,
     )
+
+    config.add_request_method(
+        lambda request: True if request.matched_route.name.endswith("|json") else False,
+        "wants_json",
+        reify=True,
+    )
+
     config.add_request_method(
         lambda request: datetime.datetime.utcnow(), "a_timestamp", reify=True
     )

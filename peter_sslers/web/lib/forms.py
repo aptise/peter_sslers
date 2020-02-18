@@ -145,6 +145,13 @@ class Form_AcmeOrder_new_automated(_Form_Schema_Base):
     ]
 
 
+class Form_AcmeOrderless_AcmeChallenge_add(_Form_Schema_Base):
+    domain = UnicodeString(not_empty=True)
+    token = UnicodeString(not_empty=False, if_missing=None)
+    keyauthorization = UnicodeString(not_empty=False, if_missing=None)
+    challenge_url = UnicodeString(not_empty=False, if_missing=None)
+
+
 class Form_CACertificate_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
     chain_file_name = UnicodeString(not_empty=False, if_missing=None)

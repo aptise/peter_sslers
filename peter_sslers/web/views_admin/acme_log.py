@@ -28,9 +28,6 @@ class ViewAdmin_AcmeEventLog(Handler):
         renderer="/admin/acme_event_log.mako",
     )
     def acme_event_log(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         items_count = lib_db.get.get__AcmeEventLog__count(self.request.api_context)
         (pager, offset) = self._paginate(
             items_count,
@@ -55,8 +52,5 @@ class ViewAdmin_AcmeEventLog(Handler):
         renderer="/admin/acme_event_log-focus.mako",
     )
     def acme_event_log_focus(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         item = self._acme_event_log_focus()
         return {"project": "peter_sslers", "AcmeEventLog": item}

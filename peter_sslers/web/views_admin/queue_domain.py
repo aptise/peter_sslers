@@ -46,9 +46,6 @@ class ViewAdmin_List(Handler):
     @view_config(route_name="admin:queue_domains:all|json", renderer="json")
     @view_config(route_name="admin:queue_domains:all_paginated|json", renderer="json")
     def list(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         wants_all = (
             True
             if self.request.matched_route.name
@@ -67,7 +64,7 @@ class ViewAdmin_List(Handler):
             sidenav_option = "all"
             unprocessed_only = False
             show_all = True
-        if wants_json:
+        if self.request.wants_json:
             if wants_all:
                 url_template = (
                     "%s/queue-domains/all/{0}.json"
@@ -102,7 +99,7 @@ class ViewAdmin_List(Handler):
             limit=items_per_page,
             offset=offset,
         )
-        if wants_json:
+        if self.request.wants_json:
             _domains = {d.id: d.as_json for d in items_paged}
             return {
                 "QueueDomains": _domains,
@@ -130,10 +127,7 @@ class ViewAdmin_New(Handler):
         return self._add__print()
 
     def _add__print(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": """POST `domain_names""",
                 "form_fields": {"domain_names": "required"},
@@ -141,9 +135,6 @@ class ViewAdmin_New(Handler):
         return render_to_response("/admin/queue-domains-add.mako", {}, self.request)
 
     def _add__submit(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_QueueDomains_add, validate_get=False
@@ -162,7 +153,7 @@ class ViewAdmin_New(Handler):
                 self.request.api_context, domain_names
             )
 
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "success", "domains": queue_results}
             results_json = json.dumps(queue_results)
             return HTTPSeeOther(
@@ -171,7 +162,7 @@ class ViewAdmin_New(Handler):
             )
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._add__print)
 
@@ -180,14 +171,11 @@ class ViewAdmin_New(Handler):
     @view_config(route_name="admin:queue_domains:process", renderer=None)
     @view_config(route_name="admin:queue_domains:process|json", renderer="json")
     def process(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             queue_results = lib_db.queues.queue_domains__process(
                 self.request.api_context
             )
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "success"}
             return HTTPSeeOther(
                 "%s/queue-domains?processed=1"
@@ -200,7 +188,7 @@ class ViewAdmin_New(Handler):
         ) as exc:
             # return, don't raise
             # we still commit the bookkeeping
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
             return HTTPSeeOther(
                 "%s/queue-domains?processed=0&error=%s"
@@ -208,7 +196,7 @@ class ViewAdmin_New(Handler):
             )
         except Exception as exc:
             transaction.abort()
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
             raise
 
@@ -233,10 +221,7 @@ class ViewAdmin_Focus(Handler):
     @view_config(route_name="admin:queue_domain:focus|json", renderer="json")
     def focus(self):
         dbQueueDomain = self._focus()
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {"status": "success", "QueueDomain": dbQueueDomain.as_json}
         return {"project": "peter_sslers", "QueueDomainItem": dbQueueDomain}
 
@@ -251,10 +236,7 @@ class ViewAdmin_Focus(Handler):
         return self._focus_mark__print(dbQueueDomain)
 
     def _focus_mark__print(self, dbQueueDomain):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": [
                     """curl --form 'action=active' %s/mark.json""" % self._focus_url
@@ -266,9 +248,6 @@ class ViewAdmin_Focus(Handler):
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbQueueDomain):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_QueueDomain_mark, validate_get=True
@@ -310,7 +289,7 @@ class ViewAdmin_Focus(Handler):
                 objects=[dbQueueDomain, dbOperationsEvent]
             )
 
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "success", "QueueDomain": dbQueueDomain.as_json}
 
             url_success = "%s?operation=mark&action=%s&result=success" % (
@@ -320,7 +299,7 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,

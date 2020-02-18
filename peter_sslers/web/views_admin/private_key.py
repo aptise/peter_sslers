@@ -38,11 +38,8 @@ class ViewAdmin_List(Handler):
     @view_config(route_name="admin:private_keys|json", renderer="json")
     @view_config(route_name="admin:private_keys_paginated|json", renderer="json")
     def list(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         items_count = lib_db.get.get__PrivateKey__count(self.request.api_context)
-        if wants_json:
+        if self.request.wants_json:
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/private-keys/{0}"
@@ -57,7 +54,7 @@ class ViewAdmin_List(Handler):
         items_paged = lib_db.get.get__PrivateKey__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
-        if wants_json:
+        if self.request.wants_json:
             _keys = {k.id: k.as_json for k in items_paged}
             return {
                 "PrivateKeys": _keys,
@@ -96,11 +93,8 @@ class ViewAdmin_Focus(Handler):
     )
     @view_config(route_name="admin:private_key:focus|json", renderer="json")
     def focus(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbPrivateKey = self._focus(eagerload_web=True)
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "PrivateKey": dbPrivateKey.as_json,
                 "raw": {
@@ -204,10 +198,7 @@ class ViewAdmin_Focus(Handler):
         return self._focus_mark__print(dbPrivateKey)
 
     def _focus_mark__print(self, dbPrivateKey):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": [
                     """curl --form 'action=active' %s/mark.json""" % self._focus_url
@@ -221,9 +212,6 @@ class ViewAdmin_Focus(Handler):
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbPrivateKey):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_PrivateKey_mark, validate_get=True
@@ -325,7 +313,7 @@ class ViewAdmin_Focus(Handler):
                     dbOperationsEvent=dbOperationsEvent,
                 )
 
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "success", "Domain": dbPrivateKey.as_json}
             url_success = "%s?operation=mark&action=%s&result=success" % (
                 self._focus_url,
@@ -334,7 +322,7 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,
@@ -353,10 +341,7 @@ class ViewAdmin_New(Handler):
         return self._upload__print()
 
     def _upload__print(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' %s/private-key/upload.json"""
                 % (self.request.registry.settings["admin_prefix"]),
@@ -366,9 +351,6 @@ class ViewAdmin_New(Handler):
         return render_to_response("/admin/private_key-upload.mako", {}, self.request)
 
     def _upload__submit(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_PrivateKey_new__file, validate_get=False
@@ -389,7 +371,7 @@ class ViewAdmin_New(Handler):
                 self.request.api_context, private_key_pem
             )
 
-            if wants_json:
+            if self.request.wants_json:
                 return {
                     "result": "success",
                     "is_created": True if _is_created else False,

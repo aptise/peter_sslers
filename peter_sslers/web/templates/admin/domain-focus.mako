@@ -66,6 +66,19 @@
     <div class="row">
         <div class="col-sm-12">
             ${admin_partials.handle_querystring_result()}
+            
+            % if AcmeChallenge:
+                <div class="alert alert-danger">
+                    This Domain has an ACTIVE challenge. No new Orders/Challenges can be processed for this domain while the existing order is active.
+                    <a  class="label label-info"
+                        href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}"
+                    >
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeChallenge-${AcmeChallenge.id}
+                    </a>
+                </div>
+            % endif
+
             <table class="table">
                 <thead>
                     <tr>
@@ -88,8 +101,8 @@
                         <td><code>${Domain.domain_name}</code></td>
                     </tr>
                     <tr>
-                        <th>timestamp_first_seen</th>
-                        <td><timestamp>${Domain.timestamp_first_seen}</timestamp></td>
+                        <th>timestamp_created</th>
+                        <td><timestamp>${Domain.timestamp_created}</timestamp></td>
                     </tr>
                     <tr>
                         <th>is_active</th>
@@ -251,18 +264,6 @@
                             % endif
                         </td>
                     </tr>
-                    <tr>
-                        <th>AcmeOrderlessChallenges</th>
-                        <td>
-                            ${admin_partials.table_AcmeOrderlessChallenges(Domain.acme_orderless_challenges__5, perspective="Domain")}
-                            % if Domain.acme_orderless_challenges__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/acme-orderless-challenges" % (admin_prefix, Domain.id))}
-                            % endif
-                        </td>
-                    </tr>
-
-
-
                 </tbody>
             </table>
         </div>

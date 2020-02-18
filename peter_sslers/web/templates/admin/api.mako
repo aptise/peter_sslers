@@ -184,7 +184,7 @@
             </table>
 <%
 api_docs_other = {
-    'account-key': [
+    'acme-account-key': [
         {'endpoint': '/acme-account-keys.json',
          'about': """list account keys""",
          'POST': True,
@@ -276,6 +276,49 @@ api_docs_other = {
          'example': "curl {ADMIN_PREFIX}/acme-providers.json",
          },
     ],
+
+    'acme-challenge': [
+        {'endpoint': '/acme-challenge/{ID}.json',
+         'about': """view an acme challenge""",
+         'POST': None,
+         'GET': True,
+         'args': "",
+         'example': "curl {ADMIN_PREFIX}/acme-challenge/{ID}.json",
+         },
+    ],
+
+
+    'acme-order': [
+        {'endpoint': '/acme-order/{ID}.json',
+         'about': """view an acme order""",
+         'POST': None,
+         'GET': True,
+         'args': "",
+         'example': "curl {ADMIN_PREFIX}/acme-order/{ID}.json",
+         },
+    ],
+
+
+    'acme-orderless': [
+        {'endpoint': '/acme-orderless/new.json',
+         'about': """create a new acme-orderless""",
+         'POST': True,
+         'GET': None,
+         'args': """This route is self-documenting on GET requests""",
+         'example': "curl {ADMIN_PREFIX}/acme-orderless/new.json",
+         },
+    ],
+
+    'acme-authorization': [
+        {'endpoint': '/acme-authorization/{ID}.json',
+         'about': """view a acme-authorization""",
+         'POST': True,
+         'GET': True,
+         'args': "",
+         'example': "curl {ADMIN_PREFIX}/acme-authorization/{ID}.json",
+         },
+    ],
+
     'ca-certificate': [
         {'endpoint': '/ca-certificates.json',
          'about': """list ca-certificates""",
@@ -478,13 +521,6 @@ api_docs_other = {
          'GET': True,
          'args': "",
          "example": "curl http://127.0.0.1:7201/.well-known/admin/certificate-request/1.json",
-         },
-        {'endpoint': '/certificate-request/{ID}/deactivate.json',
-         'about': """deactivate the request; only used for AcmeFlow helper""",
-         'POST': True,
-         'GET': True,
-         'args': "",
-         "example": "curl http://127.0.0.1:7201/.well-known/admin/certificate-request/1/deactivate.json",
          },
 
         {'endpoint': '/certificate-request/{ID}/csr.csr',

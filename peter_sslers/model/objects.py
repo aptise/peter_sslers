@@ -32,6 +32,71 @@ TESTING_ENVIRONMENT = False
 # ==============================================================================
 
 
+class _Mixin_Timestamps_Pretty(object):
+    @property
+    def timestamp_created_isoformat(self):
+        if self.timestamp_created:
+            return self.timestamp_created.isoformat()
+        return None
+
+    @property
+    def timestamp_expires_isoformat(self):
+        if self.timestamp_expires:
+            return self.timestamp_expires.isoformat()
+        return None
+
+    @property
+    def timestamp_finalized_isoformat(self):
+        if self.timestamp_finalized:
+            return self.timestamp_finalized.isoformat()
+        return None
+
+    @property
+    def timestamp_updated_isoformat(self):
+        if self.timestamp_updated:
+            return self.timestamp_updated.isoformat()
+        return None
+
+    @property
+    def timestamp_entered_isoformat(self):
+        if self.timestamp_entered:
+            return self.timestamp_entered.isoformat()
+        return None
+
+    @property
+    def timestamp_processed_isoformat(self):
+        if self.timestamp_processed:
+            return self.timestamp_processed.isoformat()
+        return None
+
+    @property
+    def timestamp_process_attempt_isoformat(self):
+        if self.timestamp_process_attempt:
+            return self.timestamp_process_attempt.isoformat()
+        return None
+
+    @property
+    def timestamp_expires_isoformat(self):
+        if self.timestamp_expires:
+            return self.timestamp_expires.isoformat()
+        return None
+
+    @property
+    def timestamp_signed_isoformat(self):
+        if self.timestamp_signed:
+            return self.timestamp_signed.isoformat()
+        return None
+
+    @property
+    def timestamp_revoked_upstream_isoformat(self):
+        if self.timestamp_revoked_upstream:
+            return self.timestamp_revoked_upstream.isoformat()
+        return None
+
+
+# ==============================================================================
+
+
 class AcmeEventLog(Base):
     """
     log acme requests
@@ -113,6 +178,12 @@ class AcmeChallengeUnknownPoll(Base):
 
 
 # ==============================================================================
+# ==============================================================================
+# ==============================================================================
+# ==============================================================================
+# ==============================================================================
+# ==============================================================================
+# ==============================================================================
 
 
 class AcmeAccountKey(Base):
@@ -123,7 +194,7 @@ class AcmeAccountKey(Base):
 
     __tablename__ = "acme_account_key"
     id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
     key_pem = sa.Column(sa.Text, nullable=True)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
@@ -306,6 +377,12 @@ class AcmeAuthorization(Base):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def acme_status_authorization(self):
+        return model_utils.Acme_Status_Authorization.as_string(
+            self.acme_status_authorization_id
+        )
+
+    @property
     def is_can_acme_server_deactivate(self):
         # TODO: is there another way to test this?
         if not self.authorization_url:
@@ -313,7 +390,7 @@ class AcmeAuthorization(Base):
         if not self.acme_order_id__created:
             return False
         if (
-            self.status_text
+            self.acme_status_authorization
             not in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
         ):
             return False
@@ -328,14 +405,23 @@ class AcmeAuthorization(Base):
             return False
         return True
 
+    def _as_json(self, admin_url=""):
+        return {
+            "id": self.acme_status_authorization,
+            "acme_status_authorization": self.acme_status_authorization,
+            "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
+            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server-sync.json"
+            % (admin_url, self.id)
+            if self.is_can_acme_server_sync
+            else None,
+        }
+
     @property
-    def status_text(self):
-        return model_utils.Acme_Status_Authorization.as_string(
-            self.acme_status_authorization_id
-        )
+    def as_json(self):
+        return self._as_json()
 
 
-class AcmeChallenge(Base):
+class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     """
     ACME Challenge Objects [https://tools.ietf.org/html/rfc8555#section-8]
 
@@ -382,21 +468,53 @@ class AcmeChallenge(Base):
     """
 
     __tablename__ = "acme_challenge"
-    id = sa.Column(sa.Integer, primary_key=True)
-    acme_authorization_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=False
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(acme_authorization_id IS NOT NULL AND acme_orderless_id IS NULL)"
+            " OR "
+            " (acme_authorization_id IS NULL AND acme_orderless_id IS NOT NULL)"
+            # name="check_authorization_or_orderless",
+        ),
+        sa.CheckConstraint(
+            "token IS NOT NULL"
+            " OR "
+            " (token IS NULL AND acme_orderless_id IS NOT NULL)"
+            # name="token_sanity",
+        ),
     )
-    challenge_url = sa.Column(sa.Unicode(255), nullable=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    id = sa.Column(sa.Integer, primary_key=True)
+
+    # our challenge will either be from:
+    # 1) an `AcmeOrde``->`AcmeAuthorization`
+    acme_authorization_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True
+    )
+    # 2) an `AcmeOrderless`
+    acme_orderless_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_orderless.id"), nullable=True
+    )
+
+    # `AcmeOrderless` requires a domain; duplicating this for `AcmeOrder` is fine
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
+
+    # in all situations, we need to track these:
     acme_challenge_type_id = sa.Column(
         sa.Integer, nullable=True
     )  # this library only does http-01, `model_utils.AcmeChallengeType`
     acme_status_challenge_id = sa.Column(
         sa.Integer, nullable=False
     )  # Acme_Status_Challenge
-    token = sa.Column(sa.Unicode(255), nullable=False)
+
+    # this is on the acme server
+    challenge_url = sa.Column(sa.Unicode(255), nullable=True)
+
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
 
+    token = sa.Column(
+        sa.Unicode(255), nullable=True
+    )  # only nullable if this is an orderless challenge
     # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http01.token)
     # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
     keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
@@ -424,14 +542,19 @@ class AcmeChallenge(Base):
         back_populates="acme_challenge_http01",
     )
 
-    if False:
-        # migrate to fqdns
-        to_certificate_requests = sa_orm_relationship(
-            "CertificateRequest2Domain",
-            primaryjoin="AcmeChallenge.id==CertificateRequest2Domain.acme_challenge_id",
-            uselist=False,
-            back_populates="acme_challenge",
-        )
+    acme_orderless = sa_orm_relationship(
+        "AcmeOrderless",
+        primaryjoin="AcmeChallenge.acme_orderless_id==AcmeOrderless.id",
+        uselist=False,
+        back_populates="acme_challenges",
+    )
+
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="AcmeChallenge.domain_id==Domain.id",
+        uselist=False,
+        back_populates="acme_challenges",
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -442,8 +565,14 @@ class AcmeChallenge(Base):
         return None
 
     @property
+    def acme_status_challenge(self):
+        return model_utils.Acme_Status_Challenge.as_string(
+            self.acme_status_challenge_id
+        )
+
+    @property
     def domain_name(self):
-        return self.acme_authorization.domain.domain_name
+        return self.domain.domain_name
 
     @property
     def is_can_acme_server_sync(self):
@@ -456,273 +585,30 @@ class AcmeChallenge(Base):
             return False
         return True
 
-    @property
-    def status_text(self):
-        return model_utils.Acme_Status_Challenge.as_string(
-            self.acme_status_challenge_id
-        )
-
-    @property
-    def timestamp_created_isoformat(self):
-        if self.timestamp_created:
-            return self.timestamp_created.isoformat()
-        return None
-
-    @property
-    def timestamp_updated_isoformat(self):
-        if self.timestamp_updated:
-            return self.timestamp_updated.isoformat()
-        return None
-
-    @property
-    def as_json(self):
+    def _as_json(self, admin_url=""):
         return {
             "id": self.id,
             "acme_challenge_type": self.acme_challenge_type,
-            "domain": self.domain_name,
-            "status_text": self.status_text,
+            "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
+            "acme_status_challenge": self.acme_status_challenge,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
+            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server-sync.json"
+            % (admin_url, self.id)
+            if self.is_can_acme_server_sync
+            else None,
             # "acme_event_log_id": self.acme_event_log_id,
         }
 
-
-class AcmeOrderless(Base):
-    """
-    AcmeOrderless allows us to support the "AcmeFlow"
-    """
-
-    __tablename__ = "acme_orderless"
-
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_finalized = sa.Column(sa.DateTime, nullable=True)
-    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=False)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_orderless_challenges = sa_orm_relationship(
-        "AcmeOrderlessChallenge",
-        primaryjoin="AcmeOrderless.id==AcmeOrderlessChallenge.acme_orderless_id",
-        uselist=True,
-        back_populates="acme_orderless",
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def domains_status(self):
-        _status = {}
-        for challenge in self.acme_orderless_challenges:
-            _status[challenge.domain_name] = {
-                "acme_challenge_type": challenge.acme_challenge_type,
-                "acme_status_challenge": challenge.acme_status_challenge,
-            }
-        return _status
-
-    @property
-    def timestamp_created_isoformat(self):
-        if self.timestamp_created:
-            return self.timestamp_created.isoformat()
-        return None
-
-    @property
-    def timestamp_finalized_isoformat(self):
-        if self.timestamp_finalized:
-            return self.timestamp_finalized.isoformat()
-        return None
-
-    @property
-    def timestamp_updated_isoformat(self):
-        if self.timestamp_updated:
-            return self.timestamp_updated.isoformat()
-        return None
-
     @property
     def as_json(self):
-        return {
-            "id": self.id,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "timestamp_finalized": self.timestamp_finalized_isoformat,
-            "timestamp_updated": self.timestamp_updated_isoformat,
-            "domains_status": self.domains_status,
-        }
+        return self._as_json()
 
 
-class AcmeChallenge_Unified(Base):
-    __tablename__ = "acme_challenge_unified"
-    __table_args__ = (
-        sa.CheckConstraint(
-            "((acme_authorization_id IS NOT NULL AND acme_orderless_id IS NULL)"
-            " OR "
-            " (acme_authorization_id IS NULL AND acme_orderless_id IS NOT NULL)"
-            ")",
-            # name="check_authorization_or_orderless",
-        ),
-    )
-
-    id = sa.Column(sa.Integer, primary_key=True)
-
-    # our challenge will either be from:
-    # 1) an `AcmeOrde``->`AcmeAuthorization`
-    acme_authorization_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True
-    )
-    # 2) an `AcmeOrderless`
-    acme_orderless_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_orderless.id"), nullable=True
-    )
-
-    # `AcmeOrderless` requires a domain; duplicating this for `AcmeOrder` is fine
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
-
-    # in all situations, we need to track these:
-    acme_challenge_type_id = sa.Column(
-        sa.Integer, nullable=True
-    )  # this library only does http-01, `model_utils.AcmeChallengeType`
-    acme_status_challenge_id = sa.Column(
-        sa.Integer, nullable=False
-    )  # Acme_Status_Challenge
-
-    token = sa.Column(sa.Unicode(255), nullable=False)
-    # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http01.token)
-    # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
-    keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
-
-    challenge_url = sa.Column(sa.Unicode(255), nullable=True)
-
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+# ==============================================================================
 
 
-
-class AcmeOrderlessChallenge(Base):
-    """
-    """
-
-    __tablename__ = "acme_orderless_challenge"
-    id = sa.Column(sa.Integer, primary_key=True)
-    acme_orderless_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_orderless.id"), nullable=False
-    )
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
-    acme_challenge_type_id = sa.Column(
-        sa.Integer, nullable=False
-    )  # this library only does http-01, `model_utils.AcmeChallengeType`
-    acme_status_challenge_id = sa.Column(
-        sa.Integer, nullable=False
-    )  # Acme_Status_Challenge
-    token = sa.Column(sa.Unicode(255), nullable=True)
-    keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
-    challenge_url = sa.Column(sa.Unicode(255), nullable=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_orderless = sa_orm_relationship(
-        "AcmeOrderless",
-        primaryjoin="AcmeOrderlessChallenge.acme_orderless_id==AcmeOrderless.id",
-        uselist=False,
-        back_populates="acme_orderless_challenges",
-    )
-
-    acme_orderless_challenge_polls = sa_orm_relationship(
-        "AcmeOrderlessChallengePoll",
-        primaryjoin="AcmeOrderlessChallenge.id==AcmeOrderlessChallengePoll.acme_orderless_challenge_id",
-        uselist=True,
-        back_populates="acme_orderless_challenge",
-    )
-
-    domain = sa_orm_relationship(
-        "Domain",
-        primaryjoin="AcmeOrderlessChallenge.domain_id==Domain.id",
-        uselist=False,
-        back_populates="acme_orderless_challenges",
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def acme_status_challenge(self):
-        return model_utils.Acme_Status_Challenge.as_string(
-            self.acme_status_challenge_id
-        )
-
-    @property
-    def acme_challenge_type(self):
-        if self.acme_challenge_type_id:
-            return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
-        return None
-
-    @property
-    def domain_name(self):
-        return self.domain.domain_name
-
-    @property
-    def is_can_acme_server_sync(self):
-        # NOTE: is there another way to test this?
-        if not self.challenge_url:
-            return False
-        return True
-
-    @property
-    def timestamp_created_isoformat(self):
-        if self.timestamp_created:
-            return self.timestamp_created.isoformat()
-        return None
-
-    @property
-    def timestamp_finalized_isoformat(self):
-        if self.timestamp_finalized:
-            return self.timestamp_finalized.isoformat()
-        return None
-
-    @property
-    def timestamp_updated_isoformat(self):
-        if self.timestamp_updated:
-            return self.timestamp_updated.isoformat()
-        return None
-
-    @property
-    def as_json(self):
-        return {
-            "id": self.id,
-            "acme_status_challenge": self.acme_status_challenge,
-            "acme_challenge_type": self.acme_challenge_type,
-            "domain": self.domain_name,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "timestamp_finalized_isoformat": self.timestamp_finalized_isoformat,
-            "timestamp_updated": self.timestamp_updated_isoformat,
-        }
-
-
-class AcmeOrderlessChallengePoll(Base):
-    """
-    log ACME Challenge polls
-    """
-
-    __tablename__ = "acme_orderless_challenge_poll"
-
-    id = sa.Column(sa.Integer, primary_key=True)
-    acme_orderless_challenge_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_orderless_challenge.id"), nullable=False
-    )
-    timestamp_polled = sa.Column(sa.DateTime, nullable=False)
-    remote_ip_address = sa.Column(sa.Unicode(255), nullable=False)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_orderless_challenge = sa_orm_relationship(
-        "AcmeOrderlessChallenge",
-        primaryjoin="AcmeOrderlessChallengePoll.acme_orderless_challenge_id==AcmeOrderlessChallenge.id",
-        uselist=False,
-        back_populates="acme_orderless_challenge_polls",
-    )
-
-
-class AcmeOrder(Base):
+class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     """
     ACME Order Object [https://tools.ietf.org/html/rfc8555#section-7.1.3]
 
@@ -737,6 +623,7 @@ class AcmeOrder(Base):
     __tablename__ = "acme_order"
 
     id = sa.Column(sa.Integer, primary_key=True)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     acme_status_order_id = sa.Column(sa.Integer, nullable=False)  # Acme_Status_Order
     resource_url = sa.Column(sa.Unicode(255), nullable=True)
@@ -819,11 +706,15 @@ class AcmeOrder(Base):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def acme_status_order(self):
+        return model_utils.Acme_Status_Order.as_string(self.acme_status_order_id)
+
+    @property
     def authorizations_can_deactivate(self):
         authorizations = []
         for _to_auth in self.to_acme_authorizations:
             if (
-                _to_auth.acme_authorization.status_text
+                _to_auth.acme_authorization.acme_status_authorization
                 in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
             ):
                 authorizations.append(_to_auth.acme_authorization)
@@ -843,7 +734,7 @@ class AcmeOrder(Base):
         # note: is there a better test?
         if not self.resource_url:
             return False
-        if self.status_text in model_utils.Acme_Status_Order.OPTIONS_X_ACME_SYNC:
+        if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_X_ACME_SYNC:
             return False
         return True
 
@@ -853,7 +744,7 @@ class AcmeOrder(Base):
         if not self.resource_url:
             return False
         if (
-            self.status_text
+            self.acme_status_order
             in model_utils.Acme_Status_Order.OPTIONS_X_DEACTIVATE_AUTHORIZATIONS
         ):
             return False
@@ -867,19 +758,37 @@ class AcmeOrder(Base):
 
     @property
     def is_can_mark_invalid(self):
-        if self.status_text not in model_utils.Acme_Status_Order.OPTIONS_X_MARK_INVALID:
+        if (
+            self.acme_status_order
+            not in model_utils.Acme_Status_Order.OPTIONS_X_MARK_INVALID
+        ):
             return True
         return False
 
     @property
     def is_can_retry(self):
-        if self.status_text not in model_utils.Acme_Status_Order.OPTIONS_RETRY:
+        if self.acme_status_order not in model_utils.Acme_Status_Order.OPTIONS_RETRY:
             return False
         return True
 
+    def _as_json(self, admin_url=""):
+        return {
+            "id": self.id,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_finalized": self.timestamp_finalized_isoformat,
+            "timestamp_updated": self.timestamp_updated_isoformat,
+            "timestamp_expires": self.timestamp_expires_isoformat,
+            "domains_as_list": self.domains_as_list,
+            "is_active": self.is_active,
+            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server-sync.json"
+            % (admin_url, self.id)
+            if self.is_can_acme_server_sync
+            else None,
+        }
+
     @property
-    def status_text(self):
-        return model_utils.Acme_Status_Order.as_string(self.acme_status_order_id)
+    def as_json(self):
+        return self._as_json()
 
 
 class AcmeOrder2Domain(Base):
@@ -937,7 +846,56 @@ class AcmeOrder2AcmeAuthorization(Base):
 # ==============================================================================
 
 
-class CACertificate(Base):
+class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
+    """
+    AcmeOrderless allows us to support the "AcmeFlow"
+    """
+
+    __tablename__ = "acme_orderless"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    timestamp_finalized = sa.Column(sa.DateTime, nullable=True)
+    timestamp_updated = sa.Column(sa.DateTime, nullable=True)
+    is_active = sa.Column(sa.Boolean, nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_challenges = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin="AcmeOrderless.id==AcmeChallenge.acme_orderless_id",
+        uselist=True,
+        back_populates="acme_orderless",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def domains_status(self):
+        _status = {}
+        for challenge in self.acme_challenges:
+            _status[challenge.domain_name] = {
+                "acme_challenge_type": challenge.acme_challenge_type,
+                "acme_status_challenge": challenge.acme_status_challenge,
+            }
+        return _status
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_finalized": self.timestamp_finalized_isoformat,
+            "timestamp_updated": self.timestamp_updated_isoformat,
+            "domains_status": self.domains_status,
+            "is_active": self.is_active,
+        }
+
+
+# ==============================================================================
+
+
+class CACertificate(Base, _Mixin_Timestamps_Pretty):
     """
     These are trusted "Certificate Authority" Certificates from LetsEncrypt that are used to sign server certificates.
     These are directly tied to a ServerCertificate and are needed to create a "fullchain" certificate for most deployments.
@@ -955,7 +913,7 @@ class CACertificate(Base):
     id_cross_signed_of = sa.Column(
         sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
     )
-    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
@@ -1008,23 +966,17 @@ class CACertificate(Base):
         )
 
     @property
-    def timestamp_first_seen_isoformat(self):
-        if self.timestamp_first_seen:
-            return self.timestamp_first_seen.isoformat()
-        return None
-
-    @property
     def as_json(self):
         return {
             "id": self.id,
             "name": self.name,
             "cert_pem_md5": self.cert_pem_md5,
             "cert_pem": self.cert_pem,
-            "timestamp_first_seen": self.timestamp_first_seen_isoformat,
+            "timestamp_created": self.timestamp_created_isoformat,
         }
 
 
-class CertificateRequest(Base):
+class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     """
     A CertificateRequest is submitted to the LetsEncrypt signing authority.
     In goes your hope, out comes your dreams.
@@ -1032,12 +984,10 @@ class CertificateRequest(Base):
     The domains will be stored in the UniqueFQDNSet table
     * UniqueFQDNSet - the signing authority has a ratelimit on 'unique' sets of fully qualified domain names.
     """
+
     __tablename__ = "certificate_request"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    # ???: deprecation candidate: `is_error`
-    # is_error = sa.Column(sa.Boolean, nullable=True, default=None)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     certificate_request_source_id = sa.Column(
         sa.Integer, nullable=False
@@ -1052,6 +1002,11 @@ class CertificateRequest(Base):
     )
     private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
+    )
+    certificate_request_id__renewal_of = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("certificate_request.id", use_alter=True),
+        nullable=True,
     )
     server_certificate_id__renewal_of = sa.Column(
         sa.Integer,
@@ -1098,22 +1053,12 @@ class CertificateRequest(Base):
         uselist=False,
     )
 
-    if False:
-
-        # TODO: migrate through the Unique FQDNS
-        to_domains = sa_orm_relationship(
-            "CertificateRequest2Domain",
-            primaryjoin="CertificateRequest.id==CertificateRequest2Domain.certificate_request_id",
-            back_populates="certificate_request",
-        )
-
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
         primaryjoin="CertificateRequest.unique_fqdn_set_id==UniqueFQDNSet.id",
         uselist=False,
         back_populates="certificate_requests",
     )
-
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1147,58 +1092,38 @@ class CertificateRequest(Base):
         return domain_names
 
     @property
-    def timestamp_started_isoformat(self):
-        if self.timestamp_started:
-            return self.timestamp_started.isoformat()
-        return None
-
-    @property
-    def timestamp_finished_isoformat(self):
-        if self.timestamp_finished:
-            return self.timestamp_finished.isoformat()
-        return None
-
-    @property
-    def server_certificate_id__issued(self):
-        if self.server_certificate:
-            return self.server_certificate.id
+    def server_certificate_id__latest(self):
+        if self.server_certificate__latest:
+            return self.server_certificate__latest.id
         return None
 
     @property
     def as_json(self):
-        # ???: deprecation candidate: `is_error`
         return {
             "id": self.id,
-            "is_active": True if self.is_active else False,
-            # "is_error": True if self.is_error else False,
             "csr_pem_md5": self.csr_pem_md5,
             "certificate_request_source": self.certificate_request_source,
-            "timestamp_started": self.timestamp_started_isoformat,
-            "timestamp_finished": self.timestamp_finished_isoformat,
-            "acme_account_key_id": self.acme_account_key_id,
+            "timestamp_created": self.timestamp_created_isoformat,
             "private_key_id": self.private_key_id,
+            "certificate_request_id__renewal_of": self.certificate_request_id__renewal_of,
             "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
 
     @property
     def as_json_extended(self):
-        # ???: deprecation candidate: `is_error`
         return {
             "id": self.id,
-            "is_active": True if self.is_active else False,
-            # "is_error": True if self.is_error else False,
             "csr_pem_md5": self.csr_pem_md5,
             "certificate_request_source": self.certificate_request_source,
-            "timestamp_started": self.timestamp_started_isoformat,
-            "timestamp_finished": self.timestamp_finished_isoformat,
-            "acme_account_key_id": self.acme_account_key_id,
+            "timestamp_created": self.timestamp_created_isoformat,
             "private_key_id": self.private_key_id,
+            "certificate_request_id__renewal_of": self.certificate_request_id__renewal_of,
             "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "domains": self.domains_as_list,
             "csr_pem": self.csr_pem,
-            "server_certificate_id__issued": self.server_certificate_id__issued,
+            "server_certificate_id__latest": self.server_certificate_id__latest,
         }
 
 
@@ -1211,7 +1136,7 @@ class Domain(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
 
     is_from_queue_domain = sa.Column(
         sa.Boolean, nullable=True, default=None
@@ -1237,9 +1162,9 @@ class Domain(Base):
         back_populates="domain",
     )
 
-    acme_orderless_challenges = sa_orm_relationship(
-        "AcmeOrderlessChallenge",
-        primaryjoin="Domain.id==AcmeOrderlessChallenge.domain_id",
+    acme_challenges = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin="Domain.id==AcmeChallenge.domain_id",
         uselist=True,
         back_populates="domain",
     )
@@ -1276,15 +1201,6 @@ class Domain(Base):
         back_populates="domain",
     )
 
-    if False:
-        # TODO: migrate through the Unique FQDNS
-        to_certificate_requests = sa_orm_relationship(
-            "CertificateRequest2Domain",
-            primaryjoin="Domain.id==CertificateRequest2Domain.domain_id",
-            back_populates="domain",
-            order_by="CertificateRequest2Domain.certificate_request_id.desc()",
-        )
-
     to_fqdns = sa_orm_relationship(
         "UniqueFQDNSet2Domain",
         primaryjoin="Domain.id==UniqueFQDNSet2Domain.domain_id",
@@ -1317,14 +1233,14 @@ class Domain(Base):
         return payload
 
 
-class PrivateKey(Base):
+class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     """
     These keys are used to sign CertificateRequests and are the PrivateKey component to a ServerCertificate.
     """
 
     __tablename__ = "private_key"
     id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
     key_pem = sa.Column(sa.Text, nullable=True)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
@@ -1375,7 +1291,7 @@ class PrivateKey(Base):
     def autogenerated_key_year_week(self):
         if not self.is_autogenerated_key:
             return ""
-        return "%s.%s" % self.timestamp_first_seen.isocalendar()[0:2]
+        return "%s.%s" % self.timestamp_created.isocalendar()[0:2]
 
     @property
     def is_key_usable(self):
@@ -1397,12 +1313,6 @@ class PrivateKey(Base):
         return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
 
     @property
-    def timestamp_first_seen_isoformat(self):
-        if self.timestamp_first_seen:
-            return self.timestamp_first_seen.isoformat()
-        return None
-
-    @property
     def as_json(self):
         return {
             "id": self.id,
@@ -1410,11 +1320,11 @@ class PrivateKey(Base):
             "is_default": True if self.is_default else False,
             "key_pem_md5": self.key_pem_md5,
             "key_pem": self.key_pem,
-            "timestamp_first_seen": self.timestamp_first_seen_isoformat,
+            "timestamp_created": self.timestamp_created_isoformat,
         }
 
 
-class QueueDomain(Base):
+class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     """
     A list of domains to be queued into certificates.
     This is only used for batch processing consumer domains
@@ -1457,18 +1367,6 @@ class QueueDomain(Base):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def timestamp_entered_isoformat(self):
-        if self.timestamp_entered:
-            return self.timestamp_entered.isoformat()
-        return None
-
-    @property
-    def timestamp_processed_isoformat(self):
-        if self.timestamp_processed:
-            return self.timestamp_processed.isoformat()
-        return None
-
-    @property
     def as_json(self):
         return {
             "id": self.id,
@@ -1480,7 +1378,7 @@ class QueueDomain(Base):
         }
 
 
-class QueueRenewal(Base):
+class QueueRenewal(Base, _Mixin_Timestamps_Pretty):
     """
     An item to be renewed.
     If something is expired, it will be placed here for renewal
@@ -1566,24 +1464,6 @@ class QueueRenewal(Base):
         return self.unique_fqdn_set.domains_as_list
 
     @property
-    def timestamp_entered_isoformat(self):
-        if self.timestamp_entered:
-            return self.timestamp_entered.isoformat()
-        return None
-
-    @property
-    def timestamp_processed_isoformat(self):
-        if self.timestamp_processed:
-            return self.timestamp_processed.isoformat()
-        return None
-
-    @property
-    def timestamp_process_attempt_isoformat(self):
-        if self.timestamp_process_attempt:
-            return self.timestamp_process_attempt.isoformat()
-        return None
-
-    @property
     def as_json(self):
         return {
             "id": self.id,
@@ -1598,7 +1478,7 @@ class QueueRenewal(Base):
         }
 
 
-class ServerCertificate(Base):
+class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     """
     A signed Server Certificate.
     To install on a webserver, must be paired with the PrivateKey and Trusted CA Certificate.
@@ -1783,24 +1663,6 @@ class ServerCertificate(Base):
         return "danger"
 
     @property
-    def timestamp_expires_isoformat(self):
-        if self.timestamp_expires:
-            return self.timestamp_expires.isoformat()
-        return None
-
-    @property
-    def timestamp_signed_isoformat(self):
-        if self.timestamp_signed:
-            return self.timestamp_signed.isoformat()
-        return None
-
-    @property
-    def timestamp_revoked_upstream_isoformat(self):
-        if self.timestamp_revoked_upstream:
-            return self.timestamp_revoked_upstream.isoformat()
-        return None
-
-    @property
     def config_payload(self):
         # the ids are strings so that the fullchain id can be split by a client without further processing
         return {
@@ -1868,7 +1730,7 @@ class ServerCertificate(Base):
         }
 
 
-class UniqueFQDNSet(Base):
+class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     """
     There is a ratelimit in effect from LetsEncrypt for unique sets of fully-qualified domain names
 
@@ -1882,7 +1744,7 @@ class UniqueFQDNSet(Base):
     __tablename__ = "unique_fqdn_set"
     id = sa.Column(sa.Integer, primary_key=True)
     domain_ids_string = sa.Column(sa.Text, nullable=False)
-    timestamp_first_seen = sa.Column(sa.DateTime, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -1958,16 +1820,10 @@ class UniqueFQDNSet(Base):
         return domain_names
 
     @property
-    def timestamp_first_seen_isoformat(self):
-        if self.timestamp_first_seen:
-            return self.timestamp_first_seen.isoformat()
-        return None
-
-    @property
     def as_json(self):
         return {
             "id": self.id,
-            "timestamp_first_seen": self.timestamp_first_seen_isoformat,
+            "timestamp_created": self.timestamp_created_isoformat,
             "domains_as_list": self.domains_as_list,
         }
 
@@ -2476,6 +2332,29 @@ CertificateRequest.latest_acme_order = sa_orm_relationship(
 )
 
 
+# note: CertificateRequest.server_certificate__latest
+CertificateRequest.server_certificate__latest = sa_orm_relationship(
+    ServerCertificate,
+    primaryjoin=(
+        sa.and_(
+            CertificateRequest.id == ServerCertificate.certificate_request_id,
+            ServerCertificate.id.in_(
+                sa.select([sa.func.max(ServerCertificate.id)])
+                .where(
+                    ServerCertificate.certificate_request_id == CertificateRequest.id
+                )
+                .where(ServerCertificate.is_active.op("IS")(True))
+                .offset(0)
+                .limit(1)
+                .correlate()
+            ),
+        )
+    ),
+    uselist=False,
+    viewonly=True,
+)
+
+
 # note: CertificateRequest.server_certificates__5
 CertificateRequest.server_certificates__5 = sa_orm_relationship(
     ServerCertificate,
@@ -2522,21 +2401,13 @@ Domain.acme_authorizations__5 = sa_orm_relationship(
 # note: Domain.acme_challenges__5
 Domain.acme_challenges__5 = sa_orm_relationship(
     AcmeChallenge,
-    primaryjoin="Domain.id == AcmeAuthorization.domain_id",
-    secondary=(
-        """join(AcmeAuthorization,
-                AcmeChallenge,
-                AcmeAuthorization.id == AcmeChallenge.acme_authorization_id
-                )"""
-    ),
-    secondaryjoin=(
+    primaryjoin=(
         sa.and_(
-            AcmeChallenge.acme_authorization_id == AcmeAuthorization.id,
+            Domain.id == AcmeChallenge.domain_id,
             AcmeChallenge.id.in_(
                 sa.select([AcmeChallenge.id])
-                .where(AcmeChallenge.acme_authorization_id == AcmeAuthorization.id)
-                .where(AcmeAuthorization.domain_id == Domain.id)
-                .order_by(AcmeAuthorization.id.desc())
+                .where(Domain.id == AcmeChallenge.domain_id)
+                .order_by(AcmeChallenge.id.desc())
                 .limit(5)
                 .correlate()
             ),
@@ -2581,21 +2452,20 @@ Domain.acme_orders__5 = sa_orm_relationship(
 # note: Domain.acme_orderlesss__5
 Domain.acme_orderlesss__5 = sa_orm_relationship(
     AcmeOrderless,
-    primaryjoin="Domain.id == AcmeOrderlessChallenge.domain_id",
+    primaryjoin="and_(Domain.id == AcmeChallenge.domain_id, AcmeChallenge.acme_orderless_id.op('IS NOT')(None))",
     secondary=(
-        """join(AcmeOrderlessChallenge,
+        """join(AcmeChallenge,
                 AcmeOrderless,
-                AcmeOrderlessChallenge.acme_orderless_id == AcmeOrderless.id
+                AcmeChallenge.acme_orderless_id == AcmeOrderless.id
                 )"""
     ),
     secondaryjoin=(
         sa.and_(
-            AcmeOrderless.id
-            == sa.orm.foreign(AcmeOrderlessChallenge.acme_orderless_id),
+            AcmeOrderless.id == sa.orm.foreign(AcmeChallenge.acme_orderless_id),
             AcmeOrderless.id.in_(
                 sa.select([AcmeOrderless.id])
-                .where(AcmeOrderless.id == AcmeOrderlessChallenge.acme_orderless_id)
-                .where(AcmeOrderlessChallenge.domain_id == Domain.id)
+                .where(AcmeOrderless.id == AcmeChallenge.acme_orderless_id)
+                .where(AcmeChallenge.domain_id == Domain.id)
                 .order_by(AcmeOrderless.id.desc())
                 .limit(5)
                 .correlate()
@@ -2603,26 +2473,6 @@ Domain.acme_orderlesss__5 = sa_orm_relationship(
         )
     ),
     order_by=AcmeOrderless.id.desc(),
-    viewonly=True,
-)
-
-
-# note: Domain.acme_orderless_challenges__5
-Domain.acme_orderless_challenges__5 = sa_orm_relationship(
-    AcmeOrderlessChallenge,
-    primaryjoin=(
-        sa.and_(
-            Domain.id == AcmeOrderlessChallenge.domain_id,
-            AcmeOrderlessChallenge.id.in_(
-                sa.select([AcmeOrderlessChallenge.id])
-                .where(Domain.id == AcmeOrderlessChallenge.domain_id)
-                .order_by(AcmeOrderlessChallenge.id.desc())
-                .limit(5)
-                .correlate()
-            ),
-        )
-    ),
-    order_by=AcmeOrderlessChallenge.id.desc(),
     viewonly=True,
 )
 

@@ -40,7 +40,7 @@
                     method="POST"
                     enctype="multipart/form-data"
                 >
-                    <button type="submit" class="btn btn-xsbtn-danger"><span class="glyphicon glyphicon-remove"></span> Deactivate</button>
+                    <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-remove"></span> Deactivate</button>
                 </form>
             % endif
             
@@ -95,14 +95,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        % for challenge in AcmeOrderless.acme_orderless_challenges:
+                        % for challenge in AcmeOrderless.acme_challenges:
                             <tr>
                                 % for col in cols:
                                     <td>
                                         % if col == 'Challenge':
-                                            <a class="label label-info" href="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/acme-orderless-challenge/${challenge.id}">
+                                            <a class="label label-info" href="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/acme-challenge/${challenge.id}">
                                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                AcmeOrderlessChallenge-${challenge.id}
+                                                AcmeChallenge-${challenge.id}
                                             </a>
                                         % elif col == 'Domain':
                                             <a class="label label-info" href="${admin_prefix}/domain/${challenge.domain_id}">
@@ -159,7 +159,7 @@
             % endif
             
             % if editable:
-                % if len(AcmeOrderless.acme_orderless_challenges) < 50:
+                % if len(AcmeOrderless.acme_challenges) < 50:
                     <hr/>
                     <hr/>
                     <form
@@ -168,20 +168,20 @@
                         enctype="multipart/form-data"
                     >
                         <div class="form-group">
-                            <label for="add_domain">Domain</label>
-                            <input class="form-control" type="text" name="add_domain" value=""/>
+                            <label for="domain">Domain</label>
+                            <input class="form-control" type="text" name="domain" value=""/>
                         </div>
                         <div class="form-group">
-                            <label for="add_token">Token</label>
-                            <input class="form-control" type="text" name="add_token" value=""/>
+                            <label for="token">Token</label>
+                            <input class="form-control" type="text" name="token" value=""/>
                         </div>
                         <div class="form-group">
-                            <label for="add_keyauthorization">KeyAuthorization</label>
-                            <input class="form-control" type="text" name="add_keyauthorization" value=""/>
+                            <label for="keyauthorization">KeyAuthorization</label>
+                            <input class="form-control" type="text" name="keyauthorization" value=""/>
                         </div>
                         <div class="form-group">
-                            <label for="add_challenge_url">ChallengeURL</label>
-                            <input class="form-control" type="text" name="add_challenge_url" value=""/>
+                            <label for="challenge_url">ChallengeURL</label>
+                            <input class="form-control" type="text" name="challenge_url" value=""/>
                         </div>
 
                         <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>

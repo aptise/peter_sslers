@@ -18,6 +18,16 @@
 
 
 
+<%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
+</%block>
+
+
 <%block name="content_main">
 
     <p>
@@ -50,12 +60,28 @@
                     <tr>
                         <th>AcmeAuthorization</th>
                         <td>
-                            <a  class="label label-info"
-                                href="${admin_prefix}/acme-authorization/${AcmeChallenge.acme_authorization_id}"
-                            >
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAuthorization-${AcmeChallenge.acme_authorization_id}
-                            </a>
+                            % if AcmeChallenge.acme_authorization_id:
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/acme-authorization/${AcmeChallenge.acme_authorization_id}"
+                                >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAuthorization-${AcmeChallenge.acme_authorization_id}
+                                </a>
+                                <hr/>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeOrderless</th>
+                        <td>
+                            % if AcmeChallenge.acme_orderless_id:
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/acme-orderless/${AcmeChallenge.acme_orderless_id}"
+                                >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrderless-${AcmeChallenge.acme_orderless_id}
+                                </a>
+                            % endif
                         </td>
                     </tr>
                     <tr>
@@ -72,7 +98,7 @@
                     </tr>
                     <tr>
                         <th>status</th>
-                        <td><code>${AcmeChallenge.status_text}</code></td>
+                        <td><code>${AcmeChallenge.acme_status_challenge}</code></td>
                     </tr>
                     <tr>
                         <th>token</th>

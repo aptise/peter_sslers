@@ -21,6 +21,12 @@
 
 
 <%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/acme-order/${AcmeOrder.id}.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
 </%block>
 
 
@@ -77,12 +83,37 @@
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
-                        <td><timestamp>${AcmeOrder.timestamp_created  or ''}</timestamp>
+                        <td><timestamp>${AcmeOrder.timestamp_created or ''}</timestamp>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_active</th>
+                        <td>
+                        
+                            % if AcmeOrder.is_active:
+                                <div class="label label-success">
+                                    <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                </div>
+                            % else:
+                                <div class="label label-danger">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                </div>
+                            % endif
+                        
+                            % if AcmeOrder.is_active:
+                                <a
+                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?operation=deactivate"
+                                    class="btn btn-xs btn-danger"
+                                >
+                                    <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                                    Deactivate
+                                </a>
+                            % endif
                         </td>
                     </tr>
                     <tr>
                         <th>status</th>
-                        <td><code>${AcmeOrder.status_text  or ''}</code>
+                        <td><code>${AcmeOrder.acme_status_order or ''}</code>
                             % if AcmeOrder.is_can_mark_invalid:
                                 <a
                                     href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?operation=invalid"
@@ -101,12 +132,12 @@
                     </tr>
                     <tr>
                         <th>timestamp_expires</th>
-                        <td><timestamp>${AcmeOrder.timestamp_expires  or ''}</timestamp>
+                        <td><timestamp>${AcmeOrder.timestamp_expires or ''}</timestamp>
                         </td>
                     </tr>
                     <tr>
                         <th>timestamp_updated</th>
-                        <td><timestamp>${AcmeOrder.timestamp_updated  or ''}</timestamp>
+                        <td><timestamp>${AcmeOrder.timestamp_updated or ''}</timestamp>
                         </td>
                     </tr>
                     <tr>

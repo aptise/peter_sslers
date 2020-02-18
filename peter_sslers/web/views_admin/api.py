@@ -44,13 +44,10 @@ class ViewAdmin(Handler):
     @view_config(route_name="admin:api:update_recents", renderer=None)
     @view_config(route_name="admin:api:update_recents|json", renderer="json")
     def api_update_recents(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         operations_event = lib_db.actions.operations_update_recents(
             self.request.api_context
         )
-        if wants_json:
+        if self.request.wants_json:
             return {"result": "success", "operations_event": operations_event.id}
         return HTTPSeeOther(
             "%s/operations/log?result=success&event.id=%s"
@@ -62,9 +59,6 @@ class ViewAdmin(Handler):
     @view_config(route_name="admin:api:deactivate_expired", renderer=None)
     @view_config(route_name="admin:api:deactivate_expired|json", renderer="json")
     def api_deactivate_expired(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         rval = {}
         operations_event = lib_db.actions.operations_deactivate_expired(
             self.request.api_context
@@ -77,7 +71,7 @@ class ViewAdmin(Handler):
         rval["result"] = "success"
         rval["operations_event"] = operations_event.id
 
-        if wants_json:
+        if self.request.wants_json:
             return rval
 
         return HTTPSeeOther(
@@ -223,9 +217,6 @@ class ViewAdmin(Handler):
     @view_config(route_name="admin:api:redis:prime", renderer=None)
     @view_config(route_name="admin:api:redis:prime|json", renderer="json")
     def admin_redis_prime(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         self._ensure_redis()
 
         prime_style = utils_redis.redis_prime_style(self.request)
@@ -378,7 +369,7 @@ class ViewAdmin(Handler):
             model_utils.OperationsEventType.from_string("operations__redis_prime"),
             event_payload_dict,
         )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "result": "success",
                 "operations_event": {
@@ -398,13 +389,10 @@ class ViewAdmin(Handler):
     @view_config(route_name="admin:api:nginx:cache_flush|json", renderer="json")
     def admin_nginx_cache_flush(self):
         self._ensure_nginx()
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         success, dbEvent, servers_status = utils_nginx.nginx_flush_cache(
             self.request, self.request.api_context
         )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "result": "success",
                 "operations_event": {"id": dbEvent.id},
@@ -420,9 +408,6 @@ class ViewAdmin(Handler):
 
     @view_config(route_name="admin:api:nginx:status|json", renderer="json")
     def admin_nginx_status(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         self._ensure_nginx()
         servers_status = utils_nginx.nginx_status(
             self.request, self.request.api_context
@@ -437,13 +422,9 @@ class ViewAdmin(Handler):
         route_name="admin:api:ca_certificate_probes:probe|json", renderer="json"
     )
     def ca_certificate_probes__probe(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-
         operations_event = lib_db.actions.ca_certificate_probe(self.request.api_context)
 
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "result": "success",
                 "operations_event": {
@@ -466,14 +447,11 @@ class ViewAdmin(Handler):
     @view_config(route_name="admin:api:queue_renewals:update", renderer=None)
     @view_config(route_name="admin:api:queue_renewals:update|json", renderer="json")
     def queue_renewal_update(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             queue_results = lib_db.queues.queue_renewals__update(
                 self.request.api_context
             )
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "success"}
             return HTTPSeeOther(
                 "%s/queue-renewals?update=1"
@@ -481,7 +459,7 @@ class ViewAdmin(Handler):
             )
         except Exception as exc:
             transaction.abort()
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
             raise
 
@@ -490,14 +468,11 @@ class ViewAdmin(Handler):
     @view_config(route_name="admin:api:queue_renewals:process", renderer=None)
     @view_config(route_name="admin:api:queue_renewals:process|json", renderer="json")
     def queue_renewal_process(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             queue_results = lib_db.queues.queue_renewals__process(
                 self.request.api_context
             )
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "success", "queue_results": queue_results}
             if queue_results:
                 queue_results = json.dumps(queue_results)
@@ -507,6 +482,6 @@ class ViewAdmin(Handler):
             )
         except Exception as exc:
             transaction.abort()
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
             raise

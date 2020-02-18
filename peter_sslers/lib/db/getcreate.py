@@ -103,7 +103,7 @@ def getcreate__AcmeAccountKey(
             )
 
             dbAcmeAccountKey = model_objects.AcmeAccountKey()
-            dbAcmeAccountKey.timestamp_first_seen = ctx.timestamp
+            dbAcmeAccountKey.timestamp_created = ctx.timestamp
             dbAcmeAccountKey.key_pem = key_pem
             dbAcmeAccountKey.key_pem_md5 = key_pem_md5
             dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
@@ -189,7 +189,7 @@ def getcreate__AcmeAccountKey(
             )
 
             dbAcmeAccountKey = model_objects.AcmeAccountKey()
-            dbAcmeAccountKey.timestamp_first_seen = ctx.timestamp
+            dbAcmeAccountKey.timestamp_created = ctx.timestamp
             dbAcmeAccountKey.key_pem = key_pem
             dbAcmeAccountKey.key_pem_md5 = key_pem_md5
             dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
@@ -275,6 +275,8 @@ def getcreate__AcmeAuthorization(
         challenges (required, array of objects):
         wildcard (optional, boolean)
     """
+    if not dbAcmeOrder:
+        raise ValueError("do not invole this without a `dbAcmeOrder`")
     is_created__AcmeAuthorization = False
     dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
         ctx, authorization_url
@@ -294,6 +296,11 @@ def getcreate__AcmeAuthorization(
         is_created__AcmeAuthorization = True
 
     # no matter what, update
+    # this will set the following:
+    # `dbAcmeAuthorization.timestamp_expires`
+    # `dbAcmeAuthorization.domain_id`
+    # `dbAcmeAuthorization.acme_status_authorization_id`
+    # `dbAcmeAuthorization.timestamp_updated`
     _updated = update_AcmeAuthorization_from_payload(
         ctx, dbAcmeAuthorization, authorization_payload
     )
@@ -326,35 +333,32 @@ def getcreate__AcmeAuthorization(
     acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
         challenge_status
     )
-    dbChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
+    dbAcmeChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
     is_created_AcmeChallenge = False
-    if not dbChallenge:
+    if not dbAcmeChallenge:
         challenge_token = acme_challenge["token"]
-        dbChallenge = model_objects.AcmeChallenge()
-        dbChallenge.acme_authorization_id = dbAcmeAuthorization.id
-        dbChallenge.challenge_url = challenge_url
-        dbChallenge.timestamp_created = ctx.timestamp
-        dbChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
-            "http-01"
-        )
-        dbChallenge.acme_status_challenge_id = acme_status_challenge_id
-        dbChallenge.token = challenge_token
-        dbChallenge.timestamp_updated = datetime.datetime.utcnow()
-        if authenticatedUser:
-            dbChallenge.keyauthorization = lib.acme_v2.create_challenge_keyauthorization(
+        keyauthorization = (
+            lib.acme_v2.create_challenge_keyauthorization(
                 challenge_token, authenticatedUser.accountkey_thumbprint
             )
-
-        ctx.dbSession.add(dbChallenge)
-        ctx.dbSession.flush(objects=[dbChallenge])
+            if authenticatedUser
+            else None
+        )
+        dbAcmeChallenge = lib.db.create.create__AcmeChallenge(
+            ctx,
+            dbAcmeAuthorization=dbAcmeAuthorization,
+            dbDomain=dbAcmeAuthorization.domain,
+            challenge_url=challenge_url,
+            token=challenge_token,
+            keyauthorization=keyauthorization,
+        )
         is_created_AcmeChallenge = True
     else:
-        if dbChallenge.acme_status_challenge_id != acme_status_challenge_id:
-            pdb.set_trace()
-            dbChallenge.acme_status_challenge_id = acme_status_challenge_id
-            dbChallenge.timestamp_updated = datetime.datetime.utcnow()
-            ctx.dbSession.add(dbChallenge)
-            ctx.dbSession.flush(objects=[dbChallenge])
+        if dbAcmeChallenge.acme_status_challenge_id != acme_status_challenge_id:
+            dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
+            dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
+            ctx.dbSession.add(dbAcmeChallenge)
+            ctx.dbSession.flush(objects=[dbAcmeChallenge])
 
     # ???: should this be broken up into separate `AcmeAuthorization` and `AcmeChallenge` phases?
     # persist this to the db
@@ -418,7 +422,7 @@ def getcreate__CACertificate__by_pem_text(
                 is_cross_signed_authority_certificate
             )
             dbCACertificate.id_cross_signed_of = None
-            dbCACertificate.timestamp_first_seen = ctx.timestamp
+            dbCACertificate.timestamp_created = ctx.timestamp
             dbCACertificate.cert_pem = cert_pem
             dbCACertificate.cert_pem_md5 = cert_pem_md5
             dbCACertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
@@ -531,7 +535,7 @@ def getcreate__Domain__by_domainName(ctx, domain_name, is_from_queue_domain=None
         )
         dbDomain = model_objects.Domain()
         dbDomain.domain_name = domain_name
-        dbDomain.timestamp_first_seen = ctx.timestamp
+        dbDomain.timestamp_created = ctx.timestamp
         dbDomain.is_from_queue_domain = is_from_queue_domain
         dbDomain.operations_event_id__created = dbOperationsEvent.id
         ctx.dbSession.add(dbDomain)
@@ -603,7 +607,7 @@ def getcreate__PrivateKey__by_pem_text(ctx, key_pem, is_autogenerated_key=None):
         dbOperationsEvent = log__OperationsEvent(ctx, _event_type_id)
 
         dbPrivateKey = model_objects.PrivateKey()
-        dbPrivateKey.timestamp_first_seen = ctx.timestamp
+        dbPrivateKey.timestamp_created = ctx.timestamp
         dbPrivateKey.key_pem = key_pem
         dbPrivateKey.key_pem_md5 = key_pem_md5
         dbPrivateKey.key_pem_modulus_md5 = key_pem_modulus_md5
@@ -875,7 +879,7 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
 
         dbUniqueFQDNSet = model_objects.UniqueFQDNSet()
         dbUniqueFQDNSet.domain_ids_string = domain_ids_string
-        dbUniqueFQDNSet.timestamp_first_seen = ctx.timestamp
+        dbUniqueFQDNSet.timestamp_created = ctx.timestamp
         dbUniqueFQDNSet.operations_event_id__created = dbOperationsEvent.id
         ctx.dbSession.add(dbUniqueFQDNSet)
         ctx.dbSession.flush(objects=[dbUniqueFQDNSet])

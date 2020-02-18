@@ -970,7 +970,9 @@ class AuthenticatedUser(object):
                 "`acme_challenge_response` has a different challenge_url. this is unexpected."
             )
 
-        _challenge_status_text = dbAcmeAuthorization.acme_challenge_http01.status_text
+        _challenge_status_text = (
+            dbAcmeAuthorization.acme_challenge_http01.acme_status_challenge
+        )
         if _challenge_status_text == "pending":
             _todo_complete_challenge_http01 = True
         elif _challenge_status_text == "processing":

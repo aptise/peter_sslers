@@ -25,7 +25,7 @@ def validate_domains(domain_names):
     """
     for d in domain_names:
         if not RE_domain.match(d):
-            raise ValueError("invalid name: `%s`", d)
+            raise ValueError("invalid domain: `%s`", d)
     return True
 
 

@@ -43,9 +43,6 @@ class ViewAdmin_List(Handler):
     @view_config(route_name="admin:domains:expiring|json", renderer="json")
     @view_config(route_name="admin:domains:expiring_paginated|json", renderer="json")
     def list(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         expiring_days = self.request.registry.settings["expiring_days"]
         if self.request.matched_route.name in (
             "admin:domains:expiring",
@@ -54,7 +51,7 @@ class ViewAdmin_List(Handler):
             "admin:domains:expiring_paginated|json",
         ):
             sidenav_option = "expiring"
-            if wants_json:
+            if self.request.wants_json:
                 url_template = (
                     "%s/domains/expiring/{0}.json"
                     % self.request.registry.settings["admin_prefix"]
@@ -76,7 +73,7 @@ class ViewAdmin_List(Handler):
             )
         else:
             sidenav_option = "all"
-            if wants_json:
+            if self.request.wants_json:
                 url_template = (
                     "%s/domains/{0}.json"
                     % self.request.registry.settings["admin_prefix"]
@@ -93,7 +90,7 @@ class ViewAdmin_List(Handler):
                 limit=items_per_page,
                 offset=offset,
             )
-        if wants_json:
+        if self.request.wants_json:
             _domains = {d.id: d.as_json for d in items_paged}
             return {
                 "Domains": _domains,
@@ -125,10 +122,7 @@ class ViewAdmin_Search(Handler):
         return self._search__print()
 
     def _search__print(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": [
                     """curl --form 'domain=example.com' %s/domains/search.json"""
@@ -143,9 +137,6 @@ class ViewAdmin_Search(Handler):
         )
 
     def _search__submit(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_Domain_search, validate_get=False
@@ -178,7 +169,7 @@ class ViewAdmin_Search(Handler):
                 "query": domain_name,
             }
             self.search_results = search_results
-            if wants_json:
+            if self.request.wants_json:
                 return {
                     "result": "success",
                     "query": domain_name,
@@ -195,7 +186,7 @@ class ViewAdmin_Search(Handler):
             return self._search__print()
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._search__print)
 
@@ -229,29 +220,30 @@ class ViewAdmin_Focus(Handler):
     @view_config(route_name="admin:domain:focus", renderer="/admin/domain-focus.mako")
     @view_config(route_name="admin:domain:focus|json", renderer="json")
     def focus(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbDomain = self._focus(eagerload_web=True)
-        if wants_json:
-            return {"Domain": dbDomain.as_json}
-        return {"project": "peter_sslers", "Domain": dbDomain}
+        dbAcmeChallenge = lib_db.get.get__AcmeChallenge__by_DomainId__active(
+            self.request.api_context, dbDomain.id,
+        )
+        if self.request.wants_json:
+            return {"Domain": dbDomain.as_json, "AcmeChallenge": dbAcmeChallenge}
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeChallenge": dbAcmeChallenge,
+        }
 
     @view_config(route_name="admin:domain:focus:nginx_cache_expire", renderer=None)
     @view_config(
         route_name="admin:domain:focus:nginx_cache_expire|json", renderer="json"
     )
     def focus_nginx_expire(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbDomain = self._focus(eagerload_web=True)
         if not self.request.registry.settings["enable_nginx"]:
             raise HTTPSeeOther("%s?error=no+nginx" % self._focus_url)
         success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=[dbDomain]
         )
-        if wants_json:
+        if self.request.wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
             "%s?operation=nginx_cache_expire&result=success&event.id=%s"
@@ -318,36 +310,6 @@ class ViewAdmin_Focus(Handler):
             "Domain": dbDomain,
             "AcmeOrderlesss_count": items_count,
             "AcmeOrderlesss": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:domain:focus:acme_orderless_challenges",
-        renderer="/admin/domain-focus-acme_orderless_challenge.mako",
-    )
-    @view_config(
-        route_name="admin:domain:focus:acme_orderless_challenges_paginated",
-        renderer="/admin/domain-focus-acme_orderless_challenge.mako",
-    )
-    def focus__acme_orderless_challenges(self):
-        dbDomain = self._focus()
-        items_count = lib_db.get.get__AcmeOrderlessChallenge__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/acme-orderless-challenge/{0}" % self._focus_url,
-        )
-        items_paged = lib_db.get.get__AcmeOrderlessChallenge__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
-        return {
-            "project": "peter_sslers",
-            "Domain": dbDomain,
-            "AcmeOrderlessChallenges_count": items_count,
-            "AcmeOrderlessChallenges": items_paged,
             "pager": pager,
         }
 
@@ -477,10 +439,7 @@ class ViewAdmin_Focus(Handler):
         return self._focus_mark__print(dbDomain)
 
     def _focus_mark__print(self, dbDomain):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
-        if wants_json:
+        if self.request.wants_json:
             return {
                 "instructions": [
                     """curl --form 'action=active' %s/domain/1/mark.json"""
@@ -495,9 +454,6 @@ class ViewAdmin_Focus(Handler):
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbDomain):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         action = "!MISSING or !INVALID"
         try:
             (result, formStash) = formhandling.form_validate(
@@ -552,7 +508,7 @@ class ViewAdmin_Focus(Handler):
                 objects=[dbOperationsEvent, dbDomain]
             )
 
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "success", "Domain": dbDomain.as_json}
 
             url_success = "%s?operation=mark&action=%s&result=success" % (
@@ -562,7 +518,7 @@ class ViewAdmin_Focus(Handler):
             return HTTPSeeOther(url_success)
 
         except formhandling.FormInvalid as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,

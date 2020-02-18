@@ -41,13 +41,10 @@ class ViewAdmin_List(Handler):
         route_name="admin:certificate_requests_paginated|json", renderer="json"
     )
     def list(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         items_count = lib_db.get.get__CertificateRequest__count(
             self.request.api_context
         )
-        if wants_json:
+        if self.request.wants_json:
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/certificate-requests/{0}.json"
@@ -62,7 +59,7 @@ class ViewAdmin_List(Handler):
         items_paged = lib_db.get.get__CertificateRequest__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
-        if wants_json:
+        if self.request.wants_json:
             csrs = {csr.id: csr.as_json for csr in items_paged}
             return {
                 "CertificateRequests": csrs,
@@ -86,7 +83,7 @@ class ViewAdmin_Focus(Handler):
             self.request.api_context, self.request.matchdict["id"]
         )
         if not dbCertificateRequest:
-            raise HTTPNotFound("the certificate was not found")
+            raise HTTPNotFound("invalid CertificateRequest")
         self._focus_item = dbCertificateRequest
         self._focus_url = "%s/certificate-request/%s" % (
             self.request.registry.settings["admin_prefix"],
@@ -100,11 +97,8 @@ class ViewAdmin_Focus(Handler):
     )
     @view_config(route_name="admin:certificate_request:focus|json", renderer="json")
     def focus(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbCertificateRequest = self._focus()
-        if wants_json:
+        if self.request.wants_json:
             return {"CertificateRequest": dbCertificateRequest.as_json_extended}
         return {
             "project": "peter_sslers",

@@ -39,11 +39,8 @@ class ViewAdmin(Handler):
     @view_config(route_name="admin:unique_fqdn_sets|json", renderer="json")
     @view_config(route_name="admin:unique_fqdn_sets_paginated|json", renderer="json")
     def list(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         items_count = lib_db.get.get__UniqueFQDNSet__count(self.request.api_context)
-        if wants_json:
+        if self.request.wants_json:
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/unique-fqdn-sets/{0}.json"
@@ -61,7 +58,7 @@ class ViewAdmin(Handler):
             offset=offset,
             eagerload_web=True,
         )
-        if wants_json:
+        if self.request.wants_json:
             _sets = {s.id: s.as_json for s in items_paged}
             return {
                 "UniqueFQDNSets": _sets,
@@ -94,11 +91,8 @@ class ViewAdmin(Handler):
     )
     @view_config(route_name="admin:unique_fqdn_set:focus|json", renderer="json")
     def focus(self):
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         dbFqdnSet = self._focus()
-        if wants_json:
+        if self.request.wants_json:
             _prefix = "%s/unique-fqdn-set/%s" % (
                 self.request.registry.settings["admin_prefix"],
                 dbFqdnSet.id,
@@ -241,9 +235,6 @@ class ViewAdmin(Handler):
     def focus_renew_queue(self):
         """this endpoint is for adding the certificate to the renewal queue immediately"""
         dbUniqueFQDNSet = self._focus()
-        wants_json = (
-            True if self.request.matched_route.name.endswith("|json") else False
-        )
         try:
             # first check to see if this is already queued
             dbQueued = lib_db.get.get__QueueRenewal__by_UniqueFQDNSetId__active(
@@ -270,7 +261,7 @@ class ViewAdmin(Handler):
             dbOperationsEvent.set_event_payload(event_payload_dict)
             self.request.api_context.dbSession.flush(objects=[dbOperationsEvent])
 
-            if wants_json:
+            if self.request.wants_json:
                 return {"status": "success", "queue_item": dbQueue.id}
             url_success = (
                 "%s/unique-fqdn-set/%s?operation=renewal&renewal_type=queue&success=%s&result=success"
@@ -283,7 +274,7 @@ class ViewAdmin(Handler):
             return HTTPSeeOther(url_success)
 
         except errors.DisplayableError as exc:
-            if wants_json:
+            if self.request.wants_json:
                 return {"status": "error", "error": str(exc)}
             url_failure = (
                 "%s/unique-fqdn-set/%s?operation=renewal&renewal_type=queue&error=%s&result=error"

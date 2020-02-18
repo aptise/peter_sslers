@@ -79,8 +79,17 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:acme_authorization:focus",
         renderer="/admin/acme_authorization-focus.mako",
     )
+    @view_config(
+        route_name="admin:acme_authorization:focus|json", renderer="json",
+    )
     def focus(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
+        if self.request.wants_json:
+            return {
+                "AcmeAuthorization": dbAcmeAuthorization._as_json(
+                    admin_url=self.request.admin_url
+                )
+            }
         return {"project": "peter_sslers", "AcmeAuthorization": dbAcmeAuthorization}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
