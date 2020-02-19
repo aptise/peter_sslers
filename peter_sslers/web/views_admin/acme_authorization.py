@@ -41,6 +41,14 @@ class ViewAdmin_List(Handler):
         route_name="admin:acme_authorizations_paginated",
         renderer="/admin/acme_authorizations.mako",
     )
+    @view_config(
+        route_name="admin:acme_authorizations|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:acme_authorizations_paginated|json",
+        renderer="json",
+    )
     def list(self):
         items_count = lib_db.get.get__AcmeAuthorization__count(self.request.api_context)
         (pager, offset) = self._paginate(

@@ -104,11 +104,7 @@ class ViewAdmin_List(Handler):
             _domains = {d.id: d.as_json for d in items_paged}
             return {
                 "QueueDomains": _domains,
-                "pagination": {
-                    "total_items": items_count,
-                    "page": pager.page_num,
-                    "page_next": pager.next if pager.has_next else None,
-                },
+                "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",

@@ -224,7 +224,7 @@ class ViewAdmin_Focus(Handler):
         if self.request.wants_json:
             return {
                 "Domain": dbDomain.as_json,
-                "AcmeChallenge": dbAcmeChallenge.as_json,
+                "AcmeChallenge_Active": dbAcmeChallenge.as_json if dbAcmeChallenge else None,
             }
         return {
             "project": "peter_sslers",

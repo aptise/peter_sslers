@@ -754,6 +754,15 @@ class FunctionalTests_AcmeAuthorizations(AppTest):
 
 
 class FunctionalTests_AcmeChallenges(AppTest):
+        # grab an order
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.AcmeChallenge)
+            .order_by(model_objects.AcmeChallenge.id.asc())
+            .first()
+        )
+        return focus_item
+
+
     def test_list(self):
         # root
         res = self.testapp.get("/.well-known/admin/acme-challenges", status=200)
