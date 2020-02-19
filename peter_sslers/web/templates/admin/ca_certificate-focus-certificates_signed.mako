@@ -14,7 +14,7 @@
 
 
 <%block name="page_header_col">
-    <h2>CA Certificate - Focus - Signed Certificates</h2>
+    <h2>CA Certificate - Focus - ServerCertificates</h2>
 </%block>
 
 

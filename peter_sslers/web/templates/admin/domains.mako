@@ -66,7 +66,7 @@
                             <td>
                                 % if d.server_certificate_id__latest_multi:
                                     <a  class="label label-info"
-                                        href="${admin_prefix}/certificate/${d.server_certificate_id__latest_multi}"
+                                        href="${admin_prefix}/server-certificate/${d.server_certificate_id__latest_multi}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         cert-${d.server_certificate_id__latest_multi}</a>
@@ -77,7 +77,7 @@
                             <td>
                                 % if d.server_certificate_id__latest_single:
                                     <a  class="label label-info"
-                                        href="${admin_prefix}/certificate/${d.server_certificate_id__latest_single}"
+                                        href="${admin_prefix}/server-certificate/${d.server_certificate_id__latest_single}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         cert-${d.server_certificate_id__latest_single}</a>

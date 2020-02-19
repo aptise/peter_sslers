@@ -40,11 +40,6 @@
                     certificate-requests
                     </a>
                     </li>
-                <li><a href="${admin_prefix}/certificates"
-                       title="${request.text_library.info_Certificates[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificates</a></li>
                 <li><a href="${admin_prefix}/domains"
                        title="${request.text_library.info_Domains[0]}"
                     >
@@ -55,6 +50,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys</a></li>
+                <li><a href="${admin_prefix}/server-certificates"
+                       title="${request.text_library.info_ServerCertificates[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    server-certificates</a></li>
                 <li><a href="${admin_prefix}/unique-fqdn-sets"
                        title="${request.text_library.info_UniqueFQDNs[0]}"
                     >
@@ -150,7 +150,7 @@
 
         </div>
         <div class="col-sm-4">
-            <h3>New Certificates</h3>
+            <h3>New ServerCertificates</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
                     <a  href="${admin_prefix}/acme-order/new/automated"
@@ -168,7 +168,7 @@
                 % endif
             </ul>
 
-            <h3>Existing Certificates</h3>
+            <h3>Existing ServerCertificates</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
                     <a  href="${admin_prefix}/acme-account-key/upload"
@@ -183,7 +183,7 @@
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: CA Certificate</a></li>
                 <li>
-                    <a  href="${admin_prefix}/certificate/upload"
+                    <a  href="${admin_prefix}/server-certificate/upload"
                         title="${request.text_library.info_UploadExistingCertificate[0]}"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

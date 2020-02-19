@@ -202,11 +202,11 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>Certificates</th>
+                        <th>ServerCertificates</th>
                         <td>
                             ${admin_partials.table_ServerCertificates(PrivateKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
                             % if PrivateKey.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/private-key/%s/certificates" % (admin_prefix, PrivateKey.id))}
+                                ${admin_partials.nav_pager("%s/private-key/%s/server-certificates" % (admin_prefix, PrivateKey.id))}
                             % endif
                         </td>
                     </tr>

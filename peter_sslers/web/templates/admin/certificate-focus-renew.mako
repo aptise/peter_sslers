@@ -9,8 +9,8 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificates">Certificates</a></li>
-        <li><a href="${admin_prefix}/certificate/${ServerCertificate.id}">Focus [${ServerCertificate.id}]</a></li>
+        <li><a href="${admin_prefix}/server-certificates">ServerCertificates</a></li>
+        <li><a href="${admin_prefix}/server-certificate/${ServerCertificate.id}">Focus [${ServerCertificate.id}]</a></li>
         <li class="active">Renew</li>
     </ol>
 </%block>
@@ -27,7 +27,7 @@
         <div class="col-sm-12">
 
             <form method="POST"
-                  action="${admin_prefix}/certificate/${ServerCertificate.id}/renew/custom"
+                  action="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/custom"
                   enctype="multipart/form-data"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
@@ -42,7 +42,7 @@
                         <th>renewal of: id</th>
                         <td>
                             <a  class="btn btn-xs btn-info"
-                                href="${admin_prefix}/certificate/${ServerCertificate.id}"
+                                href="${admin_prefix}/server-certificate/${ServerCertificate.id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 cert-${ServerCertificate.id}

@@ -205,7 +205,7 @@
                 <td>
                     % if logged.server_certificate_id:
                         <a  class="label label-info"
-                            href="${admin_prefix}/certificate/${logged.server_certificate_id}"
+                            href="${admin_prefix}/server-certificate/${logged.server_certificate_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             Certificate-${logged.server_certificate_id}
@@ -568,7 +568,7 @@
                 % if show_certificate:
                     <td>
                         % if queue_renewal.server_certificate_id:
-                            <a href="${admin_prefix}/certificate/${queue_renewal.server_certificate_id}" class="label label-info">
+                            <a href="${admin_prefix}/server-certificate/${queue_renewal.server_certificate_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 Certificate-${queue_renewal.server_certificate_id}</a>
                         % endif
@@ -616,7 +616,7 @@
         <tbody>
         % for cert in certificates:
             <tr>
-                <td><a class="label label-info" href="${admin_prefix}/certificate/${cert.id}">
+                <td><a class="label label-info" href="${admin_prefix}/server-certificate/${cert.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     Certificate-${cert.id}</a>
                 </td>
@@ -761,7 +761,7 @@
                                 ${object_event.queue_renewal_id}
                             </a>
                         % elif object_event.server_certificate_id:
-                            <a class="label label-info" href="${admin_prefix}/certificate/${object_event.server_certificate_id}">
+                            <a class="label label-info" href="${admin_prefix}/server-certificate/${object_event.server_certificate_id}">
                                 Cert
                                 ${object_event.server_certificate_id}
                             </a>
@@ -1210,7 +1210,7 @@
             <a  href="${admin_prefix}/api/deactivate-expired"
             >
              <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-             Deactivate Expired Certificates</a></li>
+             Deactivate Expired ServerCertificates</a></li>
         <li class="${'active' if active =='/api/update-recents' else ''}">
             <a  href="${admin_prefix}/api/update-recents"
             >

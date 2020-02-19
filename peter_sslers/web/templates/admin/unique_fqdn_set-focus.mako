@@ -125,7 +125,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>Latest Certificates</th>
+                        <th>Latest ServerCertificates</th>
                         <td>
                             <%
                                 latest_certificate = UniqueFQDNSet.latest_certificate
@@ -145,7 +145,7 @@
                                         % if latest_certificate:
                                             <td>
                                                 <a  class="label label-info"
-                                                    href="${admin_prefix}/certificate/${latest_certificate.id}"
+                                                    href="${admin_prefix}/server-certificate/${latest_certificate.id}"
                                                 >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                                     cert-${latest_certificate.id}
@@ -163,7 +163,7 @@
                                         % if latest_active_certificate:
                                             <td>
                                                 <a  class="label label-info"
-                                                    href="${admin_prefix}/certificate/${latest_active_certificate.id}"
+                                                    href="${admin_prefix}/server-certificate/${latest_active_certificate.id}"
                                                 >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                                     cert-${latest_active_certificate.id}
@@ -181,11 +181,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Certificates</th>
+                        <th>ServerCertificates</th>
                         <td>
                             ${admin_partials.table_ServerCertificates(UniqueFQDNSet.server_certificates__5, show_domains=False, show_expiring_days=True)}
                             % if UniqueFQDNSet.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/certificates" % (admin_prefix, UniqueFQDNSet.id))}
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/server-certificates" % (admin_prefix, UniqueFQDNSet.id))}
                             % endif
                         </td>
                     </tr>

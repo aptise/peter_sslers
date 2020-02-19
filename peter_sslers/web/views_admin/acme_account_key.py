@@ -30,7 +30,6 @@ from ...model import utils as model_utils
 
 
 class ViewAdmin_List(Handler):
-
     @view_config(
         route_name="admin:acme_account_keys", renderer="/admin/acme_account_keys.mako"
     )
@@ -72,7 +71,6 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_New(Handler):
-
     @view_config(route_name="admin:acme_account_key:upload")
     @view_config(route_name="admin:acme_account_key:upload|json", renderer="json")
     def upload(self):
@@ -297,7 +295,7 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_account_key:focus:certificates",
+        route_name="admin:acme_account_key:focus:server_certificates",
         renderer="/admin/acme_account_key-focus-certificates.mako",
     )
     @view_config(
@@ -310,7 +308,7 @@ class ViewAdmin_Focus(Handler):
             self.request.api_context, dbAcmeAccountKey.id
         )
         (pager, offset) = self._paginate(
-            items_count, url_template="%s/certificates/{0}" % (self._focus_url)
+            items_count, url_template="%s/server-certificates/{0}" % (self._focus_url)
         )
         items_paged = lib_db.get.get__ServerCertificate__by_AcmeAccountKeyId__paginated(
             self.request.api_context,
@@ -328,7 +326,6 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
-
     @view_config(route_name="admin:acme_account_key:focus:authenticate", renderer=None)
     @view_config(
         route_name="admin:acme_account_key:focus:authenticate|json", renderer="json"

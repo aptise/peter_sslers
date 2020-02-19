@@ -32,7 +32,6 @@ from ...model import utils as model_utils
 
 
 class ViewAdmin_List(Handler):
-
     @view_config(route_name="admin:private_keys", renderer="/admin/private_keys.mako")
     @view_config(
         route_name="admin:private_keys_paginated", renderer="/admin/private_keys.mako"
@@ -164,7 +163,7 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:private_key:focus:certificates",
+        route_name="admin:private_key:focus:server_certificates",
         renderer="/admin/private_key-focus-certificates.mako",
     )
     @view_config(
@@ -177,7 +176,7 @@ class ViewAdmin_Focus(Handler):
             self.request.api_context, dbPrivateKey.id
         )
         (pager, offset) = self._paginate(
-            items_count, url_template="%s/certificates/{0}" % self._focus_url
+            items_count, url_template="%s/server-certificates/{0}" % self._focus_url
         )
         items_paged = lib_db.get.get__ServerCertificate__by_PrivateKeyId__paginated(
             self.request.api_context,
@@ -195,7 +194,6 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
-
     @view_config(route_name="admin:private_key:focus:mark", renderer=None)
     @view_config(route_name="admin:private_key:focus:mark|json", renderer="json")
     def focus_mark(self):
@@ -340,7 +338,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
 
 class ViewAdmin_New(Handler):
-
     @view_config(route_name="admin:private_key:upload")
     @view_config(route_name="admin:private_key:upload|json", renderer="json")
     def upload(self):

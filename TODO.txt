@@ -29,7 +29,7 @@ AcmeAccountKey.letsencrypt_data - audit. refresh? log?
     @view_config(route_name='admin:queue_domains:process', renderer=None)
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
     def queue_domain_process(self):
-* search expiring soon | note: isn't this the `/certificates/expiring` view?
+* search expiring soon | note: isn't this the `/server-certificates/expiring` view?
 * migrate cert_subject hash and tracking to SAN
 * log full actual results; if a queue fails log that data too
 * CSR should have domain[0] as subject if there are multiple domains | note: letsencrypt does this at the server level?

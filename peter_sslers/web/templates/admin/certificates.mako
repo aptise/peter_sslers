@@ -6,47 +6,47 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">Certificates</li>
+        <li class="active">ServerCertificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Certificates</h2>
+    <h2>ServerCertificates</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <ul class="nav nav-pills nav-stacked">
-      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/certificates">All Certificates</a></li>
-      <li role="presentation" class="${'active' if sidenav_option == 'active_only' else ''}"><a href="${admin_prefix}/certificates/active">Active Certificates</a></li>
-      <li role="presentation" class="${'active' if sidenav_option == 'inactive_only' else ''}"><a href="${admin_prefix}/certificates/inactive">Inactive Certificates</a></li>
-      <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/certificates/expiring">Expiring Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/server-certificates">All Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'active_only' else ''}"><a href="${admin_prefix}/server-certificates/active">Active Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'inactive_only' else ''}"><a href="${admin_prefix}/server-certificates/inactive">Inactive Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/server-certificates/expiring">Expiring Certificates</a></li>
     </ul>
     <p class="pull-right">
-        <a  href="${admin_prefix}/certificate/upload"
+        <a  href="${admin_prefix}/server-certificate/upload"
             title="${request.text_library.info_UploadExistingCertificate[0]}"
             class="btn btn-xs btn-primary"
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
         Upload: Certificate (Existing)</a>
         % if sidenav_option == 'expiring' :
-            <a href="${admin_prefix}/certificates/expiring.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/server-certificates/expiring.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % elif sidenav_option == 'active_only' :
-            <a href="${admin_prefix}/certificates/active.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/server-certificates/active.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % elif sidenav_option == 'inactive_only' :
-            <a href="${admin_prefix}/certificates/inactive.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/server-certificates/inactive.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         % else:
-            <a href="${admin_prefix}/certificates.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/server-certificates.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
@@ -59,14 +59,14 @@
     <div class="row">
         <div class="col-sm-12">
             % if sidenav_option == 'active_only' :
-                <p>Active Certificates.
+                <p>Active ServerCertificates.
                 </p>
             % elif sidenav_option == 'inactive_only' :
-                <p>Inactive Certificates.
+                <p>Inactive ServerCertificates.
                 </p>
             % else:
                 % if expiring_days:
-                    <p>Certificates that will be expiring within `${expiring_days}` days.
+                    <p>ServerCertificates that will be expiring within `${expiring_days}` days.
                     </p>
                 % endif
             % endif

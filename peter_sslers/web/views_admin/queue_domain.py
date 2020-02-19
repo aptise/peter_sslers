@@ -116,7 +116,6 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_New(Handler):
-
     @view_config(route_name="admin:queue_domains:add")
     @view_config(route_name="admin:queue_domains:add|json", renderer="json")
     def add(self):
@@ -200,7 +199,6 @@ class ViewAdmin_New(Handler):
 
 
 class ViewAdmin_Focus(Handler):
-
     def _focus(self):
         dbQueueDomain = lib_db.get.get__QueueDomain__by_id(
             self.request.api_context, self.request.matchdict["id"], eagerload_log=True

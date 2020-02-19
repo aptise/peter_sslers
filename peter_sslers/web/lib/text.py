@@ -34,14 +34,14 @@ info_Domains = [
     "Domains we manage certificates for.",
     "Domains we manage certificates for.",
 ]
-info_UniqueFQDNs = [
-    "LetsEncrypt ratelimits the exact set of FQDNs",
-    "The LetsEncrypt Authority has ratelimits covering the exact set of FQDNs appearing on a certificate.  You can only reissue these certificates a set number of times per week; you would need to add/remove certificates so they are slightly different in order to bypass this ratelimit",
-]
-info_Certificates = ["Issued Certificates we manage.", "Issued Certificates we manage."]
 info_CertificateRequests = [
     "Certificate Requests pending and past.",
     "Certificate Requests pending and past.",
+]
+info_ServerCertificates = ["Issued Certificates we manage.", "Issued Certificates we manage."]
+info_UniqueFQDNs = [
+    "LetsEncrypt ratelimits the exact set of FQDNs",
+    "The LetsEncrypt Authority has ratelimits covering the exact set of FQDNs appearing on a certificate.  You can only reissue these certificates a set number of times per week; you would need to add/remove certificates so they are slightly different in order to bypass this ratelimit",
 ]
 
 

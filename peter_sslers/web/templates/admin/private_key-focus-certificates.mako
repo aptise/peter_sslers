@@ -8,13 +8,13 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/private-keys">Private Keys</a></li>
         <li><a href="${admin_prefix}/private-key/${PrivateKey.id}">Focus [${PrivateKey.id}]</a></li>
-        <li class="active">Certificates</li>
+        <li class="active">ServerCertificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Private Key - Focus | Certificates</h2>
+    <h2>Private Key - Focus | ServerCertificates</h2>
 </%block>
 
 

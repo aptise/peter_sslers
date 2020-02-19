@@ -69,7 +69,7 @@
                         <td>
                             % if CertificateRequest.server_certificate_id__renewal_of:
                                 <span class="label label-success">Yes</span>&nbsp;
-                                <a class="label label-info" href="${admin_prefix}/certificate/${CertificateRequest.server_certificate_id__renewal_of}">
+                                <a class="label label-info" href="${admin_prefix}/server-certificate/${CertificateRequest.server_certificate_id__renewal_of}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     ServerCertificate-${CertificateRequest.server_certificate_id__renewal_of}</a>
                             % endif

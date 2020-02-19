@@ -104,7 +104,7 @@
                 % endif
 
                 % if show_only['ServerCertificate']:
-                    <h4>Certificates</h4>
+                    <h4>ServerCertificates</h4>
                     % if results['ServerCertificate']['count']:
                         <table class="table table-condensed">
                             <thead>
@@ -123,7 +123,7 @@
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
-                                            href="${admin_prefix}/certificate/${cert.id}"
+                                            href="${admin_prefix}/server-certificate/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                             cert-${cert.id}</a>

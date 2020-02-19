@@ -236,7 +236,7 @@
                         <td>
                             ${admin_partials.table_ServerCertificates(AcmeAccountKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
                             % if AcmeAccountKey.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/acme-account-key/%s/certificates" % (admin_prefix, AcmeAccountKey.id))}
+                                ${admin_partials.nav_pager("%s/acme-account-key/%s/server-certificates" % (admin_prefix, AcmeAccountKey.id))}
                             % endif
                         </td>
                     </tr>

@@ -8,13 +8,13 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/domains">Domains</a></li>
         <li><a href="${admin_prefix}/domain/${Domain.id}">Focus [${Domain.id}]</a></li>
-        <li class="active">Certificates</li>
+        <li class="active">ServerCertificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Domain Focus - Certificates</h2>
+    <h2>Domain Focus - ServerCertificates</h2>
 </%block>
 
 

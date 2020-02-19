@@ -178,7 +178,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>Certificates Recent</th>
+                        <th>ServerCertificates Recent</th>
                         <td>
                             <table class="table">
                                 <tr>
@@ -201,11 +201,11 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Certificates</th>
+                        <th>ServerCertificates</th>
                         <td>
                             ${admin_partials.table_ServerCertificates(Domain.server_certificates__5, show_domains=True, show_expiring_days=True)}
                             % if Domain.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/certificates" % (admin_prefix, Domain.id))}
+                                ${admin_partials.nav_pager("%s/domain/%s/server-certificates" % (admin_prefix, Domain.id))}
                             % endif
                         </td>
                     </tr>

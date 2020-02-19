@@ -32,7 +32,6 @@ from ...model import objects as model_objects
 
 
 class ViewAdmin_List(Handler):
-
     @view_config(
         route_name="admin:acme_orderlesss", renderer="/admin/acme_orderlesss.mako",
     )
@@ -73,7 +72,6 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_New(Handler):
-
     @view_config(route_name="admin:acme_orderless:new")
     @view_config(route_name="admin:acme_orderless:new|json", renderer="json")
     def new_AcmeOrderless(self):
@@ -188,7 +186,6 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
-
     @view_config(route_name="admin:acme_orderless:focus:update")
     @view_config(route_name="admin:acme_orderless:focus:update|json", renderer="json")
     def focus_update(self):

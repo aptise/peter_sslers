@@ -468,7 +468,7 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:domain:focus:certificates",
+        route_name="admin:domain:focus:server_certificates",
         renderer="/admin/domain-focus-certificates.mako",
     )
     @view_config(
@@ -481,7 +481,7 @@ class ViewAdmin_Focus(Handler):
             self.request.api_context, dbDomain.id
         )
         (pager, offset) = self._paginate(
-            items_count, url_template="%s/certificates/{0}" % self._focus_url
+            items_count, url_template="%s/server-certificates/{0}" % self._focus_url
         )
         items_paged = lib_db.get.get__ServerCertificate__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
@@ -525,7 +525,6 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
-
     @view_config(route_name="admin:domain:focus:mark", renderer=None)
     @view_config(route_name="admin:domain:focus:mark|json", renderer="json")
     def focus_mark(self):

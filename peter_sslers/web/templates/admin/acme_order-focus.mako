@@ -177,7 +177,7 @@
                             % if AcmeOrder.server_certificate_id:
                                 <a
                                     class="label label-info"
-                                    href="${admin_prefix}/certificate/${AcmeOrder.server_certificate_id}"
+                                    href="${admin_prefix}/server-certificate/${AcmeOrder.server_certificate_id}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     Certificate-${AcmeOrder.server_certificate_id}

@@ -114,7 +114,7 @@
                     <td>
                         % if AcmeEventLog.server_certificate_id:
                             <a  class="label label-info"
-                                href="${admin_prefix}/certificate/${AcmeEventLog.server_certificate_id}"
+                                href="${admin_prefix}/server-certificate/${AcmeEventLog.server_certificate_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 Certificate-${AcmeEventLog.server_certificate_id}

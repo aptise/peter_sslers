@@ -9,7 +9,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/certificates">Certificates</a></li>
+        <li><a href="${admin_prefix}/server-certificates">ServerCertificates</a></li>
         <li class="active">Focus [${ServerCertificate.id}]</li>
     </ol>
 </%block>
@@ -51,7 +51,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/certificate/${ServerCertificate.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/server-certificate/${ServerCertificate.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -86,7 +86,7 @@
                             </span>
                             &nbsp;
                             % if ServerCertificate.is_active:
-                                <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="inactive"/>
                                     <button class="btn btn-xs btn-warning" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -94,7 +94,7 @@
                                     </button>
                                 </form>
                                 &nbsp;
-                                <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="revoked"/>
                                     <button class="btn btn-xs btn-danger" type="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -115,7 +115,7 @@
                                     &nbsp;
                                     Actions:
                                     % if ServerCertificate.is_revoked:
-                                        <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="unrevoke"/>
                                             <button class="btn btn-xs btn-warning" type="submit">
                                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -124,14 +124,14 @@
                                         </form>
                                     % endif
                                     % if not ServerCertificate.is_revoked:
-                                        <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="active"/>
                                             <button class="btn btn-xs btn-success" type="submit">
                                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                                 activate
                                             </button>
                                         </form>
-                                        <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="revoked"/>
                                             <button class="btn btn-xs btn-danger" type="submit">
                                                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -152,7 +152,7 @@
                             &nbsp;
                             % if ServerCertificate.is_active:
                                 % if ServerCertificate.is_auto_renew:
-                                    <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                    <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="renew_manual"/>
                                         <button class="btn btn-xs btn-warning" type="submit">
                                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -160,7 +160,7 @@
                                         </button>
                                     </form>
                                 % else:
-                                    <form action="${admin_prefix}/certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                    <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="renew_auto"/>
                                         <button class="btn btn-xs btn-success" type="submit">
                                             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -180,7 +180,7 @@
 
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/certificate/${ServerCertificate.id}/renew/queue"
+                                href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/queue"
                                 title="Queue a renewal with the same private key and account key."
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -190,7 +190,7 @@
                             % if ServerCertificate.private_key and ServerCertificate.private_key.is_active and ServerCertificate.acme_account_key and ServerCertificate.acme_account_key.is_active:
                                 &nbsp;
                                 <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/certificate/${ServerCertificate.id}/renew/quick"
+                                    href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/quick"
                                     title="Renew NOW with the same private key and account key."
                                 >
                                     <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
@@ -209,7 +209,7 @@
 
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/certificate/${ServerCertificate.id}/renew/custom"
+                                href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/custom"
                                 title="Select a new PrivateKey or AccountKey for renewal."
                             >
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
@@ -335,7 +335,7 @@
                                                     <span class="label label-default">${latest_certificate.id}</span>
                                                 % else:
                                                     <a  class="label label-info"
-                                                        href="${admin_prefix}/certificate/${latest_certificate.id}"
+                                                        href="${admin_prefix}/server-certificate/${latest_certificate.id}"
                                                         >
                                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                                         cert-${latest_certificate.id}
@@ -362,7 +362,7 @@
                                                     <span class="label label-default">${latest_active_certificate.id}</span>
                                                 % else:
                                                     <a  class="label label-info"
-                                                        href="${admin_prefix}/certificate/${latest_active_certificate.id}"
+                                                        href="${admin_prefix}/server-certificate/${latest_active_certificate.id}"
                                                         >
                                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                                         cert-${latest_active_certificate.id}
@@ -391,7 +391,7 @@
                         <td>
                             % if ServerCertificate.server_certificate_id__renewal_of:
                                 <span class="label label-success">Yes</span>&nbsp;
-                                <a class="label label-info" href="${admin_prefix}/certificate/${ServerCertificate.server_certificate_id__renewal_of}">
+                                <a class="label label-info" href="${admin_prefix}/server-certificate/${ServerCertificate.server_certificate_id__renewal_of}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     cert-${ServerCertificate.server_certificate_id__renewal_of}</a>
                             % else:
@@ -419,13 +419,13 @@
                         <th>cert_pem</th>
                         <td>
                             ## <textarea class="form-control">${ServerCertificate.key_pem}</textarea>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/cert.pem">
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/cert.pem">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.pem</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/cert.pem.txt">
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/cert.pem.txt">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.pem.txt</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/cert.crt">
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/cert.crt">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 cert.crt (der)</a>
                         </td>
@@ -433,7 +433,7 @@
                     <tr>
                         <th>json payload</th>
                         <td>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/config.json">
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/config.json">
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 config.json</a><br/>
                             <em>designed for downstream http config</em>
@@ -445,12 +445,12 @@
                             <td>
                                 <span class="btn-group">
                                     <a  class="btn btn-xs btn-primary"
-                                        href="${admin_prefix}/certificate/${ServerCertificate.id}/nginx-cache-expire"
+                                        href="${admin_prefix}/server-certificate/${ServerCertificate.id}/nginx-cache-expire"
                                     >
                                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                         nginx-cache-expire</a>
                                     <a  class="btn btn-xs btn-primary"
-                                        href="${admin_prefix}/certificate/${ServerCertificate.id}/nginx-cache-expire.json"
+                                        href="${admin_prefix}/server-certificate/${ServerCertificate.id}/nginx-cache-expire.json"
                                         target="_blank"
                                     >
                                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -473,19 +473,19 @@
                                     <tr>
                                         <td>chain (upstream)</td>
                                         <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.pem.txt">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.pem.txt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.pem">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.pem">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.pem</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.cer">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.cer">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.cer (der)</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.crt">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.crt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.crt (der)</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/chain.der">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.der">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 chain.der (der)</a>
                                         </td>
@@ -493,10 +493,10 @@
                                     <tr>
                                         <td>fullchain (cert+upstream chain)</td>
                                         <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/fullchain.pem.txt">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/fullchain.pem.txt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 fullchain.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/fullchain.pem">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/fullchain.pem">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 fullchain.pem</a>
                                         </td>
@@ -504,13 +504,13 @@
                                     <tr>
                                         <td>privatekey</td>
                                         <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/privkey.pem.txt">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.pem.txt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 privkey.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/privkey.pem">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.pem">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 privkey.pem</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/certificate/${ServerCertificate.id}/privkey.key">
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.key">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                                 privkey.key (der)</a>
                                         </td>

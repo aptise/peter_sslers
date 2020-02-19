@@ -1587,10 +1587,10 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
 
 class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     """
-    A list of domains to be queued into certificates.
-    This is only used for batch processing consumer domains
-    Domains that are included in CertificateRequests or Certificates
-    The DomainQueue will allow you to queue-up domain names for management
+    A list of domains to be queued into ServerCertificates.
+    This is only used for batch processing consumer Domains
+    Domains that are included in CertificateRequests or ServerCertificates
+    The DomainQueue will allow you to queue-up Domain names for management
     """
 
     __tablename__ = "queue_domain"

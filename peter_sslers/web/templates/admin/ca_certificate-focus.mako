@@ -159,13 +159,13 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>Signed Certificates</th>
+                        <th>ServerCertificates</th>
                         <td>
                             % if ServerCertificates:
                                 ${admin_partials.table_ServerCertificates(ServerCertificates, show_domains=True)}
-                                ${admin_partials.nav_pager("%s/ca-certificate/%s/certificates-signed" % (admin_prefix, CACertificate.id))}
+                                ${admin_partials.nav_pager("%s/ca-certificate/%s/server-certificates" % (admin_prefix, CACertificate.id))}
                             % else:
-                                No known certificates.
+                                No known ServerCertificates.
                             % endif
                         </td>
                     </tr>

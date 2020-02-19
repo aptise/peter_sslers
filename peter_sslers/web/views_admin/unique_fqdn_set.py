@@ -27,7 +27,6 @@ from ...lib import utils
 
 
 class ViewAdmin_List(Handler):
-
     @view_config(
         route_name="admin:unique_fqdn_sets", renderer="/admin/unique_fqdn_sets.mako"
     )
@@ -72,7 +71,6 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_Focus(Handler):
-
     def _focus(self):
         dbItem = lib_db.get.get__UniqueFQDNSet__by_id(
             self.request.api_context, self.request.matchdict["id"]
@@ -197,7 +195,7 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificates",
+        route_name="admin:unique_fqdn_set:focus:server_certificates",
         renderer="/admin/unique_fqdn_set-focus-certificates.mako",
     )
     @view_config(
@@ -211,7 +209,7 @@ class ViewAdmin_Focus(Handler):
         )
         (pager, offset) = self._paginate(
             items_count,
-            url_template="%s/unique-fqdn-set/%s/certificates/{0}"
+            url_template="%s/unique-fqdn-set/%s/server-certificates/{0}"
             % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
         )
         items_paged = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__paginated(
@@ -230,7 +228,6 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
-
     @view_config(route_name="admin:unique_fqdn_set:focus:renew:queue", renderer=None)
     @view_config(
         route_name="admin:unique_fqdn_set:focus:renew:queue|json", renderer="json"

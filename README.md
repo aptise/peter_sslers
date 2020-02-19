@@ -440,13 +440,13 @@ several routes have support for JSON requests via a `.json` suffix.
 
 these are usually documented on the html version
 
-### `/.well-known/admin/certificate/upload.json`
+### `/.well-known/admin/server-certificate/upload.json`
 
 This can be used used to directly import certs issued by LetsEncrypt
 
-	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:7201/.well-known/admin/certificate/upload.json
+	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:7201/.well-known/admin/server-certificate/upload.json
 
-	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:7201/.well-known/admin/certificate/upload.json
+	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:7201/.well-known/admin/server-certificate/upload.json
 	
 Note that the url is not `/upload` like the html form but `/upload.json`
 
@@ -537,19 +537,19 @@ notice that the numeric ids are returned as strings. this is by design.
 
 Need to get the cert data directly? NO SWEAT. Peter transforms this for you on the server, and sends it to you with the appropriate headers.
 
-* /.well-known/admin/certificate/{ID}/cert.crt
-* /.well-known/admin/certificate/{ID}/cert.pem
-* /.well-known/admin/certificate/{ID}/cert.pem.txt
-* /.well-known/admin/certificate/{ID}/chain.cer
-* /.well-known/admin/certificate/{ID}/chain.crt
-* /.well-known/admin/certificate/{ID}/chain.der
-* /.well-known/admin/certificate/{ID}/chain.pem
-* /.well-known/admin/certificate/{ID}/chain.pem.txt
-* /.well-known/admin/certificate/{ID}/fullchain.pem
-* /.well-known/admin/certificate/{ID}/fullchain.pem.txt
-* /.well-known/admin/certificate/{ID}/privkey.key
-* /.well-known/admin/certificate/{ID}/privkey.pem
-* /.well-known/admin/certificate/{ID}/privkey.pem.txt
+* /.well-known/admin/server-certificate/{ID}/cert.crt
+* /.well-known/admin/server-certificate/{ID}/cert.pem
+* /.well-known/admin/server-certificate/{ID}/cert.pem.txt
+* /.well-known/admin/server-certificate/{ID}/chain.cer
+* /.well-known/admin/server-certificate/{ID}/chain.crt
+* /.well-known/admin/server-certificate/{ID}/chain.der
+* /.well-known/admin/server-certificate/{ID}/chain.pem
+* /.well-known/admin/server-certificate/{ID}/chain.pem.txt
+* /.well-known/admin/server-certificate/{ID}/fullchain.pem
+* /.well-known/admin/server-certificate/{ID}/fullchain.pem.txt
+* /.well-known/admin/server-certificate/{ID}/privkey.key
+* /.well-known/admin/server-certificate/{ID}/privkey.pem
+* /.well-known/admin/server-certificate/{ID}/privkey.pem.txt
 
 
 # Workflow Concepts

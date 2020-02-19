@@ -56,7 +56,7 @@
                     <td>
                         % if RenewalQueueItem.server_certificate_id:
                             <a class="label label-info"
-                                href="${admin_prefix}/certificate/${RenewalQueueItem.server_certificate_id}"
+                                href="${admin_prefix}/server-certificate/${RenewalQueueItem.server_certificate_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 cert-${RenewalQueueItem.server_certificate_id}</a>
@@ -98,7 +98,7 @@
                     <td>
                         % if RenewalQueueItem.server_certificate_id__renewed:
                             <a class="label label-info"
-                                href="${admin_prefix}/certificate/${RenewalQueueItem.server_certificate_id__renewed}"
+                                href="${admin_prefix}/server-certificate/${RenewalQueueItem.server_certificate_id__renewed}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 cert-${RenewalQueueItem.server_certificate_id__renewed}</a>

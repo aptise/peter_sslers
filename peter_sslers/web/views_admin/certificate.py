@@ -38,54 +38,62 @@ from ...model import utils as model_utils
 class ViewAdmin_List(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificates", renderer="/admin/certificates.mako")
     @view_config(
-        route_name="admin:certificates_paginated", renderer="/admin/certificates.mako"
+        route_name="admin:server_certificates", renderer="/admin/certificates.mako"
     )
     @view_config(
-        route_name="admin:certificates:active", renderer="/admin/certificates.mako"
-    )
-    @view_config(
-        route_name="admin:certificates:active_paginated",
+        route_name="admin:server_certificates_paginated",
         renderer="/admin/certificates.mako",
     )
     @view_config(
-        route_name="admin:certificates:expiring", renderer="/admin/certificates.mako"
+        route_name="admin:server_certificates:active",
+        renderer="/admin/server-certificates.mako",
     )
     @view_config(
-        route_name="admin:certificates:expiring_paginated",
-        renderer="/admin/certificates.mako",
+        route_name="admin:server_certificates:active_paginated",
+        renderer="/admin/server-certificates.mako",
     )
     @view_config(
-        route_name="admin:certificates:inactive", renderer="/admin/certificates.mako"
+        route_name="admin:server_certificates:expiring",
+        renderer="/admin/server-certificates.mako",
     )
     @view_config(
-        route_name="admin:certificates:inactive_paginated",
-        renderer="/admin/certificates.mako",
+        route_name="admin:server_certificates:expiring_paginated",
+        renderer="/admin/server-certificates.mako",
     )
-    @view_config(route_name="admin:certificates|json", renderer="json")
-    @view_config(route_name="admin:certificates_paginated|json", renderer="json")
-    @view_config(route_name="admin:certificates:active|json", renderer="json")
-    @view_config(route_name="admin:certificates:active_paginated|json", renderer="json")
-    @view_config(route_name="admin:certificates:expiring|json", renderer="json")
     @view_config(
-        route_name="admin:certificates:expiring_paginated|json", renderer="json"
+        route_name="admin:server_certificates:inactive",
+        renderer="/admin/server-certificates.mako",
     )
-    @view_config(route_name="admin:certificates:inactive|json", renderer="json")
     @view_config(
-        route_name="admin:certificates:inactive_paginated|json", renderer="json"
+        route_name="admin:server_certificates:inactive_paginated",
+        renderer="/admin/server-certificates.mako",
+    )
+    @view_config(route_name="admin:server_certificates|json", renderer="json")
+    @view_config(route_name="admin:server_certificates_paginated|json", renderer="json")
+    @view_config(route_name="admin:server_certificates:active|json", renderer="json")
+    @view_config(
+        route_name="admin:server_certificates:active_paginated|json", renderer="json"
+    )
+    @view_config(route_name="admin:server_certificates:expiring|json", renderer="json")
+    @view_config(
+        route_name="admin:server_certificates:expiring_paginated|json", renderer="json"
+    )
+    @view_config(route_name="admin:server_certificates:inactive|json", renderer="json")
+    @view_config(
+        route_name="admin:server_certificates:inactive_paginated|json", renderer="json"
     )
     def list(self):
         expiring_days = self.request.registry.settings["expiring_days"]
         if self.request.matched_route.name in (
-            "admin:certificates:expiring",
-            "admin:certificates:expiring_paginated",
-            "admin:certificates:expiring|json",
-            "admin:certificates:expiring_paginated|json",
+            "admin:server_certificates:expiring",
+            "admin:server_certificates:expiring_paginated",
+            "admin:server_certificates:expiring|json",
+            "admin:server_certificates:expiring_paginated|json",
         ):
             sidenav_option = "expiring"
             url_template = (
-                "%s/certificates/expiring/{0}"
+                "%s/server-certificates/expiring/{0}"
                 % self.request.registry.settings["admin_prefix"]
             )
             if self.request.wants_json:
@@ -101,14 +109,14 @@ class ViewAdmin_List(Handler):
                 offset=offset,
             )
         elif self.request.matched_route.name in (
-            "admin:certificates:active",
-            "admin:certificates:active_paginated",
-            "admin:certificates:active|json",
-            "admin:certificates:active_paginated|json",
+            "admin:server_certificates:active",
+            "admin:server_certificates:active_paginated",
+            "admin:server_certificates:active|json",
+            "admin:server_certificates:active_paginated|json",
         ):
             sidenav_option = "active_only"
             url_template = (
-                "%s/certificates/active/{0}"
+                "%s/server-certificates/active/{0}"
                 % self.request.registry.settings["admin_prefix"]
             )
             if self.request.wants_json:
@@ -124,14 +132,14 @@ class ViewAdmin_List(Handler):
                 offset=offset,
             )
         elif self.request.matched_route.name in (
-            "admin:certificates:inactive",
-            "admin:certificates:inactive_paginated",
-            "admin:certificates:inactive|json",
-            "admin:certificates:inactive_paginated|json",
+            "admin:server_certificates:inactive",
+            "admin:server_certificates:inactive_paginated",
+            "admin:server_certificates:inactive|json",
+            "admin:server_certificates:inactive_paginated|json",
         ):
             sidenav_option = "inactive_only"
             url_template = (
-                "%s/certificates/active/{0}"
+                "%s/server-certificates/active/{0}"
                 % self.request.registry.settings["admin_prefix"]
             )
             if self.request.wants_json:
@@ -149,7 +157,8 @@ class ViewAdmin_List(Handler):
         else:
             sidenav_option = "all"
             url_template = (
-                "%s/certificates/{0}" % self.request.registry.settings["admin_prefix"]
+                "%s/server-certificates/{0}"
+                % self.request.registry.settings["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -181,9 +190,8 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_New(Handler):
-
-    @view_config(route_name="admin:certificate:upload")
-    @view_config(route_name="admin:certificate:upload|json", renderer="json")
+    @view_config(route_name="admin:server_certificate:upload")
+    @view_config(route_name="admin:server_certificate:upload|json", renderer="json")
     def upload(self):
         if self.request.method == "POST":
             return self._upload__submit()
@@ -192,7 +200,7 @@ class ViewAdmin_New(Handler):
     def _upload__print(self):
         if self.request.wants_json:
             return {
-                "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' %s/certificate/upload.json"""
+                "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' --form 'certificate_file=@cert1.pem' --form 'chain_file=@chain1.pem' %s/server-certificate/upload.json"""
                 % self.request.admin_url,
                 "form_fields": {
                     "private_key_file_pem": "required",
@@ -257,7 +265,7 @@ class ViewAdmin_New(Handler):
                     "certificate": {
                         "created": cert_is_created,
                         "id": dbServerCertificate.id,
-                        "url": "%s/certificate/%s"
+                        "url": "%s/server-certificate/%s"
                         % (
                             self.request.registry.settings["admin_prefix"],
                             dbServerCertificate.id,
@@ -270,7 +278,7 @@ class ViewAdmin_New(Handler):
                     "private_key": {"created": pkey_is_created, "id": dbPrivateKey.id},
                 }
             return HTTPSeeOther(
-                "%s/certificate/%s"
+                "%s/server-certificate/%s"
                 % (
                     self.request.registry.settings["admin_prefix"],
                     dbServerCertificate.id,
@@ -284,7 +292,6 @@ class ViewAdmin_New(Handler):
 
 
 class ViewAdmin_Focus(Handler):
-
     def _focus(self):
         dbServerCertificate = lib_db.get.get__ServerCertificate__by_id(
             self.request.api_context, self.request.matchdict["id"]
@@ -292,7 +299,7 @@ class ViewAdmin_Focus(Handler):
         if not dbServerCertificate:
             raise HTTPNotFound("invalid ServerCertificate")
         self._focus_item = dbServerCertificate
-        self._focus_url = "%s/certificate/%s" % (
+        self._focus_url = "%s/server-certificate/%s" % (
             self.request.registry.settings["admin_prefix"],
             dbServerCertificate.id,
         )
@@ -301,9 +308,10 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:certificate:focus", renderer="/admin/certificate-focus.mako"
+        route_name="admin:server_certificate:focus",
+        renderer="/admin/certificate-focus.mako",
     )
-    @view_config(route_name="admin:certificate:focus|json", renderer="json")
+    @view_config(route_name="admin:server_certificate:focus|json", renderer="json")
     def focus(self):
         dbServerCertificate = self._focus()
         if self.request.wants_json:
@@ -313,7 +321,9 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate:focus:parse|json", renderer="json")
+    @view_config(
+        route_name="admin:server_certificate:focus:parse|json", renderer="json"
+    )
     def focus_parse_json(self):
         dbServerCertificate = self._focus()
         return {
@@ -325,7 +335,9 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate:focus:chain:raw", renderer="string")
+    @view_config(
+        route_name="admin:server_certificate:focus:chain:raw", renderer="string"
+    )
     def focus_chain(self):
         dbServerCertificate = self._focus()
         if self.request.matchdict["format"] == "pem":
@@ -348,7 +360,9 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate:focus:fullchain:raw", renderer="string")
+    @view_config(
+        route_name="admin:server_certificate:focus:fullchain:raw", renderer="string"
+    )
     def focus_fullchain(self):
         dbServerCertificate = self._focus()
         if self.request.matchdict["format"] == "pem":
@@ -360,7 +374,9 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate:focus:privatekey:raw", renderer="string")
+    @view_config(
+        route_name="admin:server_certificate:focus:privatekey:raw", renderer="string"
+    )
     def focus_privatekey(self):
         dbServerCertificate = self._focus()
         if self.request.matchdict["format"] == "pem":
@@ -380,7 +396,9 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate:focus:cert:raw", renderer="string")
+    @view_config(
+        route_name="admin:server_certificate:focus:cert:raw", renderer="string"
+    )
     def focus_cert(self):
         dbServerCertificate = self._focus()
         if self.request.matchdict["format"] == "pem":
@@ -400,7 +418,9 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate:focus:config|json", renderer="json")
+    @view_config(
+        route_name="admin:server_certificate:focus:config|json", renderer="json"
+    )
     def focus_config_json(self):
         dbServerCertificate = self._focus()
         if self.request.params.get("idonly", None):
@@ -411,10 +431,12 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
-
-    @view_config(route_name="admin:certificate:focus:nginx_cache_expire", renderer=None)
     @view_config(
-        route_name="admin:certificate:focus:nginx_cache_expire|json", renderer="json"
+        route_name="admin:server_certificate:focus:nginx_cache_expire", renderer=None
+    )
+    @view_config(
+        route_name="admin:server_certificate:focus:nginx_cache_expire|json",
+        renderer="json",
     )
     def focus_nginx_expire(self):
         dbServerCertificate = self._focus()
@@ -437,8 +459,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:certificate:focus:mark", renderer=None)
-    @view_config(route_name="admin:certificate:focus:mark|json", renderer="json")
+    @view_config(route_name="admin:server_certificate:focus:mark", renderer=None)
+    @view_config(route_name="admin:server_certificate:focus:mark|json", renderer="json")
     def focus_mark(self):
         dbServerCertificate = self._focus()
         if self.request.method == "POST":
@@ -449,7 +471,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.wants_json:
             return {
                 "instructions": [
-                    """curl --form 'action=active' %s/certificate/1/mark.json"""
+                    """curl --form 'action=active' %s/server-certificate/1/mark.json"""
                     % self.request.admin_url
                 ],
                 "form_fields": {"action": "the intended action"},

@@ -8,13 +8,13 @@
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
         <li><a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}">Focus [${AcmeAccountKey.id}]</a></li>
-        <li class="active">Certificates</li>
+        <li class="active">ServerCertificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeAccountKey - Focus | Certificates</h2>
+    <h2>AcmeAccountKey - Focus | ServerCertificates</h2>
 </%block>
 
 

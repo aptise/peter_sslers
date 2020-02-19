@@ -161,7 +161,6 @@ class ViewList(Handler):
 
 
 class ViewFocus(Handler):
-
     def _focus(self):
         dbQueueRenewal = lib_db.get.get__QueueRenewal__by_id(
             self.request.api_context, self.request.matchdict["id"], load_events=True

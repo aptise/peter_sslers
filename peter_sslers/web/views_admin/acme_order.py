@@ -31,7 +31,6 @@ from ...model import utils as model_utils
 
 
 class ViewAdmin_List(Handler):
-
     @view_config(route_name="admin:acme_orders", renderer="/admin/acme_orders.mako")
     @view_config(route_name="admin:acme_orders|json", renderer="json")
     @view_config(
@@ -63,7 +62,6 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_Focus(Handler):
-
     def _focus(self, eagerload_web=False):
         dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
             self.request.api_context,
@@ -91,7 +89,6 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
-
     @view_config(
         route_name="admin:acme_order:focus:acme_event_logs",
         renderer="/admin/acme_order-focus-acme_event_logs.mako",
@@ -267,7 +264,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
 
 class ViewAdmin_New(Handler):
-
     @view_config(route_name="admin:acme_order:new:automated")
     def new_automated(self):
         self._load_AccountKeyDefault()

@@ -83,7 +83,7 @@
                                 ${q.id}</a></td>
                             <td>
                                 % if q.server_certificate_id:
-                                    <a class="label label-info" href="${admin_prefix}/certificate/${q.server_certificate_id}">
+                                    <a class="label label-info" href="${admin_prefix}/server-certificate/${q.server_certificate_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     cert-${q.server_certificate_id}</a></td>
                                 % endif

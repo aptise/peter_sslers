@@ -28,7 +28,6 @@ from ...model import utils as model_utils
 
 
 class ViewAdmin_List(Handler):
-
     @view_config(
         route_name="admin:acme_challenges", renderer="/admin/acme_challenges.mako",
     )
@@ -67,7 +66,6 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_Focus(Handler):
-
     def _focus(self, eagerload_web=False):
         dbAcmeChallenge = lib_db.get.get__AcmeChallenge__by_id(
             self.request.api_context, self.request.matchdict["id"],
@@ -101,7 +99,6 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
-
     @view_config(
         route_name="admin:acme_challenge:focus:acme_server_sync", renderer=None
     )
