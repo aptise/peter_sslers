@@ -17,6 +17,12 @@
 
 
 <%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/acme-challenge-polls.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
 </%block>
 
 
@@ -34,9 +40,9 @@
                     <tbody>
                     % for item in AcmeChallengePolls:
                         <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/acme-challenge-polls/${item.id}">
+                            <td><span class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${item.id}</a></td>
+                                ${item.id}</span></td>
                         </tr>
                     % endfor
                     </tbody>

@@ -426,6 +426,7 @@ def get__AcmeEventLogs__by_AcmeOrderId__paginated(
     )
     return query.all()
 
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -1449,9 +1450,11 @@ def get__ServerCertificate__by_id(ctx, cert_id):
 def get__ServerCertificate__by_AcmeAccountKeyId__count(ctx, key_id):
     counted = (
         ctx.dbSession.query(model_objects.ServerCertificate)
-        .join(model_objects.AcmeOrder,
-              model_objects.ServerCertificate.id==model_objects.AcmeOrder.server_certificate_id
-              )
+        .join(
+            model_objects.AcmeOrder,
+            model_objects.ServerCertificate.id
+            == model_objects.AcmeOrder.server_certificate_id,
+        )
         .filter(model_objects.AcmeOrder.acme_account_key_id == key_id)
         .count()
     )
@@ -1463,9 +1466,11 @@ def get__ServerCertificate__by_AcmeAccountKeyId__paginated(
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.ServerCertificate)
-        .join(model_objects.AcmeOrder,
-              model_objects.ServerCertificate.id==model_objects.AcmeOrder.server_certificate_id
-              )
+        .join(
+            model_objects.AcmeOrder,
+            model_objects.ServerCertificate.id
+            == model_objects.AcmeOrder.server_certificate_id,
+        )
         .filter(model_objects.AcmeOrder.acme_account_key_id == key_id)
         .options(
             sqlalchemy.orm.joinedload("unique_fqdn_set")

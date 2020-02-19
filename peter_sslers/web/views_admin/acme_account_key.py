@@ -19,6 +19,7 @@ from ..lib.forms import Form_AcmeAccountKey_new__file
 from ..lib.forms import Form_AcmeAccountKey_mark
 from ..lib.form_utils import AccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import utils
@@ -62,11 +63,7 @@ class ViewAdmin_List(Handler):
             _accountKeys = {k.id: k.as_json for k in items_paged}
             return {
                 "AcmeAccountKeys": _accountKeys,
-                "pagination": {
-                    "total_items": items_count,
-                    "page": pager.page_num,
-                    "page_next": pager.next if pager.has_next else None,
-                },
+                "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
@@ -184,7 +181,7 @@ class ViewAdmin_Focus(Handler):
         if self.request.wants_json:
             _prefix = "%s" % (self._focus_url)
             return {
-                "LetsEncryptAccountKey": dbAcmeAccountKey.as_json,
+                "AcmeAccountKey": dbAcmeAccountKey.as_json,
                 "raw": {
                     "pem.txt": "%s/key.pem.txt" % _prefix,
                     "pem": "%s/key.pem" % _prefix,
@@ -261,7 +258,7 @@ class ViewAdmin_Focus(Handler):
             self.request.api_context, dbAcmeAccountKey
         )
         if self.request.wants_json:
-            return {"LetsEncryptAccountKey": dbAcmeAccountKey.as_json}
+            return {"AcmeAccountKey": dbAcmeAccountKey.as_json}
         return HTTPSeeOther(
             "%s?result=success&is_authenticated=%s" % (self._focus_url, result)
         )

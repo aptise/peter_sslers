@@ -11,6 +11,7 @@ import sqlalchemy
 
 # localapp
 from ..lib.handler import Handler
+from ..lib.handler import json_pagination
 from ...model import utils as model_utils
 
 
@@ -25,6 +26,7 @@ class ViewAdmin(Handler):
     def acme_providers(self):
         acmeProviders = list(model_utils.AcmeAccountProvider.registry.values())
         if self.request.wants_json:
+            # no pagination
             return {"AcmeProviders": acmeProviders}
         return {"project": "peter_sslers", "AcmeProviders": acmeProviders}
 

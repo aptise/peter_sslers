@@ -19,6 +19,7 @@ from ..lib import text as lib_text
 from ..lib.forms import Form_PrivateKey_mark
 from ..lib.forms import Form_PrivateKey_new__file
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ... import lib as lib_core
 from ...lib import cert_utils
 from ...lib import db as lib_db
@@ -58,11 +59,7 @@ class ViewAdmin_List(Handler):
             _keys = {k.id: k.as_json for k in items_paged}
             return {
                 "PrivateKeys": _keys,
-                "pagination": {
-                    "total_items": items_count,
-                    "page": pager.page_num,
-                    "page_next": pager.next if pager.has_next else None,
-                },
+                "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",

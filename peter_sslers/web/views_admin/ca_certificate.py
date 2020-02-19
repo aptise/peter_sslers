@@ -19,6 +19,7 @@ from ..lib import text as lib_text
 from ..lib.forms import Form_CACertificate_Upload__file
 from ..lib.forms import Form_CACertificate_UploadBundle__file
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import letsencrypt_info
@@ -57,12 +58,8 @@ class ViewAdmin_List(Handler):
         if self.request.wants_json:
             _certs = {c.id: c.as_json for c in items_paged}
             return {
-                "Domains": _certs,
-                "pagination": {
-                    "total_items": items_count,
-                    "page": pager.page_num,
-                    "page_next": pager.next if pager.has_next else None,
-                },
+                "CACertificates": _certs,
+                "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
@@ -102,7 +99,6 @@ class ViewAdmin_Focus(Handler):
         if self.request.wants_json:
             return {
                 "CACertificate": dbCACertificate.as_json,
-                "ServerCertificates_count": items_count,
             }
         return {
             "project": "peter_sslers",

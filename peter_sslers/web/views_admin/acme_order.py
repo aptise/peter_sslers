@@ -16,8 +16,9 @@ from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
 from ..lib import text as lib_text
-from ..lib.handler import Handler, items_per_page
 from ..lib.forms import Form_AcmeOrder_new_automated
+from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...lib import acme_v2
 from ...lib import cert_utils
 from ...lib import db as lib_db
@@ -38,6 +39,7 @@ class ViewAdmin_List(Handler):
     @view_config(
         route_name="admin:acme_orders_paginated", renderer="/admin/acme_orders.mako"
     )
+    @view_config(route_name="admin:acme_orders_paginated|json", renderer="json")
     def list(self):
         items_count = lib_db.get.get__AcmeOrder__count(self.request.api_context)
         (pager, offset) = self._paginate(
@@ -51,8 +53,8 @@ class ViewAdmin_List(Handler):
         if self.request.wants_json:
             admin_url = self.request.admin_url
             return {
-                "AcmeOrders_count": items_count,
                 "AcmeOrders": [i._as_json(admin_url=admin_url) for i in items_paged],
+                "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
@@ -89,20 +91,27 @@ class ViewAdmin_Focus(Handler):
         return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
 
     @view_config(
-        route_name="admin:acme_order:focus:acme_events", renderer="/admin/acme_order-focus-acme_events.mako"
+        route_name="admin:acme_order:focus:acme_event_logs",
+        renderer="/admin/acme_order-focus-acme_event_logs.mako",
     )
-    @view_config(route_name="admin:acme_order:focus:acme_events_paginated", renderer="/admin/acme_order-focus-acme_events.mako")
-    def acme_events(self):
+    @view_config(
+        route_name="admin:acme_order:focus:acme_event_logs_paginated",
+        renderer="/admin/acme_order-focus-acme_event_logs.mako",
+    )
+    def acme_event_logs(self):
         dbAcmeOrder = self._focus(eagerload_web=True)
 
-        items_count = lib_db.get.get__AcmeEventLogs__by_AcmeOrderId__count(self.request.api_context, dbAcmeOrder.id)
+        items_count = lib_db.get.get__AcmeEventLogs__by_AcmeOrderId__count(
+            self.request.api_context, dbAcmeOrder.id
+        )
         (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/acme-events/{0}"
-            % self._focus_url,
+            items_count, url_template="%s/acme-event-logs/{0}" % self._focus_url,
         )
         items_paged = lib_db.get.get__AcmeEventLogs__by_AcmeOrderId__paginated(
-            self.request.api_context, dbAcmeOrder.id, limit=items_per_page, offset=offset
+            self.request.api_context,
+            dbAcmeOrder.id,
+            limit=items_per_page,
+            offset=offset,
         )
         return {
             "project": "peter_sslers",

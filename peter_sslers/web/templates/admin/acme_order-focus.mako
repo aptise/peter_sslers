@@ -259,7 +259,7 @@
                         <td>
                             % if AcmeOrder.acme_event_logs__5:
                                 ${admin_partials.table_AcmeEventLogs(AcmeOrder.acme_event_logs__5, perspective='AcmeOrder')}
-                                ${admin_partials.nav_pager("%s/acme-order/%s/acme-events" % (admin_prefix, AcmeOrder.id))}
+                                ${admin_partials.nav_pager("%s/acme-order/%s/acme-event-logs" % (admin_prefix, AcmeOrder.id))}
                             % endif
                         </td>
                     </tr>

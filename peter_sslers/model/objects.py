@@ -40,27 +40,21 @@ class _Mixin_Timestamps_Pretty(object):
         return None
 
     @property
-    def timestamp_expires_isoformat(self):
-        if self.timestamp_expires:
-            return self.timestamp_expires.isoformat()
-        return None
-
-    @property
-    def timestamp_finalized_isoformat(self):
-        if self.timestamp_finalized:
-            return self.timestamp_finalized.isoformat()
-        return None
-
-    @property
-    def timestamp_updated_isoformat(self):
-        if self.timestamp_updated:
-            return self.timestamp_updated.isoformat()
-        return None
-
-    @property
     def timestamp_entered_isoformat(self):
         if self.timestamp_entered:
             return self.timestamp_entered.isoformat()
+        return None
+
+    @property
+    def timestamp_event_isoformat(self):
+        if self.timestamp_event:
+            return self.timestamp_event.isoformat()
+        return None
+
+    @property
+    def timestamp_expires_isoformat(self):
+        if self.timestamp_expires:
+            return self.timestamp_expires.isoformat()
         return None
 
     @property
@@ -76,15 +70,15 @@ class _Mixin_Timestamps_Pretty(object):
         return None
 
     @property
-    def timestamp_expires_isoformat(self):
-        if self.timestamp_expires:
-            return self.timestamp_expires.isoformat()
+    def timestamp_finalized_isoformat(self):
+        if self.timestamp_finalized:
+            return self.timestamp_finalized.isoformat()
         return None
 
     @property
-    def timestamp_signed_isoformat(self):
-        if self.timestamp_signed:
-            return self.timestamp_signed.isoformat()
+    def timestamp_updated_isoformat(self):
+        if self.timestamp_updated:
+            return self.timestamp_updated.isoformat()
         return None
 
     @property
@@ -93,145 +87,13 @@ class _Mixin_Timestamps_Pretty(object):
             return self.timestamp_revoked_upstream.isoformat()
         return None
 
-
-# ==============================================================================
-
-
-class AcmeEventLog(Base):
-    """
-    log acme requests
-    """
-
-    __tablename__ = "acme_event_log"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_event = sa.Column(sa.DateTime, nullable=False)
-    acme_event_id = sa.Column(sa.Integer, nullable=False)  # AcmeEvent
-    acme_account_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
-    )
-    acme_authorization_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True
-    )
-    acme_challenge_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=True
-    )
-    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
-    certificate_request_id = sa.Column(
-        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
-    )
-    server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    #     acme_challenges = sa_orm_relationship(
-    #         "AcmeChallenge",
-    #         primaryjoin="AcmeEventLog.id==AcmeChallenge.acme_event_log_id",
-    #         order_by="AcmeChallenge.id.asc()",
-    #         back_populates="acme_event_log",
-    #     )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @reify
-    def acme_event(self):
-        if self.acme_event_id:
-            return model_utils.AcmeEvent.as_string(self.acme_event_id)
+    @property
+    def timestamp_signed_isoformat(self):
+        if self.timestamp_signed:
+            return self.timestamp_signed.isoformat()
         return None
 
 
-class AcmeChallengePoll(Base):
-    """
-    log ACME Challenge polls
-    """
-
-    __tablename__ = "acme_challenge_poll"
-
-    id = sa.Column(sa.Integer, primary_key=True)
-    acme_challenge_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=False
-    )
-    timestamp_polled = sa.Column(sa.DateTime, nullable=False)
-    remote_ip_address_id = sa.Column(
-        sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_challenge = sa_orm_relationship(
-        "AcmeChallenge",
-        primaryjoin="AcmeChallengePoll.acme_challenge_id==AcmeChallenge.id",
-        uselist=False,
-        back_populates="acme_challenge_polls",
-    )
-
-    remote_ip_address = sa_orm_relationship(
-        "RemoteIpAddress",
-        primaryjoin="AcmeChallengePoll.remote_ip_address_id==RemoteIpAddress.id",
-        uselist=False,
-        back_populates="acme_challenge_polls",
-    )
-
-
-class AcmeChallengeUnknownPoll(Base):
-    """
-    log polls of non-existant ace challenges
-    """
-
-    __tablename__ = "acme_challenge_unknown_poll"
-
-    id = sa.Column(sa.Integer, primary_key=True)
-    domain = sa.Column(sa.Unicode(255), nullable=False)
-    challenge = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_polled = sa.Column(sa.DateTime, nullable=False)
-    remote_ip_address_id = sa.Column(
-        sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    remote_ip_address = sa_orm_relationship(
-        "RemoteIpAddress",
-        primaryjoin="AcmeChallengeUnknownPoll.remote_ip_address_id==RemoteIpAddress.id",
-        uselist=False,
-        back_populates="acme_challenge_unknown_polls",
-    )
-
-
-class RemoteIpAddress(Base):
-    """
-    tracking remote ips, we should only see our tests and the letsencrypt service
-    """
-
-    __tablename__ = "remote_ip_address"
-
-    id = sa.Column(sa.Integer, primary_key=True)
-    remote_ip_address = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_challenge_polls = sa_orm_relationship(
-        "AcmeChallengePoll",
-        primaryjoin="RemoteIpAddress.id==AcmeChallengePoll.remote_ip_address_id",
-        uselist=True,
-        back_populates="remote_ip_address",
-    )
-    acme_challenge_unknown_polls = sa_orm_relationship(
-        "AcmeChallengeUnknownPoll",
-        primaryjoin="RemoteIpAddress.id==AcmeChallengeUnknownPoll.remote_ip_address_id",
-        uselist=True,
-        back_populates="remote_ip_address",
-    )
-
-
-# ==============================================================================
-# ==============================================================================
-# ==============================================================================
-# ==============================================================================
-# ==============================================================================
-# ==============================================================================
 # ==============================================================================
 
 
@@ -345,6 +207,9 @@ class AcmeAccountKey(Base):
             "acme_account_provider": self.acme_account_provider,
             "id": self.id,
         }
+
+
+# ==============================================================================
 
 
 class AcmeAuthorization(Base):
@@ -468,6 +333,9 @@ class AcmeAuthorization(Base):
     @property
     def as_json(self):
         return self._as_json()
+
+
+# ==============================================================================
 
 
 class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
@@ -657,6 +525,131 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class AcmeChallengePoll(Base):
+    """
+    log ACME Challenge polls
+    """
+
+    __tablename__ = "acme_challenge_poll"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    acme_challenge_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=False
+    )
+    timestamp_polled = sa.Column(sa.DateTime, nullable=False)
+    remote_ip_address_id = sa.Column(
+        sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_challenge = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin="AcmeChallengePoll.acme_challenge_id==AcmeChallenge.id",
+        uselist=False,
+        back_populates="acme_challenge_polls",
+    )
+
+    remote_ip_address = sa_orm_relationship(
+        "RemoteIpAddress",
+        primaryjoin="AcmeChallengePoll.remote_ip_address_id==RemoteIpAddress.id",
+        uselist=False,
+        back_populates="acme_challenge_polls",
+    )
+
+
+# ==============================================================================
+
+
+class AcmeChallengeUnknownPoll(Base):
+    """
+    log polls of non-existant ace challenges
+    """
+
+    __tablename__ = "acme_challenge_unknown_poll"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    domain = sa.Column(sa.Unicode(255), nullable=False)
+    challenge = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_polled = sa.Column(sa.DateTime, nullable=False)
+    remote_ip_address_id = sa.Column(
+        sa.Integer, sa.ForeignKey("remote_ip_address.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    remote_ip_address = sa_orm_relationship(
+        "RemoteIpAddress",
+        primaryjoin="AcmeChallengeUnknownPoll.remote_ip_address_id==RemoteIpAddress.id",
+        uselist=False,
+        back_populates="acme_challenge_unknown_polls",
+    )
+
+
+# ==============================================================================
+
+
+class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
+    """
+    log acme requests
+    """
+
+    __tablename__ = "acme_event_log"
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_event = sa.Column(sa.DateTime, nullable=False)
+    acme_event_id = sa.Column(sa.Integer, nullable=False)  # AcmeEvent
+    acme_account_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
+    )
+    acme_authorization_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True
+    )
+    acme_challenge_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=True
+    )
+    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
+    certificate_request_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+    )
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    #     acme_challenges = sa_orm_relationship(
+    #         "AcmeChallenge",
+    #         primaryjoin="AcmeEventLog.id==AcmeChallenge.acme_event_log_id",
+    #         order_by="AcmeChallenge.id.asc()",
+    #         back_populates="acme_event_log",
+    #     )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @reify
+    def acme_event(self):
+        if self.acme_event_id:
+            return model_utils.AcmeEvent.as_string(self.acme_event_id)
+        return None
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "timestamp_event": self.timestamp_event_isoformat,
+            "acme_event": self.acme_event,
+            "acme_account_key_id": self.acme_account_key_id,
+            "acme_authorization_id": self.acme_authorization_id,
+            "acme_challenge_id": self.acme_challenge_id,
+            "acme_order_id": self.acme_order_id,
+            "certificate_request_id": self.certificate_request_id,
+            "server_certificate_id": self.server_certificate_id,
+        }
+
+
+# ==============================================================================
+
+
 class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     """
     ACME Order Object [https://tools.ietf.org/html/rfc8555#section-7.1.3]
@@ -840,6 +833,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return self._as_json()
 
 
+# ==============================================================================
+
+
 class AcmeOrder2Domain(Base):
     __tablename__ = "acme_order_2_domain"
 
@@ -863,6 +859,9 @@ class AcmeOrder2Domain(Base):
         uselist=False,
         back_populates="to_acme_orders",
     )
+
+
+# ==============================================================================
 
 
 class AcmeOrder2AcmeAuthorization(Base):
@@ -1025,6 +1024,9 @@ class CACertificate(Base, _Mixin_Timestamps_Pretty):
         }
 
 
+# ==============================================================================
+
+
 class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     """
     A CertificateRequest is submitted to the LetsEncrypt signing authority.
@@ -1176,6 +1178,9 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
         }
 
 
+# ==============================================================================
+
+
 class Domain(Base):
     """
     A Fully Qualified Domain
@@ -1282,6 +1287,210 @@ class Domain(Base):
         return payload
 
 
+# ==============================================================================
+
+
+class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
+    """
+    Certain events are tracked for bookkeeping
+    """
+
+    __tablename__ = "operations_event"
+    id = sa.Column(sa.Integer, primary_key=True)
+    operations_event_type_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # references OperationsEventType
+    timestamp_event = sa.Column(sa.DateTime, nullable=True)
+    event_payload = sa.Column(sa.Text, nullable=False)
+    operations_event_id__child_of = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=True
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="OperationsEvent.id==OperationsObjectEvent.operations_event_id",
+        back_populates="operations_event",
+    )
+
+    children = sa_orm_relationship(
+        "OperationsEvent",
+        primaryjoin="OperationsEvent.id==OperationsEvent.operations_event_id__child_of",
+        remote_side="OperationsEvent.operations_event_id__child_of",
+        back_populates="parent",
+    )
+
+    parent = sa_orm_relationship(
+        "OperationsEvent",
+        primaryjoin="OperationsEvent.operations_event_id__child_of==OperationsEvent.id",
+        uselist=False,
+        back_populates="children",
+        remote_side="OperationsEvent.id",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def event_payload_json(self):
+        if self._event_payload_json is None:
+            self._event_payload_json = json.loads(self.event_payload)
+        return self._event_payload_json
+
+    _event_payload_json = None
+
+    def set_event_payload(self, payload_dict):
+        self.event_payload = json.dumps(payload_dict)
+
+
+# ==============================================================================
+
+
+class OperationsObjectEvent(Base):
+    """Domains updates are noted here
+    """
+
+    __tablename__ = "operations_object_event"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END"
+            " + "
+            " CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN domain_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN acme_account_key_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
+            " ) = 1",
+            name="check1",
+        ),
+    )
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    operations_event_id = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=True
+    )
+    operations_object_event_status_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # references OperationsObjectEventStatus
+
+    ca_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
+    )
+    certificate_request_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+    )
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
+    acme_account_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
+    )
+    private_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
+    )
+    queue_domain_id = sa.Column(
+        sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
+    )
+    queue_renewal_id = sa.Column(
+        sa.Integer, sa.ForeignKey("queue_renewal.id"), nullable=True
+    )
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
+    unique_fqdn_set_id = sa.Column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
+    )
+
+    operations_event = sa_orm_relationship(
+        "OperationsEvent",
+        primaryjoin="OperationsObjectEvent.operations_event_id==OperationsEvent.id",
+        uselist=False,
+        back_populates="object_events",
+    )
+
+    ca_certificate = sa_orm_relationship(
+        "CACertificate",
+        primaryjoin="OperationsObjectEvent.ca_certificate_id==CACertificate.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    certificate_request = sa_orm_relationship(
+        "CertificateRequest",
+        primaryjoin="OperationsObjectEvent.certificate_request_id==CertificateRequest.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="OperationsObjectEvent.domain_id==Domain.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    acme_account_key = sa_orm_relationship(
+        "AcmeAccountKey",
+        primaryjoin="OperationsObjectEvent.acme_account_key_id==AcmeAccountKey.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    private_key = sa_orm_relationship(
+        "PrivateKey",
+        primaryjoin="OperationsObjectEvent.private_key_id==PrivateKey.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    queue_domain = sa_orm_relationship(
+        "QueueDomain",
+        primaryjoin="OperationsObjectEvent.queue_domain_id==QueueDomain.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    queue_renewal = sa_orm_relationship(
+        "QueueRenewal",
+        primaryjoin="OperationsObjectEvent.queue_renewal_id==QueueRenewal.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    server_certificate = sa_orm_relationship(
+        "ServerCertificate",
+        primaryjoin="OperationsObjectEvent.server_certificate_id==ServerCertificate.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    unique_fqdn_set = sa_orm_relationship(
+        "UniqueFQDNSet",
+        primaryjoin="OperationsObjectEvent.unique_fqdn_set_id==UniqueFQDNSet.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def event_status_text(self):
+        return model_utils.OperationsObjectEventStatus.as_string(
+            self.operations_object_event_status_id
+        )
+
+
+# ==============================================================================
+
+
 class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     """
     These keys are used to sign CertificateRequests and are the PrivateKey component to a ServerCertificate.
@@ -1373,6 +1582,9 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         }
 
 
+# ==============================================================================
+
+
 class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     """
     A list of domains to be queued into certificates.
@@ -1425,6 +1637,9 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
             "domain_id": self.domain_id,
             "is_active": True if self.is_active else False,
         }
+
+
+# ==============================================================================
 
 
 class QueueRenewal(Base, _Mixin_Timestamps_Pretty):
@@ -1525,6 +1740,39 @@ class QueueRenewal(Base, _Mixin_Timestamps_Pretty):
             "is_active": True if self.is_active else False,
             "server_certificate_id__renewed": self.server_certificate_id__renewed,
         }
+
+
+# ==============================================================================
+
+
+class RemoteIpAddress(Base):
+    """
+    tracking remote ips, we should only see our tests and the letsencrypt service
+    """
+
+    __tablename__ = "remote_ip_address"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    remote_ip_address = sa.Column(sa.Unicode(255), nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_challenge_polls = sa_orm_relationship(
+        "AcmeChallengePoll",
+        primaryjoin="RemoteIpAddress.id==AcmeChallengePoll.remote_ip_address_id",
+        uselist=True,
+        back_populates="remote_ip_address",
+    )
+    acme_challenge_unknown_polls = sa_orm_relationship(
+        "AcmeChallengeUnknownPoll",
+        primaryjoin="RemoteIpAddress.id==AcmeChallengeUnknownPoll.remote_ip_address_id",
+        uselist=True,
+        back_populates="remote_ip_address",
+    )
+
+
+# ==============================================================================
 
 
 class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
@@ -1779,6 +2027,9 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         }
 
 
+# ==============================================================================
+
+
 class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     """
     There is a ratelimit in effect from LetsEncrypt for unique sets of fully-qualified domain names
@@ -1877,6 +2128,9 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         }
 
 
+# ==============================================================================
+
+
 class UniqueFQDNSet2Domain(Base):
     """
     association table
@@ -1907,201 +2161,6 @@ class UniqueFQDNSet2Domain(Base):
 
 
 # ==============================================================================
-
-
-class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
-    """
-    Certain events are tracked for bookkeeping
-    """
-
-    __tablename__ = "operations_event"
-    id = sa.Column(sa.Integer, primary_key=True)
-    operations_event_type_id = sa.Column(
-        sa.Integer, nullable=False
-    )  # references OperationsEventType
-    timestamp_event = sa.Column(sa.DateTime, nullable=True)
-    event_payload = sa.Column(sa.Text, nullable=False)
-    operations_event_id__child_of = sa.Column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=True
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    object_events = sa_orm_relationship(
-        "OperationsObjectEvent",
-        primaryjoin="OperationsEvent.id==OperationsObjectEvent.operations_event_id",
-        back_populates="operations_event",
-    )
-
-    children = sa_orm_relationship(
-        "OperationsEvent",
-        primaryjoin="OperationsEvent.id==OperationsEvent.operations_event_id__child_of",
-        remote_side="OperationsEvent.operations_event_id__child_of",
-        back_populates="parent",
-    )
-
-    parent = sa_orm_relationship(
-        "OperationsEvent",
-        primaryjoin="OperationsEvent.operations_event_id__child_of==OperationsEvent.id",
-        uselist=False,
-        back_populates="children",
-        remote_side="OperationsEvent.id",
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def event_payload_json(self):
-        if self._event_payload_json is None:
-            self._event_payload_json = json.loads(self.event_payload)
-        return self._event_payload_json
-
-    _event_payload_json = None
-
-    def set_event_payload(self, payload_dict):
-        self.event_payload = json.dumps(payload_dict)
-
-
-class OperationsObjectEvent(Base):
-    """Domains updates are noted here
-    """
-
-    __tablename__ = "operations_object_event"
-    __table_args__ = (
-        sa.CheckConstraint(
-            "(CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END"
-            " + "
-            " CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN domain_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN acme_account_key_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
-            " ) = 1",
-            name="check1",
-        ),
-    )
-
-    id = sa.Column(sa.Integer, primary_key=True)
-    operations_event_id = sa.Column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=True
-    )
-    operations_object_event_status_id = sa.Column(
-        sa.Integer, nullable=False
-    )  # references OperationsObjectEventStatus
-
-    ca_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
-    )
-    certificate_request_id = sa.Column(
-        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
-    )
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
-    acme_account_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
-    )
-    private_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
-    )
-    queue_domain_id = sa.Column(
-        sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
-    )
-    queue_renewal_id = sa.Column(
-        sa.Integer, sa.ForeignKey("queue_renewal.id"), nullable=True
-    )
-    server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
-    )
-    unique_fqdn_set_id = sa.Column(
-        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
-    )
-
-    operations_event = sa_orm_relationship(
-        "OperationsEvent",
-        primaryjoin="OperationsObjectEvent.operations_event_id==OperationsEvent.id",
-        uselist=False,
-        back_populates="object_events",
-    )
-
-    ca_certificate = sa_orm_relationship(
-        "CACertificate",
-        primaryjoin="OperationsObjectEvent.ca_certificate_id==CACertificate.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-
-    certificate_request = sa_orm_relationship(
-        "CertificateRequest",
-        primaryjoin="OperationsObjectEvent.certificate_request_id==CertificateRequest.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-
-    domain = sa_orm_relationship(
-        "Domain",
-        primaryjoin="OperationsObjectEvent.domain_id==Domain.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-
-    acme_account_key = sa_orm_relationship(
-        "AcmeAccountKey",
-        primaryjoin="OperationsObjectEvent.acme_account_key_id==AcmeAccountKey.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-
-    private_key = sa_orm_relationship(
-        "PrivateKey",
-        primaryjoin="OperationsObjectEvent.private_key_id==PrivateKey.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-
-    queue_domain = sa_orm_relationship(
-        "QueueDomain",
-        primaryjoin="OperationsObjectEvent.queue_domain_id==QueueDomain.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-
-    queue_renewal = sa_orm_relationship(
-        "QueueRenewal",
-        primaryjoin="OperationsObjectEvent.queue_renewal_id==QueueRenewal.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-
-    server_certificate = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="OperationsObjectEvent.server_certificate_id==ServerCertificate.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-
-    unique_fqdn_set = sa_orm_relationship(
-        "UniqueFQDNSet",
-        primaryjoin="OperationsObjectEvent.unique_fqdn_set_id==UniqueFQDNSet.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def event_status_text(self):
-        return model_utils.OperationsObjectEventStatus.as_string(
-            self.operations_object_event_status_id
-        )
 
 
 # ==============================================================================

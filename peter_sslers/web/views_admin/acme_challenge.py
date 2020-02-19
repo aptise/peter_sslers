@@ -16,6 +16,7 @@ from .. import lib
 from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...lib import cert_utils
 from ...lib import errors
 from ...lib import db as lib_db
@@ -37,6 +38,12 @@ class ViewAdmin_List(Handler):
         route_name="admin:acme_challenges_paginated",
         renderer="/admin/acme_challenges.mako",
     )
+    @view_config(
+        route_name="admin:acme_challenges|json", renderer="json",
+    )
+    @view_config(
+        route_name="admin:acme_challenges_paginated|json", renderer="json",
+    )
     def list(self):
         items_count = lib_db.get.get__AcmeChallenge__count(self.request.api_context)
         (pager, offset) = self._paginate(
@@ -47,6 +54,12 @@ class ViewAdmin_List(Handler):
         items_paged = lib_db.get.get__AcmeChallenge__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
+        if self.request.wants_json:
+            _items = {k.id: k.as_json for k in items_paged}
+            return {
+                "AcmeChallenges": _items,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "AcmeChallenges_count": items_count,

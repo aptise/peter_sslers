@@ -265,7 +265,7 @@
                         <td>
                             <a class="label label-info" href="${admin_prefix}/ca-certificate/${ServerCertificate.ca_certificate_id__upchain}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cacert-${ServerCertificate.ca_certificate_id__upchain}</a>
+                                CACertificate-${ServerCertificate.ca_certificate_id__upchain}</a>
                         </td>
                     </tr>
                     <tr>

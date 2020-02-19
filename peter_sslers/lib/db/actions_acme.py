@@ -786,7 +786,10 @@ def _do__AcmeOrder__AcmeV2__core_finalize(
 
         # update the logger
         authenticatedUser.acmeLogger.log_CertificateProcured(
-            "v2", dbServerCertificate=dbServerCertificate, dbCertificateRequest=dbCertificateRequest, transaction_commit=True
+            "v2",
+            dbServerCertificate=dbServerCertificate,
+            dbCertificateRequest=dbCertificateRequest,
+            transaction_commit=True,
         )
 
         # don't commit here, as that will trigger an error on object refresh

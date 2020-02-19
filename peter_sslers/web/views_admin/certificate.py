@@ -21,6 +21,7 @@ from ..lib.forms import Form_Certificate_mark
 from ..lib.forms import Form_Certificate_Renewal_Custom
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...lib import errors
 from ...lib import events
 from ...lib import db as lib_db
@@ -166,11 +167,7 @@ class ViewAdmin_List(Handler):
             _certificates = {c.id: c.as_json for c in items_paged}
             return {
                 "ServerCertificates": _certificates,
-                "pagination": {
-                    "total_items": items_count,
-                    "page": pager.page_num,
-                    "page_next": pager.next if pager.has_next else None,
-                },
+                "pagination": json_pagination(items_count, pager),
             }
 
         return {

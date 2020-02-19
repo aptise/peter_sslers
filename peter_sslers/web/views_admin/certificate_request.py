@@ -17,6 +17,7 @@ from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -63,11 +64,7 @@ class ViewAdmin_List(Handler):
             csrs = {csr.id: csr.as_json for csr in items_paged}
             return {
                 "CertificateRequests": csrs,
-                "pagination": {
-                    "total_items": items_count,
-                    "page": pager.page_num,
-                    "page_next": pager.next if pager.has_next else None,
-                },
+                "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",

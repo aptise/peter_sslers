@@ -16,6 +16,17 @@ from ...lib import db
 items_per_page = 50
 
 
+def json_pagination(items_count, pager):
+    """
+    return {"pagination": json_pagination(items_count, pager),}
+    """
+    return {
+        "total_items": items_count,
+        "page": pager.page_num,
+        "page_next": pager.next if pager.has_next else None,
+    }
+
+
 # ==============================================================================
 
 

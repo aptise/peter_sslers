@@ -252,7 +252,7 @@ def create__AcmeChallengePoll(ctx, dbAcmeChallenge=None, remote_ip_address=None)
     """
     remote_ip_address_id = None
     if remote_ip_address:
-        dbRemoteIpAddress = lib.db.getcreate.getcreate__RemoteIpAddress(
+        (dbRemoteIpAddress, _created) = lib.db.getcreate.getcreate__RemoteIpAddress(
             ctx, remote_ip_address
         )
         remote_ip_address_id = dbRemoteIpAddress.id
@@ -279,7 +279,7 @@ def create__AcmeChallengeUnknownPoll(
     """
     remote_ip_address_id = None
     if remote_ip_address:
-        dbRemoteIpAddress = lib.db.getcreate.getcreate__RemoteIpAddress(
+        (dbRemoteIpAddress, _created) = lib.db.getcreate.getcreate__RemoteIpAddress(
             ctx, remote_ip_address
         )
         remote_ip_address_id = dbRemoteIpAddress.id

@@ -18,6 +18,7 @@ from ..lib import text as lib_text
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_search
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import utils
 from ...lib import utils_nginx
@@ -94,11 +95,7 @@ class ViewAdmin_List(Handler):
             _domains = {d.id: d.as_json for d in items_paged}
             return {
                 "Domains": _domains,
-                "pagination": {
-                    "total_items": items_count,
-                    "page": pager.page_num,
-                    "page_next": pager.next if pager.has_next else None,
-                },
+                "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
@@ -225,7 +222,10 @@ class ViewAdmin_Focus(Handler):
             self.request.api_context, dbDomain.id,
         )
         if self.request.wants_json:
-            return {"Domain": dbDomain.as_json, "AcmeChallenge": dbAcmeChallenge}
+            return {
+                "Domain": dbDomain.as_json,
+                "AcmeChallenge": dbAcmeChallenge.as_json,
+            }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,

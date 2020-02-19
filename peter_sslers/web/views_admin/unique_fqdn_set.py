@@ -15,6 +15,7 @@ import transaction
 # localapp
 from .. import lib
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 from ...lib import db as lib_db
@@ -62,11 +63,7 @@ class ViewAdmin(Handler):
             _sets = {s.id: s.as_json for s in items_paged}
             return {
                 "UniqueFQDNSets": _sets,
-                "pagination": {
-                    "total_items": items_count,
-                    "page": pager.page_num,
-                    "page_next": pager.next if pager.has_next else None,
-                },
+                "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",

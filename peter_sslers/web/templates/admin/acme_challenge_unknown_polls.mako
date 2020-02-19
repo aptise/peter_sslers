@@ -18,6 +18,12 @@
 
 
 <%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/acme-challenge-unknown-polls.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
 </%block>
 
 
@@ -39,9 +45,9 @@
                     <tbody>
                     % for item in AcmeChallengeUnknownPolls:
                         <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/acme-challenge-unknown-poll/${item.id}">
+                            <td><span class="label label-default">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${item.id}</a></td>
+                                ${item.id}</span></td>
                             <td><code>${item.domain}</code></td>
                             <td><code>${item.challenge}</code></td>
                             <td><timestamp>${item.timestamp_polled}</timestamp></td>

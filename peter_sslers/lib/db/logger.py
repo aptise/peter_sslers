@@ -369,7 +369,11 @@ class AcmeLogger(object):
     # ==========================================================================
 
     def log_CertificateProcured(
-        self, acme_version, dbServerCertificate=None, dbCertificateRequest=None, transaction_commit=True
+        self,
+        acme_version,
+        dbServerCertificate=None,
+        dbCertificateRequest=None,
+        transaction_commit=True,
     ):
         """
         Logs an AcmeOrder as finalized

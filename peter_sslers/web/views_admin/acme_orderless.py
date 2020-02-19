@@ -20,6 +20,7 @@ from ..lib.forms import Form_AcmeOrderless_manage_domain
 from ..lib.forms import Form_AcmeOrderless_AcmeChallenge_add
 from ..lib.forms import Form_AcmeOrderless_new
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
@@ -41,10 +42,15 @@ class ViewAdmin_List(Handler):
         route_name="admin:acme_orderlesss_paginated",
         renderer="/admin/acme_orderlesss.mako",
     )
+    @view_config(
+        route_name="admin:acme_orderlesss|json", renderer="json",
+    )
+    @view_config(
+        route_name="admin:acme_orderlesss_paginated|json", renderer="json",
+    )
     def list(self):
         if not self.request.registry.settings["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
-
         items_count = lib_db.get.get__AcmeOrderless__count(self.request.api_context)
         (pager, offset) = self._paginate(
             items_count,
@@ -54,6 +60,12 @@ class ViewAdmin_List(Handler):
         items_paged = lib_db.get.get__AcmeOrderless__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
+        if self.request.wants_json:
+            _keys = {k.id: k.as_json for k in items_paged}
+            return {
+                "AcmeOrderless": _keys,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "AcmeOrderlesss_count": items_count,
@@ -238,7 +250,7 @@ class ViewAdmin_Focus(Handler):
         if self.request.wants_json:
             return {
                 "result": "success",
-                "dbAcmeOrderless": dbAcmeOrderless.as_json,
+                "AcmeOrderless": dbAcmeOrderless.as_json,
             }
         return HTTPSeeOther("%s?result=success" % self._focus_url)
 

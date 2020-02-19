@@ -128,12 +128,10 @@
                     % for poll in AcmeChallenge.acme_challenge_polls:
                         <tr>
                             <td>
-                                <a  class="label label-info"
-                                    href="${admin_prefix}/acme-challenge-poll/${poll.id}"
-                                >
+                                <span class="label label-default">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeChallengePoll-${poll.id}
-                                </a>
+                                    ${poll.id}
+                                </span>
                             </td>
                             <td><timestamp>${poll.timestamp_polled}</timestamp></td>
                             <td>${poll.remote_ip_address.remote_ip_address}</td>

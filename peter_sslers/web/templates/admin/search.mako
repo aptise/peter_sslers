@@ -169,7 +169,7 @@
                                             href="${admin_prefix}/ca-certificate/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            cacert-${cert.id}</a>
+                                            CACertificate-${cert.id}</a>
                                     </td>
                                     <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                     <td><timestamp>${cert.timestamp_signed}</timestamp></td>

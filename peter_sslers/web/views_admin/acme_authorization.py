@@ -17,6 +17,7 @@ from ..lib import formhandling
 from ..lib import form_utils as form_utils
 from ..lib import text as lib_text
 from ..lib.handler import Handler, items_per_page
+from ..lib.handler import json_pagination
 from ...lib import acme_v2
 from ...lib import cert_utils
 from ...lib import db as lib_db
@@ -50,6 +51,12 @@ class ViewAdmin_List(Handler):
         items_paged = lib_db.get.get__AcmeAuthorization__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
+        if self.request.wants_json:
+            _auths = {k.id: k.as_json for k in items_paged}
+            return {
+                "AcmeAuthorizations": _auths,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "AcmeAuthorizations_count": items_count,
@@ -66,7 +73,7 @@ class ViewAdmin_Focus(Handler):
             eagerload_web=eagerload_web,
         )
         if not dbAcmeAuthorization:
-            raise HTTPNotFound("the authorization was not found")
+            raise HTTPNotFound("The AcmeAuthorization was not found")
         self._focus_url = "%s/acme-authorization/%s" % (
             self.request.admin_url,
             dbAcmeAuthorization.id,

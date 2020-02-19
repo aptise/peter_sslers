@@ -10,6 +10,7 @@ import pdb
 
 # pypi
 from dateutil import parser as dateutil_parser
+import sqlalchemy
 
 # localapp
 from ... import lib
@@ -649,7 +650,7 @@ def getcreate__RemoteIpAddress(ctx, remote_ip_address):
     :param domain_name:
     :param is_from_queue_domain:
     """
-    is_created = False
+    is_created = None
 
     # we're not doing anything to ensure the `remote_ip_address` is in IPV4 or IPV6 or anythiner
     # so just lowercase this
@@ -662,7 +663,7 @@ def getcreate__RemoteIpAddress(ctx, remote_ip_address):
         .first()
     )
     if not dbRemoteIpAddress:
-        dbRemoteIpAddress = model_objects.emoteIpAddress()
+        dbRemoteIpAddress = model_objects.RemoteIpAddress()
         dbRemoteIpAddress.remote_ip_address = remote_ip_address
         dbRemoteIpAddress.timestamp_created = ctx.timestamp
         ctx.dbSession.add(dbRemoteIpAddress)
