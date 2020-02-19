@@ -109,16 +109,16 @@ def upload_account(server_url_root, fset):
 
 
 def import_letsencrypt_certs_archive(archive_path, server_url_root):
-    """imports the entire letescrypt archive on `archive_path`
-    HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC
-
-    usage:
-        invoke import-letsencrypt-certs-archive --archive-path="/path/to/archive" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
-        invoke import-letsencrypt-certs-archive --archive-path="/etc/letsencrypt/archive" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
     """
-    if not archive_path:
-        raise ValueError("missing `archive-path`")
+    !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
+    imports the entire letescrypt archive on `archive_path`
 
+    :param str archive_path: (required) the path to an archive. usually `/etc/letsencrypt/archive`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    """
+    if not all((archive_path, server_url_root)) :
+        raise ValueError("must supply all of (archive_path, server_url_root)")
+        
     if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
@@ -167,7 +167,13 @@ def import_letsencrypt_certs_archive(archive_path, server_url_root):
 def import_letsencrypt_cert_version(
     domain_certs_path, certificate_version, server_url_root
 ):
-    """imports the archive path for a version
+    """
+    !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
+    imports the archive path for a version
+
+    :param str domain_certs_path: (required) the path to a domain's certificate store'. usually `/etc/letsencrypt/archive/example.com`
+    :param int certificate_version: (required) which version to import. e.g. `privkey3.pem` is (certificate_version=3)
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
 
     eg, if a folder has a family of certs numbered like this:
         /domain-certs/fullchain1.pem
@@ -175,12 +181,9 @@ def import_letsencrypt_cert_version(
         /domain-certs/fullchain3.pem
 
     you can import a specific version, for example "3", with this command
-
-    usage:
-        invoke import_letsencrypt_cert_version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://127.0.0.1:7201/.well-known/admin"
     """
-    if not domain_certs_path:
-        raise ValueError("missing `domain-certs-path`")
+    if not all((domain_certs_path, certificate_version, server_url_root)) :
+        raise ValueError("must supply all of (domain_certs_path, certificate_version, server_url_root)")
 
     if not certificate_version.isdigit():
         raise ValueError("missing `certificate-version must be a digit`")
@@ -211,18 +214,22 @@ def import_letsencrypt_cert_version(
 
 
 def import_letsencrypt_cert_plain(cert_path, server_url_root):
-    """imports the certificate for a folder, given an unversioned content structure:
+    """
+    !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
+    imports the certificate for a folder.
+    
+    given an unversioned content structure:
 
         /domain-cert/certificate.pem
         /domain-cert/chain.pem
         /domain-cert/fullchain.pem
         /domain-cert/private_key.pem
 
-    usage:
-        invoke import_letsencrypt_cert_plain --cert-path="/path/to/ssl/live/example.com" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+    :param str cert_path: (required) the path to an archive. usually `/etc/letsencrypt/live/example.com`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
     """
-    if not cert_path:
-        raise ValueError("missing `cert-path`")
+    if not all((cert_path, server_url_root)) :
+        raise ValueError("must supply all of (cert_path, server_url_root)")
 
     if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
@@ -248,13 +255,15 @@ def import_letsencrypt_cert_plain(cert_path, server_url_root):
 
 
 def import_letsencrypt_certs_live(live_path, server_url_root):
-    """imports the letsencrypt live archive  in /etc/letsencrypt/live
-
-    usage:
-        invoke import_letsencrypt_certs_live --live-path="/etc/letsencrypt/live" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
     """
-    if not live_path:
-        raise ValueError("missing `live-path`")
+    !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
+    imports the letsencrypt live archive  in /etc/letsencrypt/live
+
+    :param str live_path: (required) the path to an archive. usually `/etc/letsencrypt/live`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    """
+    if not all((live_path, server_url_root)) :
+        raise ValueError("must supply all of (live_path, server_url_root)")
 
     if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
@@ -274,19 +283,23 @@ def import_letsencrypt_certs_live(live_path, server_url_root):
             raise ValueError("`%s` is not a directory" % dpath)
         dfiles = [f for f in os.listdir(dpath) if f[0] != "."]
         # ensure we have the right files in here...
-        if len(dfiles) != 4:
+        # ['cert.pem', 'chain.pem', 'fullchain.pem', 'privkey.pem', 'README']
+        if len(dfiles) != 5:
             raise ValueError("`%s` does not look to be a letsencrypt directory" % dpath)
 
         fset = {}
-        for (ftype, fname) in _le_live_filenames.items():
-            fpath = os.path.join(dpath, fname)
-            if not os.path.exists(fpath):
-                raise ValueError(
-                    "`%s` does not look to be a letsencrypt directory; expected %s"
-                    % (dpath, fpath)
-                )
-            fset[ftype] = fpath
-        filesets.append(fset)
+        try:
+            for (ftype, fname) in _le_live_filenames.items():
+                fpath = os.path.join(dpath, fname)
+                if not os.path.exists(fpath):
+                    raise ValueError(
+                        "`%s` does not look to be a letsencrypt file"
+                        % (fpath)
+                    )
+                fset[ftype] = fpath
+            filesets.append(fset)
+        except Exception as exc:
+            print("Encountered errors in `%s`; skipping." % dpath)
 
     if not filesets:
         raise ValueError("No files!")
@@ -319,13 +332,15 @@ def _accountPath_to_fileSet(account_path):
 
 
 def import_letsencrypt_account(account_path, server_url_root):
-    """imports a specific letsencrypt account
-
-    usage:
-        invoke import_letsencrypt_account --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
     """
-    if not account_path:
-        raise ValueError("missing `account-path`")
+    !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
+    imports a specific letsencrypt account
+
+    :param str account_path: (required) the path to an archive. usually `//etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    """
+    if not all((account_path, server_url_root)) :
+        raise ValueError("must supply all of (account_path, server_url_root)")
 
     if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
@@ -339,13 +354,15 @@ def import_letsencrypt_account(account_path, server_url_root):
 
 
 def import_letsencrypt_accounts_server(accounts_path_server, server_url_root):
-    """imports all accounts for a given letsencrypt server
-
-    usage:
-        invoke import_letsencrypt_accounts_server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
     """
-    if not accounts_path_server:
-        raise ValueError("missing `accounts-path-server`")
+    !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
+    imports all accounts for a given letsencrypt server
+
+    :param str accounts_path_server: (required) the path to an archive. usually `//etc/letsencrypt/accounts/{SERVER}`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    """
+    if not all((accounts_path_server, server_url_root)) :
+        raise ValueError("must supply all of (accounts_path_server, server_url_root)")
 
     if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
@@ -379,35 +396,38 @@ def import_letsencrypt_accounts_server(accounts_path_server, server_url_root):
     return
 
 
-def import_letsencrypt_accounts_all(accounts_all_path, server_url_root):
-    """imports all accounts for a letsencrypt install
-
-    usage:
-        invoke import_letsencrypt_accounts_all --accounts-all-path="/etc/letsencrypt/accounts" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+def import_letsencrypt_accounts_all(accounts_path_all, server_url_root):
     """
-    if not accounts_all_path:
-        raise ValueError("missing `accounts-all-path`")
+    !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
+
+    imports all accounts for a letsencrypt install
+
+    :param str accounts_path_all: (required) the path to an archive. usually `//etc/letsencrypt/accounts`
+    :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
+    """
+    if not all((accounts_path_all, server_url_root)):
+        raise ValueError("must supply all of (accounts_path_all, server_url_root)")
 
     if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
-    if not os.path.isdir(accounts_all_path):
-        raise ValueError("`%s` is not a directory" % accounts_all_path)
+    if not os.path.isdir(accounts_path_all):
+        raise ValueError("`%s` is not a directory" % accounts_path_all)
 
-    serverNames = [f for f in os.listdir(accounts_all_path) if f[0] != "."]
+    serverNames = [f for f in os.listdir(accounts_path_all) if f[0] != "."]
     # ensure we have the right files in here...
     if (not len(serverNames)) or (
         not all([True if d.startswith("acme-") else False for d in serverNames])
     ):
         raise ValueError(
             "`%s` does not look to be a letsencrypt accounts directory"
-            % accounts_all_path
+            % accounts_path_all
         )
 
     filesets = []
 
     for sname in serverNames:
-        accounts_path_server = os.path.join(accounts_all_path, sname)
+        accounts_path_server = os.path.join(accounts_path_all, sname)
         dpath_directory = os.path.join(accounts_path_server, "directory")
         account_directories = [f for f in os.listdir(dpath_directory) if f[0] != "."]
         if not account_directories:

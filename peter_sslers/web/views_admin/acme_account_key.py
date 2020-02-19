@@ -254,13 +254,13 @@ class ViewAdmin_Focus(Handler):
     def _focus__authenticate__submit(self, dbAcmeAccountKey):
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
-        result = lib_db.actions_acme.do__AcmeAccountKey_AcmeV2_authenticate(
+        authenticatedUser = lib_db.actions_acme.do__AcmeAccountKey_AcmeV2_authenticate(
             self.request.api_context, dbAcmeAccountKey
         )
         if self.request.wants_json:
             return {"AcmeAccountKey": dbAcmeAccountKey.as_json}
         return HTTPSeeOther(
-            "%s?result=success&is_authenticated=%s" % (self._focus_url, result)
+            "%s?result=success&is_authenticated=%s" % (self._focus_url, True)
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
