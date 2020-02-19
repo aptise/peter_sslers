@@ -23,7 +23,9 @@ DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT")
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_certs_archive(c, archive_path, server_url_root=DEFAULT_SERVER_ROOT):
+def import_letsencrypt_certs_archive(
+    c, archive_path, server_url_root=DEFAULT_SERVER_ROOT
+):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the entire LetEncrypt archive in `archive_path`
@@ -155,7 +157,9 @@ def import_letsencrypt_account(c, account_path, server_url_root=DEFAULT_SERVER_R
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_accounts_server(c, accounts_path_server, server_url_root=DEFAULT_SERVER_ROOT):
+def import_letsencrypt_accounts_server(
+    c, accounts_path_server, server_url_root=DEFAULT_SERVER_ROOT
+):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports all accounts for a given letsencrypt server
@@ -179,7 +183,9 @@ def import_letsencrypt_accounts_server(c, accounts_path_server, server_url_root=
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_accounts_all(c, accounts_path_all, server_url_root=DEFAULT_SERVER_ROOT):
+def import_letsencrypt_accounts_all(
+    c, accounts_path_all, server_url_root=DEFAULT_SERVER_ROOT
+):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports all accounts for a letsencrypt install

@@ -181,6 +181,7 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_New(Handler):
+
     @view_config(route_name="admin:certificate:upload")
     @view_config(route_name="admin:certificate:upload|json", renderer="json")
     def upload(self):
@@ -283,6 +284,7 @@ class ViewAdmin_New(Handler):
 
 
 class ViewAdmin_Focus(Handler):
+
     def _focus(self):
         dbServerCertificate = lib_db.get.get__ServerCertificate__by_id(
             self.request.api_context, self.request.matchdict["id"]
@@ -296,6 +298,8 @@ class ViewAdmin_Focus(Handler):
         )
         return dbServerCertificate
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:certificate:focus", renderer="/admin/certificate-focus.mako"
     )
@@ -307,6 +311,8 @@ class ViewAdmin_Focus(Handler):
         # x-x509-server-cert
         return {"project": "peter_sslers", "ServerCertificate": dbServerCertificate}
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:certificate:focus:parse|json", renderer="json")
     def focus_parse_json(self):
         dbServerCertificate = self._focus()
@@ -316,6 +322,8 @@ class ViewAdmin_Focus(Handler):
                 cert_pem=dbServerCertificate.cert_pem
             )
         }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:certificate:focus:chain:raw", renderer="string")
     def focus_chain(self):
@@ -338,6 +346,8 @@ class ViewAdmin_Focus(Handler):
             return response
         return "chain.pem"
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:certificate:focus:fullchain:raw", renderer="string")
     def focus_fullchain(self):
         dbServerCertificate = self._focus()
@@ -347,6 +357,8 @@ class ViewAdmin_Focus(Handler):
         elif self.request.matchdict["format"] == "pem.txt":
             return dbServerCertificate.cert_fullchain_pem
         return "fullchain.pem"
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:certificate:focus:privatekey:raw", renderer="string")
     def focus_privatekey(self):
@@ -365,6 +377,8 @@ class ViewAdmin_Focus(Handler):
             response.body = as_der
             return response
         return "privatekey.pem"
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:certificate:focus:cert:raw", renderer="string")
     def focus_cert(self):
@@ -395,7 +409,8 @@ class ViewAdmin_Focus(Handler):
             rval = dbServerCertificate.config_payload
         return rval
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     @view_config(route_name="admin:certificate:focus:nginx_cache_expire", renderer=None)
     @view_config(
@@ -419,272 +434,6 @@ class ViewAdmin_Focus(Handler):
             "%s?operation=nginx+cache+expire&result=success&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:certificate:focus:renew:quick", renderer=None)
-    @view_config(route_name="admin:certificate:focus:renew:quick|json", renderer="json")
-    def focus_renew_quick__acmeA1(self):
-        """this endpoint is for immediately renewing the certificate acme-auto protocol"""
-        dbServerCertificate = self._focus()
-        try:
-            if (
-                (not dbServerCertificate.private_key)
-                or (not dbServerCertificate.private_key.is_active)
-                or (not dbServerCertificate.acme_account_key)
-                or (not dbServerCertificate.acme_account_key.is_active)
-            ):
-                raise errors.DisplayableError(
-                    "The PrivateKey or AccountKey is not active. You can not Quick-Renew."
-                )
-            if not dbServerCertificate.can_renew_letsencrypt:
-                raise errors.DisplayableError(
-                    "Thie cert is not eligible for `Quick Renew`"
-                )
-
-            try:
-                (
-                    dbAcmeOrder,
-                    result,
-                ) = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
-                    self.request.api_context,
-                    domain_names=None,  # domain_names, handle via the certificate...
-                    dbAcmeAccountKey=dbServerCertificate.acme_account_key,
-                    dbPrivateKey=dbServerCertificate.private_key,
-                    dbServerCertificate__renewal_of=dbServerCertificate,
-                )
-            except (
-                errors.AcmeCommunicationError,
-                errors.DomainVerificationError,
-            ) as exc:
-                raise errors.DisplayableError(str(exc))
-
-            if self.request.wants_json:
-                return {
-                    "status": "success",
-                    "acme_order.id": dbAcmeOrder.id,
-                    "certificate_new.id": dbAcmeOrder.server_certificate_id,
-                }
-            url_success = (
-                "%s?operation=renewal&renewal_type=quick&success=%s&result=success"
-                % (self._focus_url, dbAcmeOrder.server_certificate_id)
-            )
-            return HTTPSeeOther(url_success)
-
-        except errors.DisplayableError as exc:
-            if self.request.wants_json:
-                return {"status": "error", "error": str(exc)}
-            url_failure = (
-                "%s?operation=renewal&renewal_type=quick&error=%s&result=error"
-                % (self._focus_url, str(exc))
-            )
-            raise HTTPSeeOther(url_failure)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:certificate:focus:renew:queue", renderer=None)
-    @view_config(route_name="admin:certificate:focus:renew:queue|json", renderer="json")
-    def focus_renew_queue(self):
-        """this endpoint is for adding the certificate to the renewal queue immediately"""
-        dbServerCertificate = self._focus()
-        try:
-            # first check to see if this is already queued
-            dbQueued = lib_db.get.get__QueueRenewal__by_UniqueFQDNSetId__active(
-                self.request.api_context, dbServerCertificate.unique_fqdn_set_id
-            )
-            if dbQueued:
-                raise errors.DisplayableError(
-                    "There is an existing entry in the queue for this certificate's FQDN set.".replace(
-                        " ", "+"
-                    )
-                )
-
-            # okay, we're good to go...'
-            event_type = model_utils.OperationsEventType.from_string(
-                "queue_renewal__update"
-            )
-            event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
-                self.request.api_context, event_type, event_payload_dict
-            )
-            dbQueue = lib_db.create._create__QueueRenewal(
-                self.request.api_context, dbServerCertificate
-            )
-            event_payload_dict["ssl_certificate-queued.ids"] = str(
-                dbServerCertificate.id
-            )
-            event_payload_dict["sql_queue_renewals.ids"] = str(dbQueue.id)
-            dbOperationsEvent.set_event_payload(event_payload_dict)
-            self.request.api_context.dbSession.flush(objects=[dbOperationsEvent])
-
-            if self.request.wants_json:
-                return {"status": "success", "queue_item": dbQueue.id}
-            url_success = (
-                "%s?operation=renewal&renewal_type=queue&success=%s&result=success"
-                % (self._focus_url, dbQueue.id)
-            )
-            return HTTPSeeOther(url_success)
-
-        except errors.DisplayableError as exc:
-            if self.request.wants_json:
-                return {"status": "error", "error": str(exc)}
-            url_failure = (
-                "%s?operation=renewal&renewal_type=queue&error=%s&result=error"
-                % (self._focus_url, str(exc))
-            )
-            raise HTTPSeeOther(url_failure)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:certificate:focus:renew:custom", renderer=None)
-    @view_config(
-        route_name="admin:certificate:focus:renew:custom|json", renderer="json"
-    )
-    def focus_renew_custom(self):
-        dbServerCertificate = self._focus()
-        self.dbServerCertificate = dbServerCertificate
-        self._load_AccountKeyDefault()
-        if self.request.method == "POST":
-            return self._focus_renew_custom__submit()
-        return self._focus_renew_custom__print()
-
-    def _focus_renew_custom__print(self):
-        providers = list(model_utils.AcmeAccountProvider.registry.values())
-        if self.request.wants_json:
-            return {
-                "form_fields": {
-                    "account_key_option": "One of ('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file'). REQUIRED.",
-                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
-                    "account_key_default": "pem_md5 of the default account key. Must/Only submit if `account_key_option==account_key_default`",
-                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                    "account_key_file_le_meta": "letsencrypt file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                    "account_key_file_le_pkey": "letsencrypt file",
-                    "account_key_file_le_reg": "letsencrypt file",
-                    "private_key_option": "One of('private_key_reuse', 'private_key_existing', 'private_key_file_pem'). REQUIRED.",
-                    "private_key_reuse": "pem_md5 of existing key",
-                    "private_key_existing": "pem_md5 of existing key",
-                    "private_key_file_pem": "pem to upload",
-                },
-                "form_fields_related": [
-                    ["account_key_file_pem", "acme_account_provider_id"],
-                    [
-                        "account_key_file_le_meta",
-                        "account_key_file_le_pkey",
-                        "account_key_file_le_reg",
-                    ],
-                ],
-                "requirements": [
-                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three letsencrypt files."
-                ],
-                "instructions": [
-                    """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/certificate/1/renew.json"""
-                    % self.request.admin_url
-                ],
-            }
-
-        return render_to_response(
-            "/admin/certificate-focus-renew.mako",
-            {
-                "ServerCertificate": self.dbServerCertificate,
-                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
-                "AcmeAccountProviderOptions": providers,
-            },
-            self.request,
-        )
-
-    def _focus_renew_custom__submit(self):
-        dbServerCertificate = self.dbServerCertificate
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_Certificate_Renewal_Custom, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            # use the form_utils to process account-key selections
-            # why? because they may be uploaded in multiple ways
-            accountKeySelection = form_utils.parse_AccountKeySelection(
-                self.request,
-                formStash,
-                seek_selected=formStash.results["account_key_option"],
-            )
-            if accountKeySelection.selection == "upload":
-                key_create_args = accountKeySelection.upload_parsed.getcreate_args
-                (
-                    dbAcmeAccountKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__AcmeAccountKey(
-                    self.request.api_context, **key_create_args
-                )
-                accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
-
-            private_key_pem = form_utils.parse_PrivateKeyPem(
-                self.request,
-                formStash,
-                seek_selected=formStash.results["private_key_option"],
-            )
-
-            try:
-                event_payload_dict = utils.new_event_payload_dict()
-                event_payload_dict["server_certificate.id"] = dbServerCertificate.id
-                dbEvent = lib_db.logger.log__OperationsEvent(
-                    self.request.api_context,
-                    model_utils.OperationsEventType.from_string("certificate__renew"),
-                    event_payload_dict,
-                )
-
-                raise ValueError("figure this out")
-                """
-                (
-                    dbPrivateKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
-                    self.request.api_context, private_key_pem
-                )
-                """
-                raise ValueError("need a dbPrivateKey")
-                dbPrivateKey = None
-
-                (
-                    dbAcmeOrder,
-                    result,
-                ) = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
-                    self.request.api_context,
-                    domain_names=None,
-                    dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
-                    dbPrivateKey=dbPrivateKey,
-                    dbServerCertificate__renewal_of=dbServerCertificate,
-                )
-            except (
-                errors.AcmeCommunicationError,
-                errors.DomainVerificationError,
-            ) as exc:
-                return HTTPSeeOther(
-                    "%s/certificate-requests?result=error&error=renew-acme-automated&message=%s"
-                    % (self.request.registry.settings["admin_prefix"], str(exc))
-                )
-            except Exception as exc:
-                if self.request.registry.settings["exception_redirect"]:
-                    return HTTPSeeOther(
-                        "%s/certificate-requests?result=error&error=renew-acme-automated"
-                        % self.request.registry.settings["admin_prefix"]
-                    )
-                raise
-
-            return HTTPSeeOther(
-                "%s/certificate/%s?is_renewal=True"
-                % (
-                    self.request.registry.settings["admin_prefix"],
-                    dbAcmeOrder.server_certificate_id,
-                )
-            )
-
-        except formhandling.FormInvalid as exc:
-            return formhandling.form_reprint(
-                self.request, self._focus_renew_custom__print
-            )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

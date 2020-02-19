@@ -23,6 +23,7 @@ from ...model import utils as model_utils
 
 
 class ViewAdminOperations(Handler):
+
     def _parse__event_type(self):
         event_type = self.request.params.get("event_type", None)
         event_type_id = None

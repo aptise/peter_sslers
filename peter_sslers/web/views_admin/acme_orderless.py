@@ -33,8 +33,6 @@ from ...model import objects as model_objects
 
 class ViewAdmin_List(Handler):
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(
         route_name="admin:acme_orderlesss", renderer="/admin/acme_orderlesss.mako",
     )
@@ -75,6 +73,7 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_New(Handler):
+
     @view_config(route_name="admin:acme_orderless:new")
     @view_config(route_name="admin:acme_orderless:new|json", renderer="json")
     def new_AcmeOrderless(self):
@@ -142,10 +141,11 @@ class ViewAdmin_New(Handler):
 
 
 class ViewAdmin_Focus(Handler):
+
     _dbAcmeOrderless = None
 
     def _focus(self, eagerload_web=False):
-        dbAcmeOrderless = lib_db.get.get__AcmeOrderless__by_id(
+        self._dbAcmeOrderless = dbAcmeOrderless = lib_db.get.get__AcmeOrderless__by_id(
             self.request.api_context,
             self.request.matchdict["id"],
             eagerload_web=eagerload_web,
@@ -156,8 +156,9 @@ class ViewAdmin_Focus(Handler):
             self.request.admin_url,
             dbAcmeOrderless.id,
         )
-        self._dbAcmeOrderless = dbAcmeOrderless
         return dbAcmeOrderless
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def _focus_print(self):
         if self._dbAcmeOrderless is None:
@@ -167,6 +168,8 @@ class ViewAdmin_Focus(Handler):
             {"AcmeOrderless": self._dbAcmeOrderless,},
             self.request,
         )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
         route_name="admin:acme_orderless:focus",
@@ -183,7 +186,8 @@ class ViewAdmin_Focus(Handler):
             }
         return self._focus_print()
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     @view_config(route_name="admin:acme_orderless:focus:update")
     @view_config(route_name="admin:acme_orderless:focus:update|json", renderer="json")

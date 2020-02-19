@@ -214,6 +214,8 @@ class ViewAdmin_Focus(Handler):
         )
         return dbDomain
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:domain:focus", renderer="/admin/domain-focus.mako")
     @view_config(route_name="admin:domain:focus|json", renderer="json")
     def focus(self):
@@ -224,13 +226,17 @@ class ViewAdmin_Focus(Handler):
         if self.request.wants_json:
             return {
                 "Domain": dbDomain.as_json,
-                "AcmeChallenge_Active": dbAcmeChallenge.as_json if dbAcmeChallenge else None,
+                "AcmeChallenge_Active": dbAcmeChallenge.as_json
+                if dbAcmeChallenge
+                else None,
             }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
             "AcmeChallenge": dbAcmeChallenge,
         }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:domain:focus:nginx_cache_expire", renderer=None)
     @view_config(
@@ -249,6 +255,8 @@ class ViewAdmin_Focus(Handler):
             "%s?operation=nginx_cache_expire&result=success&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:domain:focus:config|json", renderer="json")
     def focus_config_json(self):
@@ -286,93 +294,6 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(
-        route_name="admin:domain:focus:acme_orderlesss",
-        renderer="/admin/domain-focus-acme_orderless.mako",
-    )
-    @view_config(
-        route_name="admin:domain:focus:acme_orderlesss_paginated",
-        renderer="/admin/domain-focus-acme_orderless.mako",
-    )
-    def focus__acme_orderlesss(self):
-        dbDomain = self._focus()
-        items_count = lib_db.get.get__AcmeOrderless__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-orderlesss/{0}" % self._focus_url
-        )
-        items_paged = lib_db.get.get__AcmeOrderless__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
-        return {
-            "project": "peter_sslers",
-            "Domain": dbDomain,
-            "AcmeOrderlesss_count": items_count,
-            "AcmeOrderlesss": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:domain:focus:certificates",
-        renderer="/admin/domain-focus-certificates.mako",
-    )
-    @view_config(
-        route_name="admin:domain:focus:certificates_paginated",
-        renderer="/admin/domain-focus-certificates.mako",
-    )
-    def focus__certificates(self):
-        dbDomain = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/certificates/{0}" % self._focus_url
-        )
-        items_paged = lib_db.get.get__ServerCertificate__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
-        return {
-            "project": "peter_sslers",
-            "Domain": dbDomain,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:domain:focus:certificate_requests",
-        renderer="/admin/domain-focus-certificate_requests.mako",
-    )
-    @view_config(
-        route_name="admin:domain:focus:certificate_requests_paginated",
-        renderer="/admin/domain-focus-certificate_requests.mako",
-    )
-    def focus__certificate_requests(self):
-        dbDomain = self._focus()
-        items_count = lib_db.get.get__CertificateRequest__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/certificate-requests/{0}" % self._focus_url
-        )
-        items_paged = lib_db.get.get__CertificateRequest__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
-        return {
-            "project": "peter_sslers",
-            "Domain": dbDomain,
-            "CertificateRequests_count": items_count,
-            "CertificateRequests": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(route_name="admin:domain:focus:calendar|json", renderer="json")
     def focus__calendar(self):
         rval = {}
@@ -402,6 +323,180 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:domain:focus:acme_authorizations",
+        renderer="/admin/domain-focus-acme_authorizations.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_authorizations_paginated",
+        renderer="/admin/domain-focus-acme_authorizations.mako",
+    )
+    def related__AcmeAuthorizations(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__AcmeAuthorization__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/acme-authorizations/{0}" % self._focus_url
+        )
+        items_paged = lib_db.get.get__AcmeAuthorization__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeAuthorizations_count": items_count,
+            "AcmeAuthorizations": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:domain:focus:acme_challenges",
+        renderer="/admin/domain-focus-acme_challenges.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_challenges_paginated",
+        renderer="/admin/domain-focus-acme_challenges.mako",
+    )
+    def related__AcmeChallenges(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__AcmeChallenge__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/acme-challenges/{0}" % self._focus_url
+        )
+        items_paged = lib_db.get.get__AcmeChallenge__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeChallenges_count": items_count,
+            "AcmeChallenges": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:domain:focus:acme_orders",
+        renderer="/admin/domain-focus-acme_orders.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_orders_paginated",
+        renderer="/admin/domain-focus-acme_orders.mako",
+    )
+    def related__AcmeOrders(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__AcmeOrder__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/acme-orders/{0}" % self._focus_url
+        )
+        items_paged = lib_db.get.get__AcmeOrder__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeOrders_count": items_count,
+            "AcmeOrders": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:domain:focus:acme_orderlesss",
+        renderer="/admin/domain-focus-acme_orderless.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_orderlesss_paginated",
+        renderer="/admin/domain-focus-acme_orderless.mako",
+    )
+    def related__AcmeOrderlesss(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__AcmeOrderless__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/acme-orderlesss/{0}" % self._focus_url
+        )
+        items_paged = lib_db.get.get__AcmeOrderless__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeOrderlesss_count": items_count,
+            "AcmeOrderlesss": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:domain:focus:certificate_requests",
+        renderer="/admin/domain-focus-certificate_requests.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificate_requests_paginated",
+        renderer="/admin/domain-focus-certificate_requests.mako",
+    )
+    def related__CertificateRequests(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__CertificateRequest__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/certificate-requests/{0}" % self._focus_url
+        )
+        items_paged = lib_db.get.get__CertificateRequest__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "CertificateRequests_count": items_count,
+            "CertificateRequests": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:domain:focus:certificates",
+        renderer="/admin/domain-focus-certificates.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:certificates_paginated",
+        renderer="/admin/domain-focus-certificates.mako",
+    )
+    def related__ServerCertificates(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__ServerCertificate__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/certificates/{0}" % self._focus_url
+        )
+        items_paged = lib_db.get.get__ServerCertificate__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
         route_name="admin:domain:focus:unique_fqdn_sets",
         renderer="/admin/domain-focus-unique_fqdn_sets.mako",
     )
@@ -409,7 +504,7 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:domain:focus:unique_fqdn_sets_paginated",
         renderer="/admin/domain-focus-unique_fqdn_sets.mako",
     )
-    def focus__unique_fqdns(self):
+    def related__UniqueFQDNSets(self):
         dbDomain = self._focus()
         items_count = lib_db.get.get__UniqueFQDNSet__by_DomainId__count(
             self.request.api_context, dbDomain.id
@@ -428,7 +523,8 @@ class ViewAdmin_Focus(Handler):
             "pager": pager,
         }
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     @view_config(route_name="admin:domain:focus:mark", renderer=None)
     @view_config(route_name="admin:domain:focus:mark|json", renderer="json")
@@ -526,92 +622,3 @@ class ViewAdmin_Focus(Handler):
                 str(exc),
             )
             raise HTTPSeeOther(url_failure)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:domain:focus:acme_authorizations",
-        renderer="/admin/domain-focus-acme_authorizations.mako",
-    )
-    @view_config(
-        route_name="admin:domain:focus:acme_authorizations_paginated",
-        renderer="/admin/domain-focus-acme_authorizations.mako",
-    )
-    def focus__acme_authorizations(self):
-        dbDomain = self._focus()
-        items_count = lib_db.get.get__AcmeAuthorization__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-authorizations/{0}" % self._focus_url
-        )
-        items_paged = lib_db.get.get__AcmeAuthorization__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
-        return {
-            "project": "peter_sslers",
-            "Domain": dbDomain,
-            "AcmeAuthorizations_count": items_count,
-            "AcmeAuthorizations": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:domain:focus:acme_challenges",
-        renderer="/admin/domain-focus-acme_challenges.mako",
-    )
-    @view_config(
-        route_name="admin:domain:focus:acme_challenges_paginated",
-        renderer="/admin/domain-focus-acme_challenges.mako",
-    )
-    def focus__acme_challenges(self):
-        dbDomain = self._focus()
-        items_count = lib_db.get.get__AcmeChallenge__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-challenges/{0}" % self._focus_url
-        )
-        items_paged = lib_db.get.get__AcmeChallenge__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
-        return {
-            "project": "peter_sslers",
-            "Domain": dbDomain,
-            "AcmeChallenges_count": items_count,
-            "AcmeChallenges": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:domain:focus:acme_orders",
-        renderer="/admin/domain-focus-acme_orders.mako",
-    )
-    @view_config(
-        route_name="admin:domain:focus:acme_orders_paginated",
-        renderer="/admin/domain-focus-acme_orders.mako",
-    )
-    def focus__acme_orders(self):
-        dbDomain = self._focus()
-        items_count = lib_db.get.get__AcmeOrder__by_DomainId__count(
-            self.request.api_context, dbDomain.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-orders/{0}" % self._focus_url
-        )
-        items_paged = lib_db.get.get__AcmeOrder__by_DomainId__paginated(
-            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
-        )
-        return {
-            "project": "peter_sslers",
-            "Domain": dbDomain,
-            "AcmeOrders_count": items_count,
-            "AcmeOrders": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

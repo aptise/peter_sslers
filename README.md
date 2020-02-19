@@ -204,14 +204,21 @@ It is recommended to open up a new terminal and do the following commands
 	source peter_sslers-venv/bin/activate
 	cd peter_sslers
 	prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
-	cd tools
+	pserve example_development.ini
+
+then in another terminal window:	
+
+	cd certificate_admin
+	source peter_sslers-venv/bin/activate
+	cd peter_sslers/tools
 	invoke import-letsencrypt-certs-live  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/live'
 	invoke import-letsencrypt-certs-archive  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/archive' 
 	invoke import_letsencrypt_accounts_all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 The `prequest` command above will import the current LetsEncrypt Certificates to get you started.
-The first `invoke` command will import existing LetsEncrypt issued Certificates
-The second `invoke` command will import existing LetsEncrypt accounts
+The first `invoke` command will import existing LetsEncrypt live Certificates
+The second `invoke` command will import all existing LetsEncrypt issued Certificates
+The third `invoke` command will import existing LetsEncrypt accounts
 
 
 # Implementation Details

@@ -29,6 +29,7 @@ from ...lib import letsencrypt_info
 
 
 class ViewAdmin_List(Handler):
+
     @view_config(
         route_name="admin:ca_certificates", renderer="/admin/ca_certificates.mako"
     )
@@ -70,6 +71,7 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_Focus(Handler):
+
     def _focus(self):
         dbCACertificate = lib_db.get.get__CACertificate__by_id(
             self.request.api_context, self.request.matchdict["id"]
@@ -82,6 +84,8 @@ class ViewAdmin_Focus(Handler):
             self.focus_item.id,
         )
         return dbCACertificate
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
         route_name="admin:ca_certificate:focus",
@@ -107,6 +111,8 @@ class ViewAdmin_Focus(Handler):
             "ServerCertificates": items_paged,
         }
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:ca_certificate:focus:raw", renderer="string")
     def focus_raw(self):
         dbCACertificate = self._focus()
@@ -125,6 +131,8 @@ class ViewAdmin_Focus(Handler):
             response.body = as_der
             return response
         return "chain.?"
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:ca_certificate:focus:parse|json", renderer="json")
     def focus_parse_json(self):
@@ -146,7 +154,7 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:ca_certificate:focus:certificates_signed_paginated",
         renderer="/admin/ca_certificate-focus-certificates_signed.mako",
     )
-    def focus__certificates_signed(self):
+    def related__ServerCertificates(self):
         dbCACertificate = self._focus()
         items_count = lib_db.get.get__ServerCertificate__by_CACertificateId__count(
             self.request.api_context, dbCACertificate.id
@@ -170,6 +178,7 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_New(Handler):
+
     @view_config(route_name="admin:ca_certificate:upload")
     @view_config(route_name="admin:ca_certificate:upload|json", renderer="json")
     def upload(self):

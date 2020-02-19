@@ -32,6 +32,7 @@ from ...model import utils as model_utils
 
 
 class ViewAdmin_List(Handler):
+
     @view_config(route_name="admin:private_keys", renderer="/admin/private_keys.mako")
     @view_config(
         route_name="admin:private_keys_paginated", renderer="/admin/private_keys.mako"
@@ -85,6 +86,8 @@ class ViewAdmin_Focus(Handler):
         )
         return dbPrivateKey
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:private_key:focus", renderer="/admin/private_key-focus.mako"
     )
@@ -102,6 +105,8 @@ class ViewAdmin_Focus(Handler):
             }
         return {"project": "peter_sslers", "PrivateKey": dbPrivateKey}
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:private_key:focus:raw", renderer="string")
     def focus_raw(self):
         dbPrivateKey = self._focus()
@@ -115,6 +120,8 @@ class ViewAdmin_Focus(Handler):
             as_der = cert_utils.convert_pem_to_der(pem_data=dbPrivateKey.key_pem)
             return as_der
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:private_key:focus:parse|json", renderer="json")
     def focus_parse_json(self):
         dbPrivateKey = self._focus()
@@ -125,36 +132,6 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:private_key:focus:certificates",
-        renderer="/admin/private_key-focus-certificates.mako",
-    )
-    @view_config(
-        route_name="admin:private_key:focus:certificates_paginated",
-        renderer="/admin/private_key-focus-certificates.mako",
-    )
-    def focus__certificates(self):
-        dbPrivateKey = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_PrivateKeyId__count(
-            self.request.api_context, dbPrivateKey.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/certificates/{0}" % self._focus_url
-        )
-        items_paged = lib_db.get.get__ServerCertificate__by_PrivateKeyId__paginated(
-            self.request.api_context,
-            dbPrivateKey.id,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "PrivateKey": dbPrivateKey,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
-            "pager": pager,
-        }
-
-    @view_config(
         route_name="admin:private_key:focus:certificate_requests",
         renderer="/admin/private_key-focus-certificate_requests.mako",
     )
@@ -162,7 +139,7 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:private_key:focus:certificate_requests_paginated",
         renderer="/admin/private_key-focus-certificate_requests.mako",
     )
-    def focus__certificate_requests(self):
+    def related__CertificateRequests(self):
         dbPrivateKey = self._focus()
         items_count = lib_db.get.get__CertificateRequest__by_PrivateKeyId__count(
             self.request.api_context, dbPrivateKey.id
@@ -185,6 +162,39 @@ class ViewAdmin_Focus(Handler):
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:private_key:focus:certificates",
+        renderer="/admin/private_key-focus-certificates.mako",
+    )
+    @view_config(
+        route_name="admin:private_key:focus:certificates_paginated",
+        renderer="/admin/private_key-focus-certificates.mako",
+    )
+    def related__ServerCertificates(self):
+        dbPrivateKey = self._focus()
+        items_count = lib_db.get.get__ServerCertificate__by_PrivateKeyId__count(
+            self.request.api_context, dbPrivateKey.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/certificates/{0}" % self._focus_url
+        )
+        items_paged = lib_db.get.get__ServerCertificate__by_PrivateKeyId__paginated(
+            self.request.api_context,
+            dbPrivateKey.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "PrivateKey": dbPrivateKey,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
+            "pager": pager,
+        }
+
+
+class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     @view_config(route_name="admin:private_key:focus:mark", renderer=None)
     @view_config(route_name="admin:private_key:focus:mark|json", renderer="json")
@@ -330,6 +340,7 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_New(Handler):
+
     @view_config(route_name="admin:private_key:upload")
     @view_config(route_name="admin:private_key:upload|json", renderer="json")
     def upload(self):

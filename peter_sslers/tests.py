@@ -754,6 +754,7 @@ class FunctionalTests_AcmeAuthorizations(AppTest):
 
 
 class FunctionalTests_AcmeChallenges(AppTest):
+    def _get_item(self):
         # grab an order
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeChallenge)
@@ -761,7 +762,6 @@ class FunctionalTests_AcmeChallenges(AppTest):
             .first()
         )
         return focus_item
-
 
     def test_list(self):
         # root

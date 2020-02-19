@@ -29,6 +29,7 @@ from ...model import objects as model_objects
 
 
 class ViewAdmin_List(Handler):
+
     @view_config(
         route_name="admin:certificate_requests",
         renderer="/admin/certificate_requests.mako",
@@ -75,6 +76,7 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_Focus(Handler):
+
     def _focus(self):
         dbCertificateRequest = lib_db.get.get__CertificateRequest__by_id(
             self.request.api_context, self.request.matchdict["id"]
@@ -87,6 +89,8 @@ class ViewAdmin_Focus(Handler):
             dbCertificateRequest.id,
         )
         return dbCertificateRequest
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
         route_name="admin:certificate_request:focus",
@@ -101,6 +105,8 @@ class ViewAdmin_Focus(Handler):
             "project": "peter_sslers",
             "CertificateRequest": dbCertificateRequest,
         }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:certificate_request:focus:raw", renderer="string")
     def focus_raw(self):
@@ -125,7 +131,7 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:certificate_request:focus:acme_orders_paginated",
         renderer="/admin/certificate_request-focus-acme_orders.mako",
     )
-    def focus_acme_orders(self):
+    def related__AcmeOrders(self):
         dbCertificateRequest = self._focus()
         items_count = lib_db.get.get__AcmeOrder__by_CertificateRequest__count(
             self.request.api_context, dbCertificateRequest.id

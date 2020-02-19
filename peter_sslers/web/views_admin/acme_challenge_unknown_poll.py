@@ -28,8 +28,6 @@ from ...model import utils as model_utils
 
 class ViewAdmin_List(Handler):
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(
         route_name="admin:acme_challenge_unknown_polls",
         renderer="/admin/acme_challenge_unknown_polls.mako",

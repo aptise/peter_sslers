@@ -26,9 +26,7 @@ from ...lib import utils
 # ==============================================================================
 
 
-class ViewAdmin(Handler):
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+class ViewAdmin_List(Handler):
 
     @view_config(
         route_name="admin:unique_fqdn_sets", renderer="/admin/unique_fqdn_sets.mako"
@@ -72,7 +70,8 @@ class ViewAdmin(Handler):
             "pager": pager,
         }
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class ViewAdmin_Focus(Handler):
 
     def _focus(self):
         dbItem = lib_db.get.get__UniqueFQDNSet__by_id(
@@ -81,6 +80,8 @@ class ViewAdmin(Handler):
         if not dbItem:
             raise HTTPNotFound("the fqdn set was not found")
         return dbItem
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
         route_name="admin:unique_fqdn_set:focus",
@@ -135,7 +136,7 @@ class ViewAdmin(Handler):
         route_name="admin:unique_fqdn_set:focus:acme_orders_paginated",
         renderer="/admin/unique_fqdn_set-focus-acme_orders.mako",
     )
-    def focus__acme_orders(self):
+    def related__AcmeOrders(self):
         dbUniqueFQDNSet = self._focus()
         items_count = lib_db.get.get__AcmeOrder__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
@@ -159,37 +160,7 @@ class ViewAdmin(Handler):
             "pager": pager,
         }
 
-    @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificates",
-        renderer="/admin/unique_fqdn_set-focus-certificates.mako",
-    )
-    @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificates_paginated",
-        renderer="/admin/unique_fqdn_set-focus-certificates.mako",
-    )
-    def focus__certificates(self):
-        dbUniqueFQDNSet = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__count(
-            self.request.api_context, dbUniqueFQDNSet.id
-        )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/unique-fqdn-set/%s/certificates/{0}"
-            % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
-        )
-        items_paged = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__paginated(
-            self.request.api_context,
-            dbUniqueFQDNSet.id,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "UniqueFQDNSet": dbUniqueFQDNSet,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
-            "pager": pager,
-        }
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
         route_name="admin:unique_fqdn_set:focus:certificate_requests",
@@ -199,7 +170,7 @@ class ViewAdmin(Handler):
         route_name="admin:unique_fqdn_set:focus:certificate_requests_paginated",
         renderer="/admin/unique_fqdn_set-focus-certificate_requests.mako",
     )
-    def focus__certificate_requests(self):
+    def related__CertificateRequests(self):
         dbUniqueFQDNSet = self._focus()
         items_count = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
@@ -224,6 +195,41 @@ class ViewAdmin(Handler):
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:unique_fqdn_set:focus:certificates",
+        renderer="/admin/unique_fqdn_set-focus-certificates.mako",
+    )
+    @view_config(
+        route_name="admin:unique_fqdn_set:focus:certificates_paginated",
+        renderer="/admin/unique_fqdn_set-focus-certificates.mako",
+    )
+    def related__ServerCertificates(self):
+        dbUniqueFQDNSet = self._focus()
+        items_count = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__count(
+            self.request.api_context, dbUniqueFQDNSet.id
+        )
+        (pager, offset) = self._paginate(
+            items_count,
+            url_template="%s/unique-fqdn-set/%s/certificates/{0}"
+            % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
+        )
+        items_paged = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__paginated(
+            self.request.api_context,
+            dbUniqueFQDNSet.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "UniqueFQDNSet": dbUniqueFQDNSet,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
+            "pager": pager,
+        }
+
+
+class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     @view_config(route_name="admin:unique_fqdn_set:focus:renew:queue", renderer=None)
     @view_config(

@@ -116,9 +116,9 @@ def import_letsencrypt_certs_archive(archive_path, server_url_root):
     :param str archive_path: (required) the path to an archive. usually `/etc/letsencrypt/archive`
     :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
     """
-    if not all((archive_path, server_url_root)) :
+    if not all((archive_path, server_url_root)):
         raise ValueError("must supply all of (archive_path, server_url_root)")
-        
+
     if server_url_root[:4] != "http":
         raise ValueError("`server_url_root` does not look like a url")
 
@@ -182,8 +182,10 @@ def import_letsencrypt_cert_version(
 
     you can import a specific version, for example "3", with this command
     """
-    if not all((domain_certs_path, certificate_version, server_url_root)) :
-        raise ValueError("must supply all of (domain_certs_path, certificate_version, server_url_root)")
+    if not all((domain_certs_path, certificate_version, server_url_root)):
+        raise ValueError(
+            "must supply all of (domain_certs_path, certificate_version, server_url_root)"
+        )
 
     if not certificate_version.isdigit():
         raise ValueError("missing `certificate-version must be a digit`")
@@ -228,7 +230,7 @@ def import_letsencrypt_cert_plain(cert_path, server_url_root):
     :param str cert_path: (required) the path to an archive. usually `/etc/letsencrypt/live/example.com`
     :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
     """
-    if not all((cert_path, server_url_root)) :
+    if not all((cert_path, server_url_root)):
         raise ValueError("must supply all of (cert_path, server_url_root)")
 
     if server_url_root[:4] != "http":
@@ -262,7 +264,7 @@ def import_letsencrypt_certs_live(live_path, server_url_root):
     :param str live_path: (required) the path to an archive. usually `/etc/letsencrypt/live`
     :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
     """
-    if not all((live_path, server_url_root)) :
+    if not all((live_path, server_url_root)):
         raise ValueError("must supply all of (live_path, server_url_root)")
 
     if server_url_root[:4] != "http":
@@ -293,8 +295,7 @@ def import_letsencrypt_certs_live(live_path, server_url_root):
                 fpath = os.path.join(dpath, fname)
                 if not os.path.exists(fpath):
                     raise ValueError(
-                        "`%s` does not look to be a letsencrypt file"
-                        % (fpath)
+                        "`%s` does not look to be a letsencrypt file" % (fpath)
                     )
                 fset[ftype] = fpath
             filesets.append(fset)
@@ -339,7 +340,7 @@ def import_letsencrypt_account(account_path, server_url_root):
     :param str account_path: (required) the path to an archive. usually `//etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`
     :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
     """
-    if not all((account_path, server_url_root)) :
+    if not all((account_path, server_url_root)):
         raise ValueError("must supply all of (account_path, server_url_root)")
 
     if server_url_root[:4] != "http":
@@ -361,7 +362,7 @@ def import_letsencrypt_accounts_server(accounts_path_server, server_url_root):
     :param str accounts_path_server: (required) the path to an archive. usually `//etc/letsencrypt/accounts/{SERVER}`
     :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
     """
-    if not all((accounts_path_server, server_url_root)) :
+    if not all((accounts_path_server, server_url_root)):
         raise ValueError("must supply all of (accounts_path_server, server_url_root)")
 
     if server_url_root[:4] != "http":

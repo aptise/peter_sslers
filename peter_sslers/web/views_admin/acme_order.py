@@ -32,8 +32,6 @@ from ...model import utils as model_utils
 
 class ViewAdmin_List(Handler):
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(route_name="admin:acme_orders", renderer="/admin/acme_orders.mako")
     @view_config(route_name="admin:acme_orders|json", renderer="json")
     @view_config(
@@ -65,6 +63,7 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_Focus(Handler):
+
     def _focus(self, eagerload_web=False):
         dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
             self.request.api_context,
@@ -89,6 +88,9 @@ class ViewAdmin_Focus(Handler):
                 "AcmeOrder": dbAcmeOrder._as_json(admin_url=self.request.admin_url),
             }
         return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
+
+
+class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     @view_config(
         route_name="admin:acme_order:focus:acme_event_logs",
@@ -150,6 +152,8 @@ class ViewAdmin_Focus(Handler):
                 % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
             )
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:acme_order:focus:acme_server_deactivate_authorizations",
         renderer=None,
@@ -180,6 +184,8 @@ class ViewAdmin_Focus(Handler):
                 "%s?error=acme+server+deactivate+authorizations&message=%s"
                 % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
             )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_order:focus:retry", renderer=None)
     def retry_order(self):
@@ -215,6 +221,8 @@ class ViewAdmin_Focus(Handler):
                 "%s?error=retry&message=%s"
                 % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
             )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_order:focus:mark", renderer=None)
     @view_config(route_name="admin:acme_order:focus:mark|json", renderer="json")
@@ -259,6 +267,7 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_New(Handler):
+
     @view_config(route_name="admin:acme_order:new:automated")
     def new_automated(self):
         self._load_AccountKeyDefault()

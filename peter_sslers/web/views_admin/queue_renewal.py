@@ -28,6 +28,7 @@ from ...model import utils as model_utils
 
 
 class ViewList(Handler):
+
     """
     note-
     if a renewal fails, the record is marked with the following:
@@ -160,6 +161,7 @@ class ViewList(Handler):
 
 
 class ViewFocus(Handler):
+
     def _focus(self):
         dbQueueRenewal = lib_db.get.get__QueueRenewal__by_id(
             self.request.api_context, self.request.matchdict["id"], load_events=True
@@ -172,6 +174,8 @@ class ViewFocus(Handler):
             dbQueueRenewal.id,
         )
         return dbQueueRenewal
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
         route_name="admin:queue_renewal:focus",

@@ -31,8 +31,6 @@ from ...model import utils as model_utils
 
 class ViewAdmin_List(Handler):
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @view_config(
         route_name="admin:acme_account_keys", renderer="/admin/acme_account_keys.mako"
     )
@@ -74,6 +72,7 @@ class ViewAdmin_List(Handler):
 
 
 class ViewAdmin_New(Handler):
+
     @view_config(route_name="admin:acme_account_key:upload")
     @view_config(route_name="admin:acme_account_key:upload|json", renderer="json")
     def upload(self):
@@ -190,6 +189,8 @@ class ViewAdmin_Focus(Handler):
             }
         return {"project": "peter_sslers", "AcmeAccountKey": dbAcmeAccountKey}
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:acme_account_key:focus:raw", renderer="string")
     def focus_raw(self):
         dbAcmeAccountKey = self._focus()
@@ -202,6 +203,8 @@ class ViewAdmin_Focus(Handler):
             self.request.response.content_type = "application/pkcs8"
             as_der = cert_utils.convert_pem_to_der(pem_data=dbAcmeAccountKey.key_pem)
             return as_der
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_account_key:focus:parse|json", renderer="json")
     def focus_parse_json(self):
@@ -225,6 +228,106 @@ class ViewAdmin_Focus(Handler):
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_authorizations",
+        renderer="/admin/acme_account_key-focus-acme_authorizations.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_authorizations_paginated",
+        renderer="/admin/acme_account_key-focus-acme_authorizations.mako",
+    )
+    def related__AcmeAuthorizations(self):
+        dbAcmeAccountKey = self._focus()
+        auth_status = self.request.params.get("authorization-status")
+        only_pending = True if (auth_status == "pending") else None
+        items_count = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__count(
+            self.request.api_context, dbAcmeAccountKey.id
+        )
+        url_template = "%s/acme-authorizations/{0}" % (self._focus_url)
+        if only_pending:
+            url_template += "?authorization-status=pending"
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
+            self.request.api_context,
+            dbAcmeAccountKey.id,
+            only_pending=only_pending,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeAccountKey": dbAcmeAccountKey,
+            "AcmeAuthorizations_count": items_count,
+            "AcmeAuthorizations": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_orders",
+        renderer="/admin/acme_account_key-focus-acme_orders.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_orders_paginated",
+        renderer="/admin/acme_account_key-focus-acme_orders.mako",
+    )
+    def related__AcmeOrders(self):
+        dbAcmeAccountKey = self._focus()
+        items_count = lib_db.get.get__AcmeOrder__by_AcmeAccountKeyId__count(
+            self.request.api_context, dbAcmeAccountKey.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/acme-orders/{0}" % (self._focus_url)
+        )
+        items_paged = lib_db.get.get__AcmeOrder__by_AcmeAccountKeyId__paginated(
+            self.request.api_context,
+            dbAcmeAccountKey.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeAccountKey": dbAcmeAccountKey,
+            "AcmeOrders_count": items_count,
+            "AcmeOrders": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account_key:focus:certificates",
+        renderer="/admin/acme_account_key-focus-certificates.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account_key:focus:certificates_paginated",
+        renderer="/admin/acme_account_key-focus-certificates.mako",
+    )
+    def related__SeverCertificates(self):
+        dbAcmeAccountKey = self._focus()
+        items_count = lib_db.get.get__ServerCertificate__by_AcmeAccountKeyId__count(
+            self.request.api_context, dbAcmeAccountKey.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/certificates/{0}" % (self._focus_url)
+        )
+        items_paged = lib_db.get.get__ServerCertificate__by_AcmeAccountKeyId__paginated(
+            self.request.api_context,
+            dbAcmeAccountKey.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeAccountKey": dbAcmeAccountKey,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
+            "pager": pager,
+        }
+
+
+class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     @view_config(route_name="admin:acme_account_key:focus:authenticate", renderer=None)
     @view_config(
@@ -262,105 +365,6 @@ class ViewAdmin_Focus(Handler):
         return HTTPSeeOther(
             "%s?result=success&is_authenticated=%s" % (self._focus_url, True)
         )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:acme_account_key:focus:acme_authorizations",
-        renderer="/admin/acme_account_key-focus-acme_authorizations.mako",
-    )
-    @view_config(
-        route_name="admin:acme_account_key:focus:acme_authorizations_paginated",
-        renderer="/admin/acme_account_key-focus-acme_authorizations.mako",
-    )
-    def focus__AcmeAuthorizations(self):
-        dbAcmeAccountKey = self._focus()
-        auth_status = self.request.params.get("authorization-status")
-        only_pending = True if (auth_status == "pending") else None
-        items_count = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__count(
-            self.request.api_context, dbAcmeAccountKey.id
-        )
-        url_template = "%s/acme-authorizations/{0}" % (self._focus_url)
-        if only_pending:
-            url_template += "?authorization-status=pending"
-        (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
-            self.request.api_context,
-            dbAcmeAccountKey.id,
-            only_pending=only_pending,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "AcmeAccountKey": dbAcmeAccountKey,
-            "AcmeAuthorizations_count": items_count,
-            "AcmeAuthorizations": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    @view_config(
-        route_name="admin:acme_account_key:focus:acme_orders",
-        renderer="/admin/acme_account_key-focus-acme_orders.mako",
-    )
-    @view_config(
-        route_name="admin:acme_account_key:focus:acme_orders_paginated",
-        renderer="/admin/acme_account_key-focus-acme_orders.mako",
-    )
-    def focus__AcmeOrders(self):
-        dbAcmeAccountKey = self._focus()
-        items_count = lib_db.get.get__AcmeOrder__by_AcmeAccountKeyId__count(
-            self.request.api_context, dbAcmeAccountKey.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-orders/{0}" % (self._focus_url)
-        )
-        items_paged = lib_db.get.get__AcmeOrder__by_AcmeAccountKeyId__paginated(
-            self.request.api_context,
-            dbAcmeAccountKey.id,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "AcmeAccountKey": dbAcmeAccountKey,
-            "AcmeOrders_count": items_count,
-            "AcmeOrders": items_paged,
-            "pager": pager,
-        }
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:acme_account_key:focus:certificates",
-        renderer="/admin/acme_account_key-focus-certificates.mako",
-    )
-    @view_config(
-        route_name="admin:acme_account_key:focus:certificates_paginated",
-        renderer="/admin/acme_account_key-focus-certificates.mako",
-    )
-    def focus__certificates(self):
-        dbAcmeAccountKey = self._focus()
-        items_count = lib_db.get.get__ServerCertificate__by_AcmeAccountKeyId__count(
-            self.request.api_context, dbAcmeAccountKey.id
-        )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/certificates/{0}" % (self._focus_url)
-        )
-        items_paged = lib_db.get.get__ServerCertificate__by_AcmeAccountKeyId__paginated(
-            self.request.api_context,
-            dbAcmeAccountKey.id,
-            limit=items_per_page,
-            offset=offset,
-        )
-        return {
-            "project": "peter_sslers",
-            "AcmeAccountKey": dbAcmeAccountKey,
-            "ServerCertificates_count": items_count,
-            "ServerCertificates": items_paged,
-            "pager": pager,
-        }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
