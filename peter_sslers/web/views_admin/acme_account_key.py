@@ -296,11 +296,11 @@ class ViewAdmin_Focus(Handler):
 
     @view_config(
         route_name="admin:acme_account_key:focus:server_certificates",
-        renderer="/admin/acme_account_key-focus-certificates.mako",
+        renderer="/admin/acme_account_key-focus-server_certificates.mako",
     )
     @view_config(
-        route_name="admin:acme_account_key:focus:certificates_paginated",
-        renderer="/admin/acme_account_key-focus-certificates.mako",
+        route_name="admin:acme_account_key:focus:server_certificates_paginated",
+        renderer="/admin/acme_account_key-focus-server_certificates.mako",
     )
     def related__SeverCertificates(self):
         dbAcmeAccountKey = self._focus()

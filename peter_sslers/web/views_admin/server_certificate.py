@@ -39,11 +39,12 @@ class ViewAdmin_List(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:server_certificates", renderer="/admin/certificates.mako"
+        route_name="admin:server_certificates",
+        renderer="/admin/server_certificates.mako",
     )
     @view_config(
         route_name="admin:server_certificates_paginated",
-        renderer="/admin/certificates.mako",
+        renderer="/admin/server_certificates.mako",
     )
     @view_config(
         route_name="admin:server_certificates:active",
@@ -208,7 +209,9 @@ class ViewAdmin_New(Handler):
                     "certificate_file": "required",
                 },
             }
-        return render_to_response("/admin/certificate-upload.mako", {}, self.request)
+        return render_to_response(
+            "/admin/server_certificate-upload.mako", {}, self.request
+        )
 
     def _upload__submit(self):
         try:
@@ -309,7 +312,7 @@ class ViewAdmin_Focus(Handler):
 
     @view_config(
         route_name="admin:server_certificate:focus",
-        renderer="/admin/certificate-focus.mako",
+        renderer="/admin/server_certificate-focus.mako",
     )
     @view_config(route_name="admin:server_certificate:focus|json", renderer="json")
     def focus(self):
@@ -678,5 +681,61 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 self._focus_url,
                 action,
                 str(exc),
+            )
+            raise HTTPSeeOther(url_failure)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:server_certificate:focus:renew:queue", renderer=None)
+    @view_config(
+        route_name="admin:server_certificate:focus:renew:queue|json", renderer="json"
+    )
+    def focus_renew_queue(self):
+        """this endpoint is for adding the certificate to the renewal queue immediately"""
+        dbServerCertificate = self._focus()
+        try:
+            # first check to see if this is already queued
+            dbQueued = lib_db.get.get__QueueRenewal__by_UniqueFQDNSetId__active(
+                self.request.api_context, dbServerCertificate.unique_fqdn_set_id
+            )
+            if dbQueued:
+                raise errors.DisplayableError(
+                    "There is an existing entry in the queue for this certificate's FQDN set.".replace(
+                        " ", "+"
+                    )
+                )
+
+            # okay, we're good to go...'
+            event_type = model_utils.OperationsEventType.from_string(
+                "queue_renewal__update"
+            )
+            event_payload_dict = utils.new_event_payload_dict()
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
+                self.request.api_context, event_type, event_payload_dict
+            )
+            dbQueue = lib_db.create._create__QueueRenewal(
+                self.request.api_context, dbServerCertificate
+            )
+            event_payload_dict["ssl_certificate-queued.ids"] = str(
+                dbServerCertificate.id
+            )
+            event_payload_dict["sql_queue_renewals.ids"] = str(dbQueue.id)
+            dbOperationsEvent.set_event_payload(event_payload_dict)
+            self.request.api_context.dbSession.flush(objects=[dbOperationsEvent])
+
+            if self.request.wants_json:
+                return {"status": "success", "queue_item": dbQueue.id}
+            url_success = (
+                "%s?operation=renewal&renewal_type=queue&success=%s&result=success"
+                % (self._focus_url, dbQueue.id)
+            )
+            return HTTPSeeOther(url_success)
+
+        except errors.DisplayableError as exc:
+            if self.request.wants_json:
+                return {"status": "error", "error": str(exc)}
+            url_failure = (
+                "%s?operation=renewal&renewal_type=queue&error=%s&result=error"
+                % (self._focus_url, str(exc))
             )
             raise HTTPSeeOther(url_failure)

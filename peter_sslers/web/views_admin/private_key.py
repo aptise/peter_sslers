@@ -164,11 +164,11 @@ class ViewAdmin_Focus(Handler):
 
     @view_config(
         route_name="admin:private_key:focus:server_certificates",
-        renderer="/admin/private_key-focus-certificates.mako",
+        renderer="/admin/private_key-focus-server_certificates.mako",
     )
     @view_config(
-        route_name="admin:private_key:focus:certificates_paginated",
-        renderer="/admin/private_key-focus-certificates.mako",
+        route_name="admin:private_key:focus:server_certificates_paginated",
+        renderer="/admin/private_key-focus-server_certificates.mako",
     )
     def related__ServerCertificates(self):
         dbPrivateKey = self._focus()

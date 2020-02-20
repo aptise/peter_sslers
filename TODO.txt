@@ -10,6 +10,10 @@ Almost done:
 * a few pyramid-centric lines of code exist in the global lib. they have to do with 'request.registry.settings.
 * Python3 tests
 
+certificate renewal
+	- object should show if we can renew with account key
+
+
 Potential Routes:
 -----------------
 	/.well-known/admin/acme-order/{id}/acme-challenges

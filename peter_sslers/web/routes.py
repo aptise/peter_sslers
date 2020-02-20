@@ -93,7 +93,7 @@ def _admin_views(config):
         "/acme-account-key/{@id}/server-certificates",
     )
     config.add_route_7(
-        "admin:acme_account_key:focus:certificates_paginated",
+        "admin:acme_account_key:focus:server_certificates_paginated",
         "/acme-account-key/{@id}/server-certificates/{@page}",
     )
     config.add_route_7(
@@ -486,7 +486,7 @@ def _admin_views(config):
         "/domain/{domain_identifier}/server-certificates",
     )
     config.add_route_7(
-        "admin:domain:focus:certificates_paginated",
+        "admin:domain:focus:server_certificates_paginated",
         "/domain/{domain_identifier}/server-certificates/{@page}",
     )
     config.add_route_7(
@@ -571,7 +571,7 @@ def _admin_views(config):
         "/private-key/{@id}/server-certificates",
     )
     config.add_route_7(
-        "admin:private_key:focus:certificates_paginated",
+        "admin:private_key:focus:server_certificates_paginated",
         "/private-key/{@id}/server-certificates/{@page}",
     )
     config.add_route_7(
@@ -811,7 +811,7 @@ def _admin_views(config):
         "/unique-fqdn-set/{@id}/server-certificates",
     )
     config.add_route_7(
-        "admin:unique_fqdn_set:focus:certificates_paginated",
+        "admin:unique_fqdn_set:focus:server_certificates_paginated",
         "/unique-fqdn-set/{@id}/server-certificates/{@page}",
     )
     config.add_route_7(

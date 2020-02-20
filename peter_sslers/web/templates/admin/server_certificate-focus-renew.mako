@@ -17,7 +17,7 @@
 
 
 <%block name="page_header_col">
-    <h2>Certificate - Focus - RENEW</h2>
+    <h2>ServerCertificate - Focus - RENEW</h2>
 </%block>
 
 

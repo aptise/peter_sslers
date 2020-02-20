@@ -16,7 +16,7 @@
 
 
 <%block name="page_header_col">
-    <h2>Certificate - Focus</h2>
+    <h2>ServerCertificate - Focus</h2>
     ${admin_partials.standard_error_display()}
 
     <%

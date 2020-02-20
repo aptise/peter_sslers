@@ -196,11 +196,11 @@ class ViewAdmin_Focus(Handler):
 
     @view_config(
         route_name="admin:unique_fqdn_set:focus:server_certificates",
-        renderer="/admin/unique_fqdn_set-focus-certificates.mako",
+        renderer="/admin/unique_fqdn_set-focus-server_certificates.mako",
     )
     @view_config(
-        route_name="admin:unique_fqdn_set:focus:certificates_paginated",
-        renderer="/admin/unique_fqdn_set-focus-certificates.mako",
+        route_name="admin:unique_fqdn_set:focus:server_certificates_paginated",
+        renderer="/admin/unique_fqdn_set-focus-server_certificates.mako",
     )
     def related__ServerCertificates(self):
         dbUniqueFQDNSet = self._focus()

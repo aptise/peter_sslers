@@ -469,11 +469,11 @@ class ViewAdmin_Focus(Handler):
 
     @view_config(
         route_name="admin:domain:focus:server_certificates",
-        renderer="/admin/domain-focus-certificates.mako",
+        renderer="/admin/domain-focus-server_certificates.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:certificates_paginated",
-        renderer="/admin/domain-focus-certificates.mako",
+        route_name="admin:domain:focus:server_certificates_paginated",
+        renderer="/admin/domain-focus-server_certificates.mako",
     )
     def related__ServerCertificates(self):
         dbDomain = self._focus()
