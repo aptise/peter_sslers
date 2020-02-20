@@ -39,9 +39,19 @@
             <h4>Core Objects</h4>
             <table class="table table-striped table-condensed">
                 <tr>
-                    <th>AccountKey</th>
-                    <td>An RSA Key that is registered with the LetsEncrypt service.
-                        The <em>AccountKey</em> is only used for Authorization with the LetsEncrypt service.
+                    <th>AcmeOrder</th>
+                    <td>An <em>AcmeOrder</em>  is used to request a new signed certificate for your server.
+                    </td>
+                </tr>
+                <tr>
+                    <th>UniqueFQDNSet</th>
+                    <td>An <em>UniqueFQDNSet</em>  is a unique grouping of <en>Domains</em>.
+                    </td>
+                </tr>
+                <tr>
+                    <th>AcmeAccountKey</th>
+                    <td>A Secret Key that is registered with the LetsEncrypt service.
+                        The <em>AcmeAccountKey</em> is only used for Authentication against the LetsEncrypt service.
                     </td>
                 </tr>
                 <tr>
@@ -54,6 +64,7 @@
                     <th>CertificateRequest</th>
                     <td>In order to get a <em>ServerCertificate</em> you create a <em>CertificateRequest</em> and sign it with your <em>PrivateKey</em>.
                         It is generally not needed after a <em>ServerCertificate</em> is issued.
+                        A <em>CertificateRequest</em> will be created when an <em>AcmeOrder</em> is successful.
                     </td>
                 </tr>
                 <tr>
@@ -64,7 +75,7 @@
                 </tr>
                 <tr>
                     <th>CACertificate</th>
-                    <td>A trusted Certificate Authority Certificate, used to sign your <em>ServerCertificate<em>.
+                    <td>A trusted Certificate Authority Certificate, used to sign your <em>ServerCertificate</em>.
                         It must be installed on your webserver in order to serve https content.
                     </td>
                 </tr>

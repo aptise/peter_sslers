@@ -155,6 +155,7 @@
                 <li>
                     <a  href="${admin_prefix}/acme-order/new/automated"
                         title="${request.text_library.info_AcmeOrder_new_Automated[0]}"
+                        class="btn btn-primary"
                     >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                     New ACME Order: Automated</a></li>
@@ -162,6 +163,7 @@
                     <li>
                         <a  href="${admin_prefix}/acme-orderless/new"
                             title="${request.text_library.info_AcmeOrderless_new[0]}"
+                            class="btn btn-primary"
                         >
                         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                         New: AcmeOrderless Flow</a></li>
