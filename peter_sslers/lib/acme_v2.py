@@ -358,10 +358,28 @@ class AuthenticatedUser(object):
             _result, _, _ = self._send_signed_request(_url, payload=None,)
         return _result
 
-    def authenticate(self, ctx, contact=None):
+    def update_contact(self, ctx, contact=None):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
         :param contact: (optional) The updated contact info
+        :param is_registration: (optional) Boolean
+        """
+        payload_contact = {"contact": contact}
+        (acme_account_object, _, _) = self._send_signed_request(
+            self._api_account_headers["Location"], payload=payload_contact,
+        )
+        self._api_account_object = acme_account_object
+        log.info(
+            "acme_v2 Updated contact details:\n{0}".format(
+                "\n".join(acme_account_object["contact"])
+            )
+        )
+
+
+    def authenticate(self, ctx, contact=None):
+        """
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param contact: (optional) The contact info
 
         returns:
             acme_account_object - ACME Server account object
@@ -464,6 +482,11 @@ class AuthenticatedUser(object):
             payload_registration = {
                 "termsOfServiceAgreed": True,
             }
+            if contact is not None:
+                # contact should be a LIST of URI
+                if "@" in contact and (not contact.startswith("mailto:")):
+                    contact = "mailto:%s" % contact
+                payload_registration['contact'] = [contact, ]
             (
                 acme_account_object,
                 code,
@@ -473,38 +496,26 @@ class AuthenticatedUser(object):
             )
             self._api_account_object = acme_account_object
             self._api_account_headers = acme_account_headers
+            
+            log.info("acme_v2 Registered!" if code == 201 else "Already registered!")
+
+            # this would raise if we couldn't authenticate
+            self.acmeAccountKey.timestamp_last_authenticated = ctx.timestamp
+            ctx.dbSession.flush(objects=[self.acmeAccountKey])
+
+            # log this
+            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict["acme_account_key.id"] = self.acmeAccountKey.id
+            dbOperationsEvent = self.log__OperationsEvent(
+                ctx,
+                model_utils.OperationsEventType.from_string(
+                    "acme_account_key__authenticate"
+                ),
+                event_payload_dict,
+            )
         except Exception as exc:
-            pdb.set_trace()
             raise
 
-        log.info("acme_v2 Registered!" if code == 201 else "Already registered!")
-        if contact is not None:
-            raise ValueError("todo: log this")
-            payload_contact = {"contact": contact}
-            (acme_account_object, _, _) = self._send_signed_request(
-                acme_account_headers["Location"], payload=payload_contact,
-            )
-            self._api_account_object = acme_account_object
-            log.info(
-                "acme_v2 Updated contact details:\n{0}".format(
-                    "\n".join(acme_account_object["contact"])
-                )
-            )
-
-        # this would raise if we couldn't authenticate
-        self.acmeAccountKey.timestamp_last_authenticated = ctx.timestamp
-        ctx.dbSession.flush(objects=[self.acmeAccountKey])
-
-        # log this
-        event_payload_dict = utils.new_event_payload_dict()
-        event_payload_dict["acme_account_key.id"] = self.acmeAccountKey.id
-        dbOperationsEvent = self.log__OperationsEvent(
-            ctx,
-            model_utils.OperationsEventType.from_string(
-                "acme_account_key__authenticate"
-            ),
-            event_payload_dict,
-        )
 
     def acme_order_load(self, ctx, dbAcmeOrder, transaction_commit=None):
         """

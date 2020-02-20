@@ -55,6 +55,14 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_account_keys_paginated|json", "/acme-account-keys/{@page}.json"
     )
+    config.add_route_7("admin:acme_account_key:upload", "/acme-account-key/upload")
+    config.add_route_7(
+        "admin:acme_account_key:upload|json", "/acme-account-key/upload.json"
+    )
+    config.add_route_7("admin:acme_account_key:new", "/acme-account-key/new")
+    config.add_route_7(
+        "admin:acme_account_key:new|json", "/acme-account-key/new.json"
+    )
 
     # !!!: AcmeAccountKey - Focus
     config.add_route_7("admin:acme_account_key:focus", "/acme-account-key/{@id}")
@@ -109,10 +117,6 @@ def _admin_views(config):
     )
     config.add_route_7(
         "admin:acme_account_key:focus:mark|json", "/acme-account-key/{@id}/mark.json"
-    )
-    config.add_route_7("admin:acme_account_key:upload", "/acme-account-key/upload")
-    config.add_route_7(
-        "admin:acme_account_key:upload|json", "/acme-account-key/upload.json"
     )
 
     # !!!: AcmeAuthorizations

@@ -34,6 +34,45 @@ from .logger import _log_object_event
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def do__AcmeAccountKey_AcmeV2_register(
+    ctx, dbAcmeAccountKey, account_key_path=None,
+):
+    """
+    Registers an AcmeAccountKey against the LetsEncrypt ACME Server
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccountKey`
+
+    !!! WARNING !!!
+
+    If `account_key_path` is not provided, the ACME library will be unable to perform any operations after authentication.
+    """
+    _tmpfile = None
+    try:
+        if not dbAcmeAccountKey.contact:
+            raise ValueError("no `contact`")
+            
+        if account_key_path is None:
+            _tmpfile = cert_utils.new_pem_tempfile(dbAcmeAccountKey.key_pem)
+            account_key_path = _tmpfile.name
+        
+        acmeLogger = AcmeLogger(ctx, dbAcmeAccountKey=dbAcmeAccountKey)
+
+        # create account, update contact details (if any), and set the global key identifier
+        # result is either: `new-account` or `existing-account`
+        # failing will raise an exception
+        authenticatedUser = acme_v2.AuthenticatedUser(
+            acmeLogger=acmeLogger,
+            acmeAccountKey=dbAcmeAccountKey,
+            account_key_path=account_key_path,
+            log__OperationsEvent=log__OperationsEvent,
+        )
+        authenticatedUser.authenticate(ctx, contact=dbAcmeAccountKey.contact)
+        return authenticatedUser
+    except:
+        raise
+
 def do__AcmeAccountKey_AcmeV2_authenticate(
     ctx, dbAcmeAccountKey, account_key_path=None,
 ):

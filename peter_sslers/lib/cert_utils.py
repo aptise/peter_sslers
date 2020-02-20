@@ -770,8 +770,17 @@ def parse_cert__dates(cert_pem=None, pem_filepath=None):
             tmpfile_pem.close()
 
 
+def new_account_key(bits=2048):
+    return new_rsa_key(bits=bits)
+
+
 def new_private_key(bits=4096):
+    return new_rsa_key(bits=bits)
+
+
+def new_rsa_key(bits=4096):
     # openssl genrsa 4096 > domain.key
+    bits = str(bits)
     with psutil.Popen(
         [openssl_path, "genrsa", bits],
         stdout=subprocess.PIPE,

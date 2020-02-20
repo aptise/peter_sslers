@@ -15,6 +15,7 @@ import sqlalchemy
 from .. import lib
 from ..lib import formhandling
 from ..lib import text as lib_text
+from ..lib.forms import Form_AcmeAccountKey_new__auth
 from ..lib.forms import Form_AcmeAccountKey_new__file
 from ..lib.forms import Form_AcmeAccountKey_mark
 from ..lib.form_utils import AccountKeyUploadParser
@@ -93,6 +94,7 @@ class ViewAdmin_New(Handler):
                     "account_key_file_le_meta": "Group B",
                     "account_key_file_le_pkey": "Group B",
                     "account_key_file_le_reg": "Group B",
+                    "contact": "acme contact",
                 },
                 "notes": ["You must submit ALL items from Group A or Group B"],
                 "valid_options": {
@@ -121,7 +123,7 @@ class ViewAdmin_New(Handler):
             parser = AccountKeyUploadParser(formStash)
             parser.require_upload()
             key_create_args = parser.getcreate_args
-
+            key_create_args["event_type"] = "acme_account_key__insert"
             (
                 dbAcmeAccountKey,
                 _is_created,
@@ -150,6 +152,100 @@ class ViewAdmin_New(Handler):
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._upload__print)
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:acme_account_key:new")
+    @view_config(route_name="admin:acme_account_key:new|json", renderer="json")
+    def new(self):
+        if self.request.method == "POST":
+            return self._new__submit()
+        return self._new__print()
+
+    def _new__print(self):
+        if self.request.wants_json:
+            return {
+                "instructions": [
+                    """curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/acme-account-key/new.json"""
+                    % self.request.admin_url,
+                ],
+                "form_fields": {
+                    "acme_account_provider_id": "which provider",
+                    "contact": "acme contact",
+                },
+                "notes": [""],
+                "valid_options": {
+                    "acme_account_provider_id": {
+                        v["id"]: v["name"]
+                        for v in model_utils.AcmeAccountProvider.registry.values()
+                    }
+                },
+            }
+        # quick setup, we need a bunch of options for dropdowns...
+        providers = [i for i in model_utils.AcmeAccountProvider.registry.values() if i['is_enabled']]
+        return render_to_response(
+            "/admin/acme_account_key-new.mako",
+            {"AcmeAccountProviderOptions": providers},
+            self.request,
+        )
+
+    def _new__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_AcmeAccountKey_new__auth, validate_get=False
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            acme_account_provider_id = formStash.results['acme_account_provider_id']
+            if (
+                acme_account_provider_id
+                not in model_utils.AcmeAccountProvider.registry.keys()
+            ):
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="acme_account_provider_id",
+                    message="Invalid provider submitted.",
+                )
+
+            parser = AccountKeyUploadParser(formStash)
+            parser.require_new()
+            key_create_args = parser.getcreate_args
+            key_pem = cert_utils.new_account_key(bits=2048)
+            key_create_args["key_pem"] = key_pem
+            key_create_args["event_type"] = "acme_account_key__create"
+            (
+                dbAcmeAccountKey,
+                _is_created,
+            ) = lib_db.getcreate.getcreate__AcmeAccountKey(
+                self.request.api_context, **key_create_args
+            )
+
+            # result is either: `new-account` or `existing-account`
+            # failing will raise an exception
+            authenticatedUser = lib_db.actions_acme.do__AcmeAccountKey_AcmeV2_register(
+                self.request.api_context, dbAcmeAccountKey
+            )
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "AcmeAccountKey": dbAcmeAccountKey.as_json,
+                    "is_created": True if _is_created else False,
+                    "is_existing": False if _is_created else True,
+                }
+            return HTTPSeeOther(
+                "%s/acme-account-key/%s?result=success%s"
+                % (
+                    self.request.admin_url,
+                    dbAcmeAccountKey.id,
+                    ("&is_created=1" if _is_created else "&is_existing=1"),
+                )
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._new__print)
 
 class ViewAdmin_Focus(Handler):
     def _focus(self, eagerload_web=False):

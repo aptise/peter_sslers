@@ -39,6 +39,8 @@ def getcreate__AcmeAccountKey(
     le_pkey_jsons=None,
     le_reg_jsons=None,
     acme_account_provider_id=None,
+    contact=None,
+    event_type="acme_account_key__insert",
 ):
     """
     Gets or Creates AccountKeys for LetsEncrypts' ACME server
@@ -56,6 +58,7 @@ def getcreate__AcmeAccountKey(
     :param le_reg_jsons: (optional) data from certbot account key format
         if not provided, `key_pem` must be supplied
     :param acme_account_provider_id: (optional) id corresponding to a :class:`model.utils.AcmeAccountProvider` server
+    :param contact: (optional) contact info from acme server
     """
     is_created = False
     if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
@@ -66,6 +69,8 @@ def getcreate__AcmeAccountKey(
         raise ValueError(
             "Must supply `key_pem` OR all of `le_meta_jsons, le_pkey_jsons, le_reg_jsons`."
         )
+    if event_type not in ('acme_account_key__create', 'acme_account_key__insert'):
+        raise ValueError("invalid event_type")
 
     if key_pem:
         key_pem = cert_utils.cleanup_pem_text(key_pem)
@@ -100,7 +105,7 @@ def getcreate__AcmeAccountKey(
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(
                 ctx,
-                model_utils.OperationsEventType.from_string("acme_account_key__insert"),
+                model_utils.OperationsEventType.from_string(event_type),
             )
 
             dbAcmeAccountKey = model_objects.AcmeAccountKey()
@@ -110,6 +115,7 @@ def getcreate__AcmeAccountKey(
             dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
             dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent.id
             dbAcmeAccountKey.acme_account_provider_id = acme_account_provider_id
+            dbAcmeAccountKey.contact = contact
             ctx.dbSession.add(dbAcmeAccountKey)
             ctx.dbSession.flush(objects=[dbAcmeAccountKey])
             is_created = True
@@ -121,9 +127,7 @@ def getcreate__AcmeAccountKey(
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    "acme_account_key__insert"
-                ),
+                event_status_id=model_utils.OperationsObjectEventStatus.from_string(event_type),
                 dbAcmeAccountKey=dbAcmeAccountKey,
             )
     else:
@@ -186,7 +190,7 @@ def getcreate__AcmeAccountKey(
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(
                 ctx,
-                model_utils.OperationsEventType.from_string("acme_account_key__insert"),
+                model_utils.OperationsEventType.from_string(event_type),
             )
 
             dbAcmeAccountKey = model_objects.AcmeAccountKey()
@@ -197,6 +201,7 @@ def getcreate__AcmeAccountKey(
             dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent.id
             dbAcmeAccountKey.acme_account_provider_id = acme_account_provider_id
             dbAcmeAccountKey.letsencrypt_data = letsencrypt_data
+            dbAcmeAccountKey.contact = contact
 
             ctx.dbSession.add(dbAcmeAccountKey)
             ctx.dbSession.flush(objects=[dbAcmeAccountKey])
@@ -209,9 +214,7 @@ def getcreate__AcmeAccountKey(
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    "acme_account_key__insert"
-                ),
+                event_status_id=model_utils.OperationsObjectEventStatus.from_string(event_type),
                 dbAcmeAccountKey=dbAcmeAccountKey,
             )
 

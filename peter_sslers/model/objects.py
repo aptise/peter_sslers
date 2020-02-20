@@ -121,6 +121,7 @@ class AcmeAccountKey(Base):
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
     letsencrypt_data = sa.Column(sa.Text, nullable=True)
+    contact = sa.Column(sa.Unicode(255), nullable=True)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

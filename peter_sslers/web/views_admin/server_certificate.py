@@ -901,6 +901,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             )
             if accountKeySelection.selection == "upload":
                 key_create_args = accountKeySelection.upload_parsed.getcreate_args
+                key_create_args["event_type"] = "acme_account_key__insert"
                 (
                     dbAcmeAccountKey,
                     _is_created,

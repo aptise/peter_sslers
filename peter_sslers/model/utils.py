@@ -136,6 +136,7 @@ class _OperationsUnified(_mixin_mapping):
 
     _mapping = {
         110: "acme_account_key__insert",
+        111: "acme_account_key__create",
         120: "acme_account_key__authenticate",
         130: "acme_account_key__mark",
         131: "acme_account_key__mark__active",
@@ -240,6 +241,7 @@ class AcmeAccountProvider:
             "is_default": None,
             "protocol": None,
             "directory": None,
+            "is_enabled": True,
         },
         1: {
             "id": 1,
@@ -266,6 +268,7 @@ class AcmeAccountProvider:
             "directory": "https://acme-v02.api.letsencrypt.org/directory",
             "is_default": None,
             "protocol": "acme-v2",
+            "is_enabled": True,
         },
         4: {
             "id": 4,
@@ -274,6 +277,7 @@ class AcmeAccountProvider:
             "directory": "https://acme-staging-v02.api.letsencrypt.org/directory",
             "is_default": None,
             "protocol": "acme-v2",
+            "is_enabled": True,
         },
     }
 

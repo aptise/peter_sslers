@@ -266,6 +266,7 @@ class AppTest(AppTestCore):
                     self.ctx,
                     key_pem,
                     acme_account_provider_id=DEFAULT_acme_account_provider_id,
+                    event_type="acme_account_key__insert",
                 )
                 # print(_key_account1, _is_created)
                 # self.ctx.pyramid_transaction_commit()

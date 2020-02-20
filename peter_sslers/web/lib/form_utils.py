@@ -29,6 +29,43 @@ class AccountKeyUploadParser(object):
         self.formStash = formStash
         self.getcreate_args = {}
 
+    def require_new(self):
+        formStash = self.formStash
+        acme_account_provider_id = formStash.results.get(
+            "acme_account_provider_id", None
+        )
+        if acme_account_provider_id is None:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="acme_account_provider_id", message="No provider submitted."
+            )
+        if (
+            acme_account_provider_id
+            not in model_utils.AcmeAccountProvider.registry.keys()
+        ):
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="acme_account_provider_id",
+                message="Invalid provider submitted.",
+            )
+
+        if not model_utils.AcmeAccountProvider.registry[acme_account_provider_id]['is_enabled']:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="acme_account_provider_id",
+                message="This provider is no longer enabled.",
+            )
+
+        getcreate_args = {
+            'acme_account_provider_id': acme_account_provider_id,
+            'contact': formStash.results["contact"],
+        }
+        if six.PY3:
+            for (k, v) in list(getcreate_args.items()):
+                if isinstance(v, bytes):
+                    getcreate_args[k] = v.decode("utf8")
+        self.getcreate_args = getcreate_args
+
     def require_upload(self):
         formStash = self.formStash
 
@@ -94,6 +131,9 @@ class AccountKeyUploadParser(object):
                 )
 
         getcreate_args = {}
+        if formStash.results["contact"] is not None:
+            getcreate_args['contact'] = formStash.results["contact"]
+
         if formStash.results["account_key_file_pem"] is not None:
             self.upload_type = "pem"
             self.acme_account_provider_id = getcreate_args[

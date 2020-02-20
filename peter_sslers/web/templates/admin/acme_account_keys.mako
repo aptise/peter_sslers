@@ -29,6 +29,13 @@
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
         Upload: New</a>
+
+        <a  href="${admin_prefix}/acme-account-key/new"
+            title="New"
+            class="btn btn-xs btn-primary"
+        >
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+        New Acme Account</a>
     </p>
 </%block>
 
@@ -67,7 +74,7 @@
                                         <span class="label label-success">default</span>
                                     % endif
                                 </td>
-                                <td>${key.acme_account_provider}</td>
+                                <td><span class="label label-default">${key.acme_account_provider}</span></td>
                                 <td><timestamp>${key.timestamp_created}</timestamp></td>
                                 <td><code>${key.key_pem_md5}</code></td>
                                 <td><span class="badge">${key.count_certificate_requests or ''}</span></td>

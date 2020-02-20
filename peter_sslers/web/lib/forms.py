@@ -83,12 +83,18 @@ class _Form_Schema_Base(_FormSchema):
     filter_extra_fields = True
 
 
+class Form_AcmeAccountKey_new__auth(_Form_Schema_Base):
+    acme_account_provider_id = Int(not_empty=True, if_missing=None)
+    contact = UnicodeString(not_empty=True, if_missing=None) # use it or don't
+
+
 class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
     """
     copied into a few other forms
         * Form_Certificate_Renewal_Custom
         * Form_AcmeOrder_new_automated
     """
+    contact = UnicodeString(not_empty=False, if_missing=None) # use it or don't
 
     # if this isn't provided...
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)

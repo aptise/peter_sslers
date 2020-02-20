@@ -56,7 +56,8 @@
                         <td><timestamp>${AcmeAccountKey.timestamp_last_authenticated or ''}</timestamp>
                             <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/authenticate" method="POST">
                                 <button class="btn btn-xs btn-primary" type="submit">
-                                    authenticate against LetsEncrypt
+                                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                    Authenticate Against ACME Server
                                 </button>
                             </form>
                         </td>
@@ -132,6 +133,10 @@
                                 ${AcmeAccountKey.acme_account_provider}
                             </a>
                         </td>
+                    </tr>
+                    <tr>
+                        <th>contact</th>
+                        <td><code>${AcmeAccountKey.contact or ''}</code></td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
