@@ -69,7 +69,7 @@
                                         href="${admin_prefix}/server-certificate/${d.server_certificate_id__latest_multi}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        cert-${d.server_certificate_id__latest_multi}</a>
+                                        ServerCertificate-${d.server_certificate_id__latest_multi}</a>
                                     <timestamp>${d.server_certificate__latest_multi.timestamp_expires}</timestamp>
                                     <span class="label label-${d.server_certificate__latest_multi.expiring_days_label}">${d.server_certificate__latest_multi.expiring_days} days</span>
                                 % endif
@@ -80,7 +80,7 @@
                                         href="${admin_prefix}/server-certificate/${d.server_certificate_id__latest_single}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        cert-${d.server_certificate_id__latest_single}</a>
+                                        ServerCertificate-${d.server_certificate_id__latest_single}</a>
                                     <timestamp>${d.server_certificate__latest_single.timestamp_expires}</timestamp>
                                     <span class="label label-${d.server_certificate__latest_single.expiring_days_label}">${d.server_certificate__latest_single.expiring_days} days</span>
                                 % endif

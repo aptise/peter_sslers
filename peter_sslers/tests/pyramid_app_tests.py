@@ -1436,7 +1436,7 @@ class FunctionalTests_Domain(AppTest):
 
 
 class FunctionalTests_PrivateKeys(AppTest):
-    """python -m unittest peter_sslers.tests.FunctionalTests_PrivateKeys"""
+    """python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_PrivateKeys"""
 
     def _get_item(self):
         # grab a Key
@@ -1560,6 +1560,19 @@ class FunctionalTests_PrivateKeys(AppTest):
         form["private_key_file_pem"] = Upload(key_filepath)
         res2 = self.testapp.post("/.well-known/admin/private-key/upload.json", form)
         assert res2.status_code == 200
+
+        res = self.testapp.get("/.well-known/admin/private-key/new", status=200)
+        form = {"bits": "4096"}
+        res2 = self.testapp.post("/.well-known/admin/private-key/new", form)
+        assert res2.status_code == 303
+        assert """/.well-known/admin/private-key/""" in res2.location
+
+        res = self.testapp.get("/.well-known/admin/private-key/new.json", status=200)
+        form = {"bits": "4096"}
+        res2 = self.testapp.post("/.well-known/admin/private-key/new.json", form)
+        assert res2.status_code == 200
+        res2_json = json.loads(res2.body)
+        assert "PrivateKey" in res2
 
 
 class FunctionalTests_UniqueFQDNSets(AppTest):

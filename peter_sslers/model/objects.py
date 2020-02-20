@@ -1991,10 +1991,17 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         }
 
     @property
-    def can_renew_letsencrypt(self):
+    def is_can_renew_letsencrypt(self):
         """only allow renew of LE certificates"""
         # if self.acme_account_key_id:
         #    return True
+        return False
+    
+    @property
+    def is_renewable(self):
+        if self.acme_order:
+            if self.acme_order.acme_account_key.is_active:
+                return True
         return False
 
     @property
@@ -2024,6 +2031,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             "private_key_id": self.private_key_id,
             # "acme_account_key_id": self.acme_account_key_id,
             "domains_as_list": self.domains_as_list,
+            "is_renewable": self.is_renewable,
         }
 
 

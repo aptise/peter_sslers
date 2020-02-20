@@ -13,6 +13,10 @@ Almost done:
 certificate renewal
 	- object should show if we can renew with account key
 
+audit/remove
+	.acme_account_key - no longer on many objects
+	.is_can_renew_letsencrypt
+
 
 Potential Routes:
 -----------------

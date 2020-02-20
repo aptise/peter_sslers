@@ -107,13 +107,13 @@ class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
 
 
 class Form_AcmeAccountKey_mark(_Form_Schema_Base):
-    action = OneOf(("default", "active", "inactive"))
+    action = OneOf(("default", "active", "inactive"), not_empty=True)
 
 
 class Form_AcmeOrder_new_automated(_Form_Schema_Base):
     # `account_key_file` could indictate `account_key_file_pem` or the combo of certbot encoding
     account_key_option = OneOf(
-        ("account_key_default", "account_key_existing", "account_key_file")
+        ("account_key_default", "account_key_existing", "account_key_file"), not_empty=True
     )
     account_key_default = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
@@ -188,7 +188,7 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
             "account_key_default",
             "account_key_existing",
             "account_key_file",
-        )
+        ), not_empty=True
     )
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
     account_key_default = UnicodeString(not_empty=False, if_missing=None)
@@ -208,7 +208,7 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
 
     private_key_option = OneOf(
-        ("private_key_reuse", "private_key_existing", "private_key_file_pem")
+        ("private_key_reuse", "private_key_existing", "private_key_file_pem"), not_empty=True
     )
     private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
@@ -217,7 +217,7 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
 
 class Form_Certificate_mark(_Form_Schema_Base):
     action = OneOf(
-        ("active", "inactive", "revoked", "renew_manual", "renew_auto", "unrevoke")
+        ("active", "inactive", "revoked", "renew_manual", "renew_auto", "unrevoke"), not_empty=True
     )
 
 
@@ -231,11 +231,15 @@ class Form_AcmeOrderless_manage_domain(_Form_Schema_Base):
 
 
 class Form_Domain_mark(_Form_Schema_Base):
-    action = OneOf(("active", "inactive"))
+    action = OneOf(("active", "inactive"), not_empty=True)
 
 
 class Form_Domain_search(_Form_Schema_Base):
     domain = UnicodeString(not_empty=True)
+
+
+class Form_PrivateKey_new__autogenerate(_Form_Schema_Base):
+    bits = OneOf(("4096",), not_empty=True)
 
 
 class Form_PrivateKey_new__full(_Form_Schema_Base):
@@ -251,15 +255,15 @@ class Form_PrivateKey_new__file(_Form_Schema_Base):
 
 
 class Form_PrivateKey_mark(_Form_Schema_Base):
-    action = OneOf(("compromised", "active", "inactive", "default"))
+    action = OneOf(("compromised", "active", "inactive", "default"), not_empty=True)
 
 
 class Form_QueueDomain_mark(_Form_Schema_Base):
-    action = OneOf(("cancel",))
+    action = OneOf(("cancel",), not_empty=True)
 
 
 class Form_QueueRenewal_mark(_Form_Schema_Base):
-    action = OneOf(("cancel",))
+    action = OneOf(("cancel",), not_empty=True)
 
 
 class Form_QueueDomains_add(_Form_Schema_Base):

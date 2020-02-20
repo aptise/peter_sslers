@@ -179,44 +179,31 @@
                             </span>
 
                             &nbsp;
-                            <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/queue"
-                                title="Queue a renewal with the same private key and account key."
-                            >
-                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                queue a renewal
-                            </a>
-
-                            % if ServerCertificate.private_key and ServerCertificate.private_key.is_active and ServerCertificate.acme_account_key and ServerCertificate.acme_account_key.is_active:
+                            % if ServerCertificate.is_renewable:
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/queue"
+                                    title="Queue a renewal with same AcmeAccount."
+                                >
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    Queue a Renewal
+                                </a>
                                 &nbsp;
                                 <a  class="btn btn-xs btn-primary"
                                     href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/quick"
-                                    title="Renew NOW with the same private key and account key."
+                                    title="Renew immediately with the same AcmeAccount."
                                 >
                                     <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
-                                    quick renewal
-                                </a>
-                            % else:
-                                &nbsp;
-                                <a  class="btn btn-xs btn-default"
-                                    href="#"
-                                    title="The PrivateKey or AccountKey has been disabled. Can not quick-renew."
-                                >
-                                    <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
-                                    quick renewal
+                                    Quick Renewal
                                 </a>
                             % endif
-
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
                                 href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/custom"
-                                title="Select a new PrivateKey or AccountKey for renewal."
+                                title="Select a new AccountKey for renewal."
                             >
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                                custom renewal
+                                Custom Renewal
                             </a>
-
-
                         </td>
                     </tr>
                 
@@ -261,15 +248,17 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>ca_certificate_id__upchain</th>
+                        <th>CA Certificate</th>
                         <td>
                             <a class="label label-info" href="${admin_prefix}/ca-certificate/${ServerCertificate.ca_certificate_id__upchain}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 CACertificate-${ServerCertificate.ca_certificate_id__upchain}</a>
+                            <br/>
+                            <em>The ServerCertificate is signed by this CACertificate.</em>
                         </td>
                     </tr>
                     <tr>
-                        <th>private_key_id</th>
+                        <th>PrivateKey</th>
                         <td>
                             % if not ServerCertificate.private_key.is_compromised:
                                 <a class="label label-info" href="${admin_prefix}/private-key/${ServerCertificate.private_key_id}">
@@ -280,15 +269,21 @@
                                     <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
                                     PrivateKey-${ServerCertificate.private_key_id}</a>
                             % endif
+                            <br/>
+                            <em>The ServerCertificate is signed by this PrivateKey.</em>
                         </td>
                     </tr>
                     <tr>
-                        <th>acme_account_key_id</th>
+                        <th>AcmeAccountKey</th>
                         <td>
                             % if ServerCertificate.acme_order and ServerCertificate.acme_order.acme_account_key_id:
                                 <a class="label label-info" href="${admin_prefix}/acme-account-key/${ServerCertificate.acme_order.acme_account_key_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAccountKey-${ServerCertificate.acme_order.acme_account_key_id}</a>
+                                <br/>
+                                <em>The ServerCertificate belongs to this AcmeAccount.</em>
+                            % else:
+                                <em>The ServerCertificate is not associated with an AcmeAccount.</em>
                             % endif
                         </td>
                     </tr>
@@ -299,6 +294,10 @@
                                 <a class="label label-info" href="${admin_prefix}/certificate-request/${ServerCertificate.certificate_request_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     CertificateRequest-${ServerCertificate.certificate_request_id}</a>
+                                <br/>
+                                <em>The ServerCertificate is the result of this CertificateSigningRequest.</em>
+                            % else:
+                                <em>The ServerCertificate is not associated with a CertificateSigningRequest.</em>
                             % endif
                         </td>
                     </tr>
@@ -311,6 +310,9 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 UniqueFQDNSet-${ServerCertificate.unique_fqdn_set_id}
                             </a>
+                            <br/>
+                            <em>The ServerCertificate covers the domains in this UniqueFqdnSet.</em>
+                            <br/>
                             <%
                                 latest_certificate = ServerCertificate.unique_fqdn_set.latest_certificate
                                 latest_active_certificate = ServerCertificate.unique_fqdn_set.latest_active_certificate
@@ -338,7 +340,7 @@
                                                         href="${admin_prefix}/server-certificate/${latest_certificate.id}"
                                                         >
                                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                        cert-${latest_certificate.id}
+                                                        ServerCertificate-${latest_certificate.id}
                                                     </a>
                                                 % endif
                                             </td>
@@ -365,7 +367,7 @@
                                                         href="${admin_prefix}/server-certificate/${latest_active_certificate.id}"
                                                         >
                                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                        cert-${latest_active_certificate.id}
+                                                        ServerCertificate-${latest_active_certificate.id}
                                                     </a>
                                                 % endif
                                             </td>
@@ -393,7 +395,7 @@
                                 <span class="label label-success">Yes</span>&nbsp;
                                 <a class="label label-info" href="${admin_prefix}/server-certificate/${ServerCertificate.server_certificate_id__renewal_of}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    cert-${ServerCertificate.server_certificate_id__renewal_of}</a>
+                                    ServerCertificate-${ServerCertificate.server_certificate_id__renewal_of}</a>
                             % else:
                                 <span class="label label-default">No</span>
                             % endif

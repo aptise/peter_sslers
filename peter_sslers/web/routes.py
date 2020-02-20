@@ -586,8 +586,13 @@ def _admin_views(config):
     config.add_route_7(
         "admin:private_key:focus:mark|json", "/private-key/{@id}/mark.json"
     )
+
+    # !!!: Private Key - New
     config.add_route_7("admin:private_key:upload", "/private-key/upload")
     config.add_route_7("admin:private_key:upload|json", "/private-key/upload.json")
+    config.add_route_7("admin:private_key:new", "/private-key/new")
+    config.add_route_7("admin:private_key:new|json", "/private-key/new.json")
+
 
     # !!!: Queue Domains
     # Domains can be queued in for batch processing

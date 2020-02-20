@@ -59,7 +59,7 @@
                                 href="${admin_prefix}/server-certificate/${RenewalQueueItem.server_certificate_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${RenewalQueueItem.server_certificate_id}</a>
+                                ServerCertificate-${RenewalQueueItem.server_certificate_id}</a>
                         % endif
                     </td>
                 </tr>
@@ -101,7 +101,7 @@
                                 href="${admin_prefix}/server-certificate/${RenewalQueueItem.server_certificate_id__renewed}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                cert-${RenewalQueueItem.server_certificate_id__renewed}</a>
+                                ServerCertificate-${RenewalQueueItem.server_certificate_id__renewed}</a>
                         % endif
                     </td>
                 </tr>

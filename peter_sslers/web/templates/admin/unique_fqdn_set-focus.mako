@@ -148,7 +148,7 @@
                                                     href="${admin_prefix}/server-certificate/${latest_certificate.id}"
                                                 >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    cert-${latest_certificate.id}
+                                                    ServerCertificate-${latest_certificate.id}
                                                 </a>
                                             </td>
                                             <td>
@@ -166,7 +166,7 @@
                                                     href="${admin_prefix}/server-certificate/${latest_active_certificate.id}"
                                                 >
                                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                                    cert-${latest_active_certificate.id}
+                                                    ServerCertificate-${latest_active_certificate.id}
                                                 </a>
                                             </td>
                                             <td>

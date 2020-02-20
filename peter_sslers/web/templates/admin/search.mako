@@ -126,7 +126,7 @@
                                             href="${admin_prefix}/server-certificate/${cert.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            cert-${cert.id}</a>
+                                            ServerCertificate-${cert.id}</a>
                                     </td>
                                     <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                     <td><span class="label label-${'success' if cert.is_active else 'danger'}">${'Y' if cert.is_active else ''}</label></td>

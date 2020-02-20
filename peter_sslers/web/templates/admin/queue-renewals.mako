@@ -85,7 +85,7 @@
                                 % if q.server_certificate_id:
                                     <a class="label label-info" href="${admin_prefix}/server-certificate/${q.server_certificate_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    cert-${q.server_certificate_id}</a></td>
+                                    ServerCertificate-${q.server_certificate_id}</a></td>
                                 % endif
                             <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
