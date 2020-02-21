@@ -132,7 +132,7 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         "AcmeAccountProvider",
         primaryjoin="AcmeAccountKey.acme_account_provider_id==AcmeAccountProvider.id",
         uselist=False,
-        # back_populates="acme_account_keys",
+        back_populates="acme_account_keys",
     )
 
     acme_orders = sa_orm_relationship(
@@ -142,15 +142,6 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account_key",
     )
-
-    # TODO: remap to orders
-    if False:
-        server_certificates__issued = sa_orm_relationship(
-            "ServerCertificate",
-            primaryjoin="AcmeAccountKey.id==ServerCertificate.acme_account_key_id",
-            order_by="ServerCertificate.id.desc()",
-            back_populates="acme_account_key",
-        )
 
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
@@ -250,7 +241,7 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeAccountProvider.id==AcmeAccountKey.acme_account_provider_id",
         order_by="AcmeAccountKey.id.desc()",
         uselist=True,
-        # back_populates="acme_account_provider",
+        back_populates="acme_account_provider",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

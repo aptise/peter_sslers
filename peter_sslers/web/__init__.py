@@ -293,11 +293,15 @@ def main(global_config, **settings):
                 .first()
             if dbAcmeAccountProvider_default:
                 dbAcmeAccountProvider_default.is_default = False
-                dbSession.flush()
-
             dbAcmeAccountProvider.is_default = True
             dbSession.flush()
-
+            
+        dbAcmeAccountKey = dbSession.query(model_objects.AcmeAccountKey)\
+            .filter(model_objects.AcmeAccountKey.is_default.op("IS")(True))\
+            .first()
+        if dbAcmeAccountKey and not dbAcmeAccountKey.acme_account_provider.is_default:
+            dbAcmeAccountKey.is_default = False
+            dbSession.flush()
 
     dbEngine.dispose()  # toss the connection in-case of multi-processing
 
