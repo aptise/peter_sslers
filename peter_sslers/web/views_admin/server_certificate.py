@@ -838,7 +838,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         return self._renew_custom__print()
 
     def _renew_custom__print(self):
-        providers = list(model_utils.AcmeAccountProvider.registry.values())
+        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context, is_enabled=False)
         if self.request.wants_json:
             return {
                 "form_fields": {
@@ -864,6 +864,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                         "account_key_file_le_reg",
                     ],
                 ],
+                "valid_options": {
+                    "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in dbAcmeAccountProviders},
+                },
                 "requirements": [
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three letsencrypt files."
                 ],
@@ -878,7 +881,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             {
                 "ServerCertificate": self.dbServerCertificate,
                 "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
-                "AcmeAccountProviderOptions": providers,
+                "AcmeAccountProviders": dbAcmeAccountProviders,
             },
             self.request,
         )

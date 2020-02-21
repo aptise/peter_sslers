@@ -97,7 +97,7 @@ class _Mixin_Timestamps_Pretty(object):
 # ==============================================================================
 
 
-class AcmeAccountKey(Base):
+class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
     """
     Represents a registered account with the LetsEncrypt Service.
     This is used for authentication to the LE API, it is not tied to any certificates.
@@ -116,14 +116,24 @@ class AcmeAccountKey(Base):
     timestamp_last_authenticated = sa.Column(sa.DateTime, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_default = sa.Column(sa.Boolean, nullable=True, default=None)
-    acme_account_provider_id = sa.Column(sa.Integer, nullable=False)
+    acme_account_provider_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_provider.id"), nullable=False
+    )
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    letsencrypt_data = sa.Column(sa.Text, nullable=True)
     contact = sa.Column(sa.Unicode(255), nullable=True)
+    terms_of_service = sa.Column(sa.Unicode(255), nullable=True)
+    account_url = sa.Column(sa.Unicode(255), nullable=True)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_account_provider = sa_orm_relationship(
+        "AcmeAccountProvider",
+        primaryjoin="AcmeAccountKey.acme_account_provider_id==AcmeAccountProvider.id",
+        uselist=False,
+        # back_populates="acme_account_keys",
+    )
 
     acme_orders = sa_orm_relationship(
         "AcmeOrder",
@@ -156,6 +166,22 @@ class AcmeAccountKey(Base):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @property
+    def is_can_authenticate(self):
+        if self.acme_account_provider.protocol == 'acme-v2':
+            return True
+        return False
+
+    @property
+    def is_default_candidate(self):
+        if self.is_default:
+            return False
+        if not self.is_active:
+            return False
+        if self.acme_account_provider.is_default:
+            return True
+        return False
+
     @reify
     def key_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=account_key&account_key.id=%s" % (
@@ -169,34 +195,6 @@ class AcmeAccountKey(Base):
         pem_lines = self.key_pem.strip().split("\n")
         return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
 
-    @reify
-    def acme_account_provider(self):
-        if self.acme_account_provider_id is not None:
-            for provider_info in model_utils.AcmeAccountProvider.registry.values():
-                if provider_info["id"] == self.acme_account_provider_id:
-                    return provider_info["name"]
-        return None
-
-    @reify
-    def acme_account_provider_endpoint(self):
-        if TESTING_ENVIRONMENT:
-            return model_utils.AcmeAccountProvider.registry[0]["endpoint"]
-        if self.acme_account_provider_id:
-            for provider_info in model_utils.AcmeAccountProvider.registry.values():
-                if provider_info["id"] == self.acme_account_provider_id:
-                    return provider_info["endpoint"]
-        return None
-
-    @reify
-    def acme_account_provider_directory(self):
-        if TESTING_ENVIRONMENT:
-            return model_utils.AcmeAccountProvider.registry[0]["directory"]
-        if self.acme_account_provider_id:
-            for provider_info in model_utils.AcmeAccountProvider.registry.values():
-                if provider_info["id"] == self.acme_account_provider_id:
-                    return provider_info["directory"]
-        return None
-
     @property
     def as_json(self):
         return {
@@ -205,7 +203,9 @@ class AcmeAccountKey(Base):
             "is_active": True if self.is_active else False,
             "is_default": True if self.is_active else False,
             "acme_account_provider_id": self.acme_account_provider_id,
-            "acme_account_provider": self.acme_account_provider,
+            "acme_account_provider_name": self.acme_account_provider.name,
+            "acme_account_provider_url": self.acme_account_provider.url,
+            "acme_account_provider_protocol": self.acme_account_provider.protocol,
             "id": self.id,
         }
 
@@ -213,7 +213,69 @@ class AcmeAccountKey(Base):
 # ==============================================================================
 
 
-class AcmeAuthorization(Base):
+class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
+    """
+    Represents an AcmeAccountProvider
+    """
+
+    __tablename__ = "acme_account_provider"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(endpoint IS NOT NULL AND directory IS NULL)"
+            " OR "
+            " (endpoint IS NULL AND directory IS NOT NULL)",
+            name="check_endpoint_or_directory",
+        ),
+        sa.CheckConstraint(
+            "(protocol = 'acme-v1')"
+            " OR "
+            "(protocol = 'acme-v2')",
+            name="check_protocol",
+        ),
+    )
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    name = sa.Column(sa.Unicode(32), nullable=False, unique=True)
+    endpoint = sa.Column(sa.Unicode(255), nullable=True, unique=True)  # either/or: A
+    directory = sa.Column(sa.Unicode(255), nullable=True, unique=True)  # either/or: A
+    server = sa.Column(sa.Unicode(255), nullable=False, unique=True)
+    is_default = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_enabled = sa.Column(sa.Boolean, nullable=True, default=None)
+    protocol = sa.Column(sa.Unicode(32), nullable=False)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_account_keys = sa_orm_relationship(
+        "AcmeAccountKey",
+        primaryjoin="AcmeAccountProvider.id==AcmeAccountKey.acme_account_provider_id",
+        order_by="AcmeAccountKey.id.desc()",
+        uselist=True,
+        # back_populates="acme_account_provider",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    
+    @property
+    def url(self):
+        return self.directory or self.endpoint
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "name": self.name,
+            "endpoint": self.endpoint,
+            "directory": self.directory,
+            "is_default": self.is_default or False,
+            "protocol": self.protocol,
+        }
+        
+
+# ==============================================================================
+
+
+class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     """
     ACME Authorization Object [https://tools.ietf.org/html/rfc8555#section-7.1.4]
 
@@ -390,14 +452,14 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         sa.CheckConstraint(
             "(acme_authorization_id IS NOT NULL AND acme_orderless_id IS NULL)"
             " OR "
-            " (acme_authorization_id IS NULL AND acme_orderless_id IS NOT NULL)"
-            # name="check_authorization_or_orderless",
+            " (acme_authorization_id IS NULL AND acme_orderless_id IS NOT NULL)",
+            name="check_authorization_or_orderless",
         ),
         sa.CheckConstraint(
             "token IS NOT NULL"
             " OR "
-            " (token IS NULL AND acme_orderless_id IS NOT NULL)"
-            # name="token_sanity",
+            " (token IS NULL AND acme_orderless_id IS NOT NULL)",
+            name="token_sanity",
         ),
     )
 
@@ -526,7 +588,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class AcmeChallengePoll(Base):
+class AcmeChallengePoll(Base, _Mixin_Timestamps_Pretty):
     """
     log ACME Challenge polls
     """
@@ -562,7 +624,7 @@ class AcmeChallengePoll(Base):
 # ==============================================================================
 
 
-class AcmeChallengeUnknownPoll(Base):
+class AcmeChallengeUnknownPoll(Base, _Mixin_Timestamps_Pretty):
     """
     log polls of non-existant ace challenges
     """
@@ -1182,7 +1244,7 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class Domain(Base):
+class Domain(Base, _Mixin_Timestamps_Pretty):
     """
     A Fully Qualified Domain
     """
@@ -1347,7 +1409,7 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
 # ==============================================================================
 
 
-class OperationsObjectEvent(Base):
+class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     """Domains updates are noted here
     """
 
@@ -1746,7 +1808,7 @@ class QueueRenewal(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class RemoteIpAddress(Base):
+class RemoteIpAddress(Base, _Mixin_Timestamps_Pretty):
     """
     tracking remote ips, we should only see our tests and the letsencrypt service
     """

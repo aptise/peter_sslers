@@ -54,12 +54,14 @@
                     <tr>
                         <th>timestamp_last_authenticated</th>
                         <td><timestamp>${AcmeAccountKey.timestamp_last_authenticated or ''}</timestamp>
-                            <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/authenticate" method="POST">
-                                <button class="btn btn-xs btn-primary" type="submit">
-                                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                                    Authenticate Against ACME Server
-                                </button>
-                            </form>
+                            % if AcmeAccountKey.is_can_authenticate:
+                                <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/authenticate" method="POST">
+                                    <button class="btn btn-xs btn-primary" type="submit">
+                                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                        Authenticate Against ACME Server
+                                    </button>
+                                </form>
+                            % endif
                         </td>
                     </tr>
                     <tr>
@@ -110,7 +112,7 @@
                                 </span>
                             % endif
                             &nbsp;
-                            % if not AcmeAccountKey.is_default:
+                            % if AcmeAccountKey.is_default_candidate:
                                 <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="default"/>
                                     <button class="label label-primary" type="submit">
@@ -126,17 +128,25 @@
                         <td>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-providers"
+                                href="${admin_prefix}/acme-account-providers"
                             >
-                                ${AcmeAccountKey.acme_account_provider_id}
-                                -
-                                ${AcmeAccountKey.acme_account_provider}
+                                AcmeAccountProvider-${AcmeAccountKey.acme_account_provider_id}
+                                [${AcmeAccountKey.acme_account_provider.name}]
+                                (${AcmeAccountKey.acme_account_provider.url})
                             </a>
                         </td>
                     </tr>
                     <tr>
                         <th>contact</th>
                         <td><code>${AcmeAccountKey.contact or ''}</code></td>
+                    </tr>
+                    <tr>
+                        <th>account url</th>
+                        <td><code>${AcmeAccountKey.account_url or ''}</code></td>
+                    </tr>
+                    <tr>
+                        <th>terms of service</th>
+                        <td><code>${AcmeAccountKey.terms_of_service or ''}</code></td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
@@ -182,14 +192,6 @@
                             <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.pem">key.pem</a>
                             <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.pem.txt">key.pem.txt</a>
                             <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.key">key.key (der)</a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>letsencrypt_data</th>
-                        <td>
-                            % if AcmeAccountKey.letsencrypt_data:
-                                ${AcmeAccountKey.letsencrypt_data}
-                            % endif
                         </td>
                     </tr>
                     ${admin_partials.table_tr_OperationsEventCreated(AcmeAccountKey)}

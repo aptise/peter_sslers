@@ -1,19 +1,28 @@
-from pyramid.config import Configurator
-from pyramid.tweens import EXCVIEW
-from pyramid.events import BeforeRender
-from sqlalchemy import engine_from_config
-
+# stdlib
 import logging
 import datetime
 
+# pyramid
+from pyramid.config import Configurator
+from pyramid.tweens import EXCVIEW
+from pyramid.events import BeforeRender
+
+# pypi
+import transaction
+from sqlalchemy import engine_from_config
+
+# local
 from ..lib import acme_v2
 from ..lib import cert_utils
 from ..lib.utils import ApiContext
+from ..lib.utils import url_to_server
 from ..model import objects as model_objects
 from ..model import utils as model_utils
 from ..model import websafe as model_websafe
 from .lib.config_utils import set_bool_setting
 from .lib.config_utils import set_int_setting
+from . import models
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -49,6 +58,7 @@ def db_log_cleanup__tween_factory(handler, registry):
 
 
 def api_host(request):
+    """request method"""
     _api_host = request.registry.settings.get("api_host")
     if _api_host:
         return _api_host
@@ -57,6 +67,7 @@ def api_host(request):
 
 
 def admin_url(request):
+    """request method"""
     return request.api_host + request.registry.settings["admin_prefix"]
 
 
@@ -80,85 +91,6 @@ def main(global_config, **settings):
         cert_utils.openssl_path = settings["openssl_path"]
     if "openssl_path_conf" in settings:
         cert_utils.openssl_path_conf = settings["openssl_path_conf"]
-
-    ca_selected = None
-    if "certificate_authority" in settings:
-        ca_submitted = settings["certificate_authority"]
-        if ca_submitted == "pebble":
-            ca_submitted = "custom"
-
-        # certificate_authority_directory
-
-        # handle custom endpoints
-        if ca_submitted == "custom":
-
-            # core endpoint, v1
-            ca_submitted_endpoint = settings["certificate_authority_endpoint"]
-            if not ca_submitted_endpoint:
-                raise ValueError(
-                    "`certificate_authority_endpoint` required when `certificate_authority=custom` or `certificate_authority=pebble`"
-                )
-            if not ca_submitted_endpoint.startswith(
-                "http://"
-            ) and not ca_submitted_endpoint.startswith("https://"):
-                raise ValueError(
-                    "`certificate_authority_endpoint` does not look like a URL"
-                )
-            model_utils.AcmeAccountProvider.registry[0][
-                "endpoint"
-            ] = ca_submitted_endpoint
-
-            # directory url, v2
-            ca_submitted_directory = settings.get("certificate_authority_directory")
-            if ca_submitted_directory:
-                if not ca_submitted_directory.startswith(
-                    "http://"
-                ) and not ca_submitted_directory.startswith("https://"):
-                    raise ValueError(
-                        "`certificate_authority_directory` does not look like a URL"
-                    )
-                model_utils.AcmeAccountProvider.registry[0][
-                    "directory"
-                ] = ca_submitted_directory
-
-            ca_submitted_protocol = settings["certificate_authority_protocol"]
-            # if ca_submitted_protocol not in ("acme-v1", "acme-v2"):
-            #    raise ValueError(
-            #        "`ca_submitted_protocol` is not `acme-v1` or `acme-v2`"
-            #    )
-            if ca_submitted_protocol != "acme-v2":
-                raise ValueError("`ca_submitted_protocol` is not `acme-v2`")
-            model_utils.AcmeAccountProvider.registry[0][
-                "protocol"
-            ] = ca_submitted_protocol
-
-        # register the selected endpoint
-        for (ca_id, ca_record) in list(
-            model_utils.AcmeAccountProvider.registry.items()
-        ):
-            if ca_record["name"] == ca_submitted:
-                ca_record["is_default"] = True
-                ca_selected = ca_record
-                break
-    if not ca_selected:
-        raise ValueError("invalid `certificate_authority`")
-
-    # okay stash this
-    acme_v2.CERTIFICATE_AUTHORITY = ca_record["endpoint"]
-    config.registry.settings["CERTIFICATE_AUTHORITY"] = ca_selected
-
-    if "certificate_authority_testing" in settings:
-        certificate_authority_testing = set_bool_setting(
-            config.registry.settings, "certificate_authority_testing"
-        )
-        if certificate_authority_testing:
-            acme_v2.TESTING_ENVIRONMENT = True
-            model_objects.TESTING_ENVIRONMENT = True
-
-    if "certificate_authority_agreement" in settings:
-        acme_v2.CERTIFICATE_AUTHORITY_AGREEMENT = settings[
-            "certificate_authority_agreement"
-        ]
 
     # will we redirect on error?
     set_bool_setting(config.registry.settings, "exception_redirect")
@@ -297,4 +229,77 @@ def main(global_config, **settings):
     config.include(".models")
     config.scan(".views")  # shared views, currently just exception handling
 
+
+    # after the models are included, setup the AcmeAccountProvider
+
+    ca_selected = settings.get("certificate_authority")
+    if not ca_selected:
+        raise ValueError("No `certificate_authority` selected")
+    
+    dbEngine = models.get_engine(settings)
+    with transaction.manager:
+    
+        session_factory = models.get_session_factory(dbEngine)
+        dbSession = models.get_tm_session(None, session_factory, transaction.manager)
+        
+        dbAcmeAccountProvider = dbSession.query(model_objects.AcmeAccountProvider)\
+            .filter(model_objects.AcmeAccountProvider.name == ca_selected)\
+            .first()
+        if not dbAcmeAccountProvider:
+            print("Attempting to enroll new `AcmeAccountProvider`")
+            
+            _directory = settings.get("certificate_authority_directory")
+            if not _directory or (not _directory.startswith('http://') and not _directory.startswith('https://')):
+                raise ValueError("invalid directory")
+            
+            _protocol = settings.get("certificate_authority_protocol")
+            if _protocol != "acme-v2":
+                raise ValueError("invalid protocol")
+        
+            # ok, try to build one...
+            dbAcmeAccountProvider = model_objects.AcmeAccountProvider()
+            dbAcmeAccountProvider.timestamp_created = datetime.datetime.utcnow()
+            dbAcmeAccountProvider.name = ca_selected
+            dbAcmeAccountProvider.directory = _directory
+            dbAcmeAccountProvider.is_default = None  # this will be toggled in a moment
+            dbAcmeAccountProvider.is_enabled = True
+            dbAcmeAccountProvider.protocol = _protocol
+            dbAcmeAccountProvider.server = url_to_server(_directory)
+            dbSession.add(dbAcmeAccountProvider)
+            dbSession.flush(objects=[dbAcmeAccountProvider, ])
+            print ("Enrolled new `AcmeAccountProvider`")
+
+        if dbAcmeAccountProvider.protocol != "acme-v2":
+            raise ValueError("`AcmeAccountProvider.protocol` is not `acme-v2`")
+        acme_v2.CERTIFICATE_AUTHORITY = dbAcmeAccountProvider.directory
+        config.registry.settings["CERTIFICATE_AUTHORITY"] = dbAcmeAccountProvider.directory
+
+        if "certificate_authority_testing" in settings:
+            certificate_authority_testing = set_bool_setting(
+                config.registry.settings, "certificate_authority_testing"
+            )
+            if certificate_authority_testing:
+                acme_v2.TESTING_ENVIRONMENT = True
+                model_objects.TESTING_ENVIRONMENT = True
+
+        if "certificate_authority_agreement" in settings:
+            acme_v2.CERTIFICATE_AUTHORITY_AGREEMENT = settings[
+                "certificate_authority_agreement"
+            ]
+
+        if not dbAcmeAccountProvider.is_default:
+            dbAcmeAccountProvider_default = dbSession.query(model_objects.AcmeAccountProvider)\
+                .filter(model_objects.AcmeAccountProvider.is_default.op("IS")(True))\
+                .first()
+            if dbAcmeAccountProvider_default:
+                dbAcmeAccountProvider_default.is_default = False
+                dbSession.flush()
+
+            dbAcmeAccountProvider.is_default = True
+            dbSession.flush()
+
+
+    dbEngine.dispose()  # toss the connection in-case of multi-processing
+
+    # exit early
     return config.make_wsgi_app()

@@ -39,22 +39,6 @@ class AccountKeyUploadParser(object):
             formStash.fatal_field(
                 field="acme_account_provider_id", message="No provider submitted."
             )
-        if (
-            acme_account_provider_id
-            not in model_utils.AcmeAccountProvider.registry.keys()
-        ):
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-            formStash.fatal_field(
-                field="acme_account_provider_id",
-                message="Invalid provider submitted.",
-            )
-
-        if not model_utils.AcmeAccountProvider.registry[acme_account_provider_id]['is_enabled']:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-            formStash.fatal_field(
-                field="acme_account_provider_id",
-                message="This provider is no longer enabled.",
-            )
 
         getcreate_args = {
             'acme_account_provider_id': acme_account_provider_id,
@@ -118,16 +102,6 @@ class AccountKeyUploadParser(object):
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="acme_account_provider_id", message="No provider submitted."
-                )
-
-            if (
-                acme_account_provider_id
-                not in model_utils.AcmeAccountProvider.registry.keys()
-            ):
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="acme_account_provider_id",
-                    message="Invalid provider submitted.",
                 )
 
         getcreate_args = {}

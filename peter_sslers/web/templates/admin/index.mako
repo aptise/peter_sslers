@@ -64,11 +64,11 @@
 
             <h3>Configuration</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/acme-providers"
+                <li><a href="${admin_prefix}/acme-account-providers"
                        title="Acme Providers"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-providers</a></li>
+                    acme-account-providers</a></li>
                 <li><a href="${admin_prefix}/ca-certificates"
                        title="${request.text_library.info_CACertificates[0]}"
                     >

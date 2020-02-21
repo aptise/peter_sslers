@@ -43,6 +43,21 @@ def get__AcmeEventLog__by_id(ctx, id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__AcmeAccountProviders__paginated(ctx, limit=None, offset=0, is_enabled=None):
+    query = ctx.dbSession.query(model_objects.AcmeAccountProvider)
+    if is_enabled is True:
+        query = query.filter(model_objects.AcmeAccountProvider.is_enabled.op("IS")(True))
+    query = (
+        query.order_by(model_objects.AcmeAccountProvider.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return query.all()
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__AcmeAccountKey__count(ctx):
     counted = ctx.dbSession.query(model_objects.AcmeAccountKey).count()
     return counted

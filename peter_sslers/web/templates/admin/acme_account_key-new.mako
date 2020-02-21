@@ -31,11 +31,11 @@
 
                 <div class="form-group">
                     <label for="acme_account_provider_id">
-                        ACME Server
+                        ACME Provider
                     </label>
                     <select class="form-control" id="acme_account_provider_id" name="acme_account_provider_id">
-                        % for option in AcmeAccountProviderOptions:
-                            <option value="${option['id']}" ${'selected' if option['is_default'] else ''}>${option['name']}</option>
+                        % for option in AcmeAccountProviders:
+                            <option value="${option.id}" ${'selected' if option.is_default else ''}>${option.name} (${option.url})</option>
                         % endfor
                     </select>
                 </div>

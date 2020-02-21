@@ -23,7 +23,7 @@ DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT")
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_certs_archive(
+def import_certbot_certs_archive(
     c, archive_path, server_url_root=DEFAULT_SERVER_ROOT
 ):
     """
@@ -31,13 +31,13 @@ def import_letsencrypt_certs_archive(
     imports the entire LetEncrypt archive in `archive_path`
 
     usage:
-        invoke import-letsencrypt-certs-archive  --server-url-root="http://127.0.0.1:7201/.well-known/admin" --archive-path="/etc/letsencrypt/archive"
+        invoke import-certbot-certs-archive  --server-url-root="http://127.0.0.1:7201/.well-known/admin" --archive-path="/etc/letsencrypt/archive"
 
     usage:
         export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
-        invoke import-letsencrypt-certs-archive --archive-path="/etc/letsencrypt/archive"
+        invoke import-certbot-certs-archive --archive-path="/etc/letsencrypt/archive"
     """
-    peter_sslers.commandline.import_letsencrypt_certs_archive(
+    peter_sslers.commandline.import_certbot_certs_archive(
         archive_path, server_url_root
     )
     return
@@ -50,7 +50,7 @@ def import_letsencrypt_certs_archive(
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_cert_version(
+def import_certbot_cert_version(
     c, domain_certs_path, certificate_version, server_url_root=DEFAULT_SERVER_ROOT
 ):
     """
@@ -65,13 +65,13 @@ def import_letsencrypt_cert_version(
     you can import a specific version, for example "3", with this command
 
     usage:
-        invoke import-letsencrypt-cert-version  --server-url-root="http://127.0.0.1:7201/.well-known/admin" --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 
+        invoke import-certbot-cert-version  --server-url-root="http://127.0.0.1:7201/.well-known/admin" --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 
 
     usage:
         export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
-        invoke import-letsencrypt-cert-version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 
+        invoke import-certbot-cert-version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 
     """
-    peter_sslers.commandline.import_letsencrypt_cert_version(
+    peter_sslers.commandline.import_certbot_cert_version(
         domain_certs_path, certificate_version, server_url_root
     )
     return
@@ -83,7 +83,7 @@ def import_letsencrypt_cert_version(
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_cert_plain(c, cert_path, server_url_root=DEFAULT_SERVER_ROOT):
+def import_certbot_cert_plain(c, cert_path, server_url_root=DEFAULT_SERVER_ROOT):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the certificate for a folder, given an unversioned content structure:
@@ -94,13 +94,13 @@ def import_letsencrypt_cert_plain(c, cert_path, server_url_root=DEFAULT_SERVER_R
         /domain-cert/private_key.pem
 
     usage:
-        invoke import-letsencrypt-cert-plain --server-url-root="http://127.0.0.1:7201/.well-known/admin" --cert-path="/path/to/ssl/live/example.com"
+        invoke import-certbot-cert-plain --server-url-root="http://127.0.0.1:7201/.well-known/admin" --cert-path="/path/to/ssl/live/example.com"
 
     usage:
         export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
-        invoke import-letsencrypt-cert-plain --cert-path="/path/to/ssl/live/example.com"
+        invoke import-certbot-cert-plain --cert-path="/path/to/ssl/live/example.com"
     """
-    peter_sslers.commandline.import_letsencrypt_cert_plain(cert_path, server_url_root)
+    peter_sslers.commandline.import_certbot_cert_plain(cert_path, server_url_root)
     return
 
 
@@ -110,19 +110,19 @@ def import_letsencrypt_cert_plain(c, cert_path, server_url_root=DEFAULT_SERVER_R
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_certs_live(c, live_path, server_url_root=DEFAULT_SERVER_ROOT):
+def import_certbot_certs_live(c, live_path, server_url_root=DEFAULT_SERVER_ROOT):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the letsencrypt live archive  in /etc/letsencrypt/live
 
     usage:
-        invoke import-letsencrypt-certs-live --server-url-root="http://127.0.0.1:7201/.well-known/admin" --live-path="/path/to/ssl/live"
+        invoke import-certbot-certs-live --server-url-root="http://127.0.0.1:7201/.well-known/admin" --live-path="/path/to/ssl/live"
 
     usage:
         export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
-        invoke import-letsencrypt-certs-live --live-path="/path/to/ssl/live"
+        invoke import-certbot-certs-live --live-path="/path/to/ssl/live"
     """
-    peter_sslers.commandline.import_letsencrypt_certs_live(live_path, server_url_root)
+    peter_sslers.commandline.import_certbot_certs_live(live_path, server_url_root)
     return
 
 
@@ -135,19 +135,19 @@ def import_letsencrypt_certs_live(c, live_path, server_url_root=DEFAULT_SERVER_R
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_account(c, account_path, server_url_root=DEFAULT_SERVER_ROOT):
+def import_certbot_account(c, account_path, server_url_root=DEFAULT_SERVER_ROOT):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports a specific letsencrypt account
 
     usage:
-        invoke import-letsencrypt-account --server-url-root="http://127.0.0.1:7201/.well-known/admin" --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}"
+        invoke import-certbot-account --server-url-root="http://127.0.0.1:7201/.well-known/admin" --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}"
 
     usage:
         export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
-        invoke import-letsencrypt-account --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}"
+        invoke import-certbot-account --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}"
     """
-    peter_sslers.commandline.import_letsencrypt_account(account_path, server_url_root)
+    peter_sslers.commandline.import_certbot_account(account_path, server_url_root)
     return
 
 
@@ -157,7 +157,7 @@ def import_letsencrypt_account(c, account_path, server_url_root=DEFAULT_SERVER_R
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_accounts_server(
+def import_certbot_accounts_server(
     c, accounts_path_server, server_url_root=DEFAULT_SERVER_ROOT
 ):
     """
@@ -165,13 +165,13 @@ def import_letsencrypt_accounts_server(
     imports all accounts for a given letsencrypt server
 
     usage:
-        invoke import-letsencrypt-accounts-server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+        invoke import-certbot-accounts-server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
 
     usage:
         export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
-        invoke import-letsencrypt-accounts-server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}"
+        invoke import-certbot-accounts-server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}"
     """
-    peter_sslers.commandline.import_letsencrypt_accounts_server(
+    peter_sslers.commandline.import_certbot_accounts_server(
         accounts_path_server, server_url_root
     )
     return
@@ -183,7 +183,7 @@ def import_letsencrypt_accounts_server(
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_letsencrypt_accounts_all(
+def import_certbot_accounts_all(
     c, accounts_path_all, server_url_root=DEFAULT_SERVER_ROOT
 ):
     """
@@ -191,13 +191,13 @@ def import_letsencrypt_accounts_all(
     imports all accounts for a letsencrypt install
 
     usage:
-        invoke import-letsencrypt-accounts-all --accounts-path-all="/etc/letsencrypt/accounts/" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+        invoke import-certbot-accounts-all --accounts-path-all="/etc/letsencrypt/accounts/" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
 
     usage:
         export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
-        invoke import-letsencrypt-accounts-all --accounts-path-all="/etc/letsencrypt/accounts/"
+        invoke import-certbot-accounts-all --accounts-path-all="/etc/letsencrypt/accounts/"
     """
-    peter_sslers.commandline.import_letsencrypt_accounts_all(
+    peter_sslers.commandline.import_certbot_accounts_all(
         accounts_path_all, server_url_root
     )
     return
@@ -207,11 +207,11 @@ def import_letsencrypt_accounts_all(
 
 
 namespace = Collection(
-    import_letsencrypt_certs_archive,
-    import_letsencrypt_certs_live,
-    import_letsencrypt_cert_version,
-    import_letsencrypt_cert_plain,
-    import_letsencrypt_account,
-    import_letsencrypt_accounts_server,
-    import_letsencrypt_accounts_all,
+    import_certbot_certs_archive,
+    import_certbot_certs_live,
+    import_certbot_cert_version,
+    import_certbot_cert_plain,
+    import_certbot_account,
+    import_certbot_accounts_server,
+    import_certbot_accounts_all,
 )

@@ -108,7 +108,7 @@ def upload_account(server_url_root, fset):
         raise
 
 
-def import_letsencrypt_certs_archive(archive_path, server_url_root):
+def import_certbot_certs_archive(archive_path, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the entire letescrypt archive on `archive_path`
@@ -164,7 +164,7 @@ def import_letsencrypt_certs_archive(archive_path, server_url_root):
     return
 
 
-def import_letsencrypt_cert_version(
+def import_certbot_cert_version(
     domain_certs_path, certificate_version, server_url_root
 ):
     """
@@ -215,7 +215,7 @@ def import_letsencrypt_cert_version(
     return
 
 
-def import_letsencrypt_cert_plain(cert_path, server_url_root):
+def import_certbot_cert_plain(cert_path, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the certificate for a folder.
@@ -256,7 +256,7 @@ def import_letsencrypt_cert_plain(cert_path, server_url_root):
     return
 
 
-def import_letsencrypt_certs_live(live_path, server_url_root):
+def import_certbot_certs_live(live_path, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the letsencrypt live archive  in /etc/letsencrypt/live
@@ -332,7 +332,7 @@ def _accountPath_to_fileSet(account_path):
     return fset
 
 
-def import_letsencrypt_account(account_path, server_url_root):
+def import_certbot_account(account_path, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports a specific letsencrypt account
@@ -354,7 +354,7 @@ def import_letsencrypt_account(account_path, server_url_root):
     return
 
 
-def import_letsencrypt_accounts_server(accounts_path_server, server_url_root):
+def import_certbot_accounts_server(accounts_path_server, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports all accounts for a given letsencrypt server
@@ -397,7 +397,7 @@ def import_letsencrypt_accounts_server(accounts_path_server, server_url_root):
     return
 
 
-def import_letsencrypt_accounts_all(accounts_path_all, server_url_root):
+def import_certbot_accounts_all(accounts_path_all, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
 

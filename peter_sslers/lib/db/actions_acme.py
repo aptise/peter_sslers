@@ -38,7 +38,7 @@ def do__AcmeAccountKey_AcmeV2_register(
     ctx, dbAcmeAccountKey, account_key_path=None,
 ):
     """
-    Registers an AcmeAccountKey against the LetsEncrypt ACME Server
+    Registers an AcmeAccountKey against the LetsEncrypt ACME Directory
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
@@ -69,15 +69,21 @@ def do__AcmeAccountKey_AcmeV2_register(
             log__OperationsEvent=log__OperationsEvent,
         )
         authenticatedUser.authenticate(ctx, contact=dbAcmeAccountKey.contact)
+
+        # update based off the ACME service
+        dbAcmeAccountKey.account_url = authenticatedUser._api_account_headers['Location']
+        dbAcmeAccountKey.terms_of_service = authenticatedUser.acme_directory['meta']['termsOfService']        
+        
         return authenticatedUser
     except:
         raise
+
 
 def do__AcmeAccountKey_AcmeV2_authenticate(
     ctx, dbAcmeAccountKey, account_key_path=None,
 ):
     """
-    Authenticates an AcmeAccountKey against the LetsEncrypt ACME Server
+    Authenticates an AcmeAccountKey against the LetsEncrypt ACME Directory
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
@@ -190,8 +196,8 @@ def _factory_AcmeV2_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
         authorization_url, authorization_response, transaction_commit=None
     ):
         """
-        :param authorization_url: (required) The URL of the ACME Server's Authorization Object.
-        :param authorization_response: (required) The JSON object corresponding to the ACME Server's Authorization Object.
+        :param authorization_url: (required) The URL of the ACME Directory's Authorization Object.
+        :param authorization_response: (required) The JSON object corresponding to the ACME Directory's Authorization Object.
         :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
 
         the getcreate will do the following:

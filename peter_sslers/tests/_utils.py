@@ -58,6 +58,11 @@ DISABLE_UNWRITTEN_TESTS = True
 
 DEFAULT_acme_account_provider = "letsencrypt-v2-staging"
 DEFAULT_acme_account_provider_id = None
+
+import pdb
+pdb.set_trace()
+raise ValueError("PORT ME")
+
 for pvd in model_utils.AcmeAccountProvider.registry.values():
     if pvd["name"] == DEFAULT_acme_account_provider:
         DEFAULT_acme_account_provider_id = pvd["id"]

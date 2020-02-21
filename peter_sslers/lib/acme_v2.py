@@ -155,7 +155,7 @@ def acme_directory_get(acmeAccountKey=None):
     :param acmeAccountKey: (required) a :class:`model.objects.AcmeAccountKey` instance
     """
     log.info("acme_v2 Getting directory...")
-    url_directory = acmeAccountKey.acme_account_provider_directory
+    url_directory = acmeAccountKey.acme_account_provider.directory
     if not url_directory:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
     directory_payload, _code, _headers = url_request(
@@ -209,7 +209,7 @@ class AcmeOrderRFC(object):
     Attributes:
 
     :param rfc_object: (required) A Python dict representing the RFC AcmeOrder object
-    :param response_headers: (required) The headers of the ACME Server's response
+    :param response_headers: (required) The headers of the ACME Directory's response
     :param dbUniqueFQDNSet: (required) A :class:`model.objects.UniqueFQDNSet` object
     """
 
@@ -253,7 +253,7 @@ class AuthenticatedUser(object):
         :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
         :param acmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
         :param account_key_path: (optional) The filepath of a PEM encoded RSA key
-        :param acme_directory: (optional) The ACME Server's url for a "directory"
+        :param acme_directory: (optional) The ACME Directory's url for a "directory"
         :param log__OperationsEvent: (required) callable function to log the operations event
         """
         if not all((acmeLogger, acmeAccountKey, account_key_path)):
@@ -382,8 +382,8 @@ class AuthenticatedUser(object):
         :param contact: (optional) The contact info
 
         returns:
-            acme_account_object - ACME Server account object
-            acme_account_headers - ACME Server account response headers
+            acme_account_object - ACME Directory account object
+            acme_account_headers - ACME Directory account response headers
 
         https://tools.ietf.org/html/rfc8555#section-7.3
 

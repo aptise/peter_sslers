@@ -18,7 +18,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-providers.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-account-providers.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -29,27 +29,36 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if AcmeProviders:
+        
+            <p>
+                If a provider is not enabled, it can not be used to Authenticate or Create new accounts.
+            </p>
+        
+            % if AcmeAccountProviders:
                 <table class="table table-striped">
                     <thead>
                         <tr>
                             <th>is default</th>
                             <th>id</th>
                             <th>name</th>
-                            <th>endpoint</th>
+                            <th>enabled?</th>
+                            <th>server</th>
+                            <th>url</th>
                         </tr>
                     </thead>
                     <tbody>
-                    % for provider_data in AcmeProviders:
+                    % for provider_data in AcmeAccountProviders:
                         <tr>
                             <td>
-                                % if provider_data['is_default']:
+                                % if provider_data.is_default:
                                     <span class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></span>
                                 % endif
                             </td>
-                            <td><code>${provider_data['id']}</code></td>
-                            <td><code>${provider_data['name']}</code></td>
-                            <td><code>${provider_data['endpoint']}</code></td>
+                            <td><code>${provider_data.id}</code></td>
+                            <td><code>${provider_data.name}</code></td>
+                            <td><code>${"True" if provider_data.is_enabled else "False"}</code></td>
+                            <td><code>${provider_data.server}</code></td>
+                            <td><code>${provider_data.url}</code></td>
                         </tr>
                     % endfor
                     </tbody>

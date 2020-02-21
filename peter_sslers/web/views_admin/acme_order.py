@@ -281,7 +281,7 @@ class ViewAdmin_New(Handler):
                 "CERTIFICATE_AUTHORITY": active_ca,
                 "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
                 "PrivateKey_Default": self.dbPrivateKeyDefault,
-                "AcmeAccountProviderOptions": providers,
+                "AcmeAccountProviders": providers,
             },
             self.request,
         )

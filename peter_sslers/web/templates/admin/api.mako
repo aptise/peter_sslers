@@ -267,13 +267,13 @@ api_docs_other = {
          'example': "curl --form 'action=active' http://127.0.0.1:7201/.well-known/admin/acme-account-key/1/mark.json",
          },
     ],
-    'acme-provider': [
-        {'endpoint': '/acme-providers.json',
-         'about': """list acme-providers""",
+    'acme-account-provider': [
+        {'endpoint': '/acme-account-providers.json',
+         'about': """list acme-account-providers""",
          'POST': True,
          'GET': True,
          'args': "",
-         'example': "curl {ADMIN_PREFIX}/acme-providers.json",
+         'example': "curl {ADMIN_PREFIX}/acme-account-providers.json",
          },
     ],
 

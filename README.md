@@ -211,9 +211,9 @@ then in another terminal window:
 	cd certificate_admin
 	source peter_sslers-venv/bin/activate
 	cd peter_sslers/tools
-	invoke import-letsencrypt-certs-live  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/live'
-	invoke import-letsencrypt-certs-archive  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/archive' 
-	invoke import_letsencrypt_accounts_all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	invoke import-certbot-certs-live  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/live'
+	invoke import-certbot-certs-archive  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/archive' 
+	invoke import-certbot-accounts-all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 The `prequest` command above will import the current LetsEncrypt Certificates to get you started.
 The first `invoke` command will import existing LetsEncrypt live Certificates
@@ -377,14 +377,14 @@ there is an `invoke` script in the `tools` directory that can be used to automat
 
 right now the invoke script offers:
 
-* `import_letsencrypt_certs_archive` given a directory of your local LetsEncrypt archive (which has versioned certs), it will import them all into a server of your choice.
-* `import_letsencrypt_certs_live` given a directory of your local LetsEncrypt install, it will import the active onesinto a server of your choice.
-* `import_letsencrypt_cert_version` given a specific directory of your LetsEncrypt archive, it will import specific items
-* `import_letsencrypt_cert_plain` given a directory of an unversioned cert (like a particular directory within the "live" certs), will import it.
+* `import-certbot-certs-archive` given a directory of your local LetsEncrypt archive (which has versioned certs), it will import them all into a server of your choice.
+* `import-certbot-certs-live` given a directory of your local LetsEncrypt install, it will import the active onesinto a server of your choice.
+* `import-certbot-cert-version` given a specific directory of your LetsEncrypt archive, it will import specific items
+* `import-certbot-cert-plain` given a directory of an unversioned cert (like a particular directory within the "live" certs), will import it.
 
-* `import_letsencrypt_account` import a specific LetsEncrypt account
-* `import_letsencrypt_accounts_server` import all accounts for a LetsEncrypt server (i.e. v1, v1-staging)
-* `import_letsencrypt_accounts_all` import all accounts for all LetsEncrypt servers
+* `import_certbot_account` import a specific LetsEncrypt account
+* `import_certbot_accounts_server` import all accounts for a LetsEncrypt server (i.e. v1, v1-staging)
+* `import_certbot_accounts_all` import all accounts for all LetsEncrypt servers
 
 
 ## Commandline Interface
@@ -458,13 +458,13 @@ if data is not POSTed to the form, instructions are returned in the json.
 
 There is even an `invoke` script to automate these imports:
 
-	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	invoke import-certbot-certs-archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 	
-    invoke import_letsencrypt_cert_version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+    invoke import-certbot-cert-version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://127.0.0.1:7201/.well-known/admin"
 
-	invoke import_letsencrypt_certs_live --live-path='/etc/letsencrypt/live' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	invoke import-certbot-certs-live --live-path='/etc/letsencrypt/live' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
-	invoke import_letsencrypt_cert_plain --cert-path='/etc/letsencrypt/live/example.com' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	invoke import-certbot-cert-plain --cert-path='/etc/letsencrypt/live/example.com' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
 ### `/.well-known/admin/ca-certificate/upload.json`
@@ -799,7 +799,7 @@ after running the server, in another window...
 
 - cd tools
 
-- $VENV/bin/invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+- $VENV/bin/invoke import-certbot-certs-archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
 There is also a button under "operations" to probe LetsEncrypt's public website and update your certs with data.

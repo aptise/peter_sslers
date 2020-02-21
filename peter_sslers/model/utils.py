@@ -228,60 +228,6 @@ class OperationsObjectEventStatus(_OperationsUnified):
     pass
 
 
-class AcmeAccountProvider:
-    """
-    Used for Acme Logging, API setup, etc
-    """
-
-    registry = {
-        0: {
-            "id": 0,
-            "name": "custom",
-            "endpoint": None,
-            "is_default": None,
-            "protocol": None,
-            "directory": None,
-            "is_enabled": True,
-        },
-        1: {
-            "id": 1,
-            "name": "letsencrypt-v1",
-            "endpoint": "https://acme-v01.api.letsencrypt.org",
-            "directory": None,
-            "is_default": None,
-            "protocol": "acme-v1",
-            "is_enabled": False,
-        },
-        2: {
-            "id": 2,
-            "name": "letsencrypt-v1-staging",
-            "endpoint": "https://acme-staging.api.letsencrypt.org",
-            "directory": None,
-            "is_default": None,
-            "protocol": "acme-v1",
-            "is_enabled": False,
-        },
-        3: {
-            "id": 3,
-            "name": "letsencrypt-v2",
-            "endpoint": "https://acme-v02.api.letsencrypt.org",
-            "directory": "https://acme-v02.api.letsencrypt.org/directory",
-            "is_default": None,
-            "protocol": "acme-v2",
-            "is_enabled": True,
-        },
-        4: {
-            "id": 4,
-            "name": "letsencrypt-v2-staging",
-            "endpoint": "https://acme-staging-v02.api.letsencrypt.org",
-            "directory": "https://acme-staging-v02.api.letsencrypt.org/directory",
-            "is_default": None,
-            "protocol": "acme-v2",
-            "is_enabled": True,
-        },
-    }
-
-
 class Acme_Status_Authorization(_mixin_mapping):
     """The status of an authorization"""
 

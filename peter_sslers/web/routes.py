@@ -317,8 +317,8 @@ def _admin_views(config):
 
     # !!!: AcmeProvider
     # this is just letsencrypt endpoints
-    config.add_route_7("admin:acme_providers", "/acme-providers")
-    config.add_route_7("admin:acme_providers|json", "/acme-providers.json")
+    config.add_route_7("admin:acme_account_providers", "/acme-account-providers")
+    config.add_route_7("admin:acme_account_providers|json", "/acme-account-providers.json")
 
     # !!!: Admin API Items
     config.add_route_7("admin:api", "/api")

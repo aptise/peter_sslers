@@ -688,10 +688,10 @@ class FunctionalTests_AcmeProviders(AppTest):
 
     def test_list(self):
         # root
-        res = self.testapp.get("/.well-known/admin/acme-providers", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-account-providers", status=200)
 
         # json root
-        res = self.testapp.get("/.well-known/admin/acme-providers.json", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-account-providers.json", status=200)
         res_json = json.loads(res.body)
         assert "AcmeProviders" in res_json
 

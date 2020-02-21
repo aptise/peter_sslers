@@ -18,6 +18,48 @@
 
 
 
+<%def name="table_AcmeAccountKeys(data, perspective=None)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>active?</th>
+                <th>default?</th>
+                <th>provider</th>
+                <th>timestamp first seen</th>
+                <th>key_pem_md5</th>
+                <th>count certificate requests</th>
+                <th>count certificates issued</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for key in data:
+                <tr>
+                    <td><a class="label label-info" href="${admin_prefix}/acme-account-key/${key.id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        account-${key.id}</a></td>
+                    <td>
+                        % if key.is_active:
+                            <span class="label label-success">active</span>
+                        % endif
+                    </td>
+                    <td>
+                        % if key.is_default:
+                            <span class="label label-success">default</span>
+                        % endif
+                    </td>
+                    <td><span class="label label-default">${key.acme_account_provider.name}</span></td>
+                    <td><timestamp>${key.timestamp_created}</timestamp></td>
+                    <td><code>${key.key_pem_md5}</code></td>
+                    <td><span class="badge">${key.count_certificate_requests or ''}</span></td>
+                    <td><span class="badge">${key.count_certificates_issued or ''}</span></td>
+                </tr>
+            % endfor
+        </tbody>
+    </table></%def>
+
+
+
 <%def name="table_AcmeAuthorizations(data, perspective=None)">
     <%
         cols = ("id", 
@@ -882,13 +924,13 @@
                     <tr>
                         <th>
                             <label for="f1-acme_account_provider_id">
-                                ACME Server
+                                ACME Provider
                             </label>
                         </th>
                         <td>
                             <select class="form-control" id="f1-acme_account_provider_id" name="acme_account_provider_id">
-                                % for option in AcmeAccountProviderOptions:
-                                    <option value="${option['id']}" ${'selected' if option['is_default'] else ''}>${option['name']}</option>
+                                % for option in AcmeAccountProviders:
+                                    <option value="${option.id}" ${'selected' if option.is_default else ''}>${option.name} (${option.url})</option>
                                 % endfor
                             </select>
                         </td>

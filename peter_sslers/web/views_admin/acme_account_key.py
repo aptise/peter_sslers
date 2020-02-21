@@ -80,6 +80,7 @@ class ViewAdmin_New(Handler):
         return self._upload__print()
 
     def _upload__print(self):
+        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context, is_enabled=False)
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -98,17 +99,13 @@ class ViewAdmin_New(Handler):
                 },
                 "notes": ["You must submit ALL items from Group A or Group B"],
                 "valid_options": {
-                    "acme_account_provider_id": {
-                        v["id"]: v["name"]
-                        for v in model_utils.AcmeAccountProvider.registry.values()
-                    }
+                    "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in dbAcmeAccountProviders},
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
-        providers = list(model_utils.AcmeAccountProvider.registry.values())
         return render_to_response(
             "/admin/acme_account_key-upload.mako",
-            {"AcmeAccountProviderOptions": providers},
+            {"AcmeAccountProviders": dbAcmeAccountProviders},
             self.request,
         )
 
@@ -123,6 +120,17 @@ class ViewAdmin_New(Handler):
             parser = AccountKeyUploadParser(formStash)
             parser.require_upload()
             key_create_args = parser.getcreate_args
+            acme_account_provider_id = key_create_args.get("acme_account_provider_id")
+            if acme_account_provider_id:
+                dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context)
+                _acme_account_provider_ids__all = [i.id for i in dbAcmeAccountProviders]
+                if (acme_account_provider_id not in _acme_account_provider_ids__all):
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="acme_account_provider_id",
+                        message="Invalid provider submitted.",
+                    )
+
             key_create_args["event_type"] = "acme_account_key__insert"
             (
                 dbAcmeAccountKey,
@@ -139,7 +147,7 @@ class ViewAdmin_New(Handler):
                     "is_existing": False if _is_created else True,
                 }
             return HTTPSeeOther(
-                "%s/acme-account-key/%s?result=success%s"
+                "%s/acme-account-key/%s?result=success&operation=upload%s"
                 % (
                     self.request.admin_url,
                     dbAcmeAccountKey.id,
@@ -162,6 +170,7 @@ class ViewAdmin_New(Handler):
         return self._new__print()
 
     def _new__print(self):
+        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context, is_enabled=True)
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -174,17 +183,13 @@ class ViewAdmin_New(Handler):
                 },
                 "notes": [""],
                 "valid_options": {
-                    "acme_account_provider_id": {
-                        v["id"]: v["name"]
-                        for v in model_utils.AcmeAccountProvider.registry.values()
-                    }
+                    "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in dbAcmeAccountProviders},
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
-        providers = [i for i in model_utils.AcmeAccountProvider.registry.values() if i['is_enabled']]
         return render_to_response(
             "/admin/acme_account_key-new.mako",
-            {"AcmeAccountProviderOptions": providers},
+            {"AcmeAccountProviders": dbAcmeAccountProviders},
             self.request,
         )
 
@@ -196,15 +201,23 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context)
+            _acme_account_provider_ids__all = [i.id for i in dbAcmeAccountProviders]
+            _acme_account_provider_ids__enabled = [i.id for i in dbAcmeAccountProviders if i.is_enabled]
+            
             acme_account_provider_id = formStash.results['acme_account_provider_id']
-            if (
-                acme_account_provider_id
-                not in model_utils.AcmeAccountProvider.registry.keys()
-            ):
+            if (acme_account_provider_id not in _acme_account_provider_ids__all):
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="acme_account_provider_id",
                     message="Invalid provider submitted.",
+                )
+
+            if (acme_account_provider_id not in _acme_account_provider_ids__enabled):
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="acme_account_provider_id",
+                    message="This provider is no longer enabled.",
                 )
 
             parser = AccountKeyUploadParser(formStash)
@@ -234,7 +247,7 @@ class ViewAdmin_New(Handler):
                     "is_existing": False if _is_created else True,
                 }
             return HTTPSeeOther(
-                "%s/acme-account-key/%s?result=success%s"
+                "%s/acme-account-key/%s?result=success&operation=new%s"
                 % (
                     self.request.admin_url,
                     dbAcmeAccountKey.id,
@@ -431,6 +444,14 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         this just hits the api, hoping we authenticate correctly.
         """
         dbAcmeAccountKey = self._focus()
+        if not dbAcmeAccountKey.is_can_authenticate:
+            error_message = "This AcmeAccountKey can not Authenticate"
+            if self.request.wants_json:
+                return {"error": error_message, }
+            url_error = "%s?operation=authenticate&result=%s" % (
+                self._focus_url, error_message.replace(' ', '+')
+            )
+            return HTTPSeeOther(url_error)
         if self.request.method == "POST":
             return self._focus__authenticate__submit(dbAcmeAccountKey)
         return self._focus__authenticate__print(dbAcmeAccountKey)
@@ -456,7 +477,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.wants_json:
             return {"AcmeAccountKey": dbAcmeAccountKey.as_json}
         return HTTPSeeOther(
-            "%s?result=success&is_authenticated=%s" % (self._focus_url, True)
+            "%s?result=success&operation=authenticate&is_authenticated=%s" % (self._focus_url, True)
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -530,6 +551,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     # `formStash.fatal_form(` will raise a `FormInvalid()`
                     formStash.fatal_form(message="Already default.")
 
+                if not dbAcmeAccountKey.acme_account_provider.is_default:
+                    # `formStash.fatal_form(` will raise a `FormInvalid()`
+                    formStash.fatal_form(message="This AccountKey is not from the default AcmeAccountProvider.")
+
                 formerDefaultKey = lib_db.get.get__AcmeAccountKey__default(
                     self.request.api_context
                 )
@@ -581,9 +606,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s/operation=mark&action=%s&result=error&error=%s" % (
+            url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
                 self._focus_url,
                 action,
-                str(exc),
+                str(formStash.errors),
             )
             raise HTTPSeeOther(url_failure)

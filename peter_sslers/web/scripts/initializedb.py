@@ -3,6 +3,7 @@ from __future__ import print_function
 import os
 import sys
 import transaction
+import datetime
 
 from sqlalchemy import engine_from_config
 
@@ -53,7 +54,66 @@ def main(argv=sys.argv):
     """
     session_factory = get_session_factory(engine)
 
-    # with transaction.manager:
-    #    dbSession = get_tm_session(None, session_factory, transaction.manager)
-    #    model = MyModel(name='one', value=1)
-    #    dbSession.add(model)
+    acme_account_providers = {
+        1: {
+            "id": 1,
+            "name": "letsencrypt-v1",
+            "endpoint": "https://acme-v01.api.letsencrypt.org",
+            "directory": None,
+            "is_default": None,
+            "protocol": "acme-v1",
+            "is_enabled": False,
+            "server": "acme-v01.api.letsencrypt.org",
+        },
+        2: {
+            "id": 2,
+            "name": "letsencrypt-v1-staging",
+            "endpoint": "https://acme-staging.api.letsencrypt.org",
+            "directory": None,
+            "is_default": None,
+            "protocol": "acme-v1",
+            "is_enabled": False,
+            "server": "acme-staging.api.letsencrypt.org",
+        },
+        3: {
+            "id": 3,
+            "name": "letsencrypt-v2",
+            "endpoint": None,
+            "directory": "https://acme-v02.api.letsencrypt.org/directory",
+            "is_default": None,
+            "protocol": "acme-v2",
+            "is_enabled": True,
+            "server": "acme-v02.api.letsencrypt.org",
+        },
+        4: {
+            "id": 4,
+            "name": "letsencrypt-v2-staging",
+            "endpoint": None,
+            "directory": "https://acme-staging-v02.api.letsencrypt.org/directory",
+            "is_default": None,
+            "protocol": "acme-v2",
+            "is_enabled": True,
+            "server": "acme-staging-v02.api.letsencrypt.org",
+        },
+    }
+
+    with transaction.manager:
+        dbSession = get_tm_session(None, session_factory, transaction.manager)
+
+        for (id, item) in acme_account_providers.items():
+            dbObject = model_objects.AcmeAccountProvider()
+            dbObject.id = item["id"]
+            dbObject.timestamp_created = datetime.datetime.utcnow()
+            dbObject.name = item["name"]
+            dbObject.endpoint = item["endpoint"]
+            dbObject.directory = item["directory"]
+            dbObject.is_default = item["is_default"]
+            dbObject.is_enabled = item["is_enabled"]
+            dbObject.protocol = item["protocol"]
+            dbObject.server = item["server"]
+            dbSession.add(dbObject)
+            dbSession.flush(objects=[dbObject,])
+
+    transaction.commit()
+
+

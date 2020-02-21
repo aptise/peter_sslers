@@ -18,6 +18,7 @@ from .. import cert_utils
 from .. import utils
 from ...model import utils as model_utils
 from ...model import objects as model_objects
+from .get import get__AcmeAccountProviders__paginated
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__CACertificate__by_pem_text
@@ -145,20 +146,27 @@ def getcreate__AcmeAccountKey(
         """
         letsencrypt_data = {"meta.json": le_meta_json, "regr.json": le_reg_json}
         letsencrypt_data = json.dumps(letsencrypt_data)
+        
+        if contact is None:
+            try:
+                contact = le_reg_json['body']['contact'][0]
+                if contact.startswith('mailto:'):
+                    contact = contact[7:]
+            except:
+                pass
 
+        terms_of_service = le_reg_json.get('terms_of_service')
+        account_url = le_reg_json.get('uri')
+        account_server = lib.utils.url_to_server(account_url)
+        
         # derive the api server
-        try:
-            account_uri = le_reg_json["uri"]
-            for _acme_provider in model_utils.AcmeAccountProvider.registry.values():
-                if not _acme_provider["endpoint"]:
-                    # the custom might not be enabled...
-                    continue
-                if account_uri.startswith(_acme_provider["endpoint"]):
-                    acme_account_provider_id = _acme_provider["id"]
-            if acme_account_provider_id is None:
-                raise ValueError("could not derive an account")
-        except KeyError:
-            raise ValueError("could not parse an account")
+        acme_account_provider_id = None
+        dbAcmeAccountProviders = get__AcmeAccountProviders__paginated(ctx)
+        for _acmeAccountProvider in dbAcmeAccountProviders:
+            if account_server == _acmeAccountProvider.server:
+                acme_account_provider_id = _acmeAccountProvider.id
+        if acme_account_provider_id is None:
+            raise ValueError("could not derive an account")
 
         key_pem = cert_utils.convert_lejson(le_pkey_jsons)
         key_pem = cert_utils.cleanup_pem_text(key_pem)
@@ -171,6 +179,12 @@ def getcreate__AcmeAccountKey(
             )
             .first()
         )
+        if dbAcmeAccountKey:
+            dbAcmeAccountKey.terms_of_service = dbAcmeAccountKey.terms_of_service or terms_of_service
+            dbAcmeAccountKey.account_url = dbAcmeAccountKey.account_url or account_url
+            dbAcmeAccountKey.contact = dbAcmeAccountKey.contact or contact
+            ctx.dbSession.flush(objects=[dbAcmeAccountKey])
+
         if not dbAcmeAccountKey:
             try:
                 _tmpfile = cert_utils.new_pem_tempfile(key_pem)
@@ -200,8 +214,10 @@ def getcreate__AcmeAccountKey(
             dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
             dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent.id
             dbAcmeAccountKey.acme_account_provider_id = acme_account_provider_id
-            dbAcmeAccountKey.letsencrypt_data = letsencrypt_data
+            # dbAcmeAccountKey.letsencrypt_data = letsencrypt_data
             dbAcmeAccountKey.contact = contact
+            dbAcmeAccountKey.terms_of_service = terms_of_service
+            dbAcmeAccountKey.account_url = account_url
 
             ctx.dbSession.add(dbAcmeAccountKey)
             ctx.dbSession.flush(objects=[dbAcmeAccountKey])
