@@ -28,24 +28,10 @@ class ViewPublic(Handler):
     @view_config(route_name="public_challenge", renderer="string")
     def public_challenge(self):
         challenge = self.request.matchdict["challenge"]
+        log.info("public challenge: domain=%s, challenge=%s", self.request.active_domain_name, challenge, )
 
         dbAcmeChallenge = lib_db.get.get__AcmeChallenge__challenged(
             self.request.api_context, self.request.active_domain_name, challenge,
-        )
-        # this will log a tuple of (acme_authorization_id, domain_id) for activeRequest
-        log.info(
-            "public challenge: domain=%s, challenge=%s, activeRequest=%s",
-            self.request.active_domain_name,
-            challenge,
-            (
-                (
-                    dbAcmeChallenge.acme_authorization.domain.id,
-                    dbAcmeChallenge.acme_authorization_id,
-                    dbAcmeChallenge.acme_orderless_id,
-                )
-                if dbAcmeChallenge
-                else None
-            ),
         )
         if dbAcmeChallenge:
             lib_db.create.create__AcmeChallengePoll(

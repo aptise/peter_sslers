@@ -17,8 +17,7 @@
     <p><em>${request.text_library.info_AcmeOrder_new_Automated[1]}</em></p>
     <div class="alert alert-info">
         <em>
-            Requests will be performed against the following Certificate Authority:
-            <b>${CERTIFICATE_AUTHORITY}</b>
+            Requests will be performed against the Certificate Authority associated with the Account Key
         </em>
     </div>
 </%block>
@@ -28,8 +27,6 @@
 
     <div class="row">
         <div class="col-sm-6">
-
-            <%! show_text = False %>
 
             <form
                 action="${admin_prefix}/acme-order/new/automated"
@@ -44,7 +41,7 @@
                 <hr/>
 
                 <h3>PrivateKey</h3>
-                ${admin_partials.formgroup__PrivateKey_selector__advanced(show_text=show_text)}
+                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_generate_new=True)}
                 <hr/>
 
                 ${admin_partials.formgroup__domain_names()}

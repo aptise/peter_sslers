@@ -62,21 +62,6 @@
                     unique-fqdn-sets</a></li>
             </ul>
 
-            <h3>Configuration</h3>
-            <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/acme-account-providers"
-                       title="Acme Providers"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-account-providers</a></li>
-                <li><a href="${admin_prefix}/ca-certificates"
-                       title="${request.text_library.info_CACertificates[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    ca-certificates</a></li>
-            </ul>
-
-
             <h3>Recordkeeping - ACME Logs</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/acme-challenge-polls"
@@ -113,6 +98,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-orders</a></li>
+                <li><a href="${admin_prefix}/acme-orderlesss"
+                       title="Orderless "
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-orderless</a></li>
             </ul>
 
 
@@ -128,6 +118,23 @@
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     queue-renewals</a></li>
             </ul>
+
+            <h3>Upstream Providers</h3>
+            <ul class="nav nav-pills nav-stacked">
+                <li><a href="${admin_prefix}/acme-account-providers"
+                       title="Acme Providers"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-account-providers</a></li>
+                <li><a href="${admin_prefix}/ca-certificates"
+                       title="${request.text_library.info_CACertificates[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    ca-certificates</a></li>
+            </ul>
+
+
+
         </div>
         <div class="col-sm-4">
             <h3>Status</h3>
@@ -136,7 +143,7 @@
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     api : nginx/status.json</a></li>
             </ul>
-            <h4>Tools</h4>
+            <h3>Tools</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/domains/search">
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>

@@ -691,7 +691,9 @@ class FunctionalTests_AcmeProviders(AppTest):
         res = self.testapp.get("/.well-known/admin/acme-account-providers", status=200)
 
         # json root
-        res = self.testapp.get("/.well-known/admin/acme-account-providers.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-providers.json", status=200
+        )
         res_json = json.loads(res.body)
         assert "AcmeProviders" in res_json
 
@@ -1140,7 +1142,7 @@ class FunctionalTests_Certificate(AppTest):
             status=303,
         )
         assert (
-            "/.well-known/admin/server-certificate/%s?operation=nginx_cache_expire&result=success&event.id="
+            "/.well-known/admin/server-certificate/%s?result=success&operation=nginx_cache_expire&event.id="
             % focus_id
             in res.location
         )
@@ -1411,7 +1413,7 @@ class FunctionalTests_Domain(AppTest):
             "/.well-known/admin/domain/%s/nginx-cache-expire" % focus_id, status=303
         )
         assert (
-            "/.well-known/admin/domain/%s?operation=nginx_cache_expire&result=success&event.id="
+            "/.well-known/admin/domain/%s?result=success&operation=nginx_cache_expire&event.id="
             % focus_id
             in res.location
         )
@@ -1902,7 +1904,7 @@ class ZZZ_FunctionalTests_API(AppTest):
     def tests_nginx(self):
         res = self.testapp.get("/.well-known/admin/api/nginx/cache-flush", status=303)
         assert (
-            "/.well-known/admin/operations/nginx?operation=nginx_cache_flush&result=success&event.id="
+            "/.well-known/admin/operations/nginx?result=success&operation=nginx_cache_flush&event.id="
             in res.location
         )
 
@@ -1916,7 +1918,7 @@ class ZZZ_FunctionalTests_API(AppTest):
     def tests_redis(self):
         res = self.testapp.get("/.well-known/admin/api/redis/prime", status=303)
         assert (
-            "/.well-known/admin/operations/redis?operation=redis_prime&result=success&event.id="
+            "/.well-known/admin/operations/redis?result=success&operation=redis_prime&event.id="
             in res.location
         )
 
@@ -1967,6 +1969,6 @@ class ZZZ_FunctionalTests_API(AppTest):
     @unittest.skip("tests not written yet")
     def tests__certificate_if_needed(self):
         """
-        api_domains__certificate_if_needed
+        ApiDomains__certificate_if_needed
         """
         pass

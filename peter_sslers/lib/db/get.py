@@ -46,7 +46,9 @@ def get__AcmeEventLog__by_id(ctx, id):
 def get__AcmeAccountProviders__paginated(ctx, limit=None, offset=0, is_enabled=None):
     query = ctx.dbSession.query(model_objects.AcmeAccountProvider)
     if is_enabled is True:
-        query = query.filter(model_objects.AcmeAccountProvider.is_enabled.op("IS")(True))
+        query = query.filter(
+            model_objects.AcmeAccountProvider.is_enabled.op("IS")(True)
+        )
     query = (
         query.order_by(model_objects.AcmeAccountProvider.id.desc())
         .limit(limit)
@@ -120,16 +122,32 @@ def get__AcmeAccountKey__default(ctx, active_only=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def _get__AcmeAuthorization__core(ctx, active_only=False, expired_only=False):
+    query = ctx.dbSession.query(model_objects.AcmeAuthorization)
+    if expired_only:
+        active_only = True
+    if active_only:
+        query = query.filter(
+            model_objects.AcmeAuthorization.acme_status_authorization_id.in_(
+                model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
+            )
+        )
+    if expired_only:
+        query = query.filter(
+            model_objects.AcmeAuthorization.timestamp_expires.op('IS NOT')(None),
+            model_objects.AcmeAuthorization.timestamp_expires < ctx.timestamp,
+        )
+    return query
 
 
-def get__AcmeAuthorization__count(ctx):
-    counted = ctx.dbSession.query(model_objects.AcmeAuthorization).count()
+def get__AcmeAuthorization__count(ctx, active_only=False, expired_only=False):
+    query = _get__AcmeAuthorization__core(ctx, active_only=active_only, expired_only=expired_only)
+    counted = query.count()
     return counted
 
 
-def get__AcmeAuthorization__paginated(ctx, limit=None, offset=0, active_only=False):
-    query = ctx.dbSession.query(model_objects.AcmeAuthorization)
+def get__AcmeAuthorization__paginated(ctx, limit=None, offset=0, active_only=False, expired_only=False):
+    query = _get__AcmeAuthorization__core(ctx, active_only=active_only, expired_only=expired_only)
     query = (
         query.order_by(model_objects.AcmeAuthorization.id.desc())
         .limit(limit)
@@ -155,9 +173,14 @@ def get__AcmeAuthorization__by_authorization_url(ctx, authorization_url):
     return item
 
 
-def get__AcmeAuthorization__by_AcmeAccountKeyId__count(
-    ctx, acme_account_key_id, only_pending=False
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
+    ctx, acme_account_key_id, active_only=False, expired_only=False
 ):
+    if expired_only:
+        active_only = True
     query = (
         ctx.dbSession.query(model_objects.AcmeAuthorization)
         .join(
@@ -167,31 +190,31 @@ def get__AcmeAuthorization__by_AcmeAccountKeyId__count(
         )
         .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
     )
-    if only_pending:
+    if active_only:
         query = query.filter(
-            model_objects.AcmeAuthorization.acme_status_authorization_id
-            == model_utils.Acme_Status_Authorization.from_string("pending")
+            model_objects.AcmeAuthorization.acme_status_authorization_id.in_(
+                model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
+            )
         )
+    if expired_only:
+        query = query.filter(
+            model_objects.AcmeAuthorization.timestamp_expires.op('IS NOT')(None),
+            model_objects.AcmeAuthorization.timestamp_expires < ctx.timestamp,
+        )
+    return query
+
+
+def get__AcmeAuthorization__by_AcmeAccountKeyId__count(
+    ctx, acme_account_key_id, active_only=False, expired_only=False
+):
+    query = _get__AcmeAuthorization__by_AcmeAccountKeyId__core(ctx, acme_account_key_id, active_only=active_only, expired_only=expired_only)
     return query.count()
 
 
 def get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
-    ctx, acme_account_key_id, only_pending=False, limit=None, offset=0,
+    ctx, acme_account_key_id, active_only=False, expired_only=False, limit=None, offset=0,
 ):
-    query = (
-        ctx.dbSession.query(model_objects.AcmeAuthorization)
-        .join(
-            model_objects.AcmeOrder,
-            model_objects.AcmeAuthorization.acme_order_id__created
-            == model_objects.AcmeOrder.id,
-        )
-        .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
-    )
-    if only_pending:
-        query = query.filter(
-            model_objects.AcmeAuthorization.acme_status_authorization_id
-            == model_utils.Acme_Status_Authorization.from_string("pending")
-        )
+    query = _get__AcmeAuthorization__by_AcmeAccountKeyId__core(ctx, acme_account_key_id, active_only=active_only, expired_only=expired_only)
     query = (
         query.order_by(model_objects.AcmeAuthorization.id.desc())
         .limit(limit)
@@ -199,6 +222,9 @@ def get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
     )
     dbAcmeAuthorizations = query.all()
     return dbAcmeAuthorizations
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 def get__AcmeAuthorization__by_DomainId__count(ctx, domain_id):
@@ -227,29 +253,27 @@ def get__AcmeAuthorization__by_DomainId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeChallenge__count(ctx):
-    counted = ctx.dbSession.query(model_objects.AcmeChallenge).count()
-    return counted
+def get__AcmeChallenge__count(ctx, active_only=None):
+    q = ctx.dbSession.query(model_objects.AcmeChallenge)
+    if active_only:
+        q = q.filter(
+            model_objects.AcmeChallenge.acme_status_challenge_id.in_(
+                model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
+            )
+        )
+    return q.count()
 
 
-def get__AcmeChallenge__paginated(
-    ctx, limit=None, offset=0, acme_account_key_id=None, pending_only=None
-):
-    query = ctx.dbSession.query(model_objects.AcmeChallenge)
-    if acme_account_key_id:
-        query = query.join(
-            model_objects.AcmeEventLog,
-            model_objects.AcmeChallenge.acme_event_log_id
-            == model_objects.AcmeEventLog.id,
-        ).filter(model_objects.AcmeEventLog.acme_account_key_id == acme_account_key_id)
-    if pending_only:
-        query = query.filter(model_objects.AcmeChallenge.count_polled == 0)
-    query = (
-        query.order_by(model_objects.AcmeChallenge.id.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    dbAcmeChallenges = query.all()
+def get__AcmeChallenge__paginated(ctx, limit=None, offset=0, active_only=None):
+    q = ctx.dbSession.query(model_objects.AcmeChallenge)
+    if active_only:
+        q = q.filter(
+            model_objects.AcmeChallenge.acme_status_challenge_id.in_(
+                model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
+            )
+        )
+    q = q.order_by(model_objects.AcmeChallenge.id.desc()).limit(limit).offset(offset)
+    dbAcmeChallenges = q.all()
     return dbAcmeChallenges
 
 
@@ -503,13 +527,17 @@ def get__AcmeOrderless__by_DomainId__paginated(ctx, domain_id, limit=None, offse
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeOrder__count(ctx):
-    counted = ctx.dbSession.query(model_objects.AcmeOrder).count()
-    return counted
-
-
-def get__AcmeOrder__paginated(ctx, limit=None, offset=0):
+def get__AcmeOrder__count(ctx, active_only=None):
     query = ctx.dbSession.query(model_objects.AcmeOrder)
+    if active_only:
+        query = query.filter(model_objects.AcmeOrder.is_active.op("IS")(True))
+    return query.count()
+
+
+def get__AcmeOrder__paginated(ctx, active_only=None, limit=None, offset=0):
+    query = ctx.dbSession.query(model_objects.AcmeOrder)
+    if active_only:
+        query = query.filter(model_objects.AcmeOrder.is_active.op("IS")(True))
     query = (
         query.order_by(model_objects.AcmeOrder.id.desc()).limit(limit).offset(offset)
     )
@@ -1032,6 +1060,60 @@ def get__Domain__by_name(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def _get__Domains_challenged__core(ctx):
+    q = (
+        ctx.dbSession.query(model_objects.Domain)
+        .join(
+            model_objects.AcmeChallenge,
+            model_objects.Domain.id == model_objects.AcmeChallenge.domain_id,
+        )
+        .join(
+            model_objects.AcmeOrderless,
+            model_objects.AcmeChallenge.acme_orderless_id
+            == model_objects.AcmeOrderless.id,
+            isouter=True,
+        )
+        .join(
+            model_objects.AcmeAuthorization,
+            model_objects.AcmeChallenge.acme_authorization_id
+            == model_objects.AcmeAuthorization.id,
+            isouter=True,
+        )
+        .join(
+            model_objects.AcmeOrder,
+            model_objects.AcmeAuthorization.acme_order_id__created
+            == model_objects.AcmeOrder.id,
+            isouter=True,
+        )
+        .filter(
+            sqlalchemy.or_(
+                model_objects.AcmeOrderless.is_active.op("IS")(True),
+                model_objects.AcmeOrder.is_active.op("IS")(True),
+            ),
+        )
+    )
+    return q
+
+
+def get__Domains_challenged__count(ctx):
+    q = _get__Domains_challenged__core(ctx)
+    counted = q.count()
+    return counted
+
+
+def get__Domains_challenged__paginated(
+    ctx, limit=None, offset=0,
+):
+    q = _get__Domains_challenged__core(ctx)
+    q = q.order_by(sqlalchemy.func.lower(model_objects.Domain.domain_name).asc())
+    q = q.limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__OperationsObjectEvent__count(ctx):
     q = ctx.dbSession.query(model_objects.OperationsObjectEvent)
     counted = q.count()
@@ -1115,7 +1197,7 @@ def get__OperationsEvent__certificate_probe__count(ctx):
         ctx.dbSession.query(model_objects.OperationsEvent)
         .filter(
             model_objects.OperationsEvent.operations_event_type_id
-            == model_utils.OperationsEventType.from_string("ca_certificate__probe")
+            == model_utils.OperationsEventType.from_string("CaCertificate__probe")
         )
         .count()
     )
@@ -1128,7 +1210,7 @@ def get__OperationsEvent__certificate_probe__paginated(ctx, limit=None, offset=0
         .order_by(model_objects.OperationsEvent.id.desc())
         .filter(
             model_objects.OperationsEvent.operations_event_type_id
-            == model_utils.OperationsEventType.from_string("ca_certificate__probe")
+            == model_utils.OperationsEventType.from_string("CaCertificate__probe")
         )
         .limit(limit)
         .offset(offset)
@@ -1154,9 +1236,9 @@ def get__PrivateKey__paginated(ctx, limit=None, offset=0, active_only=False):
     return items_paged
 
 
-def get__PrivateKey__by_id(ctx, cert_id, eagerload_web=False):
+def get__PrivateKey__by_id(ctx, key_id, eagerload_web=False):
     q = ctx.dbSession.query(model_objects.PrivateKey).filter(
-        model_objects.PrivateKey.id == cert_id
+        model_objects.PrivateKey.id == key_id
     )
     if eagerload_web:
         q = q.options(

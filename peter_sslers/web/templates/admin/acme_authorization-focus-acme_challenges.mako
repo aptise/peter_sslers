@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-authorizations">ACME Authorization</a></li>
-        <li><a href="${admin_prefix}/acme-authorizations/${AcmeAuthorization.id}">Focus [${AcmeAuthorization.id}]</a></li>
+        <li><a href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}">Focus [${AcmeAuthorization.id}]</a></li>
         <li class="active">Acme Challenges</li>
     </ol>
 </%block>

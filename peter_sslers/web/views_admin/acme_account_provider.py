@@ -21,11 +21,14 @@ from ...model import utils as model_utils
 
 class ViewAdmin(Handler):
     @view_config(
-        route_name="admin:acme_account_providers", renderer="/admin/acme_account_providers.mako"
+        route_name="admin:acme_account_providers",
+        renderer="/admin/acme_account_providers.mako",
     )
     @view_config(route_name="admin:acme_account_providers|json", renderer="json")
     def list(self):
-        items_paged = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context)
+        items_paged = lib_db.get.get__AcmeAccountProviders__paginated(
+            self.request.api_context
+        )
         if self.request.wants_json:
             _keys = {k.id: k.as_json for k in items_paged}
             return {

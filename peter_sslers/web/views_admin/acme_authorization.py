@@ -45,14 +45,42 @@ class ViewAdmin_List(Handler):
         route_name="admin:acme_authorizations_paginated|json", renderer="json",
     )
     def list(self):
-        items_count = lib_db.get.get__AcmeAuthorization__count(self.request.api_context)
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/acme-authorizations/{0}"
-            % self.request.registry.settings["admin_prefix"],
+        url_status = self.request.params.get("status")
+        if url_status not in ('active', 'active-expired'):
+            url_status = ''
+        if url_status == 'active':
+            sidenav_option = "active"
+        elif url_status == 'active-expired':
+            sidenav_option = "active-expired"
+        else:
+            sidenav_option = "all"
+
+        active_only = True if url_status == "active" else False
+        expired_only = True if url_status == "active-expired" else False
+
+        if self.request.wants_json:
+            url_template = (
+                "%s/acme-authorizations/{0}.json"
+                % self.request.registry.settings["admin_prefix"]
+            )
+        else:
+            url_template = (
+                "%s/acme-authorizations/{0}"
+                % self.request.registry.settings["admin_prefix"]
+            )
+        if url_status:
+            url_template = "%s?status=%s" % (url_template, url_status)
+
+        items_count = lib_db.get.get__AcmeAuthorization__count(
+            self.request.api_context, active_only=active_only
         )
+        (pager, offset) = self._paginate(items_count, url_template=url_template,)
         items_paged = lib_db.get.get__AcmeAuthorization__paginated(
-            self.request.api_context, limit=items_per_page, offset=offset
+            self.request.api_context,
+            active_only=active_only,
+            expired_only=expired_only,
+            limit=items_per_page,
+            offset=offset,
         )
         if self.request.wants_json:
             _auths = {k.id: k.as_json for k in items_paged}
@@ -171,21 +199,26 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     @view_config(
         route_name="admin:acme_authorization:focus:acme_server_sync", renderer=None
     )
+    @view_config(
+        route_name="admin:acme_authorization:focus:acme_server_sync|json",
+        renderer="json",
+    )
     def acme_server_sync(self):
         """
         Acme Refresh should just update the record against the acme server.
         """
+        # todo: json response
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         try:
             if not dbAcmeAuthorization.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
-            result = lib_db.actions_acme.do__AcmeAuthorization_AcmeV2__acme_server_sync(
+            result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_sync(
                 self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
             )
             return HTTPSeeOther(
-                "%s?result=success&operation=acme+server+sync+success" % self._focus_url
+                "%s?result=success&operation=acme+server+sync" % self._focus_url
             )
         except (
             errors.AcmeCommunicationError,
@@ -193,8 +226,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             errors.InvalidRequest,
         ) as exc:
             return HTTPSeeOther(
-                "%s?error=acme+server+sync&message=%s"
-                % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+                "%s?result=error&error=acme+server+sync&message=%s"
+                % (self._focus_url, exc.to_querystring())
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -203,29 +236,73 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         route_name="admin:acme_authorization:focus:acme_server_deactivate",
         renderer=None,
     )
+    @view_config(
+        route_name="admin:acme_authorization:focus:acme_server_deactivate|json",
+        renderer="json",
+    )
     def acme_server_deactivate(self):
         """
         Acme Deactivate
         """
+        # todo: json response
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         try:
             if not dbAcmeAuthorization.is_can_acme_server_deactivate:
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
-            result = lib_db.actions_acme.do__AcmeAuthorization_AcmeV2__acme_server_deactivate(
+            result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
                 self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
             )
             return HTTPSeeOther(
-                "%s?result=success&operation=acme+server+deactivate+success"
+                "%s?result=success&operation=acme+server+deactivate"
                 % self._focus_url
             )
         except (
             errors.AcmeCommunicationError,
+            errors.AcmeServerError,
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
             return HTTPSeeOther(
-                "%s?error=acme+server+deactivate&message=%s"
-                % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+                "%s?result=error&error=acme+server+deactivate&message=%s"
+                % (self._focus_url, exc.to_querystring())
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_authorization:focus:acme_server_trigger", renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_authorization:focus:acme_server_trigger|json",
+        renderer="json",
+    )
+    def acme_server_trigger(self):
+        """
+        Acme Trigger
+        """
+        # todo: json response
+        dbAcmeAuthorization = self._focus(eagerload_web=True)
+        try:
+            if not dbAcmeAuthorization.is_can_acme_server_trigger:
+                raise errors.InvalidRequest(
+                    "ACME Server Trugger is not allowed for this AcmeAuthorization"
+                )
+            result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger(
+                self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
+            )
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme+server+trigger"
+                % self._focus_url
+            )
+        except (
+            errors.AcmeCommunicationError,
+            errors.AcmeServerError,
+            errors.DomainVerificationError,
+            errors.InvalidRequest,
+        ) as exc:
+            return HTTPSeeOther(
+                "%s?result=error&error=acme+server+trigger&message=%s"
+                % (self._focus_url, exc.to_querystring())
             )

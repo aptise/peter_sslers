@@ -379,7 +379,7 @@ class ViewAdmin(Handler):
                 },
             }
         return HTTPSeeOther(
-            "%s/operations/redis?operation=redis_prime&result=success&event.id=%s"
+            "%s/operations/redis?result=success&operation=redis_prime&event.id=%s"
             % (self.request.registry.settings["admin_prefix"], dbEvent.id)
         )
 
@@ -400,7 +400,7 @@ class ViewAdmin(Handler):
                 "servers_status": servers_status,
             }
         return HTTPSeeOther(
-            "%s/operations/nginx?operation=nginx_cache_flush&result=success&event.id=%s"
+            "%s/operations/nginx?result=success&operation=nginx_cache_flush&event.id=%s"
             % (self.request.registry.settings["admin_prefix"], dbEvent.id)
         )
 
@@ -461,7 +461,7 @@ class ViewAdmin(Handler):
         except Exception as exc:
             transaction.abort()
             if self.request.wants_json:
-                return {"result": "error", "error": str(exc)}
+                return {"result": "error", "error": exc.to_querystring()}
             raise
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -484,5 +484,5 @@ class ViewAdmin(Handler):
         except Exception as exc:
             transaction.abort()
             if self.request.wants_json:
-                return {"result": "error", "error": str(exc)}
+                return {"result": "error", "error": exc.to_querystring()}
             raise

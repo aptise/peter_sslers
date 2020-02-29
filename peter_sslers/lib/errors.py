@@ -1,3 +1,8 @@
+class _UrlSafeException(Exception):
+    def to_querystring(self):
+        return str(self).replace("\n", "+").replace(" ", "+")
+
+
 class OpenSslError(Exception):
     pass
 
@@ -18,11 +23,15 @@ class OpenSslError_InvalidCertificate(OpenSslError):
     pass
 
 
-class AcmeError(Exception):
+class AcmeError(_UrlSafeException):
     pass
 
 
-class AcmeServer404(AcmeError):
+class AcmeServerError(AcmeError):
+    pass
+
+
+class AcmeServer404(AcmeServerError):
     pass
 
 
@@ -35,6 +44,21 @@ class AcmeAuthorizationFailure(AcmeError):
 
 
 class AcmeOrderError(AcmeError):
+    pass
+
+
+class AcmeOrderFatal(AcmeOrderError):
+    """
+    The AcmeOrder has a fatal error.
+    Authorizations should be killed.
+    """
+
+    pass
+
+
+class AcmeMissingChallenges(AcmeError):
+    """There are no Acme Challenges"""
+
     pass
 
 
@@ -70,21 +94,25 @@ class AcmeChallengeFailure(AcmeError):
     pass
 
 
-class DomainVerificationError(Exception):
+class DomainVerificationError(AcmeError):
     pass
 
 
-class DisplayableError(Exception):
+class DisplayableError(_UrlSafeException):
     pass
 
 
-class InvalidRequest(Exception):
+class InvalidRequest(_UrlSafeException):
+    """
+    raised when an end-user wants to do something invalid/not-allowed
+    """
+
     pass
 
 
-class TransitionError(Exception):
-    pass
+# class TransitionError(_UrlSafeException):
+#    pass
 
 
-class OperationsContextError(Exception):
-    pass
+# class OperationsContextError(_UrlSafeException):
+#    pass

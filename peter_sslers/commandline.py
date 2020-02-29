@@ -219,7 +219,7 @@ def import_certbot_cert_plain(cert_path, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the certificate for a folder.
-    
+
     given an unversioned content structure:
 
         /domain-cert/certificate.pem

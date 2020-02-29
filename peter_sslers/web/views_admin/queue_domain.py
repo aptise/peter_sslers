@@ -186,15 +186,15 @@ class ViewAdmin_New(Handler):
             # return, don't raise
             # we still commit the bookkeeping
             if self.request.wants_json:
-                return {"result": "error", "error": str(exc)}
+                return {"result": "error", "error": exc.to_querystring()}
             return HTTPSeeOther(
                 "%s/queue-domains?processed=0&error=%s"
-                % (self.request.registry.settings["admin_prefix"], str(exc))
+                % (self.request.registry.settings["admin_prefix"], exc.to_querystring())
             )
         except Exception as exc:
             transaction.abort()
             if self.request.wants_json:
-                return {"result": "error", "error": str(exc)}
+                return {"result": "error", "error": exc.to_querystring()}
             raise
 
 
@@ -241,7 +241,7 @@ class ViewAdmin_Focus(Handler):
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["cancel"]},
             }
-        url_post_required = "%s?operation=mark&result=post+required" % (self._focus_url)
+        url_post_required = "%s?result=post+required&operation=mark" % (self._focus_url)
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbQueueDomain):
@@ -254,7 +254,7 @@ class ViewAdmin_Focus(Handler):
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
-                "queue_domain__mark"
+                "QueueDomain__mark"
             )
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["queue_domain.id"] = dbQueueDomain.id
@@ -275,7 +275,7 @@ class ViewAdmin_Focus(Handler):
                     self.request.api_context,
                     dbQueueDomain,
                     dbOperationsEvent=dbOperationsEvent,
-                    event_status="queue_domain__mark__cancelled",
+                    event_status="QueueDomain__mark__cancelled",
                     action="de-queued",
                 )
             else:
@@ -289,7 +289,7 @@ class ViewAdmin_Focus(Handler):
             if self.request.wants_json:
                 return {"result": "success", "QueueDomain": dbQueueDomain.as_json}
 
-            url_success = "%s?operation=mark&action=%s&result=success" % (
+            url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
                 action,
             )
@@ -298,9 +298,9 @@ class ViewAdmin_Focus(Handler):
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
+            url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
+                exc.to_querystring(),
                 action,
-                str(exc),
             )
             raise HTTPSeeOther(url_failure)

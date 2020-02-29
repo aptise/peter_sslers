@@ -125,6 +125,9 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
     contact = sa.Column(sa.Unicode(255), nullable=True)
     terms_of_service = sa.Column(sa.Unicode(255), nullable=True)
     account_url = sa.Column(sa.Unicode(255), nullable=True)
+    acme_account_key_source_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.AcmeAccountKeySource
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -157,9 +160,15 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @reify
+    def acme_account_key_source(self):
+        return model_utils.AcmeAccountKeySource.as_string(
+            self.acme_account_key_source_id
+        )
+
     @property
     def is_can_authenticate(self):
-        if self.acme_account_provider.protocol == 'acme-v2':
+        if self.acme_account_provider.protocol == "acme-v2":
             return True
         return False
 
@@ -197,6 +206,7 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
             "acme_account_provider_name": self.acme_account_provider.name,
             "acme_account_provider_url": self.acme_account_provider.url,
             "acme_account_provider_protocol": self.acme_account_provider.protocol,
+            "acme_account_key_source": self.acme_account_key_source,
             "id": self.id,
         }
 
@@ -218,9 +228,7 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
             name="check_endpoint_or_directory",
         ),
         sa.CheckConstraint(
-            "(protocol = 'acme-v1')"
-            " OR "
-            "(protocol = 'acme-v2')",
+            "(protocol = 'acme-v1')" " OR " "(protocol = 'acme-v2')",
             name="check_protocol",
         ),
     )
@@ -245,7 +253,7 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    
+
     @property
     def url(self):
         return self.directory or self.endpoint
@@ -261,7 +269,7 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
             "is_default": self.is_default or False,
             "protocol": self.protocol,
         }
-        
+
 
 # ==============================================================================
 
@@ -351,11 +359,21 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         )
 
     @property
+    def is_acme_server_pending(self):
+        if (
+            self.acme_status_authorization
+            in model_utils.Acme_Status_Authorization.OPTIONS_POSSIBLY_PENDING
+        ):
+            return True
+        return False
+
+    @property
     def is_can_acme_server_deactivate(self):
         # TODO: is there another way to test this?
         if not self.authorization_url:
             return False
         if not self.acme_order_id__created:
+            # order_id is needed for the key
             return False
         if (
             self.acme_status_authorization
@@ -365,11 +383,29 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
+    def is_can_acme_server_trigger(self):
+        if not self.authorization_url:
+            return False
+        if not self.acme_order_id__created:
+            # order_id is needed for the AcmeAccountKey
+            return False
+        if (
+            self.acme_status_authorization
+            not in model_utils.Acme_Status_Authorization.OPTIONS_TRIGGER
+        ):
+            return False
+        if not self.acme_challenge_http01:
+            # we only support `acme_challenge_http01`
+            return False
+        return True
+
+    @property
     def is_can_acme_server_sync(self):
         # TODO: is there another way to test this?
         if not self.authorization_url:
             return False
         if not self.acme_order_id__created:
+            # order_id is needed for the AcmeAccountKey
             return False
         return True
 
@@ -377,10 +413,20 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.acme_status_authorization,
             "acme_status_authorization": self.acme_status_authorization,
-            "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
+            "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,}
+            if self.domain_id
+            else None,
             "url_acme_server_sync": "%s/acme-challenge/%s/acme-server-sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
+            else None,
+            "url_acme_server_trigger": "%s/acme-challenge/%s/acme-server-trigger.json"
+            % (admin_url, self.id)
+            if self.is_can_acme_server_trigger
+            else None,
+            "url_acme_server_deactivate": "%s/acme-challenge/%s/acme-server-deactivate.json"
+            % (admin_url, self.id)
+            if self.is_can_acme_server_deactivate
             else None,
         }
 
@@ -547,12 +593,30 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_acme_server_sync(self):
-        # TODO: is there another way to test this?
         if not self.challenge_url:
             return False
         if not self.acme_authorization_id:
+            # auth's order_id needed for the AcmeAccountKey
             return False
         if not self.acme_authorization.acme_order_id__created:
+            # auth's order_id needed for the AcmeAccountKey
+            return False
+        return True
+
+    @property
+    def is_can_acme_server_trigger(self):
+        if not self.challenge_url:
+            return False
+        if not self.acme_authorization_id:
+            # auth's order_id needed for the AcmeAccountKey
+            return False
+        if not self.acme_authorization.acme_order_id__created:
+            # auth's order_id needed for the AcmeAccountKey
+            return False
+        if (
+            self.acme_status_challenge
+            not in model_utils.Acme_Status_Challenge.OPTIONS_TRIGGER
+        ):
             return False
         return True
 
@@ -560,13 +624,17 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "acme_challenge_type": self.acme_challenge_type,
-            "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
             "acme_status_challenge": self.acme_status_challenge,
+            "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
             "url_acme_server_sync": "%s/acme-challenge/%s/acme-server-sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
+            else None,
+            "url_acme_server_trigger": "%s/acme-challenge/%s/acme-server-trigger.json"
+            % (admin_url, self.id)
+            if self.is_can_acme_server_trigger
             else None,
             # "acme_event_log_id": self.acme_event_log_id,
         }
@@ -714,15 +782,36 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         Identifiers (Domains)
         Authorizations (Authorization Objects)
         Certificate (Signed Certificate)
+
+    `private_key_id`:
+        Can not be null. If an auto-generated key is requested, then it should be
+        set to `0`, to note the corresponding placeholder PrivateKey
+
+    `AcmeOrder.is_active` - a boolean triplet with the following meaning:
+        True :  The AcmeOrder has been generated. It is `Active` and processing.
+                All Authorizations/Challenges are blocking for Domains on this order.
+
+        None :  The AcmeOrder has completed, it may be successful or a failure.
+                Any Authorizations/Challenges on this order's domains are OFF.
+
+        False : The AcmeOrder has been cancelled by the user.
+                Any Authorizations/Challenges on this order's domains are OFF.
     """
 
     __tablename__ = "acme_order"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_active = sa.Column(sa.Boolean, nullable=True, default=True)  # see notes above
+    is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    acme_status_order_id = sa.Column(sa.Integer, nullable=False)  # Acme_Status_Order
-    resource_url = sa.Column(sa.Unicode(255), nullable=True)
+    acme_order_type_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.AcmeOrderType
+    acme_status_order_id = sa.Column(
+        sa.Integer, nullable=True, default=True
+    )  # Acme_Status_Order
+    order_url = sa.Column(sa.Unicode(255), nullable=True)
     finalize_url = sa.Column(sa.Unicode(255), nullable=True)
     timestamp_expires = sa.Column(sa.DateTime, nullable=True)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
@@ -732,12 +821,14 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )  # When was this created?  AcmeEvent['v2|newOrder']
 
     timestamp_finalized = sa.Column(sa.DateTime, nullable=True)
-
     acme_account_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=False
     )
     certificate_request_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+    )
+    private_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
     server_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
@@ -745,14 +836,18 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
-
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     acme_order_id__retry_of = sa.Column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,
     )
     acme_order_id__renewal_of = sa.Column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,
     )
-
+    server_certificate_id__renewal_of = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("server_certificate.id", use_alter=True),
+        nullable=True,
+    )
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_account_key = sa_orm_relationship(
@@ -761,37 +856,36 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_orders",
     )
-
     certificate_request = sa_orm_relationship(
         "CertificateRequest",
         primaryjoin="AcmeOrder.certificate_request_id==CertificateRequest.id",
         uselist=False,
         back_populates="acme_orders",
     )
-
+    private_key = sa_orm_relationship(
+        "PrivateKey",
+        primaryjoin="AcmeOrder.private_key_id==PrivateKey.id",
+        back_populates="acme_orders",
+        uselist=False,
+    )
     server_certificate = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="AcmeOrder.server_certificate_id==ServerCertificate.id",
         uselist=False,
         back_populates="acme_order",
     )
-
-    # authorizations
+    server_certificate__renewal_of = sa_orm_relationship(
+        "ServerCertificate",
+        primaryjoin="AcmeOrder.server_certificate_id__renewal_of==ServerCertificate.id",
+        back_populates="acme_order__renewals",
+        uselist=False,
+    )
     to_acme_authorizations = sa_orm_relationship(
         "AcmeOrder2AcmeAuthorization",
         primaryjoin="AcmeOrder.id==AcmeOrder2AcmeAuthorization.acme_order_id",
         uselist=True,
         back_populates="acme_order",
     )
-
-    # identifiers
-    to_domains = sa_orm_relationship(
-        "AcmeOrder2Domain",
-        primaryjoin="AcmeOrder.id==AcmeOrder2Domain.acme_order_id",
-        uselist=False,
-        back_populates="acme_order",
-    )
-
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
         primaryjoin="AcmeOrder.unique_fqdn_set_id==UniqueFQDNSet.id",
@@ -804,6 +898,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @property
     def acme_status_order(self):
         return model_utils.Acme_Status_Order.as_string(self.acme_status_order_id)
+
+    @reify
+    def acme_order_type(self):
+        return model_utils.AcmeOrderType.as_string(self.acme_order_type_id)
 
     @property
     def authorizations_can_deactivate(self):
@@ -828,7 +926,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @property
     def is_can_acme_server_sync(self):
         # note: is there a better test?
-        if not self.resource_url:
+        if not self.order_url:
             return False
         if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_X_ACME_SYNC:
             return False
@@ -837,7 +935,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @property
     def is_can_acme_server_deactivate_authorizations(self):
         # note: is there a better test?
-        if not self.resource_url:
+        if not self.order_url:
             return False
         if (
             self.acme_status_order
@@ -851,6 +949,18 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             return False
 
         return True
+
+    @property
+    def is_can_finalize(self):
+        if self.acme_status_order == "pending":
+            _has_not_valid_auths = None
+            for _to_auth in self.to_acme_authorizations:
+                if _to_auth.acme_authorization.acme_status_authorization != "valid":
+                    _has_not_valid_auths = True
+                    break
+            if not _has_not_valid_auths:
+                return True
+        return False
 
     @property
     def is_can_mark_invalid(self):
@@ -867,15 +977,55 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             return False
         return True
 
+    @property
+    def is_renewable_quick(self):
+        if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_RENEW:
+            if self.acme_account_key.is_active:
+                if self.private_key.is_active:
+                    return True
+        return False
+
+    @property
+    def is_renewable_queue(self):
+        if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_RENEW:
+            if self.acme_account_key.is_active:
+                return True
+        return False
+
+    @property
+    def is_renewable_custom(self):
+        if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_RENEW:
+            if self.acme_account_key.is_active:
+                return True
+        return False
+
     def _as_json(self, admin_url=""):
         return {
             "id": self.id,
+            "acme_account_key_id": self.acme_account_key_id,
+            "acme_status_order": self.acme_status_order,
+            "acme_order_type": self.acme_order_type,
+            "certificate_request_id": self.certificate_request_id,
+            "domains_as_list": self.domains_as_list,
+            "finalize_url": self.finalize_url,
+            "is_active": True if self.is_active else False,
+            "is_auto_renew": True if self.is_auto_renew else False,
+            "is_can_finalize": self.is_can_finalize,
+            "is_can_mark_invalid": self.is_can_mark_invalid,
+            "is_can_retry": self.is_can_retry,
+            "is_renewable_custom": True if self.is_renewable_custom else False,
+            "is_renewable_queue": True if self.is_renewable_queue else False,
+            "is_renewable_quick": True if self.is_renewable_quick else False,
+            "is_renewed": True if self.is_renewed else False,
+            "order_url": self.order_url,
+            "private_key_id": self.private_key_id,
+            "server_certificate_id": self.server_certificate_id,
+            "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
             "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_expires": self.timestamp_expires_isoformat,
             "timestamp_finalized": self.timestamp_finalized_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
-            "timestamp_expires": self.timestamp_expires_isoformat,
-            "domains_as_list": self.domains_as_list,
-            "is_active": self.is_active,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "url_acme_server_sync": "%s/acme-challenge/%s/acme-server-sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
@@ -885,34 +1035,6 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self):
         return self._as_json()
-
-
-# ==============================================================================
-
-
-class AcmeOrder2Domain(Base):
-    __tablename__ = "acme_order_2_domain"
-
-    acme_order_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_order.id"), primary_key=True
-    )
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), primary_key=True)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_order = sa_orm_relationship(
-        "AcmeOrder",
-        primaryjoin="AcmeOrder2Domain.acme_order_id==AcmeOrder.id",
-        uselist=False,
-        back_populates="to_domains",
-    )
-
-    domain = sa_orm_relationship(
-        "Domain",
-        primaryjoin="AcmeOrder2Domain.domain_id==Domain.id",
-        uselist=False,
-        back_populates="to_acme_orders",
-    )
 
 
 # ==============================================================================
@@ -1096,27 +1218,15 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     certificate_request_source_id = sa.Column(
         sa.Integer, nullable=False
-    )  # see CertificateRequestSource
-
+    )  # see .utils.CertificateRequestSource
     csr_pem = sa.Column(sa.Text, nullable=False)
     csr_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
     csr_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
-
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
     private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
-    )
-    certificate_request_id__renewal_of = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("certificate_request.id", use_alter=True),
-        nullable=True,
-    )
-    server_certificate_id__renewal_of = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("server_certificate.id", use_alter=True),
-        nullable=True,
     )
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
@@ -1130,34 +1240,23 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="certificate_request",
     )
-
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="CertificateRequest.id==OperationsObjectEvent.certificate_request_id",
         back_populates="certificate_request",
     )
-
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="CertificateRequest.private_key_id==PrivateKey.id",
-        back_populates="certificate_requests",
         uselist=False,
+        back_populates="certificate_requests",
     )
-
     server_certificates = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="CertificateRequest.id==ServerCertificate.certificate_request_id",
         back_populates="certificate_request",
         uselist=True,
     )
-
-    server_certificate__renewal_of = sa_orm_relationship(
-        "ServerCertificate",
-        primaryjoin="CertificateRequest.server_certificate_id__renewal_of==ServerCertificate.id",
-        back_populates="certificate_request__renewals",
-        uselist=False,
-    )
-
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
         primaryjoin="CertificateRequest.unique_fqdn_set_id==UniqueFQDNSet.id",
@@ -1206,12 +1305,10 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     def as_json(self):
         return {
             "id": self.id,
-            "csr_pem_md5": self.csr_pem_md5,
             "certificate_request_source": self.certificate_request_source,
-            "timestamp_created": self.timestamp_created_isoformat,
+            "csr_pem_md5": self.csr_pem_md5,
             "private_key_id": self.private_key_id,
-            "certificate_request_id__renewal_of": self.certificate_request_id__renewal_of,
-            "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
+            "timestamp_created": self.timestamp_created_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
 
@@ -1219,16 +1316,14 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
     def as_json_extended(self):
         return {
             "id": self.id,
-            "csr_pem_md5": self.csr_pem_md5,
             "certificate_request_source": self.certificate_request_source,
-            "timestamp_created": self.timestamp_created_isoformat,
-            "private_key_id": self.private_key_id,
-            "certificate_request_id__renewal_of": self.certificate_request_id__renewal_of,
-            "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
-            "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "domains": self.domains_as_list,
             "csr_pem": self.csr_pem,
+            "csr_pem_md5": self.csr_pem_md5,
+            "domains": self.domains_as_list,
+            "private_key_id": self.private_key_id,
             "server_certificate_id__latest": self.server_certificate_id__latest,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
         }
 
 
@@ -1300,13 +1395,6 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         "ServerCertificate",
         primaryjoin="Domain.server_certificate_id__latest_multi==ServerCertificate.id",
         uselist=False,
-    )
-
-    to_acme_orders = sa_orm_relationship(
-        "AcmeOrder2Domain",
-        primaryjoin="Domain.id==AcmeOrder2Domain.domain_id",
-        uselist=True,
-        back_populates="domain",
     )
 
     to_fqdns = sa_orm_relationship(
@@ -1553,7 +1641,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "private_key"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    key_pem = sa.Column(sa.Text, nullable=True)
+    key_pem = sa.Column(sa.Text, nullable=False)
     key_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
     key_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
@@ -1568,8 +1656,18 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
     is_default = sa.Column(sa.Boolean, nullable=True, default=None)
+    private_key_source_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.PrivateKeySource
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_orders = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="PrivateKey.id==AcmeOrder.private_key_id",
+        order_by="AcmeOrder.id.desc()",
+        back_populates="private_key",
+    )
 
     certificate_requests = sa_orm_relationship(
         "CertificateRequest",
@@ -1612,6 +1710,12 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
+    def is_placeholder(self):
+        if self.id == 0:
+            return True
+        return False
+
+    @property
     def key_pem_modulus_search(self):
         return "type=modulus&modulus=%s&source=private_key&private_key.id=%s" % (
             self.key_pem_modulus_md5,
@@ -1624,6 +1728,10 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         pem_lines = self.key_pem.strip().split("\n")
         return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
 
+    @reify
+    def private_key_source(self):
+        return model_utils.PrivateKeySource.as_string(self.private_key_source_id)
+
     @property
     def as_json(self):
         return {
@@ -1633,6 +1741,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
             "key_pem_md5": self.key_pem_md5,
             "key_pem": self.key_pem,
             "timestamp_created": self.timestamp_created_isoformat,
+            "private_key_source": self.private_key_source,
         }
 
 
@@ -1703,6 +1812,15 @@ class QueueRenewal(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "queue_renewal"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(acme_order_id IS NOT NULL AND server_certificate_id IS NULL)"
+            " OR "
+            "(acme_order_id IS NULL AND server_certificate_id IS NOT NULL)",
+            name="check_order_or_certificate",
+        ),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_entered = sa.Column(sa.DateTime, nullable=False)
     timestamp_processed = sa.Column(sa.DateTime, nullable=True)
@@ -1710,12 +1828,16 @@ class QueueRenewal(Base, _Mixin_Timestamps_Pretty):
         sa.DateTime, nullable=True
     )  # if not-null then an attempt was made on this item
     process_result = sa.Column(sa.Boolean, nullable=True, default=None)
-    server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
-    )  # could be null if we're renewing a fqdnset
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
+
+    # we must have a queue for one of these 2-
+    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
+
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -1724,7 +1846,22 @@ class QueueRenewal(Base, _Mixin_Timestamps_Pretty):
     )
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
 
+    acme_order_id__renewed = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_order = sa.orm.relationship(
+        "AcmeOrder",
+        primaryjoin="QueueRenewal.acme_order_id==AcmeOrder.id",
+        uselist=False,
+    )
+    acme_order__renewed = sa.orm.relationship(
+        "AcmeOrder",
+        primaryjoin="QueueRenewal.acme_order_id__renewed==AcmeOrder.id",
+        uselist=False,
+    )
 
     operations_event__created = sa.orm.relationship(
         "OperationsEvent",
@@ -1857,11 +1994,9 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     is_revoked = sa.Column(
         sa.Boolean, nullable=True, default=None
     )  # used to determine is_active toggling. this will set 'is_deactivated'
-    is_auto_renew = sa.Column(sa.Boolean, nullable=False, default=True)
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
-    is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
     timestamp_revoked_upstream = sa.Column(
         sa.DateTime, nullable=True
     )  # if set, the cert was reported revoked upstream and this is FINAL
@@ -1883,16 +2018,12 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         sa.ForeignKey("certificate_request.id", use_alter=True),
         nullable=True,
     )
-    server_certificate_id__renewal_of = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
-    )
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    # TODO: remap through AcmeOrder
     acme_account_key = sa_orm_relationship(
         AcmeAccountKey,
         primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id",
@@ -1905,64 +2036,51 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         # back_populates="server_certificates__issued",
         uselist=False,
     )
-
     acme_order = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id",
         uselist=False,
         back_populates="server_certificate",
     )
-
     certificate_request = sa_orm_relationship(
         "CertificateRequest",
         primaryjoin="ServerCertificate.certificate_request_id==CertificateRequest.id",
         back_populates="server_certificates",
         uselist=False,
     )
-
-    certificate_request__renewals = sa_orm_relationship(
-        "CertificateRequest",
-        primaryjoin="ServerCertificate.id==CertificateRequest.server_certificate_id__renewal_of",
-        back_populates="server_certificate__renewal_of",
-    )
-
     certificate_upchain = sa_orm_relationship(
         "CACertificate",
         primaryjoin="ServerCertificate.ca_certificate_id__upchain==CACertificate.id",
         uselist=False,
     )
-
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="ServerCertificate.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
-
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="ServerCertificate.id==OperationsObjectEvent.server_certificate_id",
         back_populates="server_certificate",
     )
-
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="ServerCertificate.private_key_id==PrivateKey.id",
         uselist=False,
         back_populates="server_certificates",
     )
-
-    queue_renewal = sa_orm_relationship(
-        "QueueRenewal",
-        primaryjoin="ServerCertificate.id==QueueRenewal.server_certificate_id",
-        uselist=False,
-        back_populates="server_certificate",
-    )
-
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
         primaryjoin="ServerCertificate.unique_fqdn_set_id==UniqueFQDNSet.id",
         uselist=False,
         back_populates="server_certificates",
+    )
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    acme_order__renewals = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id__renewal_of",
+        back_populates="server_certificate__renewal_of",
+        uselist=True,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2050,13 +2168,6 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         # if self.acme_account_key_id:
         #    return True
         return False
-    
-    @property
-    def is_renewable(self):
-        if self.acme_order:
-            if self.acme_order.acme_account_key.is_active:
-                return True
-        return False
 
     @property
     def domains_as_string(self):
@@ -2071,10 +2182,8 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "is_active": True if self.is_active else False,
-            "is_auto_renew": True if self.is_auto_renew else False,
             "is_deactivated": True if self.is_deactivated else False,
             "is_revoked": True if self.is_revoked else False,
-            "is_renewed": True if self.is_renewed else False,
             "timestamp_expires": self.timestamp_expires_isoformat,
             "timestamp_signed": self.timestamp_signed_isoformat,
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
@@ -2085,7 +2194,6 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             "private_key_id": self.private_key_id,
             # "acme_account_key_id": self.acme_account_key_id,
             "domains_as_list": self.domains_as_list,
-            "is_renewable": self.is_renewable,
         }
 
 
@@ -2233,6 +2341,7 @@ class UniqueFQDNSet2Domain(Base):
 # note: required `aliased` objects
 AcmeOrderAlt = sa.orm.aliased(AcmeOrder)
 
+
 # note: AcmeOrder.acme_order__retry_of
 AcmeOrder.acme_order__retry_of = sa_orm_relationship(
     AcmeOrderAlt,
@@ -2257,9 +2366,9 @@ AcmeOrder.acme_event_logs__5 = sa_orm_relationship(
     primaryjoin=(
         sa.and_(
             AcmeOrder.id == AcmeEventLog.acme_order_id,
-            AcmeOrder.id.in_(
-                sa.select([AcmeOrder.id])
-                .where(AcmeOrder.id == AcmeEventLog.acme_order_id)
+            AcmeEventLog.id.in_(
+                sa.select([AcmeEventLog.id])
+                .where(AcmeEventLog.acme_order_id == AcmeOrder.id)
                 .order_by(AcmeEventLog.id.desc())
                 .limit(5)
                 .correlate()
@@ -2317,8 +2426,9 @@ AcmeAccountKey.acme_authorizations_pending__5 = sa_orm_relationship(
                 .where(AcmeAuthorization.acme_order_id__created == AcmeOrder.id)
                 .where(AcmeOrder.acme_account_key_id == AcmeAccountKey.id)
                 .where(
-                    AcmeAuthorization.acme_status_authorization_id
-                    == model_utils.Acme_Status_Authorization.from_string("pending")
+                    AcmeAuthorization.acme_status_authorization_id.in_(
+                        model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
+                    )
                 )
                 .order_by(AcmeAuthorization.id.desc())
                 .limit(5)
@@ -2422,8 +2532,7 @@ AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
                     == AcmeAuthorization.id
                 )
                 .order_by(AcmeOrder.id.desc())
-                .limit(5)
-                .correlate()
+                .correlate(AcmeOrder2AcmeAuthorization)
             ),
         )
     ),

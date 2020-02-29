@@ -101,6 +101,8 @@
                         <code>${AcmeChallenge.keyauthorization or ''}</code>
                     </td>
                 </tr>
+                <%doc>
+                # Note: challenge_url is not supported until this is integrated with an AcmeAccount
                 <tr>
                     <th>challenge_url</th>
                     <td>
@@ -108,13 +110,13 @@
                         (this is not the URL on your server, but the ACME Server URL)
                     </td>
                 </tr>
+                </%doc>
                 <tr>
                     <th>timestamp_updated</th>
                     <td>
                         <timestamp>${AcmeChallenge.timestamp_updated or ''}</timestamp>
                     </td>
                 </tr>
-
                 <tr>
                     <th>test</th>
                     <td>
@@ -130,7 +132,6 @@
                         % endif
                     </td>
                 </tr>
-                
                 
             </table>
 

@@ -3,6 +3,7 @@ from __future__ import print_function
 # stdlib
 import datetime
 import os
+import pdb
 import unittest
 from io import open  # overwrite `open` in Python2
 
@@ -59,7 +60,6 @@ DISABLE_UNWRITTEN_TESTS = True
 DEFAULT_acme_account_provider = "letsencrypt-v2-staging"
 DEFAULT_acme_account_provider_id = None
 
-import pdb
 pdb.set_trace()
 raise ValueError("PORT ME")
 
@@ -271,7 +271,10 @@ class AppTest(AppTestCore):
                     self.ctx,
                     key_pem,
                     acme_account_provider_id=DEFAULT_acme_account_provider_id,
-                    event_type="acme_account_key__insert",
+                    acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
+                        "imported"
+                    ),
+                    event_type="AcmeAccountKey__insert",
                 )
                 # print(_key_account1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
@@ -325,7 +328,13 @@ class AppTest(AppTestCore):
                 (
                     _key_private1,
                     _is_created,
-                ) = db.getcreate.getcreate__PrivateKey__by_pem_text(self.ctx, pkey_pem)
+                ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
+                    self.ctx,
+                    pkey_pem,
+                    private_key_source_id=model_utils.PrivateKeySource.from_string(
+                        "imported"
+                    ),
+                )
                 # print(_key_private1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
 
@@ -371,7 +380,7 @@ class AppTest(AppTestCore):
                 ) = db.getcreate.getcreate__CertificateRequest__by_pem_text(
                     self.ctx,
                     csr_pem,
-                    certificate_request_source_id=model_utils.CertificateRequestSource.ACME_FLOW,
+                    certificate_request_source_id=model_utils.CertificateRequestSource.IMPORTED,
                     dbPrivateKey=_key_private1,
                     domain_names=[
                         TEST_FILES["ServerCertificates"]["SelfSigned"]["1"]["domain"],
@@ -389,7 +398,7 @@ class AppTest(AppTestCore):
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
                 event_type = model_utils.OperationsEventType.from_string(
-                    "queue_renewal__update"
+                    "QueueRenewal__update"
                 )
                 event_payload_dict = utils.new_event_payload_dict()
                 dbOperationsEvent = db.logger.log__OperationsEvent(

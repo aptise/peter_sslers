@@ -214,7 +214,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "action": ["compromised", "active", "inactive", "default"]
                 },
             }
-        url_post_required = "%s?operation=mark&result=post+required" % self._focus_url
+        url_post_required = "%s?result=post+required&operation=mark" % self._focus_url
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbPrivateKey):
@@ -225,10 +225,14 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             if not result:
                 raise formhandling.FormInvalid()
 
+            if dbPrivateKey.is_placeholder:
+                formStash.fatal_field(
+                    field="action",
+                    message="The Placeholder PrivateKey can not be marked",
+                )
+
             action = formStash.results["action"]
-            event_type = model_utils.OperationsEventType.from_string(
-                "private_key__mark"
-            )
+            event_type = model_utils.OperationsEventType.from_string("PrivateKey__mark")
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["private_key.id"] = dbPrivateKey.id
             event_payload_dict["action"] = formStash.results["action"]
@@ -248,7 +252,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     )
 
                 dbPrivateKey.is_active = True
-                event_status = "private_key__mark__active"
+                event_status = "PrivateKey__mark__active"
 
             elif action == "inactive":
                 if not dbPrivateKey.is_active:
@@ -256,7 +260,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     formStash.fatal_field(field="action", message="Already deactivated")
 
                 dbPrivateKey.is_active = False
-                event_status = "private_key__mark__inactive"
+                event_status = "PrivateKey__mark__inactive"
 
             elif action == "compromised":
                 if dbPrivateKey.is_compromised:
@@ -268,10 +272,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 if dbPrivateKey.is_default:
                     dbPrivateKey.is_default = False
                 event_type = model_utils.OperationsEventType.from_string(
-                    "private_key__revoke"
+                    "PrivateKey__revoke"
                 )
                 marked_comprimised = True
-                event_status = "private_key__mark__compromised"
+                event_status = "PrivateKey__mark__compromised"
 
             elif action == "default":
                 if dbPrivateKey.is_default:
@@ -290,9 +294,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     event_payload_dict[
                         "private_key_id.former_default"
                     ] = formerDefaultKey.id
-                    event_alt = ("private_key__mark__notdefault", formerDefaultKey)
+                    event_alt = ("PrivateKey__mark__notdefault", formerDefaultKey)
                 dbPrivateKey.is_default = True
-                event_status = "private_key__mark__default"
+                event_status = "PrivateKey__mark__default"
 
             else:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -321,7 +325,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
             if self.request.wants_json:
                 return {"result": "success", "Domain": dbPrivateKey.as_json}
-            url_success = "%s?operation=mark&action=%s&result=success" % (
+            url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
                 action,
             )
@@ -330,16 +334,15 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
+            url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
+                exc.to_querystring(),
                 action,
-                str(exc),
             )
             raise HTTPSeeOther(url_failure)
 
 
 class ViewAdmin_New(Handler):
-
     @view_config(route_name="admin:private_key:new")
     @view_config(route_name="admin:private_key:new|json", renderer="json")
     def new(self):
@@ -353,22 +356,27 @@ class ViewAdmin_New(Handler):
                 "instructions": '''curl %s/private-key/new.json --form "bits=????"'''
                 % (self.request.registry.settings["admin_prefix"]),
                 "form_fields": {"bits": "bits for the PrivateKey"},
-                "valid_options": {
-                    "bits": ["4096"]
-                },
+                "valid_options": {"bits": ["4096"]},
             }
         return render_to_response("/admin/private_key-new.mako", {}, self.request)
 
     def _new__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_PrivateKey_new__autogenerate, validate_get=False
+                self.request,
+                schema=Form_PrivateKey_new__autogenerate,
+                validate_get=False,
             )
             if not result:
                 raise formhandling.FormInvalid()
 
             dbPrivateKey = lib_db.create.create__PrivateKey(
-                self.request.api_context, bits=formStash.results['bits'], is_autogenerated=False
+                self.request.api_context,
+                bits=formStash.results["bits"],
+                is_autogenerated=False,
+                private_key_source_id=model_utils.PrivateKeySource.from_string(
+                    "generated"
+                ),
             )
 
             if self.request.wants_json:
@@ -427,7 +435,11 @@ class ViewAdmin_New(Handler):
                 dbPrivateKey,
                 _is_created,
             ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
-                self.request.api_context, private_key_pem
+                self.request.api_context,
+                private_key_pem,
+                private_key_source_id=model_utils.PrivateKeySource.from_string(
+                    "uploaded"
+                ),
             )
 
             if self.request.wants_json:

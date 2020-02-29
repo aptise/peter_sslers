@@ -87,7 +87,7 @@ class Handler(object):
         """
         if not self.request.registry.settings["enable_nginx"]:
             raise HTTPFound(
-                "%s?error=no+nginx" % self.request.registry.settings["admin_prefix"]
+                "%s?result=error&error=no+nginx" % self.request.registry.settings["admin_prefix"]
             )
 
     def _ensure_redis(self):
@@ -96,7 +96,7 @@ class Handler(object):
         """
         if not self.request.registry.settings["enable_redis"]:
             raise HTTPFound(
-                "%s?error=no+redis" % self.request.registry.settings["admin_prefix"]
+                "%s?result=error&error=no+redis" % self.request.registry.settings["admin_prefix"]
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -42,14 +42,42 @@ class ViewAdmin_List(Handler):
         route_name="admin:acme_challenges_paginated|json", renderer="json",
     )
     def list(self):
-        items_count = lib_db.get.get__AcmeChallenge__count(self.request.api_context)
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/acme-challenge/{0}"
-            % self.request.registry.settings["admin_prefix"],
+        wants_active = True if self.request.params.get("status") == "active" else False
+        if wants_active:
+            sidenav_option = "active"
+            active_only = True
+            if self.request.wants_json:
+                url_template = (
+                    "%s/acme-challenges/{0}.json?status=active"
+                    % self.request.registry.settings["admin_prefix"]
+                )
+            else:
+                url_template = (
+                    "%s/acme-challenges/{0}?status=active"
+                    % self.request.registry.settings["admin_prefix"]
+                )
+        else:
+            sidenav_option = "all"
+            active_only = False
+            if self.request.wants_json:
+                url_template = (
+                    "%s/acme-challenges/{0}.json"
+                    % self.request.registry.settings["admin_prefix"]
+                )
+            else:
+                url_template = (
+                    "%s/acme-challenges/{0}"
+                    % self.request.registry.settings["admin_prefix"]
+                )
+        items_count = lib_db.get.get__AcmeChallenge__count(
+            self.request.api_context, active_only=active_only
         )
+        (pager, offset) = self._paginate(items_count, url_template=url_template,)
         items_paged = lib_db.get.get__AcmeChallenge__paginated(
-            self.request.api_context, limit=items_per_page, offset=offset
+            self.request.api_context,
+            active_only=active_only,
+            limit=items_per_page,
+            offset=offset,
         )
         if self.request.wants_json:
             _items = {k.id: k.as_json for k in items_paged}
@@ -62,6 +90,7 @@ class ViewAdmin_List(Handler):
             "AcmeChallenges_count": items_count,
             "AcmeChallenges": items_paged,
             "pager": pager,
+            "sidenav_option": sidenav_option,
         }
 
 
@@ -115,30 +144,67 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeAuthorization"
                 )
-            result = lib_db.actions_acme.do__AcmeChallenge_AcmeV2__acme_server_sync(
+            result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_sync(
                 self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
             )
             if self.request.wants_json:
                 return HTTPSeeOther(
-                    "%s.json?result=success&operation=acme+server+sync+success"
+                    "%s.json?result=success&operation=acme+server+sync"
                     % self._focus_url
                 )
             return HTTPSeeOther(
-                "%s?result=success&operation=acme+server+sync+success" % self._focus_url
+                "%s?result=success&operation=acme+server+sync" % self._focus_url
             )
         except (
             errors.AcmeCommunicationError,
+            errors.AcmeServerError,
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
             if self.request.wants_json:
                 return HTTPSeeOther(
-                    "%s.json?error=acme+server+sync&message=%s"
-                    % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+                    "%s.json?result=error&error=acme+server+sync&message=%s"
+                    % (self._focus_url, exc.to_querystring())
                 )
             return HTTPSeeOther(
-                "%s?error=acme+server+sync&message=%s"
-                % (self._focus_url, str(exc).replace("\n", "+").replace(" ", "+"),)
+                "%s?result=error&error=acme+server+sync&message=%s"
+                % (self._focus_url, exc.to_querystring())
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_challenge:focus:acme_server_trigger", renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_challenge:focus:acme_server_trigger|json",
+        renderer="json",
+    )
+    def acme_server_trigger(self):
+        """
+        Acme Trigger
+        """
+        # todo: json response
+        dbAcmeChallenge = self._focus(eagerload_web=True)
+        try:
+            if not dbAcmeChallenge.is_can_acme_server_trigger:
+                raise errors.InvalidRequest(
+                    "ACME Server Trugger is not allowed for this AcmeChallenge"
+                )
+            result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_trigger(
+                self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
+            )
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme+server+trigger"
+                % self._focus_url
+            )
+        except (
+            errors.AcmeCommunicationError,
+            errors.AcmeServerError,
+            errors.DomainVerificationError,
+            errors.InvalidRequest,
+        ) as exc:
+            return HTTPSeeOther(
+                "%s?result=error&error=acme+server+trigger&message=%s"
+                % (self._focus_url, exc.to_querystring())
+            )

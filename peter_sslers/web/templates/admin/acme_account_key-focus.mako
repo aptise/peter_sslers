@@ -32,6 +32,7 @@
 
 <%block name="content_main">
     ${admin_partials.handle_querystring_result()}
+
     <div class="row">
         <div class="col-sm-12">
             <table class="table">
@@ -103,13 +104,9 @@
                         <th>is_default</th>
                         <td>
                             % if AcmeAccountKey.is_default:
-                                <span class="label label-success">
-                                    default
-                                </span>
+                                <span class="label label-success">default</span>
                             % else:
-                                <span class="label label-default">
-                                    no
-                                </span>
+                                <span class="label label-default">no</span>
                             % endif
                             &nbsp;
                             % if AcmeAccountKey.is_default_candidate:
@@ -124,12 +121,19 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>source</th>
+                        <td>
+                            <span class="label label-default">${AcmeAccountKey.acme_account_key_source}</span>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>acme_account_provider_id</th>
                         <td>
                             <a
                                 class="label label-info"
                                 href="${admin_prefix}/acme-account-providers"
                             >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeAccountProvider-${AcmeAccountKey.acme_account_provider_id}
                                 [${AcmeAccountKey.acme_account_provider.name}]
                                 (${AcmeAccountKey.acme_account_provider.url})
@@ -223,7 +227,7 @@
                         <td>
                             ${admin_partials.table_AcmeAuthorizations(AcmeAccountKey.acme_authorizations_pending__5, perspective="AcmeAccountKey")}
                             % if AcmeAccountKey.acme_authorizations_pending__5:
-                                ${admin_partials.nav_pager("%s/acme-account-key/%s/acme-authorizations?authorization-status=pending" % (admin_prefix, AcmeAccountKey.id))}
+                                ${admin_partials.nav_pager("%s/acme-account-key/%s/acme-authorizations?status=active" % (admin_prefix, AcmeAccountKey.id))}
                             % endif
                         </td>
                     </tr>

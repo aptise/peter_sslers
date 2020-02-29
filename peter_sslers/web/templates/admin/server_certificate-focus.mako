@@ -144,70 +144,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>is_auto_renew</th>
-                        <td>
-                            <span class="label label-${'success' if ServerCertificate.is_auto_renew else 'warning'}">
-                                ${'AutoRenew' if ServerCertificate.is_auto_renew else 'manual'}
-                            </span>
-                            &nbsp;
-                            % if ServerCertificate.is_active:
-                                % if ServerCertificate.is_auto_renew:
-                                    <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="renew_manual"/>
-                                        <button class="btn btn-xs btn-warning" type="submit">
-                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                            deactivate auto-renew
-                                        </button>
-                                    </form>
-                                % else:
-                                    <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="renew_auto"/>
-                                        <button class="btn btn-xs btn-success" type="submit">
-                                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                            enable auto-renew
-                                        </button>
-                                    </form>
-                                % endif
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>is_renewed</th>
-                        <td>
-                            <span class="label label-${'success' if ServerCertificate.is_renewed else 'default'}">
-                                ${'Renewed' if ServerCertificate.is_renewed else 'not-renewed-yet'}
-                            </span>
-
-                            &nbsp;
-                            % if ServerCertificate.is_renewable:
-                                <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/queue"
-                                    title="Queue a renewal with same AcmeAccount."
-                                >
-                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                    Queue a Renewal
-                                </a>
-                                &nbsp;
-                                <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/quick"
-                                    title="Renew immediately with the same AcmeAccount."
-                                >
-                                    <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
-                                    Quick Renewal
-                                </a>
-                            % endif
-                            &nbsp;
-                            <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/server-certificate/${ServerCertificate.id}/renew/custom"
-                                title="Select a new AccountKey for renewal."
-                            >
-                                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                                Custom Renewal
-                            </a>
-                        </td>
-                    </tr>
-                
-                    <tr>
                         <th>is_revoked_upstream</th>
                         <td>
                             % if ServerCertificate.timestamp_revoked_upstream is not None:
@@ -288,7 +224,21 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>certificate_request_id</th>
+                        <th>AcmeOrder</th>
+                        <td>
+                            % if ServerCertificate.acme_order:
+                                <a class="label label-info" href="${admin_prefix}/acme-account-key/${ServerCertificate.acme_order.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${ServerCertificate.acme_order.id}</a>
+                                <br/>
+                                <em>The ServerCertificate belongs to this AcmeOrder.</em>
+                            % else:
+                                <em>The ServerCertificate is not associated with an AcmeOrder.</em>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>CertificateRequest</th>
                         <td>
                             % if ServerCertificate.certificate_request_id:
                                 <a class="label label-info" href="${admin_prefix}/certificate-request/${ServerCertificate.certificate_request_id}">
@@ -302,7 +252,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>unique fqdn set</th>
+                        <th>UniqueFQDNSet</th>
                         <td>
                             <a  class="label label-info"
                                 href="${admin_prefix}/unique-fqdn-set/${ServerCertificate.unique_fqdn_set_id}"
@@ -388,19 +338,6 @@
                         </td>
                     </tr>
                     ${admin_partials.table_tr_OperationsEventCreated(ServerCertificate)}
-                    <tr>
-                        <th>is renewal?</th>
-                        <td>
-                            % if ServerCertificate.server_certificate_id__renewal_of:
-                                <span class="label label-success">Yes</span>&nbsp;
-                                <a class="label label-info" href="${admin_prefix}/server-certificate/${ServerCertificate.server_certificate_id__renewal_of}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    ServerCertificate-${ServerCertificate.server_certificate_id__renewal_of}</a>
-                            % else:
-                                <span class="label label-default">No</span>
-                            % endif
-                        </td>
-                    </tr>
                     <tr>
                         <th>cert_pem_md5</th>
                         <td><code>${ServerCertificate.cert_pem_md5}</code></td>
@@ -607,7 +544,8 @@
                     <tr>
                         <th>renewal requests</th>
                         <td>
-                            ${admin_partials.table_CertificateRequests(ServerCertificate.certificate_request__renewals, perspective='ServerCertificate')}
+                            ## TODO: MIGRATE
+                            ## ${admin_partials.table_CertificateRequests(ServerCertificate.certificate_request__renewals, perspective='ServerCertificate')}
                         </td>
                     </tr>
                     ## TODO: queue_renewal

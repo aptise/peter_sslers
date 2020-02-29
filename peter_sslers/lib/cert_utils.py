@@ -782,9 +782,7 @@ def new_rsa_key(bits=4096):
     # openssl genrsa 4096 > domain.key
     bits = str(bits)
     with psutil.Popen(
-        [openssl_path, "genrsa", bits],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        [openssl_path, "genrsa", bits], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     ) as proc:
         data, err = proc.communicate()
         if not data:

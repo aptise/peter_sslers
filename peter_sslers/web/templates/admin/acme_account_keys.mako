@@ -19,10 +19,6 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-account-keys.json" class="btn btn-xs btn-info">
-            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-            .json
-        </a>
         <a  href="${admin_prefix}/acme-account-key/upload"
             title="${request.text_library.info_UploadAccountKey[0]}"
             class="btn btn-xs btn-primary"
@@ -36,6 +32,10 @@
         >
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
         New Acme Account</a>
+        <a href="${admin_prefix}/acme-account-keys.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
     </p>
 </%block>
 

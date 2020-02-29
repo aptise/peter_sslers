@@ -86,7 +86,7 @@ class _Form_Schema_Base(_FormSchema):
 
 class Form_AcmeAccountKey_new__auth(_Form_Schema_Base):
     acme_account_provider_id = Int(not_empty=True, if_missing=None)
-    contact = Email(not_empty=False, if_missing=None) # use it or don't
+    contact = Email(not_empty=False, if_missing=None)  # use it or don't
 
 
 class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
@@ -95,7 +95,8 @@ class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
         * Form_Certificate_Renewal_Custom
         * Form_AcmeOrder_new_automated
     """
-    contact = Email(not_empty=False, if_missing=None) # use it or don't
+
+    contact = Email(not_empty=False, if_missing=None)  # use it or don't
 
     # if this isn't provided...
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
@@ -117,10 +118,16 @@ class Form_AcmeAccountKey_mark(_Form_Schema_Base):
     action = OneOf(("default", "active", "inactive"), not_empty=True)
 
 
-class Form_AcmeOrder_new_automated(_Form_Schema_Base):
+
+
+class _Form_Schema_AcmeOrderKeys(_Form_Schema_Base):
     # `account_key_file` could indictate `account_key_file_pem` or the combo of certbot encoding
     account_key_option = OneOf(
-        ("account_key_default", "account_key_existing", "account_key_file"), not_empty=True
+        ("account_key_default",
+         "account_key_existing",
+         "account_key_file"
+         ),
+        not_empty=True,
     )
     account_key_default = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
@@ -138,18 +145,52 @@ class Form_AcmeOrder_new_automated(_Form_Schema_Base):
     )
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
 
+    private_key_option = OneOf(
+        ("private_key_default",
+         "private_key_existing",
+         "private_key_file",
+         "private_key_generate",
+        ),
+        not_empty=True,
+    )
+    private_key_default = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    private_key_default = UnicodeString(not_empty=False, if_missing=None)
 
+
+class Form_AcmeOrder_new_automated(_Form_Schema_AcmeOrderKeys):
     domain_names = UnicodeString(not_empty=True)
 
-    chained_validators = [
-        OnlyOneOf(
-            ("private_key_existing", "private_key_file_pem", "private_key_default"),
-            not_empty=True,
-        )
-    ]
+
+class Form_AcmeOrder_renew_custom(_Form_Schema_AcmeOrderKeys):
+    account_key_option = OneOf(
+        ("account_key_reuse",
+         "account_key_default",
+         "account_key_existing",
+         "account_key_file",
+        ),
+        not_empty=True,
+    )
+    account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+    private_key_option = OneOf(
+        ("private_key_reuse",
+         "private_key_default",
+         "private_key_existing",
+         "private_key_file",
+         "private_key_generate",
+        ),
+        not_empty=True,
+    )
+    private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+
+
+class Form_AcmeOrderless_new(_Form_Schema_Base):
+    domain_names = UnicodeString(not_empty=True)
+
+
+class Form_AcmeOrderless_manage_domain(_Form_Schema_Base):
+    challenge_key = UnicodeString(not_empty=True)
+    challenge_text = UnicodeString(not_empty=True)
 
 
 class Form_AcmeOrderless_AcmeChallenge_add(_Form_Schema_Base):
@@ -195,7 +236,8 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
             "account_key_default",
             "account_key_existing",
             "account_key_file",
-        ), not_empty=True
+        ),
+        not_empty=True,
     )
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
     account_key_default = UnicodeString(not_empty=False, if_missing=None)
@@ -213,9 +255,14 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
         not_empty=False, if_missing=None
     )
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
-
     private_key_option = OneOf(
-        ("private_key_reuse", "private_key_existing", "private_key_file_pem"), not_empty=True
+        (
+            "private_key_reuse",
+            "private_key_existing",
+            "private_key_file",
+            "private_key_generate",
+        ),
+        not_empty=True,
     )
     private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
@@ -224,17 +271,9 @@ class Form_Certificate_Renewal_Custom(_Form_Schema_Base):
 
 class Form_Certificate_mark(_Form_Schema_Base):
     action = OneOf(
-        ("active", "inactive", "revoked", "renew_manual", "renew_auto", "unrevoke"), not_empty=True
+        ("active", "inactive", "revoked", "renew_manual", "renew_auto", "unrevoke"),
+        not_empty=True,
     )
-
-
-class Form_AcmeOrderless_new(_Form_Schema_Base):
-    domain_names = UnicodeString(not_empty=True)
-
-
-class Form_AcmeOrderless_manage_domain(_Form_Schema_Base):
-    challenge_key = UnicodeString(not_empty=True)
-    challenge_text = UnicodeString(not_empty=True)
 
 
 class Form_Domain_mark(_Form_Schema_Base):

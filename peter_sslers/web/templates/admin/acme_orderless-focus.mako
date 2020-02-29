@@ -58,7 +58,8 @@
             <ul class="list list-unstyled">
                 <li><code>token</code> is the name of the file letsencrypt expects at a url.</li>
                 <li><code>keyauthorization</code> are the expected contents for the file.</li>
-                <li><code>challenge_url</code> is the ACME url that manages the challenge, not your url.</li>
+                ## Note: challenge_url is not supported until this is integrated with an AcmeAccount
+                ## <li><code>challenge_url</code> is the ACME url that manages the challenge, not your url.</li>
             </ul>
 
             <p>If letsencrypt says the url should be <code>example.com/acme-challenge/foo-bar-biz</code> , then the token is <code>foo-bar-biz</code></p>
@@ -92,7 +93,7 @@
                             'Status',
                             'Token',
                             'KeyAuthorization',
-                            'challenge_url',
+                             ##'challenge_url',  # Note: challenge_url is not supported until this is integrated with an AcmeAccount
                             'updated',
                             )
                 %>
@@ -172,6 +173,7 @@
                 % if len(AcmeOrderless.acme_challenges) < 50:
                     <hr/>
                     <hr/>
+                    <h5>Add a New Challenge</h5>
                     <form
                         action="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/add"
                         method="POST"
@@ -189,10 +191,11 @@
                             <label for="keyauthorization">KeyAuthorization</label>
                             <input class="form-control" type="text" name="keyauthorization" value=""/>
                         </div>
-                        <div class="form-group">
-                            <label for="challenge_url">ChallengeURL</label>
-                            <input class="form-control" type="text" name="challenge_url" value=""/>
-                        </div>
+                        ## Note: challenge_url is not supported until this is integrated with an AcmeAccount
+                        ## <div class="form-group">
+                        ##   <label for="challenge_url">ChallengeURL</label>
+                        ##    <input class="form-control" type="text" name="challenge_url" value=""/>
+                        ##</div>
 
                         <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
                     </form>

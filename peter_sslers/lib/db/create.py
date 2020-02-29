@@ -34,16 +34,14 @@ def create__AcmeOrderless(
     Create a new AcmeOrderless Tracker
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param domain_names: (required) An iteratble list of domain names
+
+    Handle the DomainNames FIRST.
+    We do not want to generate an `AcmeOrderless` if there are no `Domains`.
     """
+    # ???: Should the `getcreate` on domains and challenges be wrapped in a transaction?
     domain_names = list(set(domain_names))
     if not domain_names:
         raise ValueError("Did not make a valid set of domain names")
-
-    dbAcmeOrderless = model_objects.AcmeOrderless()
-    dbAcmeOrderless.is_active = True
-    dbAcmeOrderless.timestamp_created = ctx.timestamp
-    ctx.dbSession.add(dbAcmeOrderless)
-    ctx.dbSession.flush(objects=[dbAcmeOrderless])
 
     domain_objects = {
         _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
@@ -61,7 +59,15 @@ def create__AcmeOrderless(
             active_challenges.append(_active_challenge)
 
     if active_challenges:
+        print("Wtf")
+        pdb.set_trace()
         raise errors.AcmeDuplicateChallengesExisting(active_challenges)
+
+    dbAcmeOrderless = model_objects.AcmeOrderless()
+    dbAcmeOrderless.is_active = True
+    dbAcmeOrderless.timestamp_created = ctx.timestamp
+    ctx.dbSession.add(dbAcmeOrderless)
+    ctx.dbSession.flush(objects=[dbAcmeOrderless])
 
     for (domain_name, dbDomain) in domain_objects.items():
         dbAcmeChallenge = create__AcmeChallenge(
@@ -74,26 +80,33 @@ def create__AcmeOrderless(
 def create__AcmeOrder(
     ctx,
     acme_order_response=None,
-    resource_url=None,
+    acme_order_type_id=None,
+    is_auto_renew=None,
+    order_url=None,
     dbAcmeAccountKey=None,
     dbAcmeOrder_renewal_of=None,
     dbAcmeOrder_retry_of=None,
     dbCertificateRequest=None,
     dbEventLogged=None,
+    dbPrivateKey=None,
     dbUniqueFQDNSet=None,
     transaction_commit=None,
 ):
     """
     Create a new ACME Order
 
+    `PrivateKey` is required so we don't autogenerate keys on failures
+
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param acme_order_response: (required) dictionary object from the server, representing an ACME payload
-    :param resource_url: (required) the url of the object
-
+    :param acme_order_type_id: (required) What type of order is this? Valid options are in `:class:model.utils.AcmeOrderType`
+    :param is_auto_renew: (optional) should this be auto-renewed?
+    :param order_url: (required) the url of the object
     :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` associated with the order
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbAcmeOrder_renewal_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` associated with the order
+    :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` associated with the order
     :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` associated with the order
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
 
@@ -102,10 +115,16 @@ def create__AcmeOrder(
     if not transaction_commit:
         raise ValueError("`create__AcmeOrder` must persist to the database.")
 
+    if acme_order_type_id not in model_utils.AcmeOrderType._mapping:
+        raise ValueError("Unsupported `acme_order_type_id`: %s" % acme_order_type_id)
+
     if acme_order_response is None:
         raise ValueError(
             "`create__AcmeOrder` must be invoked with a `acme_order_response`."
         )
+
+    if not dbPrivateKey:
+        raise ValueError("`create__AcmeOrder` must be invoked with a `dbPrivateKey`.")
 
     if not any((dbCertificateRequest, dbUniqueFQDNSet)):
         raise ValueError(
@@ -117,6 +136,13 @@ def create__AcmeOrder(
             raise ValueError(
                 "`create__AcmeOrder` mismatch of (dbCertificateRequest, dbUniqueFQDNSet)."
             )
+
+    if dbAcmeOrder_retry_of:
+        if dbCertificateRequest:
+            if dbAcmeOrder_retry_of.certificate_request != dbCertificateRequest:
+                raise ValueError("received conflicting CertificateRequests.")
+        else:
+            dbCertificateRequest = dbAcmeOrder_retry_of.certificate_request
 
     # acme_status_order_id = model_utils.Acme_Status_Order.DEFAULT_ID
     acme_status_order_id = model_utils.Acme_Status_Order.from_string(
@@ -134,14 +160,18 @@ def create__AcmeOrder(
         )
 
     dbAcmeOrder = model_objects.AcmeOrder()
+    dbAcmeOrder.is_active = True
+    dbAcmeOrder.is_auto_renew = is_auto_renew
     dbAcmeOrder.timestamp_created = ctx.timestamp
-    dbAcmeOrder.resource_url = resource_url
+    dbAcmeOrder.order_url = order_url
+    dbAcmeOrder.acme_order_type_id = acme_order_type_id
     dbAcmeOrder.acme_status_order_id = acme_status_order_id
     dbAcmeOrder.acme_account_key_id = dbAcmeAccountKey.id
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
     dbAcmeOrder.certificate_request_id = (
         dbCertificateRequest.id if dbCertificateRequest else None
     )
+    dbAcmeOrder.private_key_id = dbPrivateKey.id
     dbAcmeOrder.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.timestamp_expires = timestamp_expires
@@ -186,6 +216,7 @@ def create__AcmeChallenge(
     challenge_url=None,
     token=None,
     keyauthorization=None,
+    is_via_sync=None,
 ):
     """
     Create a new Challenge
@@ -196,6 +227,7 @@ def create__AcmeChallenge(
     :param challenge_url: (optional) challenge_url token
     :param token: (optional) string token
     :param keyauthorization: (optional) string keyauthorization
+    :param is_via_sync: (optional) boolean. if True will allow duplicate challenges as one is on the server
     """
     if not any((dbAcmeOrderless, dbAcmeAuthorization)) or all(
         (dbAcmeOrderless, dbAcmeAuthorization)
@@ -209,7 +241,7 @@ def create__AcmeChallenge(
     if dbAcmeOrderless:
         orderless_domain_ids = [c.domain_id for c in dbAcmeOrderless.acme_challenges]
         if dbDomain in orderless_domain_ids:
-            raise AcmeDuplicateOrderlessDomain(
+            raise errors.AcmeDuplicateOrderlessDomain(
                 "Domain `%s` already in this AcmeOrderless." % c.domain.domain_name
             )
 
@@ -217,7 +249,10 @@ def create__AcmeChallenge(
         ctx, dbDomain.id
     )
     if _active_challenge:
-        raise errors.AcmeDuplicateChallenge(_active_challenge)
+        if not is_via_sync:
+            raise errors.AcmeDuplicateChallenge(_active_challenge)
+        else:
+            print("need to handle this")
 
     dbAcmeChallenge = model_objects.AcmeChallenge()
     if dbAcmeOrderless:
@@ -300,8 +335,6 @@ def create__CertificateRequest(
     certificate_request_source_id=None,
     dbPrivateKey=None,
     dbServerCertificate__issued=None,
-    dbServerCertificate__renewal_of=None,
-    dbCertificateRequest__renewal_of=None,
     domain_names=None,
 ):
     """
@@ -309,13 +342,10 @@ def create__CertificateRequest(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param csr_pem: (required) A Certificate Signing Request with PEM formatting
-    :param certificate_request_source_id: (required) What is the source of this?
-        Valid options are in `model_utils.CertificateRequestSource`
+    :param certificate_request_source_id: (required) What is the source of this? Valid options are in `:class:model.utils.CertificateRequestSource`
     :param dbPrivateKey: (required) Private Key used to sign the CSR
 
     :param dbServerCertificate__issued: (optional) a `model_objects.ServerCertificate`
-    :param dbServerCertificate__renewal_of: (optional) a `model_objects.ServerCertificate`
-    :param dbCertificateRequest__renewal_of: (optional) a `model_objects.CertificateRequest`
     :param domain_names: (required) A list of domain names
     """
     if (
@@ -328,26 +358,15 @@ def create__CertificateRequest(
         )
 
     _event_type_id = None
-    if (
-        certificate_request_source_id
-        in model_utils.CertificateRequestSource.OPTIONS_CertificateRequest__new__automated
-    ):
+    if certificate_request_source_id == model_utils.CertificateRequestSource.IMPORTED:
         _event_type_id = model_utils.OperationsEventType.from_string(
-            "CertificateRequest__new__automated"
+            "CertificateRequest__new__imported"
         )
     elif (
-        certificate_request_source_id
-        in model_utils.CertificateRequestSource.CertificateRequest__new__flow
+        certificate_request_source_id == model_utils.CertificateRequestSource.ACME_ORDER
     ):
         _event_type_id = model_utils.OperationsEventType.from_string(
-            "CertificateRequest__new__flow"
-        )
-    elif (
-        certificate_request_source_id
-        in model_utils.CertificateRequestSource.CertificateRequest__new
-    ):
-        _event_type_id = model_utils.OperationsEventType.from_string(
-            "CertificateRequest__new"
+            "CertificateRequest__new__acme_order"
         )
     else:
         raise ValueError(
@@ -433,14 +452,6 @@ def create__CertificateRequest(
     )
     dbCertificateRequest.operations_event_id__created = dbOperationsEvent.id
     dbCertificateRequest.private_key_id = dbPrivateKey.id
-    if dbCertificateRequest__renewal_of:
-        dbCertificateRequest.certificate_request_id__renewal_of = (
-            dbCertificateRequest__renewal_of.id
-        )
-    if dbServerCertificate__renewal_of:
-        dbCertificateRequest.server_certificate_id__renewal_of = (
-            dbServerCertificate__renewal_of.id
-        )
     dbCertificateRequest.unique_fqdn_set_id = dbUniqueFQDNSet.id
 
     ctx.dbSession.add(dbCertificateRequest)
@@ -475,17 +486,23 @@ def create__CertificateRequest(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def create__PrivateKey(ctx, bits=None, is_autogenerated=None):
+def create__PrivateKey(
+    ctx, bits=None, private_key_source_id=None, is_autogenerated=None
+):
     """
     Generates a new :class:`model.objects.PrivateKey` for the datastore
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param int bits: (required) how many bits for the PrivateKey
+    :param private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
     :param boolean is_autogenerated: (optional) True if this is autogenerated by the caledar
     """
     key_pem = cert_utils.new_private_key(bits=bits)
     dbPrivateKey, _is_created = lib.db.getcreate.getcreate__PrivateKey__by_pem_text(
-        ctx, key_pem, is_autogenerated_key=is_autogenerated
+        ctx,
+        key_pem,
+        private_key_source_id=private_key_source_id,
+        is_autogenerated_key=is_autogenerated,
     )
     return dbPrivateKey
 
@@ -502,7 +519,6 @@ def create__ServerCertificate(
     ca_chain_name=None,
     dbCertificateRequest=None,
     dbPrivateKey=None,
-    dbServerCertificate__renewal_of=None,
     is_active=None,
     cert_domains_expected=None,
     dbDomains=None,
@@ -523,28 +539,37 @@ def create__ServerCertificate(
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
         if provivded, do not submit `dbAcmeOrder`
     :param dbPrivateKey: (optional) The :class:`model.objects.PrivateKey` that signed the certificate, if no `dbAcmeOrder` is provided
-    :param dbServerCertificate__renewal_of: (optional) The :class:`model.objects.ServerCertificate` this renews
     :param is_active: (optional) default `None`  do not activate a certificate when uploading unless specified.
 
     :param cert_domains_expected: (required) a list of domains in the cert we expect to see
     """
-    if all((dbAcmeOrder, dbPrivateKey)) or not any((dbAcmeOrder, dbPrivateKey)):
+    if not any((dbAcmeOrder, dbPrivateKey)):
         raise ValueError(
-            "create__ServerCertificate must be provided with `dbPrivateKey` or `dbAcmeOrder`, but never both"
+            "create__ServerCertificate must be provided with `dbPrivateKey` or `dbAcmeOrder`"
         )
-    if all((dbAcmeOrder, dbCertificateRequest)) or not any(
-        (dbAcmeOrder, dbCertificateRequest)
-    ):
+    if not any((dbAcmeOrder, dbCertificateRequest)):
         raise ValueError(
-            "create__ServerCertificate must be provided with `dbCertificateRequest` or `dbAcmeOrder`, but never both"
+            "create__ServerCertificate must be provided with `dbCertificateRequest` or `dbAcmeOrder`"
         )
 
     dbAcmeAccountKey = None
     if dbAcmeOrder:
         dbAcmeAccountKey = dbAcmeOrder.acme_account_key
         dbUniqueFqdnSet = dbAcmeOrder.unique_fqdn_set
-        dbCertificateRequest = dbAcmeOrder.certificate_request
-        dbPrivateKey = dbAcmeOrder.certificate_request.private_key
+        if dbCertificateRequest:
+            if dbCertificateRequest != dbAcmeOrder.certificate_request:
+                raise ValueError(
+                    "create__ServerCertificate was with `dbCertificateRequest` and a conflicting `dbAcmeOrder`"
+                )
+        else:
+            dbCertificateRequest = dbAcmeOrder.certificate_request
+        if dbPrivateKey:
+            if dbPrivateKey != dbAcmeOrder.private_key:
+                raise ValueError(
+                    "create__ServerCertificate was with `dbPrivateKey` and a conflicting `dbAcmeOrder`"
+                )
+        else:
+            dbPrivateKey = dbAcmeOrder.certificate_request.private_key
 
     if dbCACertificate:
         if any((ca_chain_pem, ca_chain_name)):
@@ -581,7 +606,7 @@ def create__ServerCertificate(
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("certificate__insert")
+        ctx, model_utils.OperationsEventType.from_string("ServerCertificate__insert")
     )
 
     _tmpfileCert = None
@@ -632,10 +657,6 @@ def create__ServerCertificate(
         if dbCertificateRequest:
             dbServerCertificate.certificate_request_id = dbCertificateRequest.id
         dbServerCertificate.ca_certificate_id__upchain = ca_certificate_id__upchain
-        if dbServerCertificate__renewal_of:
-            dbServerCertificate.server_certificate_id__renewal_of = (
-                dbServerCertificate__renewal_of.id
-            )
 
         ctx.dbSession.add(dbServerCertificate)
         ctx.dbSession.flush(objects=[dbServerCertificate])
@@ -667,7 +688,7 @@ def create__ServerCertificate(
             ctx,
             dbOperationsEvent=dbOperationsEvent,
             event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                "certificate__insert"
+                "ServerCertificate__insert"
             ),
             dbServerCertificate=dbServerCertificate,
         )
@@ -717,7 +738,7 @@ def _create__QueueRenewal(ctx, serverCertificate):
         ctx,
         dbOperationsEvent=ctx.dbOperationsEvent,
         event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            "queue_renewal__insert"
+            "QueueRenewal__insert"
         ),
         dbQueueRenewal=dbQueueRenewal,
     )
@@ -755,7 +776,7 @@ def _create__QueueRenewal_fqdns(ctx, unique_fqdn_set_id):
         ctx,
         dbOperationsEvent=ctx.dbOperationsEvent,
         event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            "queue_renewal__insert"
+            "QueueRenewal__insert"
         ),
         dbQueueRenewal=dbQueueRenewal,
     )

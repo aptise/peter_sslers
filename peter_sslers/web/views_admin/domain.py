@@ -39,10 +39,16 @@ class ViewAdmin_List(Handler):
     @view_config(
         route_name="admin:domains:expiring_paginated", renderer="/admin/domains.mako"
     )
+    @view_config(route_name="admin:domains:challenged", renderer="/admin/domains.mako")
+    @view_config(
+        route_name="admin:domains:challenged_paginated", renderer="/admin/domains.mako"
+    )
     @view_config(route_name="admin:domains|json", renderer="json")
     @view_config(route_name="admin:domains_paginated|json", renderer="json")
     @view_config(route_name="admin:domains:expiring|json", renderer="json")
     @view_config(route_name="admin:domains:expiring_paginated|json", renderer="json")
+    @view_config(route_name="admin:domains:challenged|json", renderer="json")
+    @view_config(route_name="admin:domains:challenged_paginated|json", renderer="json")
     def list(self):
         expiring_days = self.request.registry.settings["expiring_days"]
         if self.request.matched_route.name in (
@@ -71,6 +77,30 @@ class ViewAdmin_List(Handler):
                 expiring_days=expiring_days,
                 limit=items_per_page,
                 offset=offset,
+            )
+        elif self.request.matched_route.name in (
+            "admin:domains:challenged",
+            "admin:domains:challenged_paginated",
+            "admin:domains:challenged|json",
+            "admin:domains:challenged_paginated|json",
+        ):
+            sidenav_option = "challenged"
+            if self.request.wants_json:
+                url_template = (
+                    "%s/domains/challenged/{0}.json"
+                    % self.request.registry.settings["admin_prefix"]
+                )
+            else:
+                url_template = (
+                    "%s/domains/challenged/{0}"
+                    % self.request.registry.settings["admin_prefix"]
+                )
+            items_count = lib_db.get.get__Domains_challenged__count(
+                self.request.api_context
+            )
+            (pager, offset) = self._paginate(items_count, url_template=url_template)
+            items_paged = lib_db.get.get__Domains_challenged__paginated(
+                self.request.api_context, limit=items_per_page, offset=offset,
             )
         else:
             sidenav_option = "all"
@@ -245,14 +275,14 @@ class ViewAdmin_Focus(Handler):
     def focus_nginx_expire(self):
         dbDomain = self._focus(eagerload_web=True)
         if not self.request.registry.settings["enable_nginx"]:
-            raise HTTPSeeOther("%s?error=no+nginx" % self._focus_url)
+            raise HTTPSeeOther("%s?result=error&error=no+nginx" % self._focus_url)
         success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=[dbDomain]
         )
         if self.request.wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
-            "%s?operation=nginx_cache_expire&result=success&event.id=%s"
+            "%s?result=success&operation=nginx_cache_expire&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
 
@@ -543,7 +573,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["active", "inactive"]},
             }
-        url_post_required = "%s?operation=mark&result=post+required" % (
+        url_post_required = "%s?result=post+required&operation=mark" % (
             self._focus_url,
         )
         return HTTPSeeOther(url_post_required)
@@ -558,7 +588,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
-            event_type = model_utils.OperationsEventType.from_string("domain__mark")
+            event_type = model_utils.OperationsEventType.from_string("Domain__mark")
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["domain_id"] = dbDomain.id
             event_payload_dict["action"] = action
@@ -578,7 +608,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     self.request.api_context,
                     dbDomain,
                     dbOperationsEvent=dbOperationsEvent,
-                    event_status="domain__mark__active",
+                    event_status="Domain__mark__active",
                     action="activated",
                 )
 
@@ -591,7 +621,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     self.request.api_context,
                     dbDomain,
                     dbOperationsEvent=dbOperationsEvent,
-                    event_status="domain__mark__inactive",
+                    event_status="Domain__mark__inactive",
                     action="deactivated",
                 )
 
@@ -606,7 +636,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             if self.request.wants_json:
                 return {"result": "success", "Domain": dbDomain.as_json}
 
-            url_success = "%s?operation=mark&action=%s&result=success" % (
+            url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
                 action,
             )
@@ -615,9 +645,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
+            url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
+                exc.to_querystring(),
                 action,
-                str(exc),
             )
             raise HTTPSeeOther(url_failure)

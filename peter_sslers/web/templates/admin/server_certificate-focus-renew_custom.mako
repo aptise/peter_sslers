@@ -95,6 +95,7 @@
                             ${admin_partials.formgroup__PrivateKey_selector__advanced(
                                 show_text=False,
                                 dbPrivateKeyReuse=ServerCertificate.private_key,
+                                option_generate_new=True,
                             )}
                         </td>
                     </tr>

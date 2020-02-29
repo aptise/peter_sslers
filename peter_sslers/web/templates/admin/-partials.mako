@@ -25,6 +25,7 @@
                 <th>id</th>
                 <th>active?</th>
                 <th>default?</th>
+                <th>source</th>
                 <th>provider</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
@@ -37,7 +38,7 @@
                 <tr>
                     <td><a class="label label-info" href="${admin_prefix}/acme-account-key/${key.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        account-${key.id}</a></td>
+                        AcmeAccountKey-${key.id}</a></td>
                     <td>
                         % if key.is_active:
                             <span class="label label-success">active</span>
@@ -48,7 +49,8 @@
                             <span class="label label-success">default</span>
                         % endif
                     </td>
-                    <td><span class="label label-default">${key.acme_account_provider.name}</span></td>
+                    <td><span class="label label-default">${key.acme_account_key_source}</span></td>
+                    <td><span class="label label-info">${key.acme_account_provider.name}</span></td>
                     <td><timestamp>${key.timestamp_created}</timestamp></td>
                     <td><code>${key.key_pem_md5}</code></td>
                     <td><span class="badge">${key.count_certificate_requests or ''}</span></td>
@@ -64,6 +66,7 @@
     <%
         cols = ("id", 
                 "domain_id",
+                "pending",
                 "status",
                 "timestamp_created",
                 "timestamp_expires",
@@ -101,6 +104,12 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAuthorization-${acme_authorization.id}
                                 </a>
+                            % elif c == 'pending':
+                                % if acme_authorization.is_acme_server_pending:
+                                    <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                                % else:
+                                    <span class="label label-default"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                                % endif
                             % elif c == 'status':
                                 <code>${acme_authorization.acme_status_authorization or ''}</code>
                             % elif c == 'domain_id':
@@ -122,7 +131,7 @@
                                 % if acme_authorization.acme_order_id__created:
                                     <a class="label label-info" href="${admin_prefix}/acme-order/${acme_authorization.acme_order_id__created}">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        Order-${acme_authorization.acme_order_id__created}
+                                        AcmeOrder-${acme_authorization.acme_order_id__created}
                                     </a>
                                 % endif
                             % endif
@@ -144,6 +153,7 @@
                 <th>timestamp_created</th>
                 <th>acme_challenge_type</th>
                 <th>status</th>
+                <th>domain</th>
                 <th>token</th>
                 <th>timestamp_updated</th>
             </tr>
@@ -153,10 +163,13 @@
             <tr>
                 <td><a class="label label-info" href="${admin_prefix}/acme-challenge/${item.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    ${item.id}</a></td>
+                    AcmeChallenge-${item.id}</a></td>
                 <td><timestamp>${item.timestamp_created}</timestamp></td>
                 <td><span class="label label-default">${item.acme_challenge_type}</span></td>
                 <td><code>${item.acme_status_challenge}</code></td>
+                <td><a class="label label-info" href="${admin_prefix}/domain/${item.domain_id}">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    ${item.domain.domain_name}</a></td>
                 <td><code>${item.token}</code></td>
                 <td><timestamp>${item.timestamp_updated}</timestamp></td>
             </tr>
@@ -304,6 +317,8 @@
         cols = ("id", 
                 "is_active",
                 "status",
+                "is_auto_renew",
+                "is_renewed",
                 "timestamp_created",
                 "timestamp_finalized",
                 "acme_account_key_id",
@@ -345,15 +360,27 @@
                                     AcmeOrder-${acme_order.id}
                                 </a>
                             % elif c == 'is_active':
-                                % if acme_order.is_active:
+                                % if acme_order.is_active is True:
                                     <div class="label label-success">
                                         <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
                                     </div>
-                                % else:
-                                    <div class="label label-danger">
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                % elif acme_order.is_active is None:
+                                    <div class="label label-default">
+                                        <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span>
+                                    </div>
+                                % elif acme_order.is_active is False:
+                                    <div class="label label-warning">
+                                        <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
                                     </div>
                                 % endif
+                            % elif c == 'is_auto_renew':
+                                <div class="label label-${'success' if acme_order.is_auto_renew else 'warning'}">
+                                    ${'AutoRenew' if acme_order.is_auto_renew else 'manual'}
+                                </div>
+                            % elif c == 'is_renewed':
+                                <div class="label label-${'success' if acme_order.is_renewed else 'default'}">
+                                    ${'Renewed' if acme_order.is_renewed else 'not-renewed-yet'}
+                                </div>
                             % elif c == 'status':
                                 <code>${acme_order.acme_status_order or ''}</code>
                             % elif c == 'timestamp_created':
@@ -451,10 +478,7 @@
                             % elif c == 'timestamp_created':
                                 <timestamp>${certificate_request.timestamp_created}</timestamp>
                             % elif c == 'certificate_request_source_id':
-                                % if certificate_request.certificate_request_source_id:
-                                    ## <code>${certificate_request.certificate_request_source_id}</code>
-                                    <span class="label label-default">${model_websafe.CertificateRequestSource.as_string(certificate_request.certificate_request_source_id)}</span>
-                                % endif
+                                <span class="label label-default">${certificate_request.certificate_request_source}</span>
                             % elif c == 'unique_fqdn_set_id':
                                 <a  class="label label-info"
                                     href="${admin_prefix}/unique-fqdn-set/${certificate_request.unique_fqdn_set_id}">
@@ -549,6 +573,7 @@
                     % if show_event:
                         <td>
                             <a class="label label-info" href="${admin_prefix}/operations/log/item/${object_event.operations_event_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${object_event.operations_event_id}
                             </a>
                         </td>
@@ -561,6 +586,7 @@
                     % endif
                     <td>
                         <a class="label label-info" href="${admin_prefix}/operations/object-log/item/${object_event.id}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             ${object_event.id}
                         </a>
                     </td>
@@ -579,6 +605,63 @@
 </%def>
 
 
+<%def name="table_PrivateKeys(data, perspective=None)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>active?</th>
+                <th>is_autogenerated_key</th>
+                <th>is_default</th>
+                <th>source</th>
+                <th>timestamp first seen</th>
+                <th>key_pem_md5</th>
+                <th>count active certificates</th>
+                <th>count certificate requests</th>
+                <th>count certificates issued</th>
+            </tr>
+        </thead>
+        % for key in data:
+            <tr>
+                <td><a class="label label-info" href="${admin_prefix}/private-key/${key.id}">
+                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                    PrivateKey-${key.id}</a></td>
+                <td>
+                    % if key.is_active:
+                        <span class="label label-success">
+                            active
+                        </span>
+                    % else:
+                        <span class="label label-${'danger' if key.is_compromised else 'warning'}">
+                            ${'compromised' if key.is_compromised else 'inactive'}
+                        </span>
+                    % endif
+                </td>
+                <td>
+                    % if key.is_autogenerated_key:
+                        <span class="label label-success">
+                            is_autogenerated_key
+                        </span>
+                    % endif
+                </td>
+                <td>
+                    % if key.is_default:
+                        <span class="label label-success">
+                            is_default
+                        </span>
+                    % endif
+                </td>
+                <td><span class="label label-default">${key.private_key_source}</span></td>
+                <td><timestamp>${key.timestamp_created}</timestamp></td>
+                <td><code>${key.key_pem_md5}</code></td>
+                <td><span class="badge">${key.count_active_certificates or ''}</span></td>
+                <td><span class="badge">${key.count_certificate_requests or ''}</span></td>
+                <td><span class="badge">${key.count_certificates_issued or ''}</span></td>
+            </tr>
+        % endfor
+    </table>
+</%def>
+          
 <%def name="table_QueueRenewal(renewal_items, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
@@ -674,14 +757,14 @@
                     % endif
                 </td>
                 <td>
-                    <span class="label label-${'success' if cert.is_auto_renew else 'warning'}">
-                        ${'AutoRenew' if cert.is_auto_renew else 'manual'}
-                    </span>
+                    <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
+                        ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
+                    </div>
                 </td>
                 <td>
-                    <span class="label label-${'success' if cert.is_renewed else 'default'}">
-                        ${'Renewed' if cert.is_renewed else 'not-renewed-yet'}
-                    </span>
+                    <div class="label label-${'success' if (cert.acme_order and acme_order.is_renewed) else 'default'}">
+                        ${'Renewed' if (cert.acme_order and cert.acme_order.is_renewed) else 'not-renewed-yet'}
+                    </div>
                 </td>
                 <td><timestamp>${cert.timestamp_signed}</timestamp></td>
                 <td><timestamp>${cert.timestamp_expires or ''}</timestamp></td>
@@ -765,54 +848,54 @@
 
 
 <%def name="object_event__object(object_event)">
-                        % if object_event.ca_certificate_id:
-                            <a class="label label-info" href="${admin_prefix}/ca-certificate/${object_event.ca_certificate_id}">
-                                CaCert
-                                ${object_event.ca_certificate_id}
-                            </a>
-                        % elif object_event.certificate_request_id:
-                            <a class="label label-info" href="${admin_prefix}/certificate-request/${object_event.certificate_request_id}">
-                                CSR
-                                ${object_event.certificate_request_id}
-                            </a>
-                        % elif object_event.domain_id:
-                            <a class="label label-info" href="${admin_prefix}/domain/${object_event.domain_id}">
-                                Domain
-                                ${object_event.domain_id}
-                            </a>
-                            <code>${object_event.domain.domain_name}</code>
-                        % elif object_event.acme_account_key_id:
-                            <a class="label label-info" href="${admin_prefix}/acme-account-key/${object_event.acme_account_key_id}">
-                                AccountKey
-                                ${object_event.acme_account_key_id}
-                            </a>
-                        % elif object_event.private_key_id:
-                            <a class="label label-info" href="${admin_prefix}/private-key/${object_event.private_key_id}">
-                                Private Key
-                                ${object_event.private_key_id}
-                            </a>
-                        % elif object_event.queue_domain_id:
-                            <a class="label label-info" href="${admin_prefix}/queue-domain/${object_event.queue_domain_id}">
-                                q-Domain
-                                ${object_event.queue_domain_id}
-                            </a>
-                            <code>${object_event.queue_domain.domain_name}</code>
-                        % elif object_event.queue_renewal_id:
-                            <a class="label label-info" href="${admin_prefix}/queue-renewal/${object_event.queue_renewal_id}">
-                                q-Renewal
-                                ${object_event.queue_renewal_id}
-                            </a>
-                        % elif object_event.server_certificate_id:
-                            <a class="label label-info" href="${admin_prefix}/server-certificate/${object_event.server_certificate_id}">
-                                Cert
-                                ${object_event.server_certificate_id}
-                            </a>
-                        % elif object_event.unique_fqdn_set_id:
-                            <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${object_event.unique_fqdn_set_id}">
-                                uFQDN
-                                ${object_event.unique_fqdn_set_id}
-                            </a>
-                        % endif
+    % if object_event.ca_certificate_id:
+        <a class="label label-info" href="${admin_prefix}/ca-certificate/${object_event.ca_certificate_id}">
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            CACertificate-${object_event.ca_certificate_id}
+        </a>
+    % elif object_event.certificate_request_id:
+        <a class="label label-info" href="${admin_prefix}/certificate-request/${object_event.certificate_request_id}">
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            CertificateRequest-${object_event.certificate_request_id}
+        </a>
+    % elif object_event.domain_id:
+        <a class="label label-info" href="${admin_prefix}/domain/${object_event.domain_id}">
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            Domain-${object_event.domain_id}
+        </a>
+        <code>${object_event.domain.domain_name}</code>
+    % elif object_event.acme_account_key_id:
+        <a class="label label-info" href="${admin_prefix}/acme-account-key/${object_event.acme_account_key_id}">
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            AcmeAccountKey-${object_event.acme_account_key_id}
+        </a>
+    % elif object_event.private_key_id is not None:
+        <a class="label label-info" href="${admin_prefix}/private-key/${object_event.private_key_id}">
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            PrivateKey-${object_event.private_key_id}
+        </a>
+    % elif object_event.queue_domain_id:
+        <a class="label label-info" href="${admin_prefix}/queue-domain/${object_event.queue_domain_id}">
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            QueueDomain-${object_event.queue_domain_id}
+        </a>
+        <code>${object_event.queue_domain.domain_name}</code>
+    % elif object_event.queue_renewal_id:
+        <a class="label label-info" href="${admin_prefix}/queue-renewal/${object_event.queue_renewal_id}">
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            QueueRenewal-${object_event.queue_renewal_id}
+        </a>
+    % elif object_event.server_certificate_id:
+        <a class="label label-info" href="${admin_prefix}/server-certificate/${object_event.server_certificate_id}">
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            ServerCertificate-${object_event.server_certificate_id}
+        </a>
+    % elif object_event.unique_fqdn_set_id:
+        <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${object_event.unique_fqdn_set_id}">
+            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+            UniqueFQDNSet-${object_event.unique_fqdn_set_id}
+        </a>
+    % endif
 </%def>
 
 
@@ -826,7 +909,8 @@
 
 <%def name="info_PrivateKey()">
     <h3>Need a Private Key?</h3>
-        <p>NOTE: you can not use your account private key as your private key for signing domains!</p>
+        <p>NOTE: you can not use your AcmeAccountKey as your PrivateKey for certificate signing</p>
+        <p>You can genrate a new PrivateKey using the web interface, or create one locally to upload:</p>
         <p>
             <code>openssl genrsa 4096 > domain.key</code>
         </p>
@@ -865,9 +949,10 @@
             </div>
         % endif
         % if AcmeAccountKey_Default:
+            <% checked = ' checked="checked"' if not dbAcmeAccountKeyReuse else '' %>
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_default" value="account_key_default"/>
+                    <input type="radio" name="account_key_option" id="account_key_option-account_key_default" value="account_key_default"${checked}/>
                     The default AcmeAccountKey.
                 </label>
                 <p class="form-control-static">
@@ -1073,7 +1158,7 @@
 </%def>
 
 
-<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None)">
+<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_generate_new=None)">
     <p>Select a PrivateKey with one of the following options</p>
     <div class="form-horizontal">
         % if dbPrivateKeyReuse:
@@ -1096,9 +1181,10 @@
             </div>
         % endif
         % if PrivateKey_Default:
+            <% checked = ' checked="checked"' if not dbPrivateKeyReuse else '' %>
             <div class="radio">
                 <label>
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_default" value="private_key_default"/>
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_default" value="private_key_default"${checked}/>
                     The default PrivateKey.
                 </label>
                 <p class="form-control-static">
@@ -1121,7 +1207,7 @@
             </div>
         % endif
         <div class="radio">
-            <label for="private_key_option-account_key_existing">
+            <label for="private_key_option-private_key_existing">
                 <input type="radio" name="private_key_option" id="private_key_option-private_key_existing" value="private_key_existing"/>
                 The PEM MD5 of a PrivateKey already enrolled in the system.
             </label>
@@ -1130,12 +1216,20 @@
             </div>
         </div>
         <div class="radio">
-            <label>
+            <label for="private_key_option-private_key_file_pem">
                 <input type="radio" name="private_key_option" id="private_key_option-private_key_file_pem" value="private_key_file_pem">
                 Upload a new PrivateKey
                     ${formgroup__PrivateKey_file()}
             </label>
         </div>
+        % if option_generate_new:
+            <div class="radio">
+                <label for="private_key_option-private_key_generate">
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate">
+                    Generate a new PrivateKey with 4096 bits.
+                </label>
+            </div>
+        % endif
     </div>
 </%def>
 
@@ -1213,39 +1307,6 @@
 
 
 <%def name="operations_options(enable_redis=False, enable_nginx=False, as_list=None, active=None)">
-    <h4>Log</h4>
-    <ul class="nav nav-pills nav-stacked">
-        <li class="${'active' if active =='/operations/log' else ''}">
-            <a  href="${admin_prefix}/operations/log"
-            >
-            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Full Operations Log</a></li>
-        % if enable_redis:
-            <li class="${'active' if active =='/operations/redis' else ''}">
-                <a  href="${admin_prefix}/operations/redis"
-                >
-                <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-                Operations Log: Redis</a></li>
-        % endif
-        % if enable_nginx:
-            <li class="${'active' if active =='/operations/nginx' else ''}">
-                <a  href="${admin_prefix}/operations/nginx"
-                >
-                <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-                Operations Log: Nginx</a></li>
-        % endif
-        <li class="${'active' if active =='/operations/ca-certificate-probes' else ''}">
-            <a  href="${admin_prefix}/operations/ca-certificate-probes"
-            >
-            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Operations Log: CA Certificate Probes</a></li>
-        <li class="${'active' if active =='/operations/object-log' else ''}">
-            <a  href="${admin_prefix}/operations/object-log"
-            >
-            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Object Log</a></li>
-    </ul>
-
     <h4>Actions</h4>
     <ul class="nav nav-pills nav-stacked">
         <li class="${'active' if active =='/api/deactivate-expired' else ''}">
@@ -1291,6 +1352,38 @@
             </li>
         % endif
     </ul>
+    <h4>Log</h4>
+    <ul class="nav nav-pills nav-stacked">
+        <li class="${'active' if active =='/operations/log' else ''}">
+            <a  href="${admin_prefix}/operations/log"
+            >
+            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+            Full Operations Log</a></li>
+        % if enable_redis:
+            <li class="${'active' if active =='/operations/redis' else ''}">
+                <a  href="${admin_prefix}/operations/redis"
+                >
+                <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+                Operations Log: Redis</a></li>
+        % endif
+        % if enable_nginx:
+            <li class="${'active' if active =='/operations/nginx' else ''}">
+                <a  href="${admin_prefix}/operations/nginx"
+                >
+                <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+                Operations Log: Nginx</a></li>
+        % endif
+        <li class="${'active' if active =='/operations/ca-certificate-probes' else ''}">
+            <a  href="${admin_prefix}/operations/ca-certificate-probes"
+            >
+            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+            Operations Log: CA Certificate Probes</a></li>
+        <li class="${'active' if active =='/operations/object-log' else ''}">
+            <a  href="${admin_prefix}/operations/object-log"
+            >
+            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+            Object Log</a></li>
+    </ul>
 </%def>
 
 
@@ -1301,7 +1394,7 @@
     %>
     % if error:
         <div class="alert alert-danger">
-            ## operation=mark&action=deactivate&result=error&error=Can%20not%20deactivate%20the%20default
+            ## result=error&operation=mark&action=deactivate&error=Can%20not%20deactivate%20the%20default
             <b>Error</b>
             <p>
                 % if message:
@@ -1319,11 +1412,17 @@
     <ul class="nav nav-pills nav-stacked">
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/domains">All Domains</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/domains/expiring">Expiring Domains</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'challenged' else ''}"><a href="${admin_prefix}/domains/challenged">Challenged Domains</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'search' else ''}"><a href="${admin_prefix}/domains/search">Search Domains</a></li>
     </ul>
     <p class="pull-right">
         % if sidenav_option == 'expiring' :
             <a href="${admin_prefix}/domains/expiring.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % elif sidenav_option == 'challenged' :
+            <a href="${admin_prefix}/domains/challenged.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
@@ -1342,15 +1441,57 @@
 </%def>
 
 
+<%def name="acme_challenges_section_nav()">
+    <ul class="nav nav-pills nav-stacked">
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/acme-challenges">All AcmeChallenges</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'active' else ''}"><a href="${admin_prefix}/acme-challenges?status=active">Active AcmeChallenges</a></li>
+    </ul>
+    <p class="pull-right">
+        % if sidenav_option == 'all' :
+            <a href="${admin_prefix}/acme-challenges.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % elif sidenav_option == 'active' :
+            <a href="${admin_prefix}/acme-challenges.json?status=ending" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % endif
+    </p>
+</%def>
+
+
 <%def name="handle_querystring_result()">
     <% result =  request.params.get('result', '') %>
     % if result == 'success':
         <div class="alert alert-success">
-            The operation `${request.params.get('operation')}` was successful.
+            <p>
+                The operation `${request.params.get('operation')}` was successful.
+            </p>
+            % if request.params.get('message'):
+                <p>
+                    Message: `${request.params.get('message')}`
+                </p>
+            % endif
         </div>
     % elif result == 'error':
         <div class="alert alert-danger">
-            The operation `${request.params.get('operation')}` was not successful.
+            % if request.params.get('operation'):
+                <p>
+                    The operation `${request.params.get('operation')}` was not successful.
+                </p>
+            % endif
+            % if request.params.get('error'):
+                <p>
+                    Error: `${request.params.get('error')}`
+                </p>
+            % endif
+            % if request.params.get('message'):
+                <p>
+                    Message: `${request.params.get('message')}`
+                </p>
+            % endif
         </div>
     % endif
 </%def>

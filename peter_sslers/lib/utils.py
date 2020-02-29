@@ -66,11 +66,11 @@ def md5_text(text):
 
 def url_to_server(url):
     url = url.lower()
-    if url[:8] == 'https://':
+    if url[:8] == "https://":
         url = url[8:]
-    elif url[:7] == 'http://':
+    elif url[:7] == "http://":
         url = url[7:]
-    url = url.split('/')[0]
+    url = url.split("/")[0]
     return url
 
 

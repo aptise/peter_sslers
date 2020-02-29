@@ -17,20 +17,22 @@
 
 
 <%block name="page_header_nav">
+    <p class="pull-right">
+        % if request.registry.settings['enable_acme_flow']:
+            <a  href="${admin_prefix}/acme-orderless/new"
+                title="${request.text_library.info_AcmeOrderless_new[0]}"
+                class="btn btn-xs btn-primary"
+            >
+            <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+            New: AcmeOrderless Flow</a>
+        % endif
+    </p>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            <ul class="nav nav-pills nav-stacked">
-                <li>
-                    <a  href="${admin_prefix}/acme-orderless/new"
-                        title="${request.text_library.info_AcmeOrderless_new[0]}"
-                    >
-                    <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
-                    New: AcmeOrderless Flow</a></li>
-            </ul>
             % if AcmeOrderlesss:
                 ${admin_partials.nav_pagination(pager)}
                 ${admin_partials.table_AcmeOrderlesss(AcmeOrderlesss, perspective="AcmeOrderlesss")}

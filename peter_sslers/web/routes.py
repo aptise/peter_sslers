@@ -60,9 +60,7 @@ def _admin_views(config):
         "admin:acme_account_key:upload|json", "/acme-account-key/upload.json"
     )
     config.add_route_7("admin:acme_account_key:new", "/acme-account-key/new")
-    config.add_route_7(
-        "admin:acme_account_key:new|json", "/acme-account-key/new.json"
-    )
+    config.add_route_7("admin:acme_account_key:new|json", "/acme-account-key/new.json")
 
     # !!!: AcmeAccountKey - Focus
     config.add_route_7("admin:acme_account_key:focus", "/acme-account-key/{@id}")
@@ -80,6 +78,7 @@ def _admin_views(config):
         "admin:acme_account_key:focus:raw",
         "/acme-account-key/{@id}/key.{format:(key|pem|pem.txt)}",
     )
+
     config.add_route_7(
         "admin:acme_account_key:focus:acme_authorizations",
         "/acme-account-key/{@id}/acme-authorizations",
@@ -88,6 +87,15 @@ def _admin_views(config):
         "admin:acme_account_key:focus:acme_authorizations_paginated",
         "/acme-account-key/{@id}/acme-authorizations/{@page}",
     )
+    config.add_route_7(
+        "admin:acme_account_key:focus:acme_authorizations|json",
+        "/acme-account-key/{@id}/acme-authorizations.json",
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:acme_authorizations_paginated|json",
+        "/acme-account-key/{@id}/acme-authorizations/{@page}.json",
+    )
+
     config.add_route_7(
         "admin:acme_account_key:focus:acme_orders",
         "/acme-account-key/{@id}/acme-orders",
@@ -151,6 +159,14 @@ def _admin_views(config):
         "/acme-authorization/{@id}/acme-challenges/{@page}",
     )
     config.add_route_7(
+        "admin:acme_authorization:focus:acme_server_deactivate",
+        "/acme-authorization/{@id}/acme-server-deactivate",
+    )
+    config.add_route_7(
+        "admin:acme_authorization:focus:acme_server_deactivate|json",
+        "/acme-authorization/{@id}/acme-server-deactivate.json",
+    )
+    config.add_route_7(
         "admin:acme_authorization:focus:acme_server_sync",
         "/acme-authorization/{@id}/acme-server-sync",
     )
@@ -159,12 +175,12 @@ def _admin_views(config):
         "/acme-authorization/{@id}/acme-server-sync.json",
     )
     config.add_route_7(
-        "admin:acme_authorization:focus:acme_server_deactivate",
-        "/acme-authorization/{@id}/acme-server-deactivate",
+        "admin:acme_authorization:focus:acme_server_trigger",
+        "/acme-authorization/{@id}/acme-server-trigger",
     )
     config.add_route_7(
-        "admin:acme_authorization:focus:acme_server_deactivate|json",
-        "/acme-authorization/{@id}/acme-server-deactivate.json",
+        "admin:acme_authorization:focus:acme_server_trigger|json",
+        "/acme-authorization/{@id}/acme-server-trigger.json",
     )
 
     # !!!: AcmeChallenge
@@ -185,6 +201,14 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_challenge:focus:acme_server_sync|json",
         "/acme-challenge/{@id}/acme-server-sync.json",
+    )
+    config.add_route_7(
+        "admin:acme_challenge:focus:acme_server_trigger",
+        "/acme-challenge/{@id}/acme-server-trigger",
+    )
+    config.add_route_7(
+        "admin:acme_challenge:focus:acme_server_trigger|json",
+        "/acme-challenge/{@id}/acme-server-trigger.json",
     )
 
     # !!!: AcmeChallenge Poll
@@ -243,6 +267,7 @@ def _admin_views(config):
     )
 
     config.add_route_7("admin:acme_order:focus:process", "/acme-order/{@id}/process")
+    config.add_route_7("admin:acme_order:focus:finalize", "/acme-order/{@id}/finalize")
     config.add_route_7(
         "admin:acme_order:focus:acme_server_sync", "/acme-order/{@id}/acme-server-sync"
     )
@@ -259,11 +284,31 @@ def _admin_views(config):
         "/acme-order/{@id}/acme-server-deactivate-authorizations.json",
     )
 
-    config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
     config.add_route_7("admin:acme_order:focus:mark", "/acme-order/{@id}/mark")
     config.add_route_7(
         "admin:acme_order:focus:mark|json", "/acme-order/{@id}/mark.json"
     )
+    config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
+    config.add_route_7(
+        "admin:acme_order:focus:renew:custom", "/acme-order/{@id}/renew/custom",
+    )
+    config.add_route_7(
+        "admin:acme_order:focus:renew:custom|json",
+        "/acme-order/{@id}/renew/custom.json",
+    )
+    config.add_route_7(
+        "admin:acme_order:focus:renew:quick", "/acme-order/{@id}/renew/quick",
+    )
+    config.add_route_7(
+        "admin:acme_order:focus:renew:quick|json", "/acme-order/{@id}/renew/quick.json",
+    )
+    config.add_route_7(
+        "admin:acme_order:focus:renew:queue", "/acme-order/{@id}/renew/queue",
+    )
+    config.add_route_7(
+        "admin:acme_order:focus:renew:queue|json", "/acme-order/{@id}/renew/queue.json",
+    )
+
     config.add_route_7("admin:acme_order:new:automated", "/acme-order/new/automated")
     config.add_route_7(
         "admin:acme_order:new:from-certificate-request",
@@ -318,7 +363,9 @@ def _admin_views(config):
     # !!!: AcmeProvider
     # this is just letsencrypt endpoints
     config.add_route_7("admin:acme_account_providers", "/acme-account-providers")
-    config.add_route_7("admin:acme_account_providers|json", "/acme-account-providers.json")
+    config.add_route_7(
+        "admin:acme_account_providers|json", "/acme-account-providers.json"
+    )
 
     # !!!: Admin API Items
     config.add_route_7("admin:api", "/api")
@@ -438,6 +485,14 @@ def _admin_views(config):
     config.add_route_7("admin:domains:expiring_paginated", "/domains/expiring/{@page}")
     config.add_route_7(
         "admin:domains:expiring_paginated|json", "/domains/expiring/{@page}.json"
+    )
+    config.add_route_7("admin:domains:challenged", "/domains/challenged")
+    config.add_route_7("admin:domains:challenged|json", "/domains/challenged.json")
+    config.add_route_7(
+        "admin:domains:challenged_paginated", "/domains/challenged/{@page}"
+    )
+    config.add_route_7(
+        "admin:domains:challenged_paginated|json", "/domains/challenged/{@page}.json"
     )
 
     # !!!: Domain Focus
@@ -597,7 +652,6 @@ def _admin_views(config):
     config.add_route_7("admin:private_key:new", "/private-key/new")
     config.add_route_7("admin:private_key:new|json", "/private-key/new.json")
 
-
     # !!!: Queue Domains
     # Domains can be queued in for batch processing
     config.add_route_7("admin:queue_domains", "/queue-domains")
@@ -754,30 +808,6 @@ def _admin_views(config):
         "admin:server_certificate:focus:nginx_cache_expire|json",
         r"/server-certificate/{@id}/nginx-cache-expire.json",
     )
-    config.add_route_7(
-        "admin:server_certificate:focus:renew:queue",
-        "/server-certificate/{@id}/renew/queue",
-    )
-    config.add_route_7(
-        "admin:server_certificate:focus:renew:queue|json",
-        "/server-certificate/{@id}/renew/queue.json",
-    )
-    config.add_route_7(
-        "admin:server_certificate:focus:renew:quick",
-        "/server-certificate/{@id}/renew/quick",
-    )
-    config.add_route_7(
-        "admin:server_certificate:focus:renew:quick|json",
-        "/server-certificate/{@id}/renew/quick.json",
-    )
-    config.add_route_7(
-        "admin:server_certificate:focus:renew:custom",
-        "/server-certificate/{@id}/renew/custom",
-    )
-    config.add_route_7(
-        "admin:server_certificate:focus:renew:custom|json",
-        "/server-certificate/{@id}/renew/custom.json",
-    )
     config.add_route_7("admin:server_certificate:upload", "/server-certificate/upload")
     config.add_route_7(
         "admin:server_certificate:upload|json", "/server-certificate/upload.json"
@@ -830,14 +860,6 @@ def _admin_views(config):
     config.add_route_7(
         "admin:unique_fqdn_set:focus:certificate_requests_paginated",
         "/unique-fqdn-set/{@id}/certificate-requests/{@page}",
-    )
-
-    config.add_route_7(
-        "admin:unique_fqdn_set:focus:renew:queue", "/unique-fqdn-set/{@id}/renew/queue"
-    )
-    config.add_route_7(
-        "admin:unique_fqdn_set:focus:renew:queue|json",
-        "/unique-fqdn-set/{@id}/renew/queue.json",
     )
 
     config.scan("peter_sslers.web.views_admin")

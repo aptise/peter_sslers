@@ -31,10 +31,7 @@
                 Some webservers require the ServerCertificate and CACertificate be joined in PEM format as a "fullchain" certificate.
             </p>
 
-        </div>
-        <div class="col-sm-6">
-
-            <p>Most pages have documentation on them</p>
+             <p>Most pages have documentation on them</p>
 
             <h4>Core Objects</h4>
             <table class="table table-striped table-condensed">
@@ -82,6 +79,118 @@
 
             </table>
 
+        </div>
+        <div class="col-sm-6">
+
+            <h4>Status Codes</h4>
+            <table class="table table-condensed">
+                <tr>
+                    <th>Authorization</th>
+                    <td>
+                        <table class="table table-striped table-condensed">
+                            <tr>
+                                <th><code>*discovered*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker. Equivalent to "pending", but not yet confirmed with the ACME Server.</td>
+                            </tr>
+                            <tr>
+                                <th><code>pending</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>valid</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>invalid</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>deactivated</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>expired</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>revoked</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>*404*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker to signify the ACME Server returned a 404 response for the AuthoriationURL.</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Challenge</th>
+                    <td>
+                        <table class="table table-striped table-condensed">
+                            <tr>
+                                <th><code>*discovered*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker. Equivalent to "pending", but not yet confirmed with the ACME Server.</td>
+                            </tr>
+                            <tr>
+                                <th><code>pending</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>processing</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>valid</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>invalid</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>*404*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker to signify the ACME Server returned a 404 response for the AuthoriationURL.</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Order</th>
+                    <td>
+                        <table class="table table-striped table-condensed">
+                            <tr>
+                                <th><code>*discovered*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker. Equivalent to "pending", but not yet confirmed with the ACME Server.</td>
+                            </tr>
+                            <tr>
+                                <th><code>pending</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>ready</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>processing</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>valid</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>invalid</code></th>
+                                <td>see ACME RFC</td>
+                            </tr>
+                            <tr>
+                                <th><code>*404*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker to signify the ACME Server returned a 404 response for the AuthoriationURL.</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
         </div>
     </div>
 </%block>

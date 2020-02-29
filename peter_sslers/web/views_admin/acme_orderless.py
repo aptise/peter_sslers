@@ -119,7 +119,7 @@ class ViewAdmin_New(Handler):
                 )
             except errors.AcmeDuplicateChallenges as exc:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_form(message=str(exc))
+                formStash.fatal_form(message=exc.to_querystring())
 
             if self.request.wants_json:
                 return {
@@ -193,7 +193,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {"error": "This route requires a POST"}
-            return HTTPSeeOther("%s?error=must+POST" % self._focus_url)
+            return HTTPSeeOther("%s?result=error&error=must+POST" % self._focus_url)
 
         _changes = []
         _post = self.request.POST
@@ -208,16 +208,19 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 _changed = True
 
             # keyauth
-            form_keyauth = _post.get("%s_keyauth" % challenge_id)
+            form_keyauth = _post.get("%s_keyauthorization" % challenge_id)
             if form_keyauth != dbChallenge.keyauthorization:
                 dbChallenge.keyauthorization = form_keyauth
                 _changed = True
 
             # url
+            # Note: challenge_url is not supported until this is integrated with an AcmeAccount
+            '''
             form_url = _post.get("%s_url" % challenge_id)
             if form_url != dbChallenge.challenge_url:
                 dbChallenge.challenge_url = form_url
                 _changed = True
+            '''
 
             if _changed:
                 dbChallenge.timestamp_updated = self.request.api_context.timestamp
@@ -241,7 +244,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {"error": "This route requires a POST"}
-            return HTTPSeeOther("%s?error=must+POST" % self._focus_url)
+            return HTTPSeeOther("%s?result=error&error=must+POST" % self._focus_url)
 
         # todo: use the api
         dbAcmeOrderless.is_active = False
@@ -305,7 +308,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
             token = formStash.results["token"]
             keyauthorization = formStash.results["keyauthorization"]
-            challenge_url = formStash.results["challenge_url"]
+            # Note: challenge_url is not supported until this is integrated with an AcmeAccount
+            # challenge_url = formStash.results["challenge_url"]
 
             dbChallenge = lib_db.create.create__AcmeChallenge(
                 self.request.api_context,
@@ -313,7 +317,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 dbDomain=dbDomain,
                 token=token,
                 keyauthorization=keyauthorization,
-                challenge_url=challenge_url,
+                # challenge_url=challenge_url,  # Note: challenge_url is not supported until this is integrated with an AcmeAccount
             )
 
             if self.request.wants_json:

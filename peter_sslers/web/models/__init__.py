@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import sessionmaker
 import zope.sqlalchemy

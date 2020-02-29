@@ -39,7 +39,7 @@ def disable_Domain(
     ctx,
     dbDomain,
     dbOperationsEvent=None,
-    event_status="domain__mark__inactive",
+    event_status="Domain__mark__inactive",
     action="deactivated",
 ):
     """
@@ -73,7 +73,7 @@ def enable_Domain(
     ctx,
     dbDomain,
     dbOperationsEvent=None,
-    event_status="domain__mark__active",
+    event_status="Domain__mark__active",
     action="activated",
 ):
     """
@@ -114,7 +114,7 @@ def ca_certificate_probe(ctx):
     # create a bookkeeping object
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("ca_certificate__probe")
+        ctx, model_utils.OperationsEventType.from_string("CaCertificate__probe")
     )
 
     certs = letsencrypt_info.probe_letsencrypt_certificates()
@@ -177,7 +177,9 @@ def operations_deactivate_expired(ctx):
     event_payload_dict["count_deactivated"] = 0
     operationsEvent = log__OperationsEvent(
         ctx,
-        model_utils.OperationsEventType.from_string("certificate__deactivate_expired"),
+        model_utils.OperationsEventType.from_string(
+            "ServerCertificate__deactivate_expired"
+        ),
         event_payload_dict,
     )
 
@@ -227,7 +229,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     :param ran_operations_update_recents: (optional) Default = `None`
     """
     raise ValueError("Don't run this. It's not needed anymore")
-    raise errors.OperationsContextError("Not Compliant")
+    raise errors.InvalidRequest("Not Compliant")
 
     if ran_operations_update_recents is not True:
         raise ValueError("MUST run `operations_update_recents` first")
@@ -515,7 +517,7 @@ def api_domains__enable(ctx, domain_names):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
-        model_utils.OperationsEventType.from_string("api_domains__enable"),
+        model_utils.OperationsEventType.from_string("ApiDomains__enable"),
         event_payload_dict,
     )
     results = lib.db.queues.queue_domains__add(ctx, domain_names)
@@ -539,7 +541,7 @@ def api_domains__disable(ctx, domain_names):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
-        model_utils.OperationsEventType.from_string("api_domains__disable"),
+        model_utils.OperationsEventType.from_string("ApiDomains__disable"),
         event_payload_dict,
     )
 
@@ -553,7 +555,7 @@ def api_domains__disable(ctx, domain_names):
                     ctx,
                     _dbDomain,
                     dbOperationsEvent=dbOperationsEvent,
-                    event_status="domain__mark__inactive",
+                    event_status="Domain__mark__inactive",
                     action="deactivated",
                 )
                 results[domain_name] = "deactivated"
@@ -568,7 +570,7 @@ def api_domains__disable(ctx, domain_names):
                     ctx,
                     _dbQueueDomain,
                     dbOperationsEvent=dbOperationsEvent,
-                    event_status="queue_domain__mark__cancelled",
+                    event_status="QueueDomain__mark__cancelled",
                     action="de-queued",
                 )
                 results[domain_name] = "de-queued"
@@ -604,20 +606,20 @@ def api_domains__certificate_if_needed(
                          'certificate':  # active, new, FAIL
 
     logging codes
-        2010: 'api_domains__certificate_if_needed',
-        2011: 'api_domains__certificate_if_needed__domain_exists',
-        2012: 'api_domains__certificate_if_needed__domain_activate',
-        2013: 'api_domains__certificate_if_needed__domain_new',
-        2015: 'api_domains__certificate_if_needed__certificate_exists',
-        2016: 'api_domains__certificate_if_needed__certificate_new_success',
-        2017: 'api_domains__certificate_if_needed__certificate_new_fail',
+        2010: 'ApiDomains__certificate_if_needed',
+        2011: 'ApiDomains__certificate_if_needed__domain_exists',
+        2012: 'ApiDomains__certificate_if_needed__domain_activate',
+        2013: 'ApiDomains__certificate_if_needed__domain_new',
+        2015: 'ApiDomains__certificate_if_needed__certificate_exists',
+        2016: 'ApiDomains__certificate_if_needed__certificate_new_success',
+        2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
         model_utils.OperationsEventType.from_string(
-            "api_domains__certificate_if_needed"
+            "ApiDomains__certificate_if_needed"
         ),
         event_payload_dict,
     )
@@ -626,9 +628,15 @@ def api_domains__certificate_if_needed(
     if account_key_pem is not None:
         raise ValueError("acmeAccountProvider_id")
         raise ValueError("contact")
-        # event_type="acme_account_key__insert",
+        # event_type="AcmeAccountKey__insert",
         dbAcmeAccountKey, _is_created = lib.db.getcreate.getcreate__AcmeAccountKey(
-            ctx, account_key_pem, acmeAccountProvider_id=None, contact=None
+            ctx,
+            account_key_pem,
+            acmeAccountProvider_id=None,
+            contact=None,
+            acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
+                "imported"
+            ),
         )
         if not dbAcmeAccountKey:
             raise errors.DisplayableError("Could not create an AccountKey")
@@ -641,7 +649,9 @@ def api_domains__certificate_if_needed(
     if dbPrivateKey is None:
         dbPrivateKey = lib.db.get.get__PrivateKey__current_week(ctx)
         if not dbPrivateKey:
-            dbPrivateKey = lib.db.create.create__PrivateKey(ctx, bits=None, is_autogenerated=True)
+            dbPrivateKey = lib.db.create.create__PrivateKey(
+                ctx, bits=None, is_autogenerated=True
+            )
         if not dbPrivateKey:
             raise errors.DisplayableError("Could not grab a PrivateKey")
 
@@ -672,7 +682,7 @@ def api_domains__certificate_if_needed(
                 _logger_args[
                     "event_status_id"
                 ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "api_domains__certificate_if_needed__domain_activate"
+                    "ApiDomains__certificate_if_needed__domain_activate"
                 )
                 _logger_args["dbDomain"] = _dbDomain
 
@@ -686,7 +696,7 @@ def api_domains__certificate_if_needed(
                 _logger_args[
                     "event_status_id"
                 ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "api_domains__certificate_if_needed__domain_exists"
+                    "ApiDomains__certificate_if_needed__domain_exists"
                 )
                 _logger_args["dbDomain"] = _dbDomain
 
@@ -702,7 +712,7 @@ def api_domains__certificate_if_needed(
             _logger_args[
                 "event_status_id"
             ] = model_utils.OperationsObjectEventStatus.from_string(
-                "api_domains__certificate_if_needed__domain_new"
+                "ApiDomains__certificate_if_needed__domain_new"
             )
             _logger_args["dbDomain"] = _dbDomain
 
@@ -723,12 +733,13 @@ def api_domains__certificate_if_needed(
             _logger_args[
                 "event_status_id"
             ] = model_utils.OperationsObjectEventStatus.from_string(
-                "api_domains__certificate_if_needed__certificate_exists"
+                "ApiDomains__certificate_if_needed__certificate_exists"
             )
             _logger_args["dbServerCertificate"] = _dbServerCertificate
         else:
             try:
-                _dbServerCertificate = actions_acme._do__AcmeOrder__AcmeV2__core(
+                raise ValueError("this changed a lot")
+                _dbServerCertificate = actions_acme._do__AcmeV2_AcmeOrder__core(
                     ctx,
                     domain_names,
                     dbAcmeAccountKey=dbAcmeAccountKey,
@@ -740,7 +751,7 @@ def api_domains__certificate_if_needed(
                 _logger_args[
                     "event_status_id"
                 ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "api_domains__certificate_if_needed__certificate_new_success"
+                    "ApiDomains__certificate_if_needed__certificate_new_success"
                 )
                 _logger_args["dbServerCertificate"] = _dbServerCertificate
 
@@ -751,7 +762,7 @@ def api_domains__certificate_if_needed(
                 _logger_args[
                     "event_status_id"
                 ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "api_domains__certificate_if_needed__certificate_new_fail"
+                    "ApiDomains__certificate_if_needed__certificate_new_fail"
                 )
                 _logger_args["dbServerCertificate"] = None
 
@@ -770,7 +781,7 @@ def api_domains__certificate_if_needed(
                 ctx,
                 _dbQueueDomain,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status="queue_domain__mark__already_processed",
+                event_status="QueueDomain__mark__already_processed",
                 action="already_processed",
             )
 
@@ -802,7 +813,7 @@ def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
         ctx,
-        model_utils.OperationsEventType.from_string("ca_certificate__upload_bundle"),
+        model_utils.OperationsEventType.from_string("CaCertificate__upload_bundle"),
         event_payload_dict,
     )
     results = {}

@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/private-keys">Private Keys</a></li>
-        <li class="active">Upload</li>
+        <li class="active">New</li>
     </ol>
 </%block>
 

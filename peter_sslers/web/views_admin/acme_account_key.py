@@ -43,17 +43,16 @@ class ViewAdmin_List(Handler):
     def list(self):
         items_count = lib_db.get.get__AcmeAccountKey__count(self.request.api_context)
         if self.request.wants_json:
-            (pager, offset) = self._paginate(
-                items_count,
-                url_template="%s/acme-account-keys/{0}.json"
-                % self.request.registry.settings["admin_prefix"],
+            url_template = (
+                "%s/acme-account-keys/{0}.json"
+                % self.request.registry.settings["admin_prefix"]
             )
         else:
-            (pager, offset) = self._paginate(
-                items_count,
-                url_template="%s/acme-account-keys/{0}"
-                % self.request.registry.settings["admin_prefix"],
+            url_template = (
+                "%s/acme-account-keys/{0}"
+                % self.request.registry.settings["admin_prefix"]
             )
+        (pager, offset) = self._paginate(items_count, url_template=url_template,)
         items_paged = lib_db.get.get__AcmeAccountKey__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -80,7 +79,9 @@ class ViewAdmin_New(Handler):
         return self._upload__print()
 
     def _upload__print(self):
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context, is_enabled=False)
+        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
+            self.request.api_context, is_enabled=False
+        )
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -99,7 +100,10 @@ class ViewAdmin_New(Handler):
                 },
                 "notes": ["You must submit ALL items from Group A or Group B"],
                 "valid_options": {
-                    "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in dbAcmeAccountProviders},
+                    "acme_account_provider_id": {
+                        i.id: "%s (%s)" % (i.name, i.url)
+                        for i in dbAcmeAccountProviders
+                    },
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
@@ -122,16 +126,21 @@ class ViewAdmin_New(Handler):
             key_create_args = parser.getcreate_args
             acme_account_provider_id = key_create_args.get("acme_account_provider_id")
             if acme_account_provider_id:
-                dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context)
+                dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
+                    self.request.api_context
+                )
                 _acme_account_provider_ids__all = [i.id for i in dbAcmeAccountProviders]
-                if (acme_account_provider_id not in _acme_account_provider_ids__all):
+                if acme_account_provider_id not in _acme_account_provider_ids__all:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
                         field="acme_account_provider_id",
                         message="Invalid provider submitted.",
                     )
 
-            key_create_args["event_type"] = "acme_account_key__insert"
+            key_create_args["event_type"] = "AcmeAccountKey__insert"
+            key_create_args[
+                "acme_account_key_source_id"
+            ] = model_utils.AcmeAccountKeySource.from_string("imported")
             (
                 dbAcmeAccountKey,
                 _is_created,
@@ -170,7 +179,9 @@ class ViewAdmin_New(Handler):
         return self._new__print()
 
     def _new__print(self):
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context, is_enabled=True)
+        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
+            self.request.api_context, is_enabled=True
+        )
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -183,7 +194,10 @@ class ViewAdmin_New(Handler):
                 },
                 "notes": [""],
                 "valid_options": {
-                    "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in dbAcmeAccountProviders},
+                    "acme_account_provider_id": {
+                        i.id: "%s (%s)" % (i.name, i.url)
+                        for i in dbAcmeAccountProviders
+                    },
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
@@ -201,19 +215,23 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context)
+            dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
+                self.request.api_context
+            )
             _acme_account_provider_ids__all = [i.id for i in dbAcmeAccountProviders]
-            _acme_account_provider_ids__enabled = [i.id for i in dbAcmeAccountProviders if i.is_enabled]
-            
-            acme_account_provider_id = formStash.results['acme_account_provider_id']
-            if (acme_account_provider_id not in _acme_account_provider_ids__all):
+            _acme_account_provider_ids__enabled = [
+                i.id for i in dbAcmeAccountProviders if i.is_enabled
+            ]
+
+            acme_account_provider_id = formStash.results["acme_account_provider_id"]
+            if acme_account_provider_id not in _acme_account_provider_ids__all:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="acme_account_provider_id",
                     message="Invalid provider submitted.",
                 )
 
-            if (acme_account_provider_id not in _acme_account_provider_ids__enabled):
+            if acme_account_provider_id not in _acme_account_provider_ids__enabled:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
                     field="acme_account_provider_id",
@@ -225,7 +243,10 @@ class ViewAdmin_New(Handler):
             key_create_args = parser.getcreate_args
             key_pem = cert_utils.new_account_key(bits=2048)
             key_create_args["key_pem"] = key_pem
-            key_create_args["event_type"] = "acme_account_key__create"
+            key_create_args["event_type"] = "AcmeAccountKey__create"
+            key_create_args[
+                "acme_account_key_source_id"
+            ] = model_utils.AcmeAccountKeySource.from_string("generated")
             (
                 dbAcmeAccountKey,
                 _is_created,
@@ -259,6 +280,7 @@ class ViewAdmin_New(Handler):
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._new__print)
+
 
 class ViewAdmin_Focus(Handler):
     def _focus(self, eagerload_web=False):
@@ -344,24 +366,56 @@ class ViewAdmin_Focus(Handler):
         route_name="admin:acme_account_key:focus:acme_authorizations_paginated",
         renderer="/admin/acme_account_key-focus-acme_authorizations.mako",
     )
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_authorizations|json",
+        renderer="json",
+    )
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_authorizations_paginated|json",
+        renderer="json",
+    )
     def related__AcmeAuthorizations(self):
         dbAcmeAccountKey = self._focus()
-        auth_status = self.request.params.get("authorization-status")
-        only_pending = True if (auth_status == "pending") else None
+
+        url_status = self.request.params.get("status")
+        if url_status not in ('active', 'active-expired'):
+            url_status = ''
+        if url_status == 'active':
+            sidenav_option = "active"
+        elif url_status == 'active-expired':
+            sidenav_option = "active-expired"
+        else:
+            sidenav_option = "all"
+
+        active_only = True if url_status == "active" else False
+        expired_only = True if url_status == "active-expired" else False
+
         items_count = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__count(
-            self.request.api_context, dbAcmeAccountKey.id
+            self.request.api_context, dbAcmeAccountKey.id, active_only=active_only, expired_only=expired_only
         )
-        url_template = "%s/acme-authorizations/{0}" % (self._focus_url)
-        if only_pending:
-            url_template += "?authorization-status=pending"
+        if self.request.wants_json:
+            url_template = "%s/acme-authorizations/{0}.json" % (self._focus_url)
+        else:
+            url_template = "%s/acme-authorizations/{0}" % (self._focus_url)
+
+        if url_status:
+            url_template = "%s?status=%s" % (url_template, url_status)
+
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
             self.request.api_context,
             dbAcmeAccountKey.id,
-            only_pending=only_pending,
+            active_only=active_only,
+            expired_only=expired_only,
             limit=items_per_page,
             offset=offset,
         )
+        if self.request.wants_json:
+            _authorizations = {k.id: k.as_json for k in items_paged}
+            return {
+                "AcmeAuthorizations": _authorizations,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "AcmeAccountKey": dbAcmeAccountKey,
@@ -447,9 +501,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if not dbAcmeAccountKey.is_can_authenticate:
             error_message = "This AcmeAccountKey can not Authenticate"
             if self.request.wants_json:
-                return {"error": error_message, }
-            url_error = "%s?operation=authenticate&result=%s" % (
-                self._focus_url, error_message.replace(' ', '+')
+                return {
+                    "error": error_message,
+                }
+            url_error = "%s?result=error&error=%s&operation=authenticate" % (
+                self._focus_url,
+                error_message.replace(" ", "+"),
             )
             return HTTPSeeOther(url_error)
         if self.request.method == "POST":
@@ -463,7 +520,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     """curl -X POST %s/authenticate.json""" % self._focus_url
                 ]
             }
-        url_post_required = "%s?operation=authenticate&result=post+required" % (
+        url_post_required = "%s?result=post+required&operation=authenticate" % (
             self._focus_url,
         )
         return HTTPSeeOther(url_post_required)
@@ -477,7 +534,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.wants_json:
             return {"AcmeAccountKey": dbAcmeAccountKey.as_json}
         return HTTPSeeOther(
-            "%s?result=success&operation=authenticate&is_authenticated=%s" % (self._focus_url, True)
+            "%s?result=success&operation=authenticate&is_authenticated=%s"
+            % (self._focus_url, True)
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -499,7 +557,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["default", "active", "inactive"]},
             }
-        url_post_required = "%s?operation=mark&result=post+required" % (self._focus_url)
+        url_post_required = "%s?result=post+required&operation=mark" % (self._focus_url)
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbAcmeAccountKey):
@@ -515,7 +573,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
-                "acme_account_key__mark"
+                "AcmeAccountKey__mark"
             )
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["account_key_id"] = dbAcmeAccountKey.id
@@ -530,7 +588,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     formStash.fatal_form(message="Already activated")
 
                 dbAcmeAccountKey.is_active = True
-                event_status = "acme_account_key__mark__active"
+                event_status = "AcmeAccountKey__mark__active"
 
             elif action == "inactive":
                 if dbAcmeAccountKey.is_default:
@@ -544,7 +602,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     formStash.fatal_form(message="Already deactivated.")
 
                 dbAcmeAccountKey.is_active = False
-                event_status = "acme_account_key__mark__inactive"
+                event_status = "AcmeAccountKey__mark__inactive"
 
             elif action == "default":
                 if dbAcmeAccountKey.is_default:
@@ -553,7 +611,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
                 if not dbAcmeAccountKey.acme_account_provider.is_default:
                     # `formStash.fatal_form(` will raise a `FormInvalid()`
-                    formStash.fatal_form(message="This AccountKey is not from the default AcmeAccountProvider.")
+                    formStash.fatal_form(
+                        message="This AccountKey is not from the default AcmeAccountProvider."
+                    )
 
                 formerDefaultKey = lib_db.get.get__AcmeAccountKey__default(
                     self.request.api_context
@@ -563,9 +623,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     event_payload_dict[
                         "account_key_id.former_default"
                     ] = formerDefaultKey.id
-                    event_alt = ("acme_account_key__mark__notdefault", formerDefaultKey)
+                    event_alt = ("AcmeAccountKey__mark__notdefault", formerDefaultKey)
                 dbAcmeAccountKey.is_default = True
-                event_status = "acme_account_key__mark__default"
+                event_status = "AcmeAccountKey__mark__default"
 
             else:
                 formStash.set_error(
@@ -597,7 +657,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 )
             if self.request.wants_json:
                 return {"result": "success", "AcmeAccountKey": dbAcmeAccountKey}
-            url_success = "%s?operation=mark&action=%s&result=success" % (
+            url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
                 action,
             )
@@ -606,7 +666,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
+            url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
                 action,
                 str(formStash.errors),

@@ -31,31 +31,53 @@
 <%block name="content_main">
     ${admin_partials.handle_querystring_result()}
     
-    <p>
-        % if AcmeAuthorization.is_can_acme_server_sync:
-            <a
-                href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-sync"
-                class="btn btn-xs btn-info"
-            >
-                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                Sync AcmeAuthorization Against ACME Server
-            </a>
-        % endif
-        % if AcmeAuthorization.is_can_acme_server_deactivate:
-            <a
-                href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-deactivate"
-                class="btn btn-xs btn-info"
-            >
-                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                Deactivate Against ACME Server
-            </a>
-        % endif
-    </p>   
-
     <div class="row">
         <div class="col-sm-12">
-
             <table class="table">
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                            ACME Server Operations
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Sync</th>
+                        <td>
+                            <p>
+                                <% sync_btn_class = '' if AcmeAuthorization.is_can_acme_server_sync else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-sync"
+                                    class="btn btn-xs btn-info ${sync_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Sync AcmeAuthorization Against ACME Server
+                                </a>
+                            </p>
+                            <p>
+                                <% sync_btn_class = '' if AcmeAuthorization.is_can_acme_server_deactivate else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-deactivate"
+                                    class="btn btn-xs btn-info ${sync_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Deactivate Against ACME Server
+                                </a>
+                            </p>
+                            <p>
+                                <% trigger_btn_class = '' if AcmeAuthorization.is_can_acme_server_trigger else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-trigger"
+                                    class="btn btn-xs btn-info ${trigger_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Trigger ACME Server
+                                </a>
+                            </p>
+                        </td>
+                    </tr>
+                </tbody>
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -95,23 +117,30 @@
                     </tr>
                     <tr>
                         <th>timestamp_expires</th>
-                        <td><timestamp>${AcmeAuthorization.timestamp_expires or ''}</timestamp>
-                        </td>
+                        <td><timestamp>${AcmeAuthorization.timestamp_expires or ''}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>status</th>
-                        <td><code>${AcmeAuthorization.acme_status_authorization or ''}</code>
+                        <th>pending</th>
+                        <td>
+                            % if AcmeAuthorization.is_acme_server_pending:
+                                <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
+                            % else:
+                                <span class="label label-default"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
+                            % endif
                         </td>
+                    </tr>
+
+                    <tr>
+                        <th>status</th>
+                        <td><code>${AcmeAuthorization.acme_status_authorization or ''}</code></td>
                     </tr>
                     <tr>
                         <th>timestamp_updated</th>
-                        <td><timestamp>${AcmeAuthorization.timestamp_updated or ''}</timestamp>
-                        </td>
+                        <td><timestamp>${AcmeAuthorization.timestamp_updated or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>wildcard</th>
-                        <td><code>${AcmeAuthorization.wildcard or ''}</code>
-                        </td>
+                        <td><code>${AcmeAuthorization.wildcard or ''}</code></td>
                     </tr>
 
                     <tr>

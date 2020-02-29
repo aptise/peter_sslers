@@ -229,33 +229,38 @@ def main(global_config, **settings):
     config.include(".models")
     config.scan(".views")  # shared views, currently just exception handling
 
-
     # after the models are included, setup the AcmeAccountProvider
 
     ca_selected = settings.get("certificate_authority")
     if not ca_selected:
         raise ValueError("No `certificate_authority` selected")
-    
+
     dbEngine = models.get_engine(settings)
+    dbSession = None
     with transaction.manager:
-    
+
         session_factory = models.get_session_factory(dbEngine)
         dbSession = models.get_tm_session(None, session_factory, transaction.manager)
-        
-        dbAcmeAccountProvider = dbSession.query(model_objects.AcmeAccountProvider)\
-            .filter(model_objects.AcmeAccountProvider.name == ca_selected)\
+
+        dbAcmeAccountProvider = (
+            dbSession.query(model_objects.AcmeAccountProvider)
+            .filter(model_objects.AcmeAccountProvider.name == ca_selected)
             .first()
+        )
         if not dbAcmeAccountProvider:
             print("Attempting to enroll new `AcmeAccountProvider`")
-            
+
             _directory = settings.get("certificate_authority_directory")
-            if not _directory or (not _directory.startswith('http://') and not _directory.startswith('https://')):
+            if not _directory or (
+                not _directory.startswith("http://")
+                and not _directory.startswith("https://")
+            ):
                 raise ValueError("invalid directory")
-            
+
             _protocol = settings.get("certificate_authority_protocol")
             if _protocol != "acme-v2":
                 raise ValueError("invalid protocol")
-        
+
             # ok, try to build one...
             dbAcmeAccountProvider = model_objects.AcmeAccountProvider()
             dbAcmeAccountProvider.timestamp_created = datetime.datetime.utcnow()
@@ -266,13 +271,13 @@ def main(global_config, **settings):
             dbAcmeAccountProvider.protocol = _protocol
             dbAcmeAccountProvider.server = url_to_server(_directory)
             dbSession.add(dbAcmeAccountProvider)
-            dbSession.flush(objects=[dbAcmeAccountProvider, ])
-            print ("Enrolled new `AcmeAccountProvider`")
+            dbSession.flush(
+                objects=[dbAcmeAccountProvider,]
+            )
+            print("Enrolled new `AcmeAccountProvider`")
 
         if dbAcmeAccountProvider.protocol != "acme-v2":
             raise ValueError("`AcmeAccountProvider.protocol` is not `acme-v2`")
-        acme_v2.CERTIFICATE_AUTHORITY = dbAcmeAccountProvider.directory
-        config.registry.settings["CERTIFICATE_AUTHORITY"] = dbAcmeAccountProvider.directory
 
         if "certificate_authority_testing" in settings:
             certificate_authority_testing = set_bool_setting(
@@ -282,27 +287,28 @@ def main(global_config, **settings):
                 acme_v2.TESTING_ENVIRONMENT = True
                 model_objects.TESTING_ENVIRONMENT = True
 
-        if "certificate_authority_agreement" in settings:
-            acme_v2.CERTIFICATE_AUTHORITY_AGREEMENT = settings[
-                "certificate_authority_agreement"
-            ]
-
         if not dbAcmeAccountProvider.is_default:
-            dbAcmeAccountProvider_default = dbSession.query(model_objects.AcmeAccountProvider)\
-                .filter(model_objects.AcmeAccountProvider.is_default.op("IS")(True))\
+            dbAcmeAccountProvider_default = (
+                dbSession.query(model_objects.AcmeAccountProvider)
+                .filter(model_objects.AcmeAccountProvider.is_default.op("IS")(True))
                 .first()
+            )
             if dbAcmeAccountProvider_default:
                 dbAcmeAccountProvider_default.is_default = False
             dbAcmeAccountProvider.is_default = True
             dbSession.flush()
-            
-        dbAcmeAccountKey = dbSession.query(model_objects.AcmeAccountKey)\
-            .filter(model_objects.AcmeAccountKey.is_default.op("IS")(True))\
+
+        dbAcmeAccountKey = (
+            dbSession.query(model_objects.AcmeAccountKey)
+            .filter(model_objects.AcmeAccountKey.is_default.op("IS")(True))
             .first()
+        )
         if dbAcmeAccountKey and not dbAcmeAccountKey.acme_account_provider.is_default:
             dbAcmeAccountKey.is_default = False
             dbSession.flush()
 
+    if dbSession:
+        dbSession.close()
     dbEngine.dispose()  # toss the connection in-case of multi-processing
 
     # exit early

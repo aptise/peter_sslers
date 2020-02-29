@@ -11,8 +11,10 @@ from pyramid.paster import get_appsettings, setup_logging
 
 from pyramid.scripts.common import parse_vars
 
+from ...lib import utils
 from ...model.meta import Base
 from ...model import objects as model_objects
+from ...model import utils as model_utils
 from ..models import get_engine, get_session_factory, get_tm_session
 
 
@@ -100,10 +102,12 @@ def main(argv=sys.argv):
     with transaction.manager:
         dbSession = get_tm_session(None, session_factory, transaction.manager)
 
+        timestamp_now = datetime.datetime.utcnow()
+
         for (id, item) in acme_account_providers.items():
             dbObject = model_objects.AcmeAccountProvider()
             dbObject.id = item["id"]
-            dbObject.timestamp_created = datetime.datetime.utcnow()
+            dbObject.timestamp_created = timestamp_now
             dbObject.name = item["name"]
             dbObject.endpoint = item["endpoint"]
             dbObject.directory = item["directory"]
@@ -112,8 +116,35 @@ def main(argv=sys.argv):
             dbObject.protocol = item["protocol"]
             dbObject.server = item["server"]
             dbSession.add(dbObject)
-            dbSession.flush(objects=[dbObject,])
+            dbSession.flush(
+                objects=[dbObject,]
+            )
+
+        event_payload_dict = utils.new_event_payload_dict()
+        dbOperationsEvent = model_objects.OperationsEvent()
+        dbOperationsEvent.operations_event_type_id = (
+            _event_type_id
+        ) = model_utils.OperationsEventType.from_string("_DatabaseInitialization")
+        dbOperationsEvent.timestamp_event = timestamp_now
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        dbSession.add(dbOperationsEvent)
+        dbSession.flush(objects=[dbOperationsEvent])
+
+        dbObject = model_objects.PrivateKey()
+        dbObject.id = 0
+        dbObject.timestamp_created = timestamp_now
+        _placeholder_text = "*placeholder-key*"
+        dbObject.key_pem = _placeholder_text
+        dbObject.key_pem_md5 = utils.md5_text(_placeholder_text)
+        dbObject.key_pem_modulus_md5 = _placeholder_text
+        dbObject.is_active = True
+        dbObject.operations_event_id__created = dbOperationsEvent.id
+        dbObject.private_key_source_id = model_utils.PrivateKeySource.from_string(
+            "placeholder"
+        )
+        dbSession.add(dbObject)
+        dbSession.flush(
+            objects=[dbObject,]
+        )
 
     transaction.commit()
-
-

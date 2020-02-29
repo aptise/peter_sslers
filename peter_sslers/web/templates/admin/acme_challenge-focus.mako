@@ -29,22 +29,45 @@
 
 
 <%block name="content_main">
-
-    <p>
-        % if AcmeChallenge.is_can_acme_server_sync:
-            <a
-                href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server-sync"
-                class="btn btn-xs btn-info"
-            >
-                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                Sync AcmeChallenge Against ACME Server
-            </a>
-        % endif
-    </p>   
+    ${admin_partials.handle_querystring_result()}
 
     <div class="row">
         <div class="col-sm-12">
             <table class="table table-striped table-condensed">
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                            ACME Server Operations
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Sync</th>
+                        <td>
+                            <p>
+                                <% sync_btn_class = '' if AcmeChallenge.is_can_acme_server_sync else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server-sync"
+                                    class="btn btn-xs btn-info"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Sync AcmeChallenge Against ACME Server
+                                </a>
+                            </p>
+                            <p>
+                                <% trigger_btn_class = '' if AcmeChallenge.is_can_acme_server_trigger else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server-trigger"
+                                    class="btn btn-xs btn-info ${trigger_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Trigger ACME Server
+                                </a>
+                            </p>
+                        </td>
+                    </tr>
+                </tbody>
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -85,9 +108,40 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>domain</th>
+                        <td>
+                            % if AcmeChallenge.domain_id:
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/domain/${AcmeChallenge.domain_id}"
+                                >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    Domain-${AcmeChallenge.domain_id}
+                                </a>
+                                <code>${AcmeChallenge.domain.domain_name}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>acme_challenge_type</th>
                         <td><span class="label label-default">${AcmeChallenge.acme_challenge_type}</span></td>
                     </tr>
+                    
+                    <tr>
+                        <th>test</th>
+                        <td>
+                            % if AcmeChallenge.acme_challenge_type == "http-01":
+                                % if AcmeChallenge.token:
+                                    <a href="http://${AcmeChallenge.domain.domain_name}/.well-known/acme-challenge/${AcmeChallenge.token}?test=1"
+                                       target="_blank"
+                                       class="btn btn-success"
+                                    >
+                                        <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
+                                    </a>
+                                % endif
+                            % endif
+                        </td>
+                    </tr>
+                    
                     <tr>
                         <th>challenge_url</th>
                         <td>${AcmeChallenge.challenge_url}</td>

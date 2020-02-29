@@ -3,21 +3,21 @@ peter_sslers README
 
 Peter SSLers *or how i stopped worrying and learned to LOVE the SSL Certificate*.
 
-`peter_sslers` is a package designed to help *experienced* admins and devops people manage SSL Certificates and deploy them on larger systems (e.g. lots of domains and/or nodes).
+`peter_sslers` is a package designed to help *experienced* admins and DevOps people manage SSL Certificates and deploy them on larger systems (e.g. you have lots of domains and/or nodes).
 
 What's in the "box" ?
 
-* `OpenResty` Lua module for Dynamic SSL Certificate Handling on the `Nginx` webserver !!!
+* `OpenResty` Lua module to enable Dynamic SSL Certificate Handling on the `Nginx` webserver
 * A robust SSL Certificate Manager
 * An integrated ACME V2 Client for LetsEncrypt Certificate Authority
 
 THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
 
-AMAZING, RIGHT?
+Amazing, right?
 
 This package is *not* aimed at casual users or people concerned with a handful of websites or servers.
 
-"Peter" offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.  PostgreSQL is recommended; sqlite is supported.  A good-faith effort is made to get this to work on MySQL.
+Peter, as we fondly call this package, offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.  PostgreSQL is recommended; Sqlite is supported and the primary testing environment.  A good-faith effort is made to get this to work on MySQL, but, well, sigh.
 
 Peter combines an ACME V2 Client designed to operate against the LetsEncrypt service, alongside tools designed to manage & deploy Signed SSL Certificates.
 
@@ -28,19 +28,22 @@ The client supported ACME v1 until version `0.4.0`.
 
 Peter's core tool is a lightweight database-backed `Pyramid` application that can:
 
-* act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver
-* import existing ssl Certificates
-* ease provisioning Certificates onto various servers
-* browse certificate data and easily see what needs to be renewed
-* communicate with a properly configured `OpenResty` enabled `Nginx` web server (see next section)
-* translate Certificates into different formats
-* be the source of lots of puns!
+* Act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver
+* Offer a simple API for creating and managing the ACME process. Your software talks to Peter, not LetsEncrypt.
+* Import existing ssl Certificates
+* Ease provisioning Certificates onto various servers across your systems
+* Browse certificate data and easily see what needs to be renewed
+* Interact with the upstream ACME Servers to deal with accounts and pending authorizations, and all that mess.
+* Communicate with a properly configured `OpenResty` enabled `Nginx` web server (see next section)
+* Prime a Redis cache with certificate data
+* Translate Certificates into different formats
+* Be the source of lots of puns!
 
 Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the `Nginx` server which will:
 
-* dynamically request Certificates from a primed `Redis` cache
-* store data in shared `Nginx` worker memory and
-* expose routes to flush the worker shared memory or expire select keys. 
+* Dynamically request Certificates from a primed `Redis` cache
+* Store data in shared `Nginx` worker memory and
+* Expose routes to flush the worker shared memory or expire select keys. 
 
 The `OpenResty` module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your `OpenResty`/`Nginx` server via the `opm` package installer.  It has been used in production for several years.
 
@@ -52,11 +55,11 @@ Do you like book-keeping?  Peter's `Pryamid` component logs everything into SQL 
 * What challenges are active?
 * Which external ips are triggering my challenges?
 
-THIS PACKAGE IS EXTREME!!!
+THIS PACKAGE IS EXTREME TO THE MAX!!!
 
 Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable within Peter as well.
 
-Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool). Peter is a honeybadger, he don't care. He does what he wants.
+Peter has absolutely no security measures and should only be used by people who understand that. This should be a self-selecting group, because many people won't want this tool. Peter is a honeybadger, he don't care. He does what he wants.
 
 Peter offers several commandline tools -- so spinning up a tool "webserver" mode may not be necessary at all -- or might only be needed for brief periods of time.
 
@@ -64,7 +67,7 @@ SqlAlchemy is the backing database library, so virtually any database can be use
 
 Peter tries to leverage the system's OpenSSL instead of using Python's modules whenever possible. The reason is to minimize the amount of downloads/packages.  A future version will allow switching between the two.
 
-Although Python2 is no longer supported by Python itself, Python2 and Python3 are targeted platforms for this library because we all have legacy systems.
+Although Python2 is no longer supported by Python itself, Python2 and Python3 are targeted platforms for this library because we all have to deal legacy systems.
 
 
 ## Why?

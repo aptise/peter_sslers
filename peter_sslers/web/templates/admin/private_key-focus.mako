@@ -62,7 +62,7 @@
                                     Compromised
                                 </span>
                             % endif
-                            % if not PrivateKey.is_active and not PrivateKey.is_compromised:
+                            % if not PrivateKey.is_active and not PrivateKey.is_compromised and not PrivateKey.is_placeholder:
                                 &nbsp;
                                 <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="active"/>
@@ -71,7 +71,7 @@
                                         activate
                                     </button>
                                 </form>
-                            % elif PrivateKey.is_active and not PrivateKey.is_compromised:
+                            % elif PrivateKey.is_active and not PrivateKey.is_compromised and not PrivateKey.is_placeholder:
                                 &nbsp;
                                 <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="inactive"/>
@@ -123,7 +123,7 @@
                                     DEFAULT
                                 </span>
                             % else:
-                                % if not PrivateKey.is_compromised and PrivateKey.is_active:
+                                % if not PrivateKey.is_compromised and PrivateKey.is_active and not PrivateKey.is_placeholder:
                                     <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="default"/>
                                         <button class="btn btn-xs btn-success" type="submit">
@@ -135,7 +135,12 @@
                             % endif
                         </td>
                     </tr>
-
+                    <tr>
+                        <th>source</th>
+                        <td>
+                            <span class="label label-default">${PrivateKey.private_key_source}</span>
+                        </td>
+                    </tr>
                     <tr>
                         <th>timestamp_created</th>
                         <td><timestamp>${PrivateKey.timestamp_created or ''}</timestamp></td>
@@ -167,13 +172,15 @@
                     <tr>
                         <th>key_pem_modulus_md5</th>
                         <td>
-                            <code>${PrivateKey.key_pem_modulus_md5}</code>
-                            <a
-                                class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${PrivateKey.key_pem_modulus_search}"
-                            >
-                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                            </a>
+                            % if not PrivateKey.is_placeholder:
+                                <code>${PrivateKey.key_pem_modulus_md5}</code>
+                                <a
+                                    class="btn btn-xs btn-info"
+                                    href="${admin_prefix}/search?${PrivateKey.key_pem_modulus_search}"
+                                >
+                                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                                </a>
+                            % endif
                         </td>
                     </tr>
                     ${admin_partials.table_tr_OperationsEventCreated(PrivateKey)}
@@ -182,9 +189,11 @@
                         <td>
                             ## ${'tracked' if PrivateKey.key_pem else 'untracked'}
                             ## <textarea class="form-control">${PrivateKey.key_pem}</textarea>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.pem">key.pem</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.pem.txt">key.pem.txt</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.key">key.key (der)</a>
+                            % if not PrivateKey.is_placeholder:
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.pem">key.pem</a>
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.pem.txt">key.pem.txt</a>
+                                <a class="btn btn-xs btn-info" href="${admin_prefix}/private-key/${PrivateKey.id}/key.key">key.key (der)</a>
+                            % endif
                         </td>
                     </tr>
                 </tbody>

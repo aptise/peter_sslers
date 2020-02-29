@@ -19,8 +19,8 @@
 <%block name="page_header_nav">
     <ul class="nav nav-pills nav-stacked">
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/server-certificates">All Certificates</a></li>
-      <li role="presentation" class="${'active' if sidenav_option == 'active_only' else ''}"><a href="${admin_prefix}/server-certificates/active">Active Certificates</a></li>
-      <li role="presentation" class="${'active' if sidenav_option == 'inactive_only' else ''}"><a href="${admin_prefix}/server-certificates/inactive">Inactive Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'active' else ''}"><a href="${admin_prefix}/server-certificates/active">Active Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'inactive' else ''}"><a href="${admin_prefix}/server-certificates/inactive">Inactive Certificates</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/server-certificates/expiring">Expiring Certificates</a></li>
     </ul>
     <p class="pull-right">
@@ -35,12 +35,12 @@
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
-        % elif sidenav_option == 'active_only' :
+        % elif sidenav_option == 'active' :
             <a href="${admin_prefix}/server-certificates/active.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
-        % elif sidenav_option == 'inactive_only' :
+        % elif sidenav_option == 'inactive' :
             <a href="${admin_prefix}/server-certificates/inactive.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
@@ -58,10 +58,10 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if sidenav_option == 'active_only' :
+            % if sidenav_option == 'active' :
                 <p>Active ServerCertificates.
                 </p>
-            % elif sidenav_option == 'inactive_only' :
+            % elif sidenav_option == 'inactive' :
                 <p>Inactive ServerCertificates.
                 </p>
             % else:

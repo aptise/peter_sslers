@@ -33,38 +33,67 @@
 <%block name="content_main">
     ${admin_partials.handle_querystring_result()}
     
-    <p>
-        <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
-        <a
-            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
-            class="btn btn-xs btn-info ${sync_btn_class}"
-        >
-            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-            Sync Order Against ACME Server
-        </a>
-
-        <% deactivate_btn_class = '' if AcmeOrder.is_can_acme_server_deactivate_authorizations else 'disabled' %>
-        <a
-            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-deactivate-authorizations"
-            class="btn btn-xs btn-info ${deactivate_btn_class}"
-        >
-            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-            Deactivate Authorizations on ACME Server
-        </a>
-
-        <% retry_btn_class = '' if AcmeOrder.is_can_retry else 'disabled' %>
-        <a
-            href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"
-            class="btn btn-xs btn-info ${retry_btn_class}"
-        >
-            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-            Retry (New) Order
-        </a>
-    </p>    
-    
     <div class="row">
         <div class="col-sm-12">
             <table class="table">
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                            ACME Server Operations
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Sync</th>
+                        <td>
+                            <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
+                            <a
+                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
+                                class="btn btn-xs btn-info ${sync_btn_class}"
+                            >
+                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                Sync Order Against ACME Server
+                            </a>
+                        
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Cleanup</th>
+                        <td>
+                            <p>
+                                <% deactivate_btn_class = '' if AcmeOrder.is_can_acme_server_deactivate_authorizations else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-deactivate-authorizations"
+                                    class="btn btn-xs btn-info ${deactivate_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Deactivate Authorizations on ACME Server
+                                </a>
+                            </p>
+                            <p>
+                                <% finalize_btn_class = '' if AcmeOrder.is_can_finalize else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/finalize"
+                                    class="btn btn-xs btn-info ${finalize_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Finalize Order
+                                </a>
+                            </p>
+                            <p>
+                                <% retry_btn_class = '' if AcmeOrder.is_can_retry else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"
+                                    class="btn btn-xs btn-info ${retry_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Retry (New) Order
+                                </a>
+                            </p>
+                        </td>
+                    </tr>
+                </tbody>
                 <thead>
                     <tr>
                         <th colspan="2">
@@ -83,20 +112,27 @@
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
-                        <td><timestamp>${AcmeOrder.timestamp_created or ''}</timestamp>
-                        </td>
+                        <td><timestamp>${AcmeOrder.timestamp_created or ''}</timestamp></td>
+                    </tr>
+                    <tr>
+                        <th>Order Type</th>
+                        <td><span class="label label-default">${AcmeOrder.acme_order_type}</span></td>
                     </tr>
                     <tr>
                         <th>is_active</th>
                         <td>
                         
-                            % if AcmeOrder.is_active:
+                            % if AcmeOrder.is_active is True:
                                 <div class="label label-success">
                                     <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
                                 </div>
-                            % else:
-                                <div class="label label-danger">
-                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                            % elif AcmeOrder.is_active is None:
+                                <div class="label label-default">
+                                    <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span>
+                                </div>
+                            % elif AcmeOrder.is_active is False:
+                                <div class="label label-warning">
+                                    <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
                                 </div>
                             % endif
                         
@@ -111,6 +147,75 @@
                             % endif
                         </td>
                     </tr>
+
+
+                    <tr>
+                        <th>is_auto_renew</th>
+                        <td>
+                            <span class="label label-${'success' if AcmeOrder.is_auto_renew else 'warning'}">
+                                ${'AutoRenew' if AcmeOrder.is_auto_renew else 'manual'}
+                            </span>
+                            &nbsp;
+                            % if AcmeOrder.is_auto_renew:
+                                <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="operation" value="renew.manual"/>
+                                    <button class="btn btn-xs btn-warning" type="submit">
+                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                        deactivate auto-renew
+                                    </button>
+                                </form>
+                            % else:
+                                <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;">
+                                    <input type="hidden" name="operation" value="renew.auto"/>
+                                    <button class="btn btn-xs btn-success" type="submit">
+                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                        enable auto-renew
+                                    </button>
+                                </form>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_renewed</th>
+                        <td>
+                            <span class="label label-${'success' if AcmeOrder.is_renewed else 'default'}">
+                                ${'Renewed' if AcmeOrder.is_renewed else 'not-renewed-yet'}
+                            </span>
+                            &nbsp;
+
+                            <% renew_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
+                            <a  class="btn btn-xs btn-primary ${renew_btn_class}"
+                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/queue"
+                                title="Queue a renewal with same AcmeAccount."
+                            >
+                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                Queue a Renewal
+                            </a>
+                            &nbsp;
+
+                            <% renew_btn_class = '' if AcmeOrder.is_renewable_quick else 'disabled' %>
+                            <a  class="btn btn-xs btn-primary ${renew_btn_class}"
+                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/quick"
+                                title="Renew immediately with the same AcmeAccount."
+                            >
+                                <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
+                                Quick Renewal
+                            </a>
+                            &nbsp;
+
+                            <% renew_btn_class = '' if AcmeOrder.is_renewable_custom else 'disabled' %>
+                            <a  class="btn btn-xs btn-primary ${renew_btn_class}"
+                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/custom"
+                                title="Select a new AccountKey for renewal."
+                            >
+                                <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+                                Custom Renewal
+                            </a>
+                        </td>
+                    </tr>
+                
+
+
                     <tr>
                         <th>status</th>
                         <td><code>${AcmeOrder.acme_status_order or ''}</code>
@@ -126,8 +231,8 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>resource_url</th>
-                        <td><code>${AcmeOrder.resource_url or ''}</code>
+                        <th>order_url</th>
+                        <td><code>${AcmeOrder.order_url or ''}</code>
                         </td>
                     </tr>
                     <tr>
@@ -172,6 +277,20 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>private_key_id</th>
+                        <td>
+                            % if AcmeOrder.private_key_id is not None:
+                                <a
+                                    class="label label-info"
+                                    href="${admin_prefix}/private-key/${AcmeOrder.private_key_id}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    PrivateKey-${AcmeOrder.private_key_id}
+                                </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>server_certificate_id</th>
                         <td>
                             % if AcmeOrder.server_certificate_id:
@@ -188,15 +307,15 @@
                     <tr>
                         <th>unique_fqdn_set_id</th>
                         <td>
-                            % if AcmeOrder.unique_fqdn_set_id:
-                                <a
-                                    class="label label-info"
-                                    href="${admin_prefix}/unique-fqdn-set/${AcmeOrder.unique_fqdn_set_id}"
-                                >
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    UniqueFQDNSet-${AcmeOrder.unique_fqdn_set_id}
-                                </a>
-                            % endif
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/unique-fqdn-set/${AcmeOrder.unique_fqdn_set_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniqueFQDNSet-${AcmeOrder.unique_fqdn_set_id}
+                            </a>
+                            <br/>
+                            <code>${', '.join(AcmeOrder.domains_as_list)}</code>
                         </td>
                     </tr>
 

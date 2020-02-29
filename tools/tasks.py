@@ -23,9 +23,7 @@ DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT")
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
-def import_certbot_certs_archive(
-    c, archive_path, server_url_root=DEFAULT_SERVER_ROOT
-):
+def import_certbot_certs_archive(c, archive_path, server_url_root=DEFAULT_SERVER_ROOT):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
     imports the entire LetEncrypt archive in `archive_path`
@@ -37,9 +35,7 @@ def import_certbot_certs_archive(
         export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
         invoke import-certbot-certs-archive --archive-path="/etc/letsencrypt/archive"
     """
-    peter_sslers.commandline.import_certbot_certs_archive(
-        archive_path, server_url_root
-    )
+    peter_sslers.commandline.import_certbot_certs_archive(archive_path, server_url_root)
     return
 
 

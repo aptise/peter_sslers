@@ -115,7 +115,7 @@ class ViewAdmin_List(Handler):
             "admin:server_certificates:active|json",
             "admin:server_certificates:active_paginated|json",
         ):
-            sidenav_option = "active_only"
+            sidenav_option = "active"
             url_template = (
                 "%s/server-certificates/active/{0}"
                 % self.request.registry.settings["admin_prefix"]
@@ -138,7 +138,7 @@ class ViewAdmin_List(Handler):
             "admin:server_certificates:inactive|json",
             "admin:server_certificates:inactive_paginated|json",
         ):
-            sidenav_option = "inactive_only"
+            sidenav_option = "inactive"
             url_template = (
                 "%s/server-certificates/active/{0}"
                 % self.request.registry.settings["admin_prefix"]
@@ -231,7 +231,11 @@ class ViewAdmin_New(Handler):
                 dbPrivateKey,
                 pkey_is_created,
             ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
-                self.request.api_context, private_key_pem
+                self.request.api_context,
+                private_key_pem,
+                private_key_source_id=model_utils.PrivateKeySource.from_string(
+                    "imported"
+                ),
             )
 
             ca_chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
@@ -444,7 +448,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     def nginx_expire(self):
         dbServerCertificate = self._focus()
         if not self.request.registry.settings["enable_nginx"]:
-            raise HTTPSeeOther("%s?error=no+nginx" % self._focus_url)
+            raise HTTPSeeOther("%s?result=error&error=no+nginx" % self._focus_url)
         dbDomains = [
             c2d.domain for c2d in dbServerCertificate.unique_fqdn_set.to_domains
         ]
@@ -456,7 +460,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
-            "%s?operation=nginx+cache+expire&result=success&event.id=%s"
+            "%s?result=success&operation=nginx+cache+expire&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
 
@@ -489,7 +493,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     ]
                 },
             }
-        url_post_required = "%s?operation=mark&result=post+required" % self._focus_url
+        url_post_required = "%s?result=post+required&operation=mark" % self._focus_url
         return HTTPSeeOther(url_post_required)
 
     def _mark__submit(self, dbServerCertificate):
@@ -505,7 +509,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             event_payload_dict["server_certificate.id"] = dbServerCertificate.id
             event_payload_dict["action"] = action
             event_type = model_utils.OperationsEventType.from_string(
-                "certificate__mark"
+                "ServerCertificate__mark"
             )
 
             update_recents = False
@@ -540,7 +544,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 # cleanup options
                 update_recents = True
                 activated = True
-                event_status = "certificate__mark__active"
+                event_status = "ServerCertificate__mark__active"
 
             elif action == "inactive":
                 if not dbServerCertificate.is_active:
@@ -553,13 +557,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
                 # deactivate it
                 dbServerCertificate.is_active = False
-                dbServerCertificate.is_auto_renew = False
                 # set the manual toggle
                 dbServerCertificate.is_deactivated = True
                 # cleanup options
                 update_recents = True
                 deactivated = True
-                event_status = "certificate__mark__inactive"
+                event_status = "ServerCertificate__mark__inactive"
 
             elif action == "revoked":
                 if dbServerCertificate.is_revoked:
@@ -570,50 +573,13 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 dbServerCertificate.is_revoked = True
                 # deactivate it
                 dbServerCertificate.is_active = False
-                dbServerCertificate.is_auto_renew = False
                 # set the manual toggle
                 dbServerCertificate.is_deactivated = True
                 # cleanup options
                 update_recents = True
                 deactivated = True
-                event_type = "certificate__revoke"
-                event_status = "certificate__mark__revoked"
-
-            elif action == "renew_auto":
-                if not dbServerCertificate.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="action", message="Certificate must be `active`"
-                    )
-
-                if dbServerCertificate.is_auto_renew:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="action", message="Already set to auto-renew"
-                    )
-
-                # set the renewal
-                dbServerCertificate.is_auto_renew = True
-                # cleanup options
-                event_status = "certificate__mark__renew_auto"
-
-            elif action == "renew_manual":
-                if not dbServerCertificate.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="action", message="certificate must be `active`"
-                    )
-
-                if not dbServerCertificate.is_auto_renew:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="action", message="Already set to manual renewal"
-                    )
-
-                # unset the renewal
-                dbServerCertificate.is_auto_renew = False
-                # cleanup options
-                event_status = "certificate__mark__renew_manual"
+                event_type = "ServerCertificate__revoke"
+                event_status = "ServerCertificate__mark__revoked"
 
             elif action == "unrevoke":
                 if not dbServerCertificate.is_revoked:
@@ -628,7 +594,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 # cleanup options
                 update_recents = True
                 activated = None
-                event_status = "certificate__mark__unrevoked"
+                event_status = "ServerCertificate__mark__unrevoked"
 
             else:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -668,7 +634,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
             if self.request.wants_json:
                 return {"result": "success", "Domain": dbServerCertificate.as_json}
-            url_success = "%s?operation=mark&action=%s&result=success" % (
+            url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
                 action,
             )
@@ -677,304 +643,11 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
+            url_failure = "%s?&result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
                 action,
-                str(exc),
+                exc.to_querystring(),
             )
             raise HTTPSeeOther(url_failure)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:server_certificate:focus:renew:queue", renderer=None)
-    @view_config(
-        route_name="admin:server_certificate:focus:renew:queue|json", renderer="json"
-    )
-    def renew_queue(self):
-        """
-        This will allow the ServerCertificate to renew with the associated AcmeAccount
-        """
-        dbServerCertificate = self._focus()
-        try:
-            if not dbServerCertificate.is_renewable:
-                raise errors.DisplayableError(
-                    "This ServerCertificate can not be renewed to the AcmeAccount".replace(
-                        " ", "+"
-                    )
-                )
-
-            # first check to see if this is already queued
-            dbQueued = lib_db.get.get__QueueRenewal__by_UniqueFQDNSetId__active(
-                self.request.api_context, dbServerCertificate.unique_fqdn_set_id
-            )
-            if dbQueued:
-                raise errors.DisplayableError(
-                    "There is an existing entry in the queue for this ServerCertificate's UniqueFQDNSet.".replace(
-                        " ", "+"
-                    )
-                )
-
-            raise ValueError("todo: create a new PrivateKey")
-
-            # okay, we're good to go...'
-            event_type = model_utils.OperationsEventType.from_string(
-                "queue_renewal__update"
-            )
-            event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
-                self.request.api_context, event_type, event_payload_dict
-            )
-            dbQueue = lib_db.create._create__QueueRenewal(
-                self.request.api_context, dbServerCertificate
-            )
-            event_payload_dict["ssl_certificate-queued.ids"] = str(
-                dbServerCertificate.id
-            )
-            event_payload_dict["sql_queue_renewals.ids"] = str(dbQueue.id)
-            dbOperationsEvent.set_event_payload(event_payload_dict)
-            self.request.api_context.dbSession.flush(objects=[dbOperationsEvent])
-
-            if self.request.wants_json:
-                return {"status": "success", "queue_item": dbQueue.id}
-            url_success = (
-                "%s?operation=renewal&renewal_type=queue&success=%s&result=success"
-                % (self._focus_url, dbQueue.id)
-            )
-            return HTTPSeeOther(url_success)
-
-        except errors.DisplayableError as exc:
-            if self.request.wants_json:
-                return {"status": "error", "error": str(exc)}
-            url_failure = (
-                "%s?operation=renewal&renewal_type=queue&error=%s&result=error"
-                % (self._focus_url, str(exc))
-            )
-            raise HTTPSeeOther(url_failure)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:server_certificate:focus:renew:quick", renderer=None)
-    @view_config(route_name="admin:server_certificate:focus:renew:quick|json", renderer="json")
-    def renew_quick(self):
-        """
-        this endpoint is for immediately renewing the certificate
-        """
-        dbServerCertificate = self._focus()
-        try:
-            if not dbServerCertificate.is_renewable:
-                raise errors.DisplayableError(
-                    "This ServerCertificate can not be renewed to the AcmeAccount".replace(
-                        " ", "+"
-                    )
-                )
-                
-            raise ValueError("todo: create a new PrivateKey")
-
-            if (
-                (not dbServerCertificate.private_key)
-                or (not dbServerCertificate.private_key.is_active)
-                or (not dbServerCertificate.acme_account_key)
-                or (not dbServerCertificate.acme_account_key.is_active)
-            ):
-                raise errors.DisplayableError(
-                    "The PrivateKey or AccountKey is not active. You can not Quick-Renew."
-                )
-            if not dbServerCertificate.is_can_renew_letsencrypt:
-                raise errors.DisplayableError(
-                    "Thie cert is not eligible for `Quick Renew`"
-                )
-
-            try:
-                (
-                    dbAcmeOrder,
-                    result,
-                ) = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
-                    self.request.api_context,
-                    domain_names=None,  # domain_names, handle via the certificate...
-                    dbAcmeAccountKey=dbServerCertificate.acme_account_key,
-                    dbPrivateKey=dbServerCertificate.private_key,
-                    dbServerCertificate__renewal_of=dbServerCertificate,
-                )
-            except (
-                errors.AcmeCommunicationError,
-                errors.DomainVerificationError,
-            ) as exc:
-                raise errors.DisplayableError(str(exc))
-
-            if self.request.wants_json:
-                return {
-                    "status": "success",
-                    "acme_order.id": dbAcmeOrder.id,
-                    "certificate_new.id": dbAcmeOrder.server_certificate_id,
-                }
-            url_success = (
-                "%s?operation=renewal&renewal_type=quick&success=%s&result=success"
-                % (self._focus_url, dbAcmeOrder.server_certificate_id)
-            )
-            return HTTPSeeOther(url_success)
-
-        except errors.DisplayableError as exc:
-            if self.request.wants_json:
-                return {"status": "error", "error": str(exc)}
-            url_failure = (
-                "%s?operation=renewal&renewal_type=quick&error=%s&result=error"
-                % (self._focus_url, str(exc))
-            )
-            raise HTTPSeeOther(url_failure)
-
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:server_certificate:focus:renew:custom", renderer=None)
-    @view_config(
-        route_name="admin:server_certificate:focus:renew:custom|json", renderer="json"
-    )
-    def renew_custom(self):
-        dbServerCertificate = self._focus()
-        self.dbServerCertificate = dbServerCertificate
-        self._load_AccountKeyDefault()
-        if self.request.method == "POST":
-            return self._renew_custom__submit()
-        return self._renew_custom__print()
-
-    def _renew_custom__print(self):
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(self.request.api_context, is_enabled=False)
-        if self.request.wants_json:
-            return {
-                "form_fields": {
-                    "account_key_option": "One of ('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file'). REQUIRED.",
-                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
-                    "account_key_default": "pem_md5 of the default account key. Must/Only submit if `account_key_option==account_key_default`",
-                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
-                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
-                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                    "account_key_file_le_meta": "letsencrypt file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                    "account_key_file_le_pkey": "letsencrypt file",
-                    "account_key_file_le_reg": "letsencrypt file",
-                    "private_key_option": "One of('private_key_reuse', 'private_key_existing', 'private_key_file_pem'). REQUIRED.",
-                    "private_key_reuse": "pem_md5 of existing key",
-                    "private_key_existing": "pem_md5 of existing key",
-                    "private_key_file_pem": "pem to upload",
-                },
-                "form_fields_related": [
-                    ["account_key_file_pem", "acme_account_provider_id"],
-                    [
-                        "account_key_file_le_meta",
-                        "account_key_file_le_pkey",
-                        "account_key_file_le_reg",
-                    ],
-                ],
-                "valid_options": {
-                    "acme_account_provider_id": {i.id: "%s (%s)" % (i.name, i.url) for i in dbAcmeAccountProviders},
-                },
-                "requirements": [
-                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three letsencrypt files."
-                ],
-                "instructions": [
-                    """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/server-certificate/1/renew.json"""
-                    % self.request.admin_url
-                ],
-            }
-
-        return render_to_response(
-            "/admin/server_certificate-focus-renew_custom.mako",
-            {
-                "ServerCertificate": self.dbServerCertificate,
-                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
-                "AcmeAccountProviders": dbAcmeAccountProviders,
-            },
-            self.request,
-        )
-
-    def _renew_custom__submit(self):
-        dbServerCertificate = self.dbServerCertificate
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_Certificate_Renewal_Custom, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            # use the form_utils to process account-key selections
-            # why? because they may be uploaded in multiple ways
-            accountKeySelection = form_utils.parse_AccountKeySelection(
-                self.request,
-                formStash,
-                seek_selected=formStash.results["account_key_option"],
-            )
-            if accountKeySelection.selection == "upload":
-                key_create_args = accountKeySelection.upload_parsed.getcreate_args
-                key_create_args["event_type"] = "acme_account_key__insert"
-                (
-                    dbAcmeAccountKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__AcmeAccountKey(
-                    self.request.api_context, **key_create_args
-                )
-                accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
-
-            private_key_pem = form_utils.parse_PrivateKeyPem(
-                self.request,
-                formStash,
-                seek_selected=formStash.results["private_key_option"],
-            )
-
-            try:
-                event_payload_dict = utils.new_event_payload_dict()
-                event_payload_dict["server_certificate.id"] = dbServerCertificate.id
-                dbEvent = lib_db.logger.log__OperationsEvent(
-                    self.request.api_context,
-                    model_utils.OperationsEventType.from_string("certificate__renew"),
-                    event_payload_dict,
-                )
-
-                raise ValueError("figure this out")
-                """
-                (
-                    dbPrivateKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
-                    self.request.api_context, private_key_pem
-                )
-                """
-                raise ValueError("need a dbPrivateKey")
-                dbPrivateKey = None
-
-                (
-                    dbAcmeOrder,
-                    result,
-                ) = lib_db.actions_acme.do__AcmeOrder__AcmeV2__automated(
-                    self.request.api_context,
-                    domain_names=None,
-                    dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
-                    dbPrivateKey=dbPrivateKey,
-                    dbServerCertificate__renewal_of=dbServerCertificate,
-                )
-            except (
-                errors.AcmeCommunicationError,
-                errors.DomainVerificationError,
-            ) as exc:
-                return HTTPSeeOther(
-                    "%s/certificate-requests?result=error&error=renew-acme-automated&message=%s"
-                    % (self.request.registry.settings["admin_prefix"], str(exc))
-                )
-            except Exception as exc:
-                if self.request.registry.settings["exception_redirect"]:
-                    return HTTPSeeOther(
-                        "%s/certificate-requests?result=error&error=renew-acme-automated"
-                        % self.request.registry.settings["admin_prefix"]
-                    )
-                raise
-
-            return HTTPSeeOther(
-                "%s/server-certificate/%s?is_renewal=True"
-                % (
-                    self.request.registry.settings["admin_prefix"],
-                    dbAcmeOrder.server_certificate_id,
-                )
-            )
-
-        except formhandling.FormInvalid as exc:
-            return formhandling.form_reprint(
-                self.request, self._renew_custom__print
-            )

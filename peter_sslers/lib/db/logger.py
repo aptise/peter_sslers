@@ -15,6 +15,8 @@ from ...model import objects as model_objects
 # from ._utils import get_dbSessionLogItem
 
 
+logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -58,8 +60,8 @@ class AcmeLogger(object):
         # ???: update with result?
         if acme_version != "v2":
             raise ValueError("invalid `acme_version``: %s" % acme_version)
-        acme_event_id = model_utils.AcmeEvent.from_string("v2|newAccount")
 
+        acme_event_id = model_utils.AcmeEvent.from_string("v2|newAccount")
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()

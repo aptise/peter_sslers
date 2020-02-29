@@ -206,7 +206,7 @@ class ViewFocus(Handler):
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["cancel"]},
             }
-        url_huh = "%s?operation=mark&result=huh" % (self._focus_url)
+        url_huh = "%s?&result=post+required&operation=mark" % (self._focus_url)
         return HTTPSeeOther(url_huh)
 
     def _focus_mark__submit(self, dbRenewalQueueItem):
@@ -219,7 +219,7 @@ class ViewFocus(Handler):
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
-                "queue_renewal__mark"
+                "QueueRenewal__mark"
             )
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["queue_renewal.id"] = dbRenewalQueueItem.id
@@ -235,7 +235,7 @@ class ViewFocus(Handler):
                 dbRenewalQueueItem.timestamp_processed = (
                     self.request.api_context.timestamp
                 )
-                event_status = "queue_renewal__mark__cancelled"
+                event_status = "QueueRenewal__mark__cancelled"
                 self.request.api_context.dbSession.flush(objects=[dbRenewalQueueItem])
             else:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -259,15 +259,15 @@ class ViewFocus(Handler):
                     "QueueRenewal": dbRenewalQueueItem.as_json,
                 }
 
-            url_post_required = "%s?operation=mark&result=success" % (self._focus_url,)
+            url_post_required = "%s?result=success&operation=mark" % (self._focus_url,)
             return HTTPSeeOther(url_post_required)
 
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?operation=mark&action=%s&result=error&error=%s" % (
+            url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
+                exc.to_querystring(),
                 action,
-                str(exc),
             )
             raise HTTPSeeOther(url_failure)

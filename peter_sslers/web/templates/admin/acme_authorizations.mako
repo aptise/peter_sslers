@@ -17,8 +17,19 @@
 
 
 <%block name="page_header_nav">
+    <%
+        _status = request.params.get("status")
+        sidenav_option = 'all'
+        if _status in ('active', 'active-expired'):
+            sidenav_option = _status
+    %>
+    <ul class="nav nav-pills nav-stacked">
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/acme-authorizations">All Authorizations</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'active' else ''}"><a href="${admin_prefix}/acme-authorizations?status=active">Pending Authorizations</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'active-expired' else ''}"><a href="${admin_prefix}/acme-authorizations?status=active-expired">Pending + Expired Authorizations</a></li>
+    </ul>
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-authorizations.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-authorizations.json${'?status=%s' % _status if sidenav_option != 'all' else ''}" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>

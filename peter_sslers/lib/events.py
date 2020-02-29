@@ -113,17 +113,28 @@ def PrivateKey_compromised(ctx, privateKey, dbOperationsEvent=None):
             items_paginated = lib.db.get.get__ServerCertificate__by_PrivateKeyId__paginated(
                 ctx, privateKey.id, limit=batch_size, offset=offset
             )
-            for cert in items_paginated:
-                if cert.is_active:
-                    revoked_certificates["active"][cert.id] = cert.unique_fqdn_set_id
-                    cert.is_active = False
-                    if cert.unique_fqdn_set_id not in revoked_fqdn_ids_2_certs:
-                        revoked_fqdn_ids_2_certs[cert.unique_fqdn_set_id] = []
-                    revoked_fqdn_ids_2_certs[cert.unique_fqdn_set_id].append(cert.id)
+            for dbServerCertificate in items_paginated:
+                if dbServerCertificate.is_active:
+                    revoked_certificates["active"][
+                        dbServerCertificate.id
+                    ] = dbServerCertificate.unique_fqdn_set_id
+                    dbServerCertificate.is_active = False
+                    if (
+                        dbServerCertificate.unique_fqdn_set_id
+                        not in revoked_fqdn_ids_2_certs
+                    ):
+                        revoked_fqdn_ids_2_certs[
+                            dbServerCertificate.unique_fqdn_set_id
+                        ] = []
+                    revoked_fqdn_ids_2_certs[
+                        dbServerCertificate.unique_fqdn_set_id
+                    ].append(dbServerCertificate.id)
                 else:
-                    revoked_certificates["inactive"][cert.id] = cert.unique_fqdn_set_id
-                cert.is_revoked = True
-                ctx.dbSession.flush(objects=[cert])
+                    revoked_certificates["inactive"][
+                        dbServerCertificate.id
+                    ] = dbServerCertificate.unique_fqdn_set_id
+                dbServerCertificate.is_revoked = True
+                ctx.dbSession.flush(objects=[dbServerCertificate])
 
     # handle this in 2 passes
     # first, queue anything that doesn't have an active cert

@@ -17,12 +17,7 @@
 
 
 <%block name="page_header_nav">
-    <p class="pull-right">
-        <a href="${admin_prefix}/acme-challenges.json" class="btn btn-xs btn-info">
-            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-            .json
-        </a>
-    </p>
+    ${admin_partials.acme_challenges_section_nav()}
 </%block>
 
 

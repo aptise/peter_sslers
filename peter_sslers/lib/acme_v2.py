@@ -40,13 +40,14 @@ from ..model import utils as model_utils
 # ==============================================================================
 
 
-_DEFAULT_CA = "https://acme-staging-v02.api.letsencrypt.org/directory"
-CERTIFICATE_AUTHORITY = _DEFAULT_CA
-CERTIFICATE_AUTHORITY_AGREEMENT = None
 TESTING_ENVIRONMENT = False
 
 
 # ==============================================================================
+
+
+def new_response_404():
+    return {"status": "*404*"}
 
 
 # helper function base64 encode for jose spec
@@ -97,7 +98,7 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
     if code == 404:
         raise errors.AcmeServer404(resp_data)
     if code == 400:
-        # this happens on pebble if we set it to https, not https
+        # this happens on pebble if we set it to http, not https
         if resp_data == "Client sent an HTTP request to an HTTPS server.\n":
             raise IndexError(resp_data)
     if (
@@ -107,6 +108,8 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
     ):
         raise IndexError(resp_data)  # allow 100 retrys for bad nonces
     if code not in [200, 201, 204]:
+        if isinstance(resp_data, dict):
+            raise errors.AcmeServerError(code, resp_data)
         raise ValueError(
             "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
                 err_msg, url, post_data, code, resp_data
@@ -131,7 +134,7 @@ def get_authorization_challenge(authorization_response, http01=None):
             c for c in authorization_response["challenges"] if c["type"] == "http-01"
         ][0]
     except Exception as exc:
-        raise ValueError("could not find a challenge")
+        raise errors.AcmeMissingChallenges("could not find a challenge")
     return challenge
 
 
@@ -375,7 +378,6 @@ class AuthenticatedUser(object):
             )
         )
 
-
     def authenticate(self, ctx, contact=None):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
@@ -486,7 +488,9 @@ class AuthenticatedUser(object):
                 # contact should be a LIST of URI
                 if "@" in contact and (not contact.startswith("mailto:")):
                     contact = "mailto:%s" % contact
-                payload_registration['contact'] = [contact, ]
+                payload_registration["contact"] = [
+                    contact,
+                ]
             (
                 acme_account_object,
                 code,
@@ -496,7 +500,7 @@ class AuthenticatedUser(object):
             )
             self._api_account_object = acme_account_object
             self._api_account_headers = acme_account_headers
-            
+
             log.info("acme_v2 Registered!" if code == 201 else "Already registered!")
 
             # this would raise if we couldn't authenticate
@@ -509,13 +513,12 @@ class AuthenticatedUser(object):
             dbOperationsEvent = self.log__OperationsEvent(
                 ctx,
                 model_utils.OperationsEventType.from_string(
-                    "acme_account_key__authenticate"
+                    "AcmeAccountKey__authenticate"
                 ),
                 event_payload_dict,
             )
         except Exception as exc:
             raise
-
 
     def acme_order_load(self, ctx, dbAcmeOrder, transaction_commit=None):
         """
@@ -526,17 +529,19 @@ class AuthenticatedUser(object):
             # required for the `AcmeLogger`
             raise ValueError("we must invoke this knowing it will commit")
 
-        if not dbAcmeOrder.resource_url:
-            raise ValueError("the order does not have a `resource_url`")
+        if not dbAcmeOrder.order_url:
+            raise ValueError("the order does not have a `order_url`")
 
         try:
             (acme_order_object, _code, acme_order_headers) = self._send_signed_request(
-                dbAcmeOrder.resource_url, None
+                dbAcmeOrder.order_url, None
             )
             log.info("acme_v2 Order loaded!")
+            # print(acme_order_object)
         except errors.AcmeServer404 as exc:
+            log.info("acme_v2 Order ERROR!")
             # todo: not finished with this logic flow
-            acme_order_object = {"status": "*404*"}
+            acme_order_object = new_response_404()
             raise
 
         # log the event to the db
@@ -548,7 +553,7 @@ class AuthenticatedUser(object):
         acmeOrderRfcObject = AcmeOrderRFC(
             rfc_object=acme_order_object,
             response_headers=acme_order_headers,
-            AcmeOrderRFC=dbAcmeOrder.unique_fqdn_set,
+            dbUniqueFQDNSet=dbAcmeOrder.unique_fqdn_set,
         )
 
         return (acmeOrderRfcObject, dbEventLogged)
@@ -665,8 +670,6 @@ class AuthenticatedUser(object):
         acmeOrderRfcObject=None,
         dbAcmeOrder=None,
         handle_authorization_payload=None,
-        handle_challenge_setup=None,
-        handle_challenge_cleanup=None,
         update_AcmeAuthorization_status=None,
         update_AcmeChallenge_status=None,
         transaction_commit=None,
@@ -677,8 +680,6 @@ class AuthenticatedUser(object):
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
 
         :param handle_authorization_payload: (required) Callable function. expects (authorization_url, authorization_response, transaction_commit)
-        :param handle_challenge_setup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
-        :param handle_challenge_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
 
         :param update_AcmeAuthorization_status: callable. expects (ctx, dbAcmeAuthorization, status_text, transaction_commit)
@@ -707,8 +708,6 @@ class AuthenticatedUser(object):
                 ctx,
                 authorization_url,
                 handle_authorization_payload=handle_authorization_payload,
-                handle_challenge_setup=handle_challenge_setup,
-                handle_challenge_cleanup=handle_challenge_cleanup,
                 update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
                 transaction_commit=transaction_commit,
@@ -720,7 +719,6 @@ class AuthenticatedUser(object):
     def acme_order_finalize(
         self,
         ctx,
-        acmeOrderRfcObject=None,
         dbAcmeOrder=None,
         update_order_status=None,
         transaction_commit=None,
@@ -729,12 +727,11 @@ class AuthenticatedUser(object):
     ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` object
-        :param acmeOrderRfcObject: (required) A :class:`AcmeOrderRFC` object representing the server's response
         :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the order
         :param update_order_status: (required) Callable function. expects (ctx, dbAcmeOrder, status, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
 
-        :param csr_path: (required) a
+        :param csr_path: (required)
         """
         # get the new certificate
         log.info("acme_v2 acme_order_finalize")
@@ -765,15 +762,14 @@ class AuthenticatedUser(object):
         payload_finalize = {"csr": _b64(csr_der)}
         try:
             (finalize_response, _, _) = self._send_signed_request(
-                acmeOrderRfcObject.rfc_object["finalize"], payload=payload_finalize,
+                dbAcmeOrder.finalize_url, payload=payload_finalize,
             )
         except Exception as exc:
             pdb.set_trace()
             raise
 
         # poll the order to monitor when it's done
-        # url_order_status = acmeOrderRfcObject.response_headers["Location"]
-        url_order_status = dbAcmeOrder.resource_url
+        url_order_status = dbAcmeOrder.order_url
 
         log.info("checking order {0}".format("order"))
         acme_order_finalized = self._poll_until_not(
@@ -813,8 +809,6 @@ class AuthenticatedUser(object):
         ctx,
         authorization_url,
         handle_authorization_payload=None,
-        handle_challenge_setup=None,
-        handle_challenge_cleanup=None,
         update_AcmeAuthorization_status=None,
         update_AcmeChallenge_status=None,
         transaction_commit=None,
@@ -826,8 +820,6 @@ class AuthenticatedUser(object):
         :param authorization_url: (required) The url of the authorization
 
         :param handle_authorization_payload: (required) Callable function. expects (authorization_url, authorization_response, transaction_commit)
-        :param handle_challenge_setup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
-        :param handle_challenge_cleanup: (required) Callable function. expects (domain, token, keyauthorization, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
 
         :param update_AcmeAuthorization_status: callable. expects (ctx, dbAcmeAuthorization, status_text, transaction_commit)
@@ -984,7 +976,10 @@ class AuthenticatedUser(object):
         _challenge_status_text = (
             dbAcmeAuthorization.acme_challenge_http01.acme_status_challenge
         )
-        if _challenge_status_text == "pending":
+        if _challenge_status_text == "*discovered*":
+            # internal marker, pre "pending"
+            _todo_complete_challenge_http01 = True
+        elif _challenge_status_text == "pending":
             _todo_complete_challenge_http01 = True
         elif _challenge_status_text == "processing":
             # we may need to trigger again?
@@ -1009,12 +1004,6 @@ class AuthenticatedUser(object):
                 raise ValueError("This should never happen!")
 
             # update the db; this should be integrated with the above
-            wellknown_path = handle_challenge_setup(
-                dbAcmeAuthorization.domain.domain_name,
-                dbAcmeChallenge.token,
-                dbAcmeChallenge.keyauthorization,
-                transaction_commit=True,
-            )
             wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
                 dbAcmeAuthorization.domain.domain_name, dbAcmeChallenge.token,
             )
@@ -1031,12 +1020,6 @@ class AuthenticatedUser(object):
                         resp_data = resp.read().decode("utf8").strip()
                         assert resp_data == keyauthorization
                     except (IOError, AssertionError):
-                        handle_challenge_cleanup(
-                            dbAcmeAuthorization.domain.domain_name,
-                            dbAcmeChallenge.token,
-                            keyauthorization,
-                            transaction_commit=True,
-                        )
                         self.acmeLogger.log_challenge_error(
                             "v2", dbAcmeChallenge, "pretest-1", transaction_commit=True,
                         )
@@ -1059,109 +1042,17 @@ class AuthenticatedUser(object):
                             )
                         raise
             except (AssertionError, ValueError) as e:
-                raise ValueError(
-                    "Wrote file to {0}, but couldn't download {1}: {2}".format(
-                        wellknown_path, wellknown_url, e
-                    )
+                raise errors.DomainVerificationError(
+                    "couldn't download {0}: {1}".format(wellknown_url, e)
                 )
 
-            # note that we are about to trigger the challenge:
-            self.acmeLogger.log_challenge_trigger(
-                "v2", dbAcmeChallenge, transaction_commit=True,
+            self.acme_challenge_trigger(
+                ctx,
+                dbAcmeChallenge=dbAcmeChallenge,
+                update_AcmeAuthorization_status=update_AcmeAuthorization_status,
+                update_AcmeChallenge_status=update_AcmeChallenge_status,
+                transaction_commit=True,
             )
-            # trigger the challenge!
-            # if we had a 'valid' challenge, the payload would be `None`
-            # to invoke a GET-as-POST functionality and load the challenge resource
-            # POSTing an empty `dict` will trigger the challenge
-            (challenge_response, _, _) = self._send_signed_request(
-                dbAcmeChallenge.challenge_url, payload={},
-            )
-            if challenge_response["status"] != "pending":
-                pdb.set_trace()
-                raise ValueError("not pending!? how/!?")
-
-            # todo - COULD an accepted challenge be here?
-            log.info(
-                "checking domain {0}".format(dbAcmeAuthorization.domain.domain_name)
-            )
-            authorization_response = self._poll_until_not(
-                authorization_url,
-                ["pending"],
-                "checking challenge status for {0}".format(
-                    dbAcmeAuthorization.domain.domain_name
-                ),
-            )
-            if authorization_response["status"] == "valid":
-                log.info(
-                    "acme_v2 {0} verified!".format(
-                        dbAcmeAuthorization.domain.domain_name
-                    )
-                )
-                handle_challenge_cleanup(
-                    dbAcmeAuthorization.domain.domain_name,
-                    dbAcmeChallenge.token,
-                    dbAcmeChallenge.keyauthorization,
-                    transaction_commit=True,
-                )
-
-                # log this
-                self.acmeLogger.log_challenge_pass(
-                    "v2", dbAcmeChallenge, transaction_commit=True,
-                )
-
-                # update the authorization
-                update_AcmeAuthorization_status(
-                    ctx,
-                    dbAcmeAuthorization,
-                    authorization_response["status"],
-                    transaction_commit=True,
-                )
-
-                # update the challenge
-                acme_challenge_response_2 = get_authorization_challenge(
-                    authorization_response, http01=True
-                )
-                if acme_challenge_response_2["url"] == dbAcmeChallenge.challenge_url:
-                    update_AcmeChallenge_status(
-                        ctx,
-                        dbAcmeChallenge,
-                        acme_challenge_response_2["status"],
-                        transaction_commit=True,
-                    )
-
-                return True
-
-            elif authorization_response["status"] != "valid":
-
-                self.acmeLogger.log_challenge_error(
-                    "v2", dbAcmeChallenge, "fail-2", transaction_commit=True,
-                )
-
-                # kill the authorization
-                update_AcmeAuthorization_status(
-                    ctx,
-                    dbAcmeAuthorization,
-                    authorization_response["status"],
-                    transaction_commit=True,
-                )
-
-                # kill the challenge
-                acme_challenge_response_2 = get_authorization_challenge(
-                    authorization_response, http01=True
-                )
-                if acme_challenge_response_2["url"] == dbAcmeChallenge.challenge_url:
-                    update_AcmeChallenge_status(
-                        ctx,
-                        dbAcmeChallenge,
-                        acme_challenge_response_2["status"],
-                        transaction_commit=True,
-                    )
-
-                raise errors.AcmeAuthorizationFailure(
-                    "{0} challenge did not pass: {1}".format(
-                        dbAcmeAuthorization.domain.domain_name, authorization_response,
-                    )
-                )
 
     def acme_authorization_load(
         self, ctx, dbAcmeAuthorization, transaction_commit=None
@@ -1176,7 +1067,9 @@ class AuthenticatedUser(object):
             raise ValueError("we must invoke this knowing it will commit")
 
         if not dbAcmeAuthorization.authorization_url:
-            raise ValueError("the order does not have a `resource_url`")
+            raise ValueError(
+                "the `AcmeAuthorization` does not have an `authorization_url`"
+            )
 
         try:
             (
@@ -1185,7 +1078,7 @@ class AuthenticatedUser(object):
                 authorization_headers,
             ) = self._send_signed_request(dbAcmeAuthorization.authorization_url, None)
         except errors.AcmeServer404 as exc:
-            authorization_response = {"status": "*404*"}
+            authorization_response = new_response_404()
 
         # log the event
         dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_request(
@@ -1218,7 +1111,9 @@ class AuthenticatedUser(object):
             raise ValueError("we must invoke this knowing it will commit")
 
         if not dbAcmeAuthorization.authorization_url:
-            raise ValueError("the order does not have a `resource_url`")
+            raise ValueError(
+                "the `AcmeAuthorization` does not have an `authorization_url`"
+            )
 
         try:
             (
@@ -1229,7 +1124,7 @@ class AuthenticatedUser(object):
                 dbAcmeAuthorization.authorization_url, {"status": "deactivated"}
             )
         except errors.AcmeServer404 as exc:
-            authorization_response = {"status": "*404*"}
+            authorization_response = new_response_404()
 
         # log the event
         dbAcmeEventLog_authorization_fetch = self.acmeLogger.log_authorization_deactivate(
@@ -1256,7 +1151,7 @@ class AuthenticatedUser(object):
                 dbAcmeChallenge.challenge_url, None
             )
         except errors.AcmeServer404 as exc:
-            challenge_response = {"status": "*404*"}
+            challenge_response = new_response_404()
 
         # log the event
         dbAcmeEventLog_challenge_fetch = self.acmeLogger.log_challenge_PostAsGet(
@@ -1264,6 +1159,164 @@ class AuthenticatedUser(object):
         )  # log this to the db
 
         return (challenge_response, dbAcmeEventLog_challenge_fetch)
+
+    def acme_challenge_trigger(
+        self,
+        ctx,
+        dbAcmeChallenge=None,
+        update_AcmeAuthorization_status=None,
+        update_AcmeChallenge_status=None,
+        transaction_commit=None,
+    ):
+        """
+        This triggers the challenge object
+        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
+        :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
+
+        :param update_AcmeAuthorization_status: callable. expects (ctx, dbAcmeAuthorization, status_text, transaction_commit)
+        :param update_AcmeChallenge_status: callable. expects (ctx, dbAcmeChallenge, status_text, transaction_commit)
+        """
+        if transaction_commit is not True:
+            # required for the `AcmeLogger`
+            raise ValueError("we must invoke this knowing it will commit")
+
+        dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
+
+        # note that we are about to trigger the challenge:
+        self.acmeLogger.log_challenge_trigger(
+            "v2", dbAcmeChallenge, transaction_commit=True,
+        )
+        # trigger the challenge!
+        # if we had a 'valid' challenge, the payload would be `None`
+        # to invoke a GET-as-POST functionality and load the challenge resource
+        # POSTing an empty `dict` will trigger the challenge
+        try:
+            (challenge_response, _, _) = self._send_signed_request(
+                dbAcmeChallenge.challenge_url, payload={},
+            )
+        except errors.AcmeServerError as exc:
+            (_code, _resp) = exc.args
+            if _resp['type'].startswith("urn:ietf:params:acme:error:"):
+                # {u'status': 400, u'type': u'urn:ietf:params:acme:error:malformed', u'detail': u'Authorization expired 2020-02-28T20:25:02Z'}
+                # can this be caught?
+                pass
+            raise exc
+        if challenge_response["status"] != "pending":
+            pdb.set_trace()
+            raise ValueError("not pending!? how/!?")
+
+        # todo - COULD an accepted challenge be here?
+        log.info("checking domain {0}".format(dbAcmeAuthorization.domain.domain_name))
+
+        """
+        There are two options for polling now:
+
+        Option A-
+            Poll the `dbAcmeChallenge.challenge_url`
+            This will result in payload like this:
+
+                {u'error': {u'detail': u'Get http://a.example.com:5002/.well-known/acme-challenge/zDavaMNbJugELFM5VIXqAaYQBcloPVtoWdqQXHgPn0U: error occurred while resolving URL "http://a.example.com:5002/.well-known/acme-challenge/zDavaMNbJugELFM5VIXqAaYQBcloPVtoWdqQXHgPn0U": "lookup a.example.com: no such host"',
+                            u'status': 400,
+                            u'type': u'urn:ietf:params:acme:error:connection'},
+                 u'status': u'invalid',
+                 u'token': u'zDavaMNbJugELFM5VIXqAaYQBcloPVtoWdqQXHgPn0U',
+                 u'type': u'http-01',
+                 u'url': u'https://0.0.0.0:14000/chalZ/skh_Vm2Jm1lpNi0WlQFMwCvddb0jN5vYOBwocgqwtDY',
+                 u'validated': u'2020-02-28T20:14:56Z'}
+
+        Option B-
+            Poll the `dbAcmeChallenge.acme_authorization.authorization_url`
+            This will result in payload like this:
+
+                {u'challenges': [{u'error': {u'detail': u'Get http://a.example.com:5002/.well-known/acme-challenge/zDavaMNbJugELFM5VIXqAaYQBcloPVtoWdqQXHgPn0U: error occurred while resolving URL "http://a.example.com:5002/.well-known/acme-challenge/zDavaMNbJugELFM5VIXqAaYQBcloPVtoWdqQXHgPn0U": "lookup a.example.com: no such host"',
+                                             u'status': 400,
+                                             u'type': u'urn:ietf:params:acme:error:connection'},
+                                  u'status': u'invalid',
+                                  u'token': u'zDavaMNbJugELFM5VIXqAaYQBcloPVtoWdqQXHgPn0U',
+                                  u'type': u'http-01',
+                                  u'url': u'https://0.0.0.0:14000/chalZ/skh_Vm2Jm1lpNi0WlQFMwCvddb0jN5vYOBwocgqwtDY',
+                                  u'validated': u'2020-02-28T20:14:56Z'}],
+                 u'expires': u'2020-02-28T20:25:02Z',
+                 u'identifier': {u'type': u'dns', u'value': u'a.example.com'},
+                 u'status': u'invalid'}
+
+        Because PeterSSlers only handles http01 challenges, we will opt for the authorization url
+        """
+        authorization_response = self._poll_until_not(
+            dbAcmeChallenge.acme_authorization.authorization_url,
+            ["pending"],
+            "checking challenge status for {0}".format(
+                dbAcmeChallenge.acme_authorization.domain.domain_name
+            ),
+        )
+
+        if authorization_response["status"] == "valid":
+            log.info(
+                "acme_v2 {0} verified!".format(
+                    dbAcmeChallenge.acme_authorization.domain.domain_name
+                )
+            )
+
+            # log this
+            self.acmeLogger.log_challenge_pass(
+                "v2", dbAcmeChallenge, transaction_commit=True,
+            )
+
+            # update the authorization
+            update_AcmeAuthorization_status(
+                ctx,
+                dbAcmeChallenge.acme_authorization,
+                authorization_response["status"],
+                transaction_commit=True,
+            )
+
+            # update the challenge
+            acme_challenge_response_2 = get_authorization_challenge(
+                authorization_response, http01=True
+            )
+            if acme_challenge_response_2["url"] == dbAcmeChallenge.challenge_url:
+                update_AcmeChallenge_status(
+                    ctx,
+                    dbAcmeChallenge,
+                    acme_challenge_response_2["status"],
+                    transaction_commit=True,
+                )
+
+            return True
+
+        elif authorization_response["status"] != "valid":
+
+            self.acmeLogger.log_challenge_error(
+                "v2", dbAcmeChallenge, "fail-2", transaction_commit=True,
+            )
+
+            # kill the authorization
+            update_AcmeAuthorization_status(
+                ctx,
+                dbAcmeChallenge.acme_authorization,
+                authorization_response["status"],
+                transaction_commit=True,
+            )
+
+            # kill the challenge
+            acme_challenge_response_2 = get_authorization_challenge(
+                authorization_response, http01=True
+            )
+            if acme_challenge_response_2["url"] == dbAcmeChallenge.challenge_url:
+                update_AcmeChallenge_status(
+                    ctx,
+                    dbAcmeChallenge,
+                    acme_challenge_response_2["status"],
+                    transaction_commit=True,
+                )
+
+            raise errors.AcmeAuthorizationFailure(
+                "{0} challenge did not pass: {1}".format(
+                    dbAcmeChallenge.acme_authorization.domain.domain_name,
+                    authorization_response,
+                )
+            )
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

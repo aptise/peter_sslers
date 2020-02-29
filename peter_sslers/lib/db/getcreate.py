@@ -16,6 +16,7 @@ import sqlalchemy
 from ... import lib
 from .. import cert_utils
 from .. import utils
+from ...lib import errors
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 from .get import get__AcmeAccountProviders__paginated
@@ -40,8 +41,9 @@ def getcreate__AcmeAccountKey(
     le_pkey_jsons=None,
     le_reg_jsons=None,
     acme_account_provider_id=None,
+    acme_account_key_source_id=None,
     contact=None,
-    event_type="acme_account_key__insert",
+    event_type="AcmeAccountKey__insert",
 ):
     """
     Gets or Creates AccountKeys for LetsEncrypts' ACME server
@@ -58,7 +60,8 @@ def getcreate__AcmeAccountKey(
         if not provided, `key_pem` must be supplied
     :param le_reg_jsons: (optional) data from certbot account key format
         if not provided, `key_pem` must be supplied
-    :param acme_account_provider_id: (optional) id corresponding to a :class:`model.utils.AcmeAccountProvider` server
+    :param acme_account_provider_id: (optional) id corresponding to a :class:`model.objects.AcmeAccountProvider` server
+    :param acme_account_key_source_id: (required) id corresponding to a :class:`model.utils.AcmeAccountKeySource`
     :param contact: (optional) contact info from acme server
     """
     is_created = False
@@ -70,7 +73,7 @@ def getcreate__AcmeAccountKey(
         raise ValueError(
             "Must supply `key_pem` OR all of `le_meta_jsons, le_pkey_jsons, le_reg_jsons`."
         )
-    if event_type not in ('acme_account_key__create', 'acme_account_key__insert'):
+    if event_type not in ("AcmeAccountKey__create", "AcmeAccountKey__insert"):
         raise ValueError("invalid event_type")
 
     if key_pem:
@@ -105,8 +108,7 @@ def getcreate__AcmeAccountKey(
 
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(
-                ctx,
-                model_utils.OperationsEventType.from_string(event_type),
+                ctx, model_utils.OperationsEventType.from_string(event_type),
             )
 
             dbAcmeAccountKey = model_objects.AcmeAccountKey()
@@ -116,6 +118,7 @@ def getcreate__AcmeAccountKey(
             dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
             dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent.id
             dbAcmeAccountKey.acme_account_provider_id = acme_account_provider_id
+            dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
             dbAcmeAccountKey.contact = contact
             ctx.dbSession.add(dbAcmeAccountKey)
             ctx.dbSession.flush(objects=[dbAcmeAccountKey])
@@ -128,7 +131,9 @@ def getcreate__AcmeAccountKey(
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(event_type),
+                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                    event_type
+                ),
                 dbAcmeAccountKey=dbAcmeAccountKey,
             )
     else:
@@ -146,19 +151,19 @@ def getcreate__AcmeAccountKey(
         """
         letsencrypt_data = {"meta.json": le_meta_json, "regr.json": le_reg_json}
         letsencrypt_data = json.dumps(letsencrypt_data)
-        
+
         if contact is None:
             try:
-                contact = le_reg_json['body']['contact'][0]
-                if contact.startswith('mailto:'):
+                contact = le_reg_json["body"]["contact"][0]
+                if contact.startswith("mailto:"):
                     contact = contact[7:]
             except:
                 pass
 
-        terms_of_service = le_reg_json.get('terms_of_service')
-        account_url = le_reg_json.get('uri')
+        terms_of_service = le_reg_json.get("terms_of_service")
+        account_url = le_reg_json.get("uri")
         account_server = lib.utils.url_to_server(account_url)
-        
+
         # derive the api server
         acme_account_provider_id = None
         dbAcmeAccountProviders = get__AcmeAccountProviders__paginated(ctx)
@@ -180,7 +185,9 @@ def getcreate__AcmeAccountKey(
             .first()
         )
         if dbAcmeAccountKey:
-            dbAcmeAccountKey.terms_of_service = dbAcmeAccountKey.terms_of_service or terms_of_service
+            dbAcmeAccountKey.terms_of_service = (
+                dbAcmeAccountKey.terms_of_service or terms_of_service
+            )
             dbAcmeAccountKey.account_url = dbAcmeAccountKey.account_url or account_url
             dbAcmeAccountKey.contact = dbAcmeAccountKey.contact or contact
             ctx.dbSession.flush(objects=[dbAcmeAccountKey])
@@ -203,8 +210,7 @@ def getcreate__AcmeAccountKey(
 
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(
-                ctx,
-                model_utils.OperationsEventType.from_string(event_type),
+                ctx, model_utils.OperationsEventType.from_string(event_type),
             )
 
             dbAcmeAccountKey = model_objects.AcmeAccountKey()
@@ -218,6 +224,7 @@ def getcreate__AcmeAccountKey(
             dbAcmeAccountKey.contact = contact
             dbAcmeAccountKey.terms_of_service = terms_of_service
             dbAcmeAccountKey.account_url = account_url
+            dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
 
             ctx.dbSession.add(dbAcmeAccountKey)
             ctx.dbSession.flush(objects=[dbAcmeAccountKey])
@@ -230,11 +237,13 @@ def getcreate__AcmeAccountKey(
             _log_object_event(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(event_type),
+                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                    event_type
+                ),
                 dbAcmeAccountKey=dbAcmeAccountKey,
             )
 
-    return dbAcmeAccountKey, is_created
+    return (dbAcmeAccountKey, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -262,11 +271,74 @@ def getcreate__AcmeAuthorizationUrl(ctx, authorization_url, dbAcmeOrder=None):
         ctx.dbSession.add(dbAcmeAuthorization)
         ctx.dbSession.flush(objects=[dbAcmeAuthorization])
         is_created__AcmeAuthorization = True
+
+        if dbAcmeOrder:
+            dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
+            dbOrder2Auth.acme_order_id = dbAcmeOrder.id
+            dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
+            ctx.dbSession.add(dbOrder2Auth)
+            ctx.dbSession.flush(
+                objects=[dbOrder2Auth,]
+            )
+            is_created__AcmeAuthorization2Order = True
+
     else:
         # poop, this
         # raise ValueError("this should be unique!")
         pass
-    return dbAcmeAuthorization, is_created__AcmeAuthorization
+    return (dbAcmeAuthorization, is_created__AcmeAuthorization)
+
+
+def getcreate__AcmeChallengeHttp01_via_payload(
+    ctx, authenticatedUser=None, dbAcmeAuthorization=None, authorization_payload=None,
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
+    :param dbAcmeAuthorization: (required) The :class:`model.objects.AcmeAuthorization` associated with the payload
+    :param authorization_payload: (required) an RFC-8555 authorization payload
+
+    returns:
+        dbAcmeChallenge, is_created_AcmeChallenge
+    potentially raises:
+        errors.AcmeMissingChallenges
+    """
+    acme_challenge = lib.acme_v2.get_authorization_challenge(
+        authorization_payload, http01=True
+    )
+    challenge_url = acme_challenge["url"]
+    challenge_status = acme_challenge["status"]
+    acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
+        challenge_status
+    )
+    dbAcmeChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
+    is_created_AcmeChallenge = False
+    if not dbAcmeChallenge:
+        challenge_token = acme_challenge["token"]
+        keyauthorization = (
+            lib.acme_v2.create_challenge_keyauthorization(
+                challenge_token, authenticatedUser.accountkey_thumbprint
+            )
+            if authenticatedUser
+            else None
+        )
+        dbAcmeChallenge = lib.db.create.create__AcmeChallenge(
+            ctx,
+            dbAcmeAuthorization=dbAcmeAuthorization,
+            dbDomain=dbAcmeAuthorization.domain,
+            challenge_url=challenge_url,
+            token=challenge_token,
+            keyauthorization=keyauthorization,
+            is_via_sync=True,
+        )
+        is_created_AcmeChallenge = True
+    else:
+        if dbAcmeChallenge.acme_status_challenge_id != acme_status_challenge_id:
+            dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
+            dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
+            ctx.dbSession.add(dbAcmeChallenge)
+            ctx.dbSession.flush(objects=[dbAcmeChallenge])
+    return dbAcmeChallenge, is_created_AcmeChallenge
 
 
 def getcreate__AcmeAuthorization(
@@ -294,10 +366,14 @@ def getcreate__AcmeAuthorization(
         status (required, string):
         challenges (required, array of objects):
         wildcard (optional, boolean)
+
+    potentially raises:
+        errors.AcmeMissingChallenges
     """
     if not dbAcmeOrder:
-        raise ValueError("do not invole this without a `dbAcmeOrder`")
-    is_created__AcmeAuthorization = False
+        raise ValueError("do not invoke this without a `dbAcmeOrder`")
+    is_created__AcmeAuthorization = None
+    is_created__AcmeAuthorization2Order = None
     dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
         ctx, authorization_url
     )
@@ -312,18 +388,10 @@ def getcreate__AcmeAuthorization(
         dbAcmeAuthorization.acme_order_id__created = dbAcmeOrder.id
 
         ctx.dbSession.add(dbAcmeAuthorization)
-        ctx.dbSession.flush(objects=[dbAcmeAuthorization])
+        ctx.dbSession.flush(
+            objects=[dbAcmeAuthorization,]
+        )
         is_created__AcmeAuthorization = True
-
-    # no matter what, update
-    # this will set the following:
-    # `dbAcmeAuthorization.timestamp_expires`
-    # `dbAcmeAuthorization.domain_id`
-    # `dbAcmeAuthorization.acme_status_authorization_id`
-    # `dbAcmeAuthorization.timestamp_updated`
-    _updated = update_AcmeAuthorization_from_payload(
-        ctx, dbAcmeAuthorization, authorization_payload
-    )
 
     # is this associated?
     dbOrder2Auth = (
@@ -340,52 +408,40 @@ def getcreate__AcmeAuthorization(
         dbOrder2Auth.acme_order_id = dbAcmeOrder.id
         dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
         ctx.dbSession.add(dbOrder2Auth)
-        ctx.dbSession.flush(objects=[dbOrder2Auth])
+        ctx.dbSession.flush(
+            objects=[dbOrder2Auth,]
+        )
+        is_created__AcmeAuthorization2Order = True
 
-    # should we handle the challenge here too?
+    # no matter what, update
+    # this will set the following:
+    # `dbAcmeAuthorization.timestamp_expires`
+    # `dbAcmeAuthorization.domain_id`
+    # `dbAcmeAuthorization.acme_status_authorization_id`
+    # `dbAcmeAuthorization.timestamp_updated`
+    _updated = update_AcmeAuthorization_from_payload(
+        ctx, dbAcmeAuthorization, authorization_payload
+    )
 
     # parse the payload for our http01 challenge
-    acme_challenge = lib.acme_v2.get_authorization_challenge(
-        authorization_payload, http01=True
-    )
-    challenge_url = acme_challenge["url"]
-    challenge_status = acme_challenge["status"]
-    acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
-        challenge_status
-    )
-    dbAcmeChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
-    is_created_AcmeChallenge = False
-    if not dbAcmeChallenge:
-        challenge_token = acme_challenge["token"]
-        keyauthorization = (
-            lib.acme_v2.create_challenge_keyauthorization(
-                challenge_token, authenticatedUser.accountkey_thumbprint
-            )
-            if authenticatedUser
-            else None
-        )
-        dbAcmeChallenge = lib.db.create.create__AcmeChallenge(
+    try:
+        (
+            dbAcmeChallenge,
+            is_created_AcmeChallenge,
+        ) = getcreate__AcmeChallengeHttp01_via_payload(
             ctx,
+            authenticatedUser=authenticatedUser,
             dbAcmeAuthorization=dbAcmeAuthorization,
-            dbDomain=dbAcmeAuthorization.domain,
-            challenge_url=challenge_url,
-            token=challenge_token,
-            keyauthorization=keyauthorization,
+            authorization_payload=authorization_payload,
         )
-        is_created_AcmeChallenge = True
-    else:
-        if dbAcmeChallenge.acme_status_challenge_id != acme_status_challenge_id:
-            dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
-            dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
-            ctx.dbSession.add(dbAcmeChallenge)
-            ctx.dbSession.flush(objects=[dbAcmeChallenge])
+    except errors.AcmeMissingChallenges as exc:
+        pass
 
-    # ???: should this be broken up into separate `AcmeAuthorization` and `AcmeChallenge` phases?
     # persist this to the db
     if transaction_commit:
         ctx.pyramid_transaction_commit()
 
-    return dbAcmeAuthorization, is_created__AcmeAuthorization
+    return (dbAcmeAuthorization, is_created__AcmeAuthorization)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -429,7 +485,7 @@ def getcreate__CACertificate__by_pem_text(
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(
                 ctx,
-                model_utils.OperationsEventType.from_string("ca_certificate__insert"),
+                model_utils.OperationsEventType.from_string("CaCertificate__insert"),
             )
 
             dbCACertificate = model_objects.CACertificate()
@@ -479,7 +535,7 @@ def getcreate__CACertificate__by_pem_text(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
                 event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    "ca_certificate__insert"
+                    "CaCertificate__insert"
                 ),
                 dbCACertificate=dbCACertificate,
             )
@@ -489,7 +545,7 @@ def getcreate__CACertificate__by_pem_text(
         finally:
             _tmpfile.close()
 
-    return dbCACertificate, is_created
+    return (dbCACertificate, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -502,7 +558,6 @@ def getcreate__CertificateRequest__by_pem_text(
     dbAcmeAccountKey=None,
     dbPrivateKey=None,
     dbServerCertificate__issued=None,
-    dbServerCertificate__renewal_of=None,
     domain_names=None,
 ):
     """
@@ -510,11 +565,10 @@ def getcreate__CertificateRequest__by_pem_text(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param csr_pem:
-    :param certificate_request_source_id:
+    :param certificate_request_source_id: Must match an option in :class:`model.utils.CertificateRequestSource`
     :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` that owns the certificate
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
     :param dbServerCertificate__issued: (required) The :class:`model.objects.ServerCertificate` this issued as
-    :param dbServerCertificate__renewal_of: (required) The :class:`model.objects.ServerCertificate` this renews
     :param domain_names: (required) A list of fully qualified domain names
 
     log__OperationsEvent takes place in `create__CertificateRequest`
@@ -528,12 +582,11 @@ def getcreate__CertificateRequest__by_pem_text(
             certificate_request_source_id=certificate_request_source_id,
             dbPrivateKey=dbPrivateKey,
             dbServerCertificate__issued=dbServerCertificate__issued,
-            dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
             domain_names=domain_names,
         )
         is_created = True
 
-    return dbCertificateRequest, is_created
+    return (dbCertificateRequest, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -554,7 +607,7 @@ def getcreate__Domain__by_domainName(ctx, domain_name, is_from_queue_domain=None
     if not dbDomain:
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
-            ctx, model_utils.OperationsEventType.from_string("domain__insert")
+            ctx, model_utils.OperationsEventType.from_string("Domain__insert")
         )
         dbDomain = model_objects.Domain()
         dbDomain.domain_name = domain_name
@@ -573,23 +626,26 @@ def getcreate__Domain__by_domainName(ctx, domain_name, is_from_queue_domain=None
             ctx,
             dbOperationsEvent=dbOperationsEvent,
             event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                "domain__insert"
+                "Domain__insert"
             ),
             dbDomain=dbDomain,
         )
 
-    return dbDomain, is_created
+    return (dbDomain, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__PrivateKey__by_pem_text(ctx, key_pem, is_autogenerated_key=None):
+def getcreate__PrivateKey__by_pem_text(
+    ctx, key_pem, private_key_source_id=None, is_autogenerated_key=None
+):
     """
     getcreate wrapping private keys
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param key_pem:
+    :param private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
     :param is_autogenerated_key:
     """
     is_created = False
@@ -621,11 +677,11 @@ def getcreate__PrivateKey__by_pem_text(ctx, key_pem, is_autogenerated_key=None):
 
         event_payload_dict = utils.new_event_payload_dict()
         _event_type_id = model_utils.OperationsEventType.from_string(
-            "private_key__insert"
+            "PrivateKey__insert"
         )
         if is_autogenerated_key:
             _event_type_id = model_utils.OperationsEventType.from_string(
-                "private_key__insert_autogenerated"
+                "PrivateKey__insert_autogenerated"
             )
         dbOperationsEvent = log__OperationsEvent(ctx, _event_type_id)
 
@@ -636,6 +692,7 @@ def getcreate__PrivateKey__by_pem_text(ctx, key_pem, is_autogenerated_key=None):
         dbPrivateKey.key_pem_modulus_md5 = key_pem_modulus_md5
         dbPrivateKey.is_autogenerated_key = is_autogenerated_key
         dbPrivateKey.operations_event_id__created = dbOperationsEvent.id
+        dbPrivateKey.private_key_source_id = private_key_source_id
         ctx.dbSession.add(dbPrivateKey)
         ctx.dbSession.flush(objects=[dbPrivateKey])
         is_created = True
@@ -648,12 +705,12 @@ def getcreate__PrivateKey__by_pem_text(ctx, key_pem, is_autogenerated_key=None):
             ctx,
             dbOperationsEvent=dbOperationsEvent,
             event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                "private_key__insert"
+                "PrivateKey__insert"
             ),
             dbPrivateKey=dbPrivateKey,
         )
 
-    return dbPrivateKey, is_created
+    return (dbPrivateKey, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -688,19 +745,14 @@ def getcreate__RemoteIpAddress(ctx, remote_ip_address):
         ctx.dbSession.add(dbRemoteIpAddress)
         ctx.dbSession.flush(objects=[dbRemoteIpAddress])
         is_created = True
-    return dbRemoteIpAddress, is_created
+    return (dbRemoteIpAddress, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 def getcreate__ServerCertificate__by_pem_text(
-    ctx,
-    cert_pem,
-    dbCACertificate=None,
-    dbAcmeAccountKey=None,
-    dbPrivateKey=None,
-    dbServerCertificate__renewal_of=None,
+    ctx, cert_pem, dbCACertificate=None, dbAcmeAccountKey=None, dbPrivateKey=None,
 ):
     """
     getcreate wrapping issued certs
@@ -710,7 +762,6 @@ def getcreate__ServerCertificate__by_pem_text(
     :param dbCACertificate: (required) The upstream :class:`model.objects.CACertificate` that signed the certificate
     :param dbAcmeAccountKey: (required) The :class:`model.objects.PrivateKey` that owns the certificate
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
-    :param dbServerCertificate__renewal_of: (required) The :class:`model.objects.ServerCertificate` this renews
     """
     is_created = False
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
@@ -765,7 +816,10 @@ def getcreate__ServerCertificate__by_pem_text(
             # bookkeeping
             event_payload_dict = utils.new_event_payload_dict()
             dbOperationsEvent = log__OperationsEvent(
-                ctx, model_utils.OperationsEventType.from_string("certificate__insert"),
+                ctx,
+                model_utils.OperationsEventType.from_string(
+                    "ServerCertificate__insert"
+                ),
             )
 
             dbServerCertificate = model_objects.ServerCertificate()
@@ -774,11 +828,6 @@ def getcreate__ServerCertificate__by_pem_text(
             dbServerCertificate.is_active = True
             dbServerCertificate.cert_pem = cert_pem
             dbServerCertificate.cert_pem_md5 = cert_pem_md5
-
-            if dbServerCertificate__renewal_of:
-                dbServerCertificate.server_certificate_id__renewal_of = (
-                    dbServerCertificate__renewal_of.id
-                )
 
             # this is the LetsEncrypt key
             if dbCACertificate is None:
@@ -863,7 +912,7 @@ def getcreate__ServerCertificate__by_pem_text(
                 ctx,
                 dbOperationsEvent=dbOperationsEvent,
                 event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    "certificate__insert"
+                    "ServerCertificate__insert"
                 ),
                 dbServerCertificate=dbServerCertificate,
             )
@@ -874,7 +923,7 @@ def getcreate__ServerCertificate__by_pem_text(
             if _tmpfileCert:
                 _tmpfileCert.close()
 
-    return dbServerCertificate, is_created
+    return (dbServerCertificate, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -932,7 +981,7 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
     if not dbUniqueFQDNSet:
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(
-            ctx, model_utils.OperationsEventType.from_string("unqiue_fqdn__insert")
+            ctx, model_utils.OperationsEventType.from_string("UniqueFQDNSet__insert")
         )
 
         dbUniqueFQDNSet = model_objects.UniqueFQDNSet()
@@ -958,12 +1007,12 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
             ctx,
             dbOperationsEvent=dbOperationsEvent,
             event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                "unqiue_fqdn__insert"
+                "UniqueFQDNSet__insert"
             ),
             dbUniqueFQDNSet=dbUniqueFQDNSet,
         )
 
-    return dbUniqueFQDNSet, is_created
+    return (dbUniqueFQDNSet, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
