@@ -445,17 +445,17 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:api:queue_renewals:update", renderer=None)
-    @view_config(route_name="admin:api:queue_renewals:update|json", renderer="json")
-    def queue_renewal_update(self):
+    @view_config(route_name="admin:api:queue_certificates:update", renderer=None)
+    @view_config(route_name="admin:api:queue_certificates:update|json", renderer="json")
+    def queue_certificate_update(self):
         try:
-            queue_results = lib_db.queues.queue_renewals__update(
+            queue_results = lib_db.queues.queue_certificates__update(
                 self.request.api_context
             )
             if self.request.wants_json:
                 return {"result": "success"}
             return HTTPSeeOther(
-                "%s/queue-renewals?update=1"
+                "%s/queue-certificates?update=1"
                 % self.request.registry.settings["admin_prefix"]
             )
         except Exception as exc:
@@ -466,11 +466,11 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:api:queue_renewals:process", renderer=None)
-    @view_config(route_name="admin:api:queue_renewals:process|json", renderer="json")
-    def queue_renewal_process(self):
+    @view_config(route_name="admin:api:queue_certificates:process", renderer=None)
+    @view_config(route_name="admin:api:queue_certificates:process|json", renderer="json")
+    def queue_certificate_process(self):
         try:
-            queue_results = lib_db.queues.queue_renewals__process(
+            queue_results = lib_db.queues.queue_certificates__process(
                 self.request.api_context
             )
             if self.request.wants_json:
@@ -478,7 +478,7 @@ class ViewAdmin(Handler):
             if queue_results:
                 queue_results = json.dumps(queue_results)
             return HTTPSeeOther(
-                "%s/queue-renewals?process=1&results=%s"
+                "%s/queue-certificates?process=1&results=%s"
                 % (self.request.registry.settings["admin_prefix"], queue_results)
             )
         except Exception as exc:

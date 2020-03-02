@@ -100,11 +100,11 @@
                         <td>
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/unique-fqdn-set/${UniqueFQDNSet.id}/renew/queue"
-                                title="Queue a renewal with the system defaults."
+                                href="${admin_prefix}/queue-certificate/new?unique-fqdn-set=${UniqueFQDNSet.id}"
+                                title="Queue a certificate"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                queue a renewal with system defaults
+                                queue a certificate
                             </a>
 
                         </td>
@@ -207,12 +207,12 @@
                             % endif
                         </td>
                     </tr>
-                    ## TODO: queue_renewal
+                    ## TODO: queue_certificate
                     % if False:
                         <tr>
                             <th>Queue: Renewals</th>
                             <td>
-                            ${admin_partials.table_QueueRenewal(UniqueFQDNSet.queue_renewal__active, perspective="UniqueFQDNSet")}
+                            ${admin_partials.table_QueueCertificate(UniqueFQDNSet.queue_certificate__active, perspective="UniqueFQDNSet")}
                             </td>
                         </tr>
                     % endif

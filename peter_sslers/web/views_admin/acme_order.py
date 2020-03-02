@@ -32,63 +32,6 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-def form_key_selection(request, formStash):
-    accountKeySelection = form_utils.parse_AccountKeySelection(
-        request,
-        formStash,
-        seek_selected=formStash.results["account_key_option"],
-    )
-    if accountKeySelection.selection == "upload":
-        key_create_args = accountKeySelection.upload_parsed.getcreate_args
-        key_create_args["event_type"] = "AcmeAccountKey__insert"
-        key_create_args[
-            "acme_account_key_source_id"
-        ] = model_utils.AcmeAccountKeySource.from_string("imported")
-        (
-            dbAcmeAccountKey,
-            _is_created,
-        ) = lib_db.getcreate.getcreate__AcmeAccountKey(
-            request.api_context, **key_create_args
-        )
-        accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
-
-    privateKeySelection = form_utils.parse_PrivateKeySelection(
-        request,
-        formStash,
-        seek_selected=formStash.results["private_key_option"],
-    )
-
-    if privateKeySelection.selection == "upload":
-        key_create_args = privateKeySelection.upload_parsed.getcreate_args
-        key_create_args["event_type"] = "PrivateKey__insert"
-        key_create_args[
-            "private_key_source_id"
-        ] = model_utils.PrivateKeySource.from_string("imported")
-        (
-            dbPrivateKey,
-            _is_created,
-        ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
-            request.api_context, **key_create_args
-        )
-        privateKeySelection.PrivateKey = dbPrivateKey
-
-    elif privateKeySelection.selection == "generate":
-        dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
-            request.api_context, 0
-        )
-        if not dbPrivateKey:
-            formStash.fatal_field(
-                field="private_key_option",
-                message="Could not load the default private key",
-            )
-        privateKeySelection.PrivateKey = dbPrivateKey
-
-    return (accountKeySelection, privateKeySelection)
-
-
-# ==============================================================================
-
-
 class ViewAdmin_List(Handler):
     @view_config(route_name="admin:acme_orders", renderer="/admin/acme_orders.mako")
     @view_config(route_name="admin:acme_orders|json", renderer="json")
@@ -397,6 +340,83 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name="admin:acme_order:focus:renew:custom", renderer=None)
+    @view_config(route_name="admin:acme_order:focus:renew:custom|json", renderer="json")
+    def renew_custom(self):
+        """
+        This endpoint is for Immediately Renewing the AcmeOrder with overrides on the keys
+        """
+        self._load_AccountKeyDefault()
+        self._load_PrivateKeyDefault()
+        if self.request.method == "POST":
+            return self._renew_custom__submit()
+        return self._renew_custom__print()
+
+    def _renew_custom__print(self):
+        dbAcmeOrder = self._focus()
+        if not dbAcmeOrder.is_renewable_custom:
+            raise errors.DisplayableError("This AcmeOrder can not use RenewCustom")
+        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
+            self.request.api_context, is_enabled=True
+        )
+        return render_to_response(
+            "/admin/acme_order-focus-renew-custom.mako",
+            {
+                "AcmeOrder": dbAcmeOrder,
+                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
+                "PrivateKey_Default": self.dbPrivateKeyDefault,
+                "AcmeAccountProviders": dbAcmeAccountProviders,
+            },
+            self.request,
+        )
+
+    def _renew_custom__submit(self):
+        dbAcmeOrder = self._focus()
+        try:
+            if not dbAcmeOrder.is_renewable_custom:
+                raise errors.DisplayableError("This AcmeOrder can not use RenewCustom")
+
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_AcmeOrder_renew_custom, validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(self.request, formStash)
+            (
+                dbAcmeOrderNew,
+                exc,
+            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
+                dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
+                dbPrivateKey=privateKeySelection.PrivateKey,
+            )
+            if exc:
+                raise exc
+            if self.request.wants_json:
+                return {
+                    "status": "success",
+                    "acme_order": dbAcmeOrderNew.as_json,
+                }
+            renew_url = "%s/acme-order/%s" % (
+                self.request.admin_url,
+                dbAcmeOrderNew.id,
+            )
+            return HTTPSeeOther("%s?result=success&operation=renew+custom" % renew_url)
+        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            if self.request.wants_json:
+                return {"status": "error", "error": str(exc)}
+            url_failure = (
+                "%s?result=error&error=%s&operation=renew+custom"
+                % (self._focus_url, exc.to_querystring())
+            )
+            raise HTTPSeeOther(url_failure)
+        except formhandling.FormInvalid as exc:
+            return formhandling.form_reprint(self.request, self._renew_custom__print)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:acme_order:focus:renew:quick", renderer=None)
     @view_config(route_name="admin:acme_order:focus:renew:quick|json", renderer="json")
     def renew_quick(self):
@@ -435,126 +455,19 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "status": "success",
                     "acme_order": dbAcmeOrderNew.as_json,
                 }
-            retry_url = "%s/acme-order/%s" % (
+            renew_url = "%s/acme-order/%s" % (
                 self.request.admin_url,
                 dbAcmeOrderNew.id,
             )
-            return HTTPSeeOther("%s?result=success&operation=retry+order" % retry_url)
+            return HTTPSeeOther("%s?result=success&operation=renew+quick" % renew_url)
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
                 return {"status": "error", "error": str(exc)}
             url_failure = (
-                "%s?result=error&error=%s&operation=renewal&renewal_type=quick"
+                "%s?result=error&error=%s&operation=renew+quick"
                 % (self._focus_url, exc.to_querystring())
             )
             raise HTTPSeeOther(url_failure)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:acme_order:focus:renew:custom", renderer=None)
-    @view_config(route_name="admin:acme_order:focus:renew:custom|json", renderer="json")
-    def renew_custom(self):
-        """
-        This endpoint is for Immediately Renewing the AcmeOrder with overrides on the keys
-        """
-        self._load_AccountKeyDefault()
-        self._load_PrivateKeyDefault()
-        if self.request.method == "POST":
-            return self._renew_custom__submit()
-        return self._renew_custom__print()
-
-    def _renew_custom__print(self):
-        dbAcmeOrder = self._focus()
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
-            self.request.api_context, is_enabled=True
-        )
-        return render_to_response(
-            "/admin/acme_order-focus-renew-custom.mako",
-            {
-                "AcmeOrder": dbAcmeOrder,
-                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
-                "PrivateKey_Default": self.dbPrivateKeyDefault,
-                "AcmeAccountProviders": dbAcmeAccountProviders,
-            },
-            self.request,
-        )
-
-    def _renew_custom__submit(self):
-        dbAcmeOrder = self._focus()
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeOrder_renew_custom, validate_get=False,
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-
-            (accountKeySelection, privateKeySelection) = form_key_selection(self.request, formStash)
-            try:
-                (
-                    dbAcmeOrder,
-                    exc,
-                ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
-                    self.request.api_context,
-                    dbAcmeOrder=dbAcmeOrder,
-                    dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
-                    dbPrivateKey=privateKeySelection.PrivateKey,
-                )
-                if exc:
-                    if isinstance(exc, errors.AcmeError):
-                        return HTTPSeeOther(
-                            "%s/acme-order/%s?result=error&error=new-automated&message=%s"
-                            % (self.request.registry.settings["admin_prefix"], dbAcmeOrder.id, exc.to_querystring(),)
-                        )
-                    raise exc
-                return HTTPSeeOther(
-                    "%s/acme-order/%s"
-                    % (self.request.registry.settings["admin_prefix"], dbAcmeOrder.id,)
-                )
-            except errors.AcmeDuplicateChallenges as exc:
-                formStash.fatal_field(
-                    field="domain_names", message=exc.to_querystring()
-                )
-
-            except (errors.AcmeError, errors.InvalidRequest,) as exc:
-                return HTTPSeeOther(
-                    "%s/acme-orders?result=error&error=new-automated&message=%s"
-                    % (
-                        self.request.registry.settings["admin_prefix"],
-                        exc.to_querystring(),
-                    )
-                )
-            except Exception as exc:
-                # note: allow this on testing
-                # raise
-                if self.request.registry.settings["exception_redirect"]:
-                    return HTTPSeeOther(
-                        "%s/acme-orders?result=error&error=new-automated"
-                        % self.request.registry.settings["admin_prefix"]
-                    )
-                raise
-
-        except formhandling.FormInvalid as exc:
-            return formhandling.form_reprint(self.request, self._renew_custom__print)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:acme_order:focus:renew:queue", renderer=None)
-    @view_config(route_name="admin:acme_order:focus:renew:queue|json", renderer="json")
-    def renew_queue(self):
-        """
-        This endpoint is for Immediately Renewing the AcmeOrder with some selection
-        """
-        if self.request.method == "POST":
-            return self._renew_queue__submit()
-        return self._renew_queue__print()
-
-    def _renew_queue__print(self):
-        dbAcmeOrder = self._focus()
-        return render_to_response(
-            "/admin/acme_order-focus-renew-queue.mako",
-            {"AcmeOrder": dbAcmeOrder,},
-            self.request,
-        )
 
 
 # ------------------------------------------------------------------------------

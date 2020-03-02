@@ -16,7 +16,7 @@ import transaction
 # localapp
 from .. import lib
 from ..lib import formhandling
-from ..lib.forms import Form_QueueRenewal_mark
+from ..lib.forms import Form_QueueCertificate_mark
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -41,36 +41,36 @@ class ViewList(Handler):
     """
 
     @view_config(
-        route_name="admin:queue_renewals", renderer="/admin/queue-renewals.mako"
+        route_name="admin:queue_certificates", renderer="/admin/queue_certificates.mako"
     )
     @view_config(
-        route_name="admin:queue_renewals_paginated",
-        renderer="/admin/queue-renewals.mako",
+        route_name="admin:queue_certificates_paginated",
+        renderer="/admin/queue_certificates.mako",
     )
     @view_config(
-        route_name="admin:queue_renewals:all", renderer="/admin/queue-renewals.mako"
+        route_name="admin:queue_certificates:all", renderer="/admin/queue_certificates.mako"
     )
     @view_config(
-        route_name="admin:queue_renewals:all_paginated",
-        renderer="/admin/queue-renewals.mako",
+        route_name="admin:queue_certificates:all_paginated",
+        renderer="/admin/queue_certificates.mako",
     )
     @view_config(
-        route_name="admin:queue_renewals:active_failures",
-        renderer="/admin/queue-renewals.mako",
+        route_name="admin:queue_certificates:active_failures",
+        renderer="/admin/queue_certificates.mako",
     )
     @view_config(
-        route_name="admin:queue_renewals:active_failures_paginated",
-        renderer="/admin/queue-renewals.mako",
+        route_name="admin:queue_certificates:active_failures_paginated",
+        renderer="/admin/queue_certificates.mako",
     )
-    @view_config(route_name="admin:queue_renewals|json", renderer="json")
-    @view_config(route_name="admin:queue_renewals_paginated|json", renderer="json")
-    @view_config(route_name="admin:queue_renewals:all|json", renderer="json")
-    @view_config(route_name="admin:queue_renewals:all_paginated|json", renderer="json")
+    @view_config(route_name="admin:queue_certificates|json", renderer="json")
+    @view_config(route_name="admin:queue_certificates_paginated|json", renderer="json")
+    @view_config(route_name="admin:queue_certificates:all|json", renderer="json")
+    @view_config(route_name="admin:queue_certificates:all_paginated|json", renderer="json")
     @view_config(
-        route_name="admin:queue_renewals:active_failures|json", renderer="json"
+        route_name="admin:queue_certificates:active_failures|json", renderer="json"
     )
     @view_config(
-        route_name="admin:queue_renewals:active_failures_paginated|json",
+        route_name="admin:queue_certificates:active_failures_paginated|json",
         renderer="json",
     )
     def list(self):
@@ -78,58 +78,58 @@ class ViewList(Handler):
         url_template = None
         sidenav_option = None
         if self.request.matched_route.name in (
-            "admin:queue_renewals",
-            "admin:queue_renewals_paginated",
+            "admin:queue_certificates",
+            "admin:queue_certificates_paginated",
         ):
             get_kwargs["unprocessed_only"] = True
             if self.request.wants_json:
                 url_template = (
-                    "%s/queue-renewals/{0}.json"
+                    "%s/queue-certificates/{0}.json"
                     % self.request.registry.settings["admin_prefix"]
                 )
             else:
                 url_template = (
-                    "%s/queue-renewals/{0}"
+                    "%s/queue-certificates/{0}"
                     % self.request.registry.settings["admin_prefix"]
                 )
             sidenav_option = "unprocessed"
         elif self.request.matched_route.name in (
-            "admin:queue_renewals:all",
-            "admin:queue_renewals:all_paginated",
+            "admin:queue_certificates:all",
+            "admin:queue_certificates:all_paginated",
         ):
             if self.request.wants_json:
                 url_template = (
-                    "%s/queue-renewals/{0}.json"
+                    "%s/queue-certificates/{0}.json"
                     % self.request.registry.settings["admin_prefix"]
                 )
             else:
                 url_template = (
-                    "%s/queue-renewals/{0}"
+                    "%s/queue-certificates/{0}"
                     % self.request.registry.settings["admin_prefix"]
                 )
             sidenav_option = "all"
         elif self.request.matched_route.name in (
-            "admin:queue_renewals:active_failures",
-            "admin:queue_renewals:active_failures_paginated",
+            "admin:queue_certificates:active_failures",
+            "admin:queue_certificates:active_failures_paginated",
         ):
             get_kwargs["unprocessed_failures_only"] = True
             if self.request.wants_json:
                 url_template = (
-                    "%s/queue-renewals/{0}.json"
+                    "%s/queue-certificates/{0}.json"
                     % self.request.registry.settings["admin_prefix"]
                 )
             else:
                 url_template = (
-                    "%s/queue-renewals/{0}"
+                    "%s/queue-certificates/{0}"
                     % self.request.registry.settings["admin_prefix"]
                 )
             sidenav_option = "active-failures"
 
-        items_count = lib_db.get.get__QueueRenewal__count(
+        items_count = lib_db.get.get__QueueCertificate__count(
             self.request.api_context, **get_kwargs
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__QueueRenewal__paginated(
+        items_paged = lib_db.get.get__QueueCertificate__paginated(
             self.request.api_context, limit=items_per_page, offset=offset, **get_kwargs
         )
 
@@ -147,50 +147,133 @@ class ViewList(Handler):
         if self.request.wants_json:
             _domains = {d.id: d.as_json for d in items_paged}
             return {
-                "QueueRenewals": _domains,
+                "QueueCertificates": _domains,
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
-            "QueueRenewals_count": items_count,
-            "QueueRenewals": items_paged,
+            "QueueCertificates_count": items_count,
+            "QueueCertificates": items_paged,
             "sidenav_option": sidenav_option,
             "pager": pager,
             "continue_processing": continue_processing,
         }
 
 
+class ViewNew(Handler):
+
+    def _parse_renewal_source(self):
+        _failure_url = "%s/queue-certificates" % (self.request.admin_url,)
+        queue_source = None
+        _acme_order_id = self.request.params.get('acme-order')
+        _server_certificate_id = self.request.params.get('server-certificate')
+        _unique_fqdn_set_id = self.request.params.get('unique-fqdn-set')
+        if _acme_order_id:
+            dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
+                self.request.api_context,
+                _acme_order_id
+            )
+            if not dbAcmeOrder:
+                return HTTPSeeOther("%s?result=error&operation=new&error=invalid+acme+order" % _failure_url)
+            if not dbAcmeOrder.is_renewable_queue:
+                return HTTPSeeOther("%s?result=error&operation=new&error=acme+order+ineligible" % _failure_url)
+            queue_source = ('AcmeOrder', dbAcmeOrder)
+        elif _server_certificate_id:
+            dbServerCertificate = lib_db.get.get__ServerCertificate__by_id(
+                self.request.api_context,
+                _server_certificate_id
+            )
+            if not dbServerCertificate:
+                return HTTPSeeOther("%s?result=error&operation=new&error=invalid+server+certificate" % _failure_url)
+            queue_source = ('ServerCertificate', dbServerCertificate)
+        elif _unique_fqdn_set_id:
+            dbUniqueFQDNSet = lib_db.get.get__UniqueFQDNSet__by_id(
+                self.request.api_context,
+                _unique_fqdn_set_id
+            )
+            if not dbUniqueFQDNSet:
+                return HTTPSeeOther("%s?result=error&operation=new&error=invalid+uniqe+fqdn+set" % _failure_url)
+            queue_source = ('UniqueFQDNSet', dbUniqueFQDNSet)
+        else:
+            raise ValueError('invalid option for renewal')
+        return queue_source
+
+    @view_config(route_name="admin:queue_certificate:new", renderer=None)
+    @view_config(route_name="admin:queue_certificate:new|json", renderer="json")
+    def new(self):
+        """
+        This endpoint is for Immediately Renewing the AcmeOrder with some selection
+        """
+        queue_source = self._parse_renewal_source()
+        if self.request.method == "POST":
+            return self._new__submit(queue_source)
+        return self._new__print(queue_source)
+
+    def _new__print(self, queue_source):
+        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
+            self.request.api_context, is_enabled=True
+        )
+        return render_to_response(
+            "/admin/queue_certificate-new.mako",
+            {'QueueSource': queue_source,
+             'AcmeOrder': queue_source[1] if queue_source[0] == 'AcmeOrder' else None,
+             'ServerCertificate': queue_source[1] if queue_source[0] == 'ServerCertificate' else None,
+             'UniqueFQDNSet': queue_source[1] if queue_source[0] == 'UniqueFQDNSet' else None,
+             'AcmeAccountProviders': dbAcmeAccountProviders,
+             },
+            self.request,
+        )
+
+    def _new__submit(self, queue_source):
+        (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(self.request, formStash)
+        if queue_source[0] == 'AcmeOrder':
+            (
+                dbAcmeOrderNew,
+                exc,
+            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
+                self.request.api_context,
+                dbAcmeOrder=queue_source[1],
+                dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
+                dbPrivateKey=privateKeySelection.PrivateKey,
+            )
+
+        renew_url = "%s/queue-renewawls" % (
+            self.request.admin_url,
+        )
+        return HTTPSeeOther("%s?result=success&operation=renew+queue" % renew_url)
+
+
 class ViewFocus(Handler):
     def _focus(self):
-        dbQueueRenewal = lib_db.get.get__QueueRenewal__by_id(
+        dbQueueCertificate = lib_db.get.get__QueueCertificate__by_id(
             self.request.api_context, self.request.matchdict["id"], load_events=True
         )
-        if not dbQueueRenewal:
+        if not dbQueueCertificate:
             raise HTTPNotFound("the item was not found")
-        self._focus_item = dbQueueRenewal
-        self._focus_url = "%s/queue-renewal/%s" % (
+        self._focus_item = dbQueueCertificate
+        self._focus_url = "%s/queue-certificate/%s" % (
             self.request.admin_url,
-            dbQueueRenewal.id,
+            dbQueueCertificate.id,
         )
-        return dbQueueRenewal
+        return dbQueueCertificate
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:queue_renewal:focus",
-        renderer="/admin/queue-renewal-focus.mako",
+        route_name="admin:queue_certificate:focus",
+        renderer="/admin/queue_certificate-focus.mako",
     )
-    @view_config(route_name="admin:queue_renewal:focus|json", renderer="json")
+    @view_config(route_name="admin:queue_certificate:focus|json", renderer="json")
     def focus(self):
         dbRenewalQueueItem = self._focus()
         if self.request.wants_json:
-            return {"status": "success", "QueueRenewal": dbRenewalQueueItem.as_json}
+            return {"status": "success", "QueueCertificate": dbRenewalQueueItem.as_json}
         return {"project": "peter_sslers", "RenewalQueueItem": dbRenewalQueueItem}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:queue_renewal:focus:mark")
-    @view_config(route_name="admin:queue_renewal:focus:mark|json", renderer="json")
+    @view_config(route_name="admin:queue_certificate:focus:mark")
+    @view_config(route_name="admin:queue_certificate:focus:mark|json", renderer="json")
     def focus_mark(self):
         dbRenewalQueueItem = self._focus()
         if self.request.method == "POST":
@@ -212,17 +295,17 @@ class ViewFocus(Handler):
     def _focus_mark__submit(self, dbRenewalQueueItem):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_QueueRenewal_mark, validate_get=True
+                self.request, schema=Form_QueueCertificate_mark, validate_get=True
             )
             if not result:
                 raise formhandling.FormInvalid()
 
             action = formStash.results["action"]
             event_type = model_utils.OperationsEventType.from_string(
-                "QueueRenewal__mark"
+                "QueueCertificate__mark"
             )
             event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["queue_renewal.id"] = dbRenewalQueueItem.id
+            event_payload_dict["queue_certificate.id"] = dbRenewalQueueItem.id
             event_payload_dict["action"] = formStash.results["action"]
 
             event_status = False
@@ -235,7 +318,7 @@ class ViewFocus(Handler):
                 dbRenewalQueueItem.timestamp_processed = (
                     self.request.api_context.timestamp
                 )
-                event_status = "QueueRenewal__mark__cancelled"
+                event_status = "QueueCertificate__mark__cancelled"
                 self.request.api_context.dbSession.flush(objects=[dbRenewalQueueItem])
             else:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -251,12 +334,12 @@ class ViewFocus(Handler):
                 event_status_id=model_utils.OperationsObjectEventStatus.from_string(
                     event_status
                 ),
-                dbQueueRenewal=dbRenewalQueueItem,
+                dbQueueCertificate=dbRenewalQueueItem,
             )
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "QueueRenewal": dbRenewalQueueItem.as_json,
+                    "QueueCertificate": dbRenewalQueueItem.as_json,
                 }
 
             url_post_required = "%s?result=success&operation=mark" % (self._focus_url,)

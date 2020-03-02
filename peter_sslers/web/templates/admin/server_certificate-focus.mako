@@ -108,7 +108,6 @@
                                 % elif ServerCertificate.is_deactivated:
                                     Reason: <code>deactivated</code>
                                 % endif
-
                                 % if ServerCertificate.is_deactivated:
                                     ## manual deactivations can be undone
                                     ## this could be an 'inactive' or a 'revoke'
@@ -398,6 +397,23 @@
                             </td>
                         </tr>
                     % endif
+
+                    <tr>
+                        <th>Renew?</th>
+                        <td>
+                            &nbsp;
+                            <a  class="btn btn-xs btn-primary"
+                                href="${admin_prefix}/queue-certificate/new?server-certificate=${ServerCertificate.id}"
+                                title="Queue a certificate"
+                            >
+                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                queue a certificate
+                            </a>
+
+                        </td>
+                    </tr>
+
+
                     <tr>
                         <th>related payloads</th>
                         <td>
@@ -548,12 +564,12 @@
                             ## ${admin_partials.table_CertificateRequests(ServerCertificate.certificate_request__renewals, perspective='ServerCertificate')}
                         </td>
                     </tr>
-                    ## TODO: queue_renewal
+                    ## TODO: queue_certificate
                     % if False:
                         <tr>
                             <th>Queue: Renewals</th>
                             <td>
-                                ${admin_partials.table_QueueRenewal(ServerCertificate.queue_renewal, perspective="Certificate")}
+                                ${admin_partials.table_QueueCertificate(ServerCertificate.queue_certificate, perspective="Certificate")}
                             </td>
                         </tr>
                     % endif

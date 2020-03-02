@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/queue-renewals">Queue: Renewals</a></li>
+        <li><a href="${admin_prefix}/queue-certificates">Queue: Certificates</a></li>
         <li class="active">Focus [${RenewalQueueItem.id}]</li>
     </ol>
 </%block>
@@ -39,7 +39,7 @@
 
                         % if RenewalQueueItem.is_active:
                             &nbsp;
-                            <form action="${admin_prefix}/queue-renewal/${RenewalQueueItem.id}/mark" method="POST" style="display:inline;">
+                            <form action="${admin_prefix}/queue-certificate/${RenewalQueueItem.id}/mark" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="cancel"/>
                                 <button class="label label-warning" type="submit">
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>

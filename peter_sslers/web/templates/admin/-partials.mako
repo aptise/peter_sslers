@@ -662,7 +662,7 @@
     </table>
 </%def>
           
-<%def name="table_QueueRenewal(renewal_items, perspective=None)">
+<%def name="table_QueueCertificate(renewal_items, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -679,36 +679,36 @@
             </tr>
         </thead>
         <tbody>
-        % for queue_renewal in renewal_items:
+        % for queue_certificate in renewal_items:
             <tr>
-                <td><a href="${admin_prefix}/queue-renewal/${queue_renewal.id}" class="label label-info">
+                <td><a href="${admin_prefix}/queue-certificate/${queue_certificate.id}" class="label label-info">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    qrenew-${queue_renewal.id}</a>
+                    qrenew-${queue_certificate.id}</a>
                 </td>
                 <td>
-                    <span class="label label-${'success' if queue_renewal.is_active else 'warning'}">
-                        ${'active' if queue_renewal.is_active else 'no'}
+                    <span class="label label-${'success' if queue_certificate.is_active else 'warning'}">
+                        ${'active' if queue_certificate.is_active else 'no'}
                     </span>
                 </td>
                 % if show_certificate:
                     <td>
-                        % if queue_renewal.server_certificate_id:
-                            <a href="${admin_prefix}/server-certificate/${queue_renewal.server_certificate_id}" class="label label-info">
+                        % if queue_certificate.server_certificate_id:
+                            <a href="${admin_prefix}/server-certificate/${queue_certificate.server_certificate_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                Certificate-${queue_renewal.server_certificate_id}</a>
+                                Certificate-${queue_certificate.server_certificate_id}</a>
                         % endif
                     </td>
                 % endif
-                <td><timestamp>${queue_renewal.timestamp_entered or ''}</timestamp></td>
-                <td><span class="label label-info">${queue_renewal.operations_event_id__created}</span></td>
-                <td><timestamp>${queue_renewal.timestamp_processed or ''}</timestamp></td>
-                <td><timestamp>${queue_renewal.timestamp_process_attempt or ''}</timestamp></td>
+                <td><timestamp>${queue_certificate.timestamp_entered or ''}</timestamp></td>
+                <td><span class="label label-info">${queue_certificate.operations_event_id__created}</span></td>
+                <td><timestamp>${queue_certificate.timestamp_processed or ''}</timestamp></td>
+                <td><timestamp>${queue_certificate.timestamp_process_attempt or ''}</timestamp></td>
                 <td>
-                    % if queue_renewal.process_result is None:
+                    % if queue_certificate.process_result is None:
                         &nbsp;
-                    % elif queue_renewal.process_result is False:
+                    % elif queue_certificate.process_result is False:
                         <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
-                    % elif queue_renewal.process_result is True:
+                    % elif queue_certificate.process_result is True:
                         <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
                     % endif
                 </td>
@@ -880,10 +880,10 @@
             QueueDomain-${object_event.queue_domain_id}
         </a>
         <code>${object_event.queue_domain.domain_name}</code>
-    % elif object_event.queue_renewal_id:
-        <a class="label label-info" href="${admin_prefix}/queue-renewal/${object_event.queue_renewal_id}">
+    % elif object_event.queue_certificate_id:
+        <a class="label label-info" href="${admin_prefix}/queue-certificate/${object_event.queue_certificate_id}">
             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-            QueueRenewal-${object_event.queue_renewal_id}
+            QueueCertificate-${object_event.queue_certificate_id}
         </a>
     % elif object_event.server_certificate_id:
         <a class="label label-info" href="${admin_prefix}/server-certificate/${object_event.server_certificate_id}">

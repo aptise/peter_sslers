@@ -398,13 +398,13 @@ class AppTest(AppTestCore):
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
                 event_type = model_utils.OperationsEventType.from_string(
-                    "QueueRenewal__update"
+                    "QueueCertificate__update"
                 )
                 event_payload_dict = utils.new_event_payload_dict()
                 dbOperationsEvent = db.logger.log__OperationsEvent(
                     self.ctx, event_type, event_payload_dict
                 )
-                dbQueue = db.create._create__QueueRenewal(self.ctx, _cert_1)
+                dbQueue = db.create._create__QueueCertificate(self.ctx, _cert_1)
                 # self.ctx.pyramid_transaction_commit()
 
                 self.ctx.pyramid_transaction_commit()

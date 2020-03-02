@@ -18,22 +18,22 @@
 
 <%block name="page_header_nav">
     <ul class="nav nav-pills nav-stacked">
-      <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-renewals">Unprocessed Items</a></li>
-      <li role="presentation" class="${'active' if sidenav_option == 'active-failures' else ''}"><a href="${admin_prefix}/queue-renewals/active-failures">Unprocessed Failures</a></li>
-      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-renewals/all">All Items</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-certificates">Unprocessed Items</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'active-failures' else ''}"><a href="${admin_prefix}/queue-certificates/active-failures">Unprocessed Failures</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-certificates/all">All Items</a></li>
       <li role="presentation" class="">
-        <a href="${admin_prefix}/api/queue-renewals/update">
+        <a href="${admin_prefix}/api/queue-certificates/update">
         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
         Update Queue (30 days or less)</a>
       </li>
-      % if QueueRenewals:
+      % if QueueCertificates:
           <li role="presentation" class="">
-            <a href="${admin_prefix}/api/queue-renewals/process">
+            <a href="${admin_prefix}/api/queue-certificates/process">
             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
             Process Queue Items</a>
           </li>
           <li role="presentation" class="">
-            <a href="${admin_prefix}/api/queue-renewals/process.json">
+            <a href="${admin_prefix}/api/queue-certificates/process.json">
             <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
             Process Queue Items - JSON</a>
           </li>
@@ -56,13 +56,13 @@
 
             ## set via controller
             % if continue_processing:
-                <meta http-equiv="refresh" content="1; url=${admin_prefix}/api/queue-renewals/process">
+                <meta http-equiv="refresh" content="1; url=${admin_prefix}/api/queue-certificates/process">
                 <div class="alert alert-info">
                     Queue Still Populated, automatically continuing...
                 </div>
             % endif
 
-            % if QueueRenewals:
+            % if QueueCertificates:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">
                     <thead>
@@ -76,9 +76,9 @@
                             <th>process_result</th>
                         </tr>
                     </thead>
-                    % for q in QueueRenewals:
+                    % for q in QueueCertificates:
                         <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/queue-renewal/${q.id}">
+                            <td><a class="label label-info" href="${admin_prefix}/queue-certificate/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.id}</a></td>
                             <td>

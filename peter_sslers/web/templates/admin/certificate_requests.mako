@@ -13,7 +13,6 @@
 
 <%block name="page_header_col">
     <h2>Certificate Requests</h2>
-    ${admin_partials.standard_error_display(expect_message=True)}
 </%block>
 
 
@@ -28,6 +27,8 @@
 
 
 <%block name="content_main">
+    ${admin_partials.standard_error_display(expect_message=True)}
+
     <div class="row">
         <div class="col-sm-12">
             % if CertificateRequests:

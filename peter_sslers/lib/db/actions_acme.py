@@ -903,7 +903,7 @@ def _do__AcmeV2_AcmeOrder__core(
     dbAcmeOrder_retry_of=None,
     dbUniqueFQDNSet=None,
     dbPrivateKey=None,
-    dbQueueRenewal__of=None,
+    dbQueueCertificate__of=None,
     dbServerCertificate__renewal_of=None,
 ):
     """
@@ -916,14 +916,14 @@ def _do__AcmeV2_AcmeOrder__core(
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbUniqueFQDNSet: (optional) A :class:`model.objects.dbUniqueFQDNSet` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
-    :param dbQueueRenewal__of: (optional) A :class:`model.objects.QueueRenewal` object
+    :param dbQueueCertificate__of: (optional) A :class:`model.objects.QueueCertificate` object
     :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
     :param single_process: (optional) Should this be attempted in a single, long, process?
 
     One and only one of the following items must be provided:
         dbAcmeOrder_retry_of
         dbAcmeOrder_renewal_of
-        dbQueueRenewal__of
+        dbQueueCertificate__of
         dbServerCertificate__renewal_of
 
     One and only one of the following items must be provided:
@@ -950,13 +950,13 @@ def _do__AcmeV2_AcmeOrder__core(
             (
                 dbAcmeOrder_retry_of,
                 dbAcmeOrder_renewal_of,
-                dbQueueRenewal__of,
+                dbQueueCertificate__of,
                 dbServerCertificate__renewal_of,
                 dbUniqueFQDNSet,
             )
         ):
             raise ValueError(
-                "do not pass `domain_names` with any of `(dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbQueueRenewal__of, dbServerCertificate__renewal_of, dbUniqueFQDNSet)`"
+                "do not pass `domain_names` with any of `(dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbQueueCertificate__of, dbServerCertificate__renewal_of, dbUniqueFQDNSet)`"
             )
 
     if (
@@ -965,7 +965,7 @@ def _do__AcmeV2_AcmeOrder__core(
             for i in (
                 dbAcmeOrder_retry_of,
                 dbAcmeOrder_renewal_of,
-                dbQueueRenewal__of,
+                dbQueueCertificate__of,
                 dbServerCertificate__renewal_of,
                 dbUniqueFQDNSet,
             )
@@ -973,7 +973,7 @@ def _do__AcmeV2_AcmeOrder__core(
         >= 2
     ):
         raise ValueError(
-            "At most, provide one of (`dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbQueueRenewal__of, dbServerCertificate__renewal_of`)"
+            "At most, provide one of (`dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbQueueCertificate__of, dbServerCertificate__renewal_of`)"
         )
 
     # switch this
@@ -1022,17 +1022,17 @@ def _do__AcmeV2_AcmeOrder__core(
         dbUniqueFQDNSet = dbAcmeOrder_renewal_of.unique_fqdn_set
         domain_names = dbAcmeOrder_renewal_of.domains_as_list
 
-    elif dbQueueRenewal__of:
+    elif dbQueueCertificate__of:
         # kwargs validation
-        # after creating the AcmeOrder, we need to update the `dbQueueRenewal__of` with the info
+        # after creating the AcmeOrder, we need to update the `dbQueueCertificate__of` with the info
 
-        # TODO - dbQueueRenewal__of
+        # TODO - dbQueueCertificate__of
         raise ValueError("#TODO")
-        if dbQueueRenewal__of:
-            dbQueueRenewal__of.timestamp_processed = ctx.timestamp
-            dbQueueRenewal__of.process_result = True
-            dbQueueRenewal__of.is_active = False
-            ctx.dbSession.flush(objects=[dbQueueRenewal__of])
+        if dbQueueCertificate__of:
+            dbQueueCertificate__of.timestamp_processed = ctx.timestamp
+            dbQueueCertificate__of.process_result = True
+            dbQueueCertificate__of.is_active = False
+            ctx.dbSession.flush(objects=[dbQueueCertificate__of])
 
     elif dbServerCertificate__renewal_of:
         # kwargs validation
@@ -1217,6 +1217,9 @@ def do__AcmeV2_AcmeOrder__finalize(
             tf.close()
 
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def do__AcmeV2_AcmeOrder__automated(
     ctx,
     acme_order_type_id=None,
@@ -1224,7 +1227,7 @@ def do__AcmeV2_AcmeOrder__automated(
     dbAcmeAccountKey=None,
     dbPrivateKey=None,
     dbServerCertificate__renewal_of=None,
-    dbQueueRenewal__of=None,
+    dbQueueCertificate__of=None,
     single_process=None,
 ):
     """
@@ -1235,7 +1238,7 @@ def do__AcmeV2_AcmeOrder__automated(
     :param domain_names: (required) An iteratble list of domain names
     :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
-    :param dbQueueRenewal__of: (optional) A :class:`model.objects.QueueRenewal` object
+    :param dbQueueCertificate__of: (optional) A :class:`model.objects.QueueCertificate` object
     :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
 
     :param single_process: (optional) Should this be attempted in a single, long, process?
@@ -1253,9 +1256,12 @@ def do__AcmeV2_AcmeOrder__automated(
         single_process=single_process,
         dbAcmeAccountKey=dbAcmeAccountKey,
         dbPrivateKey=dbPrivateKey,
-        dbQueueRenewal__of=dbQueueRenewal__of,
+        dbQueueCertificate__of=dbQueueCertificate__of,
         dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
     )
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 def do__AcmeV2_AcmeOrder__retry(

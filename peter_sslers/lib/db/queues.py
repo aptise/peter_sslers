@@ -352,7 +352,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_renewals__update(ctx, fqdns_ids_only=None):
+def queue_certificates__update(ctx, fqdns_ids_only=None):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param fqdns_ids_only:
@@ -360,15 +360,15 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
     renewals = []
     results = []
     try:
-        event_type = model_utils.OperationsEventType.from_string("QueueRenewal__update")
+        event_type = model_utils.OperationsEventType.from_string("QueueCertificate__update")
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
         if fqdns_ids_only:
             for fqdns_id in fqdns_ids_only:
-                dbQueueRenewal = lib.db.create._create__QueueRenewal_fqdns(
+                dbQueueCertificate = lib.db.create._create__QueueCertificate_fqdns(
                     ctx, fqdns_id
                 )
-                renewals.append(dbQueueRenewal)
+                renewals.append(dbQueueCertificate)
             event_payload_dict["unique_fqdn_set-queued.ids"] = ",".join(
                 [str(sid) for sid in fqdns_ids_only]
             )
@@ -376,10 +376,10 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
             _expiring_days = 28
             _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
             _subquery_already_queued = (
-                ctx.dbSession.query(model_objects.QueueRenewal.server_certificate_id)
+                ctx.dbSession.query(model_objects.QueueCertificate.server_certificate_id)
                 .filter(
-                    model_objects.QueueRenewal.timestamp_processed.op("IS")(None),
-                    model_objects.QueueRenewal.process_result.op("IS NOT")(True),
+                    model_objects.QueueCertificate.timestamp_processed.op("IS")(None),
+                    model_objects.QueueCertificate.process_result.op("IS NOT")(True),
                 )
                 .subquery()
             )
@@ -393,13 +393,13 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
             results = _core_query.all()
             for cert in results:
                 # this will call `_log_object_event` as needed
-                dbQueueRenewal = lib.db.create._create__QueueRenewal(ctx, cert)
-                renewals.append(dbQueueRenewal)
+                dbQueueCertificate = lib.db.create._create__QueueCertificate(ctx, cert)
+                renewals.append(dbQueueCertificate)
             event_payload_dict["ssl_certificate-queued.ids"] = ",".join(
                 [str(c.id) for c in results]
             )
 
-        event_payload_dict["sql_queue_renewals.ids"] = ",".join(
+        event_payload_dict["sql_queue_certificates.ids"] = ",".join(
             [str(c.id) for c in renewals]
         )
         dbOperationsEvent.set_event_payload(event_payload_dict)
@@ -414,7 +414,7 @@ def queue_renewals__update(ctx, fqdns_ids_only=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_renewals__process(ctx):
+def queue_certificates__process(ctx):
     """
     process the queue
     in order to best deal with transactions, we do 1 queue item at a time and redirect to process more
@@ -428,35 +428,35 @@ def queue_renewals__process(ctx):
         "count_remaining": 0,
         "failures": {},
     }
-    event_type = model_utils.OperationsEventType.from_string("QueueRenewal__process")
+    event_type = model_utils.OperationsEventType.from_string("QueueCertificate__process")
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
-    items_count = lib.db.get.get__QueueRenewal__count(ctx, unprocessed_only=True)
+    items_count = lib.db.get.get__QueueCertificate__count(ctx, unprocessed_only=True)
     rval["count_total"] = items_count
     rval["count_remaining"] = items_count
     if items_count:
-        items_paged = lib.db.get.get__QueueRenewal__paginated(
+        items_paged = lib.db.get.get__QueueCertificate__paginated(
             ctx, unprocessed_only=True, limit=1, offset=0, eagerload_renewal=True
         )
 
         dbAcmeAccountKeyDefault = None
         _need_default_AccountKey = False
-        for dbQueueRenewal in items_paged:
+        for dbQueueCertificate in items_paged:
             if (
-                (not dbQueueRenewal.server_certificate)
-                or (not dbQueueRenewal.server_certificate.acme_account_key_id)
-                or (not dbQueueRenewal.server_certificate.acme_account_key.is_active)
+                (not dbQueueCertificate.server_certificate)
+                or (not dbQueueCertificate.server_certificate.acme_account_key_id)
+                or (not dbQueueCertificate.server_certificate.acme_account_key.is_active)
             ):
                 _need_default_AccountKey = True
                 break
 
         dbPrivateKeyDefault = None
         _need_default_PrivateKey = False
-        for dbQueueRenewal in items_paged:
+        for dbQueueCertificate in items_paged:
             if (
-                (not dbQueueRenewal.server_certificate)
-                or (not dbQueueRenewal.server_certificate.private_key_id)
-                or (not dbQueueRenewal.server_certificate.private_key.is_active)
+                (not dbQueueCertificate.server_certificate)
+                or (not dbQueueCertificate.server_certificate.private_key_id)
+                or (not dbQueueCertificate.server_certificate.private_key.is_active)
             ):
                 _need_default_PrivateKey = True
                 break
@@ -469,9 +469,9 @@ def queue_renewals__process(ctx):
             # raises an error if we fail
             dbPrivateKeyDefault = _get_default_PrivateKey(ctx)
 
-        for dbQueueRenewal in items_paged:
-            if dbQueueRenewal not in ctx.dbSession:
-                dbQueueRenewal = ctx.dbSession.merge(dbQueueRenewal)
+        for dbQueueCertificate in items_paged:
+            if dbQueueCertificate not in ctx.dbSession:
+                dbQueueCertificate = ctx.dbSession.merge(dbQueueCertificate)
 
             if dbAcmeAccountKeyDefault:
                 if dbAcmeAccountKeyDefault not in ctx.dbSession:
@@ -485,9 +485,9 @@ def queue_renewals__process(ctx):
 
             dbServerCertificate = None
             _dbAcmeAccountKey = (
-                dbQueueRenewal.renewal_AccountKey or dbAcmeAccountKeyDefault
+                dbQueueCertificate.renewal_AccountKey or dbAcmeAccountKeyDefault
             )
-            _dbPrivateKey = dbQueueRenewal.renewal_PrivateKey or dbPrivateKeyDefault
+            _dbPrivateKey = dbQueueCertificate.renewal_PrivateKey or dbPrivateKeyDefault
             try:
                 timestamp_attempt = datetime.datetime.utcnow()
                 raise ValueError("this changed a lot")
@@ -497,29 +497,29 @@ def queue_renewals__process(ctx):
                 ) = lib.db.actions_acme.do__AcmeV2_AcmeOrder__automated(
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.QUEUE_RENEWAL,
-                    domain_names=dbQueueRenewal.domains_as_list,
+                    domain_names=dbQueueCertificate.domains_as_list,
                     dbAcmeAccountKey=_dbAcmeAccountKey,
                     dbPrivateKey=_dbPrivateKey,
-                    dbServerCertificate__renewal_of=dbQueueRenewal.server_certificate,
-                    dbQueueRenewal__of=dbQueueRenewal,
+                    dbServerCertificate__renewal_of=dbQueueCertificate.server_certificate,
+                    dbQueueCertificate__of=dbQueueCertificate,
                 )
                 if dbServerCertificate:
                     _log_object_event(
                         ctx,
                         dbOperationsEvent=dbOperationsEvent,
                         event_status_id=model_utils.OperationsEventType.from_string(
-                            "QueueRenewal__process__success"
+                            "QueueCertificate__process__success"
                         ),
-                        dbQueueRenewal=dbQueueRenewal,
+                        dbQueueCertificate=dbQueueCertificate,
                     )
                     rval["count_success"] += 1
                     rval["count_remaining"] -= 1
-                    dbQueueRenewal.process_result = True
-                    dbQueueRenewal.timestamp_process_attempt = timestamp_attempt
-                    dbQueueRenewal.server_certificate_id__renewed = (
+                    dbQueueCertificate.process_result = True
+                    dbQueueCertificate.timestamp_process_attempt = timestamp_attempt
+                    dbQueueCertificate.server_certificate_id__renewed = (
                         dbServerCertificate.id
                     )
-                    ctx.dbSession.flush(objects=[dbQueueRenewal])
+                    ctx.dbSession.flush(objects=[dbQueueCertificate])
 
                 else:
                     raise ValueError("what happened?")
@@ -530,25 +530,25 @@ def queue_renewals__process(ctx):
 
                 if dbOperationsEvent not in ctx.dbSession:
                     dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
-                if dbQueueRenewal not in ctx.dbSession:
-                    dbQueueRenewal = ctx.dbSession.merge(dbQueueRenewal)
-                dbQueueRenewal.process_result = False
-                dbQueueRenewal.timestamp_process_attempt = timestamp_attempt
-                ctx.dbSession.flush(objects=[dbQueueRenewal])
+                if dbQueueCertificate not in ctx.dbSession:
+                    dbQueueCertificate = ctx.dbSession.merge(dbQueueCertificate)
+                dbQueueCertificate.process_result = False
+                dbQueueCertificate.timestamp_process_attempt = timestamp_attempt
+                ctx.dbSession.flush(objects=[dbQueueCertificate])
 
                 _log_object_event(
                     ctx,
                     dbOperationsEvent=dbOperationsEvent,
                     event_status_id=model_utils.OperationsEventType.from_string(
-                        "QueueRenewal__process__fail"
+                        "QueueCertificate__process__fail"
                     ),
-                    dbQueueRenewal=dbQueueRenewal,
+                    dbQueueCertificate=dbQueueCertificate,
                 )
                 rval["count_fail"] += 1
                 if isinstance(exc, errors.DomainVerificationError):
-                    rval["failures"][dbQueueRenewal.id] = str(exc)
+                    rval["failures"][dbQueueCertificate.id] = str(exc)
                 elif isinstance(exc, errors.DomainVerificationError):
-                    rval["failures"][dbQueueRenewal.id] = str(exc)
+                    rval["failures"][dbQueueCertificate.id] = str(exc)
                 else:
                     raise
         event_payload_dict["rval"] = rval
@@ -566,6 +566,6 @@ __all__ = (
     "dequeue_QueuedDomain",
     "queue_domains__add",
     "queue_domains__process",
-    "queue_renewals__update",
-    "queue_renewals__process",
+    "queue_certificates__update",
+    "queue_certificates__process",
 )

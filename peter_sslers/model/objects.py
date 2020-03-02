@@ -1082,9 +1082,19 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
     timestamp_finalized = sa.Column(sa.DateTime, nullable=True)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=False)
+    # TODO: allow an AcmeAccountKey to control an orderless
+    acme_account_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    # TODO: allow an AcmeAccountKey to control an orderless
+    acme_account_key = sa_orm_relationship(
+        "AcmeAccountKey",
+        primaryjoin="AcmeOrderless.acme_account_key_id==AcmeAccountKey.id",
+        uselist=False,
+    )
     acme_challenges = sa_orm_relationship(
         "AcmeChallenge",
         primaryjoin="AcmeOrderless.id==AcmeChallenge.acme_orderless_id",
@@ -1507,7 +1517,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN queue_renewal_id IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN queue_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
@@ -1541,8 +1551,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     queue_domain_id = sa.Column(
         sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
     )
-    queue_renewal_id = sa.Column(
-        sa.Integer, sa.ForeignKey("queue_renewal.id"), nullable=True
+    queue_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("queue_certificate.id"), nullable=True
     )
     server_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
@@ -1600,9 +1610,9 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         back_populates="operations_object_events",
     )
 
-    queue_renewal = sa_orm_relationship(
-        "QueueRenewal",
-        primaryjoin="OperationsObjectEvent.queue_renewal_id==QueueRenewal.id",
+    queue_certificate = sa_orm_relationship(
+        "QueueCertificate",
+        primaryjoin="OperationsObjectEvent.queue_certificate_id==QueueCertificate.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -1748,6 +1758,137 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
+    """
+    An item to be renewed.
+    If something is expired, it will be placed here for renewal
+    """
+
+    __tablename__ = "queue_certificate"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(acme_order_id IS NOT NULL AND server_certificate_id IS NULL)"
+            " OR "
+            "(acme_order_id IS NULL AND server_certificate_id IS NOT NULL)",
+            name="check_order_or_certificate",
+        ),
+    )
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_entered = sa.Column(sa.DateTime, nullable=False)
+    timestamp_processed = sa.Column(sa.DateTime, nullable=True)
+    timestamp_process_attempt = sa.Column(
+        sa.DateTime, nullable=True
+    )  # if not-null then an attempt was made on this item
+    process_result = sa.Column(sa.Boolean, nullable=True, default=None)
+    unique_fqdn_set_id = sa.Column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
+    )
+
+    # we must have a queue for one of these 2-
+    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
+
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+    server_certificate_id__renewed = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+
+    acme_order_id__renewed = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_order = sa.orm.relationship(
+        "AcmeOrder",
+        primaryjoin="QueueCertificate.acme_order_id==AcmeOrder.id",
+        uselist=False,
+    )
+    acme_order__renewed = sa.orm.relationship(
+        "AcmeOrder",
+        primaryjoin="QueueCertificate.acme_order_id__renewed==AcmeOrder.id",
+        uselist=False,
+    )
+
+    operations_event__created = sa.orm.relationship(
+        "OperationsEvent",
+        primaryjoin="QueueCertificate.operations_event_id__created==OperationsEvent.id",
+        uselist=False,
+    )
+
+    operations_object_events = sa.orm.relationship(
+        "OperationsObjectEvent",
+        primaryjoin="QueueCertificate.id==OperationsObjectEvent.queue_certificate_id",
+        back_populates="queue_certificate",
+    )
+
+    server_certificate = sa.orm.relationship(
+        "ServerCertificate",
+        primaryjoin="QueueCertificate.server_certificate_id==ServerCertificate.id",
+        uselist=False,
+    )
+
+    server_certificate__renewed = sa.orm.relationship(
+        "ServerCertificate",
+        primaryjoin="QueueCertificate.server_certificate_id__renewed==ServerCertificate.id",
+        uselist=False,
+    )
+
+    unique_fqdn_set = sa.orm.relationship(
+        "UniqueFQDNSet",
+        primaryjoin="QueueCertificate.unique_fqdn_set_id==UniqueFQDNSet.id",
+        uselist=False,
+        back_populates="queue_certificates",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def renewal_AccountKey(self):
+        "returns a valid AccountKey or NONE"
+        if self.server_certificate:
+            if self.server_certificate.acme_account_key_id:
+                if self.server_certificate.acme_account_key.is_active:
+                    return self.server_certificate.acme_account_key
+        return None
+
+    @property
+    def renewal_PrivateKey(self):
+        "returns a valid Private or NONE"
+        if self.server_certificate:
+            if self.server_certificate.private_key_id:
+                if self.server_certificate.private_key.is_active:
+                    return self.server_certificate.private_key
+        return None
+
+    @property
+    def domains_as_list(self):
+        return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "server_certificate_id": self.server_certificate_id,
+            "process_result": self.process_result,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
+            "timestamp_entered": self.timestamp_entered_isoformat,
+            "timestamp_processed": self.timestamp_processed_isoformat,
+            "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
+            "is_active": True if self.is_active else False,
+            "server_certificate_id__renewed": self.server_certificate_id__renewed,
+        }
+
+
+# ==============================================================================
+
+
 class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     """
     A list of domains to be queued into ServerCertificates.
@@ -1799,137 +1940,6 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
             "timestamp_processed": self.timestamp_processed_isoformat,
             "domain_id": self.domain_id,
             "is_active": True if self.is_active else False,
-        }
-
-
-# ==============================================================================
-
-
-class QueueRenewal(Base, _Mixin_Timestamps_Pretty):
-    """
-    An item to be renewed.
-    If something is expired, it will be placed here for renewal
-    """
-
-    __tablename__ = "queue_renewal"
-    __table_args__ = (
-        sa.CheckConstraint(
-            "(acme_order_id IS NOT NULL AND server_certificate_id IS NULL)"
-            " OR "
-            "(acme_order_id IS NULL AND server_certificate_id IS NOT NULL)",
-            name="check_order_or_certificate",
-        ),
-    )
-
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_entered = sa.Column(sa.DateTime, nullable=False)
-    timestamp_processed = sa.Column(sa.DateTime, nullable=True)
-    timestamp_process_attempt = sa.Column(
-        sa.DateTime, nullable=True
-    )  # if not-null then an attempt was made on this item
-    process_result = sa.Column(sa.Boolean, nullable=True, default=None)
-    unique_fqdn_set_id = sa.Column(
-        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
-    )
-
-    # we must have a queue for one of these 2-
-    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
-    server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
-    )
-
-    operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-    server_certificate_id__renewed = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
-    )
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-
-    acme_order_id__renewed = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    acme_order = sa.orm.relationship(
-        "AcmeOrder",
-        primaryjoin="QueueRenewal.acme_order_id==AcmeOrder.id",
-        uselist=False,
-    )
-    acme_order__renewed = sa.orm.relationship(
-        "AcmeOrder",
-        primaryjoin="QueueRenewal.acme_order_id__renewed==AcmeOrder.id",
-        uselist=False,
-    )
-
-    operations_event__created = sa.orm.relationship(
-        "OperationsEvent",
-        primaryjoin="QueueRenewal.operations_event_id__created==OperationsEvent.id",
-        uselist=False,
-    )
-
-    operations_object_events = sa.orm.relationship(
-        "OperationsObjectEvent",
-        primaryjoin="QueueRenewal.id==OperationsObjectEvent.queue_renewal_id",
-        back_populates="queue_renewal",
-    )
-
-    server_certificate = sa.orm.relationship(
-        "ServerCertificate",
-        primaryjoin="QueueRenewal.server_certificate_id==ServerCertificate.id",
-        uselist=False,
-    )
-
-    server_certificate__renewed = sa.orm.relationship(
-        "ServerCertificate",
-        primaryjoin="QueueRenewal.server_certificate_id__renewed==ServerCertificate.id",
-        uselist=False,
-    )
-
-    unique_fqdn_set = sa.orm.relationship(
-        "UniqueFQDNSet",
-        primaryjoin="QueueRenewal.unique_fqdn_set_id==UniqueFQDNSet.id",
-        uselist=False,
-        back_populates="queue_renewals",
-    )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def renewal_AccountKey(self):
-        "returns a valid AccountKey or NONE"
-        if self.server_certificate:
-            if self.server_certificate.acme_account_key_id:
-                if self.server_certificate.acme_account_key.is_active:
-                    return self.server_certificate.acme_account_key
-        return None
-
-    @property
-    def renewal_PrivateKey(self):
-        "returns a valid Private or NONE"
-        if self.server_certificate:
-            if self.server_certificate.private_key_id:
-                if self.server_certificate.private_key.is_active:
-                    return self.server_certificate.private_key
-        return None
-
-    @property
-    def domains_as_list(self):
-        return self.unique_fqdn_set.domains_as_list
-
-    @property
-    def as_json(self):
-        return {
-            "id": self.id,
-            "server_certificate_id": self.server_certificate_id,
-            "process_result": self.process_result,
-            "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "timestamp_entered": self.timestamp_entered_isoformat,
-            "timestamp_processed": self.timestamp_processed_isoformat,
-            "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
-            "is_active": True if self.is_active else False,
-            "server_certificate_id__renewed": self.server_certificate_id__renewed,
         }
 
 
@@ -2247,15 +2257,15 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         back_populates="unique_fqdn_set",
     )
 
-    queue_renewals = sa_orm_relationship(
-        "QueueRenewal",
-        primaryjoin="UniqueFQDNSet.id==QueueRenewal.unique_fqdn_set_id",
+    queue_certificates = sa_orm_relationship(
+        "QueueCertificate",
+        primaryjoin="UniqueFQDNSet.id==QueueCertificate.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
 
-    queue_renewals__active = sa_orm_relationship(
-        "QueueRenewal",
-        primaryjoin="and_(UniqueFQDNSet.id==QueueRenewal.unique_fqdn_set_id, QueueRenewal.is_active==True)",
+    queue_certificates__active = sa_orm_relationship(
+        "QueueCertificate",
+        primaryjoin="and_(UniqueFQDNSet.id==QueueCertificate.unique_fqdn_set_id, QueueCertificate.is_active==True)",
         back_populates="unique_fqdn_set",
     )
 

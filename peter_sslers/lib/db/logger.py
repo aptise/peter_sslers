@@ -467,7 +467,7 @@ def _log_object_event(
     dbServerCertificate=None,
     dbUniqueFQDNSet=None,
     dbCertificateRequest=None,
-    dbQueueRenewal=None,
+    dbQueueCertificate=None,
     dbQueueDomain=None,
 ):
     """additional logging for objects"""
@@ -489,8 +489,8 @@ def _log_object_event(
         dbOperationsObjectEvent.unique_fqdn_set_id = dbUniqueFQDNSet.id
     elif dbCertificateRequest:
         dbOperationsObjectEvent.certificate_request_id = dbCertificateRequest.id
-    elif dbQueueRenewal:
-        dbOperationsObjectEvent.queue_renewal_id = dbQueueRenewal.id
+    elif dbQueueCertificate:
+        dbOperationsObjectEvent.queue_certificate_id = dbQueueCertificate.id
     elif dbQueueDomain:
         dbOperationsObjectEvent.queue_domain_id = dbQueueDomain.id
 

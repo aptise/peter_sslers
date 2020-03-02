@@ -15,8 +15,6 @@
 <%block name="page_header_col">
     <h2>ACME Order - Focus</h2>
     <p>${request.text_library.info_AcmeOrders[1]}</p>
-
-    ${admin_partials.standard_error_display()}
 </%block>
 
 
@@ -31,6 +29,7 @@
 
 
 <%block name="content_main">
+    ${admin_partials.standard_error_display()}
     ${admin_partials.handle_querystring_result()}
     
     <div class="row">
@@ -185,7 +184,7 @@
 
                             <% renew_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${renew_btn_class}"
-                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/queue"
+                                href="${admin_prefix}/queue-certificate/new?acme-order=${AcmeOrder.id}"
                                 title="Queue a renewal with same AcmeAccount."
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>

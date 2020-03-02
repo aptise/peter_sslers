@@ -31,18 +31,18 @@ from ...model import utils as model_utils
 
 
 class ViewAdmin_List(Handler):
-    @view_config(route_name="admin:queue_domains", renderer="/admin/queue-domains.mako")
+    @view_config(route_name="admin:queue_domains", renderer="/admin/queue_domains.mako")
     @view_config(
-        route_name="admin:queue_domains_paginated", renderer="/admin/queue-domains.mako"
+        route_name="admin:queue_domains_paginated", renderer="/admin/queue_domains.mako"
     )
     @view_config(route_name="admin:queue_domains|json", renderer="json")
     @view_config(route_name="admin:queue_domains_paginated|json", renderer="json")
     @view_config(
-        route_name="admin:queue_domains:all", renderer="/admin/queue-domains.mako"
+        route_name="admin:queue_domains:all", renderer="/admin/queue_domains.mako"
     )
     @view_config(
         route_name="admin:queue_domains:all_paginated",
-        renderer="/admin/queue-domains.mako",
+        renderer="/admin/queue_domains.mako",
     )
     @view_config(route_name="admin:queue_domains:all|json", renderer="json")
     @view_config(route_name="admin:queue_domains:all_paginated|json", renderer="json")
@@ -129,7 +129,7 @@ class ViewAdmin_New(Handler):
                 "instructions": """POST `domain_names""",
                 "form_fields": {"domain_names": "required"},
             }
-        return render_to_response("/admin/queue-domains-add.mako", {}, self.request)
+        return render_to_response("/admin/queue_domains-add.mako", {}, self.request)
 
     def _add__submit(self):
         try:
@@ -213,7 +213,7 @@ class ViewAdmin_Focus(Handler):
         return dbQueueDomain
 
     @view_config(
-        route_name="admin:queue_domain:focus", renderer="/admin/queue-domain-focus.mako"
+        route_name="admin:queue_domain:focus", renderer="/admin/queue_domain-focus.mako"
     )
     @view_config(route_name="admin:queue_domain:focus|json", renderer="json")
     def focus(self):

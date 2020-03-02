@@ -302,12 +302,6 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_order:focus:renew:quick|json", "/acme-order/{@id}/renew/quick.json",
     )
-    config.add_route_7(
-        "admin:acme_order:focus:renew:queue", "/acme-order/{@id}/renew/queue",
-    )
-    config.add_route_7(
-        "admin:acme_order:focus:renew:queue|json", "/acme-order/{@id}/renew/queue.json",
-    )
 
     config.add_route_7("admin:acme_order:new:automated", "/acme-order/new/automated")
     config.add_route_7(
@@ -398,15 +392,15 @@ def _admin_views(config):
     config.add_route_7("admin:api:update_recents", "/api/update-recents")
     config.add_route_7("admin:api:update_recents|json", "/api/update-recents.json")
 
-    config.add_route_7("admin:api:queue_renewals:update", "/api/queue-renewals/update")
+    config.add_route_7("admin:api:queue_certificates:update", "/api/queue-certificates/update")
     config.add_route_7(
-        "admin:api:queue_renewals:update|json", "/api/queue-renewals/update.json"
+        "admin:api:queue_certificates:update|json", "/api/queue-certificates/update.json"
     )
     config.add_route_7(
-        "admin:api:queue_renewals:process", "/api/queue-renewals/process"
+        "admin:api:queue_certificates:process", "/api/queue-certificates/process"
     )
     config.add_route_7(
-        "admin:api:queue_renewals:process|json", "/api/queue-renewals/process.json"
+        "admin:api:queue_certificates:process|json", "/api/queue-certificates/process.json"
     )
 
     # !!!: CA Certificates (Certificate Authority)
@@ -682,41 +676,49 @@ def _admin_views(config):
         "admin:queue_domain:focus:mark|json", "/queue-domain/{@id}/mark.json"
     )
 
-    # !!!: Queue Renewals
-    config.add_route_7("admin:queue_renewals", "/queue-renewals")
-    config.add_route_7("admin:queue_renewals|json", "/queue-renewals.json")
-    config.add_route_7("admin:queue_renewals_paginated", "/queue-renewals/{@page}")
+    # !!!: Queue Certificates
+    config.add_route_7("admin:queue_certificates", "/queue-certificates")
+    config.add_route_7("admin:queue_certificates|json", "/queue-certificates.json")
+    config.add_route_7("admin:queue_certificates_paginated", "/queue-certificates/{@page}")
     config.add_route_7(
-        "admin:queue_renewals_paginated|json", "/queue-renewals/{@page}.json"
+        "admin:queue_certificates_paginated|json", "/queue-certificates/{@page}.json"
     )
-    config.add_route_7("admin:queue_renewals:all", "/queue-renewals/all")
+    config.add_route_7("admin:queue_certificates:all", "/queue-certificates/all")
     config.add_route_7(
-        "admin:queue_renewals:all_paginated", "/queue-renewals/all/{@page}"
+        "admin:queue_certificates:all_paginated", "/queue-certificates/all/{@page}"
     )
-    config.add_route_7("admin:queue_renewals:all|json", "/queue-renewals/all.json")
+    config.add_route_7("admin:queue_certificates:all|json", "/queue-certificates/all.json")
     config.add_route_7(
-        "admin:queue_renewals:all_paginated|json", "/queue-renewals/all/{@page}.json"
-    )
-    config.add_route_7(
-        "admin:queue_renewals:active_failures", "/queue-renewals/active-failures"
+        "admin:queue_certificates:all_paginated|json", "/queue-certificates/all/{@page}.json"
     )
     config.add_route_7(
-        "admin:queue_renewals:active_failures_paginated",
-        "/queue-renewals/active-failures/{@page}",
+        "admin:queue_certificates:active_failures", "/queue-certificates/active-failures"
     )
     config.add_route_7(
-        "admin:queue_renewals:active_failures|json",
-        "/queue-renewals/active-failures.json",
+        "admin:queue_certificates:active_failures_paginated",
+        "/queue-certificates/active-failures/{@page}",
     )
     config.add_route_7(
-        "admin:queue_renewals:active_failures_paginated|json",
-        "/queue-renewals/active-failures/{@page}.json",
+        "admin:queue_certificates:active_failures|json",
+        "/queue-certificates/active-failures.json",
     )
-    config.add_route_7("admin:queue_renewal:focus", "/queue-renewal/{@id}")
-    config.add_route_7("admin:queue_renewal:focus|json", "/queue-renewal/{@id}.json")
-    config.add_route_7("admin:queue_renewal:focus:mark", "/queue-renewal/{@id}/mark")
     config.add_route_7(
-        "admin:queue_renewal:focus:mark|json", "/queue-renewal/{@id}/mark.json"
+        "admin:queue_certificates:active_failures_paginated|json",
+        "/queue-certificates/active-failures/{@page}.json",
+    )
+
+    config.add_route_7(
+        "admin:queue_certificate:new", "/queue-certificate/new",
+    )
+    config.add_route_7(
+        "admin:queue_certificate:new|json", "/queue-certificate/new.json",
+    )
+
+    config.add_route_7("admin:queue_certificate:focus", "/queue-certificate/{@id}")
+    config.add_route_7("admin:queue_certificate:focus|json", "/queue-certificate/{@id}.json")
+    config.add_route_7("admin:queue_certificate:focus:mark", "/queue-certificate/{@id}/mark")
+    config.add_route_7(
+        "admin:queue_certificate:focus:mark|json", "/queue-certificate/{@id}/mark.json"
     )
 
     # !!!: ServerCertificates

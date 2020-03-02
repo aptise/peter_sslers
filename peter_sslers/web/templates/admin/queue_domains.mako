@@ -13,12 +13,11 @@
 
 <%block name="page_header_col">
     <h2>Queue: Domains</h2>
-
-    ${admin_partials.standard_error_display()}
 </%block>
 
 
 <%block name="page_header_nav">
+    ${admin_partials.standard_error_display()}
     <ul class="nav nav-pills nav-stacked">
       <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-domains">Unprocessed Items</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-domains/all">All Items</a></li>

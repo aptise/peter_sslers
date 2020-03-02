@@ -1749,45 +1749,45 @@ class FunctionalTests_QueueDomains(AppTest):
         )
 
 
-class FunctionalTests_QueueRenewal(AppTest):
-    """python -m unittest peter_sslers.tests.FunctionalTests_QueueRenewal"""
+class FunctionalTests_QueueCertificate(AppTest):
+    """python -m unittest peter_sslers.tests.FunctionalTests_QueueCertificate"""
 
     def _get_item(self):
         # grab an item
         focus_item = (
-            self.ctx.dbSession.query(model_objects.QueueRenewal)
-            .order_by(model_objects.QueueRenewal.id.asc())
+            self.ctx.dbSession.query(model_objects.QueueCertificate)
+            .order_by(model_objects.QueueCertificate.id.asc())
             .first()
         )
         return focus_item
 
     def test_list(self):
         # root
-        res = self.testapp.get("/.well-known/admin/queue-renewals", status=200)
-        res = self.testapp.get("/.well-known/admin/queue-renewals/all", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-certificates", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-certificates/all", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewals/active-failures", status=200
+            "/.well-known/admin/queue-certificates/active-failures", status=200
         )
         # paginated
-        res = self.testapp.get("/.well-known/admin/queue-renewals/1", status=200)
-        res = self.testapp.get("/.well-known/admin/queue-renewals/all/1", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-certificates/1", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-certificates/all/1", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewals/active-failures/1", status=200
+            "/.well-known/admin/queue-certificates/active-failures/1", status=200
         )
 
         # root|json
-        res = self.testapp.get("/.well-known/admin/queue-renewals.json", status=200)
-        res = self.testapp.get("/.well-known/admin/queue-renewals/all.json", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-certificates.json", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-certificates/all.json", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewals/active-failures.json", status=200
+            "/.well-known/admin/queue-certificates/active-failures.json", status=200
         )
         # paginated|json
-        res = self.testapp.get("/.well-known/admin/queue-renewals/1.json", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-certificates/1.json", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewals/all/1.json", status=200
+            "/.well-known/admin/queue-certificates/all/1.json", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewals/active-failures/1.json", status=200
+            "/.well-known/admin/queue-certificates/active-failures/1.json", status=200
         )
 
     def test_focus(self):
@@ -1796,10 +1796,10 @@ class FunctionalTests_QueueRenewal(AppTest):
         assert focus_item is not None
         focus_id = focus_item.id
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewal/%s" % focus_id, status=200
+            "/.well-known/admin/queue-certificate/%s" % focus_id, status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewal/%s.json" % focus_id, status=200
+            "/.well-known/admin/queue-certificate/%s.json" % focus_id, status=200
         )
 
     @unittest.skip("tests not written yet")
@@ -1807,9 +1807,9 @@ class FunctionalTests_QueueRenewal(AppTest):
         # todo
         if DISABLE_UNWRITTEN_TESTS:
             return True
-        res = self.testapp.get("/.well-known/admin/queue-renewals/process", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-certificates/process", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewals/process.json", status=200
+            "/.well-known/admin/queue-certificates/process.json", status=200
         )
 
     def test_manipulate(self):
@@ -1818,12 +1818,12 @@ class FunctionalTests_QueueRenewal(AppTest):
         focus_id = focus_item.id
 
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewal/%s/mark" % focus_id,
+            "/.well-known/admin/queue-certificate/%s/mark" % focus_id,
             {"action": "cancel"},
             status=303,
         )
         res = self.testapp.get(
-            "/.well-known/admin/queue-renewal/%s/mark.json" % focus_id,
+            "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
             {"action": "cancel"},
             status=200,
         )

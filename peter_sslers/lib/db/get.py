@@ -1385,29 +1385,29 @@ def get__OperationsQueueDomainEvent__paginated(ctx, limit=None, offset=0):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__QueueRenewal__count(
+def get__QueueCertificate__count(
     ctx, unprocessed_only=False, unprocessed_failures_only=None
 ):
     if unprocessed_failures_only and unprocessed_only:
         raise ValueError("only submit one strategy")
-    q = ctx.dbSession.query(model_objects.QueueRenewal)
+    q = ctx.dbSession.query(model_objects.QueueCertificate)
     if unprocessed_failures_only:
         q = q.filter(
-            model_objects.QueueRenewal.timestamp_processed.op("IS")(None),  # noqa
-            model_objects.QueueRenewal.timestamp_process_attempt.op("IS NOT")(
+            model_objects.QueueCertificate.timestamp_processed.op("IS")(None),  # noqa
+            model_objects.QueueCertificate.timestamp_process_attempt.op("IS NOT")(
                 None
             ),  # noqa
-            model_objects.QueueRenewal.process_result.op("IS")(False),  # noqa
+            model_objects.QueueCertificate.process_result.op("IS")(False),  # noqa
         )
     if unprocessed_only:
         q = q.filter(
-            model_objects.QueueRenewal.timestamp_processed.op("IS")(None)
+            model_objects.QueueCertificate.timestamp_processed.op("IS")(None)
         )  # noqa
     counted = q.count()
     return counted
 
 
-def get__QueueRenewal__paginated(
+def get__QueueCertificate__paginated(
     ctx,
     unprocessed_only=False,
     unprocessed_failures_only=None,
@@ -1418,18 +1418,18 @@ def get__QueueRenewal__paginated(
 ):
     if unprocessed_failures_only and unprocessed_only:
         raise ValueError("only submit one strategy")
-    q = ctx.dbSession.query(model_objects.QueueRenewal)
+    q = ctx.dbSession.query(model_objects.QueueCertificate)
     if unprocessed_failures_only:
         q = q.filter(
-            model_objects.QueueRenewal.timestamp_processed.op("IS")(None),  # noqa
-            model_objects.QueueRenewal.timestamp_process_attempt.op("IS NOT")(
+            model_objects.QueueCertificate.timestamp_processed.op("IS")(None),  # noqa
+            model_objects.QueueCertificate.timestamp_process_attempt.op("IS NOT")(
                 None
             ),  # noqa
-            model_objects.QueueRenewal.process_result.op("IS")(False),  # noqa
+            model_objects.QueueCertificate.process_result.op("IS")(False),  # noqa
         )
     if unprocessed_only:
         q = q.filter(
-            model_objects.QueueRenewal.timestamp_processed.op("IS")(None)
+            model_objects.QueueCertificate.timestamp_processed.op("IS")(None)
         )  # noqa
     if eagerload_web:
         q = q.options(
@@ -1444,16 +1444,16 @@ def get__QueueRenewal__paginated(
             sqlalchemy.orm.subqueryload("server_certificate.acme_account_key"),
             sqlalchemy.orm.subqueryload("server_certificate.private_key"),
         )
-    q = q.order_by(model_objects.QueueRenewal.id.desc())
+    q = q.order_by(model_objects.QueueCertificate.id.desc())
     q = q.limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged
 
 
-def get__QueueRenewal__by_id(ctx, set_id, load_events=None):
+def get__QueueCertificate__by_id(ctx, set_id, load_events=None):
     q = (
-        ctx.dbSession.query(model_objects.QueueRenewal)
-        .filter(model_objects.QueueRenewal.id == set_id)
+        ctx.dbSession.query(model_objects.QueueCertificate)
+        .filter(model_objects.QueueCertificate.id == set_id)
         .options(
             sqlalchemy.orm.subqueryload("server_certificate")
             .joinedload("unique_fqdn_set")
@@ -1467,10 +1467,10 @@ def get__QueueRenewal__by_id(ctx, set_id, load_events=None):
     return item
 
 
-def get__QueueRenewal__by_UniqueFQDNSetId__active(ctx, set_id):
-    q = ctx.dbSession.query(model_objects.QueueRenewal).filter(
-        model_objects.QueueRenewal.unique_fqdn_set_id == set_id,
-        model_objects.QueueRenewal.timestamp_processed.op("IS")(None),
+def get__QueueCertificate__by_UniqueFQDNSetId__active(ctx, set_id):
+    q = ctx.dbSession.query(model_objects.QueueCertificate).filter(
+        model_objects.QueueCertificate.unique_fqdn_set_id == set_id,
+        model_objects.QueueCertificate.timestamp_processed.op("IS")(None),
     )
     items_paged = q.all()
     return items_paged

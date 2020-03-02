@@ -308,7 +308,7 @@ class Form_QueueDomain_mark(_Form_Schema_Base):
     action = OneOf(("cancel",), not_empty=True)
 
 
-class Form_QueueRenewal_mark(_Form_Schema_Base):
+class Form_QueueCertificate_mark(_Form_Schema_Base):
     action = OneOf(("cancel",), not_empty=True)
 
 

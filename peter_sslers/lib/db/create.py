@@ -708,7 +708,7 @@ def create__ServerCertificate(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _create__QueueRenewal(ctx, serverCertificate):
+def _create__QueueCertificate(ctx, serverCertificate):
     """
     Queues an item for renewal
 
@@ -720,17 +720,17 @@ def _create__QueueRenewal(ctx, serverCertificate):
     if not ctx.dbOperationsEvent:
         raise ValueError("This must happen WITHIN an operations event")
 
-    dbQueueRenewal = model_objects.QueueRenewal()
-    dbQueueRenewal.timestamp_entered = ctx.timestamp
-    dbQueueRenewal.timestamp_processed = None
-    dbQueueRenewal.server_certificate_id = serverCertificate.id
-    dbQueueRenewal.unique_fqdn_set_id = serverCertificate.unique_fqdn_set_id
-    dbQueueRenewal.operations_event_id__created = ctx.dbOperationsEvent.id
-    ctx.dbSession.add(dbQueueRenewal)
-    ctx.dbSession.flush(objects=[dbQueueRenewal])
+    dbQueueCertificate = model_objects.QueueCertificate()
+    dbQueueCertificate.timestamp_entered = ctx.timestamp
+    dbQueueCertificate.timestamp_processed = None
+    dbQueueCertificate.server_certificate_id = serverCertificate.id
+    dbQueueCertificate.unique_fqdn_set_id = serverCertificate.unique_fqdn_set_id
+    dbQueueCertificate.operations_event_id__created = ctx.dbOperationsEvent.id
+    ctx.dbSession.add(dbQueueCertificate)
+    ctx.dbSession.flush(objects=[dbQueueCertificate])
 
     event_payload = ctx.dbOperationsEvent.event_payload_json
-    event_payload["queue_renewal.id"] = dbQueueRenewal.id
+    event_payload["queue_certificate.id"] = dbQueueCertificate.id
     ctx.dbOperationsEvent.set_event_payload(event_payload)
     ctx.dbSession.flush(objects=[ctx.dbOperationsEvent])
 
@@ -738,15 +738,15 @@ def _create__QueueRenewal(ctx, serverCertificate):
         ctx,
         dbOperationsEvent=ctx.dbOperationsEvent,
         event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            "QueueRenewal__insert"
+            "QueueCertificate__insert"
         ),
-        dbQueueRenewal=dbQueueRenewal,
+        dbQueueCertificate=dbQueueCertificate,
     )
 
-    return dbQueueRenewal
+    return dbQueueCertificate
 
 
-def _create__QueueRenewal_fqdns(ctx, unique_fqdn_set_id):
+def _create__QueueCertificate_fqdns(ctx, unique_fqdn_set_id):
     """
     Queues an item for renewal
 
@@ -758,17 +758,17 @@ def _create__QueueRenewal_fqdns(ctx, unique_fqdn_set_id):
     if not ctx.dbOperationsEvent:
         raise ValueError("This must happen WITHIN an operations event")
 
-    dbQueueRenewal = model_objects.QueueRenewal()
-    dbQueueRenewal.timestamp_entered = ctx.timestamp
-    dbQueueRenewal.timestamp_processed = None
-    dbQueueRenewal.server_certificate_id = None
-    dbQueueRenewal.unique_fqdn_set_id = unique_fqdn_set_id
-    dbQueueRenewal.operations_event_id__created = ctx.dbOperationsEvent.id
-    ctx.dbSession.add(dbQueueRenewal)
-    ctx.dbSession.flush(objects=[dbQueueRenewal])
+    dbQueueCertificate = model_objects.QueueCertificate()
+    dbQueueCertificate.timestamp_entered = ctx.timestamp
+    dbQueueCertificate.timestamp_processed = None
+    dbQueueCertificate.server_certificate_id = None
+    dbQueueCertificate.unique_fqdn_set_id = unique_fqdn_set_id
+    dbQueueCertificate.operations_event_id__created = ctx.dbOperationsEvent.id
+    ctx.dbSession.add(dbQueueCertificate)
+    ctx.dbSession.flush(objects=[dbQueueCertificate])
 
     event_payload = ctx.dbOperationsEvent.event_payload_json
-    event_payload["queue_renewal.id"] = dbQueueRenewal.id
+    event_payload["queue_certificate.id"] = dbQueueCertificate.id
     ctx.dbOperationsEvent.set_event_payload(event_payload)
     ctx.dbSession.flush(objects=[ctx.dbOperationsEvent])
 
@@ -776,12 +776,12 @@ def _create__QueueRenewal_fqdns(ctx, unique_fqdn_set_id):
         ctx,
         dbOperationsEvent=ctx.dbOperationsEvent,
         event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            "QueueRenewal__insert"
+            "QueueCertificate__insert"
         ),
-        dbQueueRenewal=dbQueueRenewal,
+        dbQueueCertificate=dbQueueCertificate,
     )
 
-    return dbQueueRenewal
+    return dbQueueCertificate
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -791,6 +791,6 @@ __all__ = (
     "create__CertificateRequest",
     "create__ServerCertificate",
     "create__PrivateKey",
-    "_create__QueueRenewal",
-    "_create__QueueRenewal_fqdns",
+    "_create__QueueCertificate",
+    "_create__QueueCertificate_fqdns",
 )

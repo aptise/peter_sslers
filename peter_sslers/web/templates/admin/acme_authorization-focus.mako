@@ -14,7 +14,6 @@
 
 <%block name="page_header_col">
     <h2>ACME Authorization - Focus</h2>
-    ${admin_partials.standard_error_display()}
 </%block>
 
 
@@ -29,6 +28,7 @@
 
 
 <%block name="content_main">
+    ${admin_partials.standard_error_display()}
     ${admin_partials.handle_querystring_result()}
     
     <div class="row">

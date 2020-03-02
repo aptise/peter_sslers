@@ -15,8 +15,6 @@
 <%block name="page_header_col">
     <h2>Private Key - Focus</h2>
     <p>${request.text_library.info_PrivateKeys[1]}</p>
-
-    ${admin_partials.standard_error_display()}
 </%block>
 
 
@@ -31,6 +29,8 @@
 
 
 <%block name="content_main">
+    ${admin_partials.standard_error_display()}
+
     <div class="row">
         <div class="col-sm-12">
             ${admin_partials.handle_querystring_result()}

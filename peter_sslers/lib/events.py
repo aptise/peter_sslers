@@ -34,7 +34,7 @@ def _handle_certificate_deactivated(ctx, serverCertificate):
     if not dbLatestActiveCert:
         requeue = True
     if requeue:
-        dbQuque = lib.db.create._create__QueueRenewal(ctx, serverCertificate)
+        dbQuque = lib.db.create._create__QueueCertificate(ctx, serverCertificate)
         return True
     return False
 
@@ -44,7 +44,7 @@ def _handle_certificate_activated(ctx, serverCertificate):
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
-    dbActiveQueues = lib.db.get.get__QueueRenewal__by_UniqueFQDNSetId__active(
+    dbActiveQueues = lib.db.get.get__QueueCertificate__by_UniqueFQDNSetId__active(
         ctx, serverCertificate.unique_fqdn_set_id
     )
     if dbActiveQueues:
@@ -150,11 +150,11 @@ def PrivateKey_compromised(ctx, privateKey, dbOperationsEvent=None):
             serverCertificate = lib.db.get.get__ServerCertificate__by_id(
                 ctx, max_cert_id
             )
-            dbQueue = lib.db.create._create__QueueRenewal(ctx, serverCertificate)
+            dbQueue = lib.db.create._create__QueueCertificate(ctx, serverCertificate)
 
     # okay, now try to requeue items
     revoked_fqdns_ids = list(revoked_fqdn_ids_2_certs.keys())
-    result = lib.db.queues.queue_renewals__update(ctx, fqdns_ids_only=revoked_fqdns_ids)
+    result = lib.db.queues.queue_certificates__update(ctx, fqdns_ids_only=revoked_fqdns_ids)
 
     event_payload = dbOperationsEvent.event_payload_json
     event_payload["revoked.certificates"] = {
