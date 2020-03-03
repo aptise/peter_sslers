@@ -672,6 +672,7 @@ class AuthenticatedUser(object):
         handle_authorization_payload=None,
         update_AcmeAuthorization_status=None,
         update_AcmeChallenge_status=None,
+        updated_AcmeOrder_ProcessingStatus=None,
         transaction_commit=None,
     ):
         """
@@ -684,6 +685,7 @@ class AuthenticatedUser(object):
 
         :param update_AcmeAuthorization_status: callable. expects (ctx, dbAcmeAuthorization, status_text, transaction_commit)
         :param update_AcmeChallenge_status: callable. expects (ctx, dbAcmeChallenge, status_text, transaction_commit)
+        :param updated_AcmeOrder_ProcessingStatus: callable. expects (ctx, dbAcmeChallenge, acme_order_processing_status_id, transaction_commit)
 
         """
         log.info("acme_v2 acme_order_process_authorizations...")
@@ -702,6 +704,21 @@ class AuthenticatedUser(object):
                     "unsure how to handle this status: `%s`" % _order_status
                 )
 
+        if (
+            dbAcmeOrder.acme_order_processing_status_id
+            != model_utils.AcmeOrder_ProcessingStatus.created_acme
+        ):
+            raise ValueError(
+                "unsure how to the acme_order_processing_status_id was wedged: `%s`"
+                % dbAcmeOrder.acme_order_processing_status_id
+            )
+        updated_AcmeOrder_ProcessingStatus(
+            ctx,
+            dbAcmeOrder,
+            acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_started,
+            transaction_commit=transaction_commit,
+        )
+
         # verify each domain
         for authorization_url in acmeOrderRfcObject.rfc_object["authorizations"]:
             auth_result = self.acme_authorization_process(
@@ -710,8 +727,15 @@ class AuthenticatedUser(object):
                 handle_authorization_payload=handle_authorization_payload,
                 update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
+                updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
                 transaction_commit=transaction_commit,
             )
+
+        if (
+            dbAcmeOrder.acme_order_processing_status_id
+            == model_utils.AcmeOrder_ProcessingStatus.created_acme
+        ):
+            dbAcmeOrder.acme_order_processing_status_id == model_utils.AcmeOrder_ProcessingStatus.processing_started
 
         # no more domains!
         return True
@@ -785,6 +809,7 @@ class AuthenticatedUser(object):
             ctx,
             dbAcmeOrder,
             acme_order_finalized["status"],
+            acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.order_finalized,
             transaction_commit=transaction_commit,
         )
 
@@ -811,6 +836,7 @@ class AuthenticatedUser(object):
         handle_authorization_payload=None,
         update_AcmeAuthorization_status=None,
         update_AcmeChallenge_status=None,
+        updated_AcmeOrder_ProcessingStatus=None,
         transaction_commit=None,
     ):
         """
@@ -824,6 +850,7 @@ class AuthenticatedUser(object):
 
         :param update_AcmeAuthorization_status: callable. expects (ctx, dbAcmeAuthorization, status_text, transaction_commit)
         :param update_AcmeChallenge_status: callable. expects (ctx, dbAcmeChallenge, status_text, transaction_commit)
+        :param updated_AcmeOrder_ProcessingStatus: callable. expects (ctx, dbAcmeChallenge, acme_order_processing_status_id, transaction_commit)
 
         Returns:
 
@@ -1197,7 +1224,7 @@ class AuthenticatedUser(object):
             )
         except errors.AcmeServerError as exc:
             (_code, _resp) = exc.args
-            if _resp['type'].startswith("urn:ietf:params:acme:error:"):
+            if _resp["type"].startswith("urn:ietf:params:acme:error:"):
                 # {u'status': 400, u'type': u'urn:ietf:params:acme:error:malformed', u'detail': u'Authorization expired 2020-02-28T20:25:02Z'}
                 # can this be caught?
                 pass
@@ -1283,7 +1310,7 @@ class AuthenticatedUser(object):
                     transaction_commit=True,
                 )
 
-            return True
+            return acme_challenge_response_2
 
         elif authorization_response["status"] != "valid":
 

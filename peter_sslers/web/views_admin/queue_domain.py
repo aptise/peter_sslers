@@ -16,9 +16,11 @@ import transaction
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib import form_utils as form_utils
 from ..lib import text as lib_text
 from ..lib.forms import Form_QueueDomain_mark
 from ..lib.forms import Form_QueueDomains_add
+from ..lib.forms import Form_QueueDomains_process
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -163,14 +165,45 @@ class ViewAdmin_New(Handler):
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._add__print)
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+class ViewAdmin_Process(Handler):
     @view_config(route_name="admin:queue_domains:process", renderer=None)
     @view_config(route_name="admin:queue_domains:process|json", renderer="json")
     def process(self):
+        self._load_AccountKeyDefault()
+        self._load_AcmeAccountProviders()
+        self._load_PrivateKeyDefault()
+        if self.request.method == "POST":
+            return self._process__submit()
+        return self._process__print()
+
+    def _process__print(self):
+        return render_to_response(
+            "/admin/queue_domains-process.mako",
+            {
+                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
+                "AcmeAccountProviders": self.dbAcmeAccountProviders,
+                "PrivateKey_Default": self.dbPrivateKeyDefault,
+            },
+            self.request,
+        )
+
+    def _process__submit(self):
         try:
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_QueueDomains_process, validate_get=False
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(
+                self.request, formStash
+            )
+
             queue_results = lib_db.queues.queue_domains__process(
-                self.request.api_context
+                self.request.api_context,
+                dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
+                dbPrivateKey=privateKeySelection.PrivateKey,
             )
             if self.request.wants_json:
                 return {"result": "success"}
@@ -191,6 +224,10 @@ class ViewAdmin_New(Handler):
                 "%s/queue-domains?processed=0&error=%s"
                 % (self.request.registry.settings["admin_prefix"], exc.to_querystring())
             )
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._process__print)
         except Exception as exc:
             transaction.abort()
             if self.request.wants_json:
@@ -247,7 +284,7 @@ class ViewAdmin_Focus(Handler):
     def _focus_mark__submit(self, dbQueueDomain):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_QueueDomain_mark, validate_get=True
+                self.request, schema=Form_QueueDomain_mark, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()

@@ -7,13 +7,13 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/queue-certificates">Queue: Certificates</a></li>
-        <li class="active">Focus [${RenewalQueueItem.id}]</li>
+        <li class="active">Focus [${QueueCertificate.id}]</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Queue: Renewals | Focus</h2>
+    <h2>Queue: Certificates | Focus</h2>
 </%block>
 
 
@@ -26,20 +26,19 @@
                     <th>id</th>
                     <td>
                         <span class="label label-default">
-                            ${RenewalQueueItem.id}
+                            ${QueueCertificate.id}
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <th>is_active</th>
                     <td>
-                        <span class="label label-${'success' if RenewalQueueItem.is_active else 'warning'}">
-                            ${'Active' if RenewalQueueItem.is_active else 'inactive'}
+                        <span class="label label-${'success' if QueueCertificate.is_active else 'warning'}">
+                            ${'Active' if QueueCertificate.is_active else 'inactive'}
                         </span>
-
-                        % if RenewalQueueItem.is_active:
+                        % if QueueCertificate.is_active:
                             &nbsp;
-                            <form action="${admin_prefix}/queue-certificate/${RenewalQueueItem.id}/mark" method="POST" style="display:inline;">
+                            <form action="${admin_prefix}/queue-certificate/${QueueCertificate.id}/mark" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="cancel"/>
                                 <button class="label label-warning" type="submit">
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -52,65 +51,116 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>certificate_id - renewal of</th>
+                    <th>Covering</th>
                     <td>
-                        % if RenewalQueueItem.server_certificate_id:
-                            <a class="label label-info"
-                                href="${admin_prefix}/server-certificate/${RenewalQueueItem.server_certificate_id}"
-                            >
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ServerCertificate-${RenewalQueueItem.server_certificate_id}</a>
-                        % endif
+                        <a class="label label-info"
+                            href="${admin_prefix}/unique-fqdn-set/${QueueCertificate.unique_fqdn_set_id}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            UniqueFQDNSet-${QueueCertificate.unique_fqdn_set_id}</a>
+                        <hr/>
+                        <code>${QueueCertificate.unique_fqdn_set.domains_as_string}</code>
                     </td>
                 </tr>
                 <tr>
-                    <th>unique_fqdn_set_id</th>
+                    <th>AcmeAccountKey</th>
                     <td>
                         <a class="label label-info"
-                            href="${admin_prefix}/unique-fqdn-set/${RenewalQueueItem.unique_fqdn_set_id}"
+                            href="${admin_prefix}/acme-account-key/${QueueCertificate.acme_account_key_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            UniqueFQDNSet-${RenewalQueueItem.unique_fqdn_set_id}</a>
+                            AcmeAccountKey-${QueueCertificate.acme_account_key_id}</a>
                         </hr/>
-                        <code>${RenewalQueueItem.unique_fqdn_set.domains_as_string}</code>
+                    </td>
+                </tr>
+                <tr>
+                    <th>PrivateKey</th>
+                    <td>
+                        <a class="label label-info"
+                            href="${admin_prefix}/private-key/${QueueCertificate.private_key}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            PrivateKey-${QueueCertificate.private_key_id}</a>
+                        </hr/>
+                        <code>${QueueCertificate.private_key_id}</code>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Source</th>
+                    <td>
+                        % if QueueCertificate.acme_order_id__source:
+                            <a class="label label-info"
+                                href="${admin_prefix}/acme-order/${QueueCertificate.acme_order_id__source}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeOrder-${QueueCertificate.acme_order_id__source}</a>
+                        % endif
+                        % if QueueCertificate.server_certificate_id__source:
+                            <a class="label label-info"
+                                href="${admin_prefix}/server-certificate/${QueueCertificate.server_certificate_id__source}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                ServerCertificate-${QueueCertificate.server_certificate_id__source}</a>
+                        % endif
+                        % if QueueCertificate.unique_fqdn_set_id__source:
+                            <a class="label label-info"
+                                href="${admin_prefix}/unique-fqdn-set/${QueueCertificate.unique_fqdn_set_id__source}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                UniqueFQDNSet-${QueueCertificate.unique_fqdn_set_id__source}</a>
+                        % endif
                     </td>
                 </tr>
                 <tr>
                     <th>timestamp_entered</th>
                     <td>
-                        <timestamp>${RenewalQueueItem.timestamp_entered or ''}</timestamp>
+                        <timestamp>${QueueCertificate.timestamp_entered or ''}</timestamp>
                     </td>
                 </tr>
                 <tr>
                     <th>timestamp_processed</th>
                     <td>
-                        <timestamp>${RenewalQueueItem.timestamp_processed or ''}</timestamp>
+                        <timestamp>${QueueCertificate.timestamp_processed or ''}</timestamp>
                     </td>
                 </tr>
                 <tr>
                     <th>process_result</th>
                     <td>
-                        ${RenewalQueueItem.process_result or ''}
+                        ${QueueCertificate.process_result or ''}
                     </td>
                 </tr>
                 <tr>
-                    <th>certificate_id - renewed</th>
+                    <th>Generated</th>
                     <td>
-                        % if RenewalQueueItem.server_certificate_id__renewed:
+                        % if QueueCertificate.acme_order_id__generated:
                             <a class="label label-info"
-                                href="${admin_prefix}/server-certificate/${RenewalQueueItem.server_certificate_id__renewed}"
+                                href="${admin_prefix}/acme-order/${QueueCertificate.acme_order_id__generated}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ServerCertificate-${RenewalQueueItem.server_certificate_id__renewed}</a>
+                                AcmeOrder-${QueueCertificate.acme_order_id__generated}</a>
+                        % endif
+                        % if QueueCertificate.server_certificate_id__generated:
+                            <a class="label label-info"
+                                href="${admin_prefix}/server-certificate/${QueueCertificate.server_certificate_id__generated}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                ServerCertificate-${QueueCertificate.server_certificate_id__generated}</a>
+                        % endif
+                        % if QueueCertificate.certificate_request_id__generated:
+                            <a class="label label-info"
+                                href="${admin_prefix}/certificate-request/${QueueCertificate.certificate_request_id__generated}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                CertificateRquest-${QueueCertificate.certificate_request_id__generated}</a>
                         % endif
                     </td>
                 </tr>
-                ${admin_partials.table_tr_OperationsEventCreated(RenewalQueueItem)}
+                ${admin_partials.table_tr_OperationsEventCreated(QueueCertificate)}
             </table>
 
             <h4>Process History</h4>
-            % if RenewalQueueItem.operations_object_events:
-                ${admin_partials.table_OperationsObjectEvents(RenewalQueueItem.operations_object_events, table_context=None)}
+            % if QueueCertificate.operations_object_events:
+                ${admin_partials.table_OperationsObjectEvents(QueueCertificate.operations_object_events, table_context=None)}
             % endif
         </div>
     </div>

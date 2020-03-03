@@ -313,6 +313,7 @@ def getcreate__AcmeChallengeHttp01_via_payload(
     )
     dbAcmeChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
     is_created_AcmeChallenge = False
+    
     if not dbAcmeChallenge:
         challenge_token = acme_challenge["token"]
         keyauthorization = (
@@ -329,6 +330,7 @@ def getcreate__AcmeChallengeHttp01_via_payload(
             challenge_url=challenge_url,
             token=challenge_token,
             keyauthorization=keyauthorization,
+            acme_status_challenge_id = acme_status_challenge_id,
             is_via_sync=True,
         )
         is_created_AcmeChallenge = True

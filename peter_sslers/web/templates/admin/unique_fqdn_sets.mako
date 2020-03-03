@@ -31,7 +31,7 @@
         <div class="col-sm-9">
             % if UniqueFQDNSets:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_UniqueFQDNSets(UniqueFQDNSets)}
+                ${admin_partials.table_UniqueFQDNSets(UniqueFQDNSets, perspective="UniqueFQDNSet")}
             % else:
                 <em>
                     No Unique FQDN Sets

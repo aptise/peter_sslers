@@ -394,8 +394,12 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             not in model_utils.Acme_Status_Authorization.OPTIONS_TRIGGER
         ):
             return False
+        #
+        # we only support `acme_challenge_http01`
+        #
         if not self.acme_challenge_http01:
-            # we only support `acme_challenge_http01`
+            return False
+        if not self.acme_challenge_http01.is_can_acme_server_trigger:
             return False
         return True
 
@@ -807,10 +811,16 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     acme_order_type_id = sa.Column(
         sa.Integer, nullable=False
-    )  # see .utils.AcmeOrderType
+    )  # see: `.utils.AcmeOrderType`
     acme_status_order_id = sa.Column(
         sa.Integer, nullable=True, default=True
-    )  # Acme_Status_Order
+    )  # see: `.utils.Acme_Status_Order`
+    acme_order_processing_strategy_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see: `utils.AcmeOrder_ProcessingStrategy`
+    acme_order_processing_status_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # see: `utils.AcmeOrder_ProcessingStatus`
     order_url = sa.Column(sa.Unicode(255), nullable=True)
     finalize_url = sa.Column(sa.Unicode(255), nullable=True)
     timestamp_expires = sa.Column(sa.DateTime, nullable=True)
@@ -904,6 +914,25 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return model_utils.AcmeOrderType.as_string(self.acme_order_type_id)
 
     @property
+    def acme_order_processing_strategy(self):
+        return model_utils.AcmeOrder_ProcessingStrategy.as_string(
+            self.acme_order_processing_strategy_id
+        )
+
+    @reify
+    def acme_order_processing_status(self):
+        return model_utils.AcmeOrder_ProcessingStatus.as_string(
+            self.acme_order_processing_status_id
+        )
+
+    @property
+    def acme_authorizations(self):
+        authorizations = []
+        for _to_auth in self.to_acme_authorizations:
+            authorizations.append(_to_auth.acme_authorization)
+        return authorizations
+
+    @property
     def authorizations_can_deactivate(self):
         authorizations = []
         for _to_auth in self.to_acme_authorizations:
@@ -952,6 +981,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_finalize(self):
+        '''
+        # todo - replace with acme_order_status tracking
         if self.acme_status_order == "pending":
             _has_not_valid_auths = None
             for _to_auth in self.to_acme_authorizations:
@@ -960,6 +991,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
                     break
             if not _has_not_valid_auths:
                 return True
+        return False
+        '''
+        if self.acme_status_order == 'ready':
+            return True
         return False
 
     @property
@@ -1735,8 +1770,12 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     @property
     def key_pem_sample(self):
         # strip the pem, because the last line is whitespace after "-----END RSA PRIVATE KEY-----"
-        pem_lines = self.key_pem.strip().split("\n")
-        return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
+        try:
+            pem_lines = self.key_pem.strip().split("\n")
+            return "%s...%s" % (pem_lines[1][0:5], pem_lines[-2][-5:])
+        except:
+            # it's possible to have no lines if this is the placeholder key
+            return "..."
 
     @reify
     def private_key_source(self):
@@ -1767,10 +1806,13 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "queue_certificate"
     __table_args__ = (
         sa.CheckConstraint(
-            "(acme_order_id IS NOT NULL AND server_certificate_id IS NULL)"
-            " OR "
-            "(acme_order_id IS NULL AND server_certificate_id IS NOT NULL)",
-            name="check_order_or_certificate",
+            "(CASE WHEN acme_order_id__source IS NOT NULL THEN 1 ELSE 0 END"
+            " + "
+            " CASE WHEN server_certificate_id__source IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN unique_fqdn_set_id__source IS NOT NULL THEN 1 ELSE 0 END "
+            " ) = 1",
+            name="check_queue_certificate_source",
         ),
     )
 
@@ -1781,91 +1823,104 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         sa.DateTime, nullable=True
     )  # if not-null then an attempt was made on this item
     process_result = sa.Column(sa.Boolean, nullable=True, default=None)
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+
+    # this is our core requirements. all must be present
+    acme_account_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=False
+    )
+    private_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
+    )
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
 
-    # we must have a queue for one of these 2-
-    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
-    server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
-    )
-
-    operations_event_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
-    )
-    server_certificate_id__renewed = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
-    )
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-
-    acme_order_id__renewed = sa.Column(
+    # bookkeeping - what is the source?
+    # only one of these 3 can be not-null, see `check_queue_certificate_source`
+    acme_order_id__source = sa.Column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+    server_certificate_id__source = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
+    unique_fqdn_set_id__source = sa.Column(
+        sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
+    )
+
+    # bookkeeping - what is generated?
+    acme_order_id__generated = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True
+    )
+    certificate_request_id__generated = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+    )
+    server_certificate_id__generated = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    acme_order = sa.orm.relationship(
-        "AcmeOrder",
-        primaryjoin="QueueCertificate.acme_order_id==AcmeOrder.id",
+    acme_account_key = sa.orm.relationship(
+        "AcmeAccountKey",
+        primaryjoin="QueueCertificate.acme_account_key_id==AcmeAccountKey.id",
         uselist=False,
     )
-    acme_order__renewed = sa.orm.relationship(
+    acme_order__generated = sa.orm.relationship(
         "AcmeOrder",
-        primaryjoin="QueueCertificate.acme_order_id__renewed==AcmeOrder.id",
+        primaryjoin="QueueCertificate.acme_order_id__generated==AcmeOrder.id",
         uselist=False,
     )
-
+    acme_order__source = sa.orm.relationship(
+        "AcmeOrder",
+        primaryjoin="QueueCertificate.acme_order_id__source==AcmeOrder.id",
+        uselist=False,
+    )
+    certificate_request__generated = sa.orm.relationship(
+        "CertificateRequest",
+        primaryjoin="QueueCertificate.certificate_request_id__generated==CertificateRequest.id",
+        uselist=False,
+    )
     operations_event__created = sa.orm.relationship(
         "OperationsEvent",
         primaryjoin="QueueCertificate.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
-
     operations_object_events = sa.orm.relationship(
         "OperationsObjectEvent",
         primaryjoin="QueueCertificate.id==OperationsObjectEvent.queue_certificate_id",
         back_populates="queue_certificate",
     )
-
-    server_certificate = sa.orm.relationship(
-        "ServerCertificate",
-        primaryjoin="QueueCertificate.server_certificate_id==ServerCertificate.id",
+    private_key = sa.orm.relationship(
+        "PrivateKey",
+        primaryjoin="QueueCertificate.private_key_id==PrivateKey.id",
         uselist=False,
     )
-
-    server_certificate__renewed = sa.orm.relationship(
+    server_certificate__generated = sa.orm.relationship(
         "ServerCertificate",
-        primaryjoin="QueueCertificate.server_certificate_id__renewed==ServerCertificate.id",
+        primaryjoin="QueueCertificate.server_certificate_id__generated==ServerCertificate.id",
         uselist=False,
     )
-
+    server_certificate__source = sa.orm.relationship(
+        "ServerCertificate",
+        primaryjoin="QueueCertificate.server_certificate_id__source==ServerCertificate.id",
+        uselist=False,
+    )
     unique_fqdn_set = sa.orm.relationship(
         "UniqueFQDNSet",
         primaryjoin="QueueCertificate.unique_fqdn_set_id==UniqueFQDNSet.id",
         uselist=False,
-        back_populates="queue_certificates",
+    )
+    unique_fqdn_set__source = sa.orm.relationship(
+        "UniqueFQDNSet",
+        primaryjoin="QueueCertificate.unique_fqdn_set_id__source==UniqueFQDNSet.id",
+        uselist=False,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @property
-    def renewal_AccountKey(self):
-        "returns a valid AccountKey or NONE"
-        if self.server_certificate:
-            if self.server_certificate.acme_account_key_id:
-                if self.server_certificate.acme_account_key.is_active:
-                    return self.server_certificate.acme_account_key
-        return None
-
-    @property
-    def renewal_PrivateKey(self):
-        "returns a valid Private or NONE"
-        if self.server_certificate:
-            if self.server_certificate.private_key_id:
-                if self.server_certificate.private_key.is_active:
-                    return self.server_certificate.private_key
-        return None
 
     @property
     def domains_as_list(self):
@@ -1875,14 +1930,20 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     def as_json(self):
         return {
             "id": self.id,
-            "server_certificate_id": self.server_certificate_id,
             "process_result": self.process_result,
-            "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "timestamp_entered": self.timestamp_entered_isoformat,
             "timestamp_processed": self.timestamp_processed_isoformat,
             "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
             "is_active": True if self.is_active else False,
-            "server_certificate_id__renewed": self.server_certificate_id__renewed,
+            "account_key_id": self.account_key_id,
+            "private_key_id": self.private_key_id,
+            "unique_fqdn_set_id": self.unique_fqdn_set_id,
+            "acme_order_id__source": self.acme_order_id__source,
+            "acme_order_id__generated": self.acme_order_id__generated,
+            "certificate_request_id__generated": self.certificate_request_id__generated,
+            "server_certificate_id__source": self.server_certificate_id__source,
+            "server_certificate_id__generated": self.server_certificate_id__generated,
+            "unique_fqdn_set_id__source": self.unique_fqdn_set_id__source,
         }
 
 

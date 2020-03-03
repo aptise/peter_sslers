@@ -153,6 +153,18 @@
                             % endif
                         </td>
                     </tr>
+                    <tr>
+                        <th>acme_order_id__created</th>
+                        <td>
+                            % if AcmeAuthorization.acme_order_id__created:
+                                <a class="label label-info" href="${admin_prefix}/acme-order/${AcmeAuthorization.acme_order_id__created}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeOrder-${AcmeAuthorization.acme_order_id__created}</a>
+                            % endif
+                        </td>
+                    </tr>
+                    
+                    
                 </tbody>
                 <thead>
                     <tr>

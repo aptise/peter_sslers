@@ -189,14 +189,13 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         try:
             if not dbAcmeChallenge.is_can_acme_server_trigger:
                 raise errors.InvalidRequest(
-                    "ACME Server Trugger is not allowed for this AcmeChallenge"
+                    "ACME Server Trigger is not allowed for this AcmeChallenge"
                 )
             result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
             )
             return HTTPSeeOther(
-                "%s?result=success&operation=acme+server+trigger"
-                % self._focus_url
+                "%s?result=success&operation=acme+server+trigger" % self._focus_url
             )
         except (
             errors.AcmeCommunicationError,

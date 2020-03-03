@@ -154,7 +154,9 @@ def PrivateKey_compromised(ctx, privateKey, dbOperationsEvent=None):
 
     # okay, now try to requeue items
     revoked_fqdns_ids = list(revoked_fqdn_ids_2_certs.keys())
-    result = lib.db.queues.queue_certificates__update(ctx, fqdns_ids_only=revoked_fqdns_ids)
+    result = lib.db.queues.queue_certificates__update(
+        ctx, fqdns_ids_only=revoked_fqdns_ids
+    )
 
     event_payload = dbOperationsEvent.event_payload_json
     event_payload["revoked.certificates"] = {

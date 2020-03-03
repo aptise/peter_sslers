@@ -134,20 +134,26 @@ def _get__AcmeAuthorization__core(ctx, active_only=False, expired_only=False):
         )
     if expired_only:
         query = query.filter(
-            model_objects.AcmeAuthorization.timestamp_expires.op('IS NOT')(None),
+            model_objects.AcmeAuthorization.timestamp_expires.op("IS NOT")(None),
             model_objects.AcmeAuthorization.timestamp_expires < ctx.timestamp,
         )
     return query
 
 
 def get__AcmeAuthorization__count(ctx, active_only=False, expired_only=False):
-    query = _get__AcmeAuthorization__core(ctx, active_only=active_only, expired_only=expired_only)
+    query = _get__AcmeAuthorization__core(
+        ctx, active_only=active_only, expired_only=expired_only
+    )
     counted = query.count()
     return counted
 
 
-def get__AcmeAuthorization__paginated(ctx, limit=None, offset=0, active_only=False, expired_only=False):
-    query = _get__AcmeAuthorization__core(ctx, active_only=active_only, expired_only=expired_only)
+def get__AcmeAuthorization__paginated(
+    ctx, limit=None, offset=0, active_only=False, expired_only=False
+):
+    query = _get__AcmeAuthorization__core(
+        ctx, active_only=active_only, expired_only=expired_only
+    )
     query = (
         query.order_by(model_objects.AcmeAuthorization.id.desc())
         .limit(limit)
@@ -198,7 +204,7 @@ def _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
         )
     if expired_only:
         query = query.filter(
-            model_objects.AcmeAuthorization.timestamp_expires.op('IS NOT')(None),
+            model_objects.AcmeAuthorization.timestamp_expires.op("IS NOT")(None),
             model_objects.AcmeAuthorization.timestamp_expires < ctx.timestamp,
         )
     return query
@@ -207,14 +213,23 @@ def _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
 def get__AcmeAuthorization__by_AcmeAccountKeyId__count(
     ctx, acme_account_key_id, active_only=False, expired_only=False
 ):
-    query = _get__AcmeAuthorization__by_AcmeAccountKeyId__core(ctx, acme_account_key_id, active_only=active_only, expired_only=expired_only)
+    query = _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
+        ctx, acme_account_key_id, active_only=active_only, expired_only=expired_only
+    )
     return query.count()
 
 
 def get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
-    ctx, acme_account_key_id, active_only=False, expired_only=False, limit=None, offset=0,
+    ctx,
+    acme_account_key_id,
+    active_only=False,
+    expired_only=False,
+    limit=None,
+    offset=0,
 ):
-    query = _get__AcmeAuthorization__by_AcmeAccountKeyId__core(ctx, acme_account_key_id, active_only=active_only, expired_only=expired_only)
+    query = _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
+        ctx, acme_account_key_id, active_only=active_only, expired_only=expired_only
+    )
     query = (
         query.order_by(model_objects.AcmeAuthorization.id.desc())
         .limit(limit)
@@ -1451,15 +1466,8 @@ def get__QueueCertificate__paginated(
 
 
 def get__QueueCertificate__by_id(ctx, set_id, load_events=None):
-    q = (
-        ctx.dbSession.query(model_objects.QueueCertificate)
-        .filter(model_objects.QueueCertificate.id == set_id)
-        .options(
-            sqlalchemy.orm.subqueryload("server_certificate")
-            .joinedload("unique_fqdn_set")
-            .joinedload("to_domains")
-            .joinedload("domain")
-        )
+    q = ctx.dbSession.query(model_objects.QueueCertificate).filter(
+        model_objects.QueueCertificate.id == set_id
     )
     if load_events:
         q = q.options(sqlalchemy.orm.subqueryload("operations_object_events"))
@@ -1756,8 +1764,7 @@ def get__UniqueFQDNSet__paginated(ctx, eagerload_web=False, limit=None, offset=0
     q = ctx.dbSession.query(model_objects.UniqueFQDNSet)
     if eagerload_web:
         q = q.options(sqlalchemy.orm.joinedload("to_domains").joinedload("domain"))
-    else:
-        q = q.order_by(model_objects.UniqueFQDNSet.id.desc())
+    q = q.order_by(model_objects.UniqueFQDNSet.id.desc())
     q = q.limit(limit).offset(offset)
     items_paged = q.all()
     return items_paged

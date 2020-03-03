@@ -63,8 +63,21 @@ Good to go?  Ok, run pebble!
 To have all challenge POST requests succeed without performing any validation run:
 
 	cd $GOPATH/src/github.com/letsencrypt/pebble
-	PEBBLE_VA_ALWAYS_VALID=1 pebble -config ./test/config/pebble-config.json
+	PEBBLE_VA_ALWAYS_VALID=1 PEBBLE_AUTHZREUSE=100 PEBBLE_VA_NOSLEEP=1 pebble -config ./test/config/pebble-config.json
+
+## Integrated Testing
+
+The tools directory has a list of nginx files (`tools/nginx_conf`) .
+
+The `/tools/lazy.conf` configuration file has a catch-all route to proxy everything to the Pyramid app. 
+
+If you set up some domains pointing to localhost (such as `dev.aptise.com` which has a public dns record to `127.0.0.1` you don't need to do any fancy iptables stuff.
+
 
 ## ACME v1 Testing
 
 ACME v1 is no longer supported in peter_sslers.
+
+
+
+a.example.com, b.example.com, c.example.com, d.example.com, e.example.com, f.example.com, g.example.com, h.example.com, i.example.com, j.example.com, k.example.com, l.example.com, m.example.com, n.example.com, o.example.com, p.example.com, q.example.com, r.example.com, s.example.com, t.example.com, u.example.com, v.example.com, w.example.com, x.example.com, y.example.com, z.example.com

@@ -46,15 +46,26 @@
                     <tr>
                         <th>Sync</th>
                         <td>
-                            <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
-                            <a
-                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
-                                class="btn btn-xs btn-info ${sync_btn_class}"
-                            >
-                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                Sync Order Against ACME Server
-                            </a>
-                        
+                            <p>
+                                <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
+                                    class="btn btn-xs btn-info ${sync_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Sync Order Against ACME Server
+                                </a>
+                            </p>
+                            <p>
+                                <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync-authorizations"
+                                    class="btn btn-xs btn-info ${sync_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Sync Authorizations Against ACME Server
+                                </a>
+                            </p>
                         </td>
                     </tr>
                     <tr>
@@ -117,6 +128,16 @@
                         <th>Order Type</th>
                         <td><span class="label label-default">${AcmeOrder.acme_order_type}</span></td>
                     </tr>
+
+                    <tr>
+                        <th>Processing Strategy</th>
+                        <td><span class="label label-default">${AcmeOrder.acme_order_processing_strategy}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Processing Stratus</th>
+                        <td><span class="label label-default">${AcmeOrder.acme_order_processing_status}</span></td>
+                    </tr>
+
                     <tr>
                         <th>is_active</th>
                         <td>
@@ -146,8 +167,6 @@
                             % endif
                         </td>
                     </tr>
-
-
                     <tr>
                         <th>is_auto_renew</th>
                         <td>
@@ -184,11 +203,11 @@
 
                             <% renew_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${renew_btn_class}"
-                                href="${admin_prefix}/queue-certificate/new?acme-order=${AcmeOrder.id}"
+                                href="${admin_prefix}/queue-certificate/new?queue_source=AcmeOrder&acme_order=${AcmeOrder.id}"
                                 title="Queue a renewal with same AcmeAccount."
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                Queue a Renewal
+                                Queue a Renewal ServerCertificate
                             </a>
                             &nbsp;
 
@@ -212,8 +231,6 @@
                             </a>
                         </td>
                     </tr>
-                
-
 
                     <tr>
                         <th>status</th>
@@ -230,8 +247,25 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>AcmeAccountKey</th>
+                        <td>
+                            <a
+                                class="label label-info"
+                                href="${admin_prefix}/acme-account-key/${AcmeOrder.acme_account_key_id}"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeAccountKey-${AcmeOrder.acme_account_key_id}
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>order_url</th>
                         <td><code>${AcmeOrder.order_url or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>finalize_url</th>
+                        <td><code>${AcmeOrder.finalize_url or ''}</code>
                         </td>
                     </tr>
                     <tr>
@@ -245,24 +279,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>finalize_url</th>
-                        <td><code>${AcmeOrder.finalize_url or ''}</code>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>acme_account_key_id</th>
-                        <td>
-                            <a
-                                class="label label-info"
-                                href="${admin_prefix}/acme-account-key/${AcmeOrder.acme_account_key_id}"
-                            >
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountKey-${AcmeOrder.acme_account_key_id}
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>certificate_request_id</th>
+                        <th>CertificateRequest</th>
                         <td>
                             % if AcmeOrder.certificate_request_id:
                                 <a
@@ -276,7 +293,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>private_key_id</th>
+                        <th>PrivateKey</th>
                         <td>
                             % if AcmeOrder.private_key_id is not None:
                                 <a
@@ -290,7 +307,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>server_certificate_id</th>
+                        <th>ServerCertificate</th>
                         <td>
                             % if AcmeOrder.server_certificate_id:
                                 <a
@@ -298,13 +315,13 @@
                                     href="${admin_prefix}/server-certificate/${AcmeOrder.server_certificate_id}"
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    Certificate-${AcmeOrder.server_certificate_id}
+                                    ServerCertificate-${AcmeOrder.server_certificate_id}
                                 </a>
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>unique_fqdn_set_id</th>
+                        <th>UniqueFQDNSet</th>
                         <td>
                             <a
                                 class="label label-info"
@@ -324,7 +341,7 @@
                     </tr>
 
                     <tr>
-                        <th>acme_order_id__retry_of</th>
+                        <th>AcmeOrder - Retry Of</th>
                         <td>
                             % if AcmeOrder.acme_order_id__retry_of:
                                 <a
@@ -338,7 +355,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>acme_order_id__renewal_of</th>
+                        <th>AcmeOrder - Renewal Of</th>
                         <td>
                             % if AcmeOrder.acme_order_id__renewal_of:
                                 <a

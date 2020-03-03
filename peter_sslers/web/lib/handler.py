@@ -87,7 +87,8 @@ class Handler(object):
         """
         if not self.request.registry.settings["enable_nginx"]:
             raise HTTPFound(
-                "%s?result=error&error=no+nginx" % self.request.registry.settings["admin_prefix"]
+                "%s?result=error&error=no+nginx"
+                % self.request.registry.settings["admin_prefix"]
             )
 
     def _ensure_redis(self):
@@ -96,7 +97,8 @@ class Handler(object):
         """
         if not self.request.registry.settings["enable_redis"]:
             raise HTTPFound(
-                "%s?result=error&error=no+redis" % self.request.registry.settings["admin_prefix"]
+                "%s?result=error&error=no+redis"
+                % self.request.registry.settings["admin_prefix"]
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -109,6 +111,15 @@ class Handler(object):
             self.request.api_context, active_only=True
         )
         return self.dbAcmeAccountKeyDefault
+
+    def _load_AcmeAccountProviders(self):
+        """
+        Loads the options for :class:`model.objects.AcmeAccountProvider` into the view's :attr:`.dbAcmeAccountProviders`.
+        """
+        self.dbAcmeAccountProviders = db.get.get__AcmeAccountProviders__paginated(
+            self.request.api_context, is_enabled=True
+        )
+        return self.dbAcmeAccountProviders
 
     def _load_PrivateKeyDefault(self):
         """

@@ -79,7 +79,7 @@ Most of us hate having to spend time on DevOps tasks. Personally, I would rather
 
 This largely works for certificate management, manual/queued renewal and for transitions.
 
-The endpoint related to "requesting" domains and handling dynamic queues of new Certificates do not work yet.
+The endpoint related to "requesting" Domains and handling dynamic queues of new Certificates do not work yet.
 
 
 # An important WARNING:
@@ -91,7 +91,7 @@ The endpoint related to "requesting" domains and handling dynamic queues of new 
 
 # The Components
 
-## "Peter SSLers" - a Pyramid Application
+## "Peter SSLers" - a `Pyramid` Application
 
 "Peter SSLers" is the core toolkit. It is a `Pyramid` application that can be spun up as a webserver or used via a commandline interface. Peter is your friend and handles all of the Certificate Management and translation functions for you. He's a bit eccentric, but basically a good guy.
 
@@ -120,9 +120,13 @@ The "/tools" directory contains scripts useful for certificate operations. Curre
 
 ## Unique Fully Qualified Domain Sets (UniqueFQDNSet)
 
-One of the LetsEncrypt service's ratelimits is based on a Certificate Request's "uniqueness" of domains.
+One of the LetsEncrypt service's ratelimits is based on a Certificate Request's "uniqueness" of Domains.
 
-To more easily deal with this limit, Orders/Certificates/CertificateRequests are designed around the idea of a "UniqueFQDNSet"
+To more easily deal with this limit, Orders/Certificates/CertificateRequests are designed around the idea of a "UniqueFQDNSet" and not a single Domain.
+
+When requesting a new certificate or importing existing ones, most of this happens behind-the-scenes: a listing of Domains is turned into a unique set of Domain names.
+
+
 
 ## Certificates and Certificate Requests
 
@@ -135,7 +139,7 @@ This handles several types of certificate requests
 ## Input
 
 1. An admin dashboard allows you to upload Certificates (in a triplet of Cert, Signing Key, CA-Chain)
-2. An admin dashboard allows you to initiate LetsEncrypt certificate signing. Upload a list of domains, your LetsEncrypt account key, and private key used for signing/serving, and the system will generate the CSR and perform all the verifications.
+2. An admin dashboard allows you to initiate LetsEncrypt certificate signing. Upload a list of Domains, your LetsEncrypt account key, and private key used for signing/serving, and the system will generate the CSR and perform all the verifications.
 3. A public interface allows you to proxypass the acme-challenges that LetsEncrypt issues for manual verification. (ie, run this behind `Nginx`)
 4. You can run the 'webserver' on a private IP, and `curl` data into it via the commandline or miscellaneous scripts
 
@@ -149,13 +153,13 @@ This handles several types of certificate requests
 ## Management
 
 * Everything is in the RDBMS and de-duped.
-* chains are built on-the-fly.
+* certificate chains are built on-the-fly.
 * a growing API powers most functionality
 * public and admin routes can be isolated in the app & firewall, so you can just turn this on/off as needed
-* you can easily see when Certificates and/or domains expire and need to be renewed
+* you can easily see when Certificates and/or Domains expire and need to be renewed
 * if SQLite is your backend, you can just run this for signing and deployment; then handle everything else offline.
 * "Admin" and "Public" functions are isolated from each other. By changing the config, you can run a public-only "validation" interface or enable the admin tools that broadcast certificate information.
-* the Pyramid server can query `Nginx` locations to clear out the shared cache 
+* the `Pyramid` server can query `Nginx` locations to clear out the shared cache 
 
 
 # Installation
@@ -189,9 +193,9 @@ Editing the `example_development.ini` file will let you specify how the package 
 
 `Pyramid` applications are based on `.ini` configuration files.  You can use multiple files to deploy the server differently on the same machine, or on different environments.
 
-You can run this on SQLite or switch to Posgtresql by adjusting the sqlalchemy url
+You can run this on SQLite or switch to PosgtreSQL by adjusting the SqlAlchemy url
 
-If you run via sqlalchemy, you'll need to setup the database BEFORE running `initialize_peter_sslers_db`
+If you run via PosgtreSQL, you'll need to setup the database BEFORE running `initialize_peter_sslers_db`
 
 roughly, that entails...
 
@@ -245,17 +249,17 @@ By default, the `example_production.ini` file won't even run the admin tools.  t
 
 Again, the purpose of this package is to enable certificate management in systems where one or more of the following apply:
 
-* you have a lot of domains
+* you have a lot of Domains
 * you have a lot of machines
-* your domains resolve to more than one IP address
+* your Domains resolve to more than one IP address
 
-Imagine you want to issue a certificate for 100 domains, which could be served from any one of 5 machines (load balancers or round-robin dns) and the Certificates need to be deployable to all 5 machines.
+Imagine you want to issue a certificate for 100 Domains, which could be served from any one of 5 machines (load balancers or round-robin dns) and the Certificates need to be deployable to all 5 machines.
 
 To solve this you can:
 
 * proxy external ` /.well-known/acme-challenge/` to one or more machines running this tool (they just need to share a common datastore)
 * make ` /.well-known/admin` only usable within your LAN or NEVER USABLE
-* on a machine within your LAN, you can query for the latest certs for domain(s) using simple `curl` commands
+* on a machine within your LAN, you can query for the latest certs for Domain(s) using simple `curl` commands
 
 In a more advanced implementation (such as what this was originally designed to manage) the Certificates need to be loaded into a `Redis` server for use by an `OpenResty`/`Nginx` webserver/gateway that will dynamically handle ssl Certificates.
 
@@ -385,9 +389,9 @@ right now the invoke script offers:
 * `import-certbot-cert-version` given a specific directory of your LetsEncrypt archive, it will import specific items
 * `import-certbot-cert-plain` given a directory of an unversioned cert (like a particular directory within the "live" certs), will import it.
 
-* `import_certbot_account` import a specific LetsEncrypt account
-* `import_certbot_accounts_server` import all accounts for a LetsEncrypt server (i.e. v1, v1-staging)
-* `import_certbot_accounts_all` import all accounts for all LetsEncrypt servers
+* `import-certbot-account` import a specific LetsEncrypt account
+* `import-certbot-accounts-server` import all accounts for a LetsEncrypt server (i.e. v1, v1-staging)
+* `import-certbot-accounts-all` import all accounts for all LetsEncrypt servers
 
 
 ## Commandline Interface
@@ -400,7 +404,7 @@ You can interact with this project via a commandline interface in several ways.
 
 ## `OpenResty`/`Nginx` Lua integration
 
-The `OpenResty`/`Nginx` implementation was migrated to it's own project, handled by `opm` distribution
+The `OpenResty`/`Nginx` implementation was migrated to a dedicated sibling repository, handled by `opm` distribution
 
 https://github.com/aptise/peter_sslers-lua-resty
 
@@ -409,10 +413,12 @@ https://github.com/aptise/peter_sslers-lua-resty
 
 ## prequest
 
-You can use Pyramid's `prequest` syntax to spin up a URL and get or post data
+You can use Pyramid's `prequest` syntax to spin up a URL and GET/POST data
 
 `$VENV/bin/prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json`
 `$VENV/bin/prequest example_development.ini /.well-known/admin/api/redis/prime.json`
+
+using `prequest` is recommended in most contexts, because it will not timeout. this will allow for long-running processes.
 
 
 ## Routes Designed for JSON Automation

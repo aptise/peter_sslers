@@ -220,7 +220,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     def _focus_mark__submit(self, dbPrivateKey):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_PrivateKey_mark, validate_get=True
+                self.request, schema=Form_PrivateKey_mark, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()

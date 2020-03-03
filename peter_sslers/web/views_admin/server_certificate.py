@@ -18,7 +18,6 @@ from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.forms import Form_Certificate_mark
-from ..lib.forms import Form_Certificate_Renewal_Custom
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -499,7 +498,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     def _mark__submit(self, dbServerCertificate):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_Certificate_mark, validate_get=True
+                self.request, schema=Form_Certificate_mark, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()

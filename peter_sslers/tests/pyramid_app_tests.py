@@ -1770,19 +1770,25 @@ class FunctionalTests_QueueCertificate(AppTest):
         )
         # paginated
         res = self.testapp.get("/.well-known/admin/queue-certificates/1", status=200)
-        res = self.testapp.get("/.well-known/admin/queue-certificates/all/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/all/1", status=200
+        )
         res = self.testapp.get(
             "/.well-known/admin/queue-certificates/active-failures/1", status=200
         )
 
         # root|json
         res = self.testapp.get("/.well-known/admin/queue-certificates.json", status=200)
-        res = self.testapp.get("/.well-known/admin/queue-certificates/all.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/all.json", status=200
+        )
         res = self.testapp.get(
             "/.well-known/admin/queue-certificates/active-failures.json", status=200
         )
         # paginated|json
-        res = self.testapp.get("/.well-known/admin/queue-certificates/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/1.json", status=200
+        )
         res = self.testapp.get(
             "/.well-known/admin/queue-certificates/all/1.json", status=200
         )
@@ -1807,7 +1813,9 @@ class FunctionalTests_QueueCertificate(AppTest):
         # todo
         if DISABLE_UNWRITTEN_TESTS:
             return True
-        res = self.testapp.get("/.well-known/admin/queue-certificates/process", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/process", status=200
+        )
         res = self.testapp.get(
             "/.well-known/admin/queue-certificates/process.json", status=200
         )

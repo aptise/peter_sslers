@@ -33,13 +33,6 @@
         <div class="col-sm-4">
             <h3>Enrolled Records</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/certificate-requests"
-                       title="${request.text_library.info_CertificateRequests[0]}"
-                    >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    certificate-requests
-                    </a>
-                    </li>
                 <li><a href="${admin_prefix}/domains"
                        title="${request.text_library.info_Domains[0]}"
                     >
@@ -78,7 +71,7 @@
                     acme-event-logs</a></li>
             </ul>
 
-            <h3>Recordkeeping - ACME Records</h3>
+            <h3>Recordkeeping - ACME & Objects</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/acme-account-keys"
                        title="${request.text_library.info_AcmeAccountKeys[0]}"
@@ -103,11 +96,17 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-orderless</a></li>
+                <li><a href="${admin_prefix}/certificate-requests"
+                       title="${request.text_library.info_CertificateRequests[0]}"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    certificate-requests
+                    </a></li>
             </ul>
 
 
 
-            <h3>Recordkeeping</h3>
+            <h3>Queues</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/queue-domains"
                     >

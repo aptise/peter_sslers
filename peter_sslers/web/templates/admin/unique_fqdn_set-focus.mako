@@ -100,11 +100,11 @@
                         <td>
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/queue-certificate/new?unique-fqdn-set=${UniqueFQDNSet.id}"
-                                title="Queue a certificate"
+                                href="${admin_prefix}/queue-certificate/new?queue_source=UniqueFQDNSet&unique_fqdn_set=${UniqueFQDNSet.id}"
+                                title="Queue a ServerCertificate"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                queue a certificate
+                                Queue a Renewal ServerCertificate
                             </a>
 
                         </td>

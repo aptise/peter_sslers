@@ -19,6 +19,7 @@ from ..lib import form_utils as form_utils
 from ..lib import text as lib_text
 from ..lib.forms import Form_AcmeOrder_new_automated
 from ..lib.forms import Form_AcmeOrder_renew_custom
+from ..lib.forms import Form_AcmeOrder_renew_quick
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import acme_v2
@@ -182,6 +183,35 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:acme_order:focus:acme_server_sync_authorizations",
+        renderer=None,
+    )
+    def acme_server_sync_authorizations(self):
+        """
+        sync any auths on the server.
+        """
+        dbAcmeOrder = self._focus(eagerload_web=True)
+        try:
+            if not dbAcmeOrder.is_can_acme_server_sync:
+                raise errors.InvalidRequest(
+                    "ACME Server Sync is not allowed for this AcmeOrder"
+                )
+            result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+            )
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme+server+sync+authorizations"
+                % self._focus_url
+            )
+        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            return HTTPSeeOther(
+                "%s?result=error&error=acme+server+sync+authorizations&message=%s"
+                % (self._focus_url, exc.to_querystring())
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
         route_name="admin:acme_order:focus:acme_server_deactivate_authorizations",
         renderer=None,
     )
@@ -210,14 +240,15 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:acme_order:focus:finalize", renderer=None)
-    def finalize_order(self):
+    @view_config(route_name="admin:acme_order:focus:process", renderer=None)
+    @view_config(route_name="admin:acme_order:focus:process|json", renderer="json")
+    def process_order(self):
         """
         only certain orders can be finalized
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
-            if not dbAcmeOrder.finalize:
+            if not dbAcmeOrder.is_can_process_authorizations:
                 raise errors.InvalidRequest(
                     "ACME Finalize is not allowed for this AcmeOrder"
                 )
@@ -234,7 +265,38 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             # )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
-                "%s?result=error&error=finalize&message=%s" % (self._focus_url, exc.to_querystring())
+                "%s?result=error&error=finalize&message=%s"
+                % (self._focus_url, exc.to_querystring())
+            )
+
+
+    @view_config(route_name="admin:acme_order:focus:finalize", renderer=None)
+    @view_config(route_name="admin:acme_order:focus:finalize|json", renderer="json")
+    def finalize_order(self):
+        """
+        only certain orders can be finalized
+        """
+        dbAcmeOrder = self._focus(eagerload_web=True)
+        try:
+            if not dbAcmeOrder.is_can_finalize:
+                raise errors.InvalidRequest(
+                    "ACME Finalize is not allowed for this AcmeOrder"
+                )
+            (dbAcmeOrder, exc) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
+                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+            )
+            if not exc:
+                return HTTPSeeOther(
+                    "%s?result=success&operation=finalize+order" % self._focus_url
+                )
+            raise exc
+            # return HTTPSeeOther(
+            #    "%s?result=error&error=could+not+finalize&operation=finalize+order" % self._focus_url
+            # )
+        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            return HTTPSeeOther(
+                "%s?result=error&error=finalize&message=%s"
+                % (self._focus_url, exc.to_querystring())
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -300,7 +362,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
         except (errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
-                "%s?result=error&error=invalid&message=%s" % (self._focus_url, exc.to_querystring())
+                "%s?result=error&error=invalid&message=%s"
+                % (self._focus_url, exc.to_querystring())
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -335,7 +398,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             raise exc
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
-                "%s?result=error&error=retry&message=%s" % (self._focus_url, exc.to_querystring())
+                "%s?result=error&error=retry&message=%s"
+                % (self._focus_url, exc.to_querystring())
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -347,6 +411,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         This endpoint is for Immediately Renewing the AcmeOrder with overrides on the keys
         """
         self._load_AccountKeyDefault()
+        self._load_AcmeAccountProviders()
         self._load_PrivateKeyDefault()
         if self.request.method == "POST":
             return self._renew_custom__submit()
@@ -356,16 +421,13 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         dbAcmeOrder = self._focus()
         if not dbAcmeOrder.is_renewable_custom:
             raise errors.DisplayableError("This AcmeOrder can not use RenewCustom")
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
-            self.request.api_context, is_enabled=True
-        )
         return render_to_response(
             "/admin/acme_order-focus-renew-custom.mako",
             {
                 "AcmeOrder": dbAcmeOrder,
                 "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
+                "AcmeAccountProviders": self.dbAcmeAccountProviders,
                 "PrivateKey_Default": self.dbPrivateKeyDefault,
-                "AcmeAccountProviders": dbAcmeAccountProviders,
             },
             self.request,
         )
@@ -382,12 +444,16 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             if not result:
                 raise formhandling.FormInvalid()
 
-            (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(self.request, formStash)
+            (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(
+                self.request, formStash
+            )
+            processing_strategy = formStash.results["processing_strategy"]
             (
                 dbAcmeOrderNew,
                 exc,
             ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
                 self.request.api_context,
+                processing_strategy=processing_strategy,
                 dbAcmeOrder=dbAcmeOrder,
                 dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
                 dbPrivateKey=privateKeySelection.PrivateKey,
@@ -407,9 +473,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
                 return {"status": "error", "error": str(exc)}
-            url_failure = (
-                "%s?result=error&error=%s&operation=renew+custom"
-                % (self._focus_url, exc.to_querystring())
+            url_failure = "%s?result=error&error=%s&operation=renew+custom" % (
+                self._focus_url,
+                exc.to_querystring(),
             )
             raise HTTPSeeOther(url_failure)
         except formhandling.FormInvalid as exc:
@@ -442,11 +508,19 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         try:
             if not dbAcmeOrder.is_renewable_quick:
                 raise errors.DisplayableError("This AcmeOrder can not use QuickRenew")
+
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_AcmeOrder_renew_quick, validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+            processing_strategy = formStash.results["processing_strategy"]
             (
                 dbAcmeOrderNew,
                 exc,
             ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_quick(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                processing_strategy=processing_strategy,
             )
             if exc:
                 raise exc
@@ -463,11 +537,13 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
                 return {"status": "error", "error": str(exc)}
-            url_failure = (
-                "%s?result=error&error=%s&operation=renew+quick"
-                % (self._focus_url, exc.to_querystring())
+            url_failure = "%s?result=error&error=%s&operation=renew+quick" % (
+                self._focus_url,
+                exc.to_querystring(),
             )
             raise HTTPSeeOther(url_failure)
+        except formhandling.FormInvalid as exc:
+            return formhandling.form_reprint(self.request, self._renew_quick__print)
 
 
 # ------------------------------------------------------------------------------
@@ -477,21 +553,19 @@ class ViewAdmin_New(Handler):
     @view_config(route_name="admin:acme_order:new:automated")
     def new_automated(self):
         self._load_AccountKeyDefault()
+        self._load_AcmeAccountProviders()
         self._load_PrivateKeyDefault()
         if self.request.method == "POST":
             return self._new_automated__submit()
         return self._new_automated__print()
 
     def _new_automated__print(self):
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
-            self.request.api_context, is_enabled=True
-        )
         return render_to_response(
             "/admin/acme_order-new-automated.mako",
             {
                 "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
+                "AcmeAccountProviders": self.dbAcmeAccountProviders,
                 "PrivateKey_Default": self.dbPrivateKeyDefault,
-                "AcmeAccountProviders": dbAcmeAccountProviders,
             },
             self.request,
         )
@@ -513,7 +587,6 @@ class ViewAdmin_New(Handler):
                 formStash.fatal_field(
                     field="domain_names", message="invalid domain names detected"
                 )
-
             if not domain_names:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
@@ -570,6 +643,8 @@ class ViewAdmin_New(Handler):
                         message="Could not load the default private key",
                     )
                 privateKeySelection.PrivateKey = dbPrivateKey
+
+            processing_strategy = formStash.results["processing_strategy"]
             try:
                 (
                     dbAcmeOrder,
@@ -578,6 +653,7 @@ class ViewAdmin_New(Handler):
                     self.request.api_context,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
                     domain_names=domain_names,
+                    processing_strategy=processing_strategy,
                     dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
                     dbPrivateKey=privateKeySelection.PrivateKey,
                 )
@@ -585,7 +661,11 @@ class ViewAdmin_New(Handler):
                     if isinstance(exc, errors.AcmeError):
                         return HTTPSeeOther(
                             "%s/acme-order/%s?result=error&error=new-automated&message=%s"
-                            % (self.request.registry.settings["admin_prefix"], dbAcmeOrder.id, exc.to_querystring(),)
+                            % (
+                                self.request.registry.settings["admin_prefix"],
+                                dbAcmeOrder.id,
+                                exc.to_querystring(),
+                            )
                         )
                     raise exc
                 return HTTPSeeOther(

@@ -467,7 +467,9 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:queue_certificates:process", renderer=None)
-    @view_config(route_name="admin:api:queue_certificates:process|json", renderer="json")
+    @view_config(
+        route_name="admin:api:queue_certificates:process|json", renderer="json"
+    )
     def queue_certificate_process(self):
         try:
             queue_results = lib_db.queues.queue_certificates__process(

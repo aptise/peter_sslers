@@ -294,9 +294,7 @@ def parse_PrivateKeySelection(request, formStash, seek_selected=None):
 
 def form_key_selection(request, formStash):
     accountKeySelection = parse_AccountKeySelection(
-        request,
-        formStash,
-        seek_selected=formStash.results["account_key_option"],
+        request, formStash, seek_selected=formStash.results["account_key_option"],
     )
     if accountKeySelection.selection == "upload":
         key_create_args = accountKeySelection.upload_parsed.getcreate_args
@@ -304,18 +302,13 @@ def form_key_selection(request, formStash):
         key_create_args[
             "acme_account_key_source_id"
         ] = model_utils.AcmeAccountKeySource.from_string("imported")
-        (
-            dbAcmeAccountKey,
-            _is_created,
-        ) = lib_db.getcreate.getcreate__AcmeAccountKey(
+        (dbAcmeAccountKey, _is_created,) = lib_db.getcreate.getcreate__AcmeAccountKey(
             request.api_context, **key_create_args
         )
         accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
 
     privateKeySelection = parse_PrivateKeySelection(
-        request,
-        formStash,
-        seek_selected=formStash.results["private_key_option"],
+        request, formStash, seek_selected=formStash.results["private_key_option"],
     )
 
     if privateKeySelection.selection == "upload":
@@ -333,9 +326,7 @@ def form_key_selection(request, formStash):
         privateKeySelection.PrivateKey = dbPrivateKey
 
     elif privateKeySelection.selection == "generate":
-        dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
-            request.api_context, 0
-        )
+        dbPrivateKey = lib_db.get.get__PrivateKey__by_id(request.api_context, 0)
         if not dbPrivateKey:
             formStash.fatal_field(
                 field="private_key_option",

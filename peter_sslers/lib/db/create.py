@@ -59,8 +59,6 @@ def create__AcmeOrderless(
             active_challenges.append(_active_challenge)
 
     if active_challenges:
-        print("Wtf")
-        pdb.set_trace()
         raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
     dbAcmeOrderless = model_objects.AcmeOrderless()
@@ -81,6 +79,8 @@ def create__AcmeOrder(
     ctx,
     acme_order_response=None,
     acme_order_type_id=None,
+    acme_order_processing_status_id=None,
+    acme_order_processing_strategy_id=None,
     is_auto_renew=None,
     order_url=None,
     dbAcmeAccountKey=None,
@@ -100,6 +100,8 @@ def create__AcmeOrder(
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param acme_order_response: (required) dictionary object from the server, representing an ACME payload
     :param acme_order_type_id: (required) What type of order is this? Valid options are in `:class:model.utils.AcmeOrderType`
+    :param acme_order_processing_status_id: (required) Valid options are in `:class:model.utils.AcmeOrder_ProcessingStatus`
+    :param acme_order_processing_strategy_id: (required) Valid options are in `:class:model.utils.AcmeOrder_ProcessingStrategy`
     :param is_auto_renew: (optional) should this be auto-renewed?
     :param order_url: (required) the url of the object
     :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` associated with the order
@@ -166,6 +168,8 @@ def create__AcmeOrder(
     dbAcmeOrder.order_url = order_url
     dbAcmeOrder.acme_order_type_id = acme_order_type_id
     dbAcmeOrder.acme_status_order_id = acme_status_order_id
+    dbAcmeOrder.acme_order_processing_status_id = acme_order_processing_status_id
+    dbAcmeOrder.acme_order_processing_strategy_id = acme_order_processing_strategy_id
     dbAcmeOrder.acme_account_key_id = dbAcmeAccountKey.id
     dbAcmeOrder.acme_event_log_id = dbEventLogged.id
     dbAcmeOrder.certificate_request_id = (
@@ -216,6 +220,7 @@ def create__AcmeChallenge(
     challenge_url=None,
     token=None,
     keyauthorization=None,
+    acme_status_challenge_id=model_utils.Acme_Status_Challenge.DEFAULT_ID,
     is_via_sync=None,
 ):
     """
@@ -227,7 +232,9 @@ def create__AcmeChallenge(
     :param challenge_url: (optional) challenge_url token
     :param token: (optional) string token
     :param keyauthorization: (optional) string keyauthorization
+    :param acme_status_challenge_id: (optional) An option from :class:`model_utils.Acme_Status_Challenge`.
     :param is_via_sync: (optional) boolean. if True will allow duplicate challenges as one is on the server
+    
     """
     if not any((dbAcmeOrderless, dbAcmeAuthorization)) or all(
         (dbAcmeOrderless, dbAcmeAuthorization)
@@ -264,9 +271,7 @@ def create__AcmeChallenge(
     dbAcmeChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
         "http-01"
     )
-    dbAcmeChallenge.acme_status_challenge_id = (
-        model_utils.Acme_Status_Challenge.DEFAULT_ID
-    )
+    dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
     dbAcmeChallenge.token = token
     dbAcmeChallenge.keyauthorization = keyauthorization
     dbAcmeChallenge.challenge_url = challenge_url
@@ -708,73 +713,84 @@ def create__ServerCertificate(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _create__QueueCertificate(ctx, serverCertificate):
+def create__QueueCertificate(
+    ctx,
+    dbAcmeAccountKey=None,
+    dbPrivateKey=None,
+    dbAcmeOrder=None,
+    dbServerCertificate=None,
+    dbUniqueFQDNSet=None,
+):
     """
     Queues an item for renewal
 
     This must happen within the context other events
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
+    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object
+
+    :param dbAcmeOrder: (optional) A :class:`model.objects.AcmeOrder` object
+    :param dbServerCertificate: (optional) A :class:`model.objects.ServerCertificate` object
+    :param dbUniqueFQDNSet: (optional) A :class:`model.objects.UniqueFQDNSet` object
+
+    one and only one of (dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet) should be supplied
+    
+    
+    :returns :class:`model.objects.QueueCertificate`
+
     """
-    if not ctx.dbOperationsEvent:
-        raise ValueError("This must happen WITHIN an operations event")
+    if not all((dbAcmeAccountKey, dbPrivateKey)):
+        raise ValueError("must supply both `dbAcmeAccountKey` and `dbPrivateKey`")
 
-    dbQueueCertificate = model_objects.QueueCertificate()
-    dbQueueCertificate.timestamp_entered = ctx.timestamp
-    dbQueueCertificate.timestamp_processed = None
-    dbQueueCertificate.server_certificate_id = serverCertificate.id
-    dbQueueCertificate.unique_fqdn_set_id = serverCertificate.unique_fqdn_set_id
-    dbQueueCertificate.operations_event_id__created = ctx.dbOperationsEvent.id
-    ctx.dbSession.add(dbQueueCertificate)
-    ctx.dbSession.flush(objects=[dbQueueCertificate])
+    if sum(bool(i) for i in (dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet,)) != 1:
+        raise ValueError(
+            "Provide one and only one of (`dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet`)"
+        )
 
-    event_payload = ctx.dbOperationsEvent.event_payload_json
-    event_payload["queue_certificate.id"] = dbQueueCertificate.id
-    ctx.dbOperationsEvent.set_event_payload(event_payload)
-    ctx.dbSession.flush(objects=[ctx.dbOperationsEvent])
+    # what are we renewing?
+    unique_fqdn_set_id = None
+    if dbAcmeOrder:
+        unique_fqdn_set_id = dbAcmeOrder.unique_fqdn_set_id
+    elif dbServerCertificate:
+        unique_fqdn_set_id = dbServerCertificate.unique_fqdn_set_id
+    elif dbUniqueFQDNSet:
+        unique_fqdn_set_id = dbUniqueFQDNSet.id
 
-    _log_object_event(
-        ctx,
-        dbOperationsEvent=ctx.dbOperationsEvent,
-        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            "QueueCertificate__insert"
-        ),
-        dbQueueCertificate=dbQueueCertificate,
+    # bookkeeping
+    event_payload_dict = utils.new_event_payload_dict()
+    dbOperationsEvent = log__OperationsEvent(
+        ctx, model_utils.OperationsEventType.from_string("QueueCertificate__insert")
     )
 
-    return dbQueueCertificate
-
-
-def _create__QueueCertificate_fqdns(ctx, unique_fqdn_set_id):
-    """
-    Queues an item for renewal
-
-    This must happen within the context other events
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param unique_fqdn_set_id: (required) The id of a :class:`model.objects.UniqueFQDNSet` object
-    """
-    if not ctx.dbOperationsEvent:
-        raise ValueError("This must happen WITHIN an operations event")
-
     dbQueueCertificate = model_objects.QueueCertificate()
     dbQueueCertificate.timestamp_entered = ctx.timestamp
     dbQueueCertificate.timestamp_processed = None
-    dbQueueCertificate.server_certificate_id = None
+    dbQueueCertificate.operations_event_id__created = dbOperationsEvent.id
+
+    # core elements
+    dbQueueCertificate.acme_account_key_id = dbAcmeAccountKey.id
+    dbQueueCertificate.private_key_id = dbPrivateKey.id
     dbQueueCertificate.unique_fqdn_set_id = unique_fqdn_set_id
-    dbQueueCertificate.operations_event_id__created = ctx.dbOperationsEvent.id
+    # the source elements
+    dbQueueCertificate.acme_order_id__source = dbAcmeOrder.id if dbAcmeOrder else None
+    dbQueueCertificate.server_certificate_id__source = (
+        dbServerCertificate.id if dbServerCertificate else None
+    )
+    dbQueueCertificate.unique_fqdn_set_id__source = (
+        dbUniqueFQDNSet.id if dbUniqueFQDNSet else None
+    )
+
     ctx.dbSession.add(dbQueueCertificate)
     ctx.dbSession.flush(objects=[dbQueueCertificate])
 
-    event_payload = ctx.dbOperationsEvent.event_payload_json
-    event_payload["queue_certificate.id"] = dbQueueCertificate.id
-    ctx.dbOperationsEvent.set_event_payload(event_payload)
-    ctx.dbSession.flush(objects=[ctx.dbOperationsEvent])
-
+    # more bookkeeping!
+    event_payload_dict["queue_certificate.id"] = dbQueueCertificate.id
+    dbOperationsEvent.set_event_payload(event_payload_dict)
+    ctx.dbSession.flush(objects=[dbOperationsEvent])
     _log_object_event(
         ctx,
-        dbOperationsEvent=ctx.dbOperationsEvent,
+        dbOperationsEvent=dbOperationsEvent,
         event_status_id=model_utils.OperationsObjectEventStatus.from_string(
             "QueueCertificate__insert"
         ),
@@ -791,6 +807,5 @@ __all__ = (
     "create__CertificateRequest",
     "create__ServerCertificate",
     "create__PrivateKey",
-    "_create__QueueCertificate",
-    "_create__QueueCertificate_fqdns",
+    "create__QueueCertificate",
 )

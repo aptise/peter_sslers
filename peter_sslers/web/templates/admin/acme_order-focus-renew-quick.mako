@@ -37,6 +37,9 @@
         <div class="col-sm-12">
 
             <h4>Renew the following?</h4>
+
+            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/quick" method="POST" style="display:inline;">
+
             <table class="table table-striped table-condensed">
                 <tbody>
                     <tr>
@@ -92,17 +95,23 @@
                     </tr>
                     <tr>
                         <th></th>
+                        <td></td>
                         <td>
-                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/quick" method="POST" style="display:inline;">
-                                <button class="btn btn-xs btn-primary" type="submit">
-                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                    Renew!
-                                </button>
-                            </form>
+                            ${admin_partials.formgroup__processing_strategy()}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <td>
+                            <button class="btn btn-xs btn-primary" type="submit">
+                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                Renew!
+                            </button>
                         </td>
                     </tr>
                 </tbody>
             </table>
+            </form>
         </div>
     </div>
 </%block>

@@ -6,13 +6,13 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li class="active">Queue: Renewals</li>
+        <li class="active">Queue: Certificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Queue: Renewals</h2>
+    <h2>Queue: Certificates</h2>
 </%block>
 
 
@@ -45,6 +45,8 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
+            ${admin_partials.standard_error_display()}
+            ${admin_partials.handle_querystring_result()}
             <%
                 results = request.params.get('results')
             %>
@@ -68,8 +70,10 @@
                     <thead>
                         <tr>
                             <th>id</th>
-                            <th>certificate_id</th>
-                            <th>unique fqdn</th>
+                            <th>Covering</th>
+                            <th>AcmeOrder<br/>source</th>
+                            <th>ServerCertificate<br/>source</th>
+                            <th>UniqueFqdnSource<br/>source</th>
                             <th>timestamp_entered</th>
                             <th>timestamp_process_attempt</th>
                             <th>timestamp_processed</th>
@@ -80,16 +84,35 @@
                         <tr>
                             <td><a class="label label-info" href="${admin_prefix}/queue-certificate/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${q.id}</a></td>
-                            <td>
-                                % if q.server_certificate_id:
-                                    <a class="label label-info" href="${admin_prefix}/server-certificate/${q.server_certificate_id}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    ServerCertificate-${q.server_certificate_id}</a></td>
-                                % endif
+                                ${q.id}</a>
+                            </td>
                             <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFQDNSet-${q.unique_fqdn_set_id}</a></td>
+                                UniqueFQDNSet-${q.unique_fqdn_set_id}</a>
+                                <br/>
+                                <code>${q.unique_fqdn_set.domains_as_string}</code>
+                            </td>
+                            <td>
+                                % if q.acme_order_id__source:
+                                    <a class="label label-info" href="${admin_prefix}/acme-order/${q.acme_order_id__source}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${q.acme_order_id__source}</a>
+                                % endif
+                            </td>
+                            <td>
+                                % if q.server_certificate_id__source:
+                                    <a class="label label-info" href="${admin_prefix}/server-certificate/${q.server_certificate_id__source}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    ServerCertificate-${q.server_certificate_id__source}</a>
+                                % endif
+                            </td>
+                            <td>
+                                % if q.unique_fqdn_set_id__source:
+                                    <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.unique_fqdn_set_id__source}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    UniqueFQDNSet-${q.unique_fqdn_set_id__source}</a>
+                                % endif
+                            </td>
                             <td><timestamp>${q.timestamp_entered}</timestamp></td>
                             <td><timestamp>${q.timestamp_process_attempt or ''}</timestamp></td>
                             <td><timestamp>${q.timestamp_processed or ''}</timestamp></td>

@@ -118,6 +118,7 @@
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         Domain-${acme_authorization.domain_id}
                                     </a>
+                                    <code>${acme_authorization.domain.domain_name}</code>
                                 % endif
                             % elif c == 'timestamp_created':
                                 <timestamp>${acme_authorization.timestamp_created or ''}</timestamp>
@@ -810,7 +811,8 @@
                     <timestamp>${i.timestamp_created}</timestamp>
                 </td>
                 <td>
-                    <code>${i.domain_ids_string}</code>
+                    ## <code>${i.domain_ids_string}</code>
+                    <code>${i.domains_as_string}</code>
                 </td>
             </tr>
         % endfor
@@ -1156,6 +1158,31 @@
         </p>
     </div>
 </%def>
+
+
+<%def name="formgroup__processing_strategy()">
+    <div class="form-group clearfix">
+        <div class="radio">
+            <label>
+                <input type="radio" name="processing_strategy" value="create_order" checked="checked"/>
+                Create the AcmeOrder
+            </label>
+        </div>
+        <div class="radio">
+            <label>
+                <input type="radio" name="processing_strategy" value="process_single" />
+                Create the AcmeOrder; Attempt to Process in a single request
+            </label>
+        </div>
+        <div class="radio">
+            <label>
+                <input type="radio" name="processing_strategy" value="process_multi"/>
+                Create the AcmeOrder; Attempt to Process with multiple requests
+            </label>
+        </div>
+    </div>
+</%def>
+
 
 
 <%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_generate_new=None)">

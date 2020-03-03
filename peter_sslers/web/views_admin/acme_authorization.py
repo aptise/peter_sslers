@@ -46,11 +46,11 @@ class ViewAdmin_List(Handler):
     )
     def list(self):
         url_status = self.request.params.get("status")
-        if url_status not in ('active', 'active-expired'):
-            url_status = ''
-        if url_status == 'active':
+        if url_status not in ("active", "active-expired"):
+            url_status = ""
+        if url_status == "active":
             sidenav_option = "active"
-        elif url_status == 'active-expired':
+        elif url_status == "active-expired":
             sidenav_option = "active-expired"
         else:
             sidenav_option = "all"
@@ -255,8 +255,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
             )
             return HTTPSeeOther(
-                "%s?result=success&operation=acme+server+deactivate"
-                % self._focus_url
+                "%s?result=success&operation=acme+server+deactivate" % self._focus_url
             )
         except (
             errors.AcmeCommunicationError,
@@ -287,14 +286,13 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         try:
             if not dbAcmeAuthorization.is_can_acme_server_trigger:
                 raise errors.InvalidRequest(
-                    "ACME Server Trugger is not allowed for this AcmeAuthorization"
+                    "ACME Server Trigger is not allowed for this AcmeAuthorization"
                 )
             result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger(
                 self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
             )
             return HTTPSeeOther(
-                "%s?result=success&operation=acme+server+trigger"
-                % self._focus_url
+                "%s?result=success&operation=acme+server+trigger" % self._focus_url
             )
         except (
             errors.AcmeCommunicationError,

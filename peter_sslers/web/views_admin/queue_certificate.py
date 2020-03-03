@@ -8,6 +8,7 @@ from pyramid.httpexceptions import HTTPSeeOther
 # stdlib
 import datetime
 import json
+import pdb
 
 # pypi
 import sqlalchemy
@@ -16,7 +17,11 @@ import transaction
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib import form_utils as form_utils
 from ..lib.forms import Form_QueueCertificate_mark
+from ..lib.forms import Form_QueueCertificate_new_AcmeOrder
+from ..lib.forms import Form_QueueCertificate_new_ServerCertificate
+from ..lib.forms import Form_QueueCertificate_new_UniqueFQDNSet
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -48,7 +53,8 @@ class ViewList(Handler):
         renderer="/admin/queue_certificates.mako",
     )
     @view_config(
-        route_name="admin:queue_certificates:all", renderer="/admin/queue_certificates.mako"
+        route_name="admin:queue_certificates:all",
+        renderer="/admin/queue_certificates.mako",
     )
     @view_config(
         route_name="admin:queue_certificates:all_paginated",
@@ -65,7 +71,9 @@ class ViewList(Handler):
     @view_config(route_name="admin:queue_certificates|json", renderer="json")
     @view_config(route_name="admin:queue_certificates_paginated|json", renderer="json")
     @view_config(route_name="admin:queue_certificates:all|json", renderer="json")
-    @view_config(route_name="admin:queue_certificates:all_paginated|json", renderer="json")
+    @view_config(
+        route_name="admin:queue_certificates:all_paginated|json", renderer="json"
+    )
     @view_config(
         route_name="admin:queue_certificates:active_failures|json", renderer="json"
     )
@@ -161,42 +169,65 @@ class ViewList(Handler):
 
 
 class ViewNew(Handler):
-
-    def _parse_renewal_source(self):
+    def _parse_queue_source(self):
         _failure_url = "%s/queue-certificates" % (self.request.admin_url,)
-        queue_source = None
-        _acme_order_id = self.request.params.get('acme-order')
-        _server_certificate_id = self.request.params.get('server-certificate')
-        _unique_fqdn_set_id = self.request.params.get('unique-fqdn-set')
-        if _acme_order_id:
+        queue_source = self.request.params.get("queue_source")
+        acme_order_id = self.request.params.get("acme_order")
+        server_certificate_id = self.request.params.get("server_certificate")
+        unique_fqdn_set_id = self.request.params.get("unique_fqdn_set")
+
+        queue_data = {
+            "queue_source": queue_source,
+            "AcmeOrder": None,
+            "ServerCertificate": None,
+            "UniqueFQDNSet": None,
+        }
+        if (queue_source == "AcmeOrder") and acme_order_id:
             dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
-                self.request.api_context,
-                _acme_order_id
+                self.request.api_context, acme_order_id
             )
             if not dbAcmeOrder:
-                return HTTPSeeOther("%s?result=error&operation=new&error=invalid+acme+order" % _failure_url)
+                raise HTTPSeeOther(
+                    "%s?result=error&operation=new&error=invalid+acme+order"
+                    % _failure_url
+                )
             if not dbAcmeOrder.is_renewable_queue:
-                return HTTPSeeOther("%s?result=error&operation=new&error=acme+order+ineligible" % _failure_url)
-            queue_source = ('AcmeOrder', dbAcmeOrder)
-        elif _server_certificate_id:
+                raise HTTPSeeOther(
+                    "%s?result=error&operation=new&error=acme+order+ineligible"
+                    % _failure_url
+                )
+            queue_data["AcmeOrder"] = dbAcmeOrder
+            queue_data["AcmeAccountKey_reuse"] = dbAcmeOrder.acme_account_key
+            queue_data["PrivateKey_reuse"] = dbAcmeOrder.private_key
+
+        elif (queue_source == "ServerCertificate") and server_certificate_id:
             dbServerCertificate = lib_db.get.get__ServerCertificate__by_id(
-                self.request.api_context,
-                _server_certificate_id
+                self.request.api_context, server_certificate_id
             )
             if not dbServerCertificate:
-                return HTTPSeeOther("%s?result=error&operation=new&error=invalid+server+certificate" % _failure_url)
-            queue_source = ('ServerCertificate', dbServerCertificate)
-        elif _unique_fqdn_set_id:
+                raise HTTPSeeOther(
+                    "%s?result=error&operation=new&error=invalid+server+certificate"
+                    % _failure_url
+                )
+            queue_data["ServerCertificate"] = dbServerCertificate
+            queue_data["PrivateKey_reuse"] = dbServerCertificate.private_key
+
+        elif (queue_source == "UniqueFQDNSet") and unique_fqdn_set_id:
             dbUniqueFQDNSet = lib_db.get.get__UniqueFQDNSet__by_id(
-                self.request.api_context,
-                _unique_fqdn_set_id
+                self.request.api_context, unique_fqdn_set_id
             )
             if not dbUniqueFQDNSet:
-                return HTTPSeeOther("%s?result=error&operation=new&error=invalid+uniqe+fqdn+set" % _failure_url)
-            queue_source = ('UniqueFQDNSet', dbUniqueFQDNSet)
+                raise HTTPSeeOther(
+                    "%s?result=error&operation=new&error=invalid+uniqe+fqdn+set"
+                    % _failure_url
+                )
+            queue_data["UniqueFQDNSet"] = dbUniqueFQDNSet
         else:
-            raise ValueError('invalid option for renewal')
-        return queue_source
+            raise HTTPSeeOther(
+                "%s?result=error&operation=new&error=invalid+queue+source"
+                % _failure_url
+            )
+        return queue_data
 
     @view_config(route_name="admin:queue_certificate:new", renderer=None)
     @view_config(route_name="admin:queue_certificate:new|json", renderer="json")
@@ -204,43 +235,75 @@ class ViewNew(Handler):
         """
         This endpoint is for Immediately Renewing the AcmeOrder with some selection
         """
-        queue_source = self._parse_renewal_source()
-        if self.request.method == "POST":
-            return self._new__submit(queue_source)
-        return self._new__print(queue_source)
+        self._load_AccountKeyDefault()
+        self._load_AcmeAccountProviders()
+        self._load_PrivateKeyDefault()
+        self.queue_data = self._parse_queue_source()
 
-    def _new__print(self, queue_source):
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
-            self.request.api_context, is_enabled=True
-        )
+        if self.request.method == "POST":
+            return self._new__submit()
+        return self._new__print()
+
+    def _new__print(self):
         return render_to_response(
             "/admin/queue_certificate-new.mako",
-            {'QueueSource': queue_source,
-             'AcmeOrder': queue_source[1] if queue_source[0] == 'AcmeOrder' else None,
-             'ServerCertificate': queue_source[1] if queue_source[0] == 'ServerCertificate' else None,
-             'UniqueFQDNSet': queue_source[1] if queue_source[0] == 'UniqueFQDNSet' else None,
-             'AcmeAccountProviders': dbAcmeAccountProviders,
-             },
+            {
+                "queue_source": self.queue_data["queue_source"],
+                "AcmeOrder": self.queue_data["AcmeOrder"],
+                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
+                "AcmeAccountProviders": self.dbAcmeAccountProviders,
+                "AcmeAccountKey_resuse": self.queue_data["AcmeAccountKey_reuse"],
+                "PrivateKey_Default": self.dbPrivateKeyDefault,
+                "PrivateKey_reuse": self.queue_data["PrivateKey_reuse"],
+                "ServerCertificate": self.queue_data["ServerCertificate"],
+                "UniqueFQDNSet": self.queue_data["UniqueFQDNSet"],
+            },
             self.request,
         )
 
-    def _new__submit(self, queue_source):
-        (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(self.request, formStash)
-        if queue_source[0] == 'AcmeOrder':
-            (
-                dbAcmeOrderNew,
-                exc,
-            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
-                self.request.api_context,
-                dbAcmeOrder=queue_source[1],
-                dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
-                dbPrivateKey=privateKeySelection.PrivateKey,
+    def _new__submit(self):
+        try:
+            _form = None
+            _create_kwargs = {}
+            if self.queue_data["queue_source"] == "AcmeOrder":
+                _form = Form_QueueCertificate_new
+                _create_kwargs["dbAcmeOrder"] = self.queue_data["AcmeOrder"]
+
+            elif self.queue_data["queue_source"] == "ServerCertificate":
+                _form = Form_QueueCertificate_new_ServerCertificate
+                _create_kwargs["dbServerCertificate"] = self.queue_data[
+                    "ServerCertificate"
+                ]
+
+            elif self.queue_data["queue_source"] == "UniqueFQDNSet":
+                _form = Form_QueueCertificate_new_UniqueFQDNSet
+                _create_kwargs["dbUniqueFQDNSet"] = self.queue_data["UniqueFQDNSet"]
+
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=_form, validate_get=False
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            event_type = model_utils.OperationsEventType.from_string(
+                "QueueCertificate__invert"
             )
 
-        renew_url = "%s/queue-renewawls" % (
-            self.request.admin_url,
-        )
-        return HTTPSeeOther("%s?result=success&operation=renew+queue" % renew_url)
+            (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(
+                self.request, formStash
+            )
+            _create_kwargs["dbAcmeAccountKey"] = accountKeySelection.AcmeAccountKey
+            _create_kwargs["dbPrivateKey"] = privateKeySelection.PrivateKey
+            dbQueueCertificate = lib_db.create.create__QueueCertificate(
+                self.request.api_context, **_create_kwargs
+            )
+
+            return HTTPSeeOther(
+                "%s/queue-certificates?result=success&operation=renew+queue&queued-certificate=%s"
+                % (self.request.admin_url, dbQueueCertificate.id)
+            )
+        except formhandling.FormInvalid as exc:
+            return formhandling.form_reprint(self.request, self._new__print)
 
 
 class ViewFocus(Handler):
@@ -265,22 +328,22 @@ class ViewFocus(Handler):
     )
     @view_config(route_name="admin:queue_certificate:focus|json", renderer="json")
     def focus(self):
-        dbRenewalQueueItem = self._focus()
+        dbQueueCertificate = self._focus()
         if self.request.wants_json:
-            return {"status": "success", "QueueCertificate": dbRenewalQueueItem.as_json}
-        return {"project": "peter_sslers", "RenewalQueueItem": dbRenewalQueueItem}
+            return {"status": "success", "QueueCertificate": dbQueueCertificate.as_json}
+        return {"project": "peter_sslers", "QueueCertificate": dbQueueCertificate}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:queue_certificate:focus:mark")
     @view_config(route_name="admin:queue_certificate:focus:mark|json", renderer="json")
     def focus_mark(self):
-        dbRenewalQueueItem = self._focus()
+        dbQueueCertificate = self._focus()
         if self.request.method == "POST":
-            return self._focus_mark__submit(dbRenewalQueueItem)
-        return self._focus_mark__print(dbRenewalQueueItem)
+            return self._focus_mark__submit(dbQueueCertificate)
+        return self._focus_mark__print(dbQueueCertificate)
 
-    def _focus_mark__print(self, dbRenewalQueueItem):
+    def _focus_mark__print(self, dbQueueCertificate):
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -292,10 +355,10 @@ class ViewFocus(Handler):
         url_huh = "%s?&result=post+required&operation=mark" % (self._focus_url)
         return HTTPSeeOther(url_huh)
 
-    def _focus_mark__submit(self, dbRenewalQueueItem):
+    def _focus_mark__submit(self, dbQueueCertificate):
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_QueueCertificate_mark, validate_get=True
+                self.request, schema=Form_QueueCertificate_mark, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()
@@ -305,21 +368,21 @@ class ViewFocus(Handler):
                 "QueueCertificate__mark"
             )
             event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["queue_certificate.id"] = dbRenewalQueueItem.id
+            event_payload_dict["queue_certificate.id"] = dbQueueCertificate.id
             event_payload_dict["action"] = formStash.results["action"]
 
             event_status = False
             if action == "cancel":
-                if not dbRenewalQueueItem.is_active:
+                if not dbQueueCertificate.is_active:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(field="action", message="Already cancelled")
 
-                dbRenewalQueueItem.is_active = False
-                dbRenewalQueueItem.timestamp_processed = (
+                dbQueueCertificate.is_active = False
+                dbQueueCertificate.timestamp_processed = (
                     self.request.api_context.timestamp
                 )
                 event_status = "QueueCertificate__mark__cancelled"
-                self.request.api_context.dbSession.flush(objects=[dbRenewalQueueItem])
+                self.request.api_context.dbSession.flush(objects=[dbQueueCertificate])
             else:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(field="action", message="invalid action")
@@ -334,12 +397,12 @@ class ViewFocus(Handler):
                 event_status_id=model_utils.OperationsObjectEventStatus.from_string(
                     event_status
                 ),
-                dbQueueCertificate=dbRenewalQueueItem,
+                dbQueueCertificate=dbQueueCertificate,
             )
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "QueueCertificate": dbRenewalQueueItem.as_json,
+                    "QueueCertificate": dbQueueCertificate.as_json,
                 }
 
             url_post_required = "%s?result=success&operation=mark" % (self._focus_url,)

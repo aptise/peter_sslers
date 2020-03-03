@@ -289,7 +289,6 @@ class Acme_Status_Authorization(_Acme_Status_All):
 
     OPTIONS_DEACTIVATE = (
         "pending",
-        "valid",
         "*discovered*",
     )
     OPTIONS_POSSIBLY_PENDING = (
@@ -473,6 +472,37 @@ class AcmeEvent(_mixin_mapping):
         13: "v2|-challenge-PostAsGet",
         14: "v2|-authorization-deactivate",
     }
+
+
+class AcmeOrder_ProcessingStrategy(_mixin_mapping):
+    create_order = 1
+    process_single = 2
+    process_multi = 3
+    _mapping = {
+        1: "create_order",
+        2: "process_single",
+        3: "process_multi",
+    }
+
+
+class AcmeOrder_ProcessingStatus(_mixin_mapping):
+    created_local = 1
+    created_acme = 2
+    processing_started = 3
+    processing_completed_success = 4
+    processing_completed_failure = 5
+    order_finalized = 6
+    certificate_downloaded = 7
+    _mapping = {
+        1: "created_local",
+        2: "created_acme",
+        3: "processing_started",
+        4: "processing_completed_success",
+        5: "processing_completed_failure",
+        6: "order_finalized",
+        7: "certificate_downloaded",
+    }
+    IDS_CAN_PROCESS_CHALLENGES = (2, 3)
 
 
 class AcmeOrderType(_mixin_mapping):

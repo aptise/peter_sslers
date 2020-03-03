@@ -403,11 +403,11 @@
                         <td>
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/queue-certificate/new?server-certificate=${ServerCertificate.id}"
-                                title="Queue a certificate"
+                                href="${admin_prefix}/queue-certificate/new?queue_source=ServerCertificate&server_certificate=${ServerCertificate.id}"
+                                title="Queue a ServerCertificate"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                queue a certificate
+                                Queue a Renewal ServerCertificate
                             </a>
 
                         </td>

@@ -215,12 +215,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
             # url
             # Note: challenge_url is not supported until this is integrated with an AcmeAccount
-            '''
+            """
             form_url = _post.get("%s_url" % challenge_id)
             if form_url != dbChallenge.challenge_url:
                 dbChallenge.challenge_url = form_url
                 _changed = True
-            '''
+            """
 
             if _changed:
                 dbChallenge.timestamp_updated = self.request.api_context.timestamp

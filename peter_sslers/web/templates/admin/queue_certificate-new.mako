@@ -27,7 +27,10 @@
     <div class="row">
         <div class="col-sm-12">
 
-            <h4>Renew the following?</h4>
+            <h4>Queue a Renewal Certificate for the Following?</h4>
+            
+            <p>Upon submission, the following combination will be added to the processing queue for AcmeOrders.</p>
+            
             <form
                 action="${admin_prefix}/queue-certificate/new"
                 method="POST"
@@ -47,8 +50,8 @@
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         AcmeOrder-${AcmeOrder.id}
                                     </a>
-                                    <input type="hidden" name="queue-object" value="AcmeOrder"/>
-                                    <input type="hidden" name="acme-order" value="${AcmeOrder.id}"/>
+                                    <input type="hidden" name="queue_source" value="AcmeOrder"/>
+                                    <input type="hidden" name="acme_order" value="${AcmeOrder.id}"/>
                                 % elif ServerCertificate:
                                     <a 
                                         href="${admin_prefix}/server-certificate/${ServerCertificate.id}"
@@ -56,8 +59,8 @@
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         ServerCertificate-${ServerCertificate.id}
                                     </a>
-                                    <input type="hidden" name="queue-object" value="ServerCertificate"/>
-                                    <input type="hidden" name="server-certificate" value="${ServerCertificate.id}"/>
+                                    <input type="hidden" name="queue_source" value="ServerCertificate"/>
+                                    <input type="hidden" name="server_certificate" value="${ServerCertificate.id}"/>
                                 % elif UniqueFQDNSet:
                                     <a 
                                         href="${admin_prefix}/acme-order/${UniqueFQDNSet.id}"
@@ -65,8 +68,8 @@
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                         UniqueFQDNSet-${UniqueFQDNSet.id}
                                     </a>
-                                    <input type="hidden" name="queue-object" value="UniqueFQDNSet"/>
-                                    <input type="hidden" name="unique-fqdn-set" value="${UniqueFQDNSet.id}"/>
+                                    <input type="hidden" name="queue_source" value="UniqueFQDNSet"/>
+                                    <input type="hidden" name="unique_fqdn_set" value="${UniqueFQDNSet.id}"/>
                                 % endif
                             </td>
                             <td></td>
@@ -109,12 +112,7 @@
                                 % endif
                             </td>
                             <td>
-                                <%
-                                    acme_account_key = None
-                                    if AcmeOrder:
-                                        acme_account_key = AcmeOrder.acme_account_key
-                                %>
-                                ${admin_partials.formgroup__AcmeAccountKey_selector__advanced(dbAcmeAccountKeyReuse=acme_account_key)}
+                                ${admin_partials.formgroup__AcmeAccountKey_selector__advanced(dbAcmeAccountKeyReuse=AcmeAccountKey_reuse)}
                             </td>
                         </tr>
                         <tr>
@@ -131,12 +129,7 @@
                                 % endif
                             </td>
                             <td>
-                                <%
-                                    private_key = None
-                                    if AcmeOrder:
-                                        private_key = AcmeOrder.private_key
-                                %>
-                                ${admin_partials.formgroup__PrivateKey_selector__advanced(dbPrivateKeyReuse=private_key, option_generate_new=True)}
+                                ${admin_partials.formgroup__PrivateKey_selector__advanced(dbPrivateKeyReuse=PrivateKey_resuse, option_generate_new=True)}
                             </td>
                         </tr>
                         <tr>
@@ -144,7 +137,7 @@
                             <td>
                                 <button class="btn btn-xs btn-primary" type="submit">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                    Queue!
+                                    Queue the Server Certificate!
                                 </button>
                             </td>
                             <td>

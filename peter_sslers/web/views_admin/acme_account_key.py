@@ -79,9 +79,7 @@ class ViewAdmin_New(Handler):
         return self._upload__print()
 
     def _upload__print(self):
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
-            self.request.api_context, is_enabled=False
-        )
+        self._load_AcmeAccountProviders()
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -102,14 +100,14 @@ class ViewAdmin_New(Handler):
                 "valid_options": {
                     "acme_account_provider_id": {
                         i.id: "%s (%s)" % (i.name, i.url)
-                        for i in dbAcmeAccountProviders
+                        for i in self.dbAcmeAccountProviders
                     },
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account_key-upload.mako",
-            {"AcmeAccountProviders": dbAcmeAccountProviders},
+            {"AcmeAccountProviders": self.dbAcmeAccountProviders},
             self.request,
         )
 
@@ -126,10 +124,10 @@ class ViewAdmin_New(Handler):
             key_create_args = parser.getcreate_args
             acme_account_provider_id = key_create_args.get("acme_account_provider_id")
             if acme_account_provider_id:
-                dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
-                    self.request.api_context
-                )
-                _acme_account_provider_ids__all = [i.id for i in dbAcmeAccountProviders]
+                self._load_AcmeAccountProviders()
+                _acme_account_provider_ids__all = [
+                    i.id for i in self.dbAcmeAccountProviders
+                ]
                 if acme_account_provider_id not in _acme_account_provider_ids__all:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(
@@ -179,9 +177,7 @@ class ViewAdmin_New(Handler):
         return self._new__print()
 
     def _new__print(self):
-        dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
-            self.request.api_context, is_enabled=True
-        )
+        self._load_AcmeAccountProviders()
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -196,14 +192,14 @@ class ViewAdmin_New(Handler):
                 "valid_options": {
                     "acme_account_provider_id": {
                         i.id: "%s (%s)" % (i.name, i.url)
-                        for i in dbAcmeAccountProviders
+                        for i in self.dbAcmeAccountProviders
                     },
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
         return render_to_response(
             "/admin/acme_account_key-new.mako",
-            {"AcmeAccountProviders": dbAcmeAccountProviders},
+            {"AcmeAccountProviders": self.dbAcmeAccountProviders},
             self.request,
         )
 
@@ -215,12 +211,12 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            dbAcmeAccountProviders = lib_db.get.get__AcmeAccountProviders__paginated(
-                self.request.api_context
-            )
-            _acme_account_provider_ids__all = [i.id for i in dbAcmeAccountProviders]
+            self._load_AcmeAccountProviders()
+            _acme_account_provider_ids__all = [
+                i.id for i in self.dbAcmeAccountProviders
+            ]
             _acme_account_provider_ids__enabled = [
-                i.id for i in dbAcmeAccountProviders if i.is_enabled
+                i.id for i in self.dbAcmeAccountProviders if i.is_enabled
             ]
 
             acme_account_provider_id = formStash.results["acme_account_provider_id"]
@@ -378,11 +374,11 @@ class ViewAdmin_Focus(Handler):
         dbAcmeAccountKey = self._focus()
 
         url_status = self.request.params.get("status")
-        if url_status not in ('active', 'active-expired'):
-            url_status = ''
-        if url_status == 'active':
+        if url_status not in ("active", "active-expired"):
+            url_status = ""
+        if url_status == "active":
             sidenav_option = "active"
-        elif url_status == 'active-expired':
+        elif url_status == "active-expired":
             sidenav_option = "active-expired"
         else:
             sidenav_option = "all"
@@ -391,7 +387,10 @@ class ViewAdmin_Focus(Handler):
         expired_only = True if url_status == "active-expired" else False
 
         items_count = lib_db.get.get__AcmeAuthorization__by_AcmeAccountKeyId__count(
-            self.request.api_context, dbAcmeAccountKey.id, active_only=active_only, expired_only=expired_only
+            self.request.api_context,
+            dbAcmeAccountKey.id,
+            active_only=active_only,
+            expired_only=expired_only,
         )
         if self.request.wants_json:
             url_template = "%s/acme-authorizations/{0}.json" % (self._focus_url)

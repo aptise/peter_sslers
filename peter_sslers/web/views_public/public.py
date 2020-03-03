@@ -28,7 +28,11 @@ class ViewPublic(Handler):
     @view_config(route_name="public_challenge", renderer="string")
     def public_challenge(self):
         challenge = self.request.matchdict["challenge"]
-        log.info("public challenge: domain=%s, challenge=%s", self.request.active_domain_name, challenge, )
+        log.info(
+            "public challenge: domain=%s, challenge=%s",
+            self.request.active_domain_name,
+            challenge,
+        )
 
         dbAcmeChallenge = lib_db.get.get__AcmeChallenge__challenged(
             self.request.api_context, self.request.active_domain_name, challenge,

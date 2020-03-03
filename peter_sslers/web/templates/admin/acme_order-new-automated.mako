@@ -47,8 +47,10 @@
                 ${admin_partials.formgroup__domain_names()}
                 <hr/>
 
-                <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
+                ${admin_partials.formgroup__processing_strategy()}
+                <hr/>
 
+                <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
             </form>
         </div>
         <div class="col-sm-6">

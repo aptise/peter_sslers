@@ -202,13 +202,8 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
         # ToDo: refactor `ctx.request.registry.settings`
         raise ValueError("must be invoked within Pyramid")
 
-    if dbAcmeAccountKey is None:
-        # raises an error if we fail
-        dbAcmeAccountKey = _get_default_AccountKey(ctx)
-
-    if dbPrivateKey is None:
-        # raises an error if we fail
-        dbPrivateKey = _get_default_PrivateKey(ctx)
+    if not all((dbAcmeAccountKey, dbPrivateKey)):
+        raise ValueError("must be invoked with dbAcmeAccountKey, dbPrivateKey")
 
     try:
         min_domains = ctx.request.registry.settings["queue_domains_min_per_cert"]
@@ -360,7 +355,9 @@ def queue_certificates__update(ctx, fqdns_ids_only=None):
     renewals = []
     results = []
     try:
-        event_type = model_utils.OperationsEventType.from_string("QueueCertificate__update")
+        event_type = model_utils.OperationsEventType.from_string(
+            "QueueCertificate__update"
+        )
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
         if fqdns_ids_only:
@@ -376,7 +373,9 @@ def queue_certificates__update(ctx, fqdns_ids_only=None):
             _expiring_days = 28
             _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
             _subquery_already_queued = (
-                ctx.dbSession.query(model_objects.QueueCertificate.server_certificate_id)
+                ctx.dbSession.query(
+                    model_objects.QueueCertificate.server_certificate_id
+                )
                 .filter(
                     model_objects.QueueCertificate.timestamp_processed.op("IS")(None),
                     model_objects.QueueCertificate.process_result.op("IS NOT")(True),
@@ -393,7 +392,7 @@ def queue_certificates__update(ctx, fqdns_ids_only=None):
             results = _core_query.all()
             for cert in results:
                 # this will call `_log_object_event` as needed
-                dbQueueCertificate = lib.db.create._create__QueueCertificate(ctx, cert)
+                dbQueueCertificate = lib.db.create.create__QueueCertificate(ctx, cert)
                 renewals.append(dbQueueCertificate)
             event_payload_dict["ssl_certificate-queued.ids"] = ",".join(
                 [str(c.id) for c in results]
@@ -428,7 +427,9 @@ def queue_certificates__process(ctx):
         "count_remaining": 0,
         "failures": {},
     }
-    event_type = model_utils.OperationsEventType.from_string("QueueCertificate__process")
+    event_type = model_utils.OperationsEventType.from_string(
+        "QueueCertificate__process"
+    )
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
     items_count = lib.db.get.get__QueueCertificate__count(ctx, unprocessed_only=True)
@@ -445,7 +446,9 @@ def queue_certificates__process(ctx):
             if (
                 (not dbQueueCertificate.server_certificate)
                 or (not dbQueueCertificate.server_certificate.acme_account_key_id)
-                or (not dbQueueCertificate.server_certificate.acme_account_key.is_active)
+                or (
+                    not dbQueueCertificate.server_certificate.acme_account_key.is_active
+                )
             ):
                 _need_default_AccountKey = True
                 break
