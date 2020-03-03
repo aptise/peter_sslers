@@ -264,7 +264,7 @@
                             href="${admin_prefix}/server-certificate/${logged.server_certificate_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            Certificate-${logged.server_certificate_id}
+                            ServerCertificate-${logged.server_certificate_id}
                         </a>
                     % endif
                 </td>
@@ -280,6 +280,7 @@
             <tr>
                 <th>id</th>
                 <th>is active</th>
+                <th>AcmeAccountKey</th>
                 <th>timestamp_created</th>
                 <th>timestamp_finalized</th>
             </tr>
@@ -304,6 +305,14 @@
                             </div>
                         % endif
                     </td>
+                    <td>
+                        % if order_.acme_account_key_id:
+                            <a href="${admin_prefix}/acme-account-key/${order_.acme_account_key_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeAccountKey-${order_.id}
+                            </a>
+                        % endif
+                    </td>
                     <td><timestamp>${order_.timestamp_created or ''}</timestamp></td>
                     <td><timestamp>${order_.timestamp_finalized or ''}</timestamp></td>
                 </tr>
@@ -316,7 +325,7 @@
 <%def name="table_AcmeOrders(acme_orders, perspective=None)">
     <%
         cols = ("id", 
-                "is_active",
+                "is_processing",
                 "status",
                 "is_auto_renew",
                 "is_renewed",
@@ -360,16 +369,16 @@
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeOrder-${acme_order.id}
                                 </a>
-                            % elif c == 'is_active':
-                                % if acme_order.is_active is True:
+                            % elif c == 'is_processing':
+                                % if acme_order.is_processing is True:
                                     <div class="label label-success">
                                         <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
                                     </div>
-                                % elif acme_order.is_active is None:
+                                % elif acme_order.is_processing is None:
                                     <div class="label label-default">
                                         <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span>
                                     </div>
-                                % elif acme_order.is_active is False:
+                                % elif acme_order.is_processing is False:
                                     <div class="label label-warning">
                                         <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
                                     </div>
@@ -406,7 +415,7 @@
                                 % if acme_order.server_certificate_id:
                                     <a href="${admin_prefix}/server-certificate/${acme_order.server_certificate_id}" class="label label-info">
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        Certificate-${acme_order.server_certificate_id}
+                                        ServerCertificate-${acme_order.server_certificate_id}
                                     </a>
                                 % endif
                             % elif c == 'unique_fqdn_set_id':
@@ -696,7 +705,7 @@
                         % if queue_certificate.server_certificate_id:
                             <a href="${admin_prefix}/server-certificate/${queue_certificate.server_certificate_id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                Certificate-${queue_certificate.server_certificate_id}</a>
+                                ServerCertificate-${queue_certificate.server_certificate_id}</a>
                         % endif
                     </td>
                 % endif
@@ -744,7 +753,7 @@
             <tr>
                 <td><a class="label label-info" href="${admin_prefix}/server-certificate/${cert.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    Certificate-${cert.id}</a>
+                    ServerCertificate-${cert.id}</a>
                 </td>
                 <td>
                     % if cert.is_revoked:
@@ -763,7 +772,7 @@
                     </div>
                 </td>
                 <td>
-                    <div class="label label-${'success' if (cert.acme_order and acme_order.is_renewed) else 'default'}">
+                    <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_renewed) else 'default'}">
                         ${'Renewed' if (cert.acme_order and cert.acme_order.is_renewed) else 'not-renewed-yet'}
                     </div>
                 </td>
@@ -928,9 +937,17 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccountKey_selector__advanced(dbAcmeAccountKeyReuse=None)">
+<%def name="formgroup__AcmeAccountKey_selector__advanced(dbAcmeAccountKeyReuse=None, allow_no_key=False)">
     <p>Select an AcmeAccountKey with one of the following options</p>
     <div class="form-horizontal">
+        % if allow_no_key:
+            <div class="radio">
+                <label>
+                    <input type="radio" name="account_key_option" value="none" checked="checked"/>
+                    Do not associate this Orderless with an AcmeAccountKey
+                </label>
+            </div>        
+        % endif
         % if dbAcmeAccountKeyReuse:
             <div class="radio">
                 <label>
@@ -951,7 +968,7 @@
             </div>
         % endif
         % if AcmeAccountKey_Default:
-            <% checked = ' checked="checked"' if not dbAcmeAccountKeyReuse else '' %>
+            <% checked = ' checked="checked"' if not dbAcmeAccountKeyReuse and not allow_no_key else '' %>
             <div class="radio">
                 <label>
                     <input type="radio" name="account_key_option" id="account_key_option-account_key_default" value="account_key_default"${checked}/>

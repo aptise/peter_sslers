@@ -375,8 +375,8 @@ def get__AcmeChallenge__by_DomainId__active(ctx, domain_id):
         .filter(
             model_objects.AcmeChallenge.domain_id == domain_id,
             sqlalchemy.or_(
-                model_objects.AcmeOrderless.is_active.op("IS")(True),
-                model_objects.AcmeOrder.is_active.op("IS")(True),
+                model_objects.AcmeOrderless.is_processing.op("IS")(True),
+                model_objects.AcmeOrder.is_processing.op("IS")(True),
             ),
         )
     )
@@ -545,14 +545,14 @@ def get__AcmeOrderless__by_DomainId__paginated(ctx, domain_id, limit=None, offse
 def get__AcmeOrder__count(ctx, active_only=None):
     query = ctx.dbSession.query(model_objects.AcmeOrder)
     if active_only:
-        query = query.filter(model_objects.AcmeOrder.is_active.op("IS")(True))
+        query = query.filter(model_objects.AcmeOrder.is_processing.op("IS")(True))
     return query.count()
 
 
 def get__AcmeOrder__paginated(ctx, active_only=None, limit=None, offset=0):
     query = ctx.dbSession.query(model_objects.AcmeOrder)
     if active_only:
-        query = query.filter(model_objects.AcmeOrder.is_active.op("IS")(True))
+        query = query.filter(model_objects.AcmeOrder.is_processing.op("IS")(True))
     query = (
         query.order_by(model_objects.AcmeOrder.id.desc()).limit(limit).offset(offset)
     )
@@ -1102,8 +1102,8 @@ def _get__Domains_challenged__core(ctx):
         )
         .filter(
             sqlalchemy.or_(
-                model_objects.AcmeOrderless.is_active.op("IS")(True),
-                model_objects.AcmeOrder.is_active.op("IS")(True),
+                model_objects.AcmeOrderless.is_processing.op("IS")(True),
+                model_objects.AcmeOrder.is_processing.op("IS")(True),
             ),
         )
     )

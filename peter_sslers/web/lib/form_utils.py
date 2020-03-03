@@ -185,7 +185,9 @@ def parse_AccountKeySelection(request, formStash, seek_selected=None):
 
     # handle the explicit-option
     accountKeySelection = AccountKeySelection()
-    if seek_selected == "account_key_file":
+    if seek_selected == "none":
+        return accountKeySelection
+    elif seek_selected == "account_key_file":
         # this will handle form validation and raise errors.
         parser = AccountKeyUploadParser(formStash)
         parser.require_upload()
@@ -240,7 +242,9 @@ def parse_PrivateKeySelection(request, formStash, seek_selected=None):
 
     # handle the explicit-option
     privateKeySelection = PrivateKeySelection()
-    if seek_selected == "private_key_file":
+    if seek_selected == "none":
+        return privateKeySelection
+    elif seek_selected == "private_key_file":
         # this will handle form validation and raise errors.
         parser = PrivateKeyUploadParser(formStash)
         parser.require_upload()

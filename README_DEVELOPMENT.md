@@ -7,16 +7,22 @@ For (most) testing and (all) development you need to follow a few initial steps.
 
 It should look something like this:
 
-	certificate_authority = custom  # "custom" or "pebble"
-	certificate_authority_testing = True
-	certificate_authority_endpoint = http://127.0.0.1:14000
-	certificate_authority_directory = http://127.0.0.1:14000/dir
+	certificate_authority = pebble
+	certificate_authority_directory = https://0.0.0.0:14000/dir
 	certificate_authority_protocol = acme-v2
+	certificate_authority_testing = True
 
 This above enables the acme-provider for a 'custom' CA and injects the protocol and endpoint into it.
 It also enables the "TESTING" flag, which disables SSL checking on acme payloads.
 
+When you start the server a new AcmeAccountProvider will be created for your CertificateAuthority:
+
+	http://127.0.0.1:7201/.well-known/admin/acme-account-providers
+
 2.  Create/Upload a new account key for the 'custom' acme-provider.
+
+	http://127.0.0.1:7201/.well-known/admin/acme-account-key/new
+
 
 3. Run a custom CA for testing
 

@@ -42,7 +42,7 @@
 
             <p>
                 The AcmeOrderless, and this challenge, is
-                % if AcmeOrderless.is_active:
+                % if AcmeOrderless.is_processing:
                     <span class="label label-success">active</span>
                 % else:
                     <span class="label label-danger">deactivated</span>
@@ -124,7 +124,7 @@
                             % if AcmeChallenge.token:
                                 <a href="http://${AcmeChallenge.domain.domain_name}/.well-known/acme-challenge/${AcmeChallenge.token}?test=1"
                                    target="_blank"
-                                   class="btn btn-${"success" if AcmeOrderless.is_active else "danger"}"
+                                   class="btn btn-${"success" if AcmeOrderless.is_processing else "danger"}"
                                 >
                                     <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
                                 </a>

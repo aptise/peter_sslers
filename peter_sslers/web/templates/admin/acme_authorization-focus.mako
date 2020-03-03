@@ -144,7 +144,7 @@
                     </tr>
 
                     <tr>
-                        <th>acme_challenge_http01</th>
+                        <th>AcmeChallenge - http01</th>
                         <td>
                             % if AcmeAuthorization.acme_challenge_http01:
                                 <a class="label label-info" href="${admin_prefix}/acme-challenge/${AcmeAuthorization.acme_challenge_http01.id}">
@@ -154,7 +154,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>acme_order_id__created</th>
+                        <th>AcmeOrder - created</th>
                         <td>
                             % if AcmeAuthorization.acme_order_id__created:
                                 <a class="label label-info" href="${admin_prefix}/acme-order/${AcmeAuthorization.acme_order_id__created}">

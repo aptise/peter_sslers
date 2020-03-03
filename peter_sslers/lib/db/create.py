@@ -28,12 +28,13 @@ from .helpers import _certificate_parse_to_record
 
 
 def create__AcmeOrderless(
-    ctx, domain_names=None,
+    ctx, domain_names=None, dbAcmeAccountKey=None,
 ):
     """
     Create a new AcmeOrderless Tracker
     :param ctx: (required) A :class:`lib.utils.ApiContext` object
     :param domain_names: (required) An iteratble list of domain names
+    :param dbAcmeAccountKey: (optional) A :class:`lib.utils.AcmeAccountKey` object
 
     Handle the DomainNames FIRST.
     We do not want to generate an `AcmeOrderless` if there are no `Domains`.
@@ -62,8 +63,9 @@ def create__AcmeOrderless(
         raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
     dbAcmeOrderless = model_objects.AcmeOrderless()
-    dbAcmeOrderless.is_active = True
+    dbAcmeOrderless.is_processing = True
     dbAcmeOrderless.timestamp_created = ctx.timestamp
+    dbAcmeOrderless.acme_account_key_id = dbAcmeAccountKey.id if dbAcmeAccountKey else None
     ctx.dbSession.add(dbAcmeOrderless)
     ctx.dbSession.flush(objects=[dbAcmeOrderless])
 
@@ -162,7 +164,7 @@ def create__AcmeOrder(
         )
 
     dbAcmeOrder = model_objects.AcmeOrder()
-    dbAcmeOrder.is_active = True
+    dbAcmeOrder.is_processing = True
     dbAcmeOrder.is_auto_renew = is_auto_renew
     dbAcmeOrder.timestamp_created = ctx.timestamp
     dbAcmeOrder.order_url = order_url

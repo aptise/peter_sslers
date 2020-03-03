@@ -323,13 +323,13 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             elif operation == "deactivate":
                 """
                 `deactivate` should mark the order as:
-                    `is_active = False`
+                    `is_processing = False`
                 """
-                if dbAcmeOrder.is_active is not True:
-                    raise errors.InvalidRequest("This order is not active.")
+                if dbAcmeOrder.is_processing is not True:
+                    raise errors.InvalidRequest("This AcmeOrder is not processing.")
 
                 # todo: use the api
-                dbAcmeOrder.is_active = False
+                dbAcmeOrder.is_processing = False
                 dbAcmeOrder.timestamp_updated = self.request.api_context.timestamp
                 self.request.api_context.dbSession.flush(objects=[dbAcmeOrder])
 

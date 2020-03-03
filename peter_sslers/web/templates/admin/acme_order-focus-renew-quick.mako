@@ -53,7 +53,7 @@
                         <td></td>
                     </tr>
                     <tr>
-                        <th>acme_account_key_id</th>
+                        <th>AcmeAccountKey</th>
                         <td>
                             <a
                                 class="label label-info"
@@ -66,7 +66,7 @@
                         <td><code>${AcmeOrder.acme_account_key.key_pem_sample}</code></td>
                     </tr>
                     <tr>
-                        <th>private_key_id</th>
+                        <th>PrivateKey</th>
                         <td>
                             <a
                                 class="label label-info"
@@ -79,7 +79,7 @@
                         <td><code>${AcmeOrder.private_key.key_pem_sample}</code></td>
                     </tr>
                     <tr>
-                        <th>unique_fqdn_set_id</th>
+                        <th>UniqueFQDNSet</th>
                         <td>
                             <a
                                 class="label label-info"

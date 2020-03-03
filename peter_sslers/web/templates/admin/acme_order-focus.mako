@@ -139,24 +139,24 @@
                     </tr>
 
                     <tr>
-                        <th>is_active</th>
+                        <th>is_processing</th>
                         <td>
                         
-                            % if AcmeOrder.is_active is True:
+                            % if AcmeOrder.is_processing is True:
                                 <div class="label label-success">
                                     <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
                                 </div>
-                            % elif AcmeOrder.is_active is None:
+                            % elif AcmeOrder.is_processing is None:
                                 <div class="label label-default">
                                     <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span>
                                 </div>
-                            % elif AcmeOrder.is_active is False:
+                            % elif AcmeOrder.is_processing is False:
                                 <div class="label label-warning">
                                     <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
                                 </div>
                             % endif
                         
-                            % if AcmeOrder.is_active:
+                            % if AcmeOrder.is_processing:
                                 <a
                                     href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?operation=deactivate"
                                     class="btn btn-xs btn-danger"

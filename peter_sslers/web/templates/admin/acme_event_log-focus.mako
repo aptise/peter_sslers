@@ -117,7 +117,7 @@
                                 href="${admin_prefix}/server-certificate/${AcmeEventLog.server_certificate_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                Certificate-${AcmeEventLog.server_certificate_id}
+                                ServerCertificate-${AcmeEventLog.server_certificate_id}
                             </a>
                         % endif
                     </td>

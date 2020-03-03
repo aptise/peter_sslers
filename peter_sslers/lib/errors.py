@@ -3,6 +3,13 @@ class _UrlSafeException(Exception):
         return str(self).replace("\n", "+").replace(" ", "+")
 
 
+class GarfieldMinusGarfield(Exception):
+    """
+    An exception for those odd moments
+    """
+    pass
+
+
 class OpenSslError(Exception):
     pass
 
@@ -22,12 +29,6 @@ class OpenSslError_InvalidCSR(OpenSslError):
 class OpenSslError_InvalidCertificate(OpenSslError):
     pass
 
-
-class GarfieldMinusGarfield(Exception)
-    """
-    An exception for those odd moments
-    """
-    pass
 
 class AcmeError(_UrlSafeException):
     pass

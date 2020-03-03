@@ -35,6 +35,11 @@
                     <p class="help-block">enter domain_names above, separated by commas. <b>This should be EXACTLY what you typed in the letsencrypt client.</p>
                 </div>
 
+                <h3>AcmeAccountKey</h3>
+                ${admin_partials.formgroup__AcmeAccountKey_selector__advanced(allow_no_key=True)}
+                <hr/>
+
+
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
             </form>
         </div>

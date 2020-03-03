@@ -70,7 +70,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>private_key_id</th>
+                        <th>PrivateKey</th>
                         <td>
                             % if CertificateRequest.private_key_id:
                                 % if CertificateRequest.private_key.is_compromised:

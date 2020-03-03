@@ -201,8 +201,8 @@ def updated_AcmeOrder_status(
             )
         _edited = True
     if status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
-        if dbAcmeOrder.is_active:
-            dbAcmeOrder.is_active = None
+        if dbAcmeOrder.is_processing:
+            dbAcmeOrder.is_processing = None
             _edited = True
     if acme_order_processing_status_id is not None:
         if (
@@ -1352,7 +1352,7 @@ def _do__AcmeV2_AcmeOrder__core(
     finally:
         if dbAcmeOrder:
             # shut this down to deactivate the auths on our side
-            dbAcmeOrder.is_active = None
+            dbAcmeOrder.is_processing = None
         # cleanup tmpfiles
         for tf in tmpfiles:
             tf.close()

@@ -36,7 +36,7 @@
             </p>
             <p>
                 This AcmeOderless configuration is :
-                    % if AcmeOrderless.is_active:
+                    % if AcmeOrderless.is_processing:
                         <span class="label label-success">active</span>
                     % else:
                         <span class="label label-danger">deactivated</span>
@@ -44,7 +44,7 @@
                 . If an AcmeOderless configuration is deactivated, it can not be edited or reactivated.
             </p>
 
-            % if AcmeOrderless.is_active:
+            % if AcmeOrderless.is_processing:
                 <form
                     action="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/deactivate"
                     method="POST"
@@ -73,9 +73,22 @@
     </div>
     <div class="row">
         <div class="col-sm-12">
+        
+            <h5>AcmeAccountKey</h5>
+            % if AcmeOrderless.acme_account_key_id:
+                <p>This AcmeOrderless is connected to:
+                    <a class="label label-info" href="${admin_prefix}/acme-account-key/${AcmeOrderless.acme_account_key_id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeAccountKey-${AcmeOrderless.acme_account_key_id}
+                    </a>
+                 </p>
+            % else:
+                <p>This AcmeOrderless is not connected to an AcmeAccountKey.</p>
+            % endif
+        
             <h5>Challenges in this Orderless Request</h5>
             
-            <% editable = AcmeOrderless.is_active %>
+            <% editable = AcmeOrderless.is_processing %>
             % if editable:
                 <form
                     action="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/update"
@@ -86,16 +99,19 @@
                     ${form.html_error_main_fillable()|n}
             % endif
                 <%
-                    cols = ('Challenge',
+                    cols = ['Challenge',
                             'Domain',
                             'Test',
                             'Type',
                             'Status',
                             'Token',
                             'KeyAuthorization',
-                             ##'challenge_url',  # Note: challenge_url is not supported until this is integrated with an AcmeAccount
                             'updated',
-                            )
+                            ]
+                            
+                    if AcmeOrderless.acme_account_key_id:
+                        # Note: challenge_url is not supported until this is integrated with an AcmeAccount
+                        cols.append("challenge_url")
                 %>
                 <table class="table table-condensed table-striped">
                     <thead>
@@ -127,7 +143,7 @@
                                                 % if challenge.token:
                                                     <a href="http://${challenge.domain.domain_name}/.well-known/acme-challenge/${challenge.token}?test=1"
                                                        target="_blank"
-                                                       class="btn btn-${"success" if AcmeOrderless.is_active else "danger"}"
+                                                       class="btn btn-${"success" if AcmeOrderless.is_processing else "danger"}"
                                                     >
                                                         <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
                                                     </a>
