@@ -805,7 +805,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "acme_order"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    is_processing = sa.Column(sa.Boolean, nullable=True, default=True)  # see notes above
+    is_processing = sa.Column(
+        sa.Boolean, nullable=True, default=True
+    )  # see notes above
     is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=None)
     is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
@@ -980,8 +982,13 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
-    def is_can_finalize(self):
-        '''
+    def is_can_acme_process(self):
+        # todo: logic?
+        return False
+
+    @property
+    def is_can_acme_finalize(self):
+        """
         # todo - replace with acme_order_status tracking
         if self.acme_status_order == "pending":
             _has_not_valid_auths = None
@@ -992,8 +999,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             if not _has_not_valid_auths:
                 return True
         return False
-        '''
-        if self.acme_status_order == 'ready':
+        """
+        if self.acme_status_order == "ready":
             return True
         return False
 
@@ -1045,7 +1052,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "finalize_url": self.finalize_url,
             "is_processing": True if self.is_processing else False,
             "is_auto_renew": True if self.is_auto_renew else False,
-            "is_can_finalize": self.is_can_finalize,
+            "is_can_acme_process": self.is_can_acme_process,
             "is_can_mark_invalid": self.is_can_mark_invalid,
             "is_can_retry": self.is_can_retry,
             "is_renewable_custom": True if self.is_renewable_custom else False,

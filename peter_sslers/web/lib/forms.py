@@ -1,5 +1,5 @@
 # pypi
-from formencode import Schema as _FormSchema
+from formencode import Schema as _Schema
 from formencode.validators import (
     _,
     Email,
@@ -79,12 +79,12 @@ class OnlyOneOf(FormValidator):
 # ==============================================================================
 
 
-class _Form_Schema_Base(_FormSchema):
+class _Form_Schema_Base(_Schema):
     allow_extra_fields = True
     filter_extra_fields = True
 
 
-class _form_AccountKey_core(_FormSchema):
+class _form_AccountKey_core(_Form_Schema_Base):
     # `account_key_file` could indictate `account_key_file_pem` or the combo of certbot encoding
     account_key_option = OneOf(
         ("account_key_default", "account_key_existing", "account_key_file"),
@@ -107,20 +107,7 @@ class _form_AccountKey_core(_FormSchema):
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
 
 
-class _form_AccountKey_reuse(_form_AccountKey_core):
-    account_key_option = OneOf(
-        (
-            "account_key_reuse",
-            "account_key_default",
-            "account_key_existing",
-            "account_key_file",
-        ),
-        not_empty=True,
-    )
-    account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
-
-
-class _form_PrivateKey_core(_FormSchema):
+class _form_PrivateKey_core(_Form_Schema_Base):
     private_key_option = OneOf(
         (
             "private_key_default",
@@ -133,6 +120,19 @@ class _form_PrivateKey_core(_FormSchema):
     private_key_default = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+
+
+class _form_AccountKey_reuse(_form_AccountKey_core):
+    account_key_option = OneOf(
+        (
+            "account_key_reuse",
+            "account_key_default",
+            "account_key_existing",
+            "account_key_file",
+        ),
+        not_empty=True,
+    )
+    account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
 
 
 class _form_PrivateKey_reuse(_form_PrivateKey_core):
@@ -148,6 +148,69 @@ class _form_PrivateKey_reuse(_form_PrivateKey_core):
     )
     private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
 
+
+class _form_AccountKey_PrivateKey_core(_Form_Schema_Base):
+    """this is a mix of two forms, because FormEncode doesn't support multiple class inheritance
+    """
+
+    account_key_option = OneOf(
+        ("account_key_default", "account_key_existing", "account_key_file"),
+        not_empty=True,
+    )
+    account_key_default = UnicodeString(not_empty=False, if_missing=None)
+    account_key_existing = UnicodeString(not_empty=False, if_missing=None)
+
+    # these are via Form_AcmeAccountKey_new__file
+    account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    account_key_file_le_meta = FieldStorageUploadConverter(
+        not_empty=False, if_missing=None
+    )
+    account_key_file_le_pkey = FieldStorageUploadConverter(
+        not_empty=False, if_missing=None
+    )
+    account_key_file_le_reg = FieldStorageUploadConverter(
+        not_empty=False, if_missing=None
+    )
+    acme_account_provider_id = Int(not_empty=False, if_missing=None)
+    private_key_option = OneOf(
+        (
+            "private_key_default",
+            "private_key_existing",
+            "private_key_file",
+            "private_key_generate",
+        ),
+        not_empty=True,
+    )
+    private_key_default = UnicodeString(not_empty=False, if_missing=None)
+    private_key_existing = UnicodeString(not_empty=False, if_missing=None)
+    private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+
+
+class _form_AccountKey_PrivateKey_reuse(_form_AccountKey_PrivateKey_core):
+    """this is a mix of two forms, because FormEncode doesn't support multiple class inheritance
+    """
+
+    account_key_option = OneOf(
+        (
+            "account_key_reuse",
+            "account_key_default",
+            "account_key_existing",
+            "account_key_file",
+        ),
+        not_empty=True,
+    )
+    account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+    private_key_option = OneOf(
+        (
+            "private_key_reuse",
+            "private_key_default",
+            "private_key_existing",
+            "private_key_file",
+            "private_key_generate",
+        ),
+        not_empty=True,
+    )
+    private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
 
 
 class Form_AcmeAccountKey_new__auth(_Form_Schema_Base):
@@ -183,7 +246,7 @@ class Form_AcmeAccountKey_mark(_Form_Schema_Base):
     action = OneOf(("default", "active", "inactive"), not_empty=True)
 
 
-class Form_AcmeOrder_new_automated(_form_AccountKey_core, _form_PrivateKey_core):
+class Form_AcmeOrder_new_automated(_form_AccountKey_PrivateKey_core):
     domain_names = UnicodeString(not_empty=True)
     processing_strategy = OneOf(
         ("create_order", "process_single", "process_multi",), not_empty=True,
@@ -196,7 +259,7 @@ class Form_AcmeOrder_renew_quick(_Form_Schema_Base):
     )
 
 
-class Form_AcmeOrder_renew_custom(_form_AccountKey_reuse, _form_PrivateKey_reuse):
+class Form_AcmeOrder_renew_custom(_form_AccountKey_PrivateKey_reuse):
     processing_strategy = OneOf(
         ("create_order", "process_single", "process_multi",), not_empty=True,
     )
@@ -205,12 +268,7 @@ class Form_AcmeOrder_renew_custom(_form_AccountKey_reuse, _form_PrivateKey_reuse
 class Form_AcmeOrderless_new(_form_AccountKey_core):
     domain_names = UnicodeString(not_empty=True)
     account_key_option = OneOf(
-        (
-            "none",
-            "account_key_default",
-            "account_key_existing",
-            "account_key_file",
-        ),
+        ("none", "account_key_default", "account_key_existing", "account_key_file",),
         not_empty=False,
     )
 
@@ -304,13 +362,17 @@ class _Form_QueueCertificate_new(_form_AccountKey_core, _form_PrivateKey_core):
     unique_fqdn_set_id = Int(not_empty=False, if_missing=None)
 
 
-class Form_QueueCertificate_new_AcmeOrder(_Form_QueueCertificate_new, _form_AccountKey_reuse):
+class Form_QueueCertificate_new_AcmeOrder(
+    _Form_QueueCertificate_new, _form_AccountKey_reuse
+):
     acme_order_id = Int(not_empty=True, if_missing=None)
 
 
-class Form_QueueCertificate_new_ServerCertificate(_Form_QueueCertificate_new, _form_AccountKey_reuse, _form_PrivateKey_reuse):
+class Form_QueueCertificate_new_ServerCertificate(
+    _Form_QueueCertificate_new, _form_AccountKey_reuse, _form_PrivateKey_reuse
+):
     server_certificate_id = Int(not_empty=True, if_missing=None)
-    
+
 
 class Form_QueueCertificate_new_UniqueFQDNSet(_Form_QueueCertificate_new):
     unique_fqdn_set_id = Int(not_empty=True, if_missing=None)
@@ -326,6 +388,7 @@ class Form_QueueDomains_add(_Form_Schema_Base):
 
 class Form_QueueDomains_process(_form_AccountKey_core, _form_PrivateKey_core):
     """just use the PrivateKey and AcmeAccountKey in the parent class"""
+
     pass
 
 

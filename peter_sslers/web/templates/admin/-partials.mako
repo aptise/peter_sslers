@@ -295,7 +295,7 @@
                         </a>
                     </td>
                     <td>
-                        % if order_.is_active:
+                        % if order_.is_processing:
                             <div class="label label-success">
                                 <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
                             </div>

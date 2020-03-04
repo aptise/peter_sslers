@@ -240,8 +240,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:acme_order:focus:process", renderer=None)
-    @view_config(route_name="admin:acme_order:focus:process|json", renderer="json")
+    @view_config(route_name="admin:acme_order:focus:acme_process", renderer=None)
+    @view_config(route_name="admin:acme_order:focus:acme_process|json", renderer="json")
     def process_order(self):
         """
         only certain orders can be finalized
@@ -269,7 +269,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 % (self._focus_url, exc.to_querystring())
             )
 
-
     @view_config(route_name="admin:acme_order:focus:finalize", renderer=None)
     @view_config(route_name="admin:acme_order:focus:finalize|json", renderer="json")
     def finalize_order(self):
@@ -278,7 +277,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
-            if not dbAcmeOrder.is_can_finalize:
+            if not dbAcmeOrder.is_can_acme_process:
                 raise errors.InvalidRequest(
                     "ACME Finalize is not allowed for this AcmeOrder"
                 )
@@ -421,6 +420,48 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         dbAcmeOrder = self._focus()
         if not dbAcmeOrder.is_renewable_custom:
             raise errors.DisplayableError("This AcmeOrder can not use RenewCustom")
+
+        if self.request.wants_json:
+            return {
+                "form_fields": {
+                    "processing_strategy": "One of ('create_order', 'process_single', 'process_multi'). REQUIRED.",
+                    "account_key_option": "One of ('account_key_reuse', 'account_key_default', 'account_key_existing', 'account_key_file'). REQUIRED.",
+                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                    "account_key_default": "pem_md5 of the default account key. Must/Only submit if `account_key_option==account_key_default`",
+                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                    "account_key_file_le_meta": "letsencrypt file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                    "account_key_file_le_pkey": "letsencrypt file",
+                    "account_key_file_le_reg": "letsencrypt file",
+                    "private_key_option": "One of('private_key_reuse', 'private_key_existing', 'private_key_file_pem', 'private_key_option'). REQUIRED.",
+                    "private_key_reuse": "pem_md5 of existing key",
+                    "private_key_existing": "pem_md5 of existing key",
+                    "private_key_file_pem": "pem to upload",
+                },
+                "form_fields_related": [
+                    ["account_key_file_pem", "acme_account_provider_id"],
+                    [
+                        "account_key_file_le_meta",
+                        "account_key_file_le_pkey",
+                        "account_key_file_le_reg",
+                    ],
+                ],
+                "valid_options": {
+                    "acme_account_provider_id": {
+                        i.id: "%s (%s)" % (i.name, i.url)
+                        for i in dbAcmeAccountProviders
+                    },
+                },
+                "requirements": [
+                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three letsencrypt files."
+                ],
+                "instructions": [
+                    """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/1/renew/custom.json"""
+                    % self.request.admin_url
+                ],
+            }
+
         return render_to_response(
             "/admin/acme_order-focus-renew-custom.mako",
             {
@@ -519,7 +560,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 dbAcmeOrderNew,
                 exc,
             ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_quick(
-                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                self.request.api_context,
+                dbAcmeOrder=dbAcmeOrder,
                 processing_strategy=processing_strategy,
             )
             if exc:

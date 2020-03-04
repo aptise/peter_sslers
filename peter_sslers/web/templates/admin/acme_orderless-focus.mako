@@ -207,12 +207,12 @@
                             <label for="keyauthorization">KeyAuthorization</label>
                             <input class="form-control" type="text" name="keyauthorization" value=""/>
                         </div>
-                        ## Note: challenge_url is not supported until this is integrated with an AcmeAccount
-                        ## <div class="form-group">
-                        ##   <label for="challenge_url">ChallengeURL</label>
-                        ##    <input class="form-control" type="text" name="challenge_url" value=""/>
-                        ##</div>
-
+                        % if AcmeOrderless.acme_account_key_id:
+                            <div class="form-group">
+                                <label for="challenge_url">ChallengeURL</label>
+                                <input class="form-control" type="text" name="challenge_url" value=""/>
+                            </div>
+                        % endif
                         <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
                     </form>
                 % else:

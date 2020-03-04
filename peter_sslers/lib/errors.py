@@ -7,6 +7,7 @@ class GarfieldMinusGarfield(Exception):
     """
     An exception for those odd moments
     """
+
     pass
 
 

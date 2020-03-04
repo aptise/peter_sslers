@@ -101,16 +101,15 @@
                         <code>${AcmeChallenge.keyauthorization or ''}</code>
                     </td>
                 </tr>
-                <%doc>
-                # Note: challenge_url is not supported until this is integrated with an AcmeAccount
-                <tr>
-                    <th>challenge_url</th>
-                    <td>
-                        <code>${AcmeChallenge.challenge_url or ''}</code>
-                        (this is not the URL on your server, but the ACME Server URL)
-                    </td>
-                </tr>
-                </%doc>
+                % if AcmeOrderless.acme_account_key_id:
+                    <tr>
+                        <th>challenge_url</th>
+                        <td>
+                            <code>${AcmeChallenge.challenge_url or 'n/a'}</code>
+                            <em>(this is not the URL on your server, but the ACME Server URL)</em>
+                        </td>
+                    </tr>
+                % endif
                 <tr>
                     <th>timestamp_updated</th>
                     <td>

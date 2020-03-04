@@ -46,61 +46,105 @@
                     <tr>
                         <th>Sync</th>
                         <td>
-                            <p>
-                                <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
-                                    class="btn btn-xs btn-info ${sync_btn_class}"
-                                >
-                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                    Sync Order Against ACME Server
-                                </a>
-                            </p>
-                            <p>
-                                <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync-authorizations"
-                                    class="btn btn-xs btn-info ${sync_btn_class}"
-                                >
-                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                    Sync Authorizations Against ACME Server
-                                </a>
-                            </p>
-                        </td>
+                            <table class="table table-condensed table-striped">
+                                <tr>
+                                    <td>
+                                        <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
+                                        <a
+                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
+                                            class="btn btn-xs btn-info ${sync_btn_class}"
+                                        >
+                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                            Sync Order Against ACME Server
+                                        </a>
+                                    </td>
+                                    <td>
+                                        Interrogates the ACME Server
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
+                                        <a
+                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync-authorizations"
+                                            class="btn btn-xs btn-info ${sync_btn_class}"
+                                        >
+                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                            Sync Authorizations Against ACME Server
+                                        </a>
+                                    </td>
+                                    <td>
+                                        Loops pending/potentially pending authoriations to sync
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <% process_btn_class = '' if AcmeOrder.is_can_acme_process else 'disabled' %>
+                                        <a
+                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-process"
+                                            class="btn btn-xs btn-info ${sync_btn_class}"
+                                        >
+                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                            Process on AcmeServer
+                                        </a>
+                                    </td>
+                                    <td>
+                                        Starts processing
+                                    </td>
+                                </tr>
+                            </table>
+                        <td>
                     </tr>
                     <tr>
                         <th>Cleanup</th>
                         <td>
-                            <p>
-                                <% deactivate_btn_class = '' if AcmeOrder.is_can_acme_server_deactivate_authorizations else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-deactivate-authorizations"
-                                    class="btn btn-xs btn-info ${deactivate_btn_class}"
-                                >
-                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                    Deactivate Authorizations on ACME Server
-                                </a>
-                            </p>
-                            <p>
-                                <% finalize_btn_class = '' if AcmeOrder.is_can_finalize else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/finalize"
-                                    class="btn btn-xs btn-info ${finalize_btn_class}"
-                                >
-                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                    Finalize Order
-                                </a>
-                            </p>
-                            <p>
-                                <% retry_btn_class = '' if AcmeOrder.is_can_retry else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"
-                                    class="btn btn-xs btn-info ${retry_btn_class}"
-                                >
-                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                    Retry (New) Order
-                                </a>
-                            </p>
+                            <table class="table table-condensed table-striped">
+                                <tr>
+                                    <td>
+                                        <% deactivate_btn_class = '' if AcmeOrder.is_can_acme_server_deactivate_authorizations else 'disabled' %>
+                                        <a
+                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-deactivate-authorizations"
+                                            class="btn btn-xs btn-info ${deactivate_btn_class}"
+                                        >
+                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                            Deactivate Authorizations
+                                        </a>
+                                    </td>
+                                    <td>
+                                        Loops pending/potentially pending Activations and deactivates them on the ACME Server
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <% finalize_btn_class = '' if AcmeOrder.is_can_acme_process else 'disabled' %>
+                                        <a
+                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/finalize"
+                                            class="btn btn-xs btn-info ${finalize_btn_class}"
+                                        >
+                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                            Finalize Order
+                                        </a>
+                                    </td>
+                                    <td>
+                                        Only available if the order is "ready" to be finalized.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <% retry_btn_class = '' if AcmeOrder.is_can_retry else 'disabled' %>
+                                        <a
+                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"
+                                            class="btn btn-xs btn-info ${retry_btn_class}"
+                                        >
+                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                            Retry (New) Order
+                                        </a>
+                                    </td>
+                                    <td>
+                                        Only available if the order has recently failed.
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                 </tbody>

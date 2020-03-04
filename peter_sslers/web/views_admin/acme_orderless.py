@@ -99,9 +99,14 @@ class ViewAdmin_New(Handler):
                     "You can configure the challenges and add domain names to an existing AcmeOrderless"
                 ],
             }
-        return render_to_response("/admin/acme_orderless-new.mako",
-            {"AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
-             "AcmeAccountProviders": self.dbAcmeAccountProviders,}, self.request,)
+        return render_to_response(
+            "/admin/acme_orderless-new.mako",
+            {
+                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
+                "AcmeAccountProviders": self.dbAcmeAccountProviders,
+            },
+            self.request,
+        )
 
     def _new_AcmeOrderless__submit(self):
         try:
@@ -141,7 +146,9 @@ class ViewAdmin_New(Handler):
 
             try:
                 dbAcmeOrderless = lib_db.create.create__AcmeOrderless(
-                    self.request.api_context, domain_names=domain_names, dbAcmeAccountKey=dbAcmeAccountKey,
+                    self.request.api_context,
+                    domain_names=domain_names,
+                    dbAcmeAccountKey=dbAcmeAccountKey,
                 )
             except errors.AcmeDuplicateChallenges as exc:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -240,13 +247,11 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 _changed = True
 
             # url
-            # Note: challenge_url is not supported until this is integrated with an AcmeAccount
-            """
-            form_url = _post.get("%s_url" % challenge_id)
-            if form_url != dbChallenge.challenge_url:
-                dbChallenge.challenge_url = form_url
-                _changed = True
-            """
+            if dbAcmeOrderless.acme_account_key_id:
+                form_url = _post.get("%s_url" % challenge_id)
+                if form_url != dbChallenge.challenge_url:
+                    dbChallenge.challenge_url = form_url
+                    _changed = True
 
             if _changed:
                 dbChallenge.timestamp_updated = self.request.api_context.timestamp
@@ -332,18 +337,17 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     message="This domain is already configured for this AcmeOrderless.",
                 )
 
-            token = formStash.results["token"]
-            keyauthorization = formStash.results["keyauthorization"]
-            # Note: challenge_url is not supported until this is integrated with an AcmeAccount
-            # challenge_url = formStash.results["challenge_url"]
+            create_kwargs = {
+                "dbAcmeOrderless": dbAcmeOrderless,
+                "dbDomain": dbDomain,
+                "token": formStash.results["token"],
+                "keyauthorization": formStash.results["keyauthorization"],
+            }
+            if dbAcmeOrderless.acme_account_key_id:
+                create_kwargs["challenge_url"] = formStash.results["challenge_url"]
 
             dbChallenge = lib_db.create.create__AcmeChallenge(
-                self.request.api_context,
-                dbAcmeOrderless=dbAcmeOrderless,
-                dbDomain=dbDomain,
-                token=token,
-                keyauthorization=keyauthorization,
-                # challenge_url=challenge_url,  # Note: challenge_url is not supported until this is integrated with an AcmeAccount
+                self.request.api_context, **create_kwargs
             )
 
             if self.request.wants_json:

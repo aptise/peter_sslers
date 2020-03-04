@@ -279,7 +279,9 @@ def _AcmeV2_factory_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
             transaction_commit=transaction_commit,
         )
         if _is_created:
-            raise errors.GarfieldMinusGarfield("the dbAcmeAuthorization should exist already")
+            raise errors.GarfieldMinusGarfield(
+                "the dbAcmeAuthorization should exist already"
+            )
 
         return dbAcmeAuthorization
 
@@ -442,7 +444,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
         # this is used a bit
         dbAcmeAccountKey = dbAcmeAuthorization.acme_order_created.acme_account_key
         dbAcmeOrder = dbAcmeAuthorization.acme_order_created
-        
+
         if authenticatedUser is None:
             # we need to use tmpfiles on the disk
             account_key_pem = dbAcmeAccountKey.key_pem
@@ -470,7 +472,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
             _updated = update_AcmeAuthorization_from_payload(
                 ctx, dbAcmeAuthorization, authorization_response
             )
-            
+
             # maybe there are challenges in the payload?
             try:
                 (
@@ -747,7 +749,6 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
             tf.close()
 
 
-
 def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     ctx, dbAcmeOrder=None, authenticatedUser=None
 ):
@@ -789,7 +790,10 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
 
             # always invoke this, as it handles it's own cleanup of the model
             updated_AcmeOrder_status(
-                ctx, dbAcmeOrder, acmeOrderRfcObject.rfc_object["status"], transaction_commit=True
+                ctx,
+                dbAcmeOrder,
+                acmeOrderRfcObject.rfc_object["status"],
+                transaction_commit=True,
             )
 
         except errors.AcmeServer404 as exc:
@@ -800,7 +804,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
         for dbAcmeAuthorization in dbAcmeOrder.acme_authorizations:
             try:
                 result = do__AcmeV2_AcmeAuthorization__acme_server_sync(
-                    ctx, 
+                    ctx,
                     dbAcmeAuthorization=dbAcmeAuthorization,
                     authenticatedUser=authenticatedUser,
                 )
@@ -1314,11 +1318,13 @@ def _do__AcmeV2_AcmeOrder__core(
             == model_utils.AcmeOrder_ProcessingStrategy.create_order
         ):
             # we may have created this order, yet it is "ready" due to existing authorizations
-            if dbAcmeOrder.acme_status_order == 'ready':
+            if dbAcmeOrder.acme_status_order == "ready":
                 FINALIZE_READY_ORDERS = False
                 if FINALIZE_READY_ORDERS:
                     (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
-                        ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
+                        ctx,
+                        authenticatedUser=authenticatedUser,
+                        dbAcmeOrder=dbAcmeOrder,
                     )
                     return (dbAcmeOrder, exc)
             return (dbAcmeOrder, None)
@@ -1327,21 +1333,20 @@ def _do__AcmeV2_AcmeOrder__core(
             acme_order_processing_strategy_id
             == model_utils.AcmeOrder_ProcessingStrategy.process_single
         ):
-        
+
             # handle the order towards finalized?
             _todo_finalize_order = _AcmeV2_AcmeOrder__process_authorizations(
                 ctx, authenticatedUser, dbAcmeOrder, acmeOrderRfcObject
             )
             if not _todo_finalize_order:
-                return (dbAcmeOrder, False)
+                return (dbAcmeOrder, None)
 
             (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
                 ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
             )
+            return (dbAcmeOrder, exc)
 
-
-
-        return (dbAcmeOrder, exc)
+        return (dbAcmeOrder, None)
 
     except errors.AcmeOrderFatal as exc:
         return (dbAcmeOrder, exc)
@@ -1368,7 +1373,7 @@ def do__AcmeV2_AcmeOrder__finalize(
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
-    if not dbAcmeOrder.is_can_finalize:
+    if not dbAcmeOrder.is_can_acme_process:
         raise ValueError("Can not finalize this `dbAcmeOrder`")
 
     tmpfiles = []
