@@ -301,6 +301,44 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         timestamp_expires - `expires`
         status - `status`
         timestamp_updated - last time we updated this object
+
+
+    ------------------------------------------------------------------------
+
+    Authorizations
+
+        https://tools.ietf.org/html/rfc8555#section-7.1.4
+
+            status (required, string):  The status of this authorization.
+                Possible values are "pending", "valid", "invalid", "deactivated",
+                "expired", and "revoked".  See Section 7.1.6.
+
+        https://tools.ietf.org/html/rfc8555#page-31
+
+           Authorization objects are created in the "pending" state.  If one of
+           the challenges listed in the authorization transitions to the "valid"
+           state, then the authorization also changes to the "valid" state.  If
+           the client attempts to fulfill a challenge and fails, or if there is
+           an error while the authorization is still pending, then the
+           authorization transitions to the "invalid" state.  Once the
+           authorization is in the "valid" state, it can expire ("expired"), be
+           deactivated by the client ("deactivated", see Section 7.5.2), or
+           revoked by the server ("revoked").
+
+        Therefore:
+
+            "pending"
+                newly created
+            "valid"
+                one or more challenges is valid
+            "invalid"
+                a challenge failed
+            "deactivated"
+                deactivated by the client
+            "expired"
+                a valid challenge has expired
+            "revoked"
+                revoked by the server
     """
 
     __tablename__ = "acme_authorization"
@@ -383,7 +421,26 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
+    def is_can_acme_server_process(self):
+        """
+        can the auth be triggered?
+        two scenarios:
+        1_ auth is *discovered*, not synced yet
+        2_ auth is synced, can be triggered
+        """
+        if (
+            self.acme_status_authorization_id
+            == model_utils.Acme_Status_Authorization.ID_DISCOVERED
+        ):
+            return True
+        return self.is_can_acme_server_trigger
+
+    @property
     def is_can_acme_server_trigger(self):
+        """
+        can the auth be triggered?
+        this requires a loaded auth
+        """
         if not self.authorization_url:
             return False
         if not self.acme_order_id__created:
@@ -420,15 +477,15 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,}
             if self.domain_id
             else None,
-            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server-sync.json"
+            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server/sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
             else None,
-            "url_acme_server_trigger": "%s/acme-challenge/%s/acme-server-trigger.json"
+            "url_acme_server_trigger": "%s/acme-challenge/%s/acme-server/trigger.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_trigger
             else None,
-            "url_acme_server_deactivate": "%s/acme-challenge/%s/acme-server-deactivate.json"
+            "url_acme_server_deactivate": "%s/acme-challenge/%s/acme-server/deactivate.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_deactivate
             else None,
@@ -486,6 +543,38 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
          "token": "LoqXcYV8q5ONbJQxbmR7SCTNo3tiAXDfowyjxAjEuX0"
        }
 
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    Challenges
+
+        https://tools.ietf.org/html/rfc8555#section-8
+
+            status (required, string):  The status of this challenge.  Possible
+               values are "pending", "processing", "valid", and "invalid" (see
+               Section 7.1.6).
+
+        https://tools.ietf.org/html/rfc8555#section-7.1.6
+
+            Challenge objects are created in the "pending" state.  They
+            transition to the "processing" state when the client responds to the
+            challenge (see Section 7.5.1) and the server begins attempting to
+            validate that the client has completed the challenge.  Note that
+            within the "processing" state, the server may attempt to validate the
+            challenge multiple times (see Section 8.2).  Likewise, client
+            requests for retries do not cause a state change.  If validation is
+            successful, the challenge moves to the "valid" state; if there is an
+            error, the challenge moves to the "invalid" state.
+
+        Therefore:
+
+            "pending"
+                newly created
+            "processing"
+                the client has responded to the challenge
+            "valid"
+                the ACME server has validated the challenge
+            "invalid"
+                the ACME server encountered an error when validating
     """
 
     __tablename__ = "acme_challenge"
@@ -632,11 +721,11 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
-            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server-sync.json"
+            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server/sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
             else None,
-            "url_acme_server_trigger": "%s/acme-challenge/%s/acme-server-trigger.json"
+            "url_acme_server_trigger": "%s/acme-challenge/%s/acme-server/trigger.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_trigger
             else None,
@@ -800,6 +889,75 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
         False : The AcmeOrder has been cancelled by the user.
                 Any Authorizations/Challenges on this order's domains are OFF.
+
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    https://tools.ietf.org/html/rfc8555#section-7.4
+
+        identifiers (required, array of object):  An array of identifier
+        objects that the client wishes to submit an order for.
+
+            type (required, string):  The type of identifier.
+
+            value (required, string):  The identifier itself.
+
+            notBefore (optional, string):  The requested value of the notBefore
+                field in the certificate, in the date format defined in [RFC3339].
+
+            notAfter (optional, string):  The requested value of the notAfter
+                field in the certificate, in the date format defined in [RFC3339].
+
+        Example - Request
+
+            POST /acme/new-order HTTP/1.1
+            Host: example.com
+            Content-Type: application/jose+json
+
+            {
+              "protected": base64url({
+                "alg": "ES256",
+                "kid": "https://example.com/acme/acct/evOfKhNU60wg",
+                "nonce": "5XJ1L3lEkMG7tR6pA00clA",
+                "url": "https://example.com/acme/new-order"
+              }),
+              "payload": base64url({
+                "identifiers": [
+                  { "type": "dns", "value": "www.example.org" },
+                  { "type": "dns", "value": "example.org" }
+                ],
+                "notBefore": "2016-01-01T00:04:00+04:00",
+                "notAfter": "2016-01-08T00:04:00+04:00"
+              }),
+              "signature": "H6ZXtGjTZyUnPeKn...wEA4TklBdh3e454g"
+            }
+
+        Example - Response
+
+            HTTP/1.1 201 Created
+            Replay-Nonce: MYAuvOpaoIiywTezizk5vw
+            Link: <https://example.com/acme/directory>;rel="index"
+            Location: https://example.com/acme/order/TOlocE8rfgo
+
+            {
+             "status": "pending",
+             "expires": "2016-01-05T14:09:07.99Z",
+
+             "notBefore": "2016-01-01T00:00:00Z",
+             "notAfter": "2016-01-08T00:00:00Z",
+
+             "identifiers": [
+               { "type": "dns", "value": "www.example.org" },
+               { "type": "dns", "value": "example.org" }
+             ],
+
+             "authorizations": [
+               "https://example.com/acme/authz/PAniVnsZcis",
+               "https://example.com/acme/authz/r4HqLzrSrpI"
+             ],
+
+             "finalize": "https://example.com/acme/order/TOlocE8rfgo/finalize"
+            }
+
     """
 
     __tablename__ = "acme_order"
@@ -825,6 +983,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )  # see: `utils.AcmeOrder_ProcessingStatus`
     order_url = sa.Column(sa.Unicode(255), nullable=True)
     finalize_url = sa.Column(sa.Unicode(255), nullable=True)
+    certificate_url = sa.Column(sa.Unicode(255), nullable=True)
     timestamp_expires = sa.Column(sa.DateTime, nullable=True)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
 
@@ -935,6 +1094,17 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return authorizations
 
     @property
+    def acme_authorizations_pending(self):
+        authorizations = []
+        for _to_auth in self.to_acme_authorizations:
+            if (
+                _to_auth.acme_authorization.acme_status_authorization
+                in model_utils.Acme_Status_Authorization.OPTIONS_POSSIBLY_PENDING
+            ):
+                authorizations.append(_to_auth.acme_authorization)
+        return authorizations
+
+    @property
     def authorizations_can_deactivate(self):
         authorizations = []
         for _to_auth in self.to_acme_authorizations:
@@ -982,25 +1152,23 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return True
 
     @property
+    def is_can_acme_server_download_certificate(self):
+        if self.acme_status_order == "valid":
+            if self.certificate_url:
+                if not self.server_certificate_id:
+                    return True
+        return False
+
+    @property
     def is_can_acme_process(self):
-        # todo: logic?
+        # `process` will iterate authorizations and finalize
+        if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_PROCESS:
+            return True
         return False
 
     @property
     def is_can_acme_finalize(self):
-        """
-        # todo - replace with acme_order_status tracking
-        if self.acme_status_order == "pending":
-            _has_not_valid_auths = None
-            for _to_auth in self.to_acme_authorizations:
-                if _to_auth.acme_authorization.acme_status_authorization != "valid":
-                    _has_not_valid_auths = True
-                    break
-            if not _has_not_valid_auths:
-                return True
-        return False
-        """
-        if self.acme_status_order == "ready":
+        if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_FINALIZE:
             return True
         return False
 
@@ -1050,6 +1218,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "certificate_request_id": self.certificate_request_id,
             "domains_as_list": self.domains_as_list,
             "finalize_url": self.finalize_url,
+            "certificate_url": self.certificate_url,
             "is_processing": True if self.is_processing else False,
             "is_auto_renew": True if self.is_auto_renew else False,
             "is_can_acme_process": self.is_can_acme_process,
@@ -1068,7 +1237,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "timestamp_finalized": self.timestamp_finalized_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server-sync.json"
+            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server/sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
             else None,
@@ -2293,6 +2462,7 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "unique_fqdn_set"
     id = sa.Column(sa.Integer, primary_key=True)
     domain_ids_string = sa.Column(sa.Text, nullable=False)
+    count_domains = sa.Column(sa.Integer, nullable=False)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -2373,6 +2543,7 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "timestamp_created": self.timestamp_created_isoformat,
+            "count_domains": self.count_domains,
             "domains_as_list": self.domains_as_list,
         }
 
@@ -2460,6 +2631,12 @@ AcmeOrder.acme_event_logs__5 = sa_orm_relationship(
 
 
 # note: AcmeAccountKey.acme_authorizations__5
+# TODO:
+"""
+    dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
+    dbOrder2Auth.acme_order_id = dbAcmeOrder.id
+    dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
+"""
 AcmeAccountKey.acme_authorizations__5 = sa_orm_relationship(
     AcmeAuthorization,
     primaryjoin="AcmeAccountKey.id == AcmeOrder.acme_account_key_id",
@@ -2488,6 +2665,11 @@ AcmeAccountKey.acme_authorizations__5 = sa_orm_relationship(
 
 
 # note: AcmeAccountKey.acme_authorizations_pending__5
+"""
+    dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
+    dbOrder2Auth.acme_order_id = dbAcmeOrder.id
+    dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
+"""
 AcmeAccountKey.acme_authorizations_pending__5 = sa_orm_relationship(
     AcmeAuthorization,
     primaryjoin="AcmeAccountKey.id == AcmeOrder.acme_account_key_id",

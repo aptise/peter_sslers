@@ -23,7 +23,7 @@ from .. import lib
 
 def _handle_certificate_deactivated(ctx, serverCertificate):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
     # ok. so let's find out the fqdn...
@@ -41,7 +41,7 @@ def _handle_certificate_deactivated(ctx, serverCertificate):
 
 def _handle_certificate_activated(ctx, serverCertificate):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
     dbActiveQueues = lib.db.get.get__QueueCertificate__by_UniqueFQDNSetId__active(
@@ -60,7 +60,7 @@ def _handle_certificate_activated(ctx, serverCertificate):
 
 def Certificate_issued(ctx, serverCertificate):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
     _handle_certificate_activated(ctx, serverCertificate)
@@ -68,7 +68,7 @@ def Certificate_issued(ctx, serverCertificate):
 
 def Certificate_renewed(ctx, serverCertificate):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
     _handle_certificate_activated(ctx, serverCertificate)
@@ -76,7 +76,7 @@ def Certificate_renewed(ctx, serverCertificate):
 
 def Certificate_expired(ctx, serverCertificate):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
     _handle_certificate_deactivated(ctx, serverCertificate)
@@ -84,7 +84,7 @@ def Certificate_expired(ctx, serverCertificate):
 
 def Certificate_deactivated(ctx, serverCertificate):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
     _handle_certificate_deactivated(ctx, serverCertificate)
@@ -94,7 +94,7 @@ def PrivateKey_compromised(ctx, privateKey, dbOperationsEvent=None):
     """
     mark every certificate signed by this key compromised
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param privateKey: (required) A :class:`model.objects.PrivateKey` object
     :param dbOperationsEvent:
     """

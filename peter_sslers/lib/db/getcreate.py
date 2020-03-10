@@ -19,6 +19,7 @@ from .. import utils
 from ...lib import errors
 from ...model import utils as model_utils
 from ...model import objects as model_objects
+from .create import create__ServerCertificate
 from .get import get__AcmeAccountProviders__paginated
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
@@ -48,7 +49,7 @@ def getcreate__AcmeAccountKey(
     """
     Gets or Creates AccountKeys for LetsEncrypts' ACME server
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param key_pem: (optional) an account key in PEM format.
         if not provided, all of the following must be supplied:
         * le_meta_jsons
@@ -249,14 +250,17 @@ def getcreate__AcmeAccountKey(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__AcmeAuthorizationUrl(ctx, authorization_url, dbAcmeOrder=None):
+def getcreate__AcmeAuthorizationUrl(ctx, authorization_url=None, dbAcmeOrder=None):
     """
     used to create auth objects
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param authorization_url: (required) the url of an RFC-8555 authorization
     :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
     """
+    if not dbAcmeOrder:
+        raise ValueError("`dbAcmeOrder` is required")
     is_created__AcmeAuthorization = False
+    is_created__AcmeAuthorization2Order = None
     dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
         ctx, authorization_url
     )
@@ -265,22 +269,21 @@ def getcreate__AcmeAuthorizationUrl(ctx, authorization_url, dbAcmeOrder=None):
         dbAcmeAuthorization.authorization_url = authorization_url
         dbAcmeAuthorization.timestamp_created = ctx.timestamp
         dbAcmeAuthorization.acme_status_authorization_id = (
-            model_utils.Acme_Status_Authorization.DEFAULT_ID
+            model_utils.Acme_Status_Authorization.ID_DEFAULT
         )
         dbAcmeAuthorization.acme_order_id__created = dbAcmeOrder.id
         ctx.dbSession.add(dbAcmeAuthorization)
         ctx.dbSession.flush(objects=[dbAcmeAuthorization])
         is_created__AcmeAuthorization = True
 
-        if dbAcmeOrder:
-            dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
-            dbOrder2Auth.acme_order_id = dbAcmeOrder.id
-            dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
-            ctx.dbSession.add(dbOrder2Auth)
-            ctx.dbSession.flush(
-                objects=[dbOrder2Auth,]
-            )
-            is_created__AcmeAuthorization2Order = True
+        dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
+        dbOrder2Auth.acme_order_id = dbAcmeOrder.id
+        dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
+        ctx.dbSession.add(dbOrder2Auth)
+        ctx.dbSession.flush(
+            objects=[dbOrder2Auth,]
+        )
+        is_created__AcmeAuthorization2Order = True
 
     else:
         # poop, this
@@ -289,70 +292,16 @@ def getcreate__AcmeAuthorizationUrl(ctx, authorization_url, dbAcmeOrder=None):
     return (dbAcmeAuthorization, is_created__AcmeAuthorization)
 
 
-def getcreate__AcmeChallengeHttp01_via_payload(
-    ctx, authenticatedUser=None, dbAcmeAuthorization=None, authorization_payload=None,
-):
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
-    :param dbAcmeAuthorization: (required) The :class:`model.objects.AcmeAuthorization` associated with the payload
-    :param authorization_payload: (required) an RFC-8555 authorization payload
-
-    returns:
-        dbAcmeChallenge, is_created_AcmeChallenge
-    potentially raises:
-        errors.AcmeMissingChallenges
-    """
-    acme_challenge = lib.acme_v2.get_authorization_challenge(
-        authorization_payload, http01=True
-    )
-    challenge_url = acme_challenge["url"]
-    challenge_status = acme_challenge["status"]
-    acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
-        challenge_status
-    )
-    dbAcmeChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
-    is_created_AcmeChallenge = False
-
-    if not dbAcmeChallenge:
-        challenge_token = acme_challenge["token"]
-        keyauthorization = (
-            lib.acme_v2.create_challenge_keyauthorization(
-                challenge_token, authenticatedUser.accountkey_thumbprint
-            )
-            if authenticatedUser
-            else None
-        )
-        dbAcmeChallenge = lib.db.create.create__AcmeChallenge(
-            ctx,
-            dbAcmeAuthorization=dbAcmeAuthorization,
-            dbDomain=dbAcmeAuthorization.domain,
-            challenge_url=challenge_url,
-            token=challenge_token,
-            keyauthorization=keyauthorization,
-            acme_status_challenge_id=acme_status_challenge_id,
-            is_via_sync=True,
-        )
-        is_created_AcmeChallenge = True
-    else:
-        if dbAcmeChallenge.acme_status_challenge_id != acme_status_challenge_id:
-            dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
-            dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
-            ctx.dbSession.add(dbAcmeChallenge)
-            ctx.dbSession.flush(objects=[dbAcmeChallenge])
-    return dbAcmeChallenge, is_created_AcmeChallenge
-
-
 def getcreate__AcmeAuthorization(
     ctx,
-    authorization_url,
-    authorization_payload,
+    authorization_url=None,
+    authorization_payload=None,
     authenticatedUser=None,
     dbAcmeOrder=None,
     transaction_commit=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param authorization_url: (required) the url of an RFC-8555 authorization
     :param authorization_payload: (required) an RFC-8555 authorization payload
     :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
@@ -375,7 +324,6 @@ def getcreate__AcmeAuthorization(
     if not dbAcmeOrder:
         raise ValueError("do not invoke this without a `dbAcmeOrder`")
     is_created__AcmeAuthorization = None
-    is_created__AcmeAuthorization2Order = None
     dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
         ctx, authorization_url
     )
@@ -385,15 +333,57 @@ def getcreate__AcmeAuthorization(
         dbAcmeAuthorization.authorization_url = authorization_url
         dbAcmeAuthorization.timestamp_created = ctx.timestamp
         dbAcmeAuthorization.acme_status_authorization_id = (
-            model_utils.Acme_Status_Authorization.DEFAULT_ID
+            model_utils.Acme_Status_Authorization.ID_DEFAULT
         )
         dbAcmeAuthorization.acme_order_id__created = dbAcmeOrder.id
-
         ctx.dbSession.add(dbAcmeAuthorization)
         ctx.dbSession.flush(
             objects=[dbAcmeAuthorization,]
         )
         is_created__AcmeAuthorization = True
+
+        dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
+        dbOrder2Auth.acme_order_id = dbAcmeOrder.id
+        dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
+        ctx.dbSession.add(dbOrder2Auth)
+        ctx.dbSession.flush(
+            objects=[dbOrder2Auth,]
+        )
+        is_created__AcmeAuthorization2Order = True
+
+    _result = process__AcmeAuthorization_payload(
+        ctx,
+        authorization_payload=authorization_payload,
+        authenticatedUser=authenticatedUser,
+        dbAcmeAuthorization=dbAcmeAuthorization,
+        dbAcmeOrder=dbAcmeOrder,
+        transaction_commit=transaction_commit,
+    )
+
+    # persist this to the db
+    if transaction_commit:
+        ctx.pyramid_transaction_commit()
+
+    return (dbAcmeAuthorization, is_created__AcmeAuthorization)
+
+
+def process__AcmeAuthorization_payload(
+    ctx,
+    authorization_payload=None,
+    authenticatedUser=None,
+    dbAcmeAuthorization=None,
+    dbAcmeOrder=None,
+    transaction_commit=None,
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param authorization_payload: (required) an RFC-8555 authorization payload
+    :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
+    :param dbAcmeAuthorization: (required) The :class:`model.objects.AcmeAuthorization` associated with the discovered item
+    :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
+    :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
+    """
+    is_created__AcmeAuthorization2Order = None
 
     # is this associated?
     dbOrder2Auth = (
@@ -443,7 +433,64 @@ def getcreate__AcmeAuthorization(
     if transaction_commit:
         ctx.pyramid_transaction_commit()
 
-    return (dbAcmeAuthorization, is_created__AcmeAuthorization)
+    return True
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def getcreate__AcmeChallengeHttp01_via_payload(
+    ctx, authenticatedUser=None, dbAcmeAuthorization=None, authorization_payload=None,
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
+    :param dbAcmeAuthorization: (required) The :class:`model.objects.AcmeAuthorization` associated with the payload
+    :param authorization_payload: (required) an RFC-8555 authorization payload
+
+    returns:
+        dbAcmeChallenge, is_created_AcmeChallenge
+    potentially raises:
+        errors.AcmeMissingChallenges
+    """
+    acme_challenge = lib.acme_v2.get_authorization_challenge(
+        authorization_payload, http01=True
+    )
+    challenge_url = acme_challenge["url"]
+    challenge_status = acme_challenge["status"]
+    acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
+        challenge_status
+    )
+    dbAcmeChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
+    is_created_AcmeChallenge = False
+
+    if not dbAcmeChallenge:
+        challenge_token = acme_challenge["token"]
+        keyauthorization = (
+            lib.acme_v2.create_challenge_keyauthorization(
+                challenge_token, authenticatedUser.accountkey_thumbprint
+            )
+            if authenticatedUser
+            else None
+        )
+        dbAcmeChallenge = lib.db.create.create__AcmeChallenge(
+            ctx,
+            dbAcmeAuthorization=dbAcmeAuthorization,
+            dbDomain=dbAcmeAuthorization.domain,
+            challenge_url=challenge_url,
+            token=challenge_token,
+            keyauthorization=keyauthorization,
+            acme_status_challenge_id=acme_status_challenge_id,
+            is_via_sync=True,
+        )
+        is_created_AcmeChallenge = True
+    else:
+        if dbAcmeChallenge.acme_status_challenge_id != acme_status_challenge_id:
+            dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
+            dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
+            ctx.dbSession.add(dbAcmeChallenge)
+            ctx.dbSession.flush(objects=[dbAcmeChallenge])
+    return dbAcmeChallenge, is_created_AcmeChallenge
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -460,7 +507,7 @@ def getcreate__CACertificate__by_pem_text(
     """
     Gets or Creates CACertificates
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param cert_pem: (required)
     :param ca_chain_name:
     :param le_authority_name:
@@ -565,7 +612,7 @@ def getcreate__CertificateRequest__by_pem_text(
     """
     getcreate for a CSR
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param csr_pem:
     :param certificate_request_source_id: Must match an option in :class:`model.utils.CertificateRequestSource`
     :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` that owns the certificate
@@ -600,7 +647,7 @@ def getcreate__Domain__by_domainName(ctx, domain_name, is_from_queue_domain=None
 
     return dbDomain, is_created
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_name:
     :param is_from_queue_domain:
     """
@@ -645,7 +692,7 @@ def getcreate__PrivateKey__by_pem_text(
     """
     getcreate wrapping private keys
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param key_pem:
     :param private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
     :param is_autogenerated_key:
@@ -724,7 +771,7 @@ def getcreate__RemoteIpAddress(ctx, remote_ip_address):
 
     returns (dbRemoteIpAddress, is_created)
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_name:
     :param is_from_queue_domain:
     """
@@ -753,19 +800,54 @@ def getcreate__RemoteIpAddress(ctx, remote_ip_address):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__ServerCertificate__by_pem_text(
-    ctx, cert_pem, dbCACertificate=None, dbAcmeAccountKey=None, dbPrivateKey=None,
+def getcreate__ServerCertificate(
+    ctx,
+    cert_pem,
+    cert_domains_expected=None,
+    is_active=None,
+    dbAcmeOrder=None,
+    dbCACertificate=None,
+    dbCertificateRequest=None,
+    dbPrivateKey=None,
+    dbUniqueFQDNSet=None,
 ):
     """
     getcreate wrapping issued certs
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
-    :param cert_pem:
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param cert_pem: (required) The certificate in PEM encoding
+    :param cert_domains_expected: (required) a list of domains in the cert we expect to see
+    :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
+
+    :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
+        if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
     :param dbCACertificate: (required) The upstream :class:`model.objects.CACertificate` that signed the certificate
-    :param dbAcmeAccountKey: (required) The :class:`model.objects.PrivateKey` that owns the certificate
+    :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
+        if provivded, do not submit `dbAcmeOrder`
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
+    :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate
+    
+    returns:
+    
+    tuple (dbServerCertificate, is_created)
     """
-    is_created = False
+    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
+        raise ValueError(
+            "getcreate__ServerCertificate must be provided with `dbCertificateRequest`, `dbAcmeOrder` or `dbUniqueFQDNSet`"
+        )
+    if dbUniqueFQDNSet:
+        if any((dbAcmeOrder, dbCertificateRequest,)):
+            raise ValueError(
+                "getcreate__ServerCertificate must not be provided with `dbCertificateRequest` or `dbAcmeOrder` when `dbUniqueFQDNSet` is provided."
+            )
+
+    if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):
+        if not dbUniqueFQDNSet:
+            raise ValueError(
+                "must submit `dbUniqueFQDNSet` if there is no `dbAcmeOrder` or `dbUniqueFQDNSet`"
+            )
+
+    is_created = None
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
     dbServerCertificate = (
@@ -777,6 +859,10 @@ def getcreate__ServerCertificate__by_pem_text(
         .first()
     )
     if dbServerCertificate:
+        is_created = False
+        if dbUniqueFQDNSet:
+            if dbServerCertificate.unique_fqdn_set_id != dbUniqueFQDNSet.id:
+                raise ValueError("Integrity Error. UniqueFqdnSet differs.")
         if dbPrivateKey and (dbServerCertificate.private_key_id != dbPrivateKey.id):
             if dbServerCertificate.private_key_id:
                 raise ValueError("Integrity Error. Competing PrivateKey (!?)")
@@ -791,139 +877,19 @@ def getcreate__ServerCertificate__by_pem_text(
                         dbServerCertificate.timestamp_signed
                     )
                 ctx.dbSession.flush(objects=[dbServerCertificate, dbPrivateKey])
-        if dbAcmeAccountKey and (
-            dbServerCertificate.acme_account_key_id != dbAcmeAccountKey.id
-        ):
-            if dbServerCertificate.acme_account_key_id:
-                raise ValueError("Integrity Error. Competing AccountKey (!?)")
-            elif dbServerCertificate.acme_account_key_id is None:
-                dbServerCertificate.acme_account_key_id = dbAcmeAccountKey.id
-                dbAcmeAccountKey.count_certificates_issued += 1
-                if not dbAcmeAccountKey.timestamp_last_certificate_issue or (
-                    dbAcmeAccountKey.timestamp_last_certificate_issue
-                    < dbServerCertificate.timestamp_signed
-                ):
-                    dbAcmeAccountKey.timestamp_last_certificate_issue = (
-                        dbAcmeAccountKey.timestamp_signed
-                    )
-                ctx.dbSession.flush(objects=[dbServerCertificate, dbAcmeAccountKey])
     elif not dbServerCertificate:
-        _tmpfileCert = None
-        try:
-            _tmpfileCert = cert_utils.new_pem_tempfile(cert_pem)
-
-            # validate
-            cert_utils.validate_cert__pem_filepath(_tmpfileCert.name)
-
-            # bookkeeping
-            event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = log__OperationsEvent(
-                ctx,
-                model_utils.OperationsEventType.from_string(
-                    "ServerCertificate__insert"
-                ),
-            )
-
-            dbServerCertificate = model_objects.ServerCertificate()
-            _certificate_parse_to_record(_tmpfileCert, dbServerCertificate)
-
-            dbServerCertificate.is_active = True
-            dbServerCertificate.cert_pem = cert_pem
-            dbServerCertificate.cert_pem_md5 = cert_pem_md5
-
-            # this is the LetsEncrypt key
-            if dbCACertificate is None:
-                raise ValueError("dbCACertificate is None")
-            # we should make sure it issued the certificate:
-            if (
-                dbServerCertificate.cert_issuer_hash
-                != dbCACertificate.cert_subject_hash
-            ):
-                raise ValueError("dbCACertificate did not sign the certificate")
-            dbServerCertificate.ca_certificate_id__upchain = dbCACertificate.id
-
-            # this is the private key
-            # we should make sure it signed the certificate
-            # the md5 check isn't exact, BUT ITS CLOSE
-            if dbPrivateKey is None:
-                raise ValueError("dbPrivateKey is None")
-            if (
-                dbServerCertificate.cert_pem_modulus_md5
-                != dbPrivateKey.key_pem_modulus_md5
-            ):
-                raise ValueError("dbPrivateKey did not sign the certificate")
-            dbServerCertificate.private_key_id = dbPrivateKey.id
-            dbPrivateKey.count_certificates_issued += 1
-            if not dbPrivateKey.timestamp_last_certificate_issue or (
-                dbPrivateKey.timestamp_last_certificate_issue
-                < dbServerCertificate.timestamp_signed
-            ):
-                dbPrivateKey.timestamp_last_certificate_issue = (
-                    dbServerCertificate.timestamp_signed
-                )
-
-            # did we submit an account key?
-            if dbAcmeAccountKey:
-                dbServerCertificate.acme_account_key_id = dbAcmeAccountKey.id
-                dbAcmeAccountKey.count_certificates_issued += 1
-                if not dbAcmeAccountKey.timestamp_last_certificate_issue or (
-                    dbAcmeAccountKey.timestamp_last_certificate_issue
-                    < dbAcmeAccountKey.timestamp_signed
-                ):
-                    dbAcmeAccountKey.timestamp_last_certificate_issue = (
-                        dbServerCertificate.timestamp_signed
-                    )
-
-            _subject_domain, _san_domains = cert_utils.parse_cert_domains__segmented(
-                cert_path=_tmpfileCert.name
-            )
-            certificate_domain_names = _san_domains
-            if (
-                _subject_domain is not None
-                and _subject_domain not in certificate_domain_names
-            ):
-                certificate_domain_names.insert(0, _subject_domain)
-            if not certificate_domain_names:
-                raise ValueError("could not find any domain names in the certificate")
-            # getcreate__Domain__by_domainName returns a tuple of (domainObject, is_created)
-            dbDomainObjects = [
-                getcreate__Domain__by_domainName(ctx, _domain_name)[0]
-                for _domain_name in certificate_domain_names
-            ]
-            (
-                dbUniqueFQDNSet,
-                is_created_fqdn,
-            ) = getcreate__UniqueFQDNSet__by_domainObjects(ctx, dbDomainObjects)
-            dbServerCertificate.unique_fqdn_set_id = dbUniqueFQDNSet.id
-
-            if len(certificate_domain_names) == 1:
-                dbServerCertificate.is_single_domain_cert = True
-            elif len(certificate_domain_names) > 1:
-                dbServerCertificate.is_single_domain_cert = False
-
-            dbServerCertificate.operations_event_id__created = dbOperationsEvent.id
-            ctx.dbSession.add(dbServerCertificate)
-            ctx.dbSession.flush(objects=[dbServerCertificate])
-            is_created = True
-
-            event_payload_dict["server_certificate.id"] = dbServerCertificate.id
-            dbOperationsEvent.set_event_payload(event_payload_dict)
-            ctx.dbSession.flush(objects=[dbOperationsEvent])
-
-            _log_object_event(
-                ctx,
-                dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    "ServerCertificate__insert"
-                ),
-                dbServerCertificate=dbServerCertificate,
-            )
-
-        except Exception as exc:
-            raise
-        finally:
-            if _tmpfileCert:
-                _tmpfileCert.close()
+        dbServerCertificate = create__ServerCertificate(
+            ctx,
+            cert_pem=cert_pem,
+            cert_domains_expected=cert_domains_expected,
+            is_active=is_active,
+            dbAcmeOrder=dbAcmeOrder,
+            dbCACertificate=dbCACertificate,
+            dbCertificateRequest=dbCertificateRequest,
+            dbPrivateKey=dbPrivateKey,
+            dbUniqueFQDNSet=dbUniqueFQDNSet,
+        )
+        is_created = True
 
     return (dbServerCertificate, is_created)
 
@@ -935,7 +901,7 @@ def getcreate__UniqueFQDNSet__by_domains(ctx, domain_names):
     """
     getcreate wrapping unique fqdn
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: a list of domains names (strings)
     """
     # we should have cleaned this up before submitting, but just be safe!
@@ -965,7 +931,7 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
     """
     getcreate wrapping unique fqdn
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domainObjects:
     """
     is_created = False
@@ -988,6 +954,7 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
 
         dbUniqueFQDNSet = model_objects.UniqueFQDNSet()
         dbUniqueFQDNSet.domain_ids_string = domain_ids_string
+        dbUniqueFQDNSet.count_domains = len(domain_ids)
         dbUniqueFQDNSet.timestamp_created = ctx.timestamp
         dbUniqueFQDNSet.operations_event_id__created = dbOperationsEvent.id
         ctx.dbSession.add(dbUniqueFQDNSet)
@@ -1026,6 +993,6 @@ __all__ = (
     "getcreate__CertificateRequest__by_pem_text",
     "getcreate__Domain__by_domainName",
     "getcreate__PrivateKey__by_pem_text",
-    "getcreate__ServerCertificate__by_pem_text",
+    "getcreate__ServerCertificate",
     "getcreate__UniqueFQDNSet__by_domainObjects",
 )

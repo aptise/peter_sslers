@@ -268,7 +268,8 @@ class _Acme_Status_All(_mixin_mapping):
         an ACME Order as "deactivated" when the specification states is should be "invalid".
     """
 
-    DEFAULT_ID = 0
+    ID_DEFAULT = 0
+    ID_DISCOVERED = 0
     _mapping = {
         0: "*discovered*",
         1: "pending",
@@ -386,29 +387,34 @@ class Acme_Status_Order(_Acme_Status_All):
           certificate.
     """
 
-    OPTIONS_RETRY = (
-        "invalid",
-        "*404*",
-        "*406*",
+    OPTIONS_FINALIZE = ("ready",)
+    OPTIONS_PROCESS = (
+        "pending",
+        "ready",
     )
     OPTIONS_RENEW = (
         "valid",
         "ready",
         "*404*",
     )
-    OPTIONS_X_ACME_SYNC = ("*404",)
-    OPTIONS_X_MARK_INVALID = (
+    OPTIONS_RETRY = (
         "invalid",
-        "valid",
         "*404*",
-    )
-    OPTIONS_X_DEACTIVATE_AUTHORIZATIONS = (
-        # "valid",  # valid means we're done!
-        "*404*",
+        "*406*",
     )
     OPTIONS_UPDATE_DEACTIVATE = (
         "valid",  # valid means we're done!
         "invalid",
+        "*404*",
+    )
+    OPTIONS_X_ACME_SYNC = ("*404",)
+    OPTIONS_X_DEACTIVATE_AUTHORIZATIONS = (
+        # "valid",  # valid means we're done!
+        "*404*",
+    )
+    OPTIONS_X_MARK_INVALID = (
+        "invalid",
+        "valid",
         "*404*",
     )
 
@@ -479,10 +485,11 @@ class AcmeOrder_ProcessingStrategy(_mixin_mapping):
     process_single = 2
     process_multi = 3
     _mapping = {
-        1: "create_order",
-        2: "process_single",
-        3: "process_multi",
+        1: "create_order",  # just create the order
+        2: "process_single",  # create the order, and process in a single request
+        3: "process_multi",  # create the order, but process piecemeal
     }
+    OPTIONS_DEACTIVATE_AUTHS = ("process_single",)
 
 
 class AcmeOrder_ProcessingStatus(_mixin_mapping):
@@ -493,6 +500,7 @@ class AcmeOrder_ProcessingStatus(_mixin_mapping):
     processing_completed_failure = 5
     order_finalized = 6
     certificate_downloaded = 7
+    processing_deactivated = 8
     _mapping = {
         1: "created_local",
         2: "created_acme",
@@ -501,6 +509,7 @@ class AcmeOrder_ProcessingStatus(_mixin_mapping):
         5: "processing_completed_failure",
         6: "order_finalized",
         7: "certificate_downloaded",
+        8: "processing_deactivated",
     }
     IDS_CAN_PROCESS_CHALLENGES = (2, 3)
 

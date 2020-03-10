@@ -197,10 +197,10 @@ class ViewAdmin_Focus(Handler):
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_server_sync", renderer=None
+        route_name="admin:acme_authorization:focus:acme_server:sync", renderer=None
     )
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_server_sync|json",
+        route_name="admin:acme_authorization:focus:acme_server:sync|json",
         renderer="json",
     )
     def acme_server_sync(self):
@@ -233,11 +233,11 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_server_deactivate",
+        route_name="admin:acme_authorization:focus:acme_server:deactivate",
         renderer=None,
     )
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_server_deactivate|json",
+        route_name="admin:acme_authorization:focus:acme_server:deactivate|json",
         renderer="json",
     )
     def acme_server_deactivate(self):
@@ -271,10 +271,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_server_trigger", renderer=None,
+        route_name="admin:acme_authorization:focus:acme_server:trigger", renderer=None,
     )
     @view_config(
-        route_name="admin:acme_authorization:focus:acme_server_trigger|json",
+        route_name="admin:acme_authorization:focus:acme_server:trigger|json",
         renderer="json",
     )
     def acme_server_trigger(self):

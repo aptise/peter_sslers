@@ -159,28 +159,28 @@ def _admin_views(config):
         "/acme-authorization/{@id}/acme-challenges/{@page}",
     )
     config.add_route_7(
-        "admin:acme_authorization:focus:acme_server_deactivate",
-        "/acme-authorization/{@id}/acme-server-deactivate",
+        "admin:acme_authorization:focus:acme_server:deactivate",
+        "/acme-authorization/{@id}/acme-server/deactivate",
     )
     config.add_route_7(
-        "admin:acme_authorization:focus:acme_server_deactivate|json",
-        "/acme-authorization/{@id}/acme-server-deactivate.json",
+        "admin:acme_authorization:focus:acme_server:deactivate|json",
+        "/acme-authorization/{@id}/acme-server/deactivate.json",
     )
     config.add_route_7(
-        "admin:acme_authorization:focus:acme_server_sync",
-        "/acme-authorization/{@id}/acme-server-sync",
+        "admin:acme_authorization:focus:acme_server:sync",
+        "/acme-authorization/{@id}/acme-server/sync",
     )
     config.add_route_7(
-        "admin:acme_authorization:focus:acme_server_sync|json",
-        "/acme-authorization/{@id}/acme-server-sync.json",
+        "admin:acme_authorization:focus:acme_server:sync|json",
+        "/acme-authorization/{@id}/acme-server/sync.json",
     )
     config.add_route_7(
-        "admin:acme_authorization:focus:acme_server_trigger",
-        "/acme-authorization/{@id}/acme-server-trigger",
+        "admin:acme_authorization:focus:acme_server:trigger",
+        "/acme-authorization/{@id}/acme-server/trigger",
     )
     config.add_route_7(
-        "admin:acme_authorization:focus:acme_server_trigger|json",
-        "/acme-authorization/{@id}/acme-server-trigger.json",
+        "admin:acme_authorization:focus:acme_server:trigger|json",
+        "/acme-authorization/{@id}/acme-server/trigger.json",
     )
 
     # !!!: AcmeChallenge
@@ -195,20 +195,20 @@ def _admin_views(config):
     config.add_route_7("admin:acme_challenge:focus", "/acme-challenge/{@id}")
     config.add_route_7("admin:acme_challenge:focus|json", "/acme-challenge/{@id}.json")
     config.add_route_7(
-        "admin:acme_challenge:focus:acme_server_sync",
-        "/acme-challenge/{@id}/acme-server-sync",
+        "admin:acme_challenge:focus:acme_server:sync",
+        "/acme-challenge/{@id}/acme-server/sync",
     )
     config.add_route_7(
-        "admin:acme_challenge:focus:acme_server_sync|json",
-        "/acme-challenge/{@id}/acme-server-sync.json",
+        "admin:acme_challenge:focus:acme_server:sync|json",
+        "/acme-challenge/{@id}/acme-server/sync.json",
     )
     config.add_route_7(
-        "admin:acme_challenge:focus:acme_server_trigger",
-        "/acme-challenge/{@id}/acme-server-trigger",
+        "admin:acme_challenge:focus:acme_server:trigger",
+        "/acme-challenge/{@id}/acme-server/trigger",
     )
     config.add_route_7(
-        "admin:acme_challenge:focus:acme_server_trigger|json",
-        "/acme-challenge/{@id}/acme-server-trigger.json",
+        "admin:acme_challenge:focus:acme_server:trigger|json",
+        "/acme-challenge/{@id}/acme-server/trigger.json",
     )
 
     # !!!: AcmeChallenge Poll
@@ -278,27 +278,35 @@ def _admin_views(config):
         "admin:acme_order:focus:finalize|json", "/acme-order/{@id}/finalize.json"
     )
     config.add_route_7(
-        "admin:acme_order:focus:acme_server_sync", "/acme-order/{@id}/acme-server-sync"
+        "admin:acme_order:focus:acme_server:sync", "/acme-order/{@id}/acme-server/sync"
     )
     config.add_route_7(
-        "admin:acme_order:focus:acme_server_sync|json",
-        "/acme-order/{@id}/acme-server-sync.json",
+        "admin:acme_order:focus:acme_server:sync|json",
+        "/acme-order/{@id}/acme-server/sync.json",
     )
     config.add_route_7(
-        "admin:acme_order:focus:acme_server_sync_authorizations",
-        "/acme-order/{@id}/acme-server-sync-authorizations",
+        "admin:acme_order:focus:acme_server:sync_authorizations",
+        "/acme-order/{@id}/acme-server/sync-authorizations",
     )
     config.add_route_7(
-        "admin:acme_order:focus:acme_server_sync_authorizations|json",
-        "/acme-order/{@id}/acme-server-sync-authorizations.json",
+        "admin:acme_order:focus:acme_server:sync_authorizations|json",
+        "/acme-order/{@id}/acme-server/sync-authorizations.json",
     )
     config.add_route_7(
-        "admin:acme_order:focus:acme_server_deactivate_authorizations",
-        "/acme-order/{@id}/acme-server-deactivate-authorizations",
+        "admin:acme_order:focus:acme_server:deactivate_authorizations",
+        "/acme-order/{@id}/acme-server/deactivate-authorizations",
     )
     config.add_route_7(
-        "admin:acme_order:focus:acme_server_deactivate_authorizations|json",
-        "/acme-order/{@id}/acme-server-deactivate-authorizations.json",
+        "admin:acme_order:focus:acme_server:deactivate_authorizations|json",
+        "/acme-order/{@id}/acme-server/deactivate-authorizations.json",
+    )
+    config.add_route_7(
+        "admin:acme_order:focus:acme_server:download_certificate",
+        "/acme-order/{@id}/acme-server/download-certificate",
+    )
+    config.add_route_7(
+        "admin:acme_order:focus:acme_server:download_certificate|json",
+        "/acme-order/{@id}/acme-server/download-certificate.json",
     )
 
     config.add_route_7("admin:acme_order:focus:mark", "/acme-order/{@id}/mark")
@@ -306,6 +314,9 @@ def _admin_views(config):
         "admin:acme_order:focus:mark|json", "/acme-order/{@id}/mark.json"
     )
     config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
+    config.add_route_7(
+        "admin:acme_order:focus:retry|json", "/acme-order/{@id}/retry.json"
+    )
     config.add_route_7(
         "admin:acme_order:focus:renew:custom", "/acme-order/{@id}/renew/custom",
     )
@@ -319,12 +330,7 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_order:focus:renew:quick|json", "/acme-order/{@id}/renew/quick.json",
     )
-
     config.add_route_7("admin:acme_order:new:automated", "/acme-order/new/automated")
-    config.add_route_7(
-        "admin:acme_order:new:from-certificate-request",
-        "/acme-order/new/from-certificate-request",
-    )
 
     # !!!: AcmeOrderless / AcmeFlow - our manual system
     config.add_route_7("admin:acme_orderlesss", "/acme-orderlesss")

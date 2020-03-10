@@ -48,7 +48,7 @@
                             <p>
                                 <% sync_btn_class = '' if AcmeChallenge.is_can_acme_server_sync else 'disabled' %>
                                 <a
-                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server-sync"
+                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/sync"
                                     class="btn btn-xs btn-info"
                                 >
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
@@ -58,7 +58,7 @@
                             <p>
                                 <% trigger_btn_class = '' if AcmeChallenge.is_can_acme_server_trigger else 'disabled' %>
                                 <a
-                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server-trigger"
+                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/trigger"
                                     class="btn btn-xs btn-info ${trigger_btn_class}"
                                 >
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>

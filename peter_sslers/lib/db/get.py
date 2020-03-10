@@ -190,8 +190,13 @@ def _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
     query = (
         ctx.dbSession.query(model_objects.AcmeAuthorization)
         .join(
+            model_objects.AcmeOrder2AcmeAuthorization,
+            model_objects.AcmeOrder2AcmeAuthorization.acme_authorization_id
+            == model_objects.AcmeAuthorization.id,
+        )
+        .join(
             model_objects.AcmeOrder,
-            model_objects.AcmeAuthorization.acme_order_id__created
+            model_objects.AcmeOrder2AcmeAuthorization.acme_order_id
             == model_objects.AcmeOrder.id,
         )
         .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
@@ -1095,8 +1100,14 @@ def _get__Domains_challenged__core(ctx):
             isouter=True,
         )
         .join(
+            model_objects.AcmeOrder2AcmeAuthorization,
+            model_objects.AcmeAuthorization.id
+            == model_objects.AcmeOrder2AcmeAuthorization.acme_order_id,
+            isouter=True,
+        )
+        .join(
             model_objects.AcmeOrder,
-            model_objects.AcmeAuthorization.acme_order_id__created
+            model_objects.AcmeOrder2AcmeAuthorization.acme_order_id
             == model_objects.AcmeOrder.id,
             isouter=True,
         )

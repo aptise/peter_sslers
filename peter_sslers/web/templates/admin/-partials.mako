@@ -72,6 +72,7 @@
                 "timestamp_expires",
                 "timestamp_updated",
                 "acme_order_id__created",
+                # "authorization_url",
                 "wildcard",
                )
         if perspective == 'AcmeAccountKey':
@@ -128,6 +129,8 @@
                                 <timestamp>${acme_authorization.timestamp_updated or ''}</timestamp>
                             % elif c == 'wildcard':
                                 <code>${acme_authorization.wildcard or ''}</code>
+                            % elif c == 'authorization_url':
+                                <code>${acme_authorization.authorization_url or ''}</code>
                             % elif c == 'acme_order_id__created':
                                 % if acme_authorization.acme_order_id__created:
                                     <a class="label label-info" href="${admin_prefix}/acme-order/${acme_authorization.acme_order_id__created}">

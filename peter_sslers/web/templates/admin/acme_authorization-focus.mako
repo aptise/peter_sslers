@@ -48,7 +48,7 @@
                             <p>
                                 <% sync_btn_class = '' if AcmeAuthorization.is_can_acme_server_sync else 'disabled' %>
                                 <a
-                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-sync"
+                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/sync"
                                     class="btn btn-xs btn-info ${sync_btn_class}"
                                 >
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
@@ -58,7 +58,7 @@
                             <p>
                                 <% sync_btn_class = '' if AcmeAuthorization.is_can_acme_server_deactivate else 'disabled' %>
                                 <a
-                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-deactivate"
+                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/deactivate"
                                     class="btn btn-xs btn-info ${sync_btn_class}"
                                 >
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
@@ -68,7 +68,7 @@
                             <p>
                                 <% trigger_btn_class = '' if AcmeAuthorization.is_can_acme_server_trigger else 'disabled' %>
                                 <a
-                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server-trigger"
+                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/trigger"
                                     class="btn btn-xs btn-info ${trigger_btn_class}"
                                 >
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>

@@ -128,6 +128,15 @@ The "/tools" directory contains scripts useful for certificate operations. Curre
 
 # General Management Concepts
 
+## A single web application?
+
+In a perfect world we could deploy the combination of web application (enter data, serve responses) and a task runner (process ACME Server interactions) - but that involves quite a bit of overhead to deploy and run.
+
+The `Pyramid` framework has a wonderful utility called `prequest` (https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/prequest.html) which allows you to make artificial requests on the commandline.
+
+Using `prequest`, long-running processes can be easily triggered.
+
+
 ## Unique Fully Qualified Domain Sets (UniqueFQDNSet)
 
 One of the LetsEncrypt service's ratelimits is based on a Certificate Request's "uniqueness" of Domains.

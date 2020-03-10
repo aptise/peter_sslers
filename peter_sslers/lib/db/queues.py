@@ -33,7 +33,7 @@ def dequeue_QueuedDomain(
     action="de-queued",
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbQueueDomain: (required) The :class:`model.objects.QueueDomain`
     :param dbOperationsEvent:
     :param event_status:
@@ -64,7 +64,7 @@ def queue_domains__add(ctx, domain_names):
     """
     Adds domains to the queue if needed
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain names:
     """
     # bookkeeping
@@ -149,7 +149,7 @@ def queue_domains__add(ctx, domain_names):
 
 def _get_default_AccountKey(ctx):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     # raises an error if we fail
     dbAcmeAccountKeyDefault = lib.db.get.get__AcmeAccountKey__default(
@@ -162,7 +162,7 @@ def _get_default_AccountKey(ctx):
 
 def _get_default_PrivateKey(ctx):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     # raises an error if we fail
     # which private-key should we use?
@@ -194,7 +194,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
 
     * if there are more than 100, should we process them, or return that info in json?
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccountKey:
     :param dbPrivateKey:
     """
@@ -349,7 +349,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
 
 def queue_certificates__update(ctx, fqdns_ids_only=None):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param fqdns_ids_only:
     """
     renewals = []
@@ -418,7 +418,7 @@ def queue_certificates__process(ctx):
     process the queue
     in order to best deal with transactions, we do 1 queue item at a time and redirect to process more
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     rval = {
         "count_total": None,

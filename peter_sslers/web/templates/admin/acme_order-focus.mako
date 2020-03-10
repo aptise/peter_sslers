@@ -51,7 +51,7 @@
                                     <td>
                                         <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
                                         <a
-                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync"
+                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/sync"
                                             class="btn btn-xs btn-info ${sync_btn_class}"
                                         >
                                             <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
@@ -66,7 +66,7 @@
                                     <td>
                                         <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
                                         <a
-                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-sync-authorizations"
+                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/sync-authorizations"
                                             class="btn btn-xs btn-info ${sync_btn_class}"
                                         >
                                             <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
@@ -82,7 +82,7 @@
                                         <% process_btn_class = '' if AcmeOrder.is_can_acme_process else 'disabled' %>
                                         <a
                                             href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-process"
-                                            class="btn btn-xs btn-info ${sync_btn_class}"
+                                            class="btn btn-xs btn-info ${process_btn_class}"
                                         >
                                             <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                             Process on AcmeServer
@@ -103,7 +103,7 @@
                                     <td>
                                         <% deactivate_btn_class = '' if AcmeOrder.is_can_acme_server_deactivate_authorizations else 'disabled' %>
                                         <a
-                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server-deactivate-authorizations"
+                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/deactivate-authorizations"
                                             class="btn btn-xs btn-info ${deactivate_btn_class}"
                                         >
                                             <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
@@ -116,7 +116,7 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <% finalize_btn_class = '' if AcmeOrder.is_can_acme_process else 'disabled' %>
+                                        <% finalize_btn_class = '' if AcmeOrder.is_can_acme_finalize else 'disabled' %>
                                         <a
                                             href="${admin_prefix}/acme-order/${AcmeOrder.id}/finalize"
                                             class="btn btn-xs btn-info ${finalize_btn_class}"
@@ -131,17 +131,40 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <% retry_btn_class = '' if AcmeOrder.is_can_retry else 'disabled' %>
-                                        <a
-                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/retry"
-                                            class="btn btn-xs btn-info ${retry_btn_class}"
-                                        >
-                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                            Retry (New) Order
-                                        </a>
+                                        % if AcmeOrder.is_can_retry:
+                                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/retry" method="POST" style="display:inline;">
+                                                <button class="btn btn-xs btn-info" type="submit">
+                                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                    Retry (New) Order
+                                                </button>
+                                            </form>
+                                        % else:
+                                            <a
+                                                href="#"
+                                                class="btn btn-xs btn-info disabled"
+                                            >
+                                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                Retry (New) Order
+                                            </a>
+                                        % endif
                                     </td>
                                     <td>
                                         Only available if the order has recently failed.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        % if AcmeOrder.is_can_acme_server_download_certificate:
+                                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/download-certificate" method="POST" style="display:inline;">
+                                                <button class="btn btn-xs btn-info" type="submit">
+                                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                    ACME Server - (re)Download Certificate
+                                                </button>
+                                            </form>
+                                        % endif
+                                    </td>
+                                    <td>
+                                        If the certificate is missing, re-download it
                                     </td>
                                 </tr>
                             </table>
@@ -184,8 +207,7 @@
 
                     <tr>
                         <th>is_processing</th>
-                        <td>
-                        
+                        <td>                        
                             % if AcmeOrder.is_processing is True:
                                 <div class="label label-success">
                                     <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
@@ -199,7 +221,6 @@
                                     <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
                                 </div>
                             % endif
-                        
                             % if AcmeOrder.is_processing:
                                 <a
                                     href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?operation=deactivate"
@@ -310,6 +331,11 @@
                     <tr>
                         <th>finalize_url</th>
                         <td><code>${AcmeOrder.finalize_url or ''}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>certificate_url</th>
+                        <td><code>${AcmeOrder.certificate_url or ''}</code>
                         </td>
                     </tr>
                     <tr>

@@ -6,6 +6,7 @@ log = logging.getLogger(__name__)
 # stdlib
 import datetime
 import pdb
+import pprint
 
 # pypi
 from dateutil import parser as dateutil_parser
@@ -41,7 +42,7 @@ def do__AcmeAccountKey_AcmeV2_register(
     """
     Registers an AcmeAccountKey against the LetsEncrypt ACME Directory
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
     :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccountKey`
 
@@ -90,7 +91,7 @@ def do__AcmeAccountKey_AcmeV2_authenticate(
     """
     Authenticates an AcmeAccountKey against the LetsEncrypt ACME Directory
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
     :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccountKey`
 
@@ -124,11 +125,36 @@ def do__AcmeAccountKey_AcmeV2_authenticate(
             _tmpfile.close()
 
 
+def new_Authenticated_user(ctx, dbAcmeAccountKey):
+    """
+    helper function to create a new
+    
+    AcmeLogger
+    """
+    tmpfile_account = None
+    try:
+        account_key_pem = dbAcmeAccountKey.key_pem
+        tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
+        account_key_path = tmpfile_account.name
+
+        # register the account / ensure that it is registered
+        # the authenticatedUser will have a `logger.AcmeLogger` object as the `.acmeLogger` attribtue
+        # the `acmeLogger` may need to have the `AcmeOrder` registered
+        authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
+            ctx, dbAcmeAccountKey, account_key_path=account_key_path,
+        )
+        return (authenticatedUser, tmpfile_account)
+    except:
+        if tmpfile_account:
+            tmpfile_account.close()
+        raise
+
+
 def update_AcmeAuthorization_status(
     ctx, dbAcmeAuthorization, status_text, transaction_commit=None
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object
     :param status_text: (required) The status_text for the order
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
@@ -152,7 +178,7 @@ def update_AcmeChallenge_status(
     ctx, dbAcmeChallenge, status_text, transaction_commit=None
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object
     :param status_text: (required) The status_text for the order
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
@@ -175,21 +201,23 @@ def update_AcmeChallenge_status(
 def updated_AcmeOrder_status(
     ctx,
     dbAcmeOrder,
-    status_text,
+    acme_order_object,
     acme_order_processing_status_id=None,
+    is_processing_False=None,
     transaction_commit=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
-    :param status_text: (required) The status_text for the order
+    :param acme_order_object: (required) An RFC compliant dict; must at least have `status`
     :param acme_order_processing_status_id: (optional) If provided, update the `acme_order_processing_status_id` of the order
+    :param is_processing_False: (optional) if True, set `is_processing` to false., 
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
     """
     if transaction_commit is not True:
         raise ValueError("we must invoke this knowing it will commit")
     _edited = False
-    status_text = status_text.lower()
+    status_text = acme_order_object.get("status", "").lower()
     if dbAcmeOrder.acme_status_order != status_text:
         try:
             dbAcmeOrder.acme_status_order_id = model_utils.Acme_Status_Order.from_string(
@@ -201,7 +229,7 @@ def updated_AcmeOrder_status(
             )
         _edited = True
     if status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
-        if dbAcmeOrder.is_processing:
+        if dbAcmeOrder.is_processing is True:
             dbAcmeOrder.is_processing = None
             _edited = True
     if acme_order_processing_status_id is not None:
@@ -213,6 +241,16 @@ def updated_AcmeOrder_status(
                 acme_order_processing_status_id
             )
             _edited = True
+    if is_processing_False:
+        if dbAcmeOrder.is_processing is True:
+            dbAcmeOrder.is_processing = False
+            _edited = True
+
+    certificate_url = acme_order_object.get("certificate")
+    if certificate_url and not dbAcmeOrder.certificate_url:
+        dbAcmeOrder.certificate_url = certificate_url
+        _edited = True
+
     if _edited:
         dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
         if transaction_commit:
@@ -225,7 +263,7 @@ def updated_AcmeOrder_ProcessingStatus(
     ctx, dbAcmeOrder, acme_order_processing_status_id=None, transaction_commit=None
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     :param acme_order_processing_status_id: (required) If provided, update the `acme_order_processing_status_id` of the order
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
@@ -245,17 +283,21 @@ def _AcmeV2_factory_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
     """
     This factory dynamically generates functions for handling an order's Authorization(s)
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param authenticatedUser: (required) a :class:`lib.acme_v2.AuthenticatedUser` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     """
 
     def handle_authorization_payload(
-        authorization_url, authorization_response, transaction_commit=None
+        authorization_url,
+        authorization_response,
+        dbAcmeAuthorization=None,
+        transaction_commit=None,
     ):
         """
         :param authorization_url: (required) The URL of the ACME Directory's Authorization Object.
         :param authorization_response: (required) The JSON object corresponding to the ACME Directory's Authorization Object.
+        :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object for the authorization_url if it already exists
         :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
 
         the getcreate will do the following:
@@ -266,21 +308,35 @@ def _AcmeV2_factory_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
         if transaction_commit is not True:
             raise ValueError("we must invoke this knowing it will commit")
 
-        # this will sync the payload via `update_AcmeAuthorization_from_payload`
-        (
-            dbAcmeAuthorization,
-            _is_created,
-        ) = lib.db.getcreate.getcreate__AcmeAuthorization(
-            ctx,
-            authorization_url,
-            authorization_response,
-            authenticatedUser,
-            dbAcmeOrder,
-            transaction_commit=transaction_commit,
-        )
-        if _is_created:
-            raise errors.GarfieldMinusGarfield(
-                "the dbAcmeAuthorization should exist already"
+        if dbAcmeAuthorization is not None:
+            if authorization_url != dbAcmeAuthorization.authorization_url:
+                raise ValueError("`authorization_url` does not match")
+
+        if dbAcmeAuthorization is None:
+            # this will sync the payload via `update_AcmeAuthorization_from_payload`
+            (
+                dbAcmeAuthorization,
+                _is_created,
+            ) = lib.db.getcreate.getcreate__AcmeAuthorization(
+                ctx,
+                authorization_url=authorization_url,
+                authorization_payload=authorization_response,
+                authenticatedUser=authenticatedUser,
+                dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=transaction_commit,
+            )
+            if _is_created:
+                raise errors.GarfieldMinusGarfield(
+                    "the dbAcmeAuthorization should exist already"
+                )
+        else:
+            _result = lib.db.getcreate.process__AcmeAuthorization_payload(
+                ctx,
+                authorization_payload=authorization_response,
+                authenticatedUser=authenticatedUser,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                dbAcmeOrder=dbAcmeOrder,
+                transaction_commit=transaction_commit,
             )
 
         return dbAcmeAuthorization
@@ -294,7 +350,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
     """
     Consolidated AcmeOrder routine for processing multiple Authorizations
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param authenticatedUser: (required) a :class:`lib.acme_v2.AuthenticatedUser` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     :param acmeRfcOrder: (required) a :class:`lib.acme_v2.AcmeOrderRFC` instance
@@ -332,7 +388,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
             updated_AcmeOrder_status(
                 ctx,
                 dbAcmeOrder,
-                acmeOrderRfcObject.rfc_object["status"],
+                acmeOrderRfcObject.rfc_object,
                 transaction_commit=True,
             )
             raise errors.AcmeOrderFatal(
@@ -363,7 +419,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     ctx, dbAcmeAuthorization=None, authenticatedUser=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object to deactivate on the server
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
@@ -377,24 +433,20 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
 
     tmpfiles = []
     try:
-        # this is used a bit
-        dbAcmeAccountKey = dbAcmeAuthorization.acme_order_created.acme_account_key
-        dbAcmeOrder = dbAcmeAuthorization.acme_order_created
+        # the authorization could be on multiple AcmeOrders
+        # see `:method:AcmeAuthorization.to_acme_orders`
+        dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
 
         # we need to use tmpfiles on the disk
         if authenticatedUser is None:
-            account_key_pem = dbAcmeAccountKey.key_pem
-            tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
+            dbAcmeAccountKey = dbAcmeAuthorization.acme_order_created.acme_account_key
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
+            )
             tmpfiles.append(tmpfile_account)
 
-            # register the account / ensure that it is registered
-            # the authenticatedUser will have an `acmeLogger`
-            authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-                ctx, dbAcmeAccountKey, account_key_path=tmpfile_account.name,
-            )
-
         # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
 
         try:
             (
@@ -427,7 +479,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     ctx, dbAcmeAuthorization=None, authenticatedUser=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object to refresh against the server
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
@@ -441,24 +493,19 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
 
     tmpfiles = []
     try:
-        # this is used a bit
-        dbAcmeAccountKey = dbAcmeAuthorization.acme_order_created.acme_account_key
-        dbAcmeOrder = dbAcmeAuthorization.acme_order_created
+        # the authorization could be on multiple AcmeOrders
+        # see `:method:AcmeAuthorization.to_acme_orders`
+        dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
 
         if authenticatedUser is None:
-            # we need to use tmpfiles on the disk
-            account_key_pem = dbAcmeAccountKey.key_pem
-            tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
+            dbAcmeAccountKey = dbAcmeAuthorization.acme_order_created.acme_account_key
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
+            )
             tmpfiles.append(tmpfile_account)
 
-            # register the account / ensure that it is registered
-            # the authenticatedUser will have an `acmeLogger`
-            authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-                ctx, dbAcmeAccountKey, account_key_path=tmpfile_account.name,
-            )
-
         # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
 
         try:
             (
@@ -504,7 +551,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_trigger(
     ctx, dbAcmeAuthorization=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object to trigger against the server
     """
     if not dbAcmeAuthorization:
@@ -523,7 +570,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     ctx, dbAcmeChallenge=None, authenticatedUser=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object to trigger against the server
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
@@ -532,42 +579,41 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     if not dbAcmeChallenge.is_can_acme_server_trigger:
         # ensures we have 'pending' status and
         # acme order, with acme_account_key
-        pdb.set_trace()
         raise ValueError("Can not trigger this `AcmeChallenge`")
 
     tmpfiles = []
     try:
         # this is used a bit
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
-        dbAcmeAccountKey = dbAcmeAuthorization.acme_order_created.acme_account_key
 
         if not dbAcmeAuthorization.acme_order_id__created:
             raise ValueError("can not proceed without an order for this authorization")
-        dbAcmeOrder = dbAcmeAuthorization.acme_order_created
 
-        # what is the acme-order's status?
-        if (
-            dbAcmeOrder.acme_order_processing_status_id
-            not in model_utils.AcmeOrder_ProcessingStatus.IDS_CAN_PROCESS_CHALLENGES
-        ):
-            pdb.set_trace()
-            raise ValueError("can not process challenges for this order")
-
-        if authenticatedUser is None:
-            # we need to use tmpfiles on the disk
-            account_key_pem = dbAcmeAccountKey.key_pem
-            tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-            tmpfiles.append(tmpfile_account)
-            account_key_path = tmpfile_account.name
-
-            # register the account / ensure that it is registered
-            # the authenticatedUser will have an `acmeLogger`
-            authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-                ctx, dbAcmeAccountKey, account_key_path=account_key_path,
+        # the authorization could be on multiple AcmeOrders
+        # see `:method:AcmeAuthorization.to_acme_orders`
+        dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
+        _passes = None
+        for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
+            if (
+                _to_acme_order.acme_order.acme_order_processing_status_id
+                in model_utils.AcmeOrder_ProcessingStatus.IDS_CAN_PROCESS_CHALLENGES
+            ):
+                _passes = True
+        if not _passes:
+            raise ValueError(
+                "Can not process AcmeChallenges for any associated AcmeOrders"
             )
 
+        if authenticatedUser is None:
+            # the associated AcmeOrders should all have the same AcmeAccountKey
+            dbAcmeAccountKey = dbAcmeOrderCreated.acme_account_key
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
+            )
+            tmpfiles.append(tmpfile_account)
+
         # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
 
         try:
             challenge_response = authenticatedUser.acme_challenge_trigger(
@@ -577,37 +623,42 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
                 transaction_commit=True,
             )
+
+            # todo: update the other fields from this challenge
+            # todo: log the payload and error
+
+            # update the AcmeAuthorization if it's not the same on the database
+            update_AcmeChallenge_status(
+                ctx,
+                dbAcmeChallenge,
+                challenge_response["status"],
+                transaction_commit=True,
+            )
+            return True
+
         except errors.AcmeServer404 as exc:
             update_AcmeChallenge_status(
                 ctx, dbAcmeChallenge, "*404*", transaction_commit=True
             )
+
         except errors.AcmeAuthorizationFailure as exc:
             # todo: log/inspect the payload and update more objects
             update_AcmeAuthorization_status(
                 ctx, dbAcmeAuthorization, "invalid", transaction_commit=True
             )
+
         finally:
-            if (
-                dbAcmeOrder.acme_order_processing_status_id
-                == model_utils.AcmeOrder_ProcessingStatus.created_acme
-            ):
-                updated_AcmeOrder_ProcessingStatus(
-                    ctx,
-                    dbAcmeOrder,
-                    acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_started,
-                    transaction_commit=True,
-                )
-
-        # todo: update the other fields from this challenge
-        # todo: log the payload and error
-
-        # update the AcmeAuthorization if it's not the same on the database
-        _server_status = challenge_response["status"]
-        update_AcmeChallenge_status(
-            ctx, dbAcmeChallenge, _server_status, transaction_commit=True
-        )
-        return True
-
+            for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
+                if (
+                    _to_acme_order.acme_order.acme_order_processing_status_id
+                    == model_utils.AcmeOrder_ProcessingStatus.created_acme
+                ):
+                    updated_AcmeOrder_ProcessingStatus(
+                        ctx,
+                        _to_acme_order.acme_order,
+                        acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_started,
+                        transaction_commit=True,
+                    )
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
@@ -619,7 +670,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     ctx, dbAcmeChallenge=None, authenticatedUser=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object to refresh against the server
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
@@ -635,27 +686,21 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     try:
         # this is used a bit
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
-        dbAcmeAccountKey = dbAcmeAuthorization.acme_order_created.acme_account_key
 
         if not dbAcmeAuthorization.acme_order_id__created:
             raise ValueError("can not proceed without an order for this authorization")
-        dbAcmeOrder = dbAcmeAuthorization.acme_order_created
 
+        # the account-key will be the same across linked orders/auths
+        dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
         if authenticatedUser is None:
-            # we need to use tmpfiles on the disk
-            account_key_pem = dbAcmeAccountKey.key_pem
-            tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-            tmpfiles.append(tmpfile_account)
-            account_key_path = tmpfile_account.name
-
-            # register the account / ensure that it is registered
-            # the authenticatedUser will have an `acmeLogger`
-            authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-                ctx, dbAcmeAccountKey, account_key_path=account_key_path,
+            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
             )
+            tmpfiles.append(tmpfile_account)
 
         # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrderCreated)
 
         try:
             (
@@ -689,9 +734,12 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     ctx, dbAcmeOrder=None, authenticatedUser=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to refresh against the server
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+
+    returns:
+        (dbAcmeOrder, True)
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -699,17 +747,11 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     tmpfiles = []
     try:
         if authenticatedUser is None:
-            # we need to use tmpfiles on the disk
-            account_key_pem = dbAcmeOrder.acme_account_key.key_pem
-            tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-            tmpfiles.append(tmpfile_account)
-            account_key_path = tmpfile_account.name
-
-            # register the account / ensure that it is registered
-            # the authenticatedUser will have an `acmeLogger`
-            authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-                ctx, dbAcmeOrder.acme_account_key, account_key_path=account_key_path,
+            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
             )
+            tmpfiles.append(tmpfile_account)
 
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -723,25 +765,25 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
                 ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
             )
             is_order_404 = False
+
+            # update the AcmeOrder if it's not the same on the database
+            # always invoke this, as it handles it's own cleanup of the model
+            result = updated_AcmeOrder_status(
+                ctx, dbAcmeOrder, acmeOrderRfcObject.rfc_object, transaction_commit=True
+            )
+            return (dbAcmeOrder, True)
+
         except errors.AcmeServer404 as exc:
             is_order_404 = True
-            updated_AcmeOrder_status(ctx, dbAcmeOrder, "*404*", transaction_commit=True)
-            return True
+            updated_AcmeOrder_status(
+                ctx, dbAcmeOrder, acme_v2.new_response_404(), transaction_commit=True
+            )
+            return (dbAcmeOrder, True)
 
-        if is_order_404:
-            # TODO: raise an exception if we don't have an acmeOrder
-            # TODO: update the authorizations/challenges from the order
-            pass
-
-        # update the AcmeOrder if it's not the same on the database
-        _server_status = acmeOrderRfcObject.rfc_object["status"]
-        if _server_status:
-            _server_status = _server_status.lower()
-
-        # always invoke this, as it handles it's own cleanup of the model
-        return updated_AcmeOrder_status(
-            ctx, dbAcmeOrder, _server_status, transaction_commit=True
-        )
+        # if is_order_404:
+        #    # TODO: raise an exception if we don't have an acmeOrder
+        #    # TODO: update the authorizations/challenges from the order
+        #    pass
 
     finally:
         # cleanup tmpfiles
@@ -753,9 +795,12 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     ctx, dbAcmeOrder=None, authenticatedUser=None
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to refresh against the server
     :param authenticatedUser: (optional) a loaded `authenticatedUser`
+    
+    returns:
+        (dbAcmeOrder, True)
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -763,17 +808,11 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     tmpfiles = []
     try:
         if authenticatedUser is None:
-            # we need to use tmpfiles on the disk
-            account_key_pem = dbAcmeOrder.acme_account_key.key_pem
-            tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-            tmpfiles.append(tmpfile_account)
-            account_key_path = tmpfile_account.name
-
-            # register the account / ensure that it is registered
-            # the authenticatedUser will have an `acmeLogger`
-            authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-                ctx, dbAcmeOrder.acme_account_key, account_key_path=account_key_path,
+            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
             )
+            tmpfiles.append(tmpfile_account)
 
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -792,13 +831,15 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
             updated_AcmeOrder_status(
                 ctx,
                 dbAcmeOrder,
-                acmeOrderRfcObject.rfc_object["status"],
+                acmeOrderRfcObject.rfc_object,
                 transaction_commit=True,
             )
 
         except errors.AcmeServer404 as exc:
             is_order_404 = True
-            updated_AcmeOrder_status(ctx, dbAcmeOrder, "*404*", transaction_commit=True)
+            updated_AcmeOrder_status(
+                ctx, dbAcmeOrder, acme_v2.new_response_404(), transaction_commit=True
+            )
             # just continue, as the internal orders are what we care about
 
         for dbAcmeAuthorization in dbAcmeOrder.acme_authorizations:
@@ -809,8 +850,11 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                     authenticatedUser=authenticatedUser,
                 )
             except Exception as exc:
+                pdb.set_trace()
                 print(exc)
                 pass
+
+        return (dbAcmeOrder, True)
 
     finally:
         # cleanup tmpfiles
@@ -822,7 +866,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     ctx, dbAcmeOrder=None, authenticatedUser=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to refresh against the server
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
@@ -832,17 +876,11 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     tmpfiles = []
     try:
         if authenticatedUser is None:
-            # we need to use tmpfiles on the disk
-            account_key_pem = dbAcmeOrder.acme_account_key.key_pem
-            tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-            tmpfiles.append(tmpfile_account)
-            account_key_path = tmpfile_account.name
-
-            # register the account / ensure that it is registered
-            # the authenticatedUser will have an `acmeLogger`
-            authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-                ctx, dbAcmeOrder.acme_account_key, account_key_path=account_key_path,
+            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
             )
+            tmpfiles.append(tmpfile_account)
 
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -860,7 +898,13 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
             is_order_404 = False
         except errors.AcmeServer404 as exc:
             is_order_404 = True
-            updated_AcmeOrder_status(ctx, dbAcmeOrder, "*404*", transaction_commit=True)
+            updated_AcmeOrder_status(
+                ctx,
+                dbAcmeOrder,
+                acme_v2.new_response_404(),
+                is_processing_False=True,
+                transaction_commit=True,
+            )
 
         is_auth_404 = None
         for dbAcmeAuthorization in dbAcmeOrder.authorizations_can_deactivate:
@@ -897,10 +941,14 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 ) = authenticatedUser.acme_order_load(
                     ctx, dbAcmeOrder=dbAcmeOrder, transaction_commit=True,
                 )
-                _server_status = acmeOrderRfcObject.rfc_object["status"]
                 # always invoke this, as it handles some cleanup routines
                 return updated_AcmeOrder_status(
-                    ctx, dbAcmeOrder, _server_status, transaction_commit=True
+                    ctx,
+                    dbAcmeOrder,
+                    acme_v2.new_response_404(),
+                    acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
+                    is_processing_False=True,
+                    transaction_commit=True,
                 )
             except:
                 pdb.set_trace()
@@ -950,7 +998,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
         tmpfile_csr = None
         if dbAcmeOrder.certificate_request:
-            csr_pem = dbAcmeOrder.certificate_request.csr_pem
+            dbCertificateRequest = dbAcmeOrder.certificate_request
+            csr_pem = dbCertificateRequest.csr_pem
             tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
             tmpfiles.append(tmpfile_csr)
         else:
@@ -984,13 +1033,19 @@ def _do__AcmeV2_AcmeOrder__finalize(
             )
 
         # sign and download
-        fullchain_pem = authenticatedUser.acme_order_finalize(
-            ctx,
-            dbAcmeOrder=dbAcmeOrder,
-            update_order_status=updated_AcmeOrder_status,
-            csr_path=tmpfile_csr.name,
-            transaction_commit=True,
-        )
+        try:
+            fullchain_pem = authenticatedUser.acme_order_finalize(
+                ctx,
+                dbAcmeOrder=dbAcmeOrder,
+                update_order_status=updated_AcmeOrder_status,
+                csr_path=tmpfile_csr.name,
+                transaction_commit=True,
+            )
+        except errors.AcmeServer404 as exc:
+            updated_AcmeOrder_status(
+                ctx, dbAcmeOrder, acme_v2.new_response_404(), transaction_commit=True
+            )
+            return (dbAcmeOrder, exc)
 
         (certificate_pem, ca_chain_pem) = utils_certbot.cert_and_chain_from_fullchain(
             fullchain_pem
@@ -1014,11 +1069,11 @@ def _do__AcmeV2_AcmeOrder__finalize(
         dbServerCertificate = lib.db.create.create__ServerCertificate(
             ctx,
             cert_pem=certificate_pem,
+            cert_domains_expected=domain_names,
+            is_active=True,
             dbAcmeOrder=dbAcmeOrder,
             dbCACertificate=dbCACertificate,
             dbCertificateRequest=dbCertificateRequest,
-            is_active=True,
-            cert_domains_expected=domain_names,
         )
         # dbAcmeOrder.server_certificate_id = dbServerCertificate.id
         dbAcmeOrder.server_certificate = dbServerCertificate
@@ -1065,7 +1120,7 @@ def _do__AcmeV2_AcmeOrder__core(
 ):
     """
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param acme_order_type_id: (required) What type of order is this? A value from :class:`model.objects.AcmeOrderType`
     :param domain_names: (optional) An iteratble list of domain names
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
@@ -1262,19 +1317,10 @@ def _do__AcmeV2_AcmeOrder__core(
     dbAcmeOrder = None
     dbServerCertificate = None
     try:
-        # pull the pem out of the account_key
-        account_key_pem = dbAcmeAccountKey.key_pem
-
-        # we need to use tmpfiles on the disk
-        tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-        tmpfiles.append(tmpfile_account)
-        account_key_path = tmpfile_account.name
-
-        # register the account / ensure that it is registered
-        # the authenticatedUser will have an `acmeLogger`
-        authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-            ctx, dbAcmeAccountKey, account_key_path=account_key_path,
+        (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+            ctx, dbAcmeAccountKey
         )
+        tmpfiles.append(tmpfile_account)
 
         # create the order on the ACME server
         (acmeOrderRfcObject, dbAcmeOrderEventLogged) = authenticatedUser.acme_order_new(
@@ -1355,9 +1401,13 @@ def _do__AcmeV2_AcmeOrder__core(
         raise
 
     finally:
-        if dbAcmeOrder:
+        if (
+            processing_strategy
+            in model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_DEACTIVATE_AUTHS
+        ):
             # shut this down to deactivate the auths on our side
-            dbAcmeOrder.is_processing = None
+            if dbAcmeOrder:
+                dbAcmeOrder.is_processing = None
         # cleanup tmpfiles
         for tf in tmpfiles:
             tf.close()
@@ -1367,32 +1417,23 @@ def do__AcmeV2_AcmeOrder__finalize(
     ctx, dbAcmeOrder=None, authenticatedUser=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
-    if not dbAcmeOrder.is_can_acme_process:
+    if not dbAcmeOrder.is_can_acme_finalize:
         raise ValueError("Can not finalize this `dbAcmeOrder`")
 
     tmpfiles = []
     try:
-        # this is used a bit
-        dbAcmeAccountKey = dbAcmeOrder.acme_account_key
-
         if authenticatedUser is None:
-            # we need to use tmpfiles on the disk
-            account_key_pem = dbAcmeAccountKey.key_pem
-            tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
-            tmpfiles.append(tmpfile_account)
-            account_key_path = tmpfile_account.name
-
-            # register the account / ensure that it is registered
-            # the authenticatedUser will have an `acmeLogger`
-            authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-                ctx, dbAcmeAccountKey, account_key_path=account_key_path,
+            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
             )
+            tmpfiles.append(tmpfile_account)
 
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
@@ -1402,6 +1443,95 @@ def do__AcmeV2_AcmeOrder__finalize(
         )
 
         return (dbAcmeOrder, exc)
+
+    finally:
+        # cleanup tmpfiles
+        for tf in tmpfiles:
+            tf.close()
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def do__AcmeV2_AcmeOrder__process(
+    ctx, dbAcmeOrder=None, authenticatedUser=None,
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
+    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    
+    This processes authorizations in sequence
+    """
+    if not dbAcmeOrder:
+        raise ValueError("Must submit `dbAcmeOrder`")
+    if not dbAcmeOrder.is_can_acme_process:
+        raise ValueError("Can not process this `dbAcmeOrder`")
+
+    tmpfiles = []
+    try:
+        if authenticatedUser is None:
+            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
+            )
+            tmpfiles.append(tmpfile_account)
+
+        # register the AcmeOrder into the logging utility
+        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+        if dbAcmeOrder.acme_status_order == "pending":
+            #
+            # what is the next validation?
+            auths_pending = dbAcmeOrder.acme_authorizations_pending
+            if auths_pending:
+                dbAcmeAuthorization = auths_pending.pop()
+                if not dbAcmeAuthorization.is_can_acme_server_process:
+                    # ensures we have 'pending' status and http-01 challenge; or *discover* status
+                    # acme order, with acme_account_key
+                    raise ValueError("Can not trigger the `AcmeAuthorization`")
+
+                handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
+                    ctx, authenticatedUser, dbAcmeOrder
+                )
+
+                if (
+                    dbAcmeAuthorization.acme_status_authorization_id
+                    == model_utils.Acme_Status_Authorization.ID_DISCOVERED
+                ):
+                    _result = authenticatedUser.acme_authorization_process_url(
+                        ctx,
+                        dbAcmeAuthorization.authorization_url,
+                        handle_authorization_payload=handle_authorization_payload,
+                        update_AcmeAuthorization_status=update_AcmeAuthorization_status,
+                        update_AcmeChallenge_status=update_AcmeChallenge_status,
+                        updated_AcmeOrder_ProcessingStatus=updated_AcmeOrder_ProcessingStatus,
+                        dbAcmeAuthorization=dbAcmeAuthorization,
+                        transaction_commit=True,
+                    )
+                else:
+                    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http01
+                    if not dbAcmeChallenge:
+                        raise ValueError("Can not trigger this `AcmeChallenge`")
+
+                    _result = do__AcmeV2_AcmeChallenge__acme_server_trigger(
+                        ctx,
+                        dbAcmeChallenge=dbAcmeChallenge,
+                        authenticatedUser=authenticatedUser,
+                    )
+            else:
+                # no authorizations?
+                raise GarfieldMinusGarfield(
+                    "unsure how this happened; pending but no active authorizations"
+                )
+        elif dbAcmeOrder.acme_status_order == "ready":
+            (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
+                ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
+            )
+        else:
+            raise GarfieldMinusGarfield("unsure how this happened")
+
+        return (dbAcmeOrder, None)
 
     finally:
         # cleanup tmpfiles
@@ -1425,7 +1555,7 @@ def do__AcmeV2_AcmeOrder__automated(
     """
     Automates a Certificate deployment from LetsEncrypt
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param acme_order_type_id: (required) What type of order is this? A value from :class:`model.objects.AcmeOrderType`
     :param domain_names: (required) An iteratble list of domain names
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
@@ -1436,7 +1566,6 @@ def do__AcmeV2_AcmeOrder__automated(
 
     :returns: A :class:`model.objects.AcmeOrder` object
     """
-    # bookkeeping
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Automated"),
     )
@@ -1455,17 +1584,105 @@ def do__AcmeV2_AcmeOrder__automated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def do__AcmeV2_AcmeOrder__download_certificate(
+    ctx, dbAcmeOrder=None,
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
+    """
+    if not dbAcmeOrder:
+        raise ValueError("Must submit `dbAcmeOrder`")
+    if not dbAcmeOrder.is_can_acme_server_download_certificate:
+        raise errors.InvalidRequest(
+            "this AcmeOrder is not eligible for a certificate download"
+        )
+    tmpfiles = []
+    try:
+        # we need to use tmpfiles on the disk
+        dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+        (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+            ctx, dbAcmeAccountKey
+        )
+        tmpfiles.append(tmpfile_account)
+
+        # register the AcmeOrder into the logging utility
+        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+        fullchain_pem = authenticatedUser.download_certificate(
+            dbAcmeOrder.certificate_url
+        )
+        (certificate_pem, ca_chain_pem) = utils_certbot.cert_and_chain_from_fullchain(
+            fullchain_pem
+        )
+        (
+            dbCACertificate,
+            is_created__CACertificate,
+        ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
+            ctx,
+            ca_chain_pem,
+            ca_chain_name="ACME Server Response",
+            le_authority_name=None,
+            is_authority_certificate=None,
+            is_cross_signed_authority_certificate=None,
+        )
+        if is_created__CACertificate:
+            ctx.pyramid_transaction_commit()
+
+        (
+            dbServerCertificate,
+            _is_created__cert,
+        ) = lib.db.getcreate.getcreate__ServerCertificate(
+            ctx,
+            cert_pem=certificate_pem,
+            cert_domains_expected=dbAcmeOrder.domains_as_list,
+            dbAcmeOrder=dbAcmeOrder,
+            dbCACertificate=dbCACertificate,
+        )
+        if dbAcmeOrder.server_certificate:
+            if dbAcmeOrder.server_certificate_id != dbServerCertificate.id:
+                raise ValueError("competing certificates for this AcmeOrder")
+        else:
+            # dbAcmeOrder.server_certificate_id = dbServerCertificate.id
+            dbAcmeOrder.server_certificate = dbServerCertificate
+
+        # note that we've completed this!
+        dbAcmeOrder.acme_order_processing_status_id = (
+            model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
+        )
+
+        ctx.pyramid_transaction_commit()
+
+        # update the logger
+        authenticatedUser.acmeLogger.log_CertificateProcured(
+            "v2",
+            dbServerCertificate=dbServerCertificate,
+            dbCertificateRequest=dbAcmeOrder.certificate_request,
+            transaction_commit=True,
+        )
+
+        # don't commit here, as that will trigger an error on object refresh
+        return (dbAcmeOrder, None)
+
+    finally:
+        # cleanup tmpfiles
+        for tf in tmpfiles:
+            tf.close()
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def do__AcmeV2_AcmeOrder__retry(
     ctx, dbAcmeOrder=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
-    # bookkeeping
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Retry"),
     )
@@ -1485,7 +1702,7 @@ def do__AcmeV2_AcmeOrder__renew_custom(
     processing_strategy=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     """
@@ -1495,7 +1712,6 @@ def do__AcmeV2_AcmeOrder__renew_custom(
         raise ValueError("Must submit `dbAcmeAccountKey`")
     if not dbPrivateKey:
         raise ValueError("Must submit `dbPrivateKey`")
-    # bookkeeping
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Custom"),
     )
@@ -1513,13 +1729,12 @@ def do__AcmeV2_AcmeOrder__renew_quick(
     ctx, dbAcmeOrder=None, processing_strategy=None,
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
-    # bookkeeping
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Quick"),
     )

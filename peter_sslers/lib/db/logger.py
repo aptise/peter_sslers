@@ -32,7 +32,7 @@ class AcmeLogger(object):
 
     def __init__(self, ctx, dbAcmeAccountKey=None):
         """
-        :param ctx: (required) A :class:`lib.utils.ApiContext` object
+        :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeAccountKey: (optional) The :class:`model.objects.AcmeAccountKey`
         """
         self.ctx = ctx

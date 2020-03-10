@@ -71,6 +71,14 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>count_domains</th>
+                        <td>
+                            <code>
+                                ${UniqueFQDNSet.count_domains}
+                            </code>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>domains</th>
                         <td>
                             <table class="table table-striped table-condensed">

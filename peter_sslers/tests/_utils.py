@@ -345,13 +345,14 @@ class AppTest(AppTestCore):
                 _cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
                     "cert"
                 ]
+                _cert_domains_expected = [
+                    TEST_FILES["ServerCertificates"]["SelfSigned"]["1"]["domain"],
+                ]
                 cert_pem = self._filedata_testfile(_cert_filename)
-                (
-                    _cert_1,
-                    _is_created,
-                ) = db.getcreate.getcreate__ServerCertificate__by_pem_text(
+                (_cert_1, _is_created,) = db.getcreate.getcreate__ServerCertificate(
                     self.ctx,
                     cert_pem,
+                    cert_domains_expected=_cert_domains_expected,
                     dbCACertificate=_ca_cert_selfsigned1,
                     dbAcmeAccountKey=_key_account1,
                     dbPrivateKey=_key_private1,

@@ -254,15 +254,38 @@ class ViewAdmin_New(Handler):
             if six.PY3:
                 if not isinstance(certificate_pem, str):
                     certificate_pem = certificate_pem.decode("utf8")
+
+            _tmpfileCert = None
+            try:
+                _tmpfileCert = cert_utils.new_pem_tempfile(certificate_pem)
+                _certificate_domain_names = cert_utils.parse_cert_domains(
+                    cert_path=_tmpfileCert.name
+                )
+                if not _certificate_domain_names:
+                    raise ValueError(
+                        "could not find any domain names in the certificate"
+                    )
+                (
+                    dbUniqueFQDNSet,
+                    is_created_fqdn,
+                ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                    self.request.api_context, _certificate_domain_names
+                )
+            except Exception as exc:
+                raise
+            finally:
+                if _tmpfileCert:
+                    _tmpfileCert.close()
             (
                 dbServerCertificate,
                 cert_is_created,
-            ) = lib_db.getcreate.getcreate__ServerCertificate__by_pem_text(
+            ) = lib_db.getcreate.getcreate__ServerCertificate(
                 self.request.api_context,
                 certificate_pem,
+                cert_domains_expected=_certificate_domain_names,
                 dbCACertificate=dbCACertificate,
+                dbUniqueFQDNSet=dbUniqueFQDNSet,
                 dbPrivateKey=dbPrivateKey,
-                dbAcmeAccountKey=None,
             )
 
             if self.request.wants_json:

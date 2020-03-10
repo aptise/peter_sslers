@@ -157,7 +157,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:acme_order:focus:acme_server_sync", renderer=None)
+    @view_config(route_name="admin:acme_order:focus:acme_server:sync", renderer=None)
     def acme_server_sync(self):
         """
         Acme Refresh should just update the record against the acme server.
@@ -168,7 +168,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeOrder"
                 )
-            result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+            (
+                dbAcmeOrder,
+                result,
+            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
             return HTTPSeeOther(
@@ -183,7 +186,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_order:focus:acme_server_sync_authorizations",
+        route_name="admin:acme_order:focus:acme_server:sync_authorizations",
         renderer=None,
     )
     def acme_server_sync_authorizations(self):
@@ -196,7 +199,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeOrder"
                 )
-            result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+            (
+                dbAcmeOrder,
+                result,
+            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
             return HTTPSeeOther(
@@ -212,7 +218,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:acme_order:focus:acme_server_deactivate_authorizations",
+        route_name="admin:acme_order:focus:acme_server:deactivate_authorizations",
         renderer=None,
     )
     def acme_server_deactivate_authorizations(self):
@@ -240,32 +246,63 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:acme_order:focus:acme_process", renderer=None)
-    @view_config(route_name="admin:acme_order:focus:acme_process|json", renderer="json")
-    def process_order(self):
+    @view_config(
+        route_name="admin:acme_order:focus:acme_server:download_certificate",
+        renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_order:focus:acme_server:download_certificate|json",
+        renderer="json",
+    )
+    def acme_server_download_certificate(self):
         """
-        only certain orders can be finalized
+        This endpoint is for Immediately Renewing the AcmeOrder with overrides on the keys
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
-            if not dbAcmeOrder.is_can_process_authorizations:
-                raise errors.InvalidRequest(
-                    "ACME Finalize is not allowed for this AcmeOrder"
-                )
-            (dbAcmeOrder, exc) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
+            (
+                dbAcmeOrder,
+                exc,
+            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
             if not exc:
                 return HTTPSeeOther(
-                    "%s?result=success&operation=finalize+order" % self._focus_url
+                    "%s?result=success&operation=acme+server+download+certificate"
+                    % self._focus_url
                 )
             raise exc
-            # return HTTPSeeOther(
-            #    "%s?result=error&error=could+not+finalize&operation=finalize+order" % self._focus_url
-            # )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
-                "%s?result=error&error=finalize&message=%s"
+                "%s?result=error&error=acme+server+download+certificate&message=%s"
+                % (self._focus_url, exc.to_querystring())
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:acme_order:focus:acme_process", renderer=None)
+    @view_config(route_name="admin:acme_order:focus:acme_process|json", renderer="json")
+    def process_order(self):
+        """
+        only certain orders can be processed
+        """
+        dbAcmeOrder = self._focus(eagerload_web=True)
+        try:
+            if not dbAcmeOrder.is_can_acme_process:
+                raise errors.InvalidRequest(
+                    "ACME Process is not allowed for this AcmeOrder"
+                )
+            (dbAcmeOrder, exc) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
+                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+            )
+            if not exc:
+                return HTTPSeeOther(
+                    "%s?result=success&operation=process+order" % self._focus_url
+                )
+            raise exc
+        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            return HTTPSeeOther(
+                "%s?result=error&error=process&message=%s"
                 % (self._focus_url, exc.to_querystring())
             )
 
@@ -277,7 +314,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
-            if not dbAcmeOrder.is_can_acme_process:
+            if not dbAcmeOrder.is_can_acme_finalize:
                 raise errors.InvalidRequest(
                     "ACME Finalize is not allowed for this AcmeOrder"
                 )
@@ -289,9 +326,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "%s?result=success&operation=finalize+order" % self._focus_url
                 )
             raise exc
-            # return HTTPSeeOther(
-            #    "%s?result=error&error=could+not+finalize&operation=finalize+order" % self._focus_url
-            # )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
                 "%s?result=error&error=finalize&message=%s"
@@ -315,7 +349,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 lib_db.actions_acme.updated_AcmeOrder_status(
                     self.request.api_context,
                     dbAcmeOrder,
-                    "invalid",
+                    {"status": "invalid",},
                     transaction_commit=True,
                 )
 
@@ -368,12 +402,16 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_order:focus:retry", renderer=None)
+    @view_config(route_name="admin:acme_order:focus:retry|json", renderer="json")
     def retry_order(self):
         """
         Retry should create a new order
         """
+        # todo - lock behind a POST
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
+            if self.request.method != "POST":
+                raise errors.InvalidRequest("This must be a POST request.")
             if not dbAcmeOrder.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
                     "ACME Retry is not allowed for this AcmeOrder"
@@ -396,6 +434,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 )
             raise exc
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            if self.request.wants_json:
+                return {
+                    "error": exc.args[0],
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=retry&message=%s"
                 % (self._focus_url, exc.to_querystring())

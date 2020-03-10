@@ -45,7 +45,7 @@ def disable_Domain(
     """
     Disables a domain
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbDomain: (required) A :class:`model.objects.Domain` object
     :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
 
@@ -77,7 +77,7 @@ def enable_Domain(
     action="activated",
 ):
     """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbDomain: (required) A :class:`model.objects.Domain` object
     :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
 
@@ -108,7 +108,7 @@ def ca_certificate_probe(ctx):
     """
     Probes the LetsEncrypt Certificate Authority for new certificates
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
 
     # create a bookkeeping object
@@ -170,7 +170,7 @@ def operations_deactivate_expired(ctx):
     """
     deactivates expired certificates automatically
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     # create an event first
     event_payload_dict = utils.new_event_payload_dict()
@@ -225,7 +225,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
     2. find domains that have multiple active certs
     3. don't turn off any certs that are a latest_single or latest_multi
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param ran_operations_update_recents: (optional) Default = `None`
     """
     raise ValueError("Don't run this. It's not needed anymore")
@@ -322,7 +322,7 @@ def operations_update_recents(ctx):
     """
     updates all the objects to their most-recent relations
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     # first the single
     # _t_domain = model_objects.Domain.__table__.alias('domain')
@@ -509,7 +509,7 @@ def api_domains__enable(ctx, domain_names):
     """
     this is just a proxy around queue_domains__add
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: (required) a list of domain names
     """
 
@@ -531,7 +531,7 @@ def api_domains__disable(ctx, domain_names):
     """
     disables domains
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: (required) a list of domain names
     """
     domain_names = utils.domains_from_list(domain_names)
@@ -595,7 +595,7 @@ def api_domains__certificate_if_needed(
     Adds domains if needed
     2016.06.29
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: (required) a list of domain names
     :param account_key_pem: (required) the acme-account-key used for new orders
     :param dbPrivateKey: (required) the class:`model.objects.PrivateKey` used to sign requests
@@ -806,7 +806,7 @@ def upload__CACertificateBundle__by_pem_text(ctx, bundle_data):
     """
     Uploads a bundle of CACertificates
 
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param bundle_data: (required) a compliant payload
     """
     # bookkeeping

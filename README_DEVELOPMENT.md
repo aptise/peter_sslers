@@ -85,5 +85,13 @@ If you set up some domains pointing to localhost (such as `dev.aptise.com` which
 ACME v1 is no longer supported in peter_sslers.
 
 
+## Repository Styleguide
+
+* Database operations are consolidated into `/lib/db` and should not happen in the web-application views. this is to foster development of non-web-application work.
+
+
+
+
+## sample domains
 
 a.example.com, b.example.com, c.example.com, d.example.com, e.example.com, f.example.com, g.example.com, h.example.com, i.example.com, j.example.com, k.example.com, l.example.com, m.example.com, n.example.com, o.example.com, p.example.com, q.example.com, r.example.com, s.example.com, t.example.com, u.example.com, v.example.com, w.example.com, x.example.com, y.example.com, z.example.com

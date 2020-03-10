@@ -33,7 +33,7 @@ def new_nginx_session(request):
 def nginx_flush_cache(request, ctx):
     """
     :param request: The current Pyramid `request` object
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     _reset_path = request.registry.settings["nginx.reset_path"]
     timeout = request.registry.settings["nginx.timeout"]
@@ -81,7 +81,7 @@ def nginx_status(request, ctx):
     returns the status document for each server
 
     :param request: The current Pyramid `request` object
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
     status_path = request.registry.settings["nginx.status_path"]
     timeout = request.registry.settings["nginx.timeout"]
@@ -120,7 +120,7 @@ def nginx_status(request, ctx):
 def nginx_expire_cache(request, ctx, dbDomains=None):
     """
     :param request: The current Pyramid `request` object
-    :param ctx: (required) A :class:`lib.utils.ApiContext` object
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbDomains:
     """
     if not dbDomains:

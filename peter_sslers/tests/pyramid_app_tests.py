@@ -320,10 +320,10 @@ class FunctionalTests_AcmeAuthorizations(AppTest):
     @unittest.skip("tests not written yet")
     def test_manipulate(self):
         """
-        "/acme-authorization/{@id}/acme-server-sync",
-        "/acme-authorization/{@id}/acme-server-sync.json",
-        "/acme-authorization/{@id}/acme-server-deactivate",
-        "/acme-authorization/{@id}/acme-server-deactivate.json",
+        "/acme-authorization/{@id}/acme-server/sync",
+        "/acme-authorization/{@id}/acme-server/sync.json",
+        "/acme-authorization/{@id}/acme-server/deactivate",
+        "/acme-authorization/{@id}/acme-server/deactivate.json",
         """
         pass
 
@@ -372,8 +372,8 @@ class FunctionalTests_AcmeChallenges(AppTest):
     def test_manipulate(self):
         pass
         """
-        "admin:acme_challenge:focus:acme_server_sync",
-        "admin:acme_challenge:focus:acme_server_sync|json",
+        "admin:acme_challenge:focus:acme_server:sync",
+        "admin:acme_challenge:focus:acme_server:sync|json",
         """
 
 
@@ -521,19 +521,19 @@ class FunctionalTests_AcmeOrder(AppTest):
         """
         config.add_route_7("admin:acme_order:focus:process", "/acme-order/{@id}/process")
         config.add_route_7(
-            "admin:acme_order:focus:acme_server_sync", "/acme-order/{@id}/acme-server-sync"
+            "admin:acme_order:focus:acme_server:sync", "/acme-order/{@id}/acme-server/sync"
         )
         config.add_route_7(
-            "admin:acme_order:focus:acme_server_sync|json",
-            "/acme-order/{@id}/acme-server-sync.json",
+            "admin:acme_order:focus:acme_server:sync|json",
+            "/acme-order/{@id}/acme-server/sync.json",
         )
         config.add_route_7(
-            "admin:acme_order:focus:acme_server_deactivate_authorizations",
-            "/acme-order/{@id}/acme-server-deactivate-authorizations",
+            "admin:acme_order:focus:acme_server:deactivate_authorizations",
+            "/acme-order/{@id}/acme-server/deactivate-authorizations",
         )
         config.add_route_7(
-            "admin:acme_order:focus:acme_server_deactivate_authorizations|json",
-            "/acme-order/{@id}/acme-server-deactivate-authorizations.json",
+            "admin:acme_order:focus:acme_server:deactivate_authorizations|json",
+            "/acme-order/{@id}/acme-server/deactivate-authorizations.json",
         )
 
         config.add_route_7("admin:acme_order:focus:retry", "/acme-order/{@id}/retry")
@@ -542,9 +542,6 @@ class FunctionalTests_AcmeOrder(AppTest):
             "admin:acme_order:focus:mark|json", "/acme-order/{@id}/mark.json"
         )
         config.add_route_7("admin:acme_order:new:automated", "/acme-order/new/automated")
-        config.add_route_7(
-            "admin:acme_order:new:from-certificate-request",
-            "/acme-order/new/from-certificate-request",
         """
         pass
 
