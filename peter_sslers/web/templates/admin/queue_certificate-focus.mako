@@ -40,7 +40,7 @@
                             &nbsp;
                             <form action="${admin_prefix}/queue-certificate/${QueueCertificate.id}/mark" method="POST" style="display:inline;">
                                 <input type="hidden" name="action" value="cancel"/>
-                                <button class="label label-warning" type="submit">
+                                <button class="btn btn-xs btn-warning" type="submit">
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                     cancel
                                 </button>

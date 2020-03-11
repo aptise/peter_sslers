@@ -662,7 +662,7 @@ def create__ServerCertificate(
     dbAcmeAccountKey = None
     if dbAcmeOrder:
         dbAcmeAccountKey = dbAcmeOrder.acme_account_key
-        dbUniqueFqdnSet = dbAcmeOrder.unique_fqdn_set
+        dbUniqueFQDNSet = dbAcmeOrder.unique_fqdn_set
         if dbCertificateRequest:
             if dbCertificateRequest != dbAcmeOrder.certificate_request:
                 raise ValueError(
@@ -679,13 +679,13 @@ def create__ServerCertificate(
             dbPrivateKey = dbAcmeOrder.certificate_request.private_key
 
     if dbCertificateRequest:
-        if dbUniqueFqdnSet:
-            if dbUniqueFqdnSet.id != dbCertificateRequest.unique_fqdn_set_id:
+        if dbUniqueFQDNSet:
+            if dbUniqueFQDNSet.id != dbCertificateRequest.unique_fqdn_set_id:
                 raise ValueError("could not compute the correct UniqueFqdnSet")
         else:
-            dbUniqueFqdnSet = dbCertificateRequest.unique_fqdn_set
+            dbUniqueFQDNSet = dbCertificateRequest.unique_fqdn_set
 
-    if not dbUniqueFqdnSet:
+    if not dbUniqueFQDNSet:
         raise ValueError("a `UniqueFqdnSet` should have been computed by now")
 
     # bookkeeping
@@ -725,12 +725,12 @@ def create__ServerCertificate(
         dbServerCertificate.cert_pem = cert_pem
         dbServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
         dbServerCertificate.is_active = is_active
-        dbServerCertificate.unique_fqdn_set_id = dbUniqueFqdnSet.id
+        dbServerCertificate.unique_fqdn_set_id = dbUniqueFQDNSet.id
         dbServerCertificate.private_key_id = dbPrivateKey.id
         dbServerCertificate.operations_event_id__created = dbOperationsEvent.id
-        if dbUniqueFqdnSet.count_domains == 1:
+        if dbUniqueFQDNSet.count_domains == 1:
             dbServerCertificate.is_single_domain_cert = True
-        elif dbUniqueFqdnSet.count_domains >= 1:
+        elif dbUniqueFQDNSet.count_domains >= 1:
             dbServerCertificate.is_single_domain_cert = False
 
         """

@@ -168,10 +168,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeOrder"
                 )
-            (
-                dbAcmeOrder,
-                result,
-            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
             return HTTPSeeOther(

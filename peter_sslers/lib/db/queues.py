@@ -42,7 +42,8 @@ def dequeue_QueuedDomain(
     event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["queue_domain.id"] = dbQueueDomain.id
     event_payload_dict["action"] = action
-    dbQueueDomain.is_active = False
+
+    dbQueueDomain.is_active = None
     dbQueueDomain.timestamp_processed = ctx.timestamp
     ctx.dbSession.flush(objects=[dbQueueDomain])
 
@@ -110,18 +111,25 @@ def queue_domains__add(ctx, domain_names):
             _dbQueueDomain = lib.db.get.get__QueueDomain__by_name__single(
                 ctx, domain_name
             )
+            _create_new = True
             if _dbQueueDomain:
-                _logger_args[
-                    "event_status_id"
-                ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "QueueDomain__add__already_queued"
-                )
-                _logger_args["dbQueueDomain"] = _dbQueueDomain
-                _result = "already_queued"
+                if _dbQueueDomain.is_active:
+                    _create_new = False
+                    _logger_args[
+                        "event_status_id"
+                    ] = model_utils.OperationsObjectEventStatus.from_string(
+                        "QueueDomain__add__already_queued"
+                    )
+                    _logger_args["dbQueueDomain"] = _dbQueueDomain
+                    _result = "already_queued"
+                else:
+                    # the domain exists, but was removed. so add a new one.
+                    pass
 
-            else:
+            if _create_new:
                 _dbQueueDomain = model_objects.QueueDomain()
                 _dbQueueDomain.domain_name = domain_name
+                _dbQueueDomain.is_active = True
                 _dbQueueDomain.timestamp_entered = _timestamp
                 _dbQueueDomain.operations_event_id__created = dbOperationsEvent.id
                 ctx.dbSession.add(_dbQueueDomain)
@@ -188,7 +196,9 @@ def _get_default_PrivateKey(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
+def queue_domains__process(
+    ctx, dbAcmeAccountKey=None, dbPrivateKey=None, max_domains_per_certificate=50
+):
     """
     This endpoint should pull `1-100[configurable]` domains from the queue, and create a certificate for them
 
@@ -207,10 +217,15 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
 
     try:
         min_domains = ctx.request.registry.settings["queue_domains_min_per_cert"]
-        max_domains = ctx.request.registry.settings["queue_domains_max_per_cert"]
+        _max_max_domains = ctx.request.registry.settings["queue_domains_max_per_cert"]
+        max_domains_per_certificate = (
+            _max_max_domains
+            if max_domains_per_certificate > _max_max_domains
+            else max_domains_per_certificate
+        )
 
         items_paged = lib.db.get.get__QueueDomain__paginated(
-            ctx, unprocessed_only=True, limit=max_domains, offset=0
+            ctx, unprocessed_only=True, limit=max_domains_per_certificate, offset=0
         )
         if len(items_paged) < min_domains:
             raise errors.DisplayableError(
@@ -248,9 +263,6 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
         if not items_paged:
             raise errors.DisplayableError("No items in queue")
 
-        # cache the timestamp
-        timestamp_transaction = datetime.datetime.utcnow()
-
         # generate domains
         domainObjects = []
         for qDomain in items_paged:
@@ -262,6 +274,7 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
             )
             domainObjects.append(domainObject)
             qDomain.domain_id = domainObject.id
+            qDomain.is_active = False
             ctx.dbSession.flush(objects=[qDomain])
 
         # create a dbUniqueFQDNSet for this.
@@ -285,7 +298,8 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
         dbServerCertificate = None
         try:
             domain_names = [d.domain_name for d in domainObjects]
-            raise ValueError("this changed a lot")
+
+            # processing_strategy: AcmeOrder_ProcessingStrategy('create_order', 'process_single', 'process_multi')
             (
                 dbAcmeOrder,
                 result,
@@ -293,16 +307,17 @@ def queue_domains__process(ctx, dbAcmeAccountKey=None, dbPrivateKey=None):
                 ctx,
                 acme_order_type_id=model_utils.AcmeOrderType.QUEUE_DOMAINS,
                 domain_names=domain_names,
+                processing_strategy="create_order",
                 dbAcmeAccountKey=dbAcmeAccountKey,
                 dbPrivateKey=dbPrivateKey,
             )
             for qdomain in items_paged:
                 # this may have committed
-                qdomain.timestamp_processed = timestamp_transaction
+                qdomain.timestamp_processed = _timestamp
                 ctx.dbSession.flush(objects=[qdomain])
 
             event_payload_dict["status"] = "success"
-            event_payload_dict["certificate.id"] = dbServerCertificate.id
+            event_payload_dict["acme_order.id"] = dbAcmeOrder.id
             dbOperationsEvent.set_event_payload(event_payload_dict)
             ctx.dbSession.flush(objects=[dbOperationsEvent])
 

@@ -74,7 +74,7 @@
                             % if not AcmeAccountKey.is_active:
                                 <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="active"/>
-                                    <button class="label label-info" type="submit">
+                                    <button class="btn btn-xs btn-info" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                         active
                                     </button>
@@ -83,7 +83,7 @@
                                 % if not AcmeAccountKey.is_default:
                                     <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="inactive"/>
-                                        <button class="label label-danger" type="submit">
+                                        <button class="btn btn-xs btn-danger" type="submit">
                                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                             inactive
                                         </button>
@@ -111,7 +111,7 @@
                             % if AcmeAccountKey.is_default_candidate:
                                 <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="default"/>
-                                    <button class="label label-primary" type="submit">
+                                    <button class="btn btn-xs btn-primary" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                         make default
                                     </button>

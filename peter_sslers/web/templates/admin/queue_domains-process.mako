@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/queue-certificates">Queue Domains</a></li>
+        <li><a href="${admin_prefix}/queue-domains">Queue Domains</a></li>
         <li class="active">Process</li>
     </ol>
 </%block>
@@ -29,7 +29,9 @@
 
             <h4>Process the existing Domains Queue into Certificates</h4>
             
-            <p>Upon submission, the following combination will be used by the processing queue.</p>
+            <p>This should NOT be invoked via a web browser as it is a long-running process.</p>
+            
+            <p>Upon submission, the following combination will be used by the processing queue:</p>
             
             <form
                 action="${admin_prefix}/queue-domains/process"
@@ -52,6 +54,13 @@
                                 ${admin_partials.formgroup__PrivateKey_selector__advanced(option_generate_new=True)}
                             </td>
                         </tr>
+                        <tr>
+                            <th>Max Domains per Certificate</th>
+                            <td>
+                                <input type="text" name="max_domains_per_certificate" value="50" />
+                            </td>
+                        </tr>
+                        
                         <tr>
                             <th></th>
                             <td>

@@ -66,6 +66,7 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
     :param str err_msg: (optional) A custom error message
     :param int depth: (optional) An integer nothing the depth of this function being called
     """
+    log.info("url_request")
     context = None
     try:
         headers = {
@@ -77,12 +78,16 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
             context = ctx
+        log.info("url_request > %s %s", url, post_data)
         resp = urlopen(Request(url, data=post_data, headers=headers), context=ctx)
         resp_data, code, headers = (
             resp.read().decode("utf8"),
             resp.getcode(),
             resp.headers,
         )
+        log.info("url_request < code       < %s", code)
+        log.info("url_request < resp_data  < %s", resp_data)
+        log.info("url_request < headers    < %s", headers)
     except IOError as exc:
         resp_data = exc.read().decode("utf8") if hasattr(exc, "read") else str(exc)
         code, headers = getattr(exc, "code", None), {}
@@ -638,7 +643,7 @@ class AuthenticatedUser(object):
                 raise ValueError("this order is dead")
             else:
                 raise ValueError(
-                    "unsure how to handle this status: `%s`" % _order_status
+                    "unsure how to handle this `status``: `%s`" % _order_status
                 )
 
         if (
@@ -646,7 +651,7 @@ class AuthenticatedUser(object):
             != model_utils.AcmeOrder_ProcessingStatus.created_acme
         ):
             raise ValueError(
-                "unsure how to the acme_order_processing_status_id was wedged: `%s`"
+                "unsure how to the `acme_order_processing_status_id` was wedged: `%s`"
                 % dbAcmeOrder.acme_order_processing_status_id
             )
         updated_AcmeOrder_ProcessingStatus(

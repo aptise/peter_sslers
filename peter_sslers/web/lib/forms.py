@@ -349,11 +349,7 @@ class Form_PrivateKey_mark(_Form_Schema_Base):
     action = OneOf(("compromised", "active", "inactive", "default"), not_empty=True)
 
 
-class Form_QueueDomain_mark(_Form_Schema_Base):
-    action = OneOf(("cancel",), not_empty=True)
-
-
-class _Form_QueueCertificate_new(_form_AccountKey_core, _form_PrivateKey_core):
+class _Form_QueueCertificate_new(_form_AccountKey_PrivateKey_core):
     queue_source = OneOf(
         ("AcmeOrder", "ServerCertificate", "UniqueFQDNSet"), not_empty=True
     )
@@ -386,10 +382,14 @@ class Form_QueueDomains_add(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
 
 
-class Form_QueueDomains_process(_form_AccountKey_core, _form_PrivateKey_core):
+class Form_QueueDomain_mark(_Form_Schema_Base):
+    action = OneOf(("cancel",), not_empty=True)
+
+
+class Form_QueueDomains_process(_form_AccountKey_PrivateKey_core):
     """just use the PrivateKey and AcmeAccountKey in the parent class"""
 
-    pass
+    max_domains_per_certificate = Int(not_empty=True, max=100, min=1)
 
 
 class Form_API_Domain_enable(_Form_Schema_Base):

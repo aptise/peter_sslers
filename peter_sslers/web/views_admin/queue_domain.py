@@ -204,6 +204,9 @@ class ViewAdmin_Process(Handler):
                 self.request.api_context,
                 dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
                 dbPrivateKey=privateKeySelection.PrivateKey,
+                max_domains_per_certificate=formStash.results[
+                    "max_domains_per_certificate"
+                ],
             )
             if self.request.wants_json:
                 return {"result": "success"}

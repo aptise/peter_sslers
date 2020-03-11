@@ -384,7 +384,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     to_acme_orders = sa_orm_relationship(
         "AcmeOrder2AcmeAuthorization",
         primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
-        uselist=False,
+        uselist=True,
         back_populates="acme_authorization",
     )
 
@@ -2133,6 +2133,15 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     This is only used for batch processing consumer Domains
     Domains that are included in CertificateRequests or ServerCertificates
     The DomainQueue will allow you to queue-up Domain names for management
+        
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    `QueueDomain.is_active` - a boolean triplet with the following meaning:
+        True  :  The QueueDomain is active and should be part of the next processing batch.
+        False :  The QueueDomain has completed, it may be successful or a failure.
+        None  :  The QueueDomain has been cancelled by the user.
+    ``:
+    
     """
 
     __tablename__ = "queue_domain"
@@ -2141,7 +2150,7 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     timestamp_entered = sa.Column(sa.DateTime, nullable=False)
     timestamp_processed = sa.Column(sa.DateTime, nullable=True)
     domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )

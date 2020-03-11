@@ -739,7 +739,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
 
     returns:
-        (dbAcmeOrder, True)
+        dbAcmeOrder
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -771,14 +771,14 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
             result = updated_AcmeOrder_status(
                 ctx, dbAcmeOrder, acmeOrderRfcObject.rfc_object, transaction_commit=True
             )
-            return (dbAcmeOrder, True)
+            return dbAcmeOrder
 
         except errors.AcmeServer404 as exc:
             is_order_404 = True
             updated_AcmeOrder_status(
                 ctx, dbAcmeOrder, acme_v2.new_response_404(), transaction_commit=True
             )
-            return (dbAcmeOrder, True)
+            return dbAcmeOrder
 
         # if is_order_404:
         #    # TODO: raise an exception if we don't have an acmeOrder
@@ -850,9 +850,8 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                     authenticatedUser=authenticatedUser,
                 )
             except Exception as exc:
-                pdb.set_trace()
                 print(exc)
-                pass
+                raise
 
         return (dbAcmeOrder, True)
 
@@ -950,8 +949,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                     is_processing_False=True,
                     transaction_commit=True,
                 )
-            except:
-                pdb.set_trace()
+            except Exception as exc:
                 raise
 
         return False
@@ -1521,15 +1519,28 @@ def do__AcmeV2_AcmeOrder__process(
                     )
             else:
                 # no authorizations?
-                raise GarfieldMinusGarfield(
-                    "unsure how this happened; pending but no active authorizations"
+                # it's possible we did the last one?
+                dbAcmeOrder = do__AcmeV2_AcmeOrder__acme_server_sync(
+                    ctx, dbAcmeOrder=dbAcmeOrder, authenticatedUser=authenticatedUser
                 )
+                if dbAcmeOrder.acme_status_order == "pending":
+                    raise errors.GarfieldMinusGarfield(
+                        "unsure how this happened; pending but no active authorizations"
+                    )
+                elif dbAcmeOrder.acme_status_order == "ready":
+                    (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
+                        ctx,
+                        authenticatedUser=authenticatedUser,
+                        dbAcmeOrder=dbAcmeOrder,
+                    )
+                else:
+                    raise errors.GarfieldMinusGarfield("unsure how this happened")
         elif dbAcmeOrder.acme_status_order == "ready":
             (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
                 ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
             )
         else:
-            raise GarfieldMinusGarfield("unsure how this happened")
+            raise errors.GarfieldMinusGarfield("unsure how this happened")
 
         return (dbAcmeOrder, None)
 
