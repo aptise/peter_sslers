@@ -539,88 +539,46 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             activated = False
             event_status = False
 
-            if action == "active":
-                if dbServerCertificate.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Already active")
+            try:
 
-                # is_deactivated is our manual toggle;
-                if not dbServerCertificate.is_deactivated:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="action",
-                        message="Certificate was not manually deactivated",
+                if action == "active":
+                    event_status = lib_db.update.update_ServerCertificate__set_active(
+                        self.request.api_context, dbServerCertificate
                     )
+                    update_recents = True
+                    activated = True
 
-                if dbServerCertificate.is_revoked:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="action",
-                        message="Certificate is revoked. You must unrevoke first",
+                elif action == "inactive":
+                    event_status = lib_db.update.update_ServerCertificate__unset_active(
+                        self.request.api_context, dbServerCertificate
                     )
+                    update_recents = True
+                    deactivated = True
 
-                # now make it active!
-                dbServerCertificate.is_active = True
-                # unset the manual toggle
-                dbServerCertificate.is_deactivated = False
-                # cleanup options
-                update_recents = True
-                activated = True
-                event_status = "ServerCertificate__mark__active"
-
-            elif action == "inactive":
-                if not dbServerCertificate.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Already inactive")
-
-                if dbServerCertificate.is_deactivated:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Already deactivated")
-
-                # deactivate it
-                dbServerCertificate.is_active = False
-                # set the manual toggle
-                dbServerCertificate.is_deactivated = True
-                # cleanup options
-                update_recents = True
-                deactivated = True
-                event_status = "ServerCertificate__mark__inactive"
-
-            elif action == "revoked":
-                if dbServerCertificate.is_revoked:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Already revoked")
-
-                # mark revoked
-                dbServerCertificate.is_revoked = True
-                # deactivate it
-                dbServerCertificate.is_active = False
-                # set the manual toggle
-                dbServerCertificate.is_deactivated = True
-                # cleanup options
-                update_recents = True
-                deactivated = True
-                event_type = "ServerCertificate__revoke"
-                event_status = "ServerCertificate__mark__revoked"
-
-            elif action == "unrevoke":
-                if not dbServerCertificate.is_revoked:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="action", message="Certificate is not revoked"
+                elif action == "revoked":
+                    event_status = lib_db.update.update_ServerCertificate__set_revoked(
+                        self.request.api_context, dbServerCertificate
                     )
+                    update_recents = True
+                    deactivated = True
+                    event_type = "ServerCertificate__revoke"
 
-                # unset the revoke
-                dbServerCertificate.is_revoked = False
-                # lead is_active and is_deactivated as-is
-                # cleanup options
-                update_recents = True
-                activated = None
-                event_status = "ServerCertificate__mark__unrevoked"
+                elif action == "unrevoke":
+                    raise errors.InvalidTransition("invalid option")
+                    """
+                    event_status = lib_db.update.update_ServerCertificate__unset_revoked(
+                        self.request.api_context, dbServerCertificate
+                    )
+                    update_recents = True
+                    activated = None
+                    """
 
-            else:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(field="action", message="invalid option")
+                else:
+                    raise errors.InvalidTransition("invalid option")
+
+            except errors.InvalidTransition as exc:
+                # `formStash.fatal_form(` will raise a `FormInvalid()`
+                formStash.fatal_form(message=exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbServerCertificate])
 
@@ -668,7 +626,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             url_failure = "%s?&result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
                 action,
-                exc.to_querystring(),
+                exc.as_querystring,
             )
             raise HTTPSeeOther(url_failure)
 

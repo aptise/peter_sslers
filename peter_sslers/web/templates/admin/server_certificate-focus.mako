@@ -108,20 +108,18 @@
                                 % elif ServerCertificate.is_deactivated:
                                     Reason: <code>deactivated</code>
                                 % endif
-                                % if ServerCertificate.is_deactivated:
-                                    ## manual deactivations can be undone
-                                    ## this could be an 'inactive' or a 'revoke'
+                                % if not ServerCertificate.is_deactivated:
                                     &nbsp;
                                     Actions:
-                                    % if ServerCertificate.is_revoked:
-                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
-                                            <input type="hidden" name="action" value="unrevoke"/>
-                                            <button class="btn btn-xs btn-warning" type="submit">
-                                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                                unrevoke
-                                            </button>
-                                        </form>
-                                    % endif
+                                    ## % if ServerCertificate.is_revoked:
+                                    ##     <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
+                                    ##         <input type="hidden" name="action" value="unrevoke"/>
+                                    ##         <button class="btn btn-xs btn-warning" type="submit">
+                                    ##             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    ##             unrevoke
+                                    ##         </button>
+                                    ##     </form>
+                                    ## % endif
                                     % if not ServerCertificate.is_revoked:
                                         <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="active"/>
@@ -139,6 +137,16 @@
                                         </form>
                                     % endif
                                 % endif
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>is_compromised_private_key</th>
+                        <td>
+                            % if ServerCertificate.is_compromised_private_key is not None:
+                                <span class="label label-danger">
+                                    COMPROMISED PRIVATE KEY
+                                </span>
                             % endif
                         </td>
                     </tr>
@@ -226,7 +234,7 @@
                         <th>AcmeOrder</th>
                         <td>
                             % if ServerCertificate.acme_order:
-                                <a class="label label-info" href="${admin_prefix}/acme-account-key/${ServerCertificate.acme_order.id}">
+                                <a class="label label-info" href="${admin_prefix}/acme-order/${ServerCertificate.acme_order.id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeOrder-${ServerCertificate.acme_order.id}</a>
                                 <br/>

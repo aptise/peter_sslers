@@ -23,6 +23,7 @@ from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils
 from ...lib import db as lib_db
+from ...lib import errors
 from ...lib import utils
 from ...model import utils as model_utils
 
@@ -272,6 +273,14 @@ class ViewAdmin_New(Handler):
                 )
             )
 
+        except errors.AcmeServerError as exc:
+            if self.request.wants_json:
+                return {"result": "error", "error": exc.as_querystring}
+            return HTTPSeeOther(
+                "%s/acme-account-key/new?result=error&error=%s"
+                % (self.request.admin_url, exc.as_querystring,)
+            )
+
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
@@ -457,6 +466,38 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:acme_account_key:focus:private_keys",
+        renderer="/admin/acme_account_key-focus-private_keys.mako",
+    )
+    @view_config(
+        route_name="admin:acme_account_key:focus:private_keys_paginated",
+        renderer="/admin/acme_account_key-focus-private_keys.mako",
+    )
+    def related__PrivateKeys(self):
+        dbAcmeAccountKey = self._focus()
+        items_count = lib_db.get.get__PrivateKey__by_AcmeAccountKeyIdOwner__count(
+            self.request.api_context, dbAcmeAccountKey.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/private-keys/{0}" % (self._focus_url)
+        )
+        items_paged = lib_db.get.get__PrivateKey__by_AcmeAccountKeyIdOwner__paginated(
+            self.request.api_context,
+            dbAcmeAccountKey.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "AcmeAccountKey": dbAcmeAccountKey,
+            "PrivateKeys_count": items_count,
+            "PrivateKeys": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
         route_name="admin:acme_account_key:focus:server_certificates",
         renderer="/admin/acme_account_key-focus-server_certificates.mako",
     )
@@ -581,55 +622,34 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             event_status = False
             event_alt = None
 
-            if action == "active":
-                if dbAcmeAccountKey.is_active:
-                    # `formStash.fatal_form(` will raise a `FormInvalid()`
-                    formStash.fatal_form(message="Already activated")
-
-                dbAcmeAccountKey.is_active = True
-                event_status = "AcmeAccountKey__mark__active"
-
-            elif action == "inactive":
-                if dbAcmeAccountKey.is_default:
-                    # `formStash.fatal_form(` will raise a `FormInvalid()`
-                    formStash.fatal_form(
-                        message="You can not deactivate the default. Make another key default first."
+            try:
+                if action == "active":
+                    event_status = lib_db.update.update_AcmeAccountKey__set_active(
+                        self.request.api_context, dbAcmeAccountKey
                     )
 
-                if not dbAcmeAccountKey.is_active:
-                    # `formStash.fatal_form(` will raise a `FormInvalid()`
-                    formStash.fatal_form(message="Already deactivated.")
-
-                dbAcmeAccountKey.is_active = False
-                event_status = "AcmeAccountKey__mark__inactive"
-
-            elif action == "default":
-                if dbAcmeAccountKey.is_default:
-                    # `formStash.fatal_form(` will raise a `FormInvalid()`
-                    formStash.fatal_form(message="Already default.")
-
-                if not dbAcmeAccountKey.acme_account_provider.is_default:
-                    # `formStash.fatal_form(` will raise a `FormInvalid()`
-                    formStash.fatal_form(
-                        message="This AccountKey is not from the default AcmeAccountProvider."
+                elif action == "inactive":
+                    event_status = lib_db.update.update_AcmeAccountKey__unset_active(
+                        self.request.api_context, dbAcmeAccountKey
                     )
 
-                formerDefaultKey = lib_db.get.get__AcmeAccountKey__default(
-                    self.request.api_context
-                )
-                if formerDefaultKey:
-                    formerDefaultKey.is_default = False
-                    event_payload_dict[
-                        "account_key_id.former_default"
-                    ] = formerDefaultKey.id
-                    event_alt = ("AcmeAccountKey__mark__notdefault", formerDefaultKey)
-                dbAcmeAccountKey.is_default = True
-                event_status = "AcmeAccountKey__mark__default"
+                elif action == "default":
+                    (
+                        event_status,
+                        alt_info,
+                    ) = lib_db.update.update_AcmeAccountKey__set_default(
+                        self.request.api_context, dbAcmeAccountKey
+                    )
+                    if alt_info:
+                        for (k, v) in alt_info["event_payload_dict"].items():
+                            event_payload_dict[k] = v
+                        event_alt = alt_info["event_alt"]
+                else:
+                    raise errors.InvalidTransition("invalid option")
 
-            else:
-                formStash.set_error(
-                    field="action", message="invalid option", raise_FormInvalid=True
-                )
+            except errors.InvalidTransition as exc:
+                # `formStash.fatal_form(` will raise a `FormInvalid()`
+                formStash.fatal_form(message=exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbAcmeAccountKey])
 

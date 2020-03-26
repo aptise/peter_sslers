@@ -184,6 +184,7 @@ class _OperationsUnified(_mixin_mapping):
         832: "QueueDomain__mark__already_processed",
         910: "QueueCertificate__insert",
         920: "QueueCertificate__update",
+        921: "QueueCertificate__batch",
         930: "QueueCertificate__mark",
         931: "QueueCertificate__mark__cancelled",
         940: "QueueCertificate__process",
@@ -560,6 +561,20 @@ class PrivateKeySource(_mixin_mapping):
         0: "placeholder",  # application setup only
         1: "generated",
         2: "imported",
+    }
+
+
+class PrivateKeyCycle(_mixin_mapping):
+    """
+    How should a PrivateKey be cycled on renewal/queues?
+    """
+
+    _mapping = {
+        1: "certificate",
+        2: "daily_account",
+        3: "daily_global",
+        4: "weekly_account",
+        5: "weekly_global",
     }
 
 

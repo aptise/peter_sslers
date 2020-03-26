@@ -105,6 +105,14 @@ def _admin_views(config):
         "/acme-account-key/{@id}/acme-orders/{@page}",
     )
     config.add_route_7(
+        "admin:acme_account_key:focus:private_keys",
+        "/acme-account-key/{@id}/private-keys",
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:private_keys_paginated",
+        "/acme-account-key/{@id}/private-keys/{@page}",
+    )
+    config.add_route_7(
         "admin:acme_account_key:focus:server_certificates",
         "/acme-account-key/{@id}/server-certificates",
     )
@@ -112,6 +120,7 @@ def _admin_views(config):
         "admin:acme_account_key:focus:server_certificates_paginated",
         "/acme-account-key/{@id}/server-certificates/{@page}",
     )
+
     config.add_route_7(
         "admin:acme_account_key:focus:authenticate",
         "/acme-account-key/{@id}/authenticate",

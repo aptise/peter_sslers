@@ -17,6 +17,7 @@ from ...model import utils as model_utils
 from ...model import objects as model_objects
 from ... import lib  # from . import db?
 from ...lib import errors
+from ...lib.utils import url_to_server
 
 # local
 from .logger import log__OperationsEvent
@@ -25,6 +26,37 @@ from .helpers import _certificate_parse_to_record
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def create__AcmeAccountProvider(ctx, name=None, directory=None, protocol=None):
+    """
+    Create a new AcmeAccountProvider
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param name: (required) The name
+    :param directory: (required) The directory
+    :param protocol: (required) The protocol, must be "acme-v2"
+    """
+    if not directory or (
+        not directory.startswith("http://") and not directory.startswith("https://")
+    ):
+        raise ValueError("invalid `directory`")
+
+    if protocol != "acme-v2":
+        raise ValueError("invalid `protocol`")
+
+    # ok, try to build one...
+    dbAcmeAccountProvider = model_objects.AcmeAccountProvider()
+    dbAcmeAccountProvider.timestamp_created = ctx.timestamp
+    dbAcmeAccountProvider.name = name
+    dbAcmeAccountProvider.directory = directory
+    dbAcmeAccountProvider.is_default = None
+    dbAcmeAccountProvider.is_enabled = True
+    dbAcmeAccountProvider.protocol = protocol
+    dbAcmeAccountProvider.server = url_to_server(directory)
+    ctx.dbSession.add(dbAcmeAccountProvider)
+    ctx.dbSession.flush(
+        objects=[dbAcmeAccountProvider,]
+    )
 
 
 def create__AcmeOrderless(
@@ -544,12 +576,15 @@ def create__QueueCertificate(
 
     one and only one of (dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet) should be supplied
     
-    
     :returns :class:`model.objects.QueueCertificate`
 
     """
     if not all((dbAcmeAccountKey, dbPrivateKey)):
         raise ValueError("must supply both `dbAcmeAccountKey` and `dbPrivateKey`")
+    if not dbAcmeAccountKey.is_active:
+        raise ValueError("must supply active `dbAcmeAccountKey`")
+    if not dbPrivateKey.is_active:
+        raise ValueError("must supply active `dbPrivateKey`")
 
     if sum(bool(i) for i in (dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet,)) != 1:
         raise ValueError(

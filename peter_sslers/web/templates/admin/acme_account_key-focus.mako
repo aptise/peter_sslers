@@ -256,8 +256,18 @@
                             ${admin_partials.table_AcmeOrderlesss(AcmeAccountKey.acme_orderlesss__5, perspective="AcmeAccountKey")}
                         </td>
                     </tr>
-                    
-                    
+
+
+                    <tr>
+                        <th>PrivateKey(s) Owned</th>
+                        <td>
+                            ${admin_partials.table_PrivateKeys(AcmeAccountKey.private_keys__owned__5, perspective="AcmeAccountKey")}
+                            % if AcmeAccountKey.private_keys__owned__5:
+                                ${admin_partials.nav_pager("%s/acme-account-key/%s/private-keys" % (admin_prefix, AcmeAccountKey.id))}
+                            % endif
+                        </td>
+                    </tr>
+
                 </tbody>
             </table>
         </div>

@@ -43,6 +43,22 @@ def get__AcmeEventLog__by_id(ctx, id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__AcmeAccountProvider__default(ctx):
+    dbAcmeAccountProvider_default = (
+        ctx.dbSession.query(model_objects.AcmeAccountProvider)
+        .filter(model_objects.AcmeAccountProvider.is_default.op("IS")(True),)
+        .first()
+    )
+    return dbAcmeAccountProvider_default
+
+
+def get__AcmeAccountProvider__by_name(ctx, name):
+    query = ctx.dbSession.query(model_objects.AcmeAccountProvider).filter(
+        sqlalchemy.func.lower(model_objects.AcmeAccountProvider.name) == name.lower()
+    )
+    return query.first()
+
+
 def get__AcmeAccountProviders__paginated(ctx, limit=None, offset=0, is_enabled=None):
     query = ctx.dbSession.query(model_objects.AcmeAccountProvider)
     if is_enabled is True:
@@ -1311,6 +1327,32 @@ def get__PrivateKey__default(ctx, active_only=None):
         q = q.filter(model_objects.PrivateKey.is_active.op("IS")(True))
     item = q.first()
     return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__PrivateKey__by_AcmeAccountKeyIdOwner__count(ctx, account_key_id):
+    counted = (
+        ctx.dbSession.query(model_objects.PrivateKey)
+        .filter(model_objects.PrivateKey.acme_account_key_id__owner == account_key_id)
+        .count()
+    )
+    return counted
+
+
+def get__PrivateKey__by_AcmeAccountKeyIdOwner__paginated(
+    ctx, account_key_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.PrivateKey)
+        .filter(model_objects.PrivateKey.acme_account_key_id__owner == account_key_id)
+        .order_by(model_objects.PrivateKey.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

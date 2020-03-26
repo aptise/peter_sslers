@@ -25,7 +25,7 @@
                 ${admin_partials.nav_pagination(pager)}
                 ${admin_partials.table_CertificateRequests(CertificateRequests, perspective='PrivateKey')}
             % else:
-                No known certificate requests.
+                No known CertificateRequests.
             % endif
         </div>
     </div>

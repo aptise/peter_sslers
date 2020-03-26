@@ -19,7 +19,6 @@ from ..model import objects as model_objects
 from ..model import utils as model_utils
 
 # local, flags
-from ._utils import DEFAULT_acme_account_provider_id
 from ._utils import DISABLE_UNWRITTEN_TESTS
 from ._utils import LETSENCRYPT_API_VALIDATES
 from ._utils import RUN_LETSENCRYPT_API_TESTS

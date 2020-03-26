@@ -15,6 +15,7 @@ import transaction
 
 # localapp
 from .. import lib
+from ..lib import docs
 from ..lib import formhandling
 from ..lib.forms import Form_API_Domain_enable
 from ..lib.forms import Form_API_Domain_disable
@@ -32,19 +33,84 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-class ViewAdmin(Handler):
+class ViewAdminApi(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api", renderer="/admin/api.mako")
-    def api(self):
-        return {"project": "peter_sslers"}
+    def index(self):
+        return {
+            "project": "peter_sslers",
+            "api_endpoints": docs.api_endpoints,
+            "json_capable": docs.json_capable,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:api:ca_certificate_probes:probe", renderer=None)
+    @view_config(
+        route_name="admin:api:ca_certificate_probes:probe|json", renderer="json"
+    )
+    def ca_certificate_probes__probe(self):
+        if self.request.wants_json:
+            if self.request.method == "GET":
+                return docs.json_docs_post_only
+
+        operations_event = lib_db.actions.ca_certificate_probe(self.request.api_context)
+
+        if self.request.wants_json:
+            return {
+                "result": "success",
+                "operations_event": {
+                    "id": operations_event.id,
+                    "is_certificates_discovered": operations_event.event_payload_json[
+                        "is_certificates_discovered"
+                    ],
+                    "is_certificates_updated": operations_event.event_payload_json[
+                        "is_certificates_updated"
+                    ],
+                },
+            }
+        return HTTPSeeOther(
+            "%s/operations/ca-certificate-probes?result=success&event.id=%s"
+            % (self.request.registry.settings["admin_prefix"], operations_event.id)
+        )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:api:deactivate_expired", renderer=None)
+    @view_config(route_name="admin:api:deactivate_expired|json", renderer="json")
+    def deactivate_expired(self):
+        if self.request.wants_json:
+            if self.request.method == "GET":
+                return docs.json_docs_post_only
+
+        operations_event = lib_db.actions.operations_deactivate_expired(
+            self.request.api_context
+        )
+        count_deactivated = operations_event.event_payload_json["count_deactivated"]
+        rval = {
+            "ServerCertificate": {"expired": count_deactivated,},
+            "result": "success",
+            "operations_event": operations_event.id,
+        }
+
+        if self.request.wants_json:
+            return rval
+
+        return HTTPSeeOther(
+            "%s/operations/log?result=success&event.id=%s"
+            % (self.request.registry.settings["admin_prefix"], operations_event.id)
+        )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:update_recents", renderer=None)
     @view_config(route_name="admin:api:update_recents|json", renderer="json")
-    def api_update_recents(self):
+    def update_recents(self):
+        if self.request.wants_json:
+            if self.request.method == "GET":
+                return docs.json_docs_post_only
         operations_event = lib_db.actions.operations_update_recents(
             self.request.api_context
         )
@@ -57,44 +123,23 @@ class ViewAdmin(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:api:deactivate_expired", renderer=None)
-    @view_config(route_name="admin:api:deactivate_expired|json", renderer="json")
-    def api_deactivate_expired(self):
-        rval = {}
-        operations_event = lib_db.actions.operations_deactivate_expired(
-            self.request.api_context
-        )
-        count_deactivated_expired = operations_event.event_payload_json[
-            "count_deactivated"
-        ]
-        rval["ServerCertificate"] = {"expired": count_deactivated_expired}
-
-        rval["result"] = "success"
-        rval["operations_event"] = operations_event.id
-
-        if self.request.wants_json:
-            return rval
-
-        return HTTPSeeOther(
-            "%s/operations/log?result=success&event.id=%s"
-            % (self.request.registry.settings["admin_prefix"], operations_event.id)
-        )
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:domain:enable", renderer="json")
-    def api_domain_enable(self):
+    def domain_enable(self):
         if self.request.method == "POST":
-            return self._api_domain_enable__submit()
-        return self._api_domain_enable__print()
+            return self._domain_enable__submit()
+        return self._domain_enable__print()
 
-    def _api_domain_enable__print(self):
+    def _domain_enable__print(self):
         return {
-            "instructions": """POST `domain_names""",
-            "form_fields": {"domain_names": "required"},
+            "instructions": """Submit `domain_names` via `POST`""",
+            "form_fields": {
+                "domain_names": "[required] a comma separated list of fully qualified domain names."
+            },
         }
 
-    def _api_domain_enable__submit(self):
+    def _domain_enable__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_API_Domain_enable, validate_get=False
@@ -119,18 +164,20 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:domain:disable", renderer="json")
-    def api_domain_disable(self):
+    def domain_disable(self):
         if self.request.method == "POST":
-            return self._api_domain_disable__submit()
-        return self._api_domain_disable__print()
+            return self._domain_disable__submit()
+        return self._domain_disable__print()
 
-    def _api_domain_disable__print(self):
+    def _domain_disable__print(self):
         return {
-            "instructions": """POST `domain_names""",
-            "form_fields": {"domain_names": "required"},
+            "instructions": """Submit `domain_names` via `POST`""",
+            "form_fields": {
+                "domain_names": "[required] a comma separated list of fully qualified domain names."
+            },
         }
 
-    def _api_domain_disable__submit(self):
+    def _domain_disable__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_API_Domain_disable, validate_get=False
@@ -217,7 +264,11 @@ class ViewAdmin(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @view_config(route_name="admin:api:redis:prime", renderer=None)
     @view_config(route_name="admin:api:redis:prime|json", renderer="json")
-    def admin_redis_prime(self):
+    def redis_prime(self):
+        if self.request.wants_json:
+            if self.request.method == "GET":
+                return docs.json_docs_post_only
+
         self._ensure_redis()
 
         prime_style = utils_redis.redis_prime_style(self.request)
@@ -416,34 +467,6 @@ class ViewAdmin(Handler):
         return {"result": "success", "servers_status": servers_status}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(route_name="admin:api:ca_certificate_probes:probe", renderer=None)
-    @view_config(
-        route_name="admin:api:ca_certificate_probes:probe|json", renderer="json"
-    )
-    def ca_certificate_probes__probe(self):
-        operations_event = lib_db.actions.ca_certificate_probe(self.request.api_context)
-
-        if self.request.wants_json:
-            return {
-                "result": "success",
-                "operations_event": {
-                    "id": operations_event.id,
-                    "is_certificates_discovered": operations_event.event_payload_json[
-                        "is_certificates_discovered"
-                    ],
-                    "is_certificates_updated": operations_event.event_payload_json[
-                        "is_certificates_updated"
-                    ],
-                },
-            }
-        return HTTPSeeOther(
-            "%s/operations/ca-certificate-probes?result=success&event.id=%s"
-            % (self.request.registry.settings["admin_prefix"], operations_event.id)
-        )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:queue_certificates:update", renderer=None)
     @view_config(route_name="admin:api:queue_certificates:update|json", renderer="json")
@@ -461,7 +484,7 @@ class ViewAdmin(Handler):
         except Exception as exc:
             transaction.abort()
             if self.request.wants_json:
-                return {"result": "error", "error": exc.to_querystring()}
+                return {"result": "error", "error": exc.as_querystring}
             raise
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -486,5 +509,5 @@ class ViewAdmin(Handler):
         except Exception as exc:
             transaction.abort()
             if self.request.wants_json:
-                return {"result": "error", "error": exc.to_querystring()}
+                return {"result": "error", "error": exc.as_querystring}
             raise

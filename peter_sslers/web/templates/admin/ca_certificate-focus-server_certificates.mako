@@ -25,7 +25,7 @@
                 ${admin_partials.nav_pagination(pager)}
                 ${admin_partials.table_ServerCertificates(ServerCertificates, show_domains=True)}
             % else:
-                No known certificates.
+                No known ServerCertificates.
             % endif
         </div>
     </div>

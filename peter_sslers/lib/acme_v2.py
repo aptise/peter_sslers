@@ -115,11 +115,11 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
     if code not in [200, 201, 204]:
         if isinstance(resp_data, dict):
             raise errors.AcmeServerError(code, resp_data)
-        raise ValueError(
-            "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
-                err_msg, url, post_data, code, resp_data
-            )
+        msg = "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
+            err_msg, url, post_data, code, resp_data
         )
+        # raise ValueError(msg)
+        raise errors.AcmeServerError(msg)
     return resp_data, code, headers
 
 

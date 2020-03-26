@@ -11,10 +11,70 @@ from dateutil import parser as dateutil_parser
 
 # localapp
 from ...model import utils as model_utils
+from ...lib import errors
+from .get import get__AcmeAccountKey__default
+from .get import get__AcmeAccountProvider__default
 from .get import get__Domain__by_name
+from .get import get__PrivateKey__default
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def update_AcmeAccountProvider__set_default(ctx, dbAcmeAccountProvider_new):
+    _objs = [
+        dbAcmeAccountProvider_new,
+    ]
+    dbAcmeAccountProvider_default = get__AcmeAccountProvider__default(ctx)
+    if dbAcmeAccountProvider_default:
+        _objs.append(dbAcmeAccountProvider_default)
+        if dbAcmeAccountProvider_default.id != dbAcmeAccountProvider_new.id:
+            dbAcmeAccountProvider_default.is_default = False
+    dbAcmeAccountProvider_new.is_default = True
+    ctx.dbSession.flush(_objs)
+
+
+def update_AcmeAccountKey__set_active(ctx, dbAcmeAccountKey):
+    if dbAcmeAccountKey.is_active:
+        raise errors.InvalidTransition("Already activated")
+    dbAcmeAccountKey.is_active = True
+    event_status = "AcmeAccountKey__mark__active"
+    return event_status
+
+
+def update_AcmeAccountKey__unset_active(ctx, dbAcmeAccountKey):
+    if not dbAcmeAccountKey.is_active:
+        raise errors.InvalidTransition("Already deactivated.")
+    if dbAcmeAccountKey.is_default:
+        raise errors.InvalidTransition(
+            "You can not deactivate the default. Make another key default first."
+        )
+    dbAcmeAccountKey.is_active = False
+    event_status = "AcmeAccountKey__mark__inactive"
+    return event_status
+
+
+def update_AcmeAccountKey__set_default(ctx, dbAcmeAccountKey):
+    if dbAcmeAccountKey.is_default:
+        # `formStash.fatal_form(` will raise a `FormInvalid()`
+        raise errors.InvalidTransition("Already default.")
+
+    if not dbAcmeAccountKey.acme_account_provider.is_default:
+        raise errors.InvalidTransition(
+            "This AccountKey is not from the default AcmeAccountProvider."
+        )
+
+    alt_info = {}
+    formerDefaultKey = get__AcmeAccountKey__default(ctx)
+    if formerDefaultKey:
+        formerDefaultKey.is_default = False
+        alt_info["event_payload_dict"] = {
+            "account_key_id.former_default": formerDefaultKey.id,
+        }
+        alt_info["event_alt"] = ("AcmeAccountKey__mark__notdefault", formerDefaultKey)
+    dbAcmeAccountKey.is_default = True
+    event_status = "AcmeAccountKey__mark__default"
+    return event_status, alt_info
 
 
 def update_AcmeAuthorization_from_payload(
@@ -61,3 +121,132 @@ def update_AcmeAuthorization_from_payload(
         return True
 
     return False
+
+
+def update_PrivateKey__set_active(ctx, dbPrivateKey):
+    if dbPrivateKey.is_active:
+        raise errors.InvalidTransition("Already activated")
+    if dbPrivateKey.is_compromised:
+        raise errors.InvalidTransition("Can not activate a compromised key")
+    dbPrivateKey.is_active = True
+    event_status = "PrivateKey__mark__active"
+    return event_status
+
+
+def update_PrivateKey__unset_active(ctx, dbPrivateKey):
+    if not dbPrivateKey.is_active:
+        raise errors.InvalidTransition("Already deactivated")
+    if dbPrivateKey.is_default:
+        raise errors.InvalidTransition(
+            "You can not deactivate the default. Make another key default first."
+        )
+    dbPrivateKey.is_active = False
+    event_status = "PrivateKey__mark__inactive"
+    return event_status
+
+
+def update_PrivateKey__set_compromised(ctx, dbPrivateKey):
+    if dbPrivateKey.is_compromised:
+        raise errors.InvalidTransition("Already compromised")
+    dbPrivateKey.is_active = False
+    dbPrivateKey.is_compromised = True
+    if dbPrivateKey.is_default:
+        dbPrivateKey.is_default = False
+    event_status = "PrivateKey__mark__compromised"
+    return event_status
+
+
+def update_PrivateKey__set_default(ctx, dbPrivateKey):
+    if dbPrivateKey.is_default:
+        raise errors.InvalidTransition("Already default")
+
+    if not dbPrivateKey.is_active:
+        raise errors.InvalidTransition("Key not active")
+
+    alt_info = {}
+    formerDefaultKey = get__PrivateKey__default(ctx)
+    if formerDefaultKey:
+        formerDefaultKey.is_default = False
+        alt_info["event_payload_dict"] = {
+            "private_key_id.former_default": formerDefaultKey.id,
+        }
+        alt_info["event_alt"] = ("PrivateKey__mark__notdefault", formerDefaultKey)
+    dbPrivateKey.is_default = True
+    event_status = "PrivateKey__mark__default"
+    return event_status, alt_info
+
+
+def update_ServerCertificate__set_active(ctx, dbServerCertificate):
+
+    if dbServerCertificate.is_active:
+        raise errors.InvalidTransition("Already active.")
+
+    if dbServerCertificate.is_revoked:
+        raise errors.InvalidTransition(
+            "Certificate is revoked; `active` status can not be changed."
+        )
+
+    if dbServerCertificate.is_compromised_private_key:
+        raise errors.InvalidTransition(
+            "Certificate has a compromised PrivateKey; `active` status can not be changed."
+        )
+
+    if not dbServerCertificate.is_deactivated:
+        raise errors.InvalidTransition(
+            "Certificate was deactivated; `active` status can not be changed."
+        )
+
+    # now make it active!
+    dbServerCertificate.is_active = True
+
+    # cleanup options
+    event_status = "ServerCertificate__mark__active"
+    return event_status
+
+
+def update_ServerCertificate__unset_active(ctx, dbServerCertificate):
+
+    if not dbServerCertificate.is_active:
+        raise errors.InvalidTransition("Already inactive.")
+
+    # deactivate it
+    dbServerCertificate.is_active = False
+
+    event_status = "ServerCertificate__mark__inactive"
+    return event_status
+
+
+def update_ServerCertificate__set_revoked(ctx, dbServerCertificate):
+
+    if dbServerCertificate.is_revoked:
+        raise errors.InvalidTransition("Certificate is already revoked")
+
+    # mark revoked
+    dbServerCertificate.is_revoked = True
+
+    # deactivate it
+    dbServerCertificate.is_active = False
+
+    # deactivate it, permanently
+    dbServerCertificate.is_deactivated = True
+
+    # cleanup options
+    event_status = "ServerCertificate__mark__revoked"
+    return event_status
+
+
+def update_ServerCertificate__unset_revoked(ctx, dbServerCertificate):
+    """
+    this is currently not supported
+    """
+
+    if not dbServerCertificate.is_revoked:
+        raise errors.InvalidTransition("Certificate is not revoked")
+
+    # unset the revoke
+    dbServerCertificate.is_revoked = False
+
+    # lead is_active and is_deactivated as-is
+    # cleanup options
+    event_status = "ServerCertificate__mark__unrevoked"
+    return event_status

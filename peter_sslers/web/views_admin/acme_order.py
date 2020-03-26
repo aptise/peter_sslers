@@ -177,7 +177,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+sync&message=%s"
-                % (self._focus_url, exc.to_querystring())
+                % (self._focus_url, exc.as_querystring)
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -209,7 +209,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+sync+authorizations&message=%s"
-                % (self._focus_url, exc.to_querystring())
+                % (self._focus_url, exc.as_querystring)
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -238,7 +238,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+deactivate+authorizations&message=%s"
-                % (self._focus_url, exc.to_querystring())
+                % (self._focus_url, exc.as_querystring)
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -272,7 +272,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+download+certificate&message=%s"
-                % (self._focus_url, exc.to_querystring())
+                % (self._focus_url, exc.as_querystring)
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -300,7 +300,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
                 "%s?result=error&error=process&message=%s"
-                % (self._focus_url, exc.to_querystring())
+                % (self._focus_url, exc.as_querystring)
             )
 
     @view_config(route_name="admin:acme_order:focus:finalize", renderer=None)
@@ -326,7 +326,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
                 "%s?result=error&error=finalize&message=%s"
-                % (self._focus_url, exc.to_querystring())
+                % (self._focus_url, exc.as_querystring)
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -393,7 +393,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except (errors.InvalidRequest,) as exc:
             return HTTPSeeOther(
                 "%s?result=error&error=invalid&message=%s"
-                % (self._focus_url, exc.to_querystring())
+                % (self._focus_url, exc.as_querystring)
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -427,7 +427,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             if isinstance(exc, errors.AcmeError):
                 return HTTPSeeOther(
                     "%s?operation=retry+order&error=retry&message=%s"
-                    % (retry_url, exc.to_querystring())
+                    % (retry_url, exc.as_querystring)
                 )
             raise exc
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
@@ -437,7 +437,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 }
             return HTTPSeeOther(
                 "%s?result=error&error=retry&message=%s"
-                % (self._focus_url, exc.to_querystring())
+                % (self._focus_url, exc.as_querystring)
             )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -555,7 +555,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 return {"status": "error", "error": str(exc)}
             url_failure = "%s?result=error&error=%s&operation=renew+custom" % (
                 self._focus_url,
-                exc.to_querystring(),
+                exc.as_querystring,
             )
             raise HTTPSeeOther(url_failure)
         except formhandling.FormInvalid as exc:
@@ -620,7 +620,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 return {"status": "error", "error": str(exc)}
             url_failure = "%s?result=error&error=%s&operation=renew+quick" % (
                 self._focus_url,
-                exc.to_querystring(),
+                exc.as_querystring,
             )
             raise HTTPSeeOther(url_failure)
         except formhandling.FormInvalid as exc:
@@ -745,7 +745,7 @@ class ViewAdmin_New(Handler):
                             % (
                                 self.request.registry.settings["admin_prefix"],
                                 dbAcmeOrder.id,
-                                exc.to_querystring(),
+                                exc.as_querystring,
                             )
                         )
                     raise exc
@@ -754,16 +754,14 @@ class ViewAdmin_New(Handler):
                     % (self.request.registry.settings["admin_prefix"], dbAcmeOrder.id,)
                 )
             except errors.AcmeDuplicateChallenges as exc:
-                formStash.fatal_field(
-                    field="domain_names", message=exc.to_querystring()
-                )
+                formStash.fatal_field(field="domain_names", message=exc.as_querystring)
 
             except (errors.AcmeError, errors.InvalidRequest,) as exc:
                 return HTTPSeeOther(
                     "%s/acme-orders?result=error&error=new-automated&message=%s"
                     % (
                         self.request.registry.settings["admin_prefix"],
-                        exc.to_querystring(),
+                        exc.as_querystring,
                     )
                 )
             except Exception as exc:

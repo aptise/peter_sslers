@@ -1,5 +1,13 @@
+def formstash_to_querystring(formStash):
+    err = ""
+    for (k, v) in formStash.errors.items():
+        err += ("%s--%s" % (k, v)).replace("\n", "+").replace(" ", "+")
+    return err
+
+
 class _UrlSafeException(Exception):
-    def to_querystring(self):
+    @property
+    def as_querystring(self):
         return str(self).replace("\n", "+").replace(" ", "+")
 
 
@@ -7,6 +15,12 @@ class GarfieldMinusGarfield(Exception):
     """
     An exception for those odd moments
     """
+
+    pass
+
+
+class InvalidTransition(Exception):
+    """raised when a transition is invalid"""
 
     pass
 

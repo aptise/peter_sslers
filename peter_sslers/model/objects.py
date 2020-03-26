@@ -101,6 +101,8 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
     """
     Represents a registered account with the LetsEncrypt Service.
     This is used for authentication to the LE API, it is not tied to any certificates.
+
+    A `PrivateKey` can be locked to an `AcmeAccountKey` via `PrivateKey.acme_account_key_id__owner`
     """
 
     __tablename__ = "acme_account_key"
@@ -156,6 +158,13 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         "OperationsEvent",
         primaryjoin="AcmeAccountKey.operations_event_id__created==OperationsEvent.id",
         uselist=False,
+    )
+
+    private_keys__owned = sa_orm_relationship(
+        "PrivateKey",
+        primaryjoin="AcmeAccountKey.id==PrivateKey.acme_account_key_id__owner",
+        uselist=True,
+        back_populates="acme_account_key__owner",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1858,6 +1867,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
 class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     """
     These keys are used to sign CertificateRequests and are the PrivateKey component to a ServerCertificate.
+    
+    If `acme_account_key_id__owner` is specified, this key can only be used in combination with that key.
     """
 
     __tablename__ = "private_key"
@@ -1881,8 +1892,18 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     private_key_source_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeySource
+    acme_account_key_id__owner = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_account_key__owner = sa_orm_relationship(
+        "AcmeAccountKey",
+        primaryjoin="PrivateKey.acme_account_key_id__owner==AcmeAccountKey.id",
+        uselist=False,
+        back_populates="private_keys__owned",
+    )
 
     acme_orders = sa_orm_relationship(
         "AcmeOrder",
@@ -1999,7 +2020,9 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     timestamp_process_attempt = sa.Column(
         sa.DateTime, nullable=True
     )  # if not-null then an attempt was made on this item
-    process_result = sa.Column(sa.Boolean, nullable=True, default=None)
+    process_result = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # True/False are attempts; None is untouched
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -2247,10 +2270,13 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
     is_deactivated = sa.Column(
         sa.Boolean, nullable=True, default=None
-    )  # used to determine is_active toggling.
+    )  # used to determine `is_active` toggling; if "True" then `is_active` can-not be toggled.
     is_revoked = sa.Column(
         sa.Boolean, nullable=True, default=None
-    )  # used to determine is_active toggling. this will set 'is_deactivated'
+    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
+    is_compromised_private_key = sa.Column(
+        sa.Boolean, nullable=True, default=None
+    )  # used to determine is_active toggling. this will set 'is_deactivated' to True
     unique_fqdn_set_id = sa.Column(
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=False
     )
@@ -2441,6 +2467,9 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             "is_active": True if self.is_active else False,
             "is_deactivated": True if self.is_deactivated else False,
             "is_revoked": True if self.is_revoked else False,
+            "is_compromised_private_key": True
+            if self.is_compromised_private_key
+            else False,
             "timestamp_expires": self.timestamp_expires_isoformat,
             "timestamp_signed": self.timestamp_signed_isoformat,
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
@@ -2747,6 +2776,25 @@ AcmeAccountKey.acme_orderlesss__5 = sa_orm_relationship(
         )
     ),
     order_by=AcmeOrderless.id.desc(),
+    viewonly=True,
+)
+
+
+AcmeAccountKey.private_keys__owned__5 = sa_orm_relationship(
+    PrivateKey,
+    primaryjoin=(
+        sa.and_(
+            AcmeAccountKey.id == PrivateKey.acme_account_key_id__owner,
+            PrivateKey.id.in_(
+                sa.select([PrivateKey.id])
+                .where(AcmeAccountKey.id == PrivateKey.acme_account_key_id__owner)
+                .order_by(PrivateKey.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=PrivateKey.id.desc(),
     viewonly=True,
 )
 

@@ -222,10 +222,10 @@ class ViewAdmin_Process(Handler):
             # return, don't raise
             # we still commit the bookkeeping
             if self.request.wants_json:
-                return {"result": "error", "error": exc.to_querystring()}
+                return {"result": "error", "error": exc.as_querystring}
             return HTTPSeeOther(
                 "%s/queue-domains?processed=0&error=%s"
-                % (self.request.registry.settings["admin_prefix"], exc.to_querystring())
+                % (self.request.registry.settings["admin_prefix"], exc.as_querystring)
             )
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
@@ -234,7 +234,7 @@ class ViewAdmin_Process(Handler):
         except Exception as exc:
             transaction.abort()
             if self.request.wants_json:
-                return {"result": "error", "error": exc.to_querystring()}
+                return {"result": "error", "error": exc.as_querystring}
             raise
 
 
@@ -340,7 +340,7 @@ class ViewAdmin_Focus(Handler):
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
-                exc.to_querystring(),
+                exc.as_querystring,
                 action,
             )
             raise HTTPSeeOther(url_failure)

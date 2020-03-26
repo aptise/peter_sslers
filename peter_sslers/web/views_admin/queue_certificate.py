@@ -178,7 +178,9 @@ class ViewNew(Handler):
 
         queue_data = {
             "queue_source": queue_source,
+            "AcmeAccountKey_reuse": None,
             "AcmeOrder": None,
+            "PrivateKey_reuse": None,
             "ServerCertificate": None,
             "UniqueFQDNSet": None,
         }
@@ -413,7 +415,7 @@ class ViewFocus(Handler):
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
-                exc.to_querystring(),
+                exc.as_querystring,
                 action,
             )
             raise HTTPSeeOther(url_failure)

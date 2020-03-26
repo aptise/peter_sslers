@@ -362,58 +362,116 @@ def queue_domains__process(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_certificates__update(ctx, fqdns_ids_only=None):
+def queue_certificates__via_fqdns(
+    ctx, dbAcmeAccountKey=None, dbPrivateKey=None, unique_fqdn_set_ids=None,
+):
     """
+    Inserts a new :class:`model.objects.QueueCertificate` for each unique_fqdn_set_id
+    
+    invoked when a :class:`model.objects.PrivateKey` is marked as compromised.
+    
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param fqdns_ids_only:
+    :param unique_fqdn_set_ids: only insert records for these items
+    """
+    try:
+        renewals = []
+        event_type = model_utils.OperationsEventType.from_string(
+            "QueueCertificate__batch"
+        )
+        event_payload_dict = utils.new_event_payload_dict()
+        dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
+        unique_fqdn_set_ids__bad = []
+        for fqdns_id in unique_fqdn_set_ids:
+            dbUniqueFQDNSet = lib.db.get.get__UniqueFQDNSet__by_id(ctx, fqdns_id)
+            if not dbUniqueFQDNSet:
+                unique_fqdn_set_ids__bad.append(fqdns_id)
+                continue
+            dbQueueCertificate = lib.db.create.create__QueueCertificate(
+                ctx,
+                dbAcmeAccountKey=None,
+                dbPrivateKey=None,
+                dbUniqueFQDNSet=dbUniqueFQDNSet,
+            )
+            renewals.append(dbQueueCertificate)
+        event_payload_dict["unique_fqdn_set-queued.ids"] = [
+            str(sid) for sid in unique_fqdn_set_ids
+        ]
+        event_payload_dict["unique_fqdn_set-bad.ids"] = unique_fqdn_set_ids__bad
+        event_payload_dict["queue_certificates.ids"] = [str(c.id) for c in renewals]
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+        return True
+
+    except Exception as exc:
+        raise
+
+
+def queue_certificates__update(ctx):
+    """
+    Inspects the database for expiring :class:`model.objects.AcmeOrders`
+    inserts a new :class:`model.objects.QueueCertificate` for each one.
+    
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param unique_fqdn_set_ids: only insert records for these items
+
+    Invoked by:
+        admin:api:queue_certificates:update
+        admin:api:queue_certificates:update|json
     """
     renewals = []
     results = []
     try:
+        #
         event_type = model_utils.OperationsEventType.from_string(
             "QueueCertificate__update"
         )
         event_payload_dict = utils.new_event_payload_dict()
         dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
-        if fqdns_ids_only:
-            for fqdns_id in fqdns_ids_only:
-                dbQueueCertificate = lib.db.create._create__QueueCertificate_fqdns(
-                    ctx, fqdns_id
-                )
-                renewals.append(dbQueueCertificate)
-            event_payload_dict["unique_fqdn_set-queued.ids"] = ",".join(
-                [str(sid) for sid in fqdns_ids_only]
-            )
-        else:
-            _expiring_days = 28
-            _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
-            _subquery_already_queued = (
-                ctx.dbSession.query(
-                    model_objects.QueueCertificate.server_certificate_id
-                )
-                .filter(
-                    model_objects.QueueCertificate.timestamp_processed.op("IS")(None),
-                    model_objects.QueueCertificate.process_result.op("IS NOT")(True),
-                )
-                .subquery()
-            )
-            _core_query = ctx.dbSession.query(model_objects.ServerCertificate).filter(
-                model_objects.ServerCertificate.is_active.op("IS")(True),
-                model_objects.ServerCertificate.is_auto_renew.op("IS")(True),
-                model_objects.ServerCertificate.is_renewed.op("IS NOT")(True),
-                model_objects.ServerCertificate.timestamp_expires <= _until,
-                model_objects.ServerCertificate.id.notin_(_subquery_already_queued),
-            )
-            results = _core_query.all()
-            for cert in results:
-                # this will call `_log_object_event` as needed
-                dbQueueCertificate = lib.db.create.create__QueueCertificate(ctx, cert)
-                renewals.append(dbQueueCertificate)
-            event_payload_dict["ssl_certificate-queued.ids"] = ",".join(
-                [str(c.id) for c in results]
-            )
 
-        event_payload_dict["sql_queue_certificates.ids"] = ",".join(
+        _expiring_days = 28
+        _until = ctx.timestamp + datetime.timedelta(days=_expiring_days)
+        _subquery_already_queued = (
+            ctx.dbSession.query(model_objects.QueueCertificate.acme_order_id__source)
+            .filter(
+                model_objects.QueueCertificate.acme_order_id__source.op("IS NOT")(None),
+                model_objects.QueueCertificate.timestamp_processed.op("IS")(None),
+                model_objects.QueueCertificate.process_result.op("IS NOT")(
+                    None
+                ),  # True/False were attempted
+            )
+            .subquery()
+        )
+        _core_query = (
+            ctx.dbSession.query(model_objects.AcmeOrder)
+            .join(
+                model_objects.ServerCertificate,
+                model_objects.AcmeOrder.server_certificate_id
+                == model_objects.ServerCertificate.id,
+            )
+            .filter(
+                model_objects.AcmeOrder.id.notin_(_subquery_already_queued),
+                model_objects.AcmeOrder.server_certificate_id.op("IS NOT")(None),
+                model_objects.AcmeOrder.is_auto_renew.op("IS")(True),
+                model_objects.AcmeOrder.is_renewed.op("IS NOT")(True),
+                model_objects.ServerCertificate.timestamp_expires <= _until,
+            )
+        )
+        results = _core_query.all()
+        for dbAcmeOrder in results:
+            # this will call `_log_object_event` as needed
+            dbQueueCertificate = lib.db.create.create__QueueCertificate(
+                ctx,
+                dbAcmeAccountKey=dbAcmeOrder.acme_account_key,
+                dbPrivateKey=dbAcmeOrder.private_key,
+                dbAcmeOrder=dbAcmeOrder,
+            )
+            renewals.append(dbQueueCertificate)
+        event_payload_dict["server_certificate-queued.ids"] = ",".join(
+            [str(c.id) for c in results]
+        )
+
+        event_payload_dict["queue_certificates.ids"] = ",".join(
             [str(c.id) for c in renewals]
         )
         dbOperationsEvent.set_event_payload(event_payload_dict)

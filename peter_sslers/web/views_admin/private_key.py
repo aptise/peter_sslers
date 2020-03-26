@@ -24,6 +24,7 @@ from ..lib.handler import json_pagination
 from ... import lib as lib_core
 from ...lib import cert_utils
 from ...lib import db as lib_db
+from ...lib import errors
 from ...lib import events
 from ...lib import utils
 from ...model import utils as model_utils
@@ -240,67 +241,45 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             marked_comprimised = False
             event_status = None
 
-            if action == "active":
-                if dbPrivateKey.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Already activated")
+            try:
 
-                if dbPrivateKey.is_compromised:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="action", message="Can not activate a compromised key"
+                if action == "active":
+                    event_status = lib_db.update.update_PrivateKey__set_active(
+                        self.request.api_context, dbPrivateKey
                     )
 
-                dbPrivateKey.is_active = True
-                event_status = "PrivateKey__mark__active"
+                elif action == "inactive":
+                    event_status = lib_db.update.update_PrivateKey__unset_active(
+                        self.request.api_context, dbPrivateKey
+                    )
 
-            elif action == "inactive":
-                if not dbPrivateKey.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Already deactivated")
+                elif action == "compromised":
+                    event_status = lib_db.update.update_PrivateKey__set_compromised(
+                        self.request.api_context, dbPrivateKey
+                    )
+                    event_type = model_utils.OperationsEventType.from_string(
+                        "PrivateKey__revoke"
+                    )
+                    marked_comprimised = True
 
-                dbPrivateKey.is_active = False
-                event_status = "PrivateKey__mark__inactive"
+                elif action == "default":
+                    (
+                        event_status,
+                        alt_info,
+                    ) = lib_db.update.update_PrivateKey__set_default(
+                        self.request.api_context, dbPrivateKey
+                    )
+                    if alt_info:
+                        for (k, v) in alt_info["event_payload_dict"].items():
+                            event_payload_dict[k] = v
+                        event_alt = alt_info["event_alt"]
 
-            elif action == "compromised":
-                if dbPrivateKey.is_compromised:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Already compromised")
+                else:
+                    raise errors.InvalidTransition("invalid option")
 
-                dbPrivateKey.is_active = False
-                dbPrivateKey.is_compromised = True
-                if dbPrivateKey.is_default:
-                    dbPrivateKey.is_default = False
-                event_type = model_utils.OperationsEventType.from_string(
-                    "PrivateKey__revoke"
-                )
-                marked_comprimised = True
-                event_status = "PrivateKey__mark__compromised"
-
-            elif action == "default":
-                if dbPrivateKey.is_default:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Already default")
-
-                if not dbPrivateKey.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Key not active")
-
-                formerDefaultKey = lib_db.get.get__PrivateKey__default(
-                    self.request.api_context
-                )
-                if formerDefaultKey:
-                    formerDefaultKey.is_default = False
-                    event_payload_dict[
-                        "private_key_id.former_default"
-                    ] = formerDefaultKey.id
-                    event_alt = ("PrivateKey__mark__notdefault", formerDefaultKey)
-                dbPrivateKey.is_default = True
-                event_status = "PrivateKey__mark__default"
-
-            else:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(field="action", message="invalid `action`")
+            except errors.InvalidTransition as exc:
+                # `formStash.fatal_form(` will raise a `FormInvalid()`
+                formStash.fatal_form(message=exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbPrivateKey])
 
@@ -336,7 +315,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
-                exc.to_querystring(),
+                errors.formstash_to_querystring(formStash),
                 action,
             )
             raise HTTPSeeOther(url_failure)

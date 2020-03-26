@@ -57,18 +57,6 @@ DISABLE_UNWRITTEN_TESTS = True
 # ==============================================================================
 
 
-DEFAULT_acme_account_provider = "letsencrypt-v2-staging"
-DEFAULT_acme_account_provider_id = None
-
-pdb.set_trace()
-raise ValueError("PORT ME")
-
-for pvd in model_utils.AcmeAccountProvider.registry.values():
-    if pvd["name"] == DEFAULT_acme_account_provider:
-        DEFAULT_acme_account_provider_id = pvd["id"]
-        break
-
-
 class FakeRequest(testing.DummyRequest):
     @property
     def tm(self):
@@ -270,7 +258,7 @@ class AppTest(AppTestCore):
                 _key_account1, _is_created = db.getcreate.getcreate__AcmeAccountKey(
                     self.ctx,
                     key_pem,
-                    acme_account_provider_id=DEFAULT_acme_account_provider_id,
+                    acme_account_provider_id=1,
                     acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
                         "imported"
                     ),
