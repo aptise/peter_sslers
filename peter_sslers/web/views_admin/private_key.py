@@ -212,13 +212,14 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 ],
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {
-                    "action": ["compromised", "active", "inactive", "default"]
+                    "action": ["compromised", "active", "inactive", "global_default"]
                 },
             }
         url_post_required = "%s?result=post+required&operation=mark" % self._focus_url
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbPrivateKey):
+        action = self.request.params.get("action")
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_PrivateKey_mark, validate_get=False
@@ -262,11 +263,11 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     )
                     marked_comprimised = True
 
-                elif action == "default":
+                elif action == "global_default":
                     (
                         event_status,
                         alt_info,
-                    ) = lib_db.update.update_PrivateKey__set_default(
+                    ) = lib_db.update.update_PrivateKey__set_global_default(
                         self.request.api_context, dbPrivateKey
                     )
                     if alt_info:

@@ -87,10 +87,10 @@ class _Form_Schema_Base(_Schema):
 class _form_AccountKey_core(_Form_Schema_Base):
     # `account_key_file` could indictate `account_key_file_pem` or the combo of certbot encoding
     account_key_option = OneOf(
-        ("account_key_default", "account_key_existing", "account_key_file"),
+        ("account_key_global_default", "account_key_existing", "account_key_file"),
         not_empty=True,
     )
-    account_key_default = UnicodeString(not_empty=False, if_missing=None)
+    account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
 
     # these are via Form_AcmeAccountKey_new__file
@@ -110,14 +110,14 @@ class _form_AccountKey_core(_Form_Schema_Base):
 class _form_PrivateKey_core(_Form_Schema_Base):
     private_key_option = OneOf(
         (
-            "private_key_default",
+            "private_key_global_default",
             "private_key_existing",
             "private_key_file",
             "private_key_generate",
         ),
         not_empty=True,
     )
-    private_key_default = UnicodeString(not_empty=False, if_missing=None)
+    private_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
@@ -126,7 +126,7 @@ class _form_AccountKey_reuse(_form_AccountKey_core):
     account_key_option = OneOf(
         (
             "account_key_reuse",
-            "account_key_default",
+            "account_key_global_default",
             "account_key_existing",
             "account_key_file",
         ),
@@ -139,7 +139,7 @@ class _form_PrivateKey_reuse(_form_PrivateKey_core):
     private_key_option = OneOf(
         (
             "private_key_reuse",
-            "private_key_default",
+            "private_key_global_default",
             "private_key_existing",
             "private_key_file",
             "private_key_generate",
@@ -154,10 +154,10 @@ class _form_AccountKey_PrivateKey_core(_Form_Schema_Base):
     """
 
     account_key_option = OneOf(
-        ("account_key_default", "account_key_existing", "account_key_file"),
+        ("account_key_global_default", "account_key_existing", "account_key_file"),
         not_empty=True,
     )
-    account_key_default = UnicodeString(not_empty=False, if_missing=None)
+    account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
 
     # these are via Form_AcmeAccountKey_new__file
@@ -174,14 +174,14 @@ class _form_AccountKey_PrivateKey_core(_Form_Schema_Base):
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
     private_key_option = OneOf(
         (
-            "private_key_default",
+            "private_key_global_default",
             "private_key_existing",
             "private_key_file",
             "private_key_generate",
         ),
         not_empty=True,
     )
-    private_key_default = UnicodeString(not_empty=False, if_missing=None)
+    private_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
@@ -193,7 +193,7 @@ class _form_AccountKey_PrivateKey_reuse(_form_AccountKey_PrivateKey_core):
     account_key_option = OneOf(
         (
             "account_key_reuse",
-            "account_key_default",
+            "account_key_global_default",
             "account_key_existing",
             "account_key_file",
         ),
@@ -203,7 +203,7 @@ class _form_AccountKey_PrivateKey_reuse(_form_AccountKey_PrivateKey_core):
     private_key_option = OneOf(
         (
             "private_key_reuse",
-            "private_key_default",
+            "private_key_global_default",
             "private_key_existing",
             "private_key_file",
             "private_key_generate",
@@ -243,7 +243,7 @@ class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
 
 
 class Form_AcmeAccountKey_mark(_Form_Schema_Base):
-    action = OneOf(("default", "active", "inactive"), not_empty=True)
+    action = OneOf(("global_default", "active", "inactive"), not_empty=True)
 
 
 class Form_AcmeOrder_new_automated(_form_AccountKey_PrivateKey_core):
@@ -268,7 +268,12 @@ class Form_AcmeOrder_renew_custom(_form_AccountKey_PrivateKey_reuse):
 class Form_AcmeOrderless_new(_form_AccountKey_core):
     domain_names = UnicodeString(not_empty=True)
     account_key_option = OneOf(
-        ("none", "account_key_default", "account_key_existing", "account_key_file",),
+        (
+            "none",
+            "account_key_global_default",
+            "account_key_existing",
+            "account_key_file",
+        ),
         not_empty=False,
     )
 
@@ -346,7 +351,9 @@ class Form_PrivateKey_new__file(_Form_Schema_Base):
 
 
 class Form_PrivateKey_mark(_Form_Schema_Base):
-    action = OneOf(("compromised", "active", "inactive", "default"), not_empty=True)
+    action = OneOf(
+        ("compromised", "active", "inactive", "global_default"), not_empty=True
+    )
 
 
 class _Form_QueueCertificate_new(_form_AccountKey_PrivateKey_core):

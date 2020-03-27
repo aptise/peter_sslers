@@ -642,7 +642,7 @@ def api_domains__certificate_if_needed(
             raise errors.DisplayableError("Could not create an AccountKey")
 
     if account_key_pem is None:
-        dbAcmeAccountKey = lib.db.get.get__AcmeAccountKey__default(ctx)
+        dbAcmeAccountKey = lib.db.get.get__AcmeAccountKey__GlobalDefault(ctx)
         if not dbAcmeAccountKey:
             raise errors.DisplayableError("Could not grab an AccountKey")
 

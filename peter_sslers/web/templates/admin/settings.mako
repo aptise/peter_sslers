@@ -27,13 +27,13 @@
                 <tr>
                     <th>Default AcmeAccountKey</th>
                     <td>
-                        % if not AcmeAccountKey_Default:
+                        % if not AcmeAccountKey_GlobalDefault:
                             Not configured                        
                         % else:
-                            <a href="${admin_prefix}/acme-account-key/${AcmeAccountKey_Default.id}" span class="label label-default">
-                                AcmeAccountKey-${AcmeAccountKey_Default.id}
+                            <a href="${admin_prefix}/acme-account-key/${AcmeAccountKey_GlobalDefault.id}" span class="label label-default">
+                                AcmeAccountKey-${AcmeAccountKey_GlobalDefault.id}
                             </a>
-                            <code>${AcmeAccountKey_Default.key_pem_sample}</code>
+                            <code>${AcmeAccountKey_GlobalDefault.key_pem_sample}</code>
                         % endif
                         <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-account-keys">AcmeAccountKey</a>.</p>
                     </td>
@@ -41,13 +41,13 @@
                 <tr>
                     <th>Default PrivateKey</th>
                     <td>
-                        % if not PrivateKey_Default:
+                        % if not PrivateKey_GlobalDefault:
                             Not configured                        
                         % else:
-                            <a href="${admin_prefix}/acme-account-key/${PrivateKey_Default.id}" span class="label label-default">
-                                AcmeAccountKey-${PrivateKey_Default.id}
+                            <a href="${admin_prefix}/acme-account-key/${PrivateKey_GlobalDefault.id}" span class="label label-default">
+                                AcmeAccountKey-${PrivateKey_GlobalDefault.id}
                             </a>
-                            <code>${PrivateKey_Default.key_pem_sample}</code>
+                            <code>${PrivateKey_GlobalDefault.key_pem_sample}</code>
                         % endif
                         <p>This can be configured by selecting a new <a href="${admin_prefix}/private-keys">PrivateKey</a>.</p>
                     </td>

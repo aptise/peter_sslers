@@ -117,7 +117,7 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
     timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True)
     timestamp_last_authenticated = sa.Column(sa.DateTime, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
-    is_default = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_global_default = sa.Column(sa.Boolean, nullable=True, default=None)
     acme_account_provider_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account_provider.id"), nullable=False
     )
@@ -182,8 +182,8 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         return False
 
     @property
-    def is_default_candidate(self):
-        if self.is_default:
+    def is_global_default_candidate(self):
+        if self.is_global_default:
             return False
         if not self.is_active:
             return False
@@ -210,7 +210,7 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
             "key_pem": self.key_pem,
             "key_pem_md5": self.key_pem_md5,
             "is_active": True if self.is_active else False,
-            "is_default": True if self.is_active else False,
+            "is_global_default": True if self.is_global_default else False,
             "acme_account_provider_id": self.acme_account_provider_id,
             "acme_account_provider_name": self.acme_account_provider.name,
             "acme_account_provider_url": self.acme_account_provider.url,
@@ -1888,7 +1888,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    is_default = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_global_default = sa.Column(sa.Boolean, nullable=True, default=None)
     private_key_source_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeySource
@@ -1984,7 +1984,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "is_active": True if self.is_active else False,
-            "is_default": True if self.is_default else False,
+            "is_global_default": True if self.is_global_default else False,
             "key_pem_md5": self.key_pem_md5,
             "key_pem": self.key_pem,
             "timestamp_created": self.timestamp_created_isoformat,

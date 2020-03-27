@@ -170,9 +170,9 @@ class ViewAdmin_Process(Handler):
     @view_config(route_name="admin:queue_domains:process", renderer=None)
     @view_config(route_name="admin:queue_domains:process|json", renderer="json")
     def process(self):
-        self._load_AccountKeyDefault()
+        self._load_AcmeAccountKey_GlobalDefault()
         self._load_AcmeAccountProviders()
-        self._load_PrivateKeyDefault()
+        self._load_PrivateKey_GlobalDefault()
         if self.request.method == "POST":
             return self._process__submit()
         return self._process__print()
@@ -181,9 +181,9 @@ class ViewAdmin_Process(Handler):
         return render_to_response(
             "/admin/queue_domains-process.mako",
             {
-                "AcmeAccountKey_Default": self.dbAcmeAccountKeyDefault,
+                "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
-                "PrivateKey_Default": self.dbPrivateKeyDefault,
+                "PrivateKey_GlobalDefault": self.dbPrivateKey_GlobalDefault,
             },
             self.request,
         )

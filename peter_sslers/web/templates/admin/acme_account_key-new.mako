@@ -21,6 +21,10 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-6">
+
+            ${admin_partials.standard_error_display()}
+            ${admin_partials.handle_querystring_result()}
+
             <form
                 action="${admin_prefix}/acme-account-key/new"
                 method="POST"

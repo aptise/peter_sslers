@@ -65,7 +65,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>is_active</th>
+                        <th>active?</th>
                         <td>
                             <span class="label label-${'success' if AcmeAccountKey.is_active else 'warning'}">
                                 ${'active' if AcmeAccountKey.is_active else 'inactive'}
@@ -80,7 +80,7 @@
                                     </button>
                                 </form>
                             % else:
-                                % if not AcmeAccountKey.is_default:
+                                % if not AcmeAccountKey.is_global_default:
                                     <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="inactive"/>
                                         <button class="btn btn-xs btn-danger" type="submit">
@@ -100,20 +100,20 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>is_default</th>
+                        <th>Global Default</th>
                         <td>
-                            % if AcmeAccountKey.is_default:
-                                <span class="label label-success">default</span>
+                            % if AcmeAccountKey.is_global_default:
+                                <span class="label label-success">Global Default</span>
                             % else:
-                                <span class="label label-default">no</span>
+                                <span class="label label-default"></span>
                             % endif
                             &nbsp;
-                            % if AcmeAccountKey.is_default_candidate:
+                            % if AcmeAccountKey.is_global_default_candidate:
                                 <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="default"/>
+                                    <input type="hidden" name="action" value="global_default"/>
                                     <button class="btn btn-xs btn-primary" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        make default
+                                        Set Global Default
                                     </button>
                                 </form>
                             % endif

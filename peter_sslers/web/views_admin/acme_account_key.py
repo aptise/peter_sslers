@@ -358,7 +358,7 @@ class ViewAdmin_Focus(Handler):
         return {
             "id": dbAcmeAccountKey.id,
             "is_active": dbAcmeAccountKey.is_active,
-            "is_default": dbAcmeAccountKey.is_default,
+            "is_global_default": dbAcmeAccountKey.is_global_default,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -595,12 +595,13 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     """curl --form 'action=active' %s/mark.json""" % self._focus_url
                 ],
                 "form_fields": {"action": "the intended action"},
-                "valid_options": {"action": ["default", "active", "inactive"]},
+                "valid_options": {"action": ["global_default", "active", "inactive"]},
             }
         url_post_required = "%s?result=post+required&operation=mark" % (self._focus_url)
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbAcmeAccountKey):
+        action = self.request.params.get("action")
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -633,11 +634,11 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                         self.request.api_context, dbAcmeAccountKey
                     )
 
-                elif action == "default":
+                elif action == "global_default":
                     (
                         event_status,
                         alt_info,
-                    ) = lib_db.update.update_AcmeAccountKey__set_default(
+                    ) = lib_db.update.update_AcmeAccountKey__set_global_default(
                         self.request.api_context, dbAcmeAccountKey
                     )
                     if alt_info:

@@ -270,7 +270,7 @@ def main(global_config, **settings):
             _directory = settings.get("certificate_authority_directory")
             _protocol = settings.get("certificate_authority_protocol")
             dbAcmeAccountProvider = create.create__AcmeAccountProvider(
-                ctx, name=ca_selected, directory=directory, protocol=_protocol,
+                ctx, name=ca_selected, directory=_directory, protocol=_protocol,
             )
             print("<<< Enrolled new `AcmeAccountProvider` from config")
 
@@ -288,9 +288,9 @@ def main(global_config, **settings):
         if not dbAcmeAccountProvider.is_default:
             update.update_AcmeAccountProvider__set_default(ctx, dbAcmeAccountProvider)
 
-        dbAcmeAccountKey = get.get__AcmeAccountKey__default(ctx)
+        dbAcmeAccountKey = get.get__AcmeAccountKey__GlobalDefault(ctx)
         if dbAcmeAccountKey and not dbAcmeAccountKey.acme_account_provider.is_default:
-            dbAcmeAccountKey.is_default = False
+            dbAcmeAccountKey.is_global_default = False
             dbSession.flush()
 
     if dbSession:

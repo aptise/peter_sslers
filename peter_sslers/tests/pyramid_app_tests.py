@@ -159,7 +159,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
         assert focus_item is not None
         focus_id = focus_item.id
 
-        if not focus_item.is_default:
+        if not focus_item.is_global_default:
             # make sure to roundtrip!
             # note we expect a 303 on success!
             if focus_item.is_active:

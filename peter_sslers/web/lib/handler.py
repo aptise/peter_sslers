@@ -38,10 +38,10 @@ class Handler(object):
     request = None
 
     #: The default :class:`model.objects.AcmeAccountKey`
-    dbAcmeAccountKeyDefault = None
+    dbAcmeAccountKey_GlobalDefault = None
 
     #: The default :class:`model.objects.PrivateKey`
-    dbPrivateKeyDefault = None
+    dbPrivateKey_GlobalDefault = None
 
     def __init__(self, request):
         """
@@ -103,14 +103,14 @@ class Handler(object):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _load_AccountKeyDefault(self):
+    def _load_AcmeAccountKey_GlobalDefault(self):
         """
-        Loads the default :class:`model.objects.AcmeAccountKey` into the view's :attr:`.dbAcmeAccountKeyDefault`.
+        Loads the default :class:`model.objects.AcmeAccountKey` into the view's :attr:`.dbAcmeAccountKey_GlobalDefault`.
         """
-        self.dbAcmeAccountKeyDefault = db.get.get__AcmeAccountKey__default(
+        self.dbAcmeAccountKey_GlobalDefault = db.get.get__AcmeAccountKey__GlobalDefault(
             self.request.api_context, active_only=True
         )
-        return self.dbAcmeAccountKeyDefault
+        return self.dbAcmeAccountKey_GlobalDefault
 
     def _load_AcmeAccountProviders(self):
         """
@@ -121,11 +121,11 @@ class Handler(object):
         )
         return self.dbAcmeAccountProviders
 
-    def _load_PrivateKeyDefault(self):
+    def _load_PrivateKey_GlobalDefault(self):
         """
-        Loads the default :class:`model.objects.PrivateKey` into the view's :attr:`.dbPrivateKeyDefault`.
+        Loads the default :class:`model.objects.PrivateKey` into the view's :attr:`.dbPrivateKey_GlobalDefault`.
         """
-        self.dbPrivateKeyDefault = db.get.get__PrivateKey__default(
+        self.dbPrivateKey_GlobalDefault = db.get.get__PrivateKey__GlobalDefault(
             self.request.api_context, active_only=True
         )
-        return self.dbPrivateKeyDefault
+        return self.dbPrivateKey_GlobalDefault

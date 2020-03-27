@@ -113,21 +113,19 @@ def get__AcmeAccountKey__by_id(ctx, key_id, eagerload_web=False):
     return item
 
 
-def get__AcmeAccountKey__by_pemMd5(ctx, pem_md5, default_only=False, is_active=True):
+def get__AcmeAccountKey__by_pemMd5(ctx, pem_md5, is_active=True):
     q = ctx.dbSession.query(model_objects.AcmeAccountKey).filter(
         model_objects.AcmeAccountKey.key_pem_md5 == pem_md5
     )
-    if default_only:
-        q = q.filter(model_objects.AcmeAccountKey.is_default.op("IS")(True))
     if is_active:
         q = q.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
     item = q.first()
     return item
 
 
-def get__AcmeAccountKey__default(ctx, active_only=None):
+def get__AcmeAccountKey__GlobalDefault(ctx, active_only=None):
     q = ctx.dbSession.query(model_objects.AcmeAccountKey).filter(
-        model_objects.AcmeAccountKey.is_default.op("IS")(True)
+        model_objects.AcmeAccountKey.is_global_default.op("IS")(True)
     )
     if active_only:
         q = q.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
@@ -1307,21 +1305,19 @@ def get__PrivateKey__current_week(ctx):
     return item
 
 
-def get__PrivateKey__by_pemMd5(ctx, pem_md5, default_only=False, is_active=True):
+def get__PrivateKey__by_pemMd5(ctx, pem_md5, is_active=True):
     q = ctx.dbSession.query(model_objects.PrivateKey).filter(
         model_objects.PrivateKey.key_pem_md5 == pem_md5
     )
-    if default_only:
-        q = q.filter(model_objects.PrivateKey.is_default.op("IS")(True))
     if is_active:
         q = q.filter(model_objects.PrivateKey.is_active.op("IS")(True))
     item = q.first()
     return item
 
 
-def get__PrivateKey__default(ctx, active_only=None):
+def get__PrivateKey__GlobalDefault(ctx, active_only=None):
     q = ctx.dbSession.query(model_objects.PrivateKey).filter(
-        model_objects.PrivateKey.is_default.op("IS")(True)
+        model_objects.PrivateKey.is_global_default.op("IS")(True)
     )
     if active_only:
         q = q.filter(model_objects.PrivateKey.is_active.op("IS")(True))

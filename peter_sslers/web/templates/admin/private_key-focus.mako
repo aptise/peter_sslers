@@ -116,19 +116,19 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>is_default?</th>
+                        <th>Global Default?</th>
                         <td>
-                            % if PrivateKey.is_default:
+                            % if PrivateKey.is_global_default:
                                 <span class="label label-success">
-                                    DEFAULT
+                                    Global Default
                                 </span>
                             % else:
                                 % if not PrivateKey.is_compromised and PrivateKey.is_active and not PrivateKey.is_placeholder:
                                     <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="default"/>
+                                        <input type="hidden" name="action" value="global_default"/>
                                         <button class="btn btn-xs btn-success" type="submit">
                                             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                            make default
+                                            Set Global Default
                                         </button>
                                     </form>
                                 % endif

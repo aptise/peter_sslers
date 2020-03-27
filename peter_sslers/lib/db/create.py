@@ -35,6 +35,8 @@ def create__AcmeAccountProvider(ctx, name=None, directory=None, protocol=None):
     :param name: (required) The name
     :param directory: (required) The directory
     :param protocol: (required) The protocol, must be "acme-v2"
+    
+    returns: `:class:model.objects.AcmeAccountProvider`
     """
     if not directory or (
         not directory.startswith("http://") and not directory.startswith("https://")
@@ -57,6 +59,7 @@ def create__AcmeAccountProvider(ctx, name=None, directory=None, protocol=None):
     ctx.dbSession.flush(
         objects=[dbAcmeAccountProvider,]
     )
+    return dbAcmeAccountProvider
 
 
 def create__AcmeOrderless(

@@ -12,10 +12,10 @@ from dateutil import parser as dateutil_parser
 # localapp
 from ...model import utils as model_utils
 from ...lib import errors
-from .get import get__AcmeAccountKey__default
+from .get import get__AcmeAccountKey__GlobalDefault
 from .get import get__AcmeAccountProvider__default
 from .get import get__Domain__by_name
-from .get import get__PrivateKey__default
+from .get import get__PrivateKey__GlobalDefault
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -45,19 +45,19 @@ def update_AcmeAccountKey__set_active(ctx, dbAcmeAccountKey):
 def update_AcmeAccountKey__unset_active(ctx, dbAcmeAccountKey):
     if not dbAcmeAccountKey.is_active:
         raise errors.InvalidTransition("Already deactivated.")
-    if dbAcmeAccountKey.is_default:
+    if dbAcmeAccountKey.is_global_default:
         raise errors.InvalidTransition(
-            "You can not deactivate the default. Make another key default first."
+            "You can not deactivate the global default. Make another key as the global default first."
         )
     dbAcmeAccountKey.is_active = False
     event_status = "AcmeAccountKey__mark__inactive"
     return event_status
 
 
-def update_AcmeAccountKey__set_default(ctx, dbAcmeAccountKey):
-    if dbAcmeAccountKey.is_default:
+def update_AcmeAccountKey__set_global_default(ctx, dbAcmeAccountKey):
+    if dbAcmeAccountKey.is_global_default:
         # `formStash.fatal_form(` will raise a `FormInvalid()`
-        raise errors.InvalidTransition("Already default.")
+        raise errors.InvalidTransition("Already global default.")
 
     if not dbAcmeAccountKey.acme_account_provider.is_default:
         raise errors.InvalidTransition(
@@ -65,14 +65,14 @@ def update_AcmeAccountKey__set_default(ctx, dbAcmeAccountKey):
         )
 
     alt_info = {}
-    formerDefaultKey = get__AcmeAccountKey__default(ctx)
+    formerDefaultKey = get__AcmeAccountKey__GlobalDefault(ctx)
     if formerDefaultKey:
-        formerDefaultKey.is_default = False
+        formerDefaultKey.is_global_default = False
         alt_info["event_payload_dict"] = {
             "account_key_id.former_default": formerDefaultKey.id,
         }
         alt_info["event_alt"] = ("AcmeAccountKey__mark__notdefault", formerDefaultKey)
-    dbAcmeAccountKey.is_default = True
+    dbAcmeAccountKey.is_global_default = True
     event_status = "AcmeAccountKey__mark__default"
     return event_status, alt_info
 
@@ -136,9 +136,9 @@ def update_PrivateKey__set_active(ctx, dbPrivateKey):
 def update_PrivateKey__unset_active(ctx, dbPrivateKey):
     if not dbPrivateKey.is_active:
         raise errors.InvalidTransition("Already deactivated")
-    if dbPrivateKey.is_default:
+    if dbPrivateKey.is_global_default:
         raise errors.InvalidTransition(
-            "You can not deactivate the default. Make another key default first."
+            "You can not deactivate the Global Default. Make another key as the Global Default first."
         )
     dbPrivateKey.is_active = False
     event_status = "PrivateKey__mark__inactive"
@@ -150,28 +150,28 @@ def update_PrivateKey__set_compromised(ctx, dbPrivateKey):
         raise errors.InvalidTransition("Already compromised")
     dbPrivateKey.is_active = False
     dbPrivateKey.is_compromised = True
-    if dbPrivateKey.is_default:
-        dbPrivateKey.is_default = False
+    if dbPrivateKey.is_global_default:
+        dbPrivateKey.is_global_default = False
     event_status = "PrivateKey__mark__compromised"
     return event_status
 
 
-def update_PrivateKey__set_default(ctx, dbPrivateKey):
-    if dbPrivateKey.is_default:
+def update_PrivateKey__set_global_default(ctx, dbPrivateKey):
+    if dbPrivateKey.is_global_default:
         raise errors.InvalidTransition("Already default")
 
     if not dbPrivateKey.is_active:
         raise errors.InvalidTransition("Key not active")
 
     alt_info = {}
-    formerDefaultKey = get__PrivateKey__default(ctx)
+    formerDefaultKey = get__PrivateKey__GlobalDefault(ctx)
     if formerDefaultKey:
-        formerDefaultKey.is_default = False
+        formerDefaultKey.is_global_default = False
         alt_info["event_payload_dict"] = {
             "private_key_id.former_default": formerDefaultKey.id,
         }
         alt_info["event_alt"] = ("PrivateKey__mark__notdefault", formerDefaultKey)
-    dbPrivateKey.is_default = True
+    dbPrivateKey.is_global_default = True
     event_status = "PrivateKey__mark__default"
     return event_status, alt_info
 
