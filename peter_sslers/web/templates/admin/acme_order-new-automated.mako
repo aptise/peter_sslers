@@ -23,6 +23,16 @@
 </%block>
 
 
+<%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/acme-order/new/automated.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
+</%block>
+
+
 <%block name="content_main">
 
     <div class="row">
@@ -41,7 +51,7 @@
                 <hr/>
 
                 <h3>PrivateKey</h3>
-                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_generate_new=True)}
+                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_key_default=True, option_generate_new=True)}
                 <hr/>
 
                 ${admin_partials.formgroup__domain_names()}
@@ -54,6 +64,7 @@
             </form>
         </div>
         <div class="col-sm-6">
+            <p>This route supports JSON and is self-documenting on GET requests.</p>
             ${admin_partials.info_AcmeAccountKey()}
             ${admin_partials.info_PrivateKey()}
         </div>

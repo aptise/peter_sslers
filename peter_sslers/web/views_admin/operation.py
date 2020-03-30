@@ -53,7 +53,8 @@ class ViewAdminOperations(Handler):
     @view_config(route_name="admin:operations", renderer=None)
     def operations(self):
         return HTTPFound(
-            "%s/operations/log" % self.request.registry.settings["admin_prefix"]
+            "%s/operations/log"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -76,11 +77,12 @@ class ViewAdminOperations(Handler):
             self.request.api_context, event_type_ids=event_type_ids
         )
         _url_template = (
-            "%s/operations/log/{0}" % self.request.registry.settings["admin_prefix"]
+            "%s/operations/log/{0}"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         if event_type:
             _url_template = "%s/operations/log/{0}?event_type=%s" % (
-                self.request.registry.settings["admin_prefix"],
+                self.request.registry.settings["app_settings"]["admin_prefix"],
                 event_type,
             )
         (pager, offset) = self._paginate(
@@ -97,8 +99,12 @@ class ViewAdminOperations(Handler):
             "OperationsEvent__count": items_count,
             "OperationsEvents": items_paged,
             "pager": pager,
-            "enable_redis": self.request.registry.settings["enable_redis"],
-            "enable_nginx": self.request.registry.settings["enable_nginx"],
+            "enable_redis": self.request.registry.settings["app_settings"][
+                "enable_redis"
+            ],
+            "enable_nginx": self.request.registry.settings["app_settings"][
+                "enable_nginx"
+            ],
             "event_type": event_type,
         }
 
@@ -115,8 +121,12 @@ class ViewAdminOperations(Handler):
         return {
             "project": "peter_sslers",
             "OperationsEvent": item,
-            "enable_redis": self.request.registry.settings["enable_redis"],
-            "enable_nginx": self.request.registry.settings["enable_nginx"],
+            "enable_redis": self.request.registry.settings["app_settings"][
+                "enable_redis"
+            ],
+            "enable_nginx": self.request.registry.settings["app_settings"][
+                "enable_nginx"
+            ],
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -137,7 +147,7 @@ class ViewAdminOperations(Handler):
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/operations/ca-certificate-probes/{0}"
-            % self.request.registry.settings["admin_prefix"],
+            % self.request.registry.settings["app_settings"]["admin_prefix"],
         )
         items_paged = lib_db.get.get__OperationsEvent__certificate_probe__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
@@ -172,7 +182,7 @@ class ViewAdminOperations(Handler):
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/operations/redis/log/{0}"
-            % self.request.registry.settings["admin_prefix"],
+            % self.request.registry.settings["app_settings"]["admin_prefix"],
             items_per_page=_items_per_page,
         )
         items_paged = lib_db.get.get__OperationsEvent__paginated(
@@ -188,7 +198,9 @@ class ViewAdminOperations(Handler):
             "OperationsEvent__count": items_count,
             "OperationsEvents": items_paged,
             "pager": pager,
-            "enable_redis": self.request.registry.settings["enable_redis"],
+            "enable_redis": self.request.registry.settings["app_settings"][
+                "enable_redis"
+            ],
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -219,7 +231,7 @@ class ViewAdminOperations(Handler):
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/operations/nginx/log/{0}"
-            % self.request.registry.settings["admin_prefix"],
+            % self.request.registry.settings["app_settings"]["admin_prefix"],
             items_per_page=_items_per_page,
         )
         items_paged = lib_db.get.get__OperationsEvent__paginated(
@@ -233,7 +245,9 @@ class ViewAdminOperations(Handler):
             "OperationsEvent__count": items_count,
             "OperationsEvents": items_paged,
             "pager": pager,
-            "enable_nginx": self.request.registry.settings["enable_nginx"],
+            "enable_nginx": self.request.registry.settings["app_settings"][
+                "enable_nginx"
+            ],
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -255,7 +269,7 @@ class ViewAdminOperations(Handler):
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/operations/object-log/{0}"
-            % self.request.registry.settings["admin_prefix"],
+            % self.request.registry.settings["app_settings"]["admin_prefix"],
             items_per_page=_items_per_page,
         )
         items_paged = lib_db.get.get__OperationsObjectEvent__paginated(
@@ -266,8 +280,12 @@ class ViewAdminOperations(Handler):
             "OperationsObjectEvent__count": items_count,
             "OperationsObjectEvents": items_paged,
             "pager": pager,
-            "enable_redis": self.request.registry.settings["enable_redis"],
-            "enable_nginx": self.request.registry.settings["enable_nginx"],
+            "enable_redis": self.request.registry.settings["app_settings"][
+                "enable_redis"
+            ],
+            "enable_nginx": self.request.registry.settings["app_settings"][
+                "enable_nginx"
+            ],
         }
 
     @view_config(
@@ -283,8 +301,12 @@ class ViewAdminOperations(Handler):
         return {
             "project": "peter_sslers",
             "OperationsObjectEvent": item,
-            "enable_redis": self.request.registry.settings["enable_redis"],
-            "enable_nginx": self.request.registry.settings["enable_nginx"],
+            "enable_redis": self.request.registry.settings["app_settings"][
+                "enable_redis"
+            ],
+            "enable_nginx": self.request.registry.settings["app_settings"][
+                "enable_nginx"
+            ],
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

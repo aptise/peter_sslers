@@ -25,7 +25,7 @@
         <div class="col-sm-12">
             <table class="table table-striped table-condensed">
                 <tr>
-                    <th>Default AcmeAccountKey</th>
+                    <th>Global Default AcmeAccountKey</th>
                     <td>
                         % if not AcmeAccountKey_GlobalDefault:
                             Not configured                        
@@ -39,7 +39,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>Default PrivateKey</th>
+                    <th>Global Default PrivateKey</th>
                     <td>
                         % if not PrivateKey_GlobalDefault:
                             Not configured                        
@@ -94,7 +94,7 @@
                                 % endif
                                 % if documentation_grid[section][option].get('show_on_settings'):
                                     <hr/>
-                                    Active: <code>${request.registry.settings.get(option) or ''}</code>
+                                    Active: <code>${request.registry.settings["app_settings"].get(option) or ''}</code>
                                 % endif
                             </thd>
                         </tr>

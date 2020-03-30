@@ -144,6 +144,7 @@ class _OperationsUnified(_mixin_mapping):
         132: "AcmeAccountKey__mark__inactive",
         133: "AcmeAccountKey__mark__default",
         134: "AcmeAccountKey__mark__notdefault",
+        135: "AcmeAccountKey__edit",
         640: "AcmeOrder_New_Automated",
         650: "AcmeOrder_New_Retry",
         651: "AcmeOrder_Renew_Custom",
@@ -552,18 +553,6 @@ class CertificateRequestSource(_mixin_mapping):
     }
 
 
-class PrivateKeySource(_mixin_mapping):
-    """
-    How was the PrivateKey generated?
-    """
-
-    _mapping = {
-        0: "placeholder",  # application setup only
-        1: "generated",
-        2: "imported",
-    }
-
-
 class PrivateKeyCycle(_mixin_mapping):
     """
     How should a PrivateKey be cycled on renewal/queues?
@@ -575,6 +564,43 @@ class PrivateKeyCycle(_mixin_mapping):
         3: "daily_global",
         4: "weekly_account",
         5: "weekly_global",
+    }
+    _options_AcmeAccountKey_private_key_cycle_id = (
+        1,
+        2,
+        3,
+        4,
+        5,
+    )
+
+
+PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle = [
+    PrivateKeyCycle._mapping[_id]
+    for _id in PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle_id
+]
+
+
+class PrivateKeySource(_mixin_mapping):
+    """
+    How was the PrivateKey generated?
+    """
+
+    _mapping = {
+        0: "placeholder",  # application setup only
+        2: "imported",
+        1: "generated",
+    }
+
+
+class PrivateKeyStrategy(_mixin_mapping):
+    """
+    What is the strategy for the PrivateKey?
+    """
+
+    _mapping = {
+        1: "specified",
+        2: "deferred-new",
+        3: "deferred-account_key_default",
     }
 
 

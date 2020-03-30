@@ -166,13 +166,13 @@ class PrivateKeyUploadParser(object):
 
 
 class AccountKeySelection(object):
-    selection = None  # upload
+    selection = None
     upload_parsed = None  # instance of AccountKeyUploadParser or None
     AcmeAccountKey = None
 
 
 class PrivateKeySelection(object):
-    selection = None  # upload
+    selection = None
     upload_parsed = None  # instance of AccountKeyUploadParser or None
     PrivateKey = None
 
@@ -267,6 +267,9 @@ def parse_PrivateKeySelection(request, formStash, seek_selected=None):
             private_key_pem_md5 = formStash.results["private_key_reuse"]
         elif seek_selected == "private_key_generate":
             privateKeySelection.selection = "generate"
+            return privateKeySelection
+        elif seek_selected == "private_key_for_account_key":
+            privateKeySelection.selection = "private_key_for_account_key"
             return privateKeySelection
 
         if not private_key_pem_md5:

@@ -165,7 +165,7 @@
                     >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                     New ACME Order: Automated</a></li>
-                % if request.registry.settings['enable_acme_flow']:
+                % if request.registry.settings["app_settings"]['enable_acme_flow']:
                     <li>
                         <a  href="${admin_prefix}/acme-orderless/new"
                             title="${request.text_library.info_AcmeOrderless_new[0]}"
@@ -209,11 +209,11 @@
             <table class="table table-striped table-condensed">
                 <tr>
                     <th>enable_nginx</th>
-                    <td>${request.registry.settings['enable_nginx']}</td>
+                    <td>${request.registry.settings["app_settings"]['enable_nginx']}</td>
                 </tr>
                 <tr>
                     <th>enable_redis</th>
-                    <td>${request.registry.settings['enable_redis']}</td>
+                    <td>${request.registry.settings["app_settings"]['enable_redis']}</td>
                 </tr>
             </table>
         </div>

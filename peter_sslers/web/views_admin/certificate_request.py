@@ -49,13 +49,13 @@ class ViewAdmin_List(Handler):
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/certificate-requests/{0}.json"
-                % self.request.registry.settings["admin_prefix"],
+                % self.request.registry.settings["app_settings"]["admin_prefix"],
             )
         else:
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/certificate-requests/{0}"
-                % self.request.registry.settings["admin_prefix"],
+                % self.request.registry.settings["app_settings"]["admin_prefix"],
             )
         items_paged = lib_db.get.get__CertificateRequest__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
@@ -83,7 +83,7 @@ class ViewAdmin_Focus(Handler):
             raise HTTPNotFound("invalid CertificateRequest")
         self._focus_item = dbCertificateRequest
         self._focus_url = "%s/certificate-request/%s" % (
-            self.request.registry.settings["admin_prefix"],
+            self.request.registry.settings["app_settings"]["admin_prefix"],
             dbCertificateRequest.id,
         )
         return dbCertificateRequest
@@ -137,7 +137,7 @@ class ViewAdmin_Focus(Handler):
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/certificate-request/{0}/acme-orders"
-            % self.request.registry.settings["admin_prefix"],
+            % self.request.registry.settings["app_settings"]["admin_prefix"],
         )
         items_paged = lib_db.get.get__AcmeOrder__by_CertificateRequest__paginated(
             self.request.api_context,

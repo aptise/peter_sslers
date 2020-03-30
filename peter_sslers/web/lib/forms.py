@@ -13,6 +13,7 @@ from formencode.validators import (
 
 # local app
 from ...lib import letsencrypt_info
+from ...model import utils as model_utils
 
 
 # ==============================================================================
@@ -114,6 +115,7 @@ class _form_PrivateKey_core(_Form_Schema_Base):
             "private_key_existing",
             "private_key_file",
             "private_key_generate",
+            "private_key_for_account_key",
         ),
         not_empty=True,
     )
@@ -143,6 +145,7 @@ class _form_PrivateKey_reuse(_form_PrivateKey_core):
             "private_key_existing",
             "private_key_file",
             "private_key_generate",
+            "private_key_for_account_key",
         ),
         not_empty=True,
     )
@@ -207,10 +210,18 @@ class _form_AccountKey_PrivateKey_reuse(_form_AccountKey_PrivateKey_core):
             "private_key_existing",
             "private_key_file",
             "private_key_generate",
+            "private_key_for_account_key",
         ),
         not_empty=True,
     )
     private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
+
+
+class Form_AcmeAccountKey_edit(_Form_Schema_Base):
+    private_key_cycle = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
+        not_empty=True,
+    )
 
 
 class Form_AcmeAccountKey_new__auth(_Form_Schema_Base):

@@ -42,13 +42,13 @@ class ViewAdmin_List(Handler):
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/unique-fqdn-sets/{0}.json"
-                % self.request.registry.settings["admin_prefix"],
+                % self.request.registry.settings["app_settings"]["admin_prefix"],
             )
         else:
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/unique-fqdn-sets/{0}"
-                % self.request.registry.settings["admin_prefix"],
+                % self.request.registry.settings["app_settings"]["admin_prefix"],
             )
         items_paged = lib_db.get.get__UniqueFQDNSet__paginated(
             self.request.api_context,
@@ -90,7 +90,7 @@ class ViewAdmin_Focus(Handler):
         dbFqdnSet = self._focus()
         if self.request.wants_json:
             _prefix = "%s/unique-fqdn-set/%s" % (
-                self.request.registry.settings["admin_prefix"],
+                self.request.registry.settings["app_settings"]["admin_prefix"],
                 dbFqdnSet.id,
             )
             return {"UniqueFQDNSet": dbFqdnSet.as_json}
@@ -142,7 +142,10 @@ class ViewAdmin_Focus(Handler):
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/unique-fqdn-set/%s/acme-orders/{0}"
-            % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                dbUniqueFQDNSet.id,
+            ),
         )
         items_paged = lib_db.get.get__AcmeOrder__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
@@ -176,7 +179,10 @@ class ViewAdmin_Focus(Handler):
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/unique-fqdn-set/%s/certificate-requests/{0}"
-            % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                dbUniqueFQDNSet.id,
+            ),
         )
         items_paged = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
@@ -210,7 +216,10 @@ class ViewAdmin_Focus(Handler):
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/unique-fqdn-set/%s/server-certificates/{0}"
-            % (self.request.registry.settings["admin_prefix"], dbUniqueFQDNSet.id),
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                dbUniqueFQDNSet.id,
+            ),
         )
         items_paged = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__paginated(
             self.request.api_context,

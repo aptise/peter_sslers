@@ -48,12 +48,12 @@ class ViewAdmin_List(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/acme-orders/{0}.json?status=active"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/acme-orders/{0}?status=active"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
         else:
             sidenav_option = "all"
@@ -61,12 +61,12 @@ class ViewAdmin_List(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/acme-orders/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/acme-orders/{0}"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
 
         items_count = lib_db.get.get__AcmeOrder__count(
@@ -559,6 +559,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             )
             raise HTTPSeeOther(url_failure)
         except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._renew_custom__print)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -577,6 +579,18 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         dbAcmeOrder = self._focus()
         if not dbAcmeOrder.is_renewable_quick:
             raise errors.DisplayableError("This AcmeOrder can not use Quick Renew")
+
+        if self.request.wants_json:
+            return {
+                "form_fields": {
+                    "processing_strategy": "One of ('create_order', 'process_single', 'process_multi'). REQUIRED.",
+                },
+                "instructions": [
+                    """curl --form 'processing_strategy=create_order' %s/acme-order/1/renew/quick.json"""
+                    % self.request.admin_url
+                ],
+            }
+
         return render_to_response(
             "/admin/acme_order-focus-renew-quick.mako",
             {"AcmeOrder": dbAcmeOrder,},
@@ -624,6 +638,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             )
             raise HTTPSeeOther(url_failure)
         except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._renew_quick__print)
 
 
@@ -632,6 +648,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
 class ViewAdmin_New(Handler):
     @view_config(route_name="admin:acme_order:new:automated")
+    @view_config(route_name="admin:acme_order:new:automated|json", renderer="json")
     def new_automated(self):
         self._load_AcmeAccountKey_GlobalDefault()
         self._load_AcmeAccountProviders()
@@ -641,6 +658,11 @@ class ViewAdmin_New(Handler):
         return self._new_automated__print()
 
     def _new_automated__print(self):
+        if self.request.wants_json:
+            return {
+                "form_fields": {},
+            }
+
         return render_to_response(
             "/admin/acme_order-new-automated.mako",
             {
@@ -743,7 +765,9 @@ class ViewAdmin_New(Handler):
                         return HTTPSeeOther(
                             "%s/acme-order/%s?result=error&error=new-automated&message=%s"
                             % (
-                                self.request.registry.settings["admin_prefix"],
+                                self.request.registry.settings["app_settings"][
+                                    "admin_prefix"
+                                ],
                                 dbAcmeOrder.id,
                                 exc.as_querystring,
                             )
@@ -751,7 +775,10 @@ class ViewAdmin_New(Handler):
                     raise exc
                 return HTTPSeeOther(
                     "%s/acme-order/%s"
-                    % (self.request.registry.settings["admin_prefix"], dbAcmeOrder.id,)
+                    % (
+                        self.request.registry.settings["app_settings"]["admin_prefix"],
+                        dbAcmeOrder.id,
+                    )
                 )
             except errors.AcmeDuplicateChallenges as exc:
                 formStash.fatal_field(field="domain_names", message=exc.as_querystring)
@@ -760,7 +787,7 @@ class ViewAdmin_New(Handler):
                 return HTTPSeeOther(
                     "%s/acme-orders?result=error&error=new-automated&message=%s"
                     % (
-                        self.request.registry.settings["admin_prefix"],
+                        self.request.registry.settings["app_settings"]["admin_prefix"],
                         exc.as_querystring,
                     )
                 )
@@ -770,9 +797,11 @@ class ViewAdmin_New(Handler):
                 if self.request.registry.settings["exception_redirect"]:
                     return HTTPSeeOther(
                         "%s/acme-orders?result=error&error=new-automated"
-                        % self.request.registry.settings["admin_prefix"]
+                        % self.request.registry.settings["app_settings"]["admin_prefix"]
                     )
                 raise
 
         except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._new_automated__print)

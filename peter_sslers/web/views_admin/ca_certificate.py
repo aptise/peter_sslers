@@ -44,13 +44,13 @@ class ViewAdmin_List(Handler):
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/ca-certificates/{0}"
-                % self.request.registry.settings["admin_prefix"],
+                % self.request.registry.settings["app_settings"]["admin_prefix"],
             )
         else:
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/ca-certificates/{0}.json"
-                % self.request.registry.settings["admin_prefix"],
+                % self.request.registry.settings["app_settings"]["admin_prefix"],
             )
         items_paged = lib_db.get.get__CACertificate__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
@@ -78,7 +78,7 @@ class ViewAdmin_Focus(Handler):
             raise HTTPNotFound("the cert was not found")
         self.focus_item = dbCACertificate
         self.focus_url = "%s/ca-certificate/%s" % (
-            self.request.registry.settings["admin_prefix"],
+            self.request.registry.settings["app_settings"]["admin_prefix"],
             self.focus_item.id,
         )
         return dbCACertificate
@@ -224,7 +224,7 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther(
                 "%s/ca-certificate/%s?result=success&is_created=%s"
                 % (
-                    self.request.registry.settings["admin_prefix"],
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
                     dbCACertificate.id,
                     (1 if cacert_is_created else 0),
                 )
@@ -340,7 +340,7 @@ class ViewAdmin_New(Handler):
                 return rval
             return HTTPSeeOther(
                 "%s/ca-certificates?uploaded=1"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
 
         except formhandling.FormInvalid as exc:

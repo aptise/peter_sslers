@@ -986,7 +986,7 @@
         % else:
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-                There is no Default AcmeAccountKey configured. Any key can be configured as the System Default.
+                There is no Global Default AcmeAccountKey configured. Any key can be configured as the Global Default.
                 Browse keys at 
                 <a  class="label label-info"
                     href="${admin_prefix}/acme-account-keys"
@@ -1205,7 +1205,7 @@
 
 
 
-<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_generate_new=None)">
+<%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_key_default=None, option_generate_new=None)">
     <p>Select a PrivateKey with one of the following options</p>
     <div class="form-horizontal">
         % if dbPrivateKeyReuse:
@@ -1243,7 +1243,7 @@
         % else:
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-                There is no Default PrivateKey configured. Any key can be configured as the System Default.
+                There is no Global PrivateKey configured. Any key can be configured as the Global Default.
                 Browse keys at 
                 <a  class="label label-info"
                     href="${admin_prefix}/private-keys"
@@ -1251,6 +1251,22 @@
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     PrivateKeys
                 </a>
+            </div>
+        % endif
+        % if option_account_key_default:
+            <div class="radio">
+                <label for="private_key_option-private_key_for_account_key">
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_for_account_key" value="private_key_for_account_key">
+                    Use the AcmeAccountKey&#39;s Default PrivateKey or Strategy
+                </label>
+            </div>
+        % endif
+        % if option_generate_new:
+            <div class="radio">
+                <label for="private_key_option-private_key_generate">
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate">
+                    Generate a new PrivateKey with 4096 bits.
+                </label>
             </div>
         % endif
         <div class="radio">
@@ -1269,14 +1285,6 @@
                     ${formgroup__PrivateKey_file()}
             </label>
         </div>
-        % if option_generate_new:
-            <div class="radio">
-                <label for="private_key_option-private_key_generate">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_generate" value="private_key_generate">
-                    Generate a new PrivateKey with 4096 bits.
-                </label>
-            </div>
-        % endif
     </div>
 </%def>
 

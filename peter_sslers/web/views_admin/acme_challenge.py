@@ -49,12 +49,12 @@ class ViewAdmin_List(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/acme-challenges/{0}.json?status=active"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/acme-challenges/{0}?status=active"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
         else:
             sidenav_option = "all"
@@ -62,12 +62,12 @@ class ViewAdmin_List(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/acme-challenges/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/acme-challenges/{0}"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
         items_count = lib_db.get.get__AcmeChallenge__count(
             self.request.api_context, active_only=active_only

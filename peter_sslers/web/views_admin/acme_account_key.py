@@ -18,6 +18,7 @@ from ..lib import text as lib_text
 from ..lib.forms import Form_AcmeAccountKey_new__auth
 from ..lib.forms import Form_AcmeAccountKey_new__file
 from ..lib.forms import Form_AcmeAccountKey_mark
+from ..lib.forms import Form_AcmeAccountKey_edit
 from ..lib.form_utils import AccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -46,12 +47,12 @@ class ViewAdmin_List(Handler):
         if self.request.wants_json:
             url_template = (
                 "%s/acme-account-keys/{0}.json"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
         else:
             url_template = (
                 "%s/acme-account-keys/{0}"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
         (pager, offset) = self._paginate(items_count, url_template=url_template,)
         items_paged = lib_db.get.get__AcmeAccountKey__paginated(
@@ -300,6 +301,7 @@ class ViewAdmin_Focus(Handler):
             self.request.admin_url,
             dbAcmeAccountKey.id,
         )
+        self.dbAcmeAccountKey = dbAcmeAccountKey
         return dbAcmeAccountKey
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -359,10 +361,57 @@ class ViewAdmin_Focus(Handler):
             "id": dbAcmeAccountKey.id,
             "is_active": dbAcmeAccountKey.is_active,
             "is_global_default": dbAcmeAccountKey.is_global_default,
+            "private_key_cycle": dbAcmeAccountKey.private_key_cycle,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name="admin:acme_account_key:focus:edit")
+    @view_config(route_name="admin:acme_account_key:focus:edit|json", renderer="json")
+    def focus_edit(self):
+        dbAcmeAccountKey = self._focus(eagerload_web=True)
+        if self.request.method == "POST":
+            return self._focus_edit__submit()
+        return self._focus_edit__print()
+
+    def _focus_edit__print(self):
+        if self.request.wants_json:
+            return {
+                "instructions": [
+                    """curl --form 'private_key_cycle=certificate' %s/acme-account-key/{ID}/edit.json"""
+                    % self.request.admin_url,
+                ],
+                "form_fields": {
+                    "private_key_cycle": "option for cycling the private key",
+                },
+                "notes": [""],
+                "valid_options": {
+                    "private_key_cycle": [
+                        model_utils.PrivateKeyCycle._mapping[_id]
+                        for _id in model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle_id
+                    ],
+                },
+            }
+        return render_to_response(
+            "/admin/acme_account_key-focus-edit.mako",
+            {"AcmeAccountKey": self.dbAcmeAccountKey},
+            self.request,
+        )
+
+    def _focus_edit__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_AcmeAccountKey_edit, validate_get=False
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+            raise ValueError("wtf")
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._focus_edit__print)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @view_config(
         route_name="admin:acme_account_key:focus:acme_authorizations",
         renderer="/admin/acme_account_key-focus-acme_authorizations.mako",

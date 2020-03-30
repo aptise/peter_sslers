@@ -93,12 +93,12 @@ class ViewList(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/queue-certificates/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/queue-certificates/{0}"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             sidenav_option = "unprocessed"
         elif self.request.matched_route.name in (
@@ -108,12 +108,12 @@ class ViewList(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/queue-certificates/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/queue-certificates/{0}"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             sidenav_option = "all"
         elif self.request.matched_route.name in (
@@ -124,12 +124,12 @@ class ViewList(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/queue-certificates/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/queue-certificates/{0}"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             sidenav_option = "active-failures"
 

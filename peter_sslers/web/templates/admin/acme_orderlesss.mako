@@ -18,7 +18,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        % if request.registry.settings['enable_acme_flow']:
+        % if request.registry.settings["app_settings"]['enable_acme_flow']:
             <a  href="${admin_prefix}/acme-orderless/new"
                 title="${request.text_library.info_AcmeOrderless_new[0]}"
                 class="btn btn-xs btn-primary"

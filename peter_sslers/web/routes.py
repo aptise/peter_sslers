@@ -1,5 +1,5 @@
-from .lib.config_utils import set_bool_setting
-from .lib.config_utils import set_int_setting
+from ..lib.config_utils import set_bool_setting
+from ..lib.config_utils import set_int_setting
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7,8 +7,10 @@ from .lib.config_utils import set_int_setting
 
 def includeme(config):
 
-    enable_views_admin = config.registry.settings["enable_views_admin"]
-    enable_views_public = config.registry.settings["enable_views_public"]
+    enable_views_admin = config.registry.settings["app_settings"]["enable_views_admin"]
+    enable_views_public = config.registry.settings["app_settings"][
+        "enable_views_public"
+    ]
 
     # pyramid_route_7 lets us default repeatable macros for our routes
     config.include("pyramid_route_7")
@@ -27,7 +29,7 @@ def includeme(config):
 
     # admin
     if enable_views_admin:
-        route_prefix = config.registry.settings.get("admin_prefix")
+        route_prefix = config.registry.settings["app_settings"].get("admin_prefix")
         config.include(_admin_views, route_prefix=route_prefix)
         config.add_route_7("admin", route_prefix)
 
@@ -66,6 +68,12 @@ def _admin_views(config):
     config.add_route_7("admin:acme_account_key:focus", "/acme-account-key/{@id}")
     config.add_route_7(
         "admin:acme_account_key:focus|json", "/acme-account-key/{@id}.json"
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:edit", "/acme-account-key/{@id}/edit"
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:edit|json", "/acme-account-key/{@id}/edit.json"
     )
     config.add_route_7(
         "admin:acme_account_key:focus:config|json",
@@ -340,6 +348,9 @@ def _admin_views(config):
         "admin:acme_order:focus:renew:quick|json", "/acme-order/{@id}/renew/quick.json",
     )
     config.add_route_7("admin:acme_order:new:automated", "/acme-order/new/automated")
+    config.add_route_7(
+        "admin:acme_order:new:automated|json", "/acme-order/new/automated.json"
+    )
 
     # !!!: AcmeOrderless / AcmeFlow - our manual system
     config.add_route_7("admin:acme_orderlesss", "/acme-orderlesss")

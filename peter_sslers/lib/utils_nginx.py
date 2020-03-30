@@ -19,10 +19,10 @@ def new_nginx_session(request):
     :param request: The current Pyramid `request` object
     """
     sess = requests.Session()
-    _auth = request.registry.settings.get("nginx.userpass")
+    _auth = request.registry.settings["app_settings"].get("nginx.userpass")
     if _auth:
         sess.auth = tuple(_auth.split(":"))
-    servers_allow_invalid = request.registry.settings.get(
+    servers_allow_invalid = request.registry.settings["app_settings"].get(
         "nginx.servers_pool_allow_invalid"
     )
     if servers_allow_invalid:
@@ -35,11 +35,11 @@ def nginx_flush_cache(request, ctx):
     :param request: The current Pyramid `request` object
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
-    _reset_path = request.registry.settings["nginx.reset_path"]
-    timeout = request.registry.settings["nginx.timeout"]
+    _reset_path = request.registry.settings["app_settings"]["nginx.reset_path"]
+    timeout = request.registry.settings["app_settings"]["nginx.timeout"]
     sess = new_nginx_session(request)
     rval = {"errors": [], "success": [], "servers": {}}
-    for _server in request.registry.settings["nginx.servers_pool"]:
+    for _server in request.registry.settings["app_settings"]["nginx.servers_pool"]:
         status = None
         try:
             reset_url = _server + _reset_path + "/all"
@@ -83,11 +83,11 @@ def nginx_status(request, ctx):
     :param request: The current Pyramid `request` object
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
-    status_path = request.registry.settings["nginx.status_path"]
-    timeout = request.registry.settings["nginx.timeout"]
+    status_path = request.registry.settings["app_settings"]["nginx.status_path"]
+    timeout = request.registry.settings["app_settings"]["nginx.timeout"]
     sess = new_nginx_session(request)
     rval = {"errors": [], "success": [], "servers": {}}
-    for _server in request.registry.settings["nginx.servers_pool"]:
+    for _server in request.registry.settings["app_settings"]["nginx.servers_pool"]:
         status = None
         try:
             status_url = _server + status_path
@@ -126,10 +126,10 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
     if not dbDomains:
         raise ValueError("no domains submitted")
     domain_ids = {"success": set([]), "failure": set([])}
-    _reset_path = request.registry.settings["nginx.reset_path"]
-    timeout = request.registry.settings["nginx.timeout"]
+    _reset_path = request.registry.settings["app_settings"]["nginx.reset_path"]
+    timeout = request.registry.settings["app_settings"]["nginx.timeout"]
     sess = new_nginx_session(request)
-    for _server in request.registry.settings["nginx.servers_pool"]:
+    for _server in request.registry.settings["app_settings"]["nginx.servers_pool"]:
         for domain in dbDomains:
             try:
                 reset_url = _server + _reset_path + "/domain/%s" % domain.domain_name

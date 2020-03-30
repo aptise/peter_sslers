@@ -71,23 +71,23 @@ class ViewAdmin_List(Handler):
             if wants_all:
                 url_template = (
                     "%s/queue-domains/all/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/queue-domains/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
         else:
             if wants_all:
                 url_template = (
                     "%s/queue-domains/all/{0}"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/queue-domains/{0}"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
         items_count = lib_db.get.get__QueueDomain__count(
             self.request.api_context,
@@ -157,7 +157,10 @@ class ViewAdmin_New(Handler):
             results_json = json.dumps(queue_results)
             return HTTPSeeOther(
                 "%s/queue-domains?result=success&is_created=1&results=%s"
-                % (self.request.registry.settings["admin_prefix"], results_json)
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    results_json,
+                )
             )
 
         except formhandling.FormInvalid as exc:
@@ -212,7 +215,7 @@ class ViewAdmin_Process(Handler):
                 return {"result": "success"}
             return HTTPSeeOther(
                 "%s/queue-domains?processed=1"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
         except (
             errors.AcmeError,
@@ -225,7 +228,10 @@ class ViewAdmin_Process(Handler):
                 return {"result": "error", "error": exc.as_querystring}
             return HTTPSeeOther(
                 "%s/queue-domains?processed=0&error=%s"
-                % (self.request.registry.settings["admin_prefix"], exc.as_querystring)
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    exc.as_querystring,
+                )
             )
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
@@ -247,7 +253,7 @@ class ViewAdmin_Focus(Handler):
             raise HTTPNotFound("the item was not found")
         self._focus_item = dbQueueDomain
         self._focus_url = "%s/queue-domain/%s" % (
-            self.request.registry.settings["admin_prefix"],
+            self.request.registry.settings["app_settings"]["admin_prefix"],
             dbQueueDomain.id,
         )
         return dbQueueDomain

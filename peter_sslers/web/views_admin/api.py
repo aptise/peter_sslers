@@ -73,7 +73,10 @@ class ViewAdminApi(Handler):
             }
         return HTTPSeeOther(
             "%s/operations/ca-certificate-probes?result=success&event.id=%s"
-            % (self.request.registry.settings["admin_prefix"], operations_event.id)
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                operations_event.id,
+            )
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -100,7 +103,10 @@ class ViewAdminApi(Handler):
 
         return HTTPSeeOther(
             "%s/operations/log?result=success&event.id=%s"
-            % (self.request.registry.settings["admin_prefix"], operations_event.id)
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                operations_event.id,
+            )
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,7 +124,10 @@ class ViewAdminApi(Handler):
             return {"result": "success", "operations_event": operations_event.id}
         return HTTPSeeOther(
             "%s/operations/log?result=success&event.id=%s"
-            % (self.request.registry.settings["admin_prefix"], operations_event.id)
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                operations_event.id,
+            )
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -431,7 +440,10 @@ class ViewAdminApi(Handler):
             }
         return HTTPSeeOther(
             "%s/operations/redis?result=success&operation=redis_prime&event.id=%s"
-            % (self.request.registry.settings["admin_prefix"], dbEvent.id)
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                dbEvent.id,
+            )
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -452,7 +464,10 @@ class ViewAdminApi(Handler):
             }
         return HTTPSeeOther(
             "%s/operations/nginx?result=success&operation=nginx_cache_flush&event.id=%s"
-            % (self.request.registry.settings["admin_prefix"], dbEvent.id)
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                dbEvent.id,
+            )
         )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -479,7 +494,7 @@ class ViewAdminApi(Handler):
                 return {"result": "success"}
             return HTTPSeeOther(
                 "%s/queue-certificates?update=1"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
         except Exception as exc:
             transaction.abort()
@@ -504,7 +519,10 @@ class ViewAdminApi(Handler):
                 queue_results = json.dumps(queue_results)
             return HTTPSeeOther(
                 "%s/queue-certificates?process=1&results=%s"
-                % (self.request.registry.settings["admin_prefix"], queue_results)
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    queue_results,
+                )
             )
         except Exception as exc:
             transaction.abort()

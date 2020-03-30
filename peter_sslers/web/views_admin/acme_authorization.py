@@ -61,12 +61,12 @@ class ViewAdmin_List(Handler):
         if self.request.wants_json:
             url_template = (
                 "%s/acme-authorizations/{0}.json"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
         else:
             url_template = (
                 "%s/acme-authorizations/{0}"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
         if url_status:
             url_template = "%s?status=%s" % (url_template, url_status)

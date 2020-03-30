@@ -46,13 +46,13 @@ class ViewAdmin_List(Handler):
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/private-keys/{0}"
-                % self.request.registry.settings["admin_prefix"],
+                % self.request.registry.settings["app_settings"]["admin_prefix"],
             )
         else:
             (pager, offset) = self._paginate(
                 items_count,
                 url_template="%s/private-keys/{0}.json"
-                % self.request.registry.settings["admin_prefix"],
+                % self.request.registry.settings["app_settings"]["admin_prefix"],
             )
         items_paged = lib_db.get.get__PrivateKey__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
@@ -82,7 +82,7 @@ class ViewAdmin_Focus(Handler):
             raise HTTPNotFound("the key was not found")
         self._focus_item = dbPrivateKey
         self._focus_url = "%s/private-key/%s" % (
-            self.request.registry.settings["admin_prefix"],
+            self.request.registry.settings["app_settings"]["admin_prefix"],
             dbPrivateKey.id,
         )
         return dbPrivateKey
@@ -334,7 +334,7 @@ class ViewAdmin_New(Handler):
         if self.request.wants_json:
             return {
                 "instructions": '''curl %s/private-key/new.json --form "bits=????"'''
-                % (self.request.registry.settings["admin_prefix"]),
+                % (self.request.registry.settings["app_settings"]["admin_prefix"]),
                 "form_fields": {"bits": "bits for the PrivateKey"},
                 "valid_options": {"bits": ["4096"]},
             }
@@ -367,7 +367,7 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther(
                 "%s/private-key/%s?result=success%s"
                 % (
-                    self.request.registry.settings["admin_prefix"],
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
                     dbPrivateKey.id,
                     "&is_created=1",
                 )
@@ -391,7 +391,7 @@ class ViewAdmin_New(Handler):
         if self.request.wants_json:
             return {
                 "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' %s/private-key/upload.json"""
-                % (self.request.registry.settings["admin_prefix"]),
+                % (self.request.registry.settings["app_settings"]["admin_prefix"]),
                 "form_fields": {"private_key_file_pem": "required"},
             }
 
@@ -431,7 +431,7 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther(
                 "%s/private-key/%s?result=success%s"
                 % (
-                    self.request.registry.settings["admin_prefix"],
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
                     dbPrivateKey.id,
                     ("&is_created=1" if _is_created else ""),
                 )

@@ -50,7 +50,7 @@ class ViewAdmin_List(Handler):
     @view_config(route_name="admin:domains:challenged|json", renderer="json")
     @view_config(route_name="admin:domains:challenged_paginated|json", renderer="json")
     def list(self):
-        expiring_days = self.request.registry.settings["expiring_days"]
+        expiring_days = self.request.registry.settings["app_settings"]["expiring_days"]
         if self.request.matched_route.name in (
             "admin:domains:expiring",
             "admin:domains:expiring_paginated",
@@ -61,12 +61,12 @@ class ViewAdmin_List(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/domains/expiring/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/domains/expiring/{0}"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             items_count = lib_db.get.get__Domain__count(
                 self.request.api_context, expiring_days=expiring_days
@@ -88,12 +88,12 @@ class ViewAdmin_List(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/domains/challenged/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
                     "%s/domains/challenged/{0}"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             items_count = lib_db.get.get__Domains_challenged__count(
                 self.request.api_context
@@ -107,11 +107,12 @@ class ViewAdmin_List(Handler):
             if self.request.wants_json:
                 url_template = (
                     "%s/domains/{0}.json"
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             else:
                 url_template = (
-                    "%s/domains/{0}" % self.request.registry.settings["admin_prefix"]
+                    "%s/domains/{0}"
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
             items_count = lib_db.get.get__Domain__count(self.request.api_context)
             (pager, offset) = self._paginate(items_count, url_template=url_template)
@@ -239,7 +240,7 @@ class ViewAdmin_Focus(Handler):
             raise HTTPNotFound("the domain was not found")
         self._focus_item = dbDomain
         self._focus_url = "%s/domain/%s" % (
-            self.request.registry.settings["admin_prefix"],
+            self.request.registry.settings["app_settings"]["admin_prefix"],
             dbDomain.id,
         )
         return dbDomain
@@ -274,7 +275,7 @@ class ViewAdmin_Focus(Handler):
     )
     def focus_nginx_expire(self):
         dbDomain = self._focus(eagerload_web=True)
-        if not self.request.registry.settings["enable_nginx"]:
+        if not self.request.registry.settings["app_settings"]["enable_nginx"]:
             raise HTTPSeeOther("%s?result=error&error=no+nginx" % self._focus_url)
         success, dbEvent = utils_nginx.nginx_expire_cache(
             self.request, self.request.api_context, dbDomains=[dbDomain]

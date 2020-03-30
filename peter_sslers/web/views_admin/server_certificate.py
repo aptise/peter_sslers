@@ -84,7 +84,7 @@ class ViewAdmin_List(Handler):
         route_name="admin:server_certificates:inactive_paginated|json", renderer="json"
     )
     def list(self):
-        expiring_days = self.request.registry.settings["expiring_days"]
+        expiring_days = self.request.registry.settings["app_settings"]["expiring_days"]
         if self.request.matched_route.name in (
             "admin:server_certificates:expiring",
             "admin:server_certificates:expiring_paginated",
@@ -94,7 +94,7 @@ class ViewAdmin_List(Handler):
             sidenav_option = "expiring"
             url_template = (
                 "%s/server-certificates/expiring/{0}"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -117,7 +117,7 @@ class ViewAdmin_List(Handler):
             sidenav_option = "active"
             url_template = (
                 "%s/server-certificates/active/{0}"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -140,7 +140,7 @@ class ViewAdmin_List(Handler):
             sidenav_option = "inactive"
             url_template = (
                 "%s/server-certificates/active/{0}"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -158,7 +158,7 @@ class ViewAdmin_List(Handler):
             sidenav_option = "all"
             url_template = (
                 "%s/server-certificates/{0}"
-                % self.request.registry.settings["admin_prefix"]
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
             if self.request.wants_json:
                 url_template = "%s.json" % url_template
@@ -296,7 +296,9 @@ class ViewAdmin_New(Handler):
                         "id": dbServerCertificate.id,
                         "url": "%s/server-certificate/%s"
                         % (
-                            self.request.registry.settings["admin_prefix"],
+                            self.request.registry.settings["app_settings"][
+                                "admin_prefix"
+                            ],
                             dbServerCertificate.id,
                         ),
                     },
@@ -309,7 +311,7 @@ class ViewAdmin_New(Handler):
             return HTTPSeeOther(
                 "%s/server-certificate/%s"
                 % (
-                    self.request.registry.settings["admin_prefix"],
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
                     dbServerCertificate.id,
                 )
             )
@@ -329,7 +331,7 @@ class ViewAdmin_Focus(Handler):
             raise HTTPNotFound("invalid ServerCertificate")
         self._focus_item = dbServerCertificate
         self._focus_url = "%s/server-certificate/%s" % (
-            self.request.registry.settings["admin_prefix"],
+            self.request.registry.settings["app_settings"]["admin_prefix"],
             dbServerCertificate.id,
         )
         return dbServerCertificate
@@ -469,7 +471,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     )
     def nginx_expire(self):
         dbServerCertificate = self._focus()
-        if not self.request.registry.settings["enable_nginx"]:
+        if not self.request.registry.settings["app_settings"]["enable_nginx"]:
             raise HTTPSeeOther("%s?result=error&error=no+nginx" % self._focus_url)
         dbDomains = [
             c2d.domain for c2d in dbServerCertificate.unique_fqdn_set.to_domains

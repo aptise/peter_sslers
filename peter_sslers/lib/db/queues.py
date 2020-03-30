@@ -179,7 +179,10 @@ def _get_default_PrivateKey(ctx):
         # ToDo: refactor `ctx.request.registry.settings`
         raise ValueError("must be invoked within Pyramid")
 
-    use_weekly_key = ctx.request.registry.settings["queue_domains_use_weekly_key"]
+    raise ValueError("deprecated for key-cycling")
+    use_weekly_key = ctx.request.registry.settings["app_settings"][
+        "queue_domains_use_weekly_key"
+    ]
     if use_weekly_key:
         dbPrivateKey = lib.db.get.get__PrivateKey__current_week(ctx)
         if not dbPrivateKey:
@@ -216,8 +219,12 @@ def queue_domains__process(
         raise ValueError("must be invoked with dbAcmeAccountKey, dbPrivateKey")
 
     try:
-        min_domains = ctx.request.registry.settings["queue_domains_min_per_cert"]
-        _max_max_domains = ctx.request.registry.settings["queue_domains_max_per_cert"]
+        min_domains = ctx.request.registry.settings["app_settings"][
+            "queue_domains_min_per_cert"
+        ]
+        _max_max_domains = ctx.request.registry.settings["app_settings"][
+            "queue_domains_max_per_cert"
+        ]
         max_domains_per_certificate = (
             _max_max_domains
             if max_domains_per_certificate > _max_max_domains

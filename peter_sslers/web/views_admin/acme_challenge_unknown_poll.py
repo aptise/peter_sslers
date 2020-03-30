@@ -48,7 +48,7 @@ class ViewAdmin_List(Handler):
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/acme-challenge-unknown-polls/{0}"
-            % self.request.registry.settings["admin_prefix"],
+            % self.request.registry.settings["app_settings"]["admin_prefix"],
         )
         items_paged = lib_db.get.get__AcmeChallengeUnknownPoll__paginated(
             self.request.api_context, limit=items_per_page, offset=offset

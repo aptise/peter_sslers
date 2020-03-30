@@ -197,6 +197,18 @@
                             <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.key">key.key (der)</a>
                         </td>
                     </tr>
+                    <tr>
+                        <th>PrivateKey cycle</th>
+                        <td>
+                            <code>${AcmeAccountKey.private_key_cycle}</code>
+                            <a  href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/edit"
+                                class="btn btn-xs btn-info"
+                            >
+                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                                Edit
+                            </a>                        
+                        </td>
+                    </tr>
                     ${admin_partials.table_tr_OperationsEventCreated(AcmeAccountKey)}
                 </tbody>
                 <thead>

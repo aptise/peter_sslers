@@ -46,13 +46,13 @@ class ViewAdmin_List(Handler):
         route_name="admin:acme_orderlesss_paginated|json", renderer="json",
     )
     def list(self):
-        if not self.request.registry.settings["enable_acme_flow"]:
+        if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
         items_count = lib_db.get.get__AcmeOrderless__count(self.request.api_context)
         (pager, offset) = self._paginate(
             items_count,
             url_template="%s/acme-orderlesss/{0}"
-            % self.request.registry.settings["admin_prefix"],
+            % self.request.registry.settings["app_settings"]["admin_prefix"],
         )
         items_paged = lib_db.get.get__AcmeOrderless__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
@@ -75,7 +75,7 @@ class ViewAdmin_New(Handler):
     @view_config(route_name="admin:acme_orderless:new")
     @view_config(route_name="admin:acme_orderless:new|json", renderer="json")
     def new_AcmeOrderless(self):
-        if not self.request.registry.settings["enable_acme_flow"]:
+        if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
 
         self._load_AcmeAccountKey_GlobalDefault()
@@ -90,7 +90,7 @@ class ViewAdmin_New(Handler):
             return {
                 "instructions": [
                     """curl --form 'domain_names=@domain_names' %s/acme-orderless/new.json"""
-                    % self.request.registry.settings["admin_prefix"]
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
                 ],
                 "form_fields": {
                     "domain_names": "a comma separated list of domain names"
@@ -162,7 +162,10 @@ class ViewAdmin_New(Handler):
 
             return HTTPSeeOther(
                 "%s/acme-orderless/%s"
-                % (self.request.registry.settings["admin_prefix"], dbAcmeOrderless.id,)
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    dbAcmeOrderless.id,
+                )
             )
 
         except formhandling.FormInvalid as exc:
@@ -208,7 +211,7 @@ class ViewAdmin_Focus(Handler):
     )
     @view_config(route_name="admin:acme_orderless:focus|json", renderer="json")
     def focus(self):
-        if not self.request.registry.settings["enable_acme_flow"]:
+        if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
         dbAcmeOrderless = self._focus()
         if self.request.wants_json:
@@ -371,7 +374,7 @@ class ViewAdmin_Focus_Challenge(ViewAdmin_Focus):
         route_name="admin:acme_orderless:focus:acme_challenge|json", renderer="json",
     )
     def focus(self):
-        if not self.request.registry.settings["enable_acme_flow"]:
+        if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
         dbAcmeOrderless = self._focus()
         id_challenge = int(self.request.matchdict["id_challenge"])

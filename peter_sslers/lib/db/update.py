@@ -77,6 +77,20 @@ def update_AcmeAccountKey__set_global_default(ctx, dbAcmeAccountKey):
     return event_status, alt_info
 
 
+def update_AcmeAccountKey__private_key_cycle(ctx, dbAcmeAccountKey, private_key_cycle):
+    if dbAcmeAccountKey.private_key_cycle == private_key_cycle:
+        raise errors.InvalidTransition("Already updated")
+    private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
+    if (
+        private_key_cycle_id
+        not in model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle_id
+    ):
+        raise errors.InvalidTransition("invalid option")
+    dbAcmeAccountKey.private_key_cycle_id = private_key_cycle_id
+    event_status = "AcmeAccountKey__edit"
+    return event_status
+
+
 def update_AcmeAuthorization_from_payload(
     ctx, dbAcmeAuthorization, authorization_payload
 ):

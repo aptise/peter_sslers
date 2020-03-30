@@ -143,7 +143,7 @@
                                 config.json</a>
                         </td>
                     </tr>
-                    % if request.registry.settings['enable_nginx']:
+                    % if request.registry.settings["app_settings"]['enable_nginx']:
                         <tr>
                             <th>Nginx cache</th>
                             <td>

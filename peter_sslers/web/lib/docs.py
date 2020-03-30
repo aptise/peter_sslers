@@ -219,6 +219,16 @@ json_capable = {
         "args": None,
         "example": "curl {ADMIN_PREFIX}/acme-order/{ID}.json",
     },
+    "/acme-order/new/automated.json": {
+        "endpoint": "/acme-order/new/automated.json",
+        "section": "acme-order",
+        "about": """create a new acme order""",
+        "POST": None,
+        "GET": True,
+        "GET-SELF-DOCUMENTING": True,
+        "args": None,
+        "example": "curl {ADMIN_PREFIX}/acme-order/{ID}.json",
+    },
     "/acme-orderless/new.json": {
         "endpoint": "/acme-orderless/new.json",
         "section": "acme-orderless",
