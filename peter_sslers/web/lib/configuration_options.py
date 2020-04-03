@@ -89,13 +89,13 @@ documentation_grid = {
         "private_key_cycle": {
             "docstring": "How should PrivateKeys be cycled?",
             "default": "`None`",
-            "default-notes": "Must be set. One of: certificate, daily_account, daily_global, weekly_account, weekly_global",
+            "default-notes": "Must be set. One of: single_certificate, daily_account, daily_global, weekly_account, weekly_global",
             "show_on_settings": True,
         },
         "private_key_backup": {
             "docstring": "How should PrivateKeys be cycled as a backup?",
             "default": "`None`",
-            "default-notes": "Must be set. One of: certificate, daily_account, daily_global, weekly_account, weekly_global",
+            "default-notes": "Must be set. One of: single_certificate, daily_account, daily_global, weekly_account, weekly_global",
             "show_on_settings": True,
         },
         "queue_domains_max_per_cert": {

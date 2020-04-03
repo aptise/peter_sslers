@@ -142,7 +142,7 @@ def import_certbot_certs_archive(archive_path, server_url_root):
             continue
         # we best only have sets of 4 files...
         if len(dfiles) % 4:
-            raise ValueError("`%s` does not look to be a letsencrypt directory" % dpath)
+            raise ValueError("`%s` does not look to be a Certbot directory" % dpath)
         total_sets = len(dfiles) / 4
         for i in range(1, total_sets + 1):
             fset = {}
@@ -150,7 +150,7 @@ def import_certbot_certs_archive(archive_path, server_url_root):
                 fpath = os.path.join(dpath, ftemplate % i)
                 if not os.path.exists(fpath):
                     raise ValueError(
-                        "`%s` does not look to be a letsencrypt directory; expected %s"
+                        "`%s` does not look to be a Certbot directory; expected %s"
                         % (dpath, fpath)
                     )
                 fset[ftype] = fpath
@@ -287,7 +287,7 @@ def import_certbot_certs_live(live_path, server_url_root):
         # ensure we have the right files in here...
         # ['cert.pem', 'chain.pem', 'fullchain.pem', 'privkey.pem', 'README']
         if len(dfiles) != 5:
-            raise ValueError("`%s` does not look to be a letsencrypt directory" % dpath)
+            raise ValueError("`%s` does not look to be a Certbot directory" % dpath)
 
         fset = {}
         try:
@@ -295,7 +295,7 @@ def import_certbot_certs_live(live_path, server_url_root):
                 fpath = os.path.join(dpath, fname)
                 if not os.path.exists(fpath):
                     raise ValueError(
-                        "`%s` does not look to be a letsencrypt file" % (fpath)
+                        "`%s` does not look to be a Certbot file" % (fpath)
                     )
                 fset[ftype] = fpath
             filesets.append(fset)
@@ -318,14 +318,14 @@ def _accountPath_to_fileSet(account_path):
     # ensure we have the right files in here...
     if len(dfiles) != 3:
         raise ValueError(
-            "`%s` does not look to be a letsencrypt account directory" % account_path
+            "`%s` does not look to be a Certbot account directory" % account_path
         )
     fset = {}
     for fname in _le_account_filenames:
         fpath = os.path.join(account_path, fname)
         if not os.path.exists(fpath):
             raise ValueError(
-                "`%s` does not look to be a letsencrypt account directory; expected %s"
+                "`%s` does not look to be a Certbot account directory; expected %s"
                 % (account_path, fname)
             )
         fset[fname] = fpath
@@ -335,9 +335,9 @@ def _accountPath_to_fileSet(account_path):
 def import_certbot_account(account_path, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
-    imports a specific letsencrypt account
+    imports a specific Certbot account
 
-    :param str account_path: (required) the path to an archive. usually `//etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`
+    :param str account_path: (required) the path to an archive. usually `/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`
     :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
     """
     if not all((account_path, server_url_root)):
@@ -357,9 +357,9 @@ def import_certbot_account(account_path, server_url_root):
 def import_certbot_accounts_server(accounts_path_server, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
-    imports all accounts for a given letsencrypt server
+    imports all accounts for a given Certbot server
 
-    :param str accounts_path_server: (required) the path to an archive. usually `//etc/letsencrypt/accounts/{SERVER}`
+    :param str accounts_path_server: (required) the path to an archive. usually `/etc/letsencrypt/accounts/{SERVER}`
     :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
     """
     if not all((accounts_path_server, server_url_root)):
@@ -375,7 +375,7 @@ def import_certbot_accounts_server(accounts_path_server, server_url_root):
     # ensure we have the right files in here...
     if (len(dfiles) != 1) or ("directory" not in dfiles):
         raise ValueError(
-            "`%s` does not look to be a letsencrypt server account directory"
+            "`%s` does not look to be a Certbot server account directory"
             % accounts_path_server
         )
 
@@ -401,9 +401,9 @@ def import_certbot_accounts_all(accounts_path_all, server_url_root):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
 
-    imports all accounts for a letsencrypt install
+    imports all accounts for a Certbot install
 
-    :param str accounts_path_all: (required) the path to an archive. usually `//etc/letsencrypt/accounts`
+    :param str accounts_path_all: (required) the path to an archive. usually `/etc/letsencrypt/accounts`
     :param str server_url_root: (required) the url to the peter_sslers web app. usually `http://127.0.0.1:7201/.well-known/admin`
     """
     if not all((accounts_path_all, server_url_root)):
@@ -421,8 +421,7 @@ def import_certbot_accounts_all(accounts_path_all, server_url_root):
         not all([True if d.startswith("acme-") else False for d in serverNames])
     ):
         raise ValueError(
-            "`%s` does not look to be a letsencrypt accounts directory"
-            % accounts_path_all
+            "`%s` does not look to be a Certbot accounts directory" % accounts_path_all
         )
 
     filesets = []

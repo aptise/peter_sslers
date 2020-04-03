@@ -60,6 +60,8 @@ def main(argv=sys.argv):
 
     with transaction.manager:
         dbSession = get_tm_session(None, session_factory, transaction.manager)
+
+        # this will setup the initial AcmeAccountProviders and the placeholder PrivateKey
         _setup.initialize_AcmeAccountProviders(dbSession)
 
     transaction.commit()

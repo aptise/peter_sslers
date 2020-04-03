@@ -56,13 +56,13 @@
             
             <h4>Elements Explained</h4>
             <ul class="list list-unstyled">
-                <li><code>token</code> is the name of the file letsencrypt expects at a url.</li>
+                <li><code>token</code> is the name of the file LetsEncrypt expects at a url.</li>
                 <li><code>keyauthorization</code> are the expected contents for the file.</li>
                 ## Note: challenge_url is not supported until this is integrated with an AcmeAccount
                 ## <li><code>challenge_url</code> is the ACME url that manages the challenge, not your url.</li>
             </ul>
 
-            <p>If letsencrypt says the url should be <code>example.com/acme-challenge/foo-bar-biz</code> , then the token is <code>foo-bar-biz</code></p>
+            <p>If LetsEncrypt says the url should be <code>example.com/acme-challenge/foo-bar-biz</code> , then the token is <code>foo-bar-biz</code></p>
 
             <p>
                 note: Visiting a `test` URL will direct you to the actual verification URL with "?test=1" appended.  This string instructs the server to not log the visit.  If the "?test=1" string is missing, the server will log the visit.  This is used to track the ACME server verification visits.

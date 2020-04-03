@@ -64,6 +64,8 @@ Do you like book-keeping?  Peter's `Pryamid` component logs everything into SQL 
 * What authorizations are still pending?
 * What challenges are active?
 * Which external ips are triggering my challenges?
+* Where did this PrivateKey come from?
+* How many requests have I been making to upstream servers?
 
 THIS PACKAGE IS EXTREME TO THE MAX!!!
 

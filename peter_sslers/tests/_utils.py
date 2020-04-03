@@ -322,6 +322,9 @@ class AppTest(AppTestCore):
                     private_key_source_id=model_utils.PrivateKeySource.from_string(
                         "imported"
                     ),
+                    private_key_type_id=model_utils.PrivateKeyType.from_string(
+                        "standard"
+                    ),
                 )
                 # print(_key_private1, _is_created)
                 # self.ctx.pyramid_transaction_commit()

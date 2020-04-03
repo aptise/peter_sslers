@@ -19,7 +19,7 @@ from ..lib.forms import Form_AcmeAccountKey_new__auth
 from ..lib.forms import Form_AcmeAccountKey_new__file
 from ..lib.forms import Form_AcmeAccountKey_mark
 from ..lib.forms import Form_AcmeAccountKey_edit
-from ..lib.form_utils import AccountKeyUploadParser
+from ..lib.form_utils import AcmeAccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils
@@ -97,6 +97,7 @@ class ViewAdmin_New(Handler):
                     "account_key_file_le_pkey": "Group B",
                     "account_key_file_le_reg": "Group B",
                     "contact": "acme contact",
+                    "private_key_cycle": "how should the PrivateKey be cycled for this account?",
                 },
                 "notes": ["You must submit ALL items from Group A or Group B"],
                 "valid_options": {
@@ -104,6 +105,7 @@ class ViewAdmin_New(Handler):
                         i.id: "%s (%s)" % (i.name, i.url)
                         for i in self.dbAcmeAccountProviders
                     },
+                    "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
@@ -121,8 +123,9 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            parser = AccountKeyUploadParser(formStash)
+            parser = AcmeAccountKeyUploadParser(formStash)
             parser.require_upload()
+            # this will have `contact` and `private_key_cycle`
             key_create_args = parser.getcreate_args
             acme_account_provider_id = key_create_args.get("acme_account_provider_id")
             if acme_account_provider_id:
@@ -189,6 +192,7 @@ class ViewAdmin_New(Handler):
                 "form_fields": {
                     "acme_account_provider_id": "which provider",
                     "contact": "acme contact",
+                    "private_key_cycle": "how should the PrivateKey be cycled for this account?",
                 },
                 "notes": [""],
                 "valid_options": {
@@ -196,6 +200,7 @@ class ViewAdmin_New(Handler):
                         i.id: "%s (%s)" % (i.name, i.url)
                         for i in self.dbAcmeAccountProviders
                     },
+                    "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
@@ -236,10 +241,11 @@ class ViewAdmin_New(Handler):
                     message="This provider is no longer enabled.",
                 )
 
-            parser = AccountKeyUploadParser(formStash)
+            parser = AcmeAccountKeyUploadParser(formStash)
             parser.require_new()
+            # this will have `contact` and `private_key_cycle`
             key_create_args = parser.getcreate_args
-            key_pem = cert_utils.new_account_key(bits=2048)
+            key_pem = cert_utils.new_account_key()  # bits=2048)
             key_create_args["key_pem"] = key_pem
             key_create_args["event_type"] = "AcmeAccountKey__create"
             key_create_args[
@@ -366,52 +372,6 @@ class ViewAdmin_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:acme_account_key:focus:edit")
-    @view_config(route_name="admin:acme_account_key:focus:edit|json", renderer="json")
-    def focus_edit(self):
-        dbAcmeAccountKey = self._focus(eagerload_web=True)
-        if self.request.method == "POST":
-            return self._focus_edit__submit()
-        return self._focus_edit__print()
-
-    def _focus_edit__print(self):
-        if self.request.wants_json:
-            return {
-                "instructions": [
-                    """curl --form 'private_key_cycle=certificate' %s/acme-account-key/{ID}/edit.json"""
-                    % self.request.admin_url,
-                ],
-                "form_fields": {
-                    "private_key_cycle": "option for cycling the private key",
-                },
-                "notes": [""],
-                "valid_options": {
-                    "private_key_cycle": [
-                        model_utils.PrivateKeyCycle._mapping[_id]
-                        for _id in model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle_id
-                    ],
-                },
-            }
-        return render_to_response(
-            "/admin/acme_account_key-focus-edit.mako",
-            {"AcmeAccountKey": self.dbAcmeAccountKey},
-            self.request,
-        )
-
-    def _focus_edit__submit(self):
-        try:
-            (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeAccountKey_edit, validate_get=False
-            )
-            if not result:
-                raise formhandling.FormInvalid()
-            raise ValueError("wtf")
-        except formhandling.FormInvalid as exc:
-            if self.request.wants_json:
-                return {"result": "error", "form_errors": formStash.errors}
-            return formhandling.form_reprint(self.request, self._focus_edit__print)
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @view_config(
         route_name="admin:acme_account_key:focus:acme_authorizations",
         renderer="/admin/acme_account_key-focus-acme_authorizations.mako",
@@ -578,6 +538,92 @@ class ViewAdmin_Focus(Handler):
 
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
+    @view_config(route_name="admin:acme_account_key:focus:edit")
+    @view_config(route_name="admin:acme_account_key:focus:edit|json", renderer="json")
+    def focus_edit(self):
+        dbAcmeAccountKey = self._focus(eagerload_web=True)
+        if self.request.method == "POST":
+            return self._focus_edit__submit()
+        return self._focus_edit__print()
+
+    def _focus_edit__print(self):
+        if self.request.wants_json:
+            return {
+                "instructions": [
+                    """curl --form 'private_key_cycle=certificate' %s/acme-account-key/{ID}/edit.json"""
+                    % self.request.admin_url,
+                ],
+                "form_fields": {
+                    "private_key_cycle": "option for cycling the PrivateKey on renewals",
+                },
+                "notes": [""],
+                "valid_options": {
+                    "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
+                },
+            }
+        return render_to_response(
+            "/admin/acme_account_key-focus-edit.mako",
+            {"AcmeAccountKey": self.dbAcmeAccountKey},
+            self.request,
+        )
+
+    def _focus_edit__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_AcmeAccountKey_edit, validate_get=False
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            event_type = model_utils.OperationsEventType.from_string(
+                "AcmeAccountKey__edit"
+            )
+            event_payload_dict = utils.new_event_payload_dict()
+            event_payload_dict["account_key_id"] = self.dbAcmeAccountKey.id
+            event_payload_dict["action"] = "edit"
+            event_payload_dict["edit"] = {
+                "old": {"private_key_cycle": self.dbAcmeAccountKey.private_key_cycle},
+                "new": {"private_key_cycle": self.dbAcmeAccountKey.private_key_cycle},
+            }
+
+            try:
+                event_status = lib_db.update.update_AcmeAccountKey__private_key_cycle(
+                    self.request.api_context,
+                    self.dbAcmeAccountKey,
+                    formStash.results["private_key_cycle"],
+                )
+            except errors.InvalidTransition as exc:
+                # `formStash.fatal_form(` will raise a `FormInvalid()`
+                formStash.fatal_form(message=exc.args[0])
+
+            # bookkeeping
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
+                self.request.api_context, event_type, event_payload_dict
+            )
+            lib_db.logger._log_object_event(
+                self.request.api_context,
+                dbOperationsEvent=dbOperationsEvent,
+                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                    event_status
+                ),
+                dbAcmeAccountKey=self.dbAcmeAccountKey,
+            )
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "AcmeAccountKey": self.dbAcmeAccountKey.as_json,
+                }
+            url_success = "%s?result=success&operation=edit" % (self._focus_url,)
+            return HTTPSeeOther(url_success)
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._focus_edit__print)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(route_name="admin:acme_account_key:focus:authenticate", renderer=None)
     @view_config(
         route_name="admin:acme_account_key:focus:authenticate|json", renderer="json"
@@ -725,7 +771,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     dbAcmeAccountKey=event_alt[1],
                 )
             if self.request.wants_json:
-                return {"result": "success", "AcmeAccountKey": dbAcmeAccountKey}
+                return {"result": "success", "AcmeAccountKey": dbAcmeAccountKey.as_json}
             url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
                 action,

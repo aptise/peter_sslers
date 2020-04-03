@@ -80,14 +80,19 @@ def update_AcmeAccountKey__set_global_default(ctx, dbAcmeAccountKey):
 def update_AcmeAccountKey__private_key_cycle(ctx, dbAcmeAccountKey, private_key_cycle):
     if dbAcmeAccountKey.private_key_cycle == private_key_cycle:
         raise errors.InvalidTransition("Already updated")
-    private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(private_key_cycle)
+    try:
+        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle
+        )
+    except KeyError:
+        raise errors.InvalidTransition("invalid option")
     if (
         private_key_cycle_id
         not in model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle_id
     ):
         raise errors.InvalidTransition("invalid option")
     dbAcmeAccountKey.private_key_cycle_id = private_key_cycle_id
-    event_status = "AcmeAccountKey__edit"
+    event_status = "AcmeAccountKey__edit__primary_key_cycle"
     return event_status
 
 
@@ -176,6 +181,9 @@ def update_PrivateKey__set_global_default(ctx, dbPrivateKey):
 
     if not dbPrivateKey.is_active:
         raise errors.InvalidTransition("Key not active")
+
+    if dbPrivateKey.acme_account_key_id__owner:
+        raise errors.InvalidTransition("Key belongs to an AcmeAccount")
 
     alt_info = {}
     formerDefaultKey = get__PrivateKey__GlobalDefault(ctx)

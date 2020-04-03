@@ -123,10 +123,10 @@ class ViewAdmin_New(Handler):
                     field="domain_names", message="missing valid domain names"
                 )
 
-            accountKeySelection = form_utils.parse_AccountKeySelection(
+            accountKeySelection = form_utils.parse_AcmeAccountKeySelection(
                 self.request,
                 formStash,
-                seek_selected=formStash.results["account_key_option"],
+                account_key_option=formStash.results["account_key_option"],
             )
             if accountKeySelection.selection == "upload":
                 key_create_args = accountKeySelection.upload_parsed.getcreate_args

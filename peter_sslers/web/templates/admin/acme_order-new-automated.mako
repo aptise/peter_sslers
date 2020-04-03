@@ -51,10 +51,21 @@
                 <hr/>
 
                 <h3>PrivateKey</h3>
-                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_key_default=True, option_generate_new=True)}
+                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_key_default=True, option_generate_new=True, default="private_key_for_account_key")}
                 <hr/>
 
                 ${admin_partials.formgroup__domain_names()}
+                <hr/>
+
+                <div class="form-group">
+                    <label for="private_key_cycle">Private Key Cycle - Renewals</label>
+                    <select class="form-control" name="private_key_cycle__renewal">
+                        <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
+                        % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeOrder_private_key_cycle:
+                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
+                        % endfor
+                    </select>
+                </div>
                 <hr/>
 
                 ${admin_partials.formgroup__processing_strategy()}

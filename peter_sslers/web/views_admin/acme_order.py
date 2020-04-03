@@ -463,17 +463,17 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.wants_json:
             return {
                 "form_fields": {
-                    "processing_strategy": "One of ('create_order', 'process_single', 'process_multi'). REQUIRED.",
-                    "account_key_option": "One of ('account_key_reuse', 'account_key_global_default', 'account_key_existing', 'account_key_file'). REQUIRED.",
+                    "processing_strategy": "How should the order be processed?",
+                    "account_key_option": "How is the AcmeAccountKey specified?",
                     "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
                     "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
                     "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
                     "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
                     "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
-                    "account_key_file_le_meta": "letsencrypt file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
-                    "account_key_file_le_pkey": "letsencrypt file",
-                    "account_key_file_le_reg": "letsencrypt file",
-                    "private_key_option": "One of('private_key_reuse', 'private_key_existing', 'private_key_file_pem', 'private_key_option'). REQUIRED.",
+                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                    "private_key_option": "How is the PrivateKey being specified?",
                     "private_key_reuse": "pem_md5 of existing key",
                     "private_key_existing": "pem_md5 of existing key",
                     "private_key_file_pem": "pem to upload",
@@ -489,11 +489,14 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 "valid_options": {
                     "acme_account_provider_id": {
                         i.id: "%s (%s)" % (i.name, i.url)
-                        for i in dbAcmeAccountProviders
+                        for i in self.dbAcmeAccountProviders
                     },
+                    "account_key_option": model_utils.AcmeAccontKey_options_b,
+                    "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+                    "private_key_option": model_utils.PrivateKey_options_b,
                 },
                 "requirements": [
-                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three letsencrypt files."
+                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
                 ],
                 "instructions": [
                     """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/1/renew/custom.json"""
@@ -528,11 +531,13 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 self.request, formStash
             )
             processing_strategy = formStash.results["processing_strategy"]
+            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             (
                 dbAcmeOrderNew,
                 exc,
             ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
                 self.request.api_context,
+                private_key_cycle__renewal=private_key_cycle__renewal,
                 processing_strategy=processing_strategy,
                 dbAcmeOrder=dbAcmeOrder,
                 dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
@@ -583,7 +588,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.wants_json:
             return {
                 "form_fields": {
-                    "processing_strategy": "One of ('create_order', 'process_single', 'process_multi'). REQUIRED.",
+                    "processing_strategy": "How should the order be processed?",
+                },
+                "valid_options": {
+                    "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 },
                 "instructions": [
                     """curl --form 'processing_strategy=create_order' %s/acme-order/1/renew/quick.json"""
@@ -609,13 +617,15 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             if not result:
                 raise formhandling.FormInvalid()
             processing_strategy = formStash.results["processing_strategy"]
+            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             (
                 dbAcmeOrderNew,
                 exc,
             ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_quick(
                 self.request.api_context,
-                dbAcmeOrder=dbAcmeOrder,
+                private_key_cycle__renewal=private_key_cycle__renewal,
                 processing_strategy=processing_strategy,
+                dbAcmeOrder=dbAcmeOrder,
             )
             if exc:
                 raise exc
@@ -660,9 +670,47 @@ class ViewAdmin_New(Handler):
     def _new_automated__print(self):
         if self.request.wants_json:
             return {
-                "form_fields": {},
+                "form_fields": {
+                    "processing_strategy": "How should the order be processed?",
+                    "account_key_option": "How is the AcmeAccountKey specified?",
+                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                    "private_key_option": "How is the PrivateKey being specified?",
+                    "private_key_reuse": "pem_md5 of existing key",
+                    "private_key_existing": "pem_md5 of existing key",
+                    "private_key_file_pem": "pem to upload",
+                },
+                "form_fields_related": [
+                    ["account_key_file_pem", "acme_account_provider_id"],
+                    [
+                        "account_key_file_le_meta",
+                        "account_key_file_le_pkey",
+                        "account_key_file_le_reg",
+                    ],
+                ],
+                "valid_options": {
+                    "acme_account_provider_id": {
+                        i.id: "%s (%s)" % (i.name, i.url)
+                        for i in self.dbAcmeAccountProviders
+                    },
+                    "account_key_option": model_utils.AcmeAccontKey_options_b,
+                    "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+                    "private_key_option": model_utils.PrivateKey_options_b,
+                },
+                "requirements": [
+                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+                ],
+                "instructions": [
+                    """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/new/automated.json"""
+                    % self.request.admin_url
+                ],
             }
-
         return render_to_response(
             "/admin/acme_order-new-automated.mako",
             {
@@ -697,10 +745,10 @@ class ViewAdmin_New(Handler):
                     message="invalid or no valid domain names detected",
                 )
 
-            accountKeySelection = form_utils.parse_AccountKeySelection(
+            accountKeySelection = form_utils.parse_AcmeAccountKeySelection(
                 self.request,
                 formStash,
-                seek_selected=formStash.results["account_key_option"],
+                account_key_option=formStash.results["account_key_option"],
             )
             if accountKeySelection.selection == "upload":
                 key_create_args = accountKeySelection.upload_parsed.getcreate_args
@@ -719,7 +767,7 @@ class ViewAdmin_New(Handler):
             privateKeySelection = form_utils.parse_PrivateKeySelection(
                 self.request,
                 formStash,
-                seek_selected=formStash.results["private_key_option"],
+                private_key_option=formStash.results["private_key_option"],
             )
 
             if privateKeySelection.selection == "upload":
@@ -728,6 +776,9 @@ class ViewAdmin_New(Handler):
                 key_create_args[
                     "private_key_source_id"
                 ] = model_utils.PrivateKeySource.from_string("imported")
+                key_create_args[
+                    "private_key_type_id"
+                ] = model_utils.PrivateKeyType.from_string("standard")
                 (
                     dbPrivateKey,
                     _is_created,
@@ -736,18 +787,20 @@ class ViewAdmin_New(Handler):
                 )
                 privateKeySelection.PrivateKey = dbPrivateKey
 
-            elif privateKeySelection.selection == "generate":
-                dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
-                    self.request.api_context, 0
+            elif privateKeySelection.selection in (
+                "generate",
+                "private_key_for_account_key",
+            ):
+                pass
+
+            else:
+                formStash.fatal_field(
+                    field="private_key_option",
+                    message="Could not load the default private key",
                 )
-                if not dbPrivateKey:
-                    formStash.fatal_field(
-                        field="private_key_option",
-                        message="Could not load the default private key",
-                    )
-                privateKeySelection.PrivateKey = dbPrivateKey
 
             processing_strategy = formStash.results["processing_strategy"]
+            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             try:
                 (
                     dbAcmeOrder,
@@ -756,11 +809,14 @@ class ViewAdmin_New(Handler):
                     self.request.api_context,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
                     domain_names=domain_names,
+                    private_key_cycle__renewal=private_key_cycle__renewal,
+                    private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
                     processing_strategy=processing_strategy,
                     dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
                     dbPrivateKey=privateKeySelection.PrivateKey,
                 )
                 if exc:
+                    raise
                     if isinstance(exc, errors.AcmeError):
                         return HTTPSeeOther(
                             "%s/acme-order/%s?result=error&error=new-automated&message=%s"
@@ -792,6 +848,7 @@ class ViewAdmin_New(Handler):
                     )
                 )
             except Exception as exc:
+                raise
                 # note: allow this on testing
                 # raise
                 if self.request.registry.settings["exception_redirect"]:

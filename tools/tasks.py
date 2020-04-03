@@ -19,7 +19,7 @@ DEFAULT_SERVER_ROOT = os.environ.get("PETER_SSLERS_SERVER_ROOT")
 
 @task(
     help={
-        "archive_path": "Path to letsencrypt archive files.",
+        "archive_path": "Path to LetsEncrypt Certbot archive files.",
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
@@ -41,7 +41,7 @@ def import_certbot_certs_archive(c, archive_path, server_url_root=DEFAULT_SERVER
 
 @task(
     help={
-        "domain_certs_path": "Path to letsencrypt archive files for a domain.",
+        "domain_certs_path": "Path to LetsEncrypt Certbot archive files for a domain.",
         "certificate_version": "digit. the certificate version you want.",
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
@@ -102,14 +102,14 @@ def import_certbot_cert_plain(c, cert_path, server_url_root=DEFAULT_SERVER_ROOT)
 
 @task(
     help={
-        "live_path": "Path to letsencrypt live files. should be `/etc/letsencrypt/live`",
+        "live_path": "Path to LetsEncrypt Certbot live files. should be `/etc/letsencrypt/live`",
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
 def import_certbot_certs_live(c, live_path, server_url_root=DEFAULT_SERVER_ROOT):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
-    imports the letsencrypt live archive  in /etc/letsencrypt/live
+    imports the LetsEncrypt Certbot live archive  in /etc/letsencrypt/live
 
     usage:
         invoke import-certbot-certs-live --server-url-root="http://127.0.0.1:7201/.well-known/admin" --live-path="/path/to/ssl/live"
@@ -127,14 +127,14 @@ def import_certbot_certs_live(c, live_path, server_url_root=DEFAULT_SERVER_ROOT)
 
 @task(
     help={
-        "account_path": "Path to letsencrypt account files. should be `/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`",
+        "account_path": "Path to LetsEncrypt Certbot account files. should be `/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}`",
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
 def import_certbot_account(c, account_path, server_url_root=DEFAULT_SERVER_ROOT):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
-    imports a specific letsencrypt account
+    imports a specific LetsEncrypt Certbot account
 
     usage:
         invoke import-certbot-account --server-url-root="http://127.0.0.1:7201/.well-known/admin" --account-path="/etc/letsencrypt/accounts/{SERVER}/directory/{ACCOUNT}"
@@ -149,7 +149,7 @@ def import_certbot_account(c, account_path, server_url_root=DEFAULT_SERVER_ROOT)
 
 @task(
     help={
-        "accounts_path_server": "Path to letsencrypt server account files. should be `/etc/letsencrypt/accounts/{SERVER}`",
+        "accounts_path_server": "Path to LetsEncrypt server account files. should be `/etc/letsencrypt/accounts/{SERVER}`",
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
@@ -158,7 +158,7 @@ def import_certbot_accounts_server(
 ):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
-    imports all accounts for a given letsencrypt server
+    imports all accounts for a given LetsEncrypt server
 
     usage:
         invoke import-certbot-accounts-server --accounts-path-server="/etc/letsencrypt/accounts/{SERVER}" --server-url-root="http://127.0.0.1:7201/.well-known/admin"
@@ -175,7 +175,7 @@ def import_certbot_accounts_server(
 
 @task(
     help={
-        "accounts_path_all": "Path to letsencrypt server account files. should be `/etc/letsencrypt/accounts`",
+        "accounts_path_all": "Path to LetsEncrypt server account files. should be `/etc/letsencrypt/accounts`",
         "server_url_root": "URL of server to post to, do not include `.well-known`",
     }
 )
@@ -184,7 +184,7 @@ def import_certbot_accounts_all(
 ):
     """
     !!! HEY THIS PROBABLY HAPPENS ON UNENCRYPTED TRAFFIC !!!
-    imports all accounts for a letsencrypt install
+    imports all accounts for a LetsEncrypt install
 
     usage:
         invoke import-certbot-accounts-all --accounts-path-all="/etc/letsencrypt/accounts/" --server-url-root="http://127.0.0.1:7201/.well-known/admin"

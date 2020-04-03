@@ -365,7 +365,9 @@
                     <tr>
                         <th>PrivateKey</th>
                         <td>
-                            % if AcmeOrder.private_key_id is not None:
+                            % if AcmeOrder.private_key_id == 0:
+                                <span class="label label-default">placeholder key</span>
+                            % else:
                                 <a
                                     class="label label-info"
                                     href="${admin_prefix}/private-key/${AcmeOrder.private_key_id}"
@@ -376,6 +378,18 @@
                             % endif
                         </td>
                     </tr>
+                        <tr>
+                            <th>PrivateKeyCycle - renewals</th>
+                            <td><code>${AcmeOrder.private_key_cycle__renewal}</code></td>
+                        </tr>
+                        <tr>
+                            <th>PrivateKeyStrategy - requested</th>
+                            <td><code>${AcmeOrder.private_key_strategy__requested}</code></td>
+                        </tr>
+                        <tr>
+                            <th>PrivateKeyStrategy - final</th>
+                            <td><code>${AcmeOrder.private_key_strategy__final}</code></td>
+                        </tr>
                     <tr>
                         <th>ServerCertificate</th>
                         <td>

@@ -87,10 +87,7 @@ class _Form_Schema_Base(_Schema):
 
 class _form_AccountKey_core(_Form_Schema_Base):
     # `account_key_file` could indictate `account_key_file_pem` or the combo of certbot encoding
-    account_key_option = OneOf(
-        ("account_key_global_default", "account_key_existing", "account_key_file"),
-        not_empty=True,
-    )
+    account_key_option = OneOf(model_utils.AcmeAccontKey_options_a, not_empty=True,)
     account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
 
@@ -109,46 +106,19 @@ class _form_AccountKey_core(_Form_Schema_Base):
 
 
 class _form_PrivateKey_core(_Form_Schema_Base):
-    private_key_option = OneOf(
-        (
-            "private_key_global_default",
-            "private_key_existing",
-            "private_key_file",
-            "private_key_generate",
-            "private_key_for_account_key",
-        ),
-        not_empty=True,
-    )
+    private_key_option = OneOf(model_utils.PrivateKey_options_a, not_empty=True,)
     private_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
 
 class _form_AccountKey_reuse(_form_AccountKey_core):
-    account_key_option = OneOf(
-        (
-            "account_key_reuse",
-            "account_key_global_default",
-            "account_key_existing",
-            "account_key_file",
-        ),
-        not_empty=True,
-    )
+    account_key_option = OneOf(model_utils.AcmeAccontKey_options_b, not_empty=True,)
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
 
 
 class _form_PrivateKey_reuse(_form_PrivateKey_core):
-    private_key_option = OneOf(
-        (
-            "private_key_reuse",
-            "private_key_global_default",
-            "private_key_existing",
-            "private_key_file",
-            "private_key_generate",
-            "private_key_for_account_key",
-        ),
-        not_empty=True,
-    )
+    private_key_option = OneOf(model_utils.PrivateKey_options_b, not_empty=True)
     private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
 
 
@@ -175,15 +145,7 @@ class _form_AccountKey_PrivateKey_core(_Form_Schema_Base):
         not_empty=False, if_missing=None
     )
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
-    private_key_option = OneOf(
-        (
-            "private_key_global_default",
-            "private_key_existing",
-            "private_key_file",
-            "private_key_generate",
-        ),
-        not_empty=True,
-    )
+    private_key_option = OneOf(model_utils.PrivateKey_options_a, not_empty=True,)
     private_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
@@ -193,27 +155,9 @@ class _form_AccountKey_PrivateKey_reuse(_form_AccountKey_PrivateKey_core):
     """this is a mix of two forms, because FormEncode doesn't support multiple class inheritance
     """
 
-    account_key_option = OneOf(
-        (
-            "account_key_reuse",
-            "account_key_global_default",
-            "account_key_existing",
-            "account_key_file",
-        ),
-        not_empty=True,
-    )
+    account_key_option = OneOf(model_utils.AcmeAccontKey_options_b, not_empty=True,)
     account_key_reuse = UnicodeString(not_empty=False, if_missing=None)
-    private_key_option = OneOf(
-        (
-            "private_key_reuse",
-            "private_key_global_default",
-            "private_key_existing",
-            "private_key_file",
-            "private_key_generate",
-            "private_key_for_account_key",
-        ),
-        not_empty=True,
-    )
+    private_key_option = OneOf(model_utils.PrivateKey_options_b, not_empty=True,)
     private_key_reuse = UnicodeString(not_empty=False, if_missing=None)
 
 
@@ -227,6 +171,10 @@ class Form_AcmeAccountKey_edit(_Form_Schema_Base):
 class Form_AcmeAccountKey_new__auth(_Form_Schema_Base):
     acme_account_provider_id = Int(not_empty=True, if_missing=None)
     contact = Email(not_empty=False, if_missing=None)  # use it or don't
+    private_key_cycle = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
+        not_empty=True,
+    )
 
 
 class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
@@ -236,6 +184,10 @@ class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
     """
 
     contact = Email(not_empty=False, if_missing=None)  # use it or don't
+    private_key_cycle = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
+        not_empty=True,
+    )
 
     # if this isn't provided...
     account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
@@ -260,19 +212,23 @@ class Form_AcmeAccountKey_mark(_Form_Schema_Base):
 class Form_AcmeOrder_new_automated(_form_AccountKey_PrivateKey_core):
     domain_names = UnicodeString(not_empty=True)
     processing_strategy = OneOf(
-        ("create_order", "process_single", "process_multi",), not_empty=True,
+        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL, not_empty=True,
+    )
+    private_key_cycle__renewal = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+        not_empty=True,
     )
 
 
 class Form_AcmeOrder_renew_quick(_Form_Schema_Base):
     processing_strategy = OneOf(
-        ("create_order", "process_single", "process_multi",), not_empty=True,
+        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL, not_empty=True,
     )
 
 
 class Form_AcmeOrder_renew_custom(_form_AccountKey_PrivateKey_reuse):
     processing_strategy = OneOf(
-        ("create_order", "process_single", "process_multi",), not_empty=True,
+        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL, not_empty=True,
     )
 
 

@@ -28,7 +28,7 @@ When you start the server a new AcmeAccountProvider will be created for your Cer
 
 ## ACME v2 Testing
 
-You can test against the Pebble project, which is an existing acme-v2 test server maintained by letsencrypt.
+You can test against the Pebble project, which is an existing acme-v2 test server maintained by LetsEncrypt.
 
 Install pebble
 

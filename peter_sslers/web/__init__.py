@@ -172,7 +172,9 @@ def main(global_config, **settings):
             request=None,
         )
 
-        dbAcmeAccountProvider = get.get__AcmeAccountProvider__by_name(ctx, app_settings["certificate_authority"])
+        dbAcmeAccountProvider = get.get__AcmeAccountProvider__by_name(
+            ctx, app_settings["certificate_authority"]
+        )
         if not dbAcmeAccountProvider:
             print("Attempting to enroll new `AcmeAccountProvider` from config >>>")
             dbAcmeAccountProvider = create.create__AcmeAccountProvider(

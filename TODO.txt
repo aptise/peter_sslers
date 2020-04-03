@@ -43,7 +43,7 @@ AcmeAccountKey.letsencrypt_data - audit. refresh? log?
 * search expiring soon | note: isn't this the `/server-certificates/expiring` view?
 * migrate cert_subject hash and tracking to SAN
 * log full actual results; if a queue fails log that data too
-* CSR should have domain[0] as subject if there are multiple domains | note: letsencrypt does this at the server level?
+* CSR should have domain[0] as subject if there are multiple domains | note: LetsEncrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
 * build authorization deactivate tool
 * limit pending request search to 7 days

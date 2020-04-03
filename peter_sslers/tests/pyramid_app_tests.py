@@ -225,7 +225,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
         assert res2_json["result"] == "success"
 
     @unittest.skipUnless(
-        RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api"
+        RUN_LETSENCRYPT_API_TESTS, "not running against LetsEncrypt API"
     )
     def tests_letsencrypt_api(self):
         # this hits LE
@@ -448,10 +448,10 @@ class FunctionalTests_AcmeEventLog(AppTest):
         assert "AcmeEventLogs" in res_json
 
     @unittest.skipUnless(
-        RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api"
+        RUN_LETSENCRYPT_API_TESTS, "not running against LetsEncrypt API"
     )
     def test_focus(self):
-        """logs are only populated when running against the letsencrypt api
+        """logs are only populated when running against the LetsEncrypt API
         """
         # focus
         focus_item = self._get_item()
@@ -1116,7 +1116,7 @@ class FunctionalTests_Certificate(AppTest):
         )
 
     @unittest.skipUnless(
-        RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api"
+        RUN_LETSENCRYPT_API_TESTS, "not running against LetsEncrypt API"
     )
     def tests_letsencrypt_api(self):
         if DISABLE_UNWRITTEN_TESTS:
@@ -1211,7 +1211,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         )
 
     @unittest.skipUnless(
-        RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api"
+        RUN_LETSENCRYPT_API_TESTS, "not running against LetsEncrypt API"
     )
     def tests_letsencrypt_api(self):
         self.testapp_http = StopableWSGIServer.create(
@@ -1560,13 +1560,13 @@ class FunctionalTests_PrivateKeys(AppTest):
         assert res2.status_code == 200
 
         res = self.testapp.get("/.well-known/admin/private-key/new", status=200)
-        form = {"bits": "4096"}
+        form = {}  # "bits": "4096"}
         res2 = self.testapp.post("/.well-known/admin/private-key/new", form)
         assert res2.status_code == 303
         assert """/.well-known/admin/private-key/""" in res2.location
 
         res = self.testapp.get("/.well-known/admin/private-key/new.json", status=200)
-        form = {"bits": "4096"}
+        form = {}  # "bits": "4096"}
         res2 = self.testapp.post("/.well-known/admin/private-key/new.json", form)
         assert res2.status_code == 200
         res2_json = json.loads(res2.body)
@@ -1953,7 +1953,7 @@ class ZZZ_FunctionalTests_API(AppTest):
         assert res_json["result"] == "success"
 
     @unittest.skipUnless(
-        RUN_LETSENCRYPT_API_TESTS, "not running against letsencrypt api"
+        RUN_LETSENCRYPT_API_TESTS, "not running against LetsEncrypt API"
     )
     def tests_letsencrypt_api(self):
         res = self.testapp.get(
