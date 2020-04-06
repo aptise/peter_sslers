@@ -66,7 +66,7 @@ def queue_domains__add(ctx, domain_names):
     Adds domains to the queue if needed
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domain names:
+    :param domain_names: a Python `list` of domains names
     """
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
@@ -158,6 +158,7 @@ def queue_domains__add(ctx, domain_names):
 def _get_default_AccountKey(ctx):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    This is a shortcut.
     """
     # raises an error if we fail
     dbAcmeAccountKey_GlobalDefault = lib.db.get.get__AcmeAccountKey__GlobalDefault(

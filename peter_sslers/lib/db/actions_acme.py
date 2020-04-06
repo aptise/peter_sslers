@@ -25,6 +25,9 @@ from .. import utils
 from .. import utils_certbot as utils_certbot
 from ...model import utils as model_utils
 from ...model import objects as model_objects
+from ..exceptions import AcmeAccountKeyNeedsPrivateKey
+from ..exceptions import PrivateKeyOk
+from ..exceptions import ReassignedPrivateKey
 
 # local
 from .logger import AcmeLogger
@@ -34,12 +37,6 @@ from .update import update_AcmeAuthorization_from_payload
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-class ReassignedPrivateKey(Exception):
-    """Raise when the PrivateKey has been reassigned"""
-
-    pass
 
 
 def do__AcmeAccountKey_AcmeV2_register(
@@ -984,19 +981,102 @@ def _do__AcmeV2_AcmeOrder__finalize(
         # if there is a new PrivateKeyNew,
         # stash it into `dbPrivateKeyNew` and reassign in an `except` block
         dbPrivateKeyNew = None
+        # outer `try/except` catches `ReassignedPrivateKey`
         try:
-            if dbAcmeOrder.private_key_id == 0:
-                # Multiple logic lines for `dbAcmeOrder.private_key_strategy__requested`
-                if dbAcmeOrder.private_key_strategy__requested == "deferred-associate":
-
-                    # all these items should share the same final strategy
-                    private_key_strategy__final = "deferred-associate"
-
-                    # what is the dbAcmeOrder.acme_account_key.private_key_cycle ?
+            # inner `try/except` catches `AcmeAccountKeyNeedsPrivateKey`
+            try:
+                if dbAcmeOrder.private_key_id == 0:
+                    # Multiple logic lines for `dbAcmeOrder.private_key_strategy__requested`
                     if (
-                        dbAcmeOrder.acme_account_key.private_key_cycle
-                        == "single_certificate"
+                        dbAcmeOrder.private_key_strategy__requested
+                        == "deferred-generate"
                     ):
+                        private_key_strategy__final = "deferred-generate"
+                        # NOTE: deferred-generate ; single_certificate
+                        dbPrivateKeyNew = lib.db.create.create__PrivateKey(
+                            ctx,
+                            # bits=4096,
+                            acme_account_key_id__owner=dbAcmeOrder.acme_account_key.id,
+                            private_key_source_id=model_utils.PrivateKeySource.from_string(
+                                "generated"
+                            ),
+                            private_key_type_id=model_utils.PrivateKeyType.from_string(
+                                "single_certificate"  # this COULD be "standard", but safer to lock down for now
+                            ),
+                        )
+                        raise ReassignedPrivateKey("new `generated`")
+                    elif (
+                        dbAcmeOrder.private_key_strategy__requested
+                        == "deferred-associate"
+                    ):
+
+                        # all these items should share the same final strategy
+                        private_key_strategy__final = "deferred-associate"
+                        raise AcmeAccountKeyNeedsPrivateKey()
+
+                    else:
+                        raise ValueError(
+                            "Invalid `private_key_strategy__requested` for placeholder AcmeAccountKey"
+                        )
+
+                else:
+                    # if we have an Assigned private key, we should ensure it is still active
+                    # if the private key is no longer active, then we should use a backup
+                    if dbAcmeOrder.private_key.is_key_usable:
+                        private_key_strategy__final = (
+                            dbAcmeOrder.private_key_strategy__requested
+                        )
+                        raise PrivateKeyOk()
+                    else:
+                        # all these items should share the same final strategy
+                        private_key_strategy__final = "backup"
+                        raise AcmeAccountKeyNeedsPrivateKey()
+
+                # we MUST have encountered an Exception already
+                raise ValueEror("Invalid Logic")
+
+            except AcmeAccountKeyNeedsPrivateKey as exc:
+                # look the `dbAcmeOrder.acme_account_key.private_key_cycle`
+                private_key_cycle = dbAcmeOrder.acme_account_key.private_key_cycle
+
+                if private_key_cycle == "single_certificate":
+                    # NOTE: AcmeAccountKeyNeedsPrivateKey ; single_certificate
+                    dbPrivateKey_new = lib.db.create.create__PrivateKey(
+                        ctx,
+                        # bits=4096,
+                        acme_account_key_id__owner=dbAcmeOrder.acme_account_key.id,
+                        private_key_source_id=model_utils.PrivateKeySource.from_string(
+                            "generated"
+                        ),
+                        private_key_type_id=model_utils.PrivateKeyType.from_string(
+                            "single_certificate"
+                        ),
+                    )
+                    raise ReassignedPrivateKey("new `single_certificate`")
+
+                elif private_key_cycle == "account_daily":
+                    # NOTE: AcmeAccountKeyNeedsPrivateKey ; account_daily
+                    dbPrivateKey_new = lib.db.get.get__PrivateKey_CurrentDay_AcmeAccountKey(
+                        ctx, dbAcmeOrder.acme_account_key.id
+                    )
+                    if not dbPrivateKey_new:
+                        dbPrivateKey_new = lib.db.create.create__PrivateKey(
+                            ctx,
+                            acme_account_key_id__owner=dbAcmeOrder.acme_account_key.id,
+                            # bits=4096,
+                            private_key_source_id=model_utils.PrivateKeySource.from_string(
+                                "generated"
+                            ),
+                            private_key_type_id=model_utils.PrivateKeyType.from_string(
+                                "account_daily"
+                            ),
+                        )
+                    raise ReassignedPrivateKey("new `account_weekly`")
+
+                elif private_key_cycle == "global_daily":
+                    # NOTE: AcmeAccountKeyNeedsPrivateKey ; global_daily
+                    dbPrivateKey_new = lib.db.get.get__PrivateKey_CurrentDay(ctx)
+                    if not dbPrivateKey_new:
                         dbPrivateKey_new = lib.db.create.create__PrivateKey(
                             ctx,
                             # bits=4096,
@@ -1004,140 +1084,69 @@ def _do__AcmeV2_AcmeOrder__finalize(
                                 "generated"
                             ),
                             private_key_type_id=model_utils.PrivateKeyType.from_string(
-                                "single_certificate"
+                                "global_daily"
                             ),
                         )
-                        raise ReassignedPrivateKey("new `single_certificate`")
+                    raise ReassignedPrivateKey("new `global_daily`")
 
-                    elif (
-                        dbAcmeOrder.acme_account_key.private_key_cycle
-                        == "daily_account"
-                    ):
-                        # load/make the daily key for this account
-                        dbPrivateKey_new = lib.db.get.get__PrivateKey_CurrentDay_AcmeAccountKey(
-                            ctx, dbAcmeOrder.acme_account_key.id
-                        )
-                        if not dbPrivateKey_new:
-                            dbPrivateKey_new = lib.db.create.create__PrivateKey(
-                                ctx,
-                                acme_account_key_id__owner=dbAcmeOrder.acme_account_key.id,
-                                # bits=4096,
-                                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                                    "generated"
-                                ),
-                                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                                    "account_daily"
-                                ),
-                            )
-                        raise ReassignedPrivateKey("new `account_weekly`")
-
-                    elif (
-                        dbAcmeOrder.acme_account_key.private_key_cycle == "daily_global"
-                    ):
-                        # load/make the daily key for global
-                        dbPrivateKey_new = lib.db.get.get__PrivateKey_CurrentDay(ctx)
-                        if not dbPrivateKey_new:
-                            dbPrivateKey_new = lib.db.create.create__PrivateKey(
-                                ctx,
-                                # bits=4096,
-                                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                                    "generated"
-                                ),
-                                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                                    "global_daily"
-                                ),
-                            )
-                        raise ReassignedPrivateKey("new `account_weekly`")
-
-                    elif (
-                        dbAcmeOrder.acme_account_key.private_key_cycle
-                        == "weekly_account"
-                    ):
-                        # load/make the weekly key for this account
-                        dbPrivateKey_new = lib.db.get.get__PrivateKey_CurrentWeek_AcmeAccountKey(
-                            ctx, dbAcmeOrder.acme_account_key.id
-                        )
-                        if not dbPrivateKey_new:
-                            dbPrivateKey_new = lib.db.create.create__PrivateKey(
-                                ctx,
-                                acme_account_key_id__owner=dbAcmeOrder.acme_account_key.id,
-                                # bits=4096,
-                                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                                    "generated"
-                                ),
-                                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                                    "account_weekly"
-                                ),
-                            )
-                        raise ReassignedPrivateKey("new `account_weekly`")
-
-                    elif (
-                        dbAcmeOrder.acme_account_key.private_key_cycle
-                        == "weekly_global"
-                    ):
-                        # load/make the weekly key for global
-                        dbPrivateKey_new = lib.db.get.get__PrivateKey_CurrentWeek_Global(
-                            ctx
-                        )
-                        if not dbPrivateKey_new:
-                            dbPrivateKey_new = lib.db.create.create__PrivateKey(
-                                ctx,
-                                # bits=4096,
-                                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                                    "generated"
-                                ),
-                                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                                    "global_weekly"
-                                ),
-                            )
-                        raise ReassignedPrivateKey("new `global_weekly`")
-
-                    elif (
-                        dbAcmeOrder.acme_account_key.private_key_cycle
-                        == "account_key_default"
-                    ):
-                        raise ValueError("invalid option `account_key_default`")
-
-                    else:
-                        raise ValueError("invalid option")
-
-                elif dbAcmeOrder.private_key_strategy__requested == "deferred-generate":
-                    private_key_strategy__final = "deferred-generate"
-                    dbPrivateKeyNew = lib.db.create.create__PrivateKey(
-                        ctx,
-                        # bits=4096,
-                        private_key_source_id=model_utils.PrivateKeySource.from_string(
-                            "generated"
-                        ),
-                        private_key_type_id=model_utils.PrivateKeyType.from_string(
-                            "WHATKINDAMI"
-                        ),
+                elif private_key_cycle == "account_weekly":
+                    # NOTE: AcmeAccountKeyNeedsPrivateKey ; account_weekly
+                    dbPrivateKey_new = lib.db.get.get__PrivateKey_CurrentWeek_AcmeAccountKey(
+                        ctx, dbAcmeOrder.acme_account_key.id
                     )
-                    raise ReassignedPrivateKey("new `generated`")
+                    if not dbPrivateKey_new:
+                        dbPrivateKey_new = lib.db.create.create__PrivateKey(
+                            ctx,
+                            acme_account_key_id__owner=dbAcmeOrder.acme_account_key.id,
+                            # bits=4096,
+                            private_key_source_id=model_utils.PrivateKeySource.from_string(
+                                "generated"
+                            ),
+                            private_key_type_id=model_utils.PrivateKeyType.from_string(
+                                "account_weekly"
+                            ),
+                        )
+                    raise ReassignedPrivateKey("new `account_weekly`")
+
+                elif private_key_cycle == "global_weekly":
+                    # NOTE: AcmeAccountKeyNeedsPrivateKey ; global_weekly
+                    dbPrivateKey_new = lib.db.get.get__PrivateKey_CurrentWeek_Global(
+                        ctx
+                    )
+                    if not dbPrivateKey_new:
+                        dbPrivateKey_new = lib.db.create.create__PrivateKey(
+                            ctx,
+                            # bits=4096,
+                            private_key_source_id=model_utils.PrivateKeySource.from_string(
+                                "generated"
+                            ),
+                            private_key_type_id=model_utils.PrivateKeyType.from_string(
+                                "global_weekly"
+                            ),
+                        )
+                    raise ReassignedPrivateKey("new `global_weekly`")
+
+                elif private_key_cycle == "account_key_default":
+                    # NOTE: AcmeAccountKeyNeedsPrivateKey ; account_key_default | INVALID
+                    raise ValueError("invalid option `account_key_default`")
 
                 else:
-                    raise ValueError(
-                        "invalid `private_key_strategy__requested` for placeholder keys"
-                    )
+                    # NOTE: AcmeAccountKeyNeedsPrivateKey | INVALID
+                    raise ValueError("invalid option")
 
-            else:
-                # if we have an Assigned private key, we should ensure it is still active
-                # if the private key is no longer active, then we should use a backup
-                if dbAcmeOrder.private_key.is_key_usable:
-                    private_key_strategy__final = (
-                        dbAcmeOrder.private_key_strategy__requested
-                    )
-                else:
-                    # ok, crap.
-                    raise ValueError("how should a keybackup be orchestrated?")
+            # we MUST have encountered an Exception already
+            raise ValueError("Invalid Logic")
 
-        except ReassignedPrivateKey:
+        except ReassignedPrivateKey as exc:
             # assign this over!
             dbAcmeOrder.private_key = dbPrivateKey_new
             ctx.dbSession.flush(
                 objects=[dbAcmeOrder, dbPrivateKey_new,]
             )
             dbPrivateKey = dbPrivateKey_new
+
+        except PrivateKeyOk as exc:
+            pass
 
         # we need to use tmpfiles on the disk for the Private Key signing
         private_key_pem = dbAcmeOrder.private_key.key_pem

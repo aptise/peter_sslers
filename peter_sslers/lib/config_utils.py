@@ -31,8 +31,6 @@ class ApplicationSettings(dict):
             "nginx.userpass",
             "openssl_path_conf",
             "openssl_path",
-            "private_key_backup",
-            "private_key_cycle",
             "queue_domains_max_per_cert",
             "queue_domains_min_per_cert",
             "redis.prime_style",
@@ -138,9 +136,6 @@ class ApplicationSettings(dict):
             acme_v2.TESTING_ENVIRONMENT = True
             model_objects.TESTING_ENVIRONMENT = True
 
-        self["private_key_cycle"] = settings.get("private_key_cycle")
-        self["private_key_backup"] = settings.get("private_key_backup")
-
         self["enable_views_admin"] = set_bool_setting(settings, "enable_views_admin")
         self["enable_views_public"] = set_bool_setting(settings, "enable_views_public")
 
@@ -163,18 +158,6 @@ class ApplicationSettings(dict):
         ca_protocol = self["certificate_authority_protocol"]
         if ca_protocol != "acme-v2":
             raise ValueError("invalid `certificate_authority_protocol` selected")
-
-        try:
-            private_key_cycle = self["private_key_cycle"]
-            _private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
-                private_key_cycle
-            )
-            private_key_backup = self["private_key_backup"]
-            _private_key_backup_id = model_utils.PrivateKeyCycle.from_string(
-                private_key_backup
-            )
-        except Exception as exc:
-            raise
 
 
 # ------------------------------------------------------------------------------

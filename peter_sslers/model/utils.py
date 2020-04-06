@@ -618,10 +618,10 @@ class PrivateKeyCycle(_mixin_mapping):
 
     _mapping = {
         1: "single_certificate",
-        2: "daily_account",
-        3: "daily_global",
-        4: "weekly_account",
-        5: "weekly_global",
+        2: "account_daily",
+        3: "global_daily",
+        4: "account_weekly",
+        5: "global_weekly",
         6: "account_key_default",  # use the options for the AcmeAcountKey
     }
     _options_AcmeAccountKey_private_key_cycle_id = (
