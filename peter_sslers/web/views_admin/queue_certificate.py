@@ -239,7 +239,6 @@ class ViewNew(Handler):
         """
         self._load_AcmeAccountKey_GlobalDefault()
         self._load_AcmeAccountProviders()
-        self._load_PrivateKey_GlobalDefault()
         self.queue_data = self._parse_queue_source()
 
         if self.request.method == "POST":
@@ -255,7 +254,6 @@ class ViewNew(Handler):
                 "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
                 "AcmeAccountKey_resuse": self.queue_data["AcmeAccountKey_reuse"],
-                "PrivateKey_GlobalDefault": self.dbPrivateKey_GlobalDefault,
                 "PrivateKey_reuse": self.queue_data["PrivateKey_reuse"],
                 "ServerCertificate": self.queue_data["ServerCertificate"],
                 "UniqueFQDNSet": self.queue_data["UniqueFQDNSet"],

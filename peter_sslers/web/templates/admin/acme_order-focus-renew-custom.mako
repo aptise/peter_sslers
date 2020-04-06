@@ -101,6 +101,21 @@
                             </td>
                         </tr>
                         <tr>
+                            <th>Private Key Cycle - Renewals</th>
+                            <td><code>${AcmeOrder.private_key_cycle__renewal}</code></td>
+                            <td>
+                                ${admin_partials.formgroup__private_key_cycle__renewal(default=AcmeOrder.private_key_cycle__renewal)}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Processing Strategy</th>
+                            <td><code>${AcmeOrder.acme_order_processing_strategy}</code>
+                            </td>
+                            <td>
+                                ${admin_partials.formgroup__processing_strategy()}
+                            </td>
+                        </tr>
+                        <tr>
                             <th></th>
                             <td>
                                 <button class="btn btn-xs btn-primary" type="submit">

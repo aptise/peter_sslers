@@ -282,13 +282,7 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
         return privateKeySelection
 
     else:
-        is_global_default = None
-        if private_key_option == "private_key_global_default":
-            privateKeySelection.selection = "global_default"
-            privateKeySelection.private_key_strategy__requested = "specified"
-            private_key_pem_md5 = formStash.results["private_key_global_default"]
-            is_global_default = True
-        elif private_key_option == "private_key_existing":
+        if private_key_option == "private_key_existing":
             privateKeySelection.selection = "existing"
             privateKeySelection.private_key_strategy__requested = "specified"
             private_key_pem_md5 = formStash.results["private_key_existing"]
@@ -334,12 +328,6 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
             formStash.fatal_field(
                 field=private_key_option,
                 message="The selected PrivateKey is not enrolled in the system.",
-            )
-        if is_global_default and not dbPrivateKey.is_global_default:
-            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-            formStash.fatal_field(
-                field=private_key_option,
-                message="The selected PrivateKey is not the current default.",
             )
         privateKeySelection.PrivateKey = dbPrivateKey
         return privateKeySelection

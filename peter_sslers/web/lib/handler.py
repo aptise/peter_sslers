@@ -40,9 +40,6 @@ class Handler(object):
     #: The default :class:`model.objects.AcmeAccountKey`
     dbAcmeAccountKey_GlobalDefault = None
 
-    #: The default :class:`model.objects.PrivateKey`
-    dbPrivateKey_GlobalDefault = None
-
     def __init__(self, request):
         """
         :param request: A `:class:Pyramid.request.Request` instance.
@@ -120,12 +117,3 @@ class Handler(object):
             self.request.api_context, is_enabled=True
         )
         return self.dbAcmeAccountProviders
-
-    def _load_PrivateKey_GlobalDefault(self):
-        """
-        Loads the default :class:`model.objects.PrivateKey` into the view's :attr:`.dbPrivateKey_GlobalDefault`.
-        """
-        self.dbPrivateKey_GlobalDefault = db.get.get__PrivateKey__GlobalDefault(
-            self.request.api_context, active_only=True
-        )
-        return self.dbPrivateKey_GlobalDefault

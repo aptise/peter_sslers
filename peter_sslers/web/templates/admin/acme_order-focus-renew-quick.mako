@@ -94,6 +94,11 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>Private Key Cycle - Renewals</th>
+                        <td></td>
+                        <td><code>${AcmeOrder.private_key_cycle__renewal}</code></td>
+                    </tr>
+                    <tr>
                         <th></th>
                         <td></td>
                         <td>

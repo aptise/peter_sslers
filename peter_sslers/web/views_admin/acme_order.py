@@ -450,7 +450,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         """
         self._load_AcmeAccountKey_GlobalDefault()
         self._load_AcmeAccountProviders()
-        self._load_PrivateKey_GlobalDefault()
         if self.request.method == "POST":
             return self._renew_custom__submit()
         return self._renew_custom__print()
@@ -510,7 +509,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 "AcmeOrder": dbAcmeOrder,
                 "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
-                "PrivateKey_GlobalDefault": self.dbPrivateKey_GlobalDefault,
             },
             self.request,
         )
@@ -617,13 +615,11 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             if not result:
                 raise formhandling.FormInvalid()
             processing_strategy = formStash.results["processing_strategy"]
-            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             (
                 dbAcmeOrderNew,
                 exc,
             ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_quick(
                 self.request.api_context,
-                private_key_cycle__renewal=private_key_cycle__renewal,
                 processing_strategy=processing_strategy,
                 dbAcmeOrder=dbAcmeOrder,
             )
@@ -662,7 +658,6 @@ class ViewAdmin_New(Handler):
     def new_automated(self):
         self._load_AcmeAccountKey_GlobalDefault()
         self._load_AcmeAccountProviders()
-        self._load_PrivateKey_GlobalDefault()
         if self.request.method == "POST":
             return self._new_automated__submit()
         return self._new_automated__print()
@@ -716,7 +711,6 @@ class ViewAdmin_New(Handler):
             {
                 "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
-                "PrivateKey_GlobalDefault": self.dbPrivateKey_GlobalDefault,
             },
             self.request,
         )

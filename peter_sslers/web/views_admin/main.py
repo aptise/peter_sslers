@@ -254,12 +254,10 @@ class ViewAdminMain(Handler):
     @view_config(route_name="admin:settings", renderer="/admin/settings.mako")
     def settings(self):
         self._load_AcmeAccountKey_GlobalDefault()
-        self._load_PrivateKey_GlobalDefault()
         return {
             "project": "peter_sslers",
             "documentation_grid": configuration_options.documentation_grid,
             "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
-            "PrivateKey_GlobalDefault": self.dbPrivateKey_GlobalDefault,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

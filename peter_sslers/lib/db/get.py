@@ -1357,16 +1357,6 @@ def get__PrivateKey__by_pemMd5(ctx, pem_md5, is_active=True):
     return item
 
 
-def get__PrivateKey__GlobalDefault(ctx, active_only=None):
-    q = ctx.dbSession.query(model_objects.PrivateKey).filter(
-        model_objects.PrivateKey.is_global_default.op("IS")(True)
-    )
-    if active_only:
-        q = q.filter(model_objects.PrivateKey.is_active.op("IS")(True))
-    item = q.first()
-    return item
-
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

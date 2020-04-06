@@ -1148,6 +1148,14 @@ def _do__AcmeV2_AcmeOrder__finalize(
         except PrivateKeyOk as exc:
             pass
 
+        # set the PrivateKeyStrategy
+        dbAcmeOrder.private_key_strategy_id__final = model_utils.PrivateKeyStrategy.from_string(
+            private_key_strategy__requested
+        )
+        ctx.dbSession.flush(
+            objects=[dbAcmeOrder,]
+        )
+
         # we need to use tmpfiles on the disk for the Private Key signing
         private_key_pem = dbAcmeOrder.private_key.key_pem
         tmpfile_pkey = cert_utils.new_pem_tempfile(private_key_pem)
@@ -1909,10 +1917,12 @@ def do__AcmeV2_AcmeOrder__renew_custom(
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Custom"),
     )
+    # private_key_strategy__requested - pull off the original
     return _do__AcmeV2_AcmeOrder__core(
         ctx,
         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_RENEW_CUSTOM,
         private_key_cycle__renewal=private_key_cycle__renewal,
+        private_key_strategy__requested=dbAcmeOrder.private_key_strategy__requested,
         processing_strategy=processing_strategy,
         dbAcmeOrder_renewal_of=dbAcmeOrder,
         dbAcmeAccountKey=dbAcmeAccountKey,
@@ -1921,24 +1931,26 @@ def do__AcmeV2_AcmeOrder__renew_custom(
 
 
 def do__AcmeV2_AcmeOrder__renew_quick(
-    ctx, processing_strategy=None, private_key_cycle__renewal=None, dbAcmeOrder=None,
+    ctx, processing_strategy=None, dbAcmeOrder=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Quick"),
     )
+    # private_key_strategy__requested - pull off the original
+    # private_key_cycle__renewal = pull off the original,
     return _do__AcmeV2_AcmeOrder__core(
         ctx,
         dbAcmeOrder_renewal_of=dbAcmeOrder,
         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_RENEW_QUICK,
-        private_key_cycle__renewal=private_key_cycle__renewal,
+        private_key_cycle__renewal=dbAcmeOrder.private_key_cycle__renewal,
+        private_key_strategy__requested=dbAcmeOrder.private_key_strategy__requested,
         processing_strategy=processing_strategy,
     )
 

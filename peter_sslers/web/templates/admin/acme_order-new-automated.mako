@@ -57,15 +57,7 @@
                 ${admin_partials.formgroup__domain_names()}
                 <hr/>
 
-                <div class="form-group">
-                    <label for="private_key_cycle">Private Key Cycle - Renewals</label>
-                    <select class="form-control" name="private_key_cycle__renewal">
-                        <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
-                        % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeOrder_private_key_cycle:
-                            <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
-                        % endfor
-                    </select>
-                </div>
+                ${admin_partials.formgroup__private_key_cycle__renewal()}
                 <hr/>
 
                 ${admin_partials.formgroup__processing_strategy()}

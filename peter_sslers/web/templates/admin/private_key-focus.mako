@@ -132,26 +132,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Global Default?</th>
-                        <td>
-                            % if PrivateKey.is_global_default:
-                                <span class="label label-success">
-                                    Global Default
-                                </span>
-                            % else:
-                                % if not PrivateKey.is_compromised and PrivateKey.is_active and not PrivateKey.is_placeholder and not PrivateKey.acme_account_key_id__owner:
-                                    <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="global_default"/>
-                                        <button class="btn btn-xs btn-success" type="submit">
-                                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                            Set Global Default
-                                        </button>
-                                    </form>
-                                % endif
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
                         <th>source</th>
                         <td>
                             <span class="label label-default">${PrivateKey.private_key_source}</span>

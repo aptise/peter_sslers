@@ -15,7 +15,6 @@ from ...lib import errors
 from .get import get__AcmeAccountKey__GlobalDefault
 from .get import get__AcmeAccountProvider__default
 from .get import get__Domain__by_name
-from .get import get__PrivateKey__GlobalDefault
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -155,10 +154,6 @@ def update_PrivateKey__set_active(ctx, dbPrivateKey):
 def update_PrivateKey__unset_active(ctx, dbPrivateKey):
     if not dbPrivateKey.is_active:
         raise errors.InvalidTransition("Already deactivated")
-    if dbPrivateKey.is_global_default:
-        raise errors.InvalidTransition(
-            "You can not deactivate the Global Default. Make another key as the Global Default first."
-        )
     dbPrivateKey.is_active = False
     event_status = "PrivateKey__mark__inactive"
     return event_status
@@ -169,33 +164,8 @@ def update_PrivateKey__set_compromised(ctx, dbPrivateKey):
         raise errors.InvalidTransition("Already compromised")
     dbPrivateKey.is_active = False
     dbPrivateKey.is_compromised = True
-    if dbPrivateKey.is_global_default:
-        dbPrivateKey.is_global_default = False
     event_status = "PrivateKey__mark__compromised"
     return event_status
-
-
-def update_PrivateKey__set_global_default(ctx, dbPrivateKey):
-    if dbPrivateKey.is_global_default:
-        raise errors.InvalidTransition("Already default")
-
-    if not dbPrivateKey.is_active:
-        raise errors.InvalidTransition("Key not active")
-
-    if dbPrivateKey.acme_account_key_id__owner:
-        raise errors.InvalidTransition("Key belongs to an AcmeAccount")
-
-    alt_info = {}
-    formerDefaultKey = get__PrivateKey__GlobalDefault(ctx)
-    if formerDefaultKey:
-        formerDefaultKey.is_global_default = False
-        alt_info["event_payload_dict"] = {
-            "private_key_id.former_default": formerDefaultKey.id,
-        }
-        alt_info["event_alt"] = ("PrivateKey__mark__notdefault", formerDefaultKey)
-    dbPrivateKey.is_global_default = True
-    event_status = "PrivateKey__mark__default"
-    return event_status, alt_info
 
 
 def update_ServerCertificate__set_active(ctx, dbServerCertificate):

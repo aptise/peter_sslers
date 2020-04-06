@@ -734,7 +734,6 @@ AcmeAccontKey_options_b = (
 
 
 PrivateKey_options_a = (
-    "private_key_global_default",
     "private_key_existing",
     "private_key_file",
     "private_key_generate",
@@ -744,7 +743,6 @@ PrivateKey_options_a = (
 
 PrivateKey_options_b = (
     "private_key_reuse",
-    "private_key_global_default",
     "private_key_existing",
     "private_key_file",
     "private_key_generate",

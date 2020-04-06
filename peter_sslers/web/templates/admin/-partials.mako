@@ -625,7 +625,6 @@
                 <th>id</th>
                 <th>active?</th>
                 <th>private_key_type</th>
-                <th>is_global_default</th>
                 <th>source</th>
                 <th>timestamp first seen</th>
                 <th>key_pem_md5</th>
@@ -654,13 +653,6 @@
                     <span class="label label-default">
                         ${key.private_key_type}
                     </span>
-                </td>
-                <td>
-                    % if key.is_global_default:
-                        <span class="label label-success">
-                            global default
-                        </span>
-                    % endif
                 </td>
                 <td><span class="label label-default">${key.private_key_source}</span></td>
                 <td><timestamp>${key.timestamp_created}</timestamp></td>
@@ -1231,13 +1223,25 @@
 </%def>
 
 
+<%def name="formgroup__private_key_cycle__renewal(default=None)">
+    <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
+    <div class="form-group">
+        <label for="private_key_cycle">Private Key Cycle - Renewals</label>
+        <select class="form-control" name="private_key_cycle__renewal">
+            % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeOrder_private_key_cycle:
+                <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
+            % endfor
+        </select>
+    </div>
+</%def>
+
+
 
 <%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_key_default=None, option_generate_new=None, default=None)">
     <%
         _checked = ' checked="checked"'
         selected = {
             "private_key_reuse": "",
-            "private_key_global_default": "",
             "private_key_for_account_key": "",
             "private_key_generate": "",
             "private_key_existing": "",
@@ -1275,37 +1279,6 @@
                         PrivateKey-${dbPrivateKeyReuse.id}
                     </a>
                 </label>
-            </div>
-        % endif
-        % if PrivateKey_GlobalDefault:
-            <% checked = ' checked="checked"' if not dbPrivateKeyReuse else '' %>
-            <div class="radio">
-                <label>
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_global_default" value="private_key_global_default"${selected["private_key_global_default"]}/>
-                    The Global Default PrivateKey.
-                </label>
-                <p class="form-control-static">
-                    <b>resource:</b> <a  class="label label-info"
-                                         href="${admin_prefix}/private-key/${PrivateKey_GlobalDefault.id}"
-                                     >
-                                         PrivatetKey-${PrivateKey_GlobalDefault.id}
-                                     </a><br/>
-                    <b>pem md5:</b> <code>${PrivateKey_GlobalDefault.key_pem_md5}</code><br/>
-                    <b>pem line 1:</b> <code>${PrivateKey_GlobalDefault.key_pem_sample}</code>
-                    <input type="hidden" name="private_key_global_default" value="${PrivateKey_GlobalDefault.key_pem_md5}"/>
-                </p>
-            </div>
-        % else:
-            <div class="alert alert-warning">
-                <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-                There is no Global PrivateKey configured. Any key can be configured as the Global Default.
-                Browse keys at 
-                <a  class="label label-info"
-                    href="${admin_prefix}/private-keys"
-                >
-                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    PrivateKeys
-                </a>
             </div>
         % endif
         % if option_account_key_default:

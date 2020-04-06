@@ -211,9 +211,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     """curl --form 'action=active' %s/mark.json""" % self._focus_url
                 ],
                 "form_fields": {"action": "the intended action"},
-                "valid_options": {
-                    "action": ["compromised", "active", "inactive", "global_default"]
-                },
+                "valid_options": {"action": ["compromised", "active", "inactive",]},
             }
         url_post_required = "%s?result=post+required&operation=mark" % self._focus_url
         return HTTPSeeOther(url_post_required)
@@ -262,18 +260,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                         "PrivateKey__revoke"
                     )
                     marked_comprimised = True
-
-                elif action == "global_default":
-                    (
-                        event_status,
-                        alt_info,
-                    ) = lib_db.update.update_PrivateKey__set_global_default(
-                        self.request.api_context, dbPrivateKey
-                    )
-                    if alt_info:
-                        for (k, v) in alt_info["event_payload_dict"].items():
-                            event_payload_dict[k] = v
-                        event_alt = alt_info["event_alt"]
 
                 else:
                     raise errors.InvalidTransition("invalid option")

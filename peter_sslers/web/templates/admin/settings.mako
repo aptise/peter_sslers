@@ -38,20 +38,6 @@
                         <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-account-keys">AcmeAccountKey</a>.</p>
                     </td>
                 </tr>
-                <tr>
-                    <th>Global Default PrivateKey</th>
-                    <td>
-                        % if not PrivateKey_GlobalDefault:
-                            Not configured                        
-                        % else:
-                            <a href="${admin_prefix}/acme-account-key/${PrivateKey_GlobalDefault.id}" span class="label label-default">
-                                AcmeAccountKey-${PrivateKey_GlobalDefault.id}
-                            </a>
-                            <code>${PrivateKey_GlobalDefault.key_pem_sample}</code>
-                        % endif
-                        <p>This can be configured by selecting a new <a href="${admin_prefix}/private-keys">PrivateKey</a>.</p>
-                    </td>
-                </tr>
             </table>
         </div>
     </div>

@@ -1930,7 +1930,6 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    is_global_default = sa.Column(sa.Boolean, nullable=True, default=None)
     private_key_source_id = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeySource
@@ -2051,7 +2050,6 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "is_active": True if self.is_active else False,
-            "is_global_default": True if self.is_global_default else False,
             "key_pem_md5": self.key_pem_md5,
             "key_pem": self.key_pem,
             "timestamp_created": self.timestamp_created_isoformat,

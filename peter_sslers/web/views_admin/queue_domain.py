@@ -175,7 +175,6 @@ class ViewAdmin_Process(Handler):
     def process(self):
         self._load_AcmeAccountKey_GlobalDefault()
         self._load_AcmeAccountProviders()
-        self._load_PrivateKey_GlobalDefault()
         if self.request.method == "POST":
             return self._process__submit()
         return self._process__print()
@@ -186,7 +185,6 @@ class ViewAdmin_Process(Handler):
             {
                 "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
-                "PrivateKey_GlobalDefault": self.dbPrivateKey_GlobalDefault,
             },
             self.request,
         )

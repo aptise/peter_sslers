@@ -107,7 +107,6 @@ class _form_AccountKey_core(_Form_Schema_Base):
 
 class _form_PrivateKey_core(_Form_Schema_Base):
     private_key_option = OneOf(model_utils.PrivateKey_options_a, not_empty=True,)
-    private_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
@@ -146,7 +145,6 @@ class _form_AccountKey_PrivateKey_core(_Form_Schema_Base):
     )
     acme_account_provider_id = Int(not_empty=False, if_missing=None)
     private_key_option = OneOf(model_utils.PrivateKey_options_a, not_empty=True,)
-    private_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     private_key_existing = UnicodeString(not_empty=False, if_missing=None)
     private_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
 
@@ -229,6 +227,10 @@ class Form_AcmeOrder_renew_quick(_Form_Schema_Base):
 class Form_AcmeOrder_renew_custom(_form_AccountKey_PrivateKey_reuse):
     processing_strategy = OneOf(
         model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL, not_empty=True,
+    )
+    private_key_cycle__renewal = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+        not_empty=True,
     )
 
 
@@ -318,9 +320,7 @@ class Form_PrivateKey_new__file(_Form_Schema_Base):
 
 
 class Form_PrivateKey_mark(_Form_Schema_Base):
-    action = OneOf(
-        ("compromised", "active", "inactive", "global_default"), not_empty=True
-    )
+    action = OneOf(("compromised", "active", "inactive",), not_empty=True)
 
 
 class _Form_QueueCertificate_new(_form_AccountKey_PrivateKey_core):

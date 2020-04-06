@@ -184,21 +184,14 @@ def _get_default_PrivateKey(ctx):
     use_weekly_key = ctx.request.registry.settings["app_settings"][
         "queue_domains_use_weekly_key"
     ]
-    if use_weekly_key:
-        dbPrivateKey = lib.db.get.get__PrivateKey_CurrentWeek_Global(ctx)
-        if not dbPrivateKey:
-            dbPrivateKey = lib.db.create.create__PrivateKey(
-                ctx,
-                # bits=4096,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "global_weekly"
-                ),
-            )
-    else:
-        dbPrivateKey = lib.db.get.get__PrivateKey__GlobalDefault(ctx, active_only=True)
+    dbPrivateKey = lib.db.get.get__PrivateKey_CurrentWeek_Global(ctx)
+    if not dbPrivateKey:
+        dbPrivateKey = lib.db.create.create__PrivateKey(
+            ctx,
+            # bits=4096,
+            private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
+            private_key_type_id=model_utils.PrivateKeyType.from_string("global_weekly"),
+        )
     if not dbPrivateKey:
         raise errors.DisplayableError("Could not load a default PrivateKey")
     return dbPrivateKey
