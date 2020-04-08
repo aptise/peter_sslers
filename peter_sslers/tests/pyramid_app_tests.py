@@ -30,9 +30,19 @@ from ._utils import SSL_TEST_PORT
 # ==============================================================================
 
 
+class FunctionalTests_Passes(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Passes
+    this is only used to test setup
+    """
+
+    def tests_passes(self):
+        return True
+
+
 class FunctionalTests_Main(AppTest):
     """
-    python -m unittest peter_sslers.tests.FunctionalTests_Main
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Main
     """
 
     def test_root(self):
@@ -54,20 +64,12 @@ class FunctionalTests_Main(AppTest):
         res = self.testapp.get("/.well-known/admin/search", status=200)
 
 
-class FunctionalTests_Passes(AppTest):
-    """
-    python -m unittest peter_sslers.tests.FunctionalTests_Passes
-    this is only used to test setup
-    """
-
-    def tests_passes(self):
-        return True
-
-
 class FunctionalTests_AcmeAccountKey(AppTest):
-    """python -m unittest peter_sslers.tests.FunctionalTests_AcmeAccountKey"""
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeAccountKey
 
-    """python -m unittest peter_sslers.tests.FunctionalTests_AcmeAccountKey.test_new"""
+    python -m unittest peter_sslers.tests.FunctionalTests_AcmeAccountKey.test_new
+    """
 
     def _get_item(self):
         # grab a Key

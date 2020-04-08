@@ -10,8 +10,8 @@ from pyramid.paster import get_appsettings, setup_logging
 from pyramid.scripts.common import parse_vars
 
 # local
-from ...lib.db import _setup
 from ...model.meta import Base
+from ...model.objects import AcmeAccountProvider
 from ..models import get_engine, get_session_factory, get_tm_session
 
 
@@ -42,8 +42,8 @@ def main(argv=sys.argv):
 
     with transaction.manager:
         dbSession = get_tm_session(None, session_factory, transaction.manager)
-
-        # this will setup the initial AcmeAccountProviders and the placeholder PrivateKey
-        _setup.initialize_AcmeAccountProviders(dbSession)
+        dbAcmeAccountProviders = dbSession.query(AcmeAccountProvider).all()
+        for acmeAccountProvider in dbAcmeAccountProviders:
+            _disabled = acmeAccountProvider._disable()
 
     transaction.commit()

@@ -12,6 +12,7 @@ class ApplicationSettings(dict):
         for _opt in (
             "admin_prefix",
             "api_host",
+            "certificate_authorities_enable",
             "certificate_authority_directory",
             "certificate_authority_protocol",
             "certificate_authority_testing",
@@ -44,6 +45,10 @@ class ApplicationSettings(dict):
             self[_opt] = None
 
     def from_settings_dict(self, settings):
+        """
+        * parses a `settings` dict (which Pyramid would natively have in `main`)
+        * invokes `self.validate()`
+        """
 
         # do this before setting routes!
         admin_prefix = settings.get("admin_prefix", None)
@@ -138,6 +143,18 @@ class ApplicationSettings(dict):
 
         self["enable_views_admin"] = set_bool_setting(settings, "enable_views_admin")
         self["enable_views_public"] = set_bool_setting(settings, "enable_views_public")
+
+        self["certificate_authorities_enable"] = [
+            ca
+            for ca in [
+                i.strip()
+                for i in settings.get("certificate_authorities_enable", "").split(",")
+            ]
+            if ca
+        ]
+
+        # let's try to validate it!
+        self.validate()
 
     def validate(self):
         """

@@ -20,7 +20,7 @@ from .get import get__Domain__by_name
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def update_AcmeAccountProvider__set_default(ctx, dbAcmeAccountProvider_new):
+def update_AcmeAccountProvider__activate_default(ctx, dbAcmeAccountProvider_new):
     _objs = [
         dbAcmeAccountProvider_new,
     ]
@@ -29,8 +29,21 @@ def update_AcmeAccountProvider__set_default(ctx, dbAcmeAccountProvider_new):
         _objs.append(dbAcmeAccountProvider_default)
         if dbAcmeAccountProvider_default.id != dbAcmeAccountProvider_new.id:
             dbAcmeAccountProvider_default.is_default = False
-    dbAcmeAccountProvider_new.is_default = True
+    if not dbAcmeAccountProvider_new.is_default:
+        dbAcmeAccountProvider_new.is_default = True
+    if not dbAcmeAccountProvider_new.is_enabled:
+        dbAcmeAccountProvider_new.is_enabled = True
     ctx.dbSession.flush(_objs)
+    event_status = "AcmeAccountProvider__activate_default"
+    return event_status
+
+
+def update_AcmeAccountProvider__set_is_enabled(ctx, dbAcmeAccountProvider):
+    if dbAcmeAccountProvider.is_enabled:
+        raise errors.InvalidTransition("Already enabled")
+    dbAcmeAccountProvider.is_enabled = True
+    event_status = "AcmeAccountProvider__mark__is_enabled"
+    return event_status
 
 
 def update_AcmeAccountKey__set_active(ctx, dbAcmeAccountKey):

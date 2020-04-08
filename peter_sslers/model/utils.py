@@ -204,6 +204,17 @@ class _OperationsUnified(_mixin_mapping):
         652: "AcmeOrder_Renew_Quick",
         661: "AcmeOrder__mark__renew_auto",
         662: "AcmeOrder__mark__renew_manual",
+        1100: "AcmeAccountProvider__activate_default",
+        1101: "AcmeAccountProvider__mark__is_enabled",
+        2001: "ApiDomains__enable",
+        2002: "ApiDomains__disable",
+        2010: "ApiDomains__certificate_if_needed",
+        2011: "ApiDomains__certificate_if_needed__domain_exists",
+        2012: "ApiDomains__certificate_if_needed__domain_activate",
+        2013: "ApiDomains__certificate_if_needed__domain_new",
+        2015: "ApiDomains__certificate_if_needed__certificate_exists",
+        2016: "ApiDomains__certificate_if_needed__certificate_new_success",
+        2017: "ApiDomains__certificate_if_needed__certificate_new_fail",
         200: "CaCertificate__probe",
         210: "CaCertificate__insert",
         220: "CaCertificate__upload_bundle",
@@ -258,15 +269,6 @@ class _OperationsUnified(_mixin_mapping):
         1005: "operations__redis_prime",
         1006: "operations__nginx_cache_expire",
         1007: "operations__nginx_cache_flush",
-        2001: "ApiDomains__enable",
-        2002: "ApiDomains__disable",
-        2010: "ApiDomains__certificate_if_needed",
-        2011: "ApiDomains__certificate_if_needed__domain_exists",
-        2012: "ApiDomains__certificate_if_needed__domain_activate",
-        2013: "ApiDomains__certificate_if_needed__domain_new",
-        2015: "ApiDomains__certificate_if_needed__certificate_exists",
-        2016: "ApiDomains__certificate_if_needed__certificate_new_success",
-        2017: "ApiDomains__certificate_if_needed__certificate_new_fail",
     }
 
 
@@ -639,7 +641,7 @@ class PrivateKeyCycle(_mixin_mapping):
         5,
         6,
     )
-    _DEFAULT_AcmeAccountKey = "certificate"
+    _DEFAULT_AcmeAccountKey = "single_certificate"
     _DEFAULT_AcmeOrder = "account_key_default"
 
 
@@ -686,6 +688,7 @@ class PrivateKeyType(_mixin_mapping):
     """
 
     _mapping = {
+        0: "placeholder",
         1: "standard",
         2: "single_certificate",
         3: "global_daily",

@@ -88,7 +88,6 @@ def main(global_config, **settings):
     # Parse settings
     app_settings = ApplicationSettings()
     app_settings.from_settings_dict(settings)
-    app_settings.validate()
     config.registry.settings["app_settings"] = app_settings
 
     # let's extend the request too!
@@ -172,37 +171,8 @@ def main(global_config, **settings):
             request=None,
         )
 
-        dbAcmeAccountProvider = get.get__AcmeAccountProvider__by_name(
-            ctx, app_settings["certificate_authority"]
-        )
-        if not dbAcmeAccountProvider:
-            print("Attempting to enroll new `AcmeAccountProvider` from config >>>")
-            dbAcmeAccountProvider = create.create__AcmeAccountProvider(
-                ctx,
-                name=app_settings["certificate_authority"],
-                directory=app_settings["certificate_authority_directory"],
-                protocol=app_settings["certificate_authority_protocol"],
-            )
-            print("<<< Enrolled new `AcmeAccountProvider` from config")
-
-        if dbAcmeAccountProvider.protocol != "acme-v2":
-            raise ValueError("`AcmeAccountProvider.protocol` is not `acme-v2`")
-
-        if (
-            dbAcmeAccountProvider.directory
-            != app_settings["certificate_authority_directory"]
-        ):
-            raise ValueError(
-                "`dbAcmeAccountProvider.directory` does not match `certificate_authority_directory`"
-            )
-
-        if not dbAcmeAccountProvider.is_default:
-            update.update_AcmeAccountProvider__set_default(ctx, dbAcmeAccountProvider)
-
-        dbAcmeAccountKey = get.get__AcmeAccountKey__GlobalDefault(ctx)
-        if dbAcmeAccountKey and not dbAcmeAccountKey.acme_account_provider.is_default:
-            dbAcmeAccountKey.is_global_default = False
-            dbSession.flush()
+        # this will do the heavy lifting
+        _setup.startup_AcmeAccountProviders(ctx, app_settings)
 
     if dbSession:
         dbSession.close()

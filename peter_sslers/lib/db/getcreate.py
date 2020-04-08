@@ -45,6 +45,7 @@ def getcreate__AcmeAccountKey(
     acme_account_key_source_id=None,
     contact=None,
     event_type="AcmeAccountKey__insert",
+    private_key_cycle_id=None,
 ):
     """
     Gets or Creates AccountKeys for LetsEncrypts' ACME server
@@ -64,6 +65,7 @@ def getcreate__AcmeAccountKey(
     :param acme_account_provider_id: (optional) id corresponding to a :class:`model.objects.AcmeAccountProvider` server
     :param acme_account_key_source_id: (required) id corresponding to a :class:`model.utils.AcmeAccountKeySource`
     :param contact: (optional) contact info from acme server
+    :param private_key_cycle_id: (required) id corresponding to a :class:`model.utils.PrivateKeyCycle`
     """
     is_created = False
     if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
@@ -76,6 +78,13 @@ def getcreate__AcmeAccountKey(
         )
     if event_type not in ("AcmeAccountKey__create", "AcmeAccountKey__insert"):
         raise ValueError("invalid event_type")
+
+    if private_key_cycle_id is None:
+        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+            model_utils.PrivateKeyCycle._DEFAULT_AcmeAccountKey
+        )
+    if private_key_cycle_id not in model_utils.PrivateKeyCycle._mapping:
+        raise ValueError("invalid `private_key_cycle_id`")
 
     if key_pem:
         key_pem = cert_utils.cleanup_pem_text(key_pem)
@@ -120,6 +129,7 @@ def getcreate__AcmeAccountKey(
             dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent.id
             dbAcmeAccountKey.acme_account_provider_id = acme_account_provider_id
             dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
+            dbAcmeAccountKey.private_key_cycle_id = private_key_cycle_id
             dbAcmeAccountKey.contact = contact
             ctx.dbSession.add(dbAcmeAccountKey)
             ctx.dbSession.flush(objects=[dbAcmeAccountKey])
@@ -226,6 +236,7 @@ def getcreate__AcmeAccountKey(
             dbAcmeAccountKey.terms_of_service = terms_of_service
             dbAcmeAccountKey.account_url = account_url
             dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
+            dbAcmeAccountKey.private_key_cycle_id = private_key_cycle_id
 
             ctx.dbSession.add(dbAcmeAccountKey)
             ctx.dbSession.flush(objects=[dbAcmeAccountKey])

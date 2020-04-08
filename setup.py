@@ -56,5 +56,6 @@ setup(
       main = peter_sslers.web:main
       [console_scripts]
       initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
+      disable_acme_account_providers = peter_sslers.web.scripts.disable_acme_account_providers:main
       """,
 )

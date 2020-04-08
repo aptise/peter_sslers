@@ -17,6 +17,8 @@ from webtest import TestApp
 
 # local
 from ..web import main
+from ..web.models import get_engine
+from ..web.models import get_session_factory
 from ..model import utils as model_utils
 from ..model import meta as model_meta
 from ..lib import db
@@ -68,11 +70,11 @@ class FakeRequest(testing.DummyRequest):
 
 TEST_FILES = {
     "AcmeAccountKey": {
-        "1": "acme_account_1.key",
-        "2": "acme_account_2.key",
-        "3": "acme_account_3.key",
-        "4": "acme_account_4.key",
-        "5": "acme_account_5.key",
+        "1": {"key": "acme_account_1.key", "provider": "pebble",},
+        "2": {"key": "acme_account_2.key", "provider": "pebble",},
+        "3": {"key": "acme_account_3.key", "provider": "pebble",},
+        "4": {"key": "acme_account_4.key", "provider": "pebble",},
+        "5": {"key": "acme_account_5.key", "provider": "pebble",},
     },
     "CACertificates": {
         "order": (
@@ -187,6 +189,8 @@ class AppTestCore(unittest.TestCase):
     _data_root = None
     testapp = None
     testapp_http = None
+    _session_factory = None
+    _DB_INTIALIZED = False
 
     def _filepath_testfile(self, filename):
         return os.path.join(self._data_root, filename)
@@ -203,15 +207,29 @@ class AppTestCore(unittest.TestCase):
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
         if False:
             settings["sqlalchemy.url"] = "sqlite://"
+
+        self._session_factory = get_session_factory(get_engine(settings))
+        if not AppTestCore._DB_INTIALIZED:
+            print("---------------")
+            print("AppTestCore.setUp | initialize db")
+            engine = self._session_factory().bind
+            model_meta.Base.metadata.drop_all(engine)
+            engine.execute("VACUUM")
+            model_meta.Base.metadata.create_all(engine)
+
+            db._setup.initialize_AcmeAccountProviders(dbSession)
+
         app = main(global_config=None, **settings)
         self.testapp = TestApp(app)
         self._data_root = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "test_data"
         )
+        AppTestCore._DB_INTIALIZED = True
 
     def tearDown(self):
-        if self.testapp_http is not None:
-            self.testapp_http.shutdown()
+        if self.testapp is not None:
+            pass
+        self._session_factory = None
 
 
 # ==============================================================================
@@ -220,19 +238,13 @@ class AppTestCore(unittest.TestCase):
 class AppTest(AppTestCore):
 
     _ctx = None
-    _DB_INTIALIZED = False
+    _DB_SETUP_RECORDS = False
 
     def setUp(self):
         AppTestCore.setUp(self)
-        if not AppTest._DB_INTIALIZED:
-
+        if not AppTest._DB_SETUP_RECORDS:
             print("---------------")
-            print("INITIALIZING DB")
-            engine = self.testapp.app.registry["dbSession_factory"]().bind
-
-            model_meta.Base.metadata.drop_all(engine)
-            engine.execute("VACUUM")
-            model_meta.Base.metadata.create_all(engine)
+            print("AppTest.setUp | setup sample db records")
 
             try:
                 """
@@ -250,12 +262,15 @@ class AppTest(AppTestCore):
                 """
 
                 #
-                # insert AcmeAccountKey
+                # note: pre-populate AcmeAccountKey
                 # this should create `/acme-account-key/1`
                 #
                 _key_filename = TEST_FILES["AcmeAccountKey"]["1"]
                 key_pem = self._filedata_testfile(_key_filename)
-                _key_account1, _is_created = db.getcreate.getcreate__AcmeAccountKey(
+                (
+                    _dbAcmeAccountKey_1,
+                    _is_created,
+                ) = db.getcreate.getcreate__AcmeAccountKey(
                     self.ctx,
                     key_pem,
                     acme_account_provider_id=1,
@@ -264,11 +279,11 @@ class AppTest(AppTestCore):
                     ),
                     event_type="AcmeAccountKey__insert",
                 )
-                # print(_key_account1, _is_created)
+                # print(_dbAcmeAccountKey_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
 
                 #
-                # insert CACertificate
+                # note: pre-populate CACertificate
                 # this should create `/ca-certificate/1`
                 #
                 _ca_cert_id = "isrgrootx1"
@@ -289,7 +304,7 @@ class AppTest(AppTestCore):
                 # self.ctx.pyramid_transaction_commit()
 
                 #
-                # insert CACertificate - self signed
+                # note: pre-populate CACertificate - self-signed
                 # this should create `/ca-certificate/2`
                 #
                 _ca_cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -306,7 +321,7 @@ class AppTest(AppTestCore):
                 # self.ctx.pyramid_transaction_commit()
 
                 #
-                # insert PrivateKey
+                # note: pre-populate PrivateKey
                 # this should create `/private-key/1`
                 #
                 _pkey_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -314,7 +329,7 @@ class AppTest(AppTestCore):
                 ]
                 pkey_pem = self._filedata_testfile(_pkey_filename)
                 (
-                    _key_private1,
+                    _dbPrivateKey_1,
                     _is_created,
                 ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
                     self.ctx,
@@ -326,11 +341,11 @@ class AppTest(AppTestCore):
                         "standard"
                     ),
                 )
-                # print(_key_private1, _is_created)
+                # print(_dbPrivateKey_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
 
                 #
-                # insert ServerCertificate
+                # note: pre-populate ServerCertificate
                 # this should create `/server-certificate/1`
                 #
                 _cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
@@ -339,19 +354,31 @@ class AppTest(AppTestCore):
                 _cert_domains_expected = [
                     TEST_FILES["ServerCertificates"]["SelfSigned"]["1"]["domain"],
                 ]
+                (
+                    _dbUniqueFQDNSet,
+                    _is_created,
+                ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                    self.ctx, _cert_domains_expected,
+                )
+
+                # note: pre-populate ServerCertificate
                 cert_pem = self._filedata_testfile(_cert_filename)
-                (_cert_1, _is_created,) = db.getcreate.getcreate__ServerCertificate(
+                (
+                    _dbServerCertificate_1,
+                    _is_created,
+                ) = db.getcreate.getcreate__ServerCertificate(
                     self.ctx,
                     cert_pem,
                     cert_domains_expected=_cert_domains_expected,
                     dbCACertificate=_ca_cert_selfsigned1,
-                    dbAcmeAccountKey=_key_account1,
-                    dbPrivateKey=_key_private1,
+                    dbUniqueFQDNSet=_dbUniqueFQDNSet,
+                    dbPrivateKey=_dbPrivateKey_1,
                 )
-                # print(_cert_1, _is_created)
+                # print(_dbServerCertificate_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
 
                 # ensure we have domains?
+                # note: pre-populate Domain
                 domains = db.get.get__Domain__paginated(self.ctx)
                 domain_names = [d.domain_name for d in domains]
                 assert (
@@ -361,7 +388,7 @@ class AppTest(AppTestCore):
                     in domain_names
                 )
 
-                # upload a csr
+                # note: pre-populate CertificateRequest
                 _csr_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
                     "csr"
                 ]
@@ -373,19 +400,21 @@ class AppTest(AppTestCore):
                     self.ctx,
                     csr_pem,
                     certificate_request_source_id=model_utils.CertificateRequestSource.IMPORTED,
-                    dbPrivateKey=_key_private1,
+                    dbPrivateKey=_dbPrivateKey_1,
                     domain_names=[
                         TEST_FILES["ServerCertificates"]["SelfSigned"]["1"]["domain"],
                     ],  # make it an iterable
                 )
                 # self.ctx.pyramid_transaction_commit()
 
+                # note: pre-populate QueueDomain
                 # queue a domain
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
                 db.queues.queue_domains__add(self.ctx, ["queue.example.com"])
                 # self.ctx.pyramid_transaction_commit()
 
+                # note: pre-populate QueueCertificate
                 # renew a csr
                 # this MUST be a new domain to add to the queue
                 # if it is existing, a domain will not be added
@@ -396,7 +425,12 @@ class AppTest(AppTestCore):
                 dbOperationsEvent = db.logger.log__OperationsEvent(
                     self.ctx, event_type, event_payload_dict
                 )
-                dbQueue = db.create._create__QueueCertificate(self.ctx, _cert_1)
+                dbQueue = db.create.create__QueueCertificate(
+                    self.ctx,
+                    dbAcmeAccountKey=_dbAcmeAccountKey_1,
+                    dbPrivateKey=_dbPrivateKey_1,
+                    dbServerCertificate=_dbServerCertificate_1,
+                )
                 # self.ctx.pyramid_transaction_commit()
 
                 self.ctx.pyramid_transaction_commit()
@@ -414,7 +448,7 @@ class AppTest(AppTestCore):
                 print("")
                 raise
             print("DB INITIALIZED")
-            AppTest._DB_INTIALIZED = True
+            AppTest._DB_SETUP_RECORDS = True
 
     def tearDown(self):
         AppTestCore.tearDown(self)

@@ -271,6 +271,19 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def _disable(self):
+        """
+        This should only be invoked by commandline tools
+        """
+        _changed = 0
+        if self.is_default:
+            self.is_default = False
+            _changed += 1
+        if self.is_enabled:
+            self.is_enabled = False
+            _changed += 1
+        return True if _changed else False
+
     @property
     def url(self):
         return self.directory or self.endpoint
@@ -284,6 +297,7 @@ class AcmeAccountProvider(Base, _Mixin_Timestamps_Pretty):
             "endpoint": self.endpoint,
             "directory": self.directory,
             "is_default": self.is_default or False,
+            "is_enabled": self.is_enabled or False,
             "protocol": self.protocol,
         }
 
