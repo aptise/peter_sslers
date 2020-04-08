@@ -36,6 +36,12 @@
             <p>
                 Only the default provider can be used to set a default AcmeAccountKey. Changing the provider requires a restart.
             </p>
+            
+            <p>
+                The Default AcmeAccountProvider is specified in the application's active environment file.
+                Additional AcmeAccountProviders can be enabled via the environment file as well.
+                AcmeAccountProviders can be disabled with a console script that is distributed with this application.
+            </p>
         
             % if AcmeAccountProviders:
                 <table class="table table-striped">
