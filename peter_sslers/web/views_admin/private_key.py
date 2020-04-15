@@ -213,7 +213,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["compromised", "active", "inactive",]},
             }
-        url_post_required = "%s?result=post+required&operation=mark" % self._focus_url
+        url_post_required = (
+            "%s?result=error&error=post+required&operation=mark" % self._focus_url
+        )
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbPrivateKey):
@@ -404,7 +406,7 @@ class ViewAdmin_New(Handler):
                 self.request.api_context,
                 private_key_pem,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "uploaded"
+                    "imported"
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
             )

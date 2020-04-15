@@ -574,7 +574,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["active", "inactive"]},
             }
-        url_post_required = "%s?result=post+required&operation=mark" % (
+        url_post_required = "%s?result=error&error=post+required&operation=mark" % (
             self._focus_url,
         )
         return HTTPSeeOther(url_post_required)

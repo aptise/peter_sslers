@@ -19,6 +19,7 @@ from webtest import TestApp
 from ..web import main
 from ..web.models import get_engine
 from ..web.models import get_session_factory
+from ..web.models import get_tm_session
 from ..model import utils as model_utils
 from ..model import meta as model_meta
 from ..lib import db
@@ -30,8 +31,8 @@ from ..lib import utils
 """
 export SSL_RUN_NGINX_TESTS=True
 export SSL_RUN_REDIS_TESTS=True
-export SSL_RUN_LETSENCRYPT_API_TESTS=True
-export SSL_LETSENCRYPT_API_VALIDATES=True
+export SSL_RUN_API_TESTS__PEBBLE=True
+export SSL_PEBBLE_API_VALIDATES=True
 export SSL_TEST_DOMAINS=dev.cliqued.in  # can be a comma-separated string
 export SSL_TEST_PORT=7201
 
@@ -46,9 +47,9 @@ RUN_NGINX_TESTS = os.environ.get("SSL_RUN_NGINX_TESTS", False)
 # run tests to prime redis
 RUN_REDIS_TESTS = os.environ.get("SSL_RUN_REDIS_TESTS", False)
 # run tests against LE API
-RUN_LETSENCRYPT_API_TESTS = os.environ.get("SSL_RUN_LETSENCRYPT_API_TESTS", False)
+RUN_API_TESTS__PEBBLE = os.environ.get("SSL_RUN_API_TESTS__PEBBLE", False)
 # does the LE validation work?  LE must be able to reach this
-LETSENCRYPT_API_VALIDATES = os.environ.get("SSL_LETSENCRYPT_API_VALIDATES", False)
+LETSENCRYPT_API_VALIDATES = os.environ.get("SSL_PEBBLE_API_VALIDATES", False)
 
 SSL_TEST_DOMAINS = os.environ.get("SSL_TEST_DOMAINS", "example.com")
 SSL_TEST_PORT = int(os.environ.get("SSL_TEST_PORT", 7201))
@@ -70,11 +71,31 @@ class FakeRequest(testing.DummyRequest):
 
 TEST_FILES = {
     "AcmeAccountKey": {
-        "1": {"key": "acme_account_1.key", "provider": "pebble",},
-        "2": {"key": "acme_account_2.key", "provider": "pebble",},
-        "3": {"key": "acme_account_3.key", "provider": "pebble",},
-        "4": {"key": "acme_account_4.key", "provider": "pebble",},
-        "5": {"key": "acme_account_5.key", "provider": "pebble",},
+        "1": {
+            "key": "acme_account_1.key",
+            "provider": "pebble",
+            "private_key_cycle": "single_certificate",
+        },
+        "2": {
+            "key": "acme_account_2.key",
+            "provider": "pebble",
+            "private_key_cycle": "single_certificate",
+        },
+        "3": {
+            "key": "acme_account_3.key",
+            "provider": "pebble",
+            "private_key_cycle": "single_certificate",
+        },
+        "4": {
+            "key": "acme_account_4.key",
+            "provider": "pebble",
+            "private_key_cycle": "single_certificate",
+        },
+        "5": {
+            "key": "acme_account_5.key",
+            "provider": "pebble",
+            "private_key_cycle": "single_certificate",
+        },
     },
     "CACertificates": {
         "order": (
@@ -217,7 +238,10 @@ class AppTestCore(unittest.TestCase):
             engine.execute("VACUUM")
             model_meta.Base.metadata.create_all(engine)
 
+            dbSession = self._session_factory()
             db._setup.initialize_AcmeAccountProviders(dbSession)
+            dbSession.commit()
+            dbSession.close()
 
         app = main(global_config=None, **settings)
         self.testapp = TestApp(app)
@@ -265,7 +289,10 @@ class AppTest(AppTestCore):
                 # note: pre-populate AcmeAccountKey
                 # this should create `/acme-account-key/1`
                 #
-                _key_filename = TEST_FILES["AcmeAccountKey"]["1"]
+                _key_filename = TEST_FILES["AcmeAccountKey"]["1"]["key"]
+                _private_key_cycle = TEST_FILES["AcmeAccountKey"]["1"][
+                    "private_key_cycle"
+                ]
                 key_pem = self._filedata_testfile(_key_filename)
                 (
                     _dbAcmeAccountKey_1,
@@ -273,11 +300,14 @@ class AppTest(AppTestCore):
                 ) = db.getcreate.getcreate__AcmeAccountKey(
                     self.ctx,
                     key_pem,
-                    acme_account_provider_id=1,
+                    acme_account_provider_id=1,  # acme_account_provider_id(1) == pebble
                     acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
                         "imported"
                     ),
                     event_type="AcmeAccountKey__insert",
+                    private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
+                        _private_key_cycle
+                    ),
                 )
                 # print(_dbAcmeAccountKey_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
@@ -453,6 +483,7 @@ class AppTest(AppTestCore):
     def tearDown(self):
         AppTestCore.tearDown(self)
         if self._ctx is not None:
+            self._ctx.dbSession.commit()
             self._ctx.dbSession.close()
 
     @property

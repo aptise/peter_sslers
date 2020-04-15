@@ -518,7 +518,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     ]
                 },
             }
-        url_post_required = "%s?result=post+required&operation=mark" % self._focus_url
+        url_post_required = (
+            "%s?result=error&error=post+required&operation=mark" % self._focus_url
+        )
         return HTTPSeeOther(url_post_required)
 
     def _mark__submit(self, dbServerCertificate):

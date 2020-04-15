@@ -40,6 +40,7 @@ class AcmeAccountKeyUploadParser(object):
     le_meta_jsons = None
     le_pkey_jsons = None
     le_reg_jsons = None
+    private_key_cycle_id = None
     upload_type = None  # pem OR letsencrypt
 
     def __init__(self, formStash):
@@ -51,6 +52,7 @@ class AcmeAccountKeyUploadParser(object):
         routine for creating a NEW AcmeAccountKey (peter_sslers generates the credentials)
         """
         formStash = self.formStash
+
         acme_account_provider_id = formStash.results.get(
             "acme_account_provider_id", None
         )
@@ -60,11 +62,29 @@ class AcmeAccountKeyUploadParser(object):
                 field="acme_account_provider_id", message="No provider submitted."
             )
 
-        getcreate_args = {
-            "acme_account_provider_id": acme_account_provider_id,
-            "contact": formStash.results["contact"],
-            "private_key_cycle": formStash.results["private_key_cycle"],
-        }
+        private_key_cycle = formStash.results.get("private_key_cycle", None)
+        if private_key_cycle is None:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="private_key_cycle", message="No PrivateKey cycle submitted."
+            )
+        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle
+        )
+
+        contact = formStash.results.get("contact", None)
+        if contact is None:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(field="contact", message="contact is required.")
+
+        getcreate_args = {}
+        self.contact = getcreate_args["contact"] = contact
+        self.acme_account_provider_id = getcreate_args[
+            "acme_account_provider_id"
+        ] = acme_account_provider_id
+        self.private_key_cycle_id = getcreate_args[
+            "private_key_cycle_id"
+        ] = private_key_cycle_id
         self.getcreate_args = decode_args(getcreate_args)
 
     def require_upload(self):
@@ -118,11 +138,23 @@ class AcmeAccountKeyUploadParser(object):
             "acme_account_provider_id", None
         )
 
+        private_key_cycle = formStash.results.get("private_key_cycle", None)
+        if private_key_cycle is None:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="private_key_cycle", message="No PrivateKey cycle submitted."
+            )
+        private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
+            private_key_cycle
+        )
+
         getcreate_args = {}
         if formStash.results["contact"] is not None:
             getcreate_args["contact"] = formStash.results["contact"]
 
-        getcreate_args["private_key_cycle"] = formStash.results["private_key_cycle"]
+        self.private_key_cycle_id = getcreate_args[
+            "private_key_cycle_id"
+        ] = private_key_cycle_id
 
         if formStash.results["account_key_file_pem"] is not None:
             if acme_account_provider_id is None:

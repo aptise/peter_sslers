@@ -628,6 +628,7 @@ def api_domains__certificate_if_needed(
     if account_key_pem is not None:
         raise ValueError("acmeAccountProvider_id")
         raise ValueError("contact")
+        raise ValueError("private_key_cycle")
         # event_type="AcmeAccountKey__insert",
         dbAcmeAccountKey, _is_created = lib.db.getcreate.getcreate__AcmeAccountKey(
             ctx,
@@ -637,6 +638,7 @@ def api_domains__certificate_if_needed(
             acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
                 "imported"
             ),
+            private_key_cycle_id=model_utils.PrivateKeyCycle.from_string("????"),
         )
         if not dbAcmeAccountKey:
             raise errors.DisplayableError("Could not create an AccountKey")

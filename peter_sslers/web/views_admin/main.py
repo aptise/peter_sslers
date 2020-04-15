@@ -25,7 +25,7 @@ from ...model import objects as model_objects
 
 
 class ViewAdminMain(Handler):
-    @view_config(route_name="admin_whoami", renderer="string")
+    @view_config(route_name="admin:whoami", renderer="string")
     def public_whoami(self):
         """this is really only useful for testing"""
         return self.request.active_domain_name

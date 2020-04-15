@@ -352,7 +352,9 @@ class ViewFocus(Handler):
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["cancel"]},
             }
-        url_huh = "%s?&result=post+required&operation=mark" % (self._focus_url)
+        url_huh = "%s?&result=error&error=post+required&operation=mark" % (
+            self._focus_url
+        )
         return HTTPSeeOther(url_huh)
 
     def _focus_mark__submit(self, dbQueueCertificate):

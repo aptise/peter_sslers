@@ -85,6 +85,8 @@ def upload_account(server_url_root, fset):
                 "account_key_file_le_meta=@%s" % fset["meta.json"],
                 "--form",
                 "account_key_file_le_reg=@%s" % fset["regr.json"],
+                "--form",
+                "private_key_cycle=single_certificate",
                 url,
             ],
             stdin=subprocess.PIPE,
@@ -93,6 +95,7 @@ def upload_account(server_url_root, fset):
         ) as proc:
             json_response, err = proc.communicate()
             if not json_response:
+                print(err)
                 raise ValueError("error")
             if six.PY3:
                 json_response = json_response.decode("utf8")

@@ -285,7 +285,9 @@ class ViewAdmin_Focus(Handler):
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["cancel"]},
             }
-        url_post_required = "%s?result=post+required&operation=mark" % (self._focus_url)
+        url_post_required = "%s?result=error&error=post+required&operation=mark" % (
+            self._focus_url
+        )
         return HTTPSeeOther(url_post_required)
 
     def _focus_mark__submit(self, dbQueueDomain):
