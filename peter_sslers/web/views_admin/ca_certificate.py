@@ -216,7 +216,7 @@ class ViewAdmin_New(Handler):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "ca_certificate": {
+                    "CACertificate": {
                         "created": cacert_is_created,
                         "id": dbCACertificate.id,
                     },

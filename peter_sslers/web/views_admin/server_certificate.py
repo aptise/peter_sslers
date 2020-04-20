@@ -47,27 +47,27 @@ class ViewAdmin_List(Handler):
     )
     @view_config(
         route_name="admin:server_certificates:active",
-        renderer="/admin/server-certificates.mako",
+        renderer="/admin/server_certificates.mako",
     )
     @view_config(
         route_name="admin:server_certificates:active_paginated",
-        renderer="/admin/server-certificates.mako",
+        renderer="/admin/server_certificates.mako",
     )
     @view_config(
         route_name="admin:server_certificates:expiring",
-        renderer="/admin/server-certificates.mako",
+        renderer="/admin/server_certificates.mako",
     )
     @view_config(
         route_name="admin:server_certificates:expiring_paginated",
-        renderer="/admin/server-certificates.mako",
+        renderer="/admin/server_certificates.mako",
     )
     @view_config(
         route_name="admin:server_certificates:inactive",
-        renderer="/admin/server-certificates.mako",
+        renderer="/admin/server_certificates.mako",
     )
     @view_config(
         route_name="admin:server_certificates:inactive_paginated",
-        renderer="/admin/server-certificates.mako",
+        renderer="/admin/server_certificates.mako",
     )
     @view_config(route_name="admin:server_certificates|json", renderer="json")
     @view_config(route_name="admin:server_certificates_paginated|json", renderer="json")
@@ -237,7 +237,6 @@ class ViewAdmin_New(Handler):
                 ),
                 private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
             )
-
             ca_chain_pem = formhandling.slurp_file_field(formStash, "chain_file")
             if six.PY3:
                 if not isinstance(ca_chain_pem, str):
@@ -277,6 +276,7 @@ class ViewAdmin_New(Handler):
             finally:
                 if _tmpfileCert:
                     _tmpfileCert.close()
+
             (
                 dbServerCertificate,
                 cert_is_created,
@@ -292,7 +292,7 @@ class ViewAdmin_New(Handler):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "certificate": {
+                    "ServerCertificate": {
                         "created": cert_is_created,
                         "id": dbServerCertificate.id,
                         "url": "%s/server-certificate/%s"
@@ -303,11 +303,11 @@ class ViewAdmin_New(Handler):
                             dbServerCertificate.id,
                         ),
                     },
-                    "ca_certificate": {
+                    "CACertificate": {
                         "created": cacert_is_created,
                         "id": dbCACertificate.id,
                     },
-                    "private_key": {"created": pkey_is_created, "id": dbPrivateKey.id},
+                    "PrivateKey": {"created": pkey_is_created, "id": dbPrivateKey.id},
                 }
             return HTTPSeeOther(
                 "%s/server-certificate/%s"
@@ -540,7 +540,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             )
 
             update_recents = False
-            deactivated = False
+            unactivated = False
             activated = False
             event_status = False
 
@@ -558,14 +558,14 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                         self.request.api_context, dbServerCertificate
                     )
                     update_recents = True
-                    deactivated = True
+                    unactivated = True
 
                 elif action == "revoked":
                     event_status = lib_db.update.update_ServerCertificate__set_revoked(
                         self.request.api_context, dbServerCertificate
                     )
                     update_recents = True
-                    deactivated = True
+                    unactivated = True
                     event_type = "ServerCertificate__revoke"
 
                 elif action == "unrevoke":
@@ -607,9 +607,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 event_update.operations_event_id__child_of = dbOperationsEvent.id
                 self.request.api_context.dbSession.flush(objects=[event_update])
 
-            if deactivated:
+            if unactivated:
                 # this will handle requeuing
-                events.Certificate_deactivated(
+                events.Certificate_unactivated(
                     self.request.api_context, dbServerCertificate
                 )
 
@@ -618,7 +618,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 pass
 
             if self.request.wants_json:
-                return {"result": "success", "Domain": dbServerCertificate.as_json}
+                return {
+                    "result": "success",
+                    "ServerCertificate": dbServerCertificate.as_json,
+                }
             url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
                 action,
@@ -630,8 +633,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?&result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
+                formStash.errors["Error_Main"].replace("\n", "+").replace(" ", "+"),
                 action,
-                exc.as_querystring,
             )
             raise HTTPSeeOther(url_failure)
 

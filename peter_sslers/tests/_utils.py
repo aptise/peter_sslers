@@ -20,6 +20,7 @@ from ..web import main
 from ..web.models import get_engine
 from ..web.models import get_session_factory
 from ..web.models import get_tm_session
+from ..model import objects as model_objects
 from ..model import utils as model_utils
 from ..model import meta as model_meta
 from ..lib import db
@@ -70,6 +71,21 @@ class FakeRequest(testing.DummyRequest):
 
 
 TEST_FILES = {
+    "AcmeOrderless": {
+        "new-1": {
+            "domains": ["acme-orderless-1.example.com", "acme-orderless-2.example.com"],
+            "AcmeAccountKey": None,
+        },
+        "new-2": {
+            "domains": ["acme-orderless-1.example.com", "acme-orderless-2.example.com"],
+            "AcmeAccountKey": {
+                "type": "upload",
+                "private_key_cycling": "single_certificate",
+                "acme_account_provider_id": "1",
+                "account_key_file_pem": "acme_account_1.key",
+            },
+        },
+    },
     "AcmeAccountKey": {
         "1": {
             "key": "acme_account_1.key",
@@ -206,6 +222,13 @@ TEST_FILES = {
 # ==============================================================================
 
 
+class FakeAuthenticatedUser(object):
+    accountkey_thumbprint = None
+
+    def __init__(self, accountkey_thumbprint=None):
+        self.accountkey_thumbprint = accountkey_thumbprint
+
+
 class AppTestCore(unittest.TestCase):
     _data_root = None
     testapp = None
@@ -244,7 +267,9 @@ class AppTestCore(unittest.TestCase):
             dbSession.close()
 
         app = main(global_config=None, **settings)
-        self.testapp = TestApp(app)
+        self.testapp = TestApp(
+            app, extra_environ={"HTTP_HOST": "peter-sslers.example.com",}
+        )
         self._data_root = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "test_data"
         )
@@ -285,34 +310,35 @@ class AppTest(AppTestCore):
                     AcmeEventLog
                 """
 
-                #
                 # note: pre-populate AcmeAccountKey
                 # this should create `/acme-account-key/1`
-                #
-                _key_filename = TEST_FILES["AcmeAccountKey"]["1"]["key"]
-                _private_key_cycle = TEST_FILES["AcmeAccountKey"]["1"][
-                    "private_key_cycle"
-                ]
-                key_pem = self._filedata_testfile(_key_filename)
-                (
-                    _dbAcmeAccountKey_1,
-                    _is_created,
-                ) = db.getcreate.getcreate__AcmeAccountKey(
-                    self.ctx,
-                    key_pem,
-                    acme_account_provider_id=1,  # acme_account_provider_id(1) == pebble
-                    acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
-                        "imported"
-                    ),
-                    event_type="AcmeAccountKey__insert",
-                    private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
-                        _private_key_cycle
-                    ),
-                )
-                # print(_dbAcmeAccountKey_1, _is_created)
-                # self.ctx.pyramid_transaction_commit()
+                _dbAcmeAccountKey_1 = None
+                for _id in TEST_FILES["AcmeAccountKey"]:
+                    _key_filename = TEST_FILES["AcmeAccountKey"][_id]["key"]
+                    _private_key_cycle = TEST_FILES["AcmeAccountKey"][_id][
+                        "private_key_cycle"
+                    ]
+                    key_pem = self._filedata_testfile(_key_filename)
+                    (
+                        _dbAcmeAccountKey,
+                        _is_created,
+                    ) = db.getcreate.getcreate__AcmeAccountKey(
+                        self.ctx,
+                        key_pem,
+                        acme_account_provider_id=1,  # acme_account_provider_id(1) == pebble
+                        acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
+                            "imported"
+                        ),
+                        event_type="AcmeAccountKey__insert",
+                        private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
+                            _private_key_cycle
+                        ),
+                    )
+                    # print(_dbAcmeAccountKey_1, _is_created)
+                    # self.ctx.pyramid_transaction_commit()
+                    if _id == "1":
+                        _dbAcmeAccountKey_1 = _dbAcmeAccountKey
 
-                #
                 # note: pre-populate CACertificate
                 # this should create `/ca-certificate/1`
                 #
@@ -333,82 +359,104 @@ class AppTest(AppTestCore):
                 # print(_ca_cert_1, _is_created)
                 # self.ctx.pyramid_transaction_commit()
 
-                #
-                # note: pre-populate CACertificate - self-signed
-                # this should create `/ca-certificate/2`
-                #
-                _ca_cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
-                    "cert"
-                ]
-                ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
-                (
-                    _ca_cert_selfsigned1,
-                    _is_created,
-                ) = db.getcreate.getcreate__CACertificate__by_pem_text(
-                    self.ctx, ca_cert_pem, ca_chain_name=_ca_cert_filename
-                )
-                # print(_ca_cert_selfsigned1, _is_created)
-                # self.ctx.pyramid_transaction_commit()
+                # we need a few PrivateKeys, because we'll turn them off
+                for pkey_id in TEST_FILES["PrivateKey"].keys():
+                    _pkey_filename = TEST_FILES["PrivateKey"][pkey_id]["file"]
+                    _pkey_pem = self._filedata_testfile(_pkey_filename)
+                    (
+                        _dbPrivateKey_alt,
+                        _is_created,
+                    ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
+                        self.ctx,
+                        _pkey_pem,
+                        private_key_source_id=model_utils.PrivateKeySource.from_string(
+                            "imported"
+                        ),
+                        private_key_type_id=model_utils.PrivateKeyType.from_string(
+                            "standard"
+                        ),
+                    )
 
-                #
-                # note: pre-populate PrivateKey
-                # this should create `/private-key/1`
-                #
-                _pkey_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
-                    "pkey"
-                ]
-                pkey_pem = self._filedata_testfile(_pkey_filename)
-                (
-                    _dbPrivateKey_1,
-                    _is_created,
-                ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
-                    self.ctx,
-                    pkey_pem,
-                    private_key_source_id=model_utils.PrivateKeySource.from_string(
-                        "imported"
-                    ),
-                    private_key_type_id=model_utils.PrivateKeyType.from_string(
-                        "standard"
-                    ),
-                )
-                # print(_dbPrivateKey_1, _is_created)
-                # self.ctx.pyramid_transaction_commit()
-
-                #
-                # note: pre-populate ServerCertificate
+                # note: pre-populate ServerCertificate 1-5
                 # this should create `/server-certificate/1`
                 #
-                _cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"]["1"][
-                    "cert"
-                ]
-                _cert_domains_expected = [
-                    TEST_FILES["ServerCertificates"]["SelfSigned"]["1"]["domain"],
-                ]
-                (
-                    _dbUniqueFQDNSet,
-                    _is_created,
-                ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
-                    self.ctx, _cert_domains_expected,
-                )
+                _dbServerCertificate_1 = None
+                _dbPrivateKey_1 = None
+                _dbUniqueFQDNSet_1 = None
+                for _id in TEST_FILES["ServerCertificates"]["SelfSigned"].keys():
+                    # note: pre-populate PrivateKey
+                    # this should create `/private-key/1`
+                    _pkey_filename = TEST_FILES["ServerCertificates"]["SelfSigned"][
+                        _id
+                    ]["pkey"]
+                    pkey_pem = self._filedata_testfile(_pkey_filename)
+                    (
+                        _dbPrivateKey,
+                        _is_created,
+                    ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
+                        self.ctx,
+                        pkey_pem,
+                        private_key_source_id=model_utils.PrivateKeySource.from_string(
+                            "imported"
+                        ),
+                        private_key_type_id=model_utils.PrivateKeyType.from_string(
+                            "standard"
+                        ),
+                    )
+                    # print(_dbPrivateKey, _is_created)
+                    # self.ctx.pyramid_transaction_commit()
 
-                # note: pre-populate ServerCertificate
-                cert_pem = self._filedata_testfile(_cert_filename)
-                (
-                    _dbServerCertificate_1,
-                    _is_created,
-                ) = db.getcreate.getcreate__ServerCertificate(
-                    self.ctx,
-                    cert_pem,
-                    cert_domains_expected=_cert_domains_expected,
-                    dbCACertificate=_ca_cert_selfsigned1,
-                    dbUniqueFQDNSet=_dbUniqueFQDNSet,
-                    dbPrivateKey=_dbPrivateKey_1,
-                )
-                # print(_dbServerCertificate_1, _is_created)
-                # self.ctx.pyramid_transaction_commit()
+                    # note: pre-populate CACertificate - self-signed
+                    # this should create `/ca-certificate/2`
+                    #
+                    _ca_cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"][
+                        _id
+                    ]["cert"]
+                    ca_cert_pem = self._filedata_testfile(_ca_cert_filename)
+                    (
+                        _dbCACertificate_SelfSigned,
+                        _is_created,
+                    ) = db.getcreate.getcreate__CACertificate__by_pem_text(
+                        self.ctx, ca_cert_pem, ca_chain_name=_ca_cert_filename
+                    )
+                    # print(_dbCACertificate_SelfSigned, _is_created)
+                    # self.ctx.pyramid_transaction_commit()
 
-                # ensure we have domains?
+                    _cert_filename = TEST_FILES["ServerCertificates"]["SelfSigned"][
+                        _id
+                    ]["cert"]
+                    _cert_domains_expected = [
+                        TEST_FILES["ServerCertificates"]["SelfSigned"][_id]["domain"],
+                    ]
+                    (
+                        _dbUniqueFQDNSet,
+                        _is_created,
+                    ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                        self.ctx, _cert_domains_expected,
+                    )
+
+                    cert_pem = self._filedata_testfile(_cert_filename)
+                    (
+                        _dbServerCertificate,
+                        _is_created,
+                    ) = db.getcreate.getcreate__ServerCertificate(
+                        self.ctx,
+                        cert_pem,
+                        cert_domains_expected=_cert_domains_expected,
+                        dbCACertificate=_dbCACertificate_SelfSigned,
+                        dbUniqueFQDNSet=_dbUniqueFQDNSet,
+                        dbPrivateKey=_dbPrivateKey,
+                    )
+                    # print(_dbServerCertificate_1, _is_created)
+                    # self.ctx.pyramid_transaction_commit()
+
+                    if _id == "1":
+                        _dbServerCertificate_1 = _dbServerCertificate
+                        _dbPrivateKey_1 = _dbPrivateKey
+                        _dbUniqueFQDNSet_1 = _dbUniqueFQDNSet
+
                 # note: pre-populate Domain
+                # ensure we have domains?
                 domains = db.get.get__Domain__paginated(self.ctx)
                 domain_names = [d.domain_name for d in domains]
                 assert (
@@ -424,7 +472,7 @@ class AppTest(AppTestCore):
                 ]
                 csr_pem = self._filedata_testfile(_csr_filename)
                 (
-                    _csr_1,
+                    _dbCertificateRequest_1,
                     _is_created,
                 ) = db.getcreate.getcreate__CertificateRequest__by_pem_text(
                     self.ctx,
@@ -463,6 +511,133 @@ class AppTest(AppTestCore):
                 )
                 # self.ctx.pyramid_transaction_commit()
 
+                # TODO: the dbSessions don't seem to be the same
+                #       to get around this, commit now
+                self.ctx.pyramid_transaction_commit()
+
+                # note: pre-populate AcmeOrder
+
+                # merge these items in
+                _dbAcmeAccountKey_1 = self.ctx.dbSession.merge(
+                    _dbAcmeAccountKey_1, load=False
+                )
+                _dbPrivateKey_1 = self.ctx.dbSession.merge(_dbPrivateKey_1, load=False)
+                _dbUniqueFQDNSet_1 = self.ctx.dbSession.merge(
+                    _dbUniqueFQDNSet_1, load=False
+                )
+
+                # pre-populate AcmeOrder/AcmeChallenge
+                _acme_order_response = {
+                    "status": "pending",
+                    "expires": "2047-01-01T14:09:07.99Z",
+                    "authorizations": [
+                        "https://example.com/acme/authz/acmeOrder-1--authz-1",
+                    ],
+                    "finalize": "https://example.com/acme/authz/acmeOrder-1--finalize",
+                    "identifiers": [
+                        {"type": "dns", "value": "selfsigned-1.example.com"}
+                    ],
+                }
+                _acme_order_type_id = model_utils.AcmeOrderType.ACME_AUTOMATED_NEW
+                _acme_order_processing_status_id = (
+                    model_utils.AcmeOrder_ProcessingStatus.created_acme
+                )
+                _acme_order_processing_strategy_id = (
+                    model_utils.AcmeOrder_ProcessingStrategy.create_order
+                )
+                _private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
+                    "single_certificate"
+                )
+                _private_key_strategy_id__requested = model_utils.PrivateKeyStrategy.from_string(
+                    "specified"
+                )
+                _acme_event_id = model_utils.AcmeEvent.from_string("v2|newOrder")
+                _dbAcmeEventLog = model_objects.AcmeEventLog()
+                _dbAcmeEventLog.acme_event_id = _acme_event_id
+                _dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+                _dbAcmeEventLog.acme_account_key_id = _dbAcmeAccountKey_1.id
+                _dbAcmeEventLog.unique_fqdn_set_id = _dbUniqueFQDNSet_1.id
+                self.ctx.dbSession.add(_dbAcmeEventLog)
+                self.ctx.dbSession.flush()
+
+                _authenticatedUser = FakeAuthenticatedUser(
+                    accountkey_thumbprint="accountkey_thumbprint"
+                )
+
+                _dbAcmeOrder_1 = db.create.create__AcmeOrder(
+                    self.ctx,
+                    acme_order_response=_acme_order_response,
+                    acme_order_type_id=_acme_order_type_id,
+                    acme_order_processing_status_id=_acme_order_processing_status_id,
+                    acme_order_processing_strategy_id=_acme_order_processing_strategy_id,
+                    private_key_cycle_id__renewal=_private_key_cycle_id__renewal,
+                    private_key_strategy_id__requested=_private_key_strategy_id__requested,
+                    order_url="https://example.com/acme/order/acmeOrder-1",
+                    dbAcmeAccountKey=_dbAcmeAccountKey_1,
+                    dbEventLogged=_dbAcmeEventLog,
+                    dbPrivateKey=_dbPrivateKey_1,
+                    dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
+                    transaction_commit=True,
+                )
+
+                # merge these items in
+                _dbAcmeOrder_1 = self.ctx.dbSession.merge(_dbAcmeOrder_1, load=False)
+
+                _authorization_response = {
+                    "status": "pending",
+                    "expires": "2047-01-01T14:09:07.99Z",
+                    "identifier": {"type": "dns", "value": "selfsigned-1.example.com"},
+                    "challenges": [
+                        {
+                            "url": "https://example.com/acme/chall/acmeOrder-1--authz-1--chall-1",
+                            "type": "http-01",
+                            "status": "pending",
+                            "token": "TokenTokenToken",
+                            "validated": None,
+                        },
+                    ],
+                    "wildcard": False,
+                }
+
+                (
+                    _dbAcmeAuthorization_1,
+                    _is_created,
+                ) = db.getcreate.getcreate__AcmeAuthorization(
+                    self.ctx,
+                    authorization_url=_acme_order_response["authorizations"][0],
+                    authorization_payload=_authorization_response,
+                    authenticatedUser=_authenticatedUser,
+                    dbAcmeOrder=_dbAcmeOrder_1,
+                    transaction_commit=True,
+                )
+
+                # merge this back in
+                _dbAcmeAuthorization_1 = self.ctx.dbSession.merge(
+                    _dbAcmeAuthorization_1, load=False
+                )
+
+                # ensure we created a challenge
+                assert _dbAcmeAuthorization_1.acme_challenge_http01 is not None
+
+                _db__AcmeChallengePoll = db.create.create__AcmeChallengePoll(
+                    self.ctx,
+                    dbAcmeChallenge=_dbAcmeAuthorization_1.acme_challenge_http01,
+                    remote_ip_address="127.1.1.1",
+                )
+                _db__AcmeChallengeUnknownPoll = db.create.create__AcmeChallengeUnknownPoll(
+                    self.ctx,
+                    domain="unknown.example.com",
+                    challenge="bar.foo",
+                    remote_ip_address="127.1.1.2",
+                )
+
+                # note: pre-populate AcmeOrder;ess
+                dbAcmeOrderless = db.create.create__AcmeOrderless(
+                    self.ctx,
+                    domain_names=("acme-orderless.example.com",),
+                    dbAcmeAccountKey=None,
+                )
+
                 self.ctx.pyramid_transaction_commit()
 
             except Exception as exc:
@@ -476,6 +651,7 @@ class AppTest(AppTestCore):
                 print("")
                 print("")
                 print("")
+                self.ctx.pyramid_transaction_rollback()
                 raise
             print("DB INITIALIZED")
             AppTest._DB_SETUP_RECORDS = True

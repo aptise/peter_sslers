@@ -89,12 +89,39 @@ class ViewAdmin_New(Handler):
         if self.request.wants_json:
             return {
                 "instructions": [
-                    """curl --form 'domain_names=@domain_names' %s/acme-orderless/new.json"""
+                    """curl --form 'domain_names=@domain_names' 'account_key_option=none' %s/acme-orderless/new.json"""
                     % self.request.registry.settings["app_settings"]["admin_prefix"]
                 ],
                 "form_fields": {
-                    "domain_names": "a comma separated list of domain names"
+                    "domain_names": "a comma separated list of domain names",
+                    "account_key_option": "How is the AcmeAccountKey specified?",
+                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
                 },
+                "form_fields_related": [
+                    ["account_key_file_pem", "acme_account_provider_id"],
+                    [
+                        "account_key_file_le_meta",
+                        "account_key_file_le_pkey",
+                        "account_key_file_le_reg",
+                    ],
+                ],
+                "valid_options": {
+                    "acme_account_provider_id": {
+                        i.id: "%s (%s)" % (i.name, i.url)
+                        for i in self.dbAcmeAccountProviders
+                    },
+                    "account_key_option": model_utils.AcmeAccontKey_options_c,
+                },
+                "requirements": [
+                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+                ],
                 "notes": [
                     "You can configure the challenges and add domain names to an existing AcmeOrderless"
                 ],
@@ -127,6 +154,7 @@ class ViewAdmin_New(Handler):
                 self.request,
                 formStash,
                 account_key_option=formStash.results["account_key_option"],
+                allow_none=True,
             )
             if accountKeySelection.selection == "upload":
                 key_create_args = accountKeySelection.upload_parsed.getcreate_args
@@ -169,6 +197,8 @@ class ViewAdmin_New(Handler):
             )
 
         except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(
                 self.request, self._new_AcmeOrderless__print
             )
@@ -197,6 +227,46 @@ class ViewAdmin_Focus(Handler):
     def _focus_print(self):
         if self._dbAcmeOrderless is None:
             self._focus()
+        if self.request.wants_json:
+            resp = {
+                "AcmeOrderless": self._dbAcmeOrderless.as_json,
+                "forms": {},
+            }
+            if self._dbAcmeOrderless.is_processing:
+                resp["forms"]["acmeorderless-update"] = {
+                    "_url": "%s/update.json" % self._focus_url,
+                    "_challenges": [],
+                }
+                for challenge in self._dbAcmeOrderless.acme_challenges:
+                    resp["forms"]["acmeorderless-update"]["_challenges"].append(
+                        str(challenge.id)
+                    )
+                    if self._dbAcmeOrderless.acme_account_key_id:
+                        resp["forms"]["acmeorderless-update"][
+                            "%s_url" % challenge.id
+                        ] = (challenge.challenge_url or "")
+                    resp["forms"]["acmeorderless-update"][
+                        "%s_keyauthorization" % challenge.id
+                    ] = (challenge.keyauthorization or "")
+                    resp["forms"]["acmeorderless-update"]["%s_token" % challenge.id] = (
+                        challenge.token or ""
+                    )
+                    resp["forms"]["acmeorderless-update"][
+                        "%s_domain" % challenge.id
+                    ] = (challenge.domain_name or "")
+                resp["forms"]["acmeorderless-update"]["_challenges"] = ",".join(
+                    resp["forms"]["acmeorderless-update"]["_challenges"]
+                )
+                resp["forms"]["acmeorderless-add_challenge"] = {
+                    "_url": "%s/add.json" % self._focus_url,
+                    "keyauthorization": "",
+                    "domain": "",
+                    "token": "",
+                }
+                resp["forms"]["acmeorderless-deactivate"] = {
+                    "_url": "%s/deactivate.json" % self._focus_url,
+                }
+            return resp
         return render_to_response(
             "/admin/acme_orderless-focus.mako",
             {"AcmeOrderless": self._dbAcmeOrderless,},
@@ -214,10 +284,6 @@ class ViewAdmin_Focus(Handler):
         if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
         dbAcmeOrderless = self._focus()
-        if self.request.wants_json:
-            return {
-                "AcmeOrderless": dbAcmeOrderless.as_json,
-            }
         return self._focus_print()
 
 
@@ -239,22 +305,25 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
             # token
             form_token = _post.get("%s_token" % challenge_id)
-            if form_token != dbChallenge.token:
-                dbChallenge.token = form_token
-                _changed = True
+            if form_token is not None:
+                if form_token != dbChallenge.token:
+                    dbChallenge.token = form_token
+                    _changed = True
 
             # keyauth
             form_keyauth = _post.get("%s_keyauthorization" % challenge_id)
-            if form_keyauth != dbChallenge.keyauthorization:
-                dbChallenge.keyauthorization = form_keyauth
-                _changed = True
+            if form_keyauth is not None:
+                if form_keyauth != dbChallenge.keyauthorization:
+                    dbChallenge.keyauthorization = form_keyauth
+                    _changed = True
 
             # url
             if dbAcmeOrderless.acme_account_key_id:
                 form_url = _post.get("%s_url" % challenge_id)
-                if form_url != dbChallenge.challenge_url:
-                    dbChallenge.challenge_url = form_url
-                    _changed = True
+                if form_url is not None:
+                    if form_url != dbChallenge.challenge_url:
+                        dbChallenge.challenge_url = form_url
+                        _changed = True
 
             if _changed:
                 dbChallenge.timestamp_updated = self.request.api_context.timestamp
@@ -262,10 +331,11 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
         if self.request.wants_json:
             return {
+                "result": "success",
                 "AcmeOrderless": dbAcmeOrderless.as_json,
                 "changed": True if _changes else False,
             }
-        return HTTPSeeOther("%s?status=success" % self._focus_url)
+        return HTTPSeeOther("%s?result=success" % self._focus_url)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -280,7 +350,18 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 return {"error": "This route requires a POST"}
             return HTTPSeeOther("%s?result=error&error=must+POST" % self._focus_url)
 
-        # todo: use the api
+        if not dbAcmeOrderless.is_processing:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "error": "already deactivated",
+                    "AcmeOrderless": dbAcmeOrderless.as_json,
+                }
+            return HTTPSeeOther(
+                "%s?result=error&error=already+deactivated" % self._focus_url
+            )
+
+        # todo: migrate to the `update` api
         dbAcmeOrderless.is_processing = False
         dbAcmeOrderless.timestamp_updated = self.request.api_context.timestamp
         self.request.api_context.dbSession.flush(objects=[dbAcmeOrderless])
@@ -354,10 +435,13 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             )
 
             if self.request.wants_json:
+                # expire this so the updates appear
+                self.request.dbSession.expire(dbAcmeOrderless)
                 return {
+                    "result": "success",
                     "AcmeOrderless": dbAcmeOrderless.as_json,
                 }
-            return HTTPSeeOther("%s?status=success" % self._focus_url)
+            return HTTPSeeOther("%s?result=success" % self._focus_url)
 
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
@@ -386,10 +470,11 @@ class ViewAdmin_Focus_Challenge(ViewAdmin_Focus):
                 raise ValueError("invalid challenge")
             dbChallenge = dbChallenge[0]
         except:
-            return HTTPSeeOther("%s?status=error" % self._focus_url)
+            return HTTPSeeOther("%s?result=error" % self._focus_url)
 
         if self.request.wants_json:
             return {
+                "result": "success",
                 "AcmeOrderless": dbAcmeOrderless.as_json,
                 "AcmeChallenge": dbChallenge.as_json,
             }

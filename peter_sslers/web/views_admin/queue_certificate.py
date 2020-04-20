@@ -246,6 +246,8 @@ class ViewNew(Handler):
         return self._new__print()
 
     def _new__print(self):
+        if self.request.wants_json:
+            raise ValueError("TODO")
         return render_to_response(
             "/admin/queue_certificate-new.mako",
             {
@@ -303,6 +305,8 @@ class ViewNew(Handler):
                 % (self.request.admin_url, dbQueueCertificate.id)
             )
         except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._new__print)
 
 

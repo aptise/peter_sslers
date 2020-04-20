@@ -235,7 +235,9 @@ class _PrivateKeySelection(object):
     PrivateKey = None
 
 
-def parse_AcmeAccountKeySelection(request, formStash, account_key_option=None):
+def parse_AcmeAccountKeySelection(
+    request, formStash, account_key_option=None, allow_none=None
+):
     account_key_pem = None
     account_key_pem_md5 = None
     dbAcmeAccountKey = None
@@ -266,8 +268,19 @@ def parse_AcmeAccountKeySelection(request, formStash, account_key_option=None):
         elif account_key_option == "account_key_reuse":
             accountKeySelection.selection = "reuse"
             account_key_pem_md5 = formStash.results["account_key_reuse"]
+        elif account_key_option == "none":
+            if not allow_none:
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form(
+                    "This form does not support no AcmeAccountKey selection."
+                )
+            # note the lowercase "none"; this is an explicit "no item" selection
+            # only certain routes allow this
+            accountKeySelection.selection = "none"
+            account_key_pem_md5 = None
+            return accountKeySelection
         else:
-            raise ValueError("Invalid `account_key_option`")
+            formStash.fatal_form(message="Invalid `account_key_option`",)
         if not account_key_pem_md5:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
@@ -345,7 +358,8 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
                 )
             return privateKeySelection
         else:
-            raise ValueError("Invalid `private_key_option`")
+            # `formStash.fatal_form()` will raise `FormInvalid()`
+            formStash.fatal_form("Invalid `private_key_option`")
 
         if not private_key_pem_md5:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`

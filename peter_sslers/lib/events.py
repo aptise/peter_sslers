@@ -21,18 +21,21 @@ from .. import lib
 # issuing a cert should remove any similar fqdns from the queue
 
 
-def _handle_certificate_deactivated(ctx, serverCertificate):
+def _handle_Certificate_unactivated(ctx, serverCertificate):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
     # ok. so let's find out the fqdn...
-    requeue = False
+    requeue = None
     dbLatestActiveCert = lib.db.get.get__ServerCertificate__by_UniqueFQDNSetId__latest_active(
         ctx, serverCertificate.unique_fqdn_set_id
     )
     if not dbLatestActiveCert:
-        requeue = True
+        if serverCertificate.acme_account_key:
+            requeue = True
+        else:
+            requeue = False
     if requeue:
         dbQuque = lib.db.create.create__QueueCertificate(
             ctx,
@@ -84,15 +87,15 @@ def Certificate_expired(ctx, serverCertificate):
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
-    _handle_certificate_deactivated(ctx, serverCertificate)
+    _handle_Certificate_unactivated(ctx, serverCertificate)
 
 
-def Certificate_deactivated(ctx, serverCertificate):
+def Certificate_unactivated(ctx, serverCertificate):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
-    _handle_certificate_deactivated(ctx, serverCertificate)
+    _handle_Certificate_unactivated(ctx, serverCertificate)
 
 
 def PrivateKey_compromised(ctx, privateKeyCompromised, dbOperationsEvent=None):
@@ -117,7 +120,7 @@ def PrivateKey_compromised(ctx, privateKeyCompromised, dbOperationsEvent=None):
     items_count = lib.db.get.get__ServerCertificate__by_PrivateKeyId__count(
         ctx, privateKeyCompromised.id
     )
-    if items_count:
+    if items_count and False:
 
         batch_size = 20
         batches = int(math.ceil(items_count / float(batch_size)))
@@ -130,7 +133,9 @@ def PrivateKey_compromised(ctx, privateKeyCompromised, dbOperationsEvent=None):
                 dbServerCertificate.is_compromised_private_key = True
                 dbServerCertificate.is_revoked = True
                 revoked_certificates["*data"][dbServerCertificate.id] = (
-                    dbServerCertificate.acme_account_key_id,
+                    dbServerCertificate.acme_order.acme_account_key_id
+                    if dbServerCertificate.acme_order
+                    else None,
                     dbServerCertificate.unique_fqdn_set_id,
                 )
                 if dbServerCertificate.is_active:
@@ -194,8 +199,8 @@ def PrivateKey_compromised(ctx, privateKeyCompromised, dbOperationsEvent=None):
 
     event_payload = dbOperationsEvent.event_payload_json
     event_payload["certificates.revoked"] = {
-        "active": list(revoked_certificates["active"].keys()),
-        "inactive": list(revoked_certificates["inactive"].keys()),
+        "active": list(revoked_certificates["active"]),
+        "inactive": list(revoked_certificates["inactive"]),
     }
     event_payload["certificates.not_renewable"] = certificates_not_renewable
     dbOperationsEvent.set_event_payload(event_payload)
@@ -211,6 +216,6 @@ __all__ = (
     "Certificate_issued",
     "Certificate_renewed",
     "Certificate_expired",
-    "Certificate_deactivated",
+    "Certificate_unactivated",
     "PrivateKey_compromised",
 )

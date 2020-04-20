@@ -58,6 +58,12 @@ class _Mixin_Timestamps_Pretty(object):
         return None
 
     @property
+    def timestamp_polled_isoformat(self):
+        if self.timestamp_polled:
+            return self.timestamp_polled.isoformat()
+        return None
+
+    @property
     def timestamp_processed_isoformat(self):
         if self.timestamp_processed:
             return self.timestamp_processed.isoformat()
@@ -333,6 +339,29 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         status - `status`
         timestamp_updated - last time we updated this object
 
+    Example:
+
+       {
+         "status": "valid",
+         "expires": "2015-03-01T14:09:07.99Z",
+
+         "identifier": {
+           "type": "dns",
+           "value": "www.example.org"
+         },
+
+         "challenges": [
+           {
+             "url": "https://example.com/acme/chall/prV_B7yEyA4",
+             "type": "http-01",
+             "status": "valid",
+             "token": "DGyRejmCefe7v4NfDGDKfA",
+             "validated": "2014-12-01T12:05:58.16Z"
+           }
+         ],
+
+         "wildcard": false
+       }
 
     ------------------------------------------------------------------------
 
@@ -750,8 +779,10 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
             "acme_challenge_type": self.acme_challenge_type,
             "acme_status_challenge": self.acme_status_challenge,
             "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
+            "keyauthorization": self.keyauthorization,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
+            "token": self.token,
             "url_acme_server_sync": "%s/acme-challenge/%s/acme-server/sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
@@ -803,6 +834,20 @@ class AcmeChallengePoll(Base, _Mixin_Timestamps_Pretty):
         back_populates="acme_challenge_polls",
     )
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "AcmeChallenge": self.acme_challenge.as_json,
+            "timestamp_polled": self.timestamp_polled_isoformat,
+            "remote_ip_address": {
+                "id": self.remote_ip_address_id,
+                "ip_address": self.remote_ip_address.remote_ip_address,
+            },
+        }
+
 
 # ==============================================================================
 
@@ -830,6 +875,21 @@ class AcmeChallengeUnknownPoll(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_challenge_unknown_polls",
     )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "domain": self.domain,
+            "challenge": self.challenge,
+            "timestamp_polled": self.timestamp_polled_isoformat,
+            "remote_ip_address": {
+                "id": self.remote_ip_address_id,
+                "ip_address": self.remote_ip_address.remote_ip_address,
+            },
+        }
 
 
 # ==============================================================================
@@ -1024,7 +1084,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyStrategy
     private_key_strategy_id__final = sa.Column(
-        sa.Integer, nullable=False
+        sa.Integer, nullable=True
     )  # see .utils.PrivateKeyStrategy
     acme_event_log_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_event_log.id"), nullable=False
@@ -1386,6 +1446,7 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
         _status = {}
         for challenge in self.acme_challenges:
             _status[challenge.domain_name] = {
+                "acme_challenge_id": challenge.id,
                 "acme_challenge_type": challenge.acme_challenge_type,
                 "acme_status_challenge": challenge.acme_status_challenge,
             }
@@ -2064,6 +2125,7 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "is_active": True if self.is_active else False,
+            "is_compromised": True if self.is_compromised else False,
             "key_pem_md5": self.key_pem_md5,
             "key_pem": self.key_pem,
             "timestamp_created": self.timestamp_created_isoformat,
@@ -2341,7 +2403,6 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_signed = sa.Column(sa.DateTime, nullable=False)
     timestamp_expires = sa.Column(sa.DateTime, nullable=False)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_single_domain_cert = sa.Column(sa.Boolean, nullable=True, default=None)
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
@@ -2350,6 +2411,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     cert_issuer = sa.Column(sa.Text, nullable=True)
     cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
     cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_deactivated = sa.Column(
         sa.Boolean, nullable=True, default=None
     )  # used to determine `is_active` toggling; if "True" then `is_active` can-not be toggled.

@@ -304,7 +304,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
                 for cert in domain_certs[1:]:
                     cert.is_active = False
                     _turned_off.append(cert)
-                    events.Certificate_deactivated(ctx, cert)
+                    events.Certificate_unactivated(ctx, cert)
 
     # update the event
     if len(_turned_off):

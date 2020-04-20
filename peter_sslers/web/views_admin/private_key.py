@@ -111,6 +111,10 @@ class ViewAdmin_Focus(Handler):
     @view_config(route_name="admin:private_key:focus:raw", renderer="string")
     def focus_raw(self):
         dbPrivateKey = self._focus()
+        if dbPrivateKey.private_key_type == model_utils.PrivateKeyType.from_string(
+            "placeholder"
+        ):
+            return "*placeholder*"
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
             return dbPrivateKey.key_pem
@@ -292,7 +296,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 )
 
             if self.request.wants_json:
-                return {"result": "success", "Domain": dbPrivateKey.as_json}
+                return {"result": "success", "PrivateKey": dbPrivateKey.as_json}
             url_success = "%s?result=success&operation=mark&action=%s" % (
                 self._focus_url,
                 action,

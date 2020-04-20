@@ -91,18 +91,11 @@ def main(global_config, **settings):
     config.registry.settings["app_settings"] = app_settings
 
     # let's extend the request too!
-    if acme_v2.TESTING_ENVIRONMENT:
-        config.add_request_method(
-            lambda request: "selfsigned-1.example.com",
-            "active_domain_name",
-            reify=True,
-        )
-    else:
-        config.add_request_method(
-            lambda request: request.environ["HTTP_HOST"].split(":")[0],
-            "active_domain_name",
-            reify=True,
-        )
+    config.add_request_method(
+        lambda request: request.environ["HTTP_HOST"].split(":")[0],
+        "active_domain_name",
+        reify=True,
+    )
     config.add_request_method(
         lambda request: request.registry.settings["app_settings"].get(
             "admin_server", None

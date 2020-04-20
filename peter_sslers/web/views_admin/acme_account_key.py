@@ -786,7 +786,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
+                errors.formstash_to_querystring(formStash),
                 action,
-                str(formStash.errors),
             )
             raise HTTPSeeOther(url_failure)

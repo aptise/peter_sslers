@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-orderlesss">AcmeOrderless</a></li>
-        <li><a href="${admin_prefix}/acme-orderlesss/${AcmeOrderless.id}">Focus - ${AcmeOrderless.id}</a></li>
+        <li><a href="${admin_prefix}/acme-orderless/${AcmeOrderless.id}">Focus - ${AcmeOrderless.id}</a></li>
         <li><a href="#">AcmeChallenge Focus</a></li>
     </ol>
 </%block>

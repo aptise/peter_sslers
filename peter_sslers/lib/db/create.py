@@ -156,6 +156,8 @@ def create__AcmeOrder(
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
 
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
+    
+    returns: dbAcmeOrder
     """
     if not transaction_commit:
         raise ValueError("`create__AcmeOrder` must persist to the database.")
@@ -260,7 +262,7 @@ def create__AcmeOrder(
     dbEventLogged.acme_order_id = dbAcmeOrder.id
     ctx.dbSession.flush(objects=[dbEventLogged])
 
-    # now loop the authorization URLs to create stubs for this order
+    # now loop the authorization URLs to create stub records for this order
     for authorization_url in acme_order_response.get("authorizations"):
         (
             dbAuthPlacholder,

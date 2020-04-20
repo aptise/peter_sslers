@@ -537,7 +537,7 @@ def getcreate__CACertificate__by_pem_text(
             cert_utils.validate_cert__pem_filepath(_tmpfile.name)
 
             # grab the modulus
-            cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(
+            _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(
                 _tmpfile.name
             )
 
@@ -561,7 +561,7 @@ def getcreate__CACertificate__by_pem_text(
             dbCACertificate.timestamp_created = ctx.timestamp
             dbCACertificate.cert_pem = cert_pem
             dbCACertificate.cert_pem_md5 = cert_pem_md5
-            dbCACertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
+            dbCACertificate.cert_pem_modulus_md5 = _cert_pem_modulus_md5
 
             dbCACertificate.timestamp_signed = cert_utils.parse_startdate_cert__pem_filepath(
                 _tmpfile.name
@@ -867,9 +867,49 @@ def getcreate__ServerCertificate(
                 "must submit `dbUniqueFQDNSet` if there is no `dbAcmeOrder` or `dbUniqueFQDNSet`"
             )
 
+    if not all((cert_pem, dbCACertificate, dbPrivateKey,)):
+        raise ValueError(
+            "getcreate__ServerCertificate must be provided with all of (cert_pem, dbCACertificate, dbPrivateKey)"
+        )
+
     is_created = None
     cert_pem = cert_utils.cleanup_pem_text(cert_pem)
     cert_pem_md5 = utils.md5_text(cert_pem)
+
+    # make sure the Certificate Elements match
+    _cert_pem_modulus_md5 = None
+    _csr_pem_modulus_md5 = None
+    _pkey_pem_modulus_md5 = None
+    try:
+        _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
+        # grab the modulus
+        _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(_tmpfile.name)
+    finally:
+        _tmpfile.close()
+    try:
+        _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
+        # grab the modulus
+        _pkey_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
+    finally:
+        _tmpfile.close()
+
+    if not all((_cert_pem_modulus_md5, _pkey_pem_modulus_md5)):
+        raise ValueError("Could not compute the Certificate or Key's elements")
+    if _cert_pem_modulus_md5 != _pkey_pem_modulus_md5:
+        raise ValueError("The PrivateKey did not sign the ServerCertificate")
+
+    if dbCertificateRequest:
+        try:
+            _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
+            # grab the modulus
+            _csr_pem_modulus_md5 = cert_utils.modulus_md5_csr__pem_filepath(
+                _tmpfile.name
+            )
+        finally:
+            _tmpfile.close()
+        if _cert_pem_modulus_md5 != _csr_pem_modulus_md5:
+            raise ValueError("The PrivateKey did not sign the CertificateRequest")
+
     dbServerCertificate = (
         ctx.dbSession.query(model_objects.ServerCertificate)
         .filter(

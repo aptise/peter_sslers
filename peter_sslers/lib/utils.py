@@ -129,5 +129,10 @@ class ApiContext(object):
         self.transaction_manager.commit()
         self.transaction_manager.begin()
 
+    def pyramid_transaction_rollback(self):
+        """this method does some ugly stuff to rollback the pyramid transaction"""
+        self.transaction_manager.abort()
+        self.transaction_manager.begin()
+
 
 # ------------------------------------------------------------------------------

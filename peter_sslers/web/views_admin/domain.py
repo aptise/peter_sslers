@@ -20,6 +20,7 @@ from ..lib.forms import Form_Domain_search
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
+from ...lib import errors
 from ...lib import utils
 from ...lib import utils_nginx
 from ...model import utils as model_utils
@@ -648,7 +649,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
-                exc.as_querystring,
+                errors.formstash_to_querystring(formStash),
                 action,
             )
             raise HTTPSeeOther(url_failure)

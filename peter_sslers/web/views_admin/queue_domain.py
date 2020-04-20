@@ -235,6 +235,7 @@ class ViewAdmin_Process(Handler):
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._process__print)
+
         except Exception as exc:
             transaction.abort()
             if self.request.wants_json:

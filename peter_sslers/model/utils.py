@@ -735,6 +735,14 @@ AcmeAccontKey_options_b = (
     "account_key_file",
 )
 
+AcmeAccontKey_options_c = (
+    "account_key_reuse",
+    "account_key_global_default",
+    "account_key_existing",
+    "account_key_file",
+    "none",  # not the Python `None`
+)
+
 
 PrivateKey_options_a = (
     "private_key_existing",

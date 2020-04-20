@@ -7,7 +7,7 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-orderlesss">AcmeOrderless</a></li>
-        <li><a href="${admin_prefix}/acme-orderlesss/${AcmeOrderless.id}" class="active">Focus - ${AcmeOrderless.id}</a></li>
+        <li><a href="${admin_prefix}/acme-orderless/${AcmeOrderless.id}" class="active">Focus - ${AcmeOrderless.id}</a></li>
     </ol>
 </%block>
 
@@ -49,6 +49,7 @@
                     action="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/deactivate"
                     method="POST"
                     enctype="multipart/form-data"
+                    id="acmeorderless-deactivate"
                 >
                     <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-remove"></span> Deactivate</button>
                 </form>
@@ -94,9 +95,12 @@
                     action="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/update"
                     method="POST"
                     enctype="multipart/form-data"
+                    id="acmeorderless-update"
                 >
                     <% form = request.pyramid_formencode_classic.get_form() %>
                     ${form.html_error_main_fillable()|n}
+                    ## this is really just for automated testing
+                    <input type="hidden" name="_challenges" value="${','.join([str(i.id) for i in AcmeOrderless.acme_challenges])}" />
             % endif
                 <%
                     cols = ['Challenge',
@@ -138,6 +142,10 @@
                                                 |
                                                 ${challenge.domain_name}
                                             </a>
+                                            <span data-challenge_id="${challenge.id}"
+                                                  data-domain_id="${challenge.domain_id}"
+                                                  data-domain_name="${challenge.domain_name}"
+                                            ></span>
                                         % elif col == 'Test':
                                             % if challenge.acme_challenge_type == "http-01":
                                                 % if challenge.token:
@@ -194,6 +202,7 @@
                         action="${admin_prefix}/acme-orderless/${AcmeOrderless.id}/add"
                         method="POST"
                         enctype="multipart/form-data"
+                        id="acmeorderless-add_challenge"
                     >
                         <div class="form-group">
                             <label for="domain">Domain</label>

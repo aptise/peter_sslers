@@ -324,7 +324,7 @@ def get__AcmeChallenge__by_challenge_url(ctx, challenge_url):
     return item
 
 
-def get__AcmeChallenge__challenged(ctx, domain_name, token):
+def get__AcmeChallenge__challenged(ctx, domain_name, challenge):
     # todo - ensure the AcmeAuthorization or AcmeOrderless is active
     active_request = (
         ctx.dbSession.query(model_objects.AcmeChallenge)
@@ -333,7 +333,7 @@ def get__AcmeChallenge__challenged(ctx, domain_name, token):
             model_objects.AcmeChallenge.domain_id == model_objects.Domain.id,
         )
         .filter(
-            model_objects.AcmeChallenge.token == token,
+            model_objects.AcmeChallenge.keyauthorization == challenge,
             sqlalchemy.func.lower(model_objects.Domain.domain_name)
             == sqlalchemy.func.lower(domain_name),
         )

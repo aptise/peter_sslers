@@ -196,7 +196,7 @@ def update_ServerCertificate__set_active(ctx, dbServerCertificate):
             "Certificate has a compromised PrivateKey; `active` status can not be changed."
         )
 
-    if not dbServerCertificate.is_deactivated:
+    if dbServerCertificate.is_deactivated:
         raise errors.InvalidTransition(
             "Certificate was deactivated; `active` status can not be changed."
         )
@@ -214,7 +214,7 @@ def update_ServerCertificate__unset_active(ctx, dbServerCertificate):
     if not dbServerCertificate.is_active:
         raise errors.InvalidTransition("Already inactive.")
 
-    # deactivate it
+    # inactivate it
     dbServerCertificate.is_active = False
 
     event_status = "ServerCertificate__mark__inactive"
@@ -229,7 +229,7 @@ def update_ServerCertificate__set_revoked(ctx, dbServerCertificate):
     # mark revoked
     dbServerCertificate.is_revoked = True
 
-    # deactivate it
+    # inactivate it
     dbServerCertificate.is_active = False
 
     # deactivate it, permanently
