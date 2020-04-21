@@ -25,6 +25,19 @@ openssl x509 -req -days 365 -in selfsigned_5-server.csr -signkey selfsigned_5-se
 
 ================================================================================
 
+AcmeAccountKeys
+
+openssl genrsa -out AcmeAccountKey-1.pem 2048
+openssl genrsa -out AcmeAccountKey-2.pem 2048
+openssl genrsa -out AcmeAccountKey-3.pem 2048
+openssl genrsa -out AcmeAccountKey-4.pem 2048
+openssl genrsa -out AcmeAccountKey-5.pem 2048
+
+
+================================================================================
+
+
+
 A more detailed way to make them:
 
 # generate the key
