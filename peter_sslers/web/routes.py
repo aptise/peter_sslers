@@ -729,13 +729,6 @@ def _admin_views(config):
         "/queue-certificates/active-failures/{@page}.json",
     )
 
-    config.add_route_7(
-        "admin:queue_certificate:new", "/queue-certificate/new",
-    )
-    config.add_route_7(
-        "admin:queue_certificate:new|json", "/queue-certificate/new.json",
-    )
-
     config.add_route_7("admin:queue_certificate:focus", "/queue-certificate/{@id}")
     config.add_route_7(
         "admin:queue_certificate:focus|json", "/queue-certificate/{@id}.json"

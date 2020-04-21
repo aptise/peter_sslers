@@ -2279,7 +2279,7 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
             "timestamp_processed": self.timestamp_processed_isoformat,
             "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
             "is_active": True if self.is_active else False,
-            "account_key_id": self.account_key_id,
+            "acme_account_key_id": self.acme_account_key_id,
             "private_key_id": self.private_key_id,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "acme_order_id__source": self.acme_order_id__source,

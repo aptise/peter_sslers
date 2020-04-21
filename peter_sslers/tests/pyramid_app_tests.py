@@ -2679,7 +2679,9 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
 
 
 class FunctionalTests_QueueCertificate(AppTest):
-    """python -m unittest peter_sslers.tests.FunctionalTests_QueueCertificate"""
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate
+    """
 
     def _get_item(self):
         # grab an item
@@ -2746,18 +2748,6 @@ class FunctionalTests_QueueCertificate(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/queue-certificates/active-failures/1.json", status=200
         )
-
-    @tests_routes(("admin:queue_certificate:new",))
-    def test_new_html(self):
-        res = self.testapp.get("/.well-known/admin/queue-certificate/new", status=200)
-        raise ValueError("finish tests")
-
-    @tests_routes(("admin:queue_certificate:new|json",))
-    def test_new_json(self):
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new.json", status=200
-        )
-        raise ValueError("finish tests")
 
     @tests_routes(("admin:queue_certificate:focus",))
     def test_focus_html(self):
