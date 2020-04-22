@@ -11,6 +11,7 @@ log.setLevel(logging.INFO)
 
 # local
 from .. import lib
+from ..model import utils as model_utils
 
 
 # ==============================================================================

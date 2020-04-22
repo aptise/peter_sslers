@@ -4,14 +4,18 @@ from __future__ import print_function
 import datetime
 import os
 import pdb
+import subprocess
 import unittest
+import time
 from io import open  # overwrite `open` in Python2
+from functools import wraps
 
 # pyramid
 from pyramid import testing
 from pyramid.paster import get_appsettings
 
 # pypi
+import psutil
 import transaction
 from webtest import TestApp
 
@@ -36,6 +40,7 @@ export SSL_RUN_API_TESTS__PEBBLE=True
 export SSL_PEBBLE_API_VALIDATES=True
 export SSL_TEST_DOMAINS=dev.cliqued.in  # can be a comma-separated string
 export SSL_TEST_PORT=7201
+export SSL_TEST_PORT=7201
 
 if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app so letsencrypt can access it
 
@@ -58,6 +63,17 @@ SSL_TEST_PORT = int(os.environ.get("SSL_TEST_PORT", 7201))
 DISABLE_UNWRITTEN_TESTS = True
 
 
+PEBBLE_CONFIG = (
+    "%s/src/github.com/letsencrypt/pebble/test/config/pebble-config.json"
+    % os.environ.get("GOPATH")
+)
+PEBBLE_DIR = "%s/src/github.com/letsencrypt/pebble" % os.environ.get("GOPATH")
+PEBBLE_ENV = os.environ.copy()
+PEBBLE_ENV["PEBBLE_VA_ALWAYS_VALID"] = "1"
+PEBBLE_ENV["PEBBLE_AUTHZREUSE"] = "100"
+PEBBLE_ENV["PEBBLE_VA_NOSLEEP"] = "1"
+
+
 # ==============================================================================
 
 
@@ -67,8 +83,45 @@ class FakeRequest(testing.DummyRequest):
         return transaction.manager
 
 
+def under_pebble(_function):
+    """
+    decorator to spin up an external pebble server
+    """
+
+    @wraps(_function)
+    def _wrapper(*args, **kwargs):
+        res = None  # scoping
+        with psutil.Popen(
+            ["pebble", "-config", PEBBLE_CONFIG],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=PEBBLE_DIR,
+            env=PEBBLE_ENV,
+        ) as proc:
+            # ensure the `pebble` server is running
+            ready = False
+            while not ready:
+                for line in iter(proc.stdout.readline, b""):
+                    if "Listening on: 0.0.0.0:14000" in line:
+                        ready = True
+                        break
+                time.sleep(1)
+            try:
+                res = _function(*args, **kwargs)
+            finally:
+                # explicitly terminate, otherwise it won't exit
+                # in a `finally` to ensure we terminate on exceptions
+                proc.terminate()
+        return res
+
+    return _wrapper
+
+
 # ==============================================================================
 
+
+# !!!: TEST_FILES
 
 TEST_FILES = {
     "AcmeOrderless": {
@@ -83,6 +136,23 @@ TEST_FILES = {
                 "private_key_cycling": "single_certificate",
                 "acme_account_provider_id": "1",
                 "account_key_file_pem": "acme_account_1.key",
+            },
+        },
+    },
+    "AcmeOrder": {
+        "test-extended-1": {
+            "acme-order/new/automated": {
+                "account_key_option": "account_key_file",
+                "acme_account_provider_id": "1",
+                "account_key_file_pem": "AcmeAccountKey-1.pem",
+                "private_key_cycle": "account_daily",
+                "private_key_option": "private_key_for_account_key",
+                "domain_names": [
+                    "new-automated-1-a.example.com",
+                    "new-automated-1-b.example.com",
+                ],
+                "private_key_cycle__renewal": "account_key_default",
+                "processing_strategy": "create_order",
             },
         },
     },
@@ -145,6 +215,41 @@ TEST_FILES = {
             "private_key": "private_2.key",
         },
     },
+    "Domains": {
+        "Queue": {
+            "1": {
+                "add": "qadd1.example.com, qadd2.example.com, qadd3.example.com",
+                "add.json": "qaddjson1.example.com, qaddjson2.example.com, qaddjson3.example.com",
+            },
+        }
+    },
+    "PrivateKey": {
+        "1": {
+            "file": "private_1.key",
+            "key_pem_md5": "462dc10731254d7f5fa7f0e99cbece73",
+            "key_pem_modulus_md5": "5d0f596ace3ea1a9ce40dc9b087759a1",
+        },
+        "2": {
+            "file": "private_2.key",
+            "key_pem_md5": "cdde9325bdbfe03018e4119549c3a7eb",
+            "key_pem_modulus_md5": "db45c5dce9fffbe21fc82a5e26b0bf8e",
+        },
+        "3": {
+            "file": "private_3.key",
+            "key_pem_md5": "399236401eb91c168762da425669ad06",
+            "key_pem_modulus_md5": "c2b3abfb8fa471977b6df77aafd30bee",
+        },
+        "4": {
+            "file": "private_4.key",
+            "key_pem_md5": "6867998790e09f18432a702251bb0e11",
+            "key_pem_modulus_md5": "e33389025a223c8a36958dc56de08840",
+        },
+        "5": {
+            "file": "private_5.key",
+            "key_pem_md5": "1b13814854d8cee8c64732a2e2f7e73e",
+            "key_pem_modulus_md5": "a2ea95b3aa5f5b337ac981c2024bcb3a",
+        },
+    },
     # the certificates are a tuple of: (CommonName, crt, csr, key)
     "ServerCertificates": {
         "SelfSigned": {
@@ -180,41 +285,6 @@ TEST_FILES = {
             },
         },
         "LetsEncrypt": {},
-    },
-    "PrivateKey": {
-        "1": {
-            "file": "private_1.key",
-            "key_pem_md5": "462dc10731254d7f5fa7f0e99cbece73",
-            "key_pem_modulus_md5": "5d0f596ace3ea1a9ce40dc9b087759a1",
-        },
-        "2": {
-            "file": "private_2.key",
-            "key_pem_md5": "cdde9325bdbfe03018e4119549c3a7eb",
-            "key_pem_modulus_md5": "db45c5dce9fffbe21fc82a5e26b0bf8e",
-        },
-        "3": {
-            "file": "private_3.key",
-            "key_pem_md5": "399236401eb91c168762da425669ad06",
-            "key_pem_modulus_md5": "c2b3abfb8fa471977b6df77aafd30bee",
-        },
-        "4": {
-            "file": "private_4.key",
-            "key_pem_md5": "6867998790e09f18432a702251bb0e11",
-            "key_pem_modulus_md5": "e33389025a223c8a36958dc56de08840",
-        },
-        "5": {
-            "file": "private_5.key",
-            "key_pem_md5": "1b13814854d8cee8c64732a2e2f7e73e",
-            "key_pem_modulus_md5": "a2ea95b3aa5f5b337ac981c2024bcb3a",
-        },
-    },
-    "Domains": {
-        "Queue": {
-            "1": {
-                "add": "qadd1.example.com, qadd2.example.com, qadd3.example.com",
-                "add.json": "qaddjson1.example.com, qaddjson2.example.com, qaddjson3.example.com",
-            }
-        }
     },
 }
 

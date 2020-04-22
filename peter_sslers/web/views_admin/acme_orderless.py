@@ -154,6 +154,7 @@ class ViewAdmin_New(Handler):
                 self.request,
                 formStash,
                 account_key_option=formStash.results["account_key_option"],
+                require_contact=False,
                 allow_none=True,
             )
             if accountKeySelection.selection == "upload":

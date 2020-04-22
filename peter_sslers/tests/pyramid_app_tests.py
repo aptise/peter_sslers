@@ -8,6 +8,7 @@ import pdb
 import pprint
 import re
 import unittest
+from functools import wraps
 
 # pypi
 from webtest import Upload
@@ -17,6 +18,7 @@ from webtest.http import StopableWSGIServer
 from ._utils import FakeRequest
 from ._utils import TEST_FILES
 from ._utils import AppTest
+from ._utils import under_pebble
 from ..model import objects as model_objects
 from ..model import utils as model_utils
 
@@ -43,12 +45,12 @@ def tests_routes(*args):
         @tests_routes(("foo", "bar"))
         def test_foo_bar(self):
             ...
-    
-    this will populate a global variable `_ROUTES_TESTED` with the name of the 
+
+    this will populate a global variable `_ROUTES_TESTED` with the name of the
     tested routes.
-    
+
     invoking the Audit test:
-    
+
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AuditRoutes
 
     will ensure all routes in Pyramid have test coverage
@@ -61,6 +63,7 @@ def tests_routes(*args):
         _ROUTES_TESTED[_routes] = True
 
     def _decorator(_function):
+        @wraps(_function)
         def _wrapper(*args, **kwargs):
             _function(*args, **kwargs)
 
@@ -89,7 +92,7 @@ class FunctionalTests_Main(AppTest):
         res = self.testapp.get("/.well-known/admin", status=200)
 
     @tests_routes("admin:whoami")
-    def test_whoami(self):
+    def test_admin_whoami(self):
         res = self.testapp.get("/.well-known/admin/whoami", status=200)
 
     @tests_routes("admin:help")
@@ -109,7 +112,7 @@ class FunctionalTests_Main(AppTest):
         res = self.testapp.get("/.well-known/admin/search", status=200)
 
     @tests_routes("public_whoami")
-    def test_whoami(self):
+    def test_public_whoami(self):
         res = self.testapp.get("/.well-known/public/whoami", status=200)
 
 
@@ -118,7 +121,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeAccountKey
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab a Key
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAccountKey)
@@ -233,7 +236,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
         )
     )
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -286,7 +289,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
         )
     )
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -315,7 +318,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
 
     @tests_routes("admin:acme_account_key:focus:raw")
     def test_focus_raw(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -333,7 +336,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
         ("admin:acme_account_key:focus:edit", "admin:acme_account_key:focus:mark")
     )
     def test_manipulate_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -411,7 +414,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
         )
     )
     def test_manipulate_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -499,7 +502,7 @@ class FunctionalTests_AcmeAuthorizations(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeAuthorizations
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab an order
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeAuthorization)
@@ -540,7 +543,7 @@ class FunctionalTests_AcmeAuthorizations(AppTest):
         )
     )
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -566,7 +569,7 @@ class FunctionalTests_AcmeAuthorizations(AppTest):
 
     @tests_routes("admin:acme_authorization:focus|json")
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -581,7 +584,7 @@ class FunctionalTests_AcmeChallenges(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeChallenges
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab an order
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeChallenge)
@@ -614,7 +617,7 @@ class FunctionalTests_AcmeChallenges(AppTest):
 
     @tests_routes(("admin:acme_challenge:focus"))
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -624,7 +627,7 @@ class FunctionalTests_AcmeChallenges(AppTest):
 
     @tests_routes(("public_challenge"))
     def test_public_challenge(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         challenge = focus_item.keyauthorization
@@ -653,7 +656,7 @@ class FunctionalTests_AcmeChallenges(AppTest):
 
     @tests_routes(("admin:acme_challenge:focus|json"))
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -744,7 +747,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeEventLog
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab an event
         focus_item = self.ctx.dbSession.query(model_objects.AcmeEventLog).first()
         return focus_item
@@ -773,7 +776,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
         We faked one when creating a new AcmeOrder in the setup routine
         """
         # focus
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -789,7 +792,7 @@ class FunctionalTests_AcmeEventLog(AppTest):
         We faked one when creating a new AcmeOrder in the setup routine
         """
         # focus
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -804,7 +807,7 @@ class FunctionalTests_AcmeOrder(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeOrder
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab an order
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeOrder)
@@ -836,7 +839,7 @@ class FunctionalTests_AcmeOrder(AppTest):
         )
     )
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -852,7 +855,7 @@ class FunctionalTests_AcmeOrder(AppTest):
 
     @tests_routes("admin:acme_order:focus|json")
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -867,7 +870,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeOrderless
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab an order
         focus_item = (
             self.ctx.dbSession.query(model_objects.AcmeOrderless)
@@ -894,7 +897,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
 
     @tests_routes(("admin:acme_orderless:focus",))
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         challenge_id = focus_item.acme_challenges[0].id
@@ -910,7 +913,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
 
     @tests_routes(("admin:acme_orderless:focus|json",))
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         challenge_id = focus_item.acme_challenges[0].id
@@ -948,7 +951,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert res2.status_code == 303
 
         re_expected = re.compile(
-            r"""^http://peter-sslers\.example.com/\.well-known/admin/acme-orderless/(\d+)$"""
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-orderless/(\d+)$"""
         )
         matched = re_expected.match(res2.location)
         assert matched
@@ -1112,7 +1115,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         )
         assert res4.status_code == 200
         assert "AcmeOrderless" in res4.json
-        assert res4.json["changed"] == True
+        assert res4.json["changed"] is True
 
         # build a new form to assert the previous edits worked
         res3 = self.testapp.get(
@@ -1279,7 +1282,7 @@ class FunctionalTests_CACertificate(AppTest):
         assert res2.status_code == 303
 
         re_expected = re.compile(
-            r"""^http://peter-sslers\.example.com/\.well-known/admin/ca-certificate/(\d+)\?result=success&is_created=1$"""
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/ca-certificate/(\d+)\?result=success&is_created=1$"""
         )
         matched = re_expected.match(res2.location)
         assert matched
@@ -1407,7 +1410,7 @@ class FunctionalTests_CertificateRequest(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_CertificateRequest
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab a certificate
         focus_item = (
             self.ctx.dbSession.query(model_objects.CertificateRequest)
@@ -1453,7 +1456,7 @@ class FunctionalTests_CertificateRequest(AppTest):
         )
     )
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -1473,7 +1476,7 @@ class FunctionalTests_CertificateRequest(AppTest):
 
     @tests_routes(("admin:certificate_request:focus:raw",))
     def test_focus_raw(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -1490,7 +1493,7 @@ class FunctionalTests_CertificateRequest(AppTest):
 
     @tests_routes(("admin:certificate_request:focus|json",))
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -1505,7 +1508,7 @@ class FunctionalTests_Domain(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Domain
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab a certificate
         focus_item = (
             self.ctx.dbSession.query(model_objects.Domain)
@@ -1603,7 +1606,7 @@ class FunctionalTests_Domain(AppTest):
         )
     )
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         focus_name = focus_item.domain_name
@@ -1668,7 +1671,7 @@ class FunctionalTests_Domain(AppTest):
         )
     )
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         focus_name = focus_item.domain_name
@@ -1692,7 +1695,7 @@ class FunctionalTests_Domain(AppTest):
 
     @tests_routes(("admin:domain:focus:mark",))
     def test_manipulate_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -1729,7 +1732,7 @@ class FunctionalTests_Domain(AppTest):
 
     @tests_routes(("admin:domain:focus:mark|json",))
     def test_manipulate_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -1775,7 +1778,7 @@ class FunctionalTests_Domain(AppTest):
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     @tests_routes(("admin:domain:focus:nginx_cache_expire",))
     def test_nginx_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         focus_name = focus_item.domain_name
@@ -1792,7 +1795,7 @@ class FunctionalTests_Domain(AppTest):
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     @tests_routes(("admin:domain:focus:nginx_cache_expire|json",))
     def test_nginx_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         focus_name = focus_item.domain_name
@@ -1901,7 +1904,7 @@ class FunctionalTests_PrivateKey(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_PrivateKey
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab a Key
         # loop these in desc order, because latter items shouldn't have anything associated on them.
         focus_item = (
@@ -1943,7 +1946,7 @@ class FunctionalTests_PrivateKey(AppTest):
         )
     )
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -1971,7 +1974,7 @@ class FunctionalTests_PrivateKey(AppTest):
         ("admin:private_key:focus|json", "admin:private_key:focus:parse|json",)
     )
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -1987,7 +1990,7 @@ class FunctionalTests_PrivateKey(AppTest):
 
     @tests_routes(("admin:private_key:focus:raw",))
     def test_focus_raw(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2003,7 +2006,7 @@ class FunctionalTests_PrivateKey(AppTest):
 
     @tests_routes(("admin:private_key:focus:mark",))
     def test_manipulate_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2053,7 +2056,7 @@ class FunctionalTests_PrivateKey(AppTest):
 
     @tests_routes(("admin:private_key:focus:mark|json",))
     def test_manipulate_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2169,7 +2172,7 @@ class FunctionalTests_ServerCertificate(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_ServerCertificate
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab a certificate
         # iterate backwards
         focus_item = (
@@ -2253,7 +2256,7 @@ class FunctionalTests_ServerCertificate(AppTest):
 
     @tests_routes(("admin:server_certificate:focus",))
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         if focus_item is None:
             raise ValueError(
                 """This test currently fails when the ENTIRE SUITE is run """
@@ -2276,7 +2279,7 @@ class FunctionalTests_ServerCertificate(AppTest):
         )
     )
     def test_focus_raw(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         if focus_item is None:
             raise ValueError(
                 """This test currently fails when the ENTIRE SUITE is run """
@@ -2343,7 +2346,7 @@ class FunctionalTests_ServerCertificate(AppTest):
         )
     )
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         if focus_item is None:
             raise ValueError(
                 """This test currently fails when the ENTIRE SUITE is run """
@@ -2368,7 +2371,7 @@ class FunctionalTests_ServerCertificate(AppTest):
 
     @tests_routes(("admin:server_certificate:focus:mark",))
     def test_manipulate_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2422,7 +2425,7 @@ class FunctionalTests_ServerCertificate(AppTest):
 
     @tests_routes(("admin:server_certificate:focus:mark|json",))
     def test_manipulate_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2548,7 +2551,7 @@ class FunctionalTests_ServerCertificate(AppTest):
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     @tests_routes(("admin:server_certificate:focus:nginx_cache_expire",))
     def test_nginx_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2565,7 +2568,7 @@ class FunctionalTests_ServerCertificate(AppTest):
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     @tests_routes(("admin:server_certificate:focus:nginx_cache_expire|json",))
     def test_nginx_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2582,7 +2585,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_UniqueFQDNSet
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab a UniqueFqdnSet
         focus_item = (
             self.ctx.dbSession.query(model_objects.UniqueFQDNSet)
@@ -2623,7 +2626,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         )
     )
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2664,7 +2667,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         )
     )
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2683,7 +2686,7 @@ class FunctionalTests_QueueCertificate(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate
     """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab an item
         focus_item = (
             self.ctx.dbSession.query(model_objects.QueueCertificate)
@@ -2752,7 +2755,7 @@ class FunctionalTests_QueueCertificate(AppTest):
     @tests_routes(("admin:queue_certificate:focus",))
     def test_focus_html(self):
         """this doesn't work on solo tests"""
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         res = self.testapp.get(
@@ -2762,7 +2765,7 @@ class FunctionalTests_QueueCertificate(AppTest):
     @tests_routes(("admin:queue_certificate:focus|json",))
     def test_focus_json(self):
         """this doesn't work on solo tests"""
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         res = self.testapp.get(
@@ -2771,7 +2774,7 @@ class FunctionalTests_QueueCertificate(AppTest):
 
     @tests_routes(("admin:queue_certificate:focus:mark",))
     def test_manipulate_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2783,7 +2786,7 @@ class FunctionalTests_QueueCertificate(AppTest):
 
     @tests_routes(("admin:queue_certificate:focus:mark|json",))
     def test_manipulate_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2793,51 +2796,17 @@ class FunctionalTests_QueueCertificate(AppTest):
             status=200,
         )
 
-    @tests_routes(
-        (
-            "admin:api:queue_certificates:process",
-            "admin:api:queue_certificates:process|json",
-        )
-    )
-    def test_api_process(self):
-        raise ValueError("todo")
-        if DISABLE_UNWRITTEN_TESTS:
-            return True
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/process", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/process.json", status=200
-        )
-
-    @tests_routes(
-        (
-            "admin:api:queue_certificates:update",
-            "admin:api:queue_certificates:update|json",
-        )
-    )
-    def test_api_update(self):
-        raise ValueError("todo")
-        if DISABLE_UNWRITTEN_TESTS:
-            return True
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/process", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/process.json", status=200
-        )
-
-
-# !!!: Tests below must be finished
-
 
 class FunctionalTests_QueueDomains(AppTest):
-    """python -m unittest peter_sslers.tests.FunctionalTests_QueueDomains"""
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueDomains
+    """
 
-    def _get_item(self):
+    def _get_one(self):
         # grab an item
         focus_item = (
             self.ctx.dbSession.query(model_objects.QueueDomain)
+            .filter(model_objects.QueueDomain.is_active.op("IS")(True))
             .order_by(model_objects.QueueDomain.id.asc())
             .first()
         )
@@ -2897,21 +2866,9 @@ class FunctionalTests_QueueDomains(AppTest):
         assert res2.status_code == 200
         assert res2.json["result"] == "success"
 
-    @tests_routes(("admin:queue_domains:process",))
-    def test_process(self):
-        raise ValueError("todo")
-        res = self.testapp.get("/.well-known/admin/queue-domains/process", status=200)
-
-    @tests_routes(("admin:queue_domains:process|json",))
-    def test_process_json(self):
-        raise ValueError("todo")
-        res = self.testapp.get(
-            "/.well-known/admin/queue-domains/process.json", status=200
-        )
-
     @tests_routes(("admin:queue_domain:focus",))
     def test_focus_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2921,17 +2878,19 @@ class FunctionalTests_QueueDomains(AppTest):
 
     @tests_routes(("admin:queue_domain:focus|json",))
     def test_focus_json(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
         res = self.testapp.get(
             "/.well-known/admin/queue-domain/%s.json" % focus_id, status=200
         )
+        assert res.json["status"] == "success"
+        assert "QueueDomain" in res.json
 
     @tests_routes(("admin:queue_domain:focus:mark",))
     def test_manipulate_html(self):
-        focus_item = self._get_item()
+        focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
 
@@ -2941,19 +2900,76 @@ class FunctionalTests_QueueDomains(AppTest):
             status=303,
         )
 
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=error&error=post+required&operation=mark"
+            % focus_id
+        )
+
+        res2 = self.testapp.post(
+            "/.well-known/admin/queue-domain/%s/mark" % focus_id, {"action": "cancel"}
+        )
+        assert res2.status_code == 303
+        assert (
+            res2.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=success&operation=mark&action=cancel"
+            % focus_id
+        )
+
+        res3 = self.testapp.post(
+            "/.well-known/admin/queue-domain/%s/mark" % focus_id, {"action": "cancel"}
+        )
+        assert res3.status_code == 303
+        assert (
+            res3.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=error&error=action--Already+cancelledError_Main--There+was+an+error+with+your+form.&operation=mark&action=cancel"
+            % focus_id
+        )
+
     @tests_routes(("admin:queue_domain:focus:mark|json",))
     def test_manipulate_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
         res = self.testapp.get(
             "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
             {"action": "cancel"},
             status=200,
         )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+
+        # make this inactive
+        res2 = self.testapp.post(
+            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+        )
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+        assert "QueueDomain" in res2.json
+        assert res2.json["QueueDomain"]["is_active"] is False
+
+        # fail it inactive
+        res3 = self.testapp.post(
+            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+        )
+        assert res3.status_code == 200
+        assert res3.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert res2.json["form_errors"]["action"] == "Already cancelled"
 
 
 class FunctionalTests_AcmeServer(AppTest):
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
     @tests_routes("admin:acme_account_key:new")
     def test_AcmeAccountKey_new_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_new_html
+        """
+
         res = self.testapp.get("/.well-known/admin/acme-account-key/new", status=200)
         form = res.form
         form["acme_account_provider_id"].force_value(
@@ -2965,22 +2981,28 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "contact is required." in res2.body
 
         form = res2.form
-        form["contact"].force_value("foo@example.com")
+        form["contact"].force_value("AcmeAccountKey.new.html@example.com")
         res2 = form.submit()
         assert res2.status_code == 303
-        # assert res2.location == """http://peter-sslers.example.com/.well-known/admin/acme-account-key/2?result=success&operation=new&is_created=1"""
-        assert res2.location.startswith(
-            """http://peter-sslers.example.com/.well-known/admin/acme-account-key/"""
+        re_expected = re.compile(
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-account-key/(\d+)\?result=success&operation=new&is_created=1$"""
         )
-        assert res2.location.endswith("""?result=success&operation=new&is_created=1""")
+        matched = re_expected.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
     @tests_routes("admin:acme_account_key:new|json")
     def test_AcmeAccountKey_new_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_new_json
+        """
         res = self.testapp.get(
             "/.well-known/admin/acme-account-key/new.json", status=200
         )
         assert "form_fields" in res.json
+        assert "instructions" in res.json
 
         form = {}
         res2 = self.testapp.post("/.well-known/admin/acme-account-key/new.json", form)
@@ -2992,41 +3014,72 @@ class FunctionalTests_AcmeServer(AppTest):
 
         form = {
             "acme_account_provider_id": 1,
-            "contact": "bar@example.com",
+            "contact": "AcmeAccountKey.new.json@example.com",
             "private_key_cycle": "single_certificate",
         }
         res3 = self.testapp.post("/.well-known/admin/acme-account-key/new.json", form)
         assert res3.json["result"] == "success"
         assert "AcmeAccountKey" in res3.json
+        return True
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API")
+    def _get_one(self):
+        # grab an item
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.AcmeAccountKey)
+            .filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+            .filter(model_objects.AcmeAccountKey.acme_account_provider_id == 1)
+            .order_by(model_objects.AcmeAccountKey.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
     @tests_routes("admin:acme_account_key:focus:authenticate")
     def test_AcmeAccountKey_authenticate_html(self):
+        """
         # this hits Pebble via http
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_authenticate_html
+        """
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
         res = self.testapp.get(
-            "/.well-known/admin/acme-account-key/1/authenticate", status=303
+            "/.well-known/admin/acme-account-key/%s/authenticate" % focus_id, status=303
         )
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/acme-account-key/1?result=error&error=post+required&operation=authenticate"
+            == "http://peter-sslers.example.com/.well-known/admin/acme-account-key/%s?result=error&error=post+required&operation=authenticate"
+            % focus_id
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/acme-account-key/1/authenticate", {}
+            "/.well-known/admin/acme-account-key/%s/authenticate" % focus_id, {}
         )
         assert (
             res.location
-            == """http://peter-sslers.example.com/.well-known/admin/acme-account-key/1?result=success&operation=authenticate&is_authenticated=True"""
+            == """http://peter-sslers.example.com/.well-known/admin/acme-account-key/%s?result=success&operation=authenticate&is_authenticated=True"""
+            % focus_id
         )
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
     @tests_routes("admin:acme_account_key:focus:authenticate|json")
     def test_AcmeAccountKey_authenticate_json(self):
+        """
         # this hits Pebble via http
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_authenticate_json
+        """
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
         res = self.testapp.get(
             "/.well-known/admin/acme-account-key/1/authenticate.json", status=200
         )
         assert res.location is None  # no redirect
+        assert "instructions" in res.json
 
         res = self.testapp.post(
             "/.well-known/admin/acme-account-key/1/authenticate.json", {}
@@ -3035,86 +3088,299 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.location is None  # no redirect
         assert "AcmeAccountKey" in res.json
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
     @tests_routes(
         (
-            "admin:acme_authorization:focus:acme_server:deactivate",
+            "admin:acme_order:new:automated",
+            "admin:acme_order:focus",
+            "admin:acme_order:focus:acme_server:sync",
+            "admin:acme_order:focus:acme_server:sync_authorizations",
+            "admin:acme_authorization:focus",
             "admin:acme_authorization:focus:acme_server:sync",
             "admin:acme_authorization:focus:acme_server:trigger",
-        )
-    )
-    def test_AcmeAuthorization_manipulate_html(self):
-        """
-        "/acme-authorization/{@id}/acme-server/sync",
-        "/acme-authorization/{@id}/acme-server/deactivate",
-        "/acme-authorization/{@id}/acme-server/trigger",
-        """
-        raise ValueError("TESTS NOT WRITTEN YET")
-
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API")
-    @tests_routes(
-        (
-            "admin:acme_authorization:focus:acme_server:deactivate|json",
-            "admin:acme_authorization:focus:acme_server:sync|json",
-            "admin:acme_authorization:focus:acme_server:trigger|json",
-        )
-    )
-    def test_AcmeAuthorization_manipulate_json(self):
-        """
-        "/acme-authorization/{@id}/acme-server/sync.json",
-        "/acme-authorization/{@id}/acme-server/deactivate.json",
-        "/acme-authorization/{@id}/acme-server/trigger.json",
-        """
-        raise ValueError("TESTS NOT WRITTEN YET")
-
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API")
-    @tests_routes(
-        (
+            "admin:acme_challenge:focus",
             "admin:acme_challenge:focus:acme_server:sync",
             "admin:acme_challenge:focus:acme_server:trigger",
+            "admin:acme_order:focus:finalize",
+            "admin:acme_order:focus:renew:custom",
+            "admin:acme_order:focus:renew:quick",
         )
     )
-    def test_AcmeChallenge_manipulate_html(self):
-        pass
+    def test_AcmeOrder_extended_html(self):
         """
-        "admin:acme_challenge:focus:acme_server:sync",
-        "admin:acme_challenge:focus:acme_server:trigger",
-        """
-        raise ValueError("TESTS NOT WRITTEN YET")
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_extended_html
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API")
-    @tests_routes(
-        (
-            "admin:acme_challenge:focus:acme_server:sync|json",
-            "admin:acme_challenge:focus:acme_server:trigger|json",
+        NOTE: if domains are not randomized for the order, one needs to reset the pebble instance
+        """
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended-1"]
+
+        # we need two for this test
+        assert len(_test_data["acme-order/new/automated"]["domain_names"]) == 2
+
+        # "admin:acme_order:new:automated",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/new/automated", status=200
         )
-    )
-    def test_AcmeChallenge_manipulate_json(self):
-        pass
-        """
-        "admin:acme_challenge:focus:acme_server:sync.json",
-        "admin:acme_challenge:focus:acme_server:trigger.json",
-        """
-        raise ValueError("TESTS NOT WRITTEN YET")
 
+        form = res.form
+        _form_fields = form.fields.keys()
+        assert "account_key_option" in _form_fields
+        form["account_key_option"].force_value("account_key_file")
+        form["acme_account_provider_id"].force_value("1")
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated"]["account_key_file_pem"]
+            )
+        )
+        form["private_key_cycle"].force_value("account_daily")
+        form["private_key_cycle__renewal"].force_value("account_key_default")
+        form["private_key_option"].force_value("private_key_for_account_key")
+        form["domain_names"] = ",".join(
+            _test_data["acme-order/new/automated"]["domain_names"]
+        )
+        form["processing_strategy"].force_value("create_order")
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        # "admin:acme_order:focus",
+        re_expected = re.compile(
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)$"""
+        )
+        matched = re_expected.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        # /acme-order
+        res = self.testapp.get(res2.location, status=200)
+
+        # "admin:acme_order:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            % obj_id
+        )
+
+        # "admin:acme_order:focus:acme_server:sync_authorizations",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations" % obj_id,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync+authorizations"
+            % obj_id
+        )
+
+        _dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+        assert len(_dbAcmeOrder.acme_authorizations) == len(
+            _test_data["acme-order/new/automated"]["domain_names"]
+        )
+        _authorization_pairs = [
+            (i.id, i.acme_challenge_http01.id) for i in _dbAcmeOrder.acme_authorizations
+        ]
+        self.ctx.dbSession.rollback()
+
+        assert len(_authorization_pairs) == 2
+
+        # AuthPair 1
+        (auth_id_1, challenge_id_1) = _authorization_pairs[0]
+
+        # "admin:acme_authorization:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s" % auth_id_1, status=200
+        )
+        # "admin:acme_authorization:focus:sync"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % auth_id_1,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=success&operation=acme+server+sync"
+            % auth_id_1
+        )
+
+        # "admin:acme_authorization:focus:trigger"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger" % auth_id_1,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=success&operation=acme+server+trigger"
+            % auth_id_1
+        )
+
+        # "admin:acme_authorization:focus:trigger" AGAIN
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger" % auth_id_1,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=error&error=acme+server+trigger&message=ACME+Server+Trigger+is+not+allowed+for+this+AcmeAuthorization"
+            % auth_id_1
+        )
+
+        # AuthPair 2
+        (auth_id_2, challenge_id_2) = _authorization_pairs[1]
+
+        # "admin:acme_challenge:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s" % challenge_id_2, status=200
+        )
+
+        # "admin:acme_challenge:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/sync" % challenge_id_2,
+            status=303,
+        )
+        # "admin:acme_challenge:focus:acme_server:trigger",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/trigger" % challenge_id_2,
+            status=303,
+        )
+
+        # "admin:acme_authorization:focus:sync"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % auth_id_2,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=success&operation=acme+server+sync"
+            % auth_id_2
+        )
+
+        # now go back to the order
+        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200,)
+        assert (
+            """<td><span class="label label-default">processing_started</span></td>"""
+            in res.body
+        )
+
+        # "admin:acme_order:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            % obj_id
+        )
+
+        # "admin:acme_order:focus:finalize",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/finalize" % obj_id, status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=finalize+order"
+            % obj_id
+        )
+
+        # now go back to the order
+        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200,)
+        assert (
+            """<td><span class="label label-default">certificate_downloaded</span></td>"""
+            in res.body
+        )
+
+        # "admin:acme_order:focus:renew:quick",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/renew/quick" % obj_id, status=200
+        )
+        form = res.form
+        form["processing_strategy"].force_value("process_multi")
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        re_expected = re.compile(
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=renew\+quick$"""
+        )
+        matched = re_expected.match(res2.location)
+        assert matched
+        obj_id__quick = matched.groups()[0]
+
+        # "admin:acme_order:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
+        )
+        # "admin:acme_order:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id__quick,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            % obj_id__quick
+        )
+        # "admin:acme_order:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
+        )
+
+        # IMPORTANT
+        # pebble re-uses the authorizations
+        # so we can either "process" or "finalize" here
+
+        # let's call finalize
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/finalize" % obj_id__quick, status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=finalize+order"
+            % obj_id__quick
+        )
+
+        # "admin:acme_order:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
+        )
+
+        # "admin:acme_order:focus:renew:custom"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/renew/custom" % obj_id__quick, status=200
+        )
+        form = res.form
+        # we can just change the `processing_strategy`
+        form["processing_strategy"].force_value("process_multi")
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        re_expected = re.compile(
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=renew\+custom$"""
+        )
+        matched = re_expected.match(res2.location)
+        assert matched
+        obj_id__custom = matched.groups()[0]
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id__custom,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            % obj_id__custom
+        )
+        # "admin:acme_order:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__custom, status=200
+        )
+
+        print("!!!")
+
+    # !!!: Tests below must be finished
+
+    @under_pebble
     @tests_routes(
         (
             "admin:acme_order:focus:acme_process",
-            "admin:acme_order:focus:finalize",
-            "admin:acme_order:focus:acme_server:sync",
-            "admin:acme_order:focus:acme_server:sync_authorizations",
             "admin:acme_order:focus:acme_server:deactivate_authorizations",
-            "admin:acme_order:focus:acme_server:download_certificate",
             "admin:acme_order:focus:mark",
             "admin:acme_order:focus:retry",
-            "admin:acme_order:focus:renew:custom",
-            "admin:acme_order:focus:renew:quick",
-            "admin:acme_order:new:automated",
         )
     )
     def test_AcmeOrder_manipulate_html(self):
         raise ValueError("todo")
 
+    @under_pebble
     @tests_routes(
         (
             "admin:acme_order:focus:acme_process|json",
@@ -3133,9 +3399,7 @@ class FunctionalTests_AcmeServer(AppTest):
     def test_AcmeOrder_manipulate_json(self):
         raise ValueError("todo")
 
-        @unittest.skipUnless(
-            RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API"
-        )
+        @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
         def test_api__pebble(self):
             self.testapp_http = StopableWSGIServer.create(
                 self.testapp.app, port=SSL_TEST_PORT
@@ -3175,6 +3439,49 @@ class FunctionalTests_AcmeServer(AppTest):
                 if "/.well-known/admin/server-certificate/2" not in res2.location:
                     raise ValueError("Expected certificate/2")
 
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:acme_authorization:focus:acme_server:deactivate",))
+    def test_AcmeAuthorization_manipulate_html(self):
+        """
+        "/acme-authorization/{@id}/acme-server/deactivate",
+        """
+        raise ValueError("TESTS NOT WRITTEN YET")
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_authorization:focus:acme_server:deactivate|json",
+            "admin:acme_authorization:focus:acme_server:sync|json",
+            "admin:acme_authorization:focus:acme_server:trigger|json",
+        )
+    )
+    def test_AcmeAuthorization_manipulate_json(self):
+        """
+        "/acme-authorization/{@id}/acme-server/sync.json",
+        "/acme-authorization/{@id}/acme-server/deactivate.json",
+        "/acme-authorization/{@id}/acme-server/trigger.json",
+        """
+        print("!")
+        raise ValueError("TESTS NOT WRITTEN YET")
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_challenge:focus:acme_server:sync|json",
+            "admin:acme_challenge:focus:acme_server:trigger|json",
+        )
+    )
+    def test_AcmeChallenge_manipulate_json(self):
+        pass
+        """
+        "admin:acme_challenge:focus:acme_server:sync.json",
+        "admin:acme_challenge:focus:acme_server:trigger.json",
+        """
+        raise ValueError("TESTS NOT WRITTEN YET")
+
 
 class ZZZ_FunctionalTests_API(AppTest):
     """python -m unittest peter_sslers.tests.ZZZ_FunctionalTests_API"""
@@ -3183,6 +3490,8 @@ class ZZZ_FunctionalTests_API(AppTest):
     When run, some API endpoints will deactivate the test certificates - which will
     cause other tests to fail.
     """
+
+    # !!!: Tests below must be finished
 
     @tests_routes(("admin:api",))
     def test_passive(self):
@@ -3273,7 +3582,7 @@ class ZZZ_FunctionalTests_API(AppTest):
         res = self.testapp.get("/.well-known/admin/api/update-recents.json", status=200)
         assert res.json["result"] == "success"
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against LetsEncrypt API")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @tests_routes(
         (
             "admin:api:ca_certificate_probes:probe",
@@ -3293,6 +3602,49 @@ class ZZZ_FunctionalTests_API(AppTest):
             "/.well-known/admin/api/ca-certificate-probes/probe.json", status=200
         )
         assert res.json["result"] == "success"
+
+    @tests_routes(
+        (
+            "admin:api:queue_certificates:process",
+            "admin:api:queue_certificates:process|json",
+        )
+    )
+    def test_QueueCertificates_api_process(self):
+        raise ValueError("todo")
+        if DISABLE_UNWRITTEN_TESTS:
+            return True
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/process", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/process.json", status=200
+        )
+
+    @tests_routes(
+        (
+            "admin:api:queue_certificates:update",
+            "admin:api:queue_certificates:update|json",
+        )
+    )
+    def test_QueueCertificates_api_update(self):
+        raise ValueError("todo")
+        if DISABLE_UNWRITTEN_TESTS:
+            return True
+        res = self.testapp.get(
+            "/.well-known/admin/api/queue-certificates/update.json", status=200
+        )
+
+    @tests_routes(("admin:queue_domains:process",))
+    def test_QueueDomains_process(self):
+        raise ValueError("todo")
+        res = self.testapp.get("/.well-known/admin/queue-domains/process", status=200)
+
+    @tests_routes(("admin:queue_domains:process|json",))
+    def test_QueueDomains_process_json(self):
+        raise ValueError("todo")
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domains/process.json", status=200
+        )
 
 
 class FunctionalTests_AuditRoutes(AppTest):

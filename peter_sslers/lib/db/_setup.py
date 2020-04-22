@@ -159,7 +159,7 @@ def startup_AcmeAccountProviders(ctx, app_settings):
     dbAcmeAccountKey = db_get.get__AcmeAccountKey__GlobalDefault(ctx)
     if dbAcmeAccountKey and not dbAcmeAccountKey.acme_account_provider.is_default:
         dbAcmeAccountKey.is_global_default = False
-        dbSession.flush()
+        ctx.dbSession.flush()
 
     # fun times.
     # now enable any other options

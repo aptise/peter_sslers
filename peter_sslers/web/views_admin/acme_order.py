@@ -526,7 +526,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise formhandling.FormInvalid()
 
             (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(
-                self.request, formStash
+                self.request, formStash, require_contact=False,
             )
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
@@ -743,6 +743,7 @@ class ViewAdmin_New(Handler):
                 self.request,
                 formStash,
                 account_key_option=formStash.results["account_key_option"],
+                require_contact=False,
             )
             if accountKeySelection.selection == "upload":
                 key_create_args = accountKeySelection.upload_parsed.getcreate_args

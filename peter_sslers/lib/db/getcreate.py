@@ -846,9 +846,9 @@ def getcreate__ServerCertificate(
         if provivded, do not submit `dbAcmeOrder`
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
     :param dbUniqueFQDNSet: (optional) required if there is no `dbAcmeOrder` or `dbCertificateRequest` The :class:`model.objects.UniqueFQDNSet` representing domains on the certificate
-    
+
     returns:
-    
+
     tuple (dbServerCertificate, is_created)
     """
     if not any((dbAcmeOrder, dbCertificateRequest, dbUniqueFQDNSet)):

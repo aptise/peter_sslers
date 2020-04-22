@@ -131,7 +131,7 @@ def do__AcmeAccountKey_AcmeV2_authenticate(
 def new_Authenticated_user(ctx, dbAcmeAccountKey):
     """
     helper function to create a new
-    
+
     AcmeLogger
     """
     tmpfile_account = None
@@ -214,7 +214,7 @@ def updated_AcmeOrder_status(
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     :param acme_order_object: (required) An RFC compliant dict; must at least have `status`
     :param acme_order_processing_status_id: (optional) If provided, update the `acme_order_processing_status_id` of the order
-    :param is_processing_False: (optional) if True, set `is_processing` to false., 
+    :param is_processing_False: (optional) if True, set `is_processing` to false.,
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
     """
     if transaction_commit is not True:
@@ -696,7 +696,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
         # the account-key will be the same across linked orders/auths
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
         if authenticatedUser is None:
-            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            dbAcmeAccountKey = dbAcmeOrderCreated.acme_account_key
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
                 ctx, dbAcmeAccountKey
             )
@@ -801,7 +801,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to refresh against the server
     :param authenticatedUser: (optional) a loaded `authenticatedUser`
-    
+
     returns:
         (dbAcmeOrder, True)
     """
@@ -970,7 +970,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
     `_do__AcmeV2_AcmeOrder__finalize` is invoked to actually finalize the order.
     :param authenticatedUser: (required) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
-    
+
     Finalizing an order means signing the CertificateSigningRequest.
     If the PrivateKey is DEFERRED or INVALID, attempt to associate the correct one.
     """
@@ -1033,7 +1033,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         raise AcmeAccountKeyNeedsPrivateKey()
 
                 # we MUST have encountered an Exception already
-                raise ValueEror("Invalid Logic")
+                raise ValueError("Invalid Logic")
 
             except AcmeAccountKeyNeedsPrivateKey as exc:
                 # look the `dbAcmeOrder.acme_account_key.private_key_cycle`
@@ -1150,7 +1150,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
         # set the PrivateKeyStrategy
         dbAcmeOrder.private_key_strategy_id__final = model_utils.PrivateKeyStrategy.from_string(
-            private_key_strategy__requested
+            private_key_strategy__final
         )
         ctx.dbSession.flush(
             objects=[dbAcmeOrder,]
@@ -1640,7 +1640,7 @@ def do__AcmeV2_AcmeOrder__process(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
-    
+
     This processes authorizations in sequence
     """
     if not dbAcmeOrder:

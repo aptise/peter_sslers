@@ -375,9 +375,9 @@ def queue_certificates__via_fqdns(
 ):
     """
     Inserts a new :class:`model.objects.QueueCertificate` for each unique_fqdn_set_id
-    
+
     invoked when a :class:`model.objects.PrivateKey` is marked as compromised.
-    
+
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param unique_fqdn_set_ids: only insert records for these items
     """
@@ -419,7 +419,7 @@ def queue_certificates__update(ctx):
     """
     Inspects the database for expiring :class:`model.objects.AcmeOrders`
     inserts a new :class:`model.objects.QueueCertificate` for each one.
-    
+
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param unique_fqdn_set_ids: only insert records for these items
 

@@ -27,7 +27,7 @@ class AcmeAccountKeyUploadParser(object):
     An AcmeAccountKey may be uploaded multiple ways:
     * a single PEM file
     * an intra-associated three file triplet from a Certbot installation
-    
+
     This parser operates on a validated FormEncode results object (via `pyramid_formencode_classic`)
     """
 
@@ -47,7 +47,7 @@ class AcmeAccountKeyUploadParser(object):
         self.formStash = formStash
         self.getcreate_args = {}
 
-    def require_new(self):
+    def require_new(self, require_contact=None):
         """
         routine for creating a NEW AcmeAccountKey (peter_sslers generates the credentials)
         """
@@ -73,7 +73,7 @@ class AcmeAccountKeyUploadParser(object):
         )
 
         contact = formStash.results.get("contact", None)
-        if contact is None:
+        if not contact and require_contact:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(field="contact", message="contact is required.")
 
@@ -87,7 +87,7 @@ class AcmeAccountKeyUploadParser(object):
         ] = private_key_cycle_id
         self.getcreate_args = decode_args(getcreate_args)
 
-    def require_upload(self):
+    def require_upload(self, require_contact=None):
         """
         routine for uploading an exiting AcmeAccountKey
         """
@@ -149,8 +149,12 @@ class AcmeAccountKeyUploadParser(object):
         )
 
         getcreate_args = {}
-        if formStash.results["contact"] is not None:
-            getcreate_args["contact"] = formStash.results["contact"]
+        _contact = formStash.results.get("contact")
+        if _contact:  # `None` or `""`
+            getcreate_args["contact"] = _contact
+        else:
+            if require_contact:
+                formStash.fatal_field(field="contact", message="Missing `contact`.")
 
         self.private_key_cycle_id = getcreate_args[
             "private_key_cycle_id"
@@ -236,7 +240,7 @@ class _PrivateKeySelection(object):
 
 
 def parse_AcmeAccountKeySelection(
-    request, formStash, account_key_option=None, allow_none=None
+    request, formStash, account_key_option=None, allow_none=None, require_contact=None,
 ):
     account_key_pem = None
     account_key_pem_md5 = None
@@ -250,7 +254,7 @@ def parse_AcmeAccountKeySelection(
         parser = AcmeAccountKeyUploadParser(formStash)
 
         # this will have `contact` and `private_key_cycle`
-        parser.require_upload()
+        parser.require_upload(require_contact=require_contact)
 
         # update our object
         accountKeySelection.selection = "upload"
@@ -382,9 +386,12 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
     formStash.fatal_form("There was an error validating your form.")
 
 
-def form_key_selection(request, formStash):
+def form_key_selection(request, formStash, require_contact=None):
     accountKeySelection = parse_AcmeAccountKeySelection(
-        request, formStash, account_key_option=formStash.results["account_key_option"],
+        request,
+        formStash,
+        account_key_option=formStash.results["account_key_option"],
+        require_contact=require_contact,
     )
     if accountKeySelection.selection == "upload":
         key_create_args = accountKeySelection.upload_parsed.getcreate_args

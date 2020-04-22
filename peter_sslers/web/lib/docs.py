@@ -688,8 +688,8 @@ json_capable = {
         "args": None,
         "example": "curl {ADMIN_PREFIX}/private-key/1/key.key",
     },
-    "/private-key/{ID}/key.key": {
-        "endpoint": "/private-key/{ID}/key.key",
+    "/private-key/{ID}/key.pem": {
+        "endpoint": "/private-key/{ID}/key.pem",
         "section": "private-key",
         "about": """download the key as a pem (pem)""",
         "POST": True,
@@ -697,10 +697,10 @@ json_capable = {
         "args": None,
         "example": "curl {ADMIN_PREFIX}/private-key/1/key.pem",
     },
-    "/private-key/{ID}/key.key": {
-        "endpoint": "/private-key/{ID}/key.key",
+    "/private-key/{ID}/key.pem.txt": {
+        "endpoint": "/private-key/{ID}/key.pem.txt",
         "section": "private-key",
-        "about": """download the key as a pem.txt (pem)""",
+        "about": """download the key as a pem (pem.txt)""",
         "POST": True,
         "GET": True,
         "args": None,

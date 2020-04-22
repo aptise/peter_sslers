@@ -808,10 +808,8 @@ class AuthenticatedUser(object):
             True: Authorization need, challenge performed and Valid
             False: No Authorization Action needed
             None: Authorization Action needed, but no Action taken
-            
 
         If the challenge fails, we raise a `errors.DomainVerificationError`.
-
         """
         # scoping, our todo list
         # _todo_complete_challenges = None

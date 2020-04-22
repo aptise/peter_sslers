@@ -1278,7 +1278,7 @@
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         PrivateKey-${dbPrivateKeyReuse.id}
                     </a>
-                </label>
+                </p>
             </div>
         % endif
         % if option_account_key_default:

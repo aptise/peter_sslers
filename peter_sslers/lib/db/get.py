@@ -1329,12 +1329,13 @@ def get__PrivateKey_CurrentWeek_AcmeAccountKey(ctx, account_key_id):
         == model_utils.year_week(ctx.timestamp),
         model_objects.PrivateKey.is_compromised.op("IS NOT")(True),
         model_objects.PrivateKey.is_active.op("IS")(True),
+        model_objects.PrivateKey.acme_account_key_id__owner == acme_account_key_id,
     )
     item = q.first()
     return item
 
 
-def get__PrivateKey_CurrentDay_AcmeAccountKey(ctx):
+def get__PrivateKey_CurrentDay_AcmeAccountKey(ctx, acme_account_key_id):
     q = ctx.dbSession.query(model_objects.PrivateKey).filter(
         model_objects.PrivateKey.private_key_type_id
         == model_utils.PrivateKeyType.from_string("account_daily"),
@@ -1342,6 +1343,7 @@ def get__PrivateKey_CurrentDay_AcmeAccountKey(ctx):
         == model_utils.year_day(ctx.timestamp),
         model_objects.PrivateKey.is_compromised.op("IS NOT")(True),
         model_objects.PrivateKey.is_active.op("IS")(True),
+        model_objects.PrivateKey.acme_account_key_id__owner == acme_account_key_id,
     )
     item = q.first()
     return item

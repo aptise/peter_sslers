@@ -65,7 +65,7 @@ def year_day__default(element, compiler, **kw):
     ## select extract(doy from timestamp_event) from table_a;
     ## 94
     week_num = sqlalchemy.sql.expression.extract('WEEK', ServerCertificate.timestamp_signed)
-    ## select concat(extract(year from current_timestamp), '.', extract(doy from current_timestamp)) 
+    ## select concat(extract(year from current_timestamp), '.', extract(doy from current_timestamp))
     """
     args = list(element.clauses)
     return "concat(extract(year from %s), '.', extract(doy from %s)) " % (
@@ -684,7 +684,6 @@ class PrivateKeyStrategy(_mixin_mapping):
 class PrivateKeyType(_mixin_mapping):
     """
     What kind of PrivateKey is this?
-    Ones that are 
     """
 
     _mapping = {

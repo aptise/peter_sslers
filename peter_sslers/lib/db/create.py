@@ -35,7 +35,7 @@ def create__AcmeAccountProvider(ctx, name=None, directory=None, protocol=None):
     :param name: (required) The name
     :param directory: (required) The directory
     :param protocol: (required) The protocol, must be "acme-v2"
-    
+
     returns: `:class:model.objects.AcmeAccountProvider`
     """
     if not directory or (
@@ -156,7 +156,7 @@ def create__AcmeOrder(
     :param dbEventLogged: (required) The :class:`model.objects.AcmeEventLog` associated with submitting the order to LetsEncrypt
 
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
-    
+
     returns: dbAcmeOrder
     """
     if not transaction_commit:
@@ -304,7 +304,7 @@ def create__AcmeChallenge(
     :param keyauthorization: (optional) string keyauthorization
     :param acme_status_challenge_id: (optional) An option from :class:`model_utils.Acme_Status_Challenge`.
     :param is_via_sync: (optional) boolean. if True will allow duplicate challenges as one is on the server
-    
+
     """
     if not any((dbAcmeOrderless, dbAcmeAuthorization)) or all(
         (dbAcmeOrderless, dbAcmeAuthorization)
@@ -571,8 +571,8 @@ def create__PrivateKey(
 ):
     """
     Generates a new :class:`model.objects.PrivateKey` for the datastore
-    
-    This function is a bit weird, because we invoke a GetCreate 
+
+    This function is a bit weird, because we invoke a GetCreate
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param int acme_account_key_id__owner: (optional) the id of a `:class:model.objects.AcmeAccountKey` which owns this `:class:model.objects.PrivateKey`
@@ -618,7 +618,7 @@ def create__QueueCertificate(
     :param dbUniqueFQDNSet: (optional) A :class:`model.objects.UniqueFQDNSet` object
 
     one and only one of (dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet) should be supplied
-    
+
     :returns :class:`model.objects.QueueCertificate`
 
     """

@@ -493,7 +493,7 @@ class ViewAdminApi(Handler):
             if self.request.wants_json:
                 return {"result": "success"}
             return HTTPSeeOther(
-                "%s/queue-certificates?update=1"
+                "%s/api/queue-certificates?update=1"
                 % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
         except Exception as exc:
@@ -518,7 +518,7 @@ class ViewAdminApi(Handler):
             if queue_results:
                 queue_results = json.dumps(queue_results)
             return HTTPSeeOther(
-                "%s/queue-certificates?process=1&results=%s"
+                "%s/api/queue-certificates?process=1&results=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     queue_results,

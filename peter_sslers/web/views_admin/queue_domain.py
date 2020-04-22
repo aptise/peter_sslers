@@ -198,7 +198,7 @@ class ViewAdmin_Process(Handler):
                 raise formhandling.FormInvalid()
 
             (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(
-                self.request, formStash
+                self.request, formStash, require_contact=False,
             )
 
             queue_results = lib_db.queues.queue_domains__process(
@@ -347,7 +347,7 @@ class ViewAdmin_Focus(Handler):
                 return {"result": "error", "form_errors": formStash.errors}
             url_failure = "%s?result=error&error=%s&operation=mark&action=%s" % (
                 self._focus_url,
-                exc.as_querystring,
+                errors.formstash_to_querystring(formStash),
                 action,
             )
             raise HTTPSeeOther(url_failure)

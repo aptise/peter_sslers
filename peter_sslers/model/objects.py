@@ -1985,7 +1985,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
 class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     """
     These keys are used to sign CertificateRequests and are the PrivateKey component to a ServerCertificate.
-    
+
     If `acme_account_key_id__owner` is specified, this key can only be used in combination with that key.
     """
 
@@ -2300,7 +2300,7 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     This is only used for batch processing consumer Domains
     Domains that are included in CertificateRequests or ServerCertificates
     The DomainQueue will allow you to queue-up Domain names for management
-        
+
     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     `QueueDomain.is_active` - a boolean triplet with the following meaning:
@@ -2308,7 +2308,6 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
         False :  The QueueDomain has completed, it may be successful or a failure.
         None  :  The QueueDomain has been cancelled by the user.
     ``:
-    
     """
 
     __tablename__ = "queue_domain"

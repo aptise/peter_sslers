@@ -124,7 +124,7 @@ class ViewAdmin_New(Handler):
                 raise formhandling.FormInvalid()
 
             parser = AcmeAccountKeyUploadParser(formStash)
-            parser.require_upload()
+            parser.require_upload(require_contact=True)
             # this will have `contact` and `private_key_cycle`
             key_create_args = parser.getcreate_args
             acme_account_provider_id = key_create_args.get("acme_account_provider_id")
@@ -242,7 +242,7 @@ class ViewAdmin_New(Handler):
                 )
 
             parser = AcmeAccountKeyUploadParser(formStash)
-            parser.require_new()
+            parser.require_new(require_contact=True)
             # this will have `contact` and `private_key_cycle`
             key_create_args = parser.getcreate_args
             key_pem = cert_utils.new_account_key()  # bits=2048)
