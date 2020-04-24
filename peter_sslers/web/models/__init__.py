@@ -15,6 +15,14 @@ from ... import model
 # ==============================================================================
 
 
+from sqlalchemy import event
+
+# standard decorator style
+# @event.listens_for(SomeSessionOrFactory, 'persistent_to_detached')
+def receive_persistent_to_detached(session, instance):
+    print("persistent_to_detached", id(session), instance.__class__)
+
+
 def get_engine(settings, prefix="sqlalchemy."):
     return engine_from_config(settings, prefix)
 
@@ -22,6 +30,8 @@ def get_engine(settings, prefix="sqlalchemy."):
 def get_session_factory(engine):
     factory = sessionmaker()
     factory.configure(bind=engine)
+    # factory.configure(expire_on_commit=False)
+    # event.listen(factory, "persistent_to_detached", receive_persistent_to_detached)
     return factory
 
 
@@ -60,18 +70,6 @@ def get_tm_session(request, session_factory, transaction_manager):
     return dbSession
 
 
-def get_session_simple(request, session_factory):
-    """just gets a session without any transaction registration"""
-    dbSession = session_factory()
-    if request is not None:
-
-        def _cleanup(request):
-            dbSession.close()
-
-        request.add_finished_callback(_cleanup)
-    return dbSession
-
-
 def includeme(config):
     """
     Initialize the model for a Pyramid app.
@@ -92,15 +90,5 @@ def includeme(config):
         # r.tm is the transaction manager used by pyramid_tm
         lambda r: get_tm_session(r, session_factory, r.tm),
         "dbSession",
-        reify=True,
-    )
-
-    # our logger
-    engine = get_engine(settings, prefix="sqlalchemy_logger.")
-    session_factory_logger = sessionmaker(bind=engine, autocommit=True)
-    config.registry["dbSessionLogger_factory"] = session_factory_logger
-    config.add_request_method(
-        lambda r: get_session_simple(r, session_factory_logger),
-        "dbSessionLogger",
         reify=True,
     )

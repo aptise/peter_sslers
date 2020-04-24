@@ -96,7 +96,7 @@
                                         <option value="${_option_text}" ${_selected}>${_option_text}</option>
                                     % endfor
                                 </select>
-                                <button class="btn btn-primary">
+                                <button class="btn btn-primary" type="submit" name="submit" value="submit">
                                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                                     Edit
                                 </button>

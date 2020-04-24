@@ -132,8 +132,8 @@
                                 <tr>
                                     <td>
                                         % if AcmeOrder.is_can_retry:
-                                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/retry" method="POST" style="display:inline;">
-                                                <button class="btn btn-xs btn-info" type="submit">
+                                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/retry" method="POST" style="display:inline;" id="acme_order-retry">
+                                                <button class="btn btn-xs btn-info" type="submit" name="submit" value="submit">
                                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                                     Retry (New) Order
                                                 </button>
@@ -155,8 +155,8 @@
                                 <tr>
                                     <td>
                                         % if AcmeOrder.is_can_acme_server_download_certificate:
-                                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/download-certificate" method="POST" style="display:inline;">
-                                                <button class="btn btn-xs btn-info" type="submit">
+                                            <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/download-certificate" method="POST" style="display:inline;" id="acme_order-download_certificate">
+                                                <button class="btn btn-xs btn-info" type="submit" name="submit" value="submit">
                                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                                     ACME Server - (re)Download Certificate
                                                 </button>
@@ -240,17 +240,17 @@
                             </span>
                             &nbsp;
                             % if AcmeOrder.is_auto_renew:
-                                <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;">
+                                <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;" id="acme_order-mark-renew_manual">
                                     <input type="hidden" name="operation" value="renew.manual"/>
-                                    <button class="btn btn-xs btn-warning" type="submit">
+                                    <button class="btn btn-xs btn-warning" type="submit" name="submit" value="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                         deactivate auto-renew
                                     </button>
                                 </form>
                             % else:
-                                <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;">
+                                <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;" id="acme_order-mark-renew_auto">
                                     <input type="hidden" name="operation" value="renew.auto"/>
-                                    <button class="btn btn-xs btn-success" type="submit">
+                                    <button class="btn btn-xs btn-success" type="submit" name="submit" value="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                         enable auto-renew
                                     </button>

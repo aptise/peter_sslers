@@ -11,7 +11,6 @@ import pdb
 from dateutil import parser as dateutil_parser
 import sqlalchemy
 import transaction
-from zope.sqlalchemy import mark_changed
 
 # localapp
 from ... import lib  # here for `lib.db`
@@ -493,12 +492,6 @@ def operations_update_recents(ctx):
         ctx, model_utils.OperationsEventType.from_string("operations__update_recents"),
     )
 
-    # mark the session changed
-    # update: we don't need this if we add the bookkeeping object
-    # update2: there is an unresolved bug/behavior where including this somehow commits
-    log.debug("mark_changed(ctx.dbSession) - is this necessary?")
-    mark_changed(ctx.dbSession)
-
     return dbOperationsEvent
 
 
@@ -578,7 +571,7 @@ def api_domains__disable(ctx, domain_names):
                 results[domain_name] = "not active or in queue"
 
     event_payload_dict["results"] = results
-    dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
+    # dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
     dbOperationsEvent.set_event_payload(event_payload_dict)
     ctx.dbSession.flush(objects=[dbOperationsEvent])
 
@@ -775,7 +768,7 @@ def api_domains__certificate_if_needed(
                 )
                 _logger_args["dbServerCertificate"] = None
 
-        dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
+        # dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
 
         # log domain event
         _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
@@ -801,7 +794,7 @@ def api_domains__certificate_if_needed(
         results[domain_name] = _result
 
     event_payload_dict["results"] = results
-    dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
+    # dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
     dbOperationsEvent.set_event_payload(event_payload_dict)
     ctx.dbSession.flush(objects=[dbOperationsEvent])
 

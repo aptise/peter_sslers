@@ -2812,27 +2812,23 @@ AcmeOrder.acme_event_logs__5 = sa_orm_relationship(
 
 
 # note: AcmeAccountKey.acme_authorizations__5
-# TODO:
-"""
-    dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
-    dbOrder2Auth.acme_order_id = dbAcmeOrder.id
-    dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
-"""
 AcmeAccountKey.acme_authorizations__5 = sa_orm_relationship(
     AcmeAuthorization,
-    primaryjoin="AcmeAccountKey.id == AcmeOrder.acme_account_key_id",
-    secondary=(
-        """join(AcmeOrder,
-                AcmeAuthorization,
-                AcmeOrder.id == AcmeAuthorization.acme_order_id__created
-                )"""
-    ),
+    primaryjoin="""AcmeAccountKey.id == AcmeOrder.acme_account_key_id""",
+    secondary="""join(AcmeOrder,
+                      AcmeOrder2AcmeAuthorization,
+                      AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id
+                      )""",
     secondaryjoin=(
         sa.and_(
-            AcmeAuthorization.acme_order_id__created == sa.orm.foreign(AcmeOrder.id),
+            AcmeOrder2AcmeAuthorization.acme_authorization_id == AcmeAuthorization.id,
             AcmeAuthorization.id.in_(
                 sa.select([AcmeAuthorization.id])
-                .where(AcmeAuthorization.acme_order_id__created == AcmeOrder.id)
+                .where(
+                    AcmeAuthorization.id
+                    == AcmeOrder2AcmeAuthorization.acme_authorization_id
+                )
+                .where(AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id)
                 .where(AcmeOrder.acme_account_key_id == AcmeAccountKey.id)
                 .order_by(AcmeAuthorization.id.desc())
                 .limit(5)
@@ -2841,37 +2837,34 @@ AcmeAccountKey.acme_authorizations__5 = sa_orm_relationship(
         )
     ),
     order_by=AcmeAuthorization.id.desc(),
+    uselist=True,
     viewonly=True,
 )
 
-
 # note: AcmeAccountKey.acme_authorizations_pending__5
-"""
-    dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
-    dbOrder2Auth.acme_order_id = dbAcmeOrder.id
-    dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
-"""
 AcmeAccountKey.acme_authorizations_pending__5 = sa_orm_relationship(
     AcmeAuthorization,
-    primaryjoin="AcmeAccountKey.id == AcmeOrder.acme_account_key_id",
-    secondary=(
-        """join(AcmeOrder,
-                AcmeAuthorization,
-                AcmeOrder.id == AcmeAuthorization.acme_order_id__created
-                )"""
-    ),
+    primaryjoin="""AcmeAccountKey.id == AcmeOrder.acme_account_key_id""",
+    secondary="""join(AcmeOrder,
+                      AcmeOrder2AcmeAuthorization,
+                      AcmeOrder.id == AcmeOrder2AcmeAuthorization.acme_order_id
+                      )""",
     secondaryjoin=(
         sa.and_(
-            AcmeAuthorization.acme_order_id__created == sa.orm.foreign(AcmeOrder.id),
+            AcmeOrder2AcmeAuthorization.acme_authorization_id == AcmeAuthorization.id,
             AcmeAuthorization.id.in_(
                 sa.select([AcmeAuthorization.id])
-                .where(AcmeAuthorization.acme_order_id__created == AcmeOrder.id)
-                .where(AcmeOrder.acme_account_key_id == AcmeAccountKey.id)
                 .where(
                     AcmeAuthorization.acme_status_authorization_id.in_(
                         model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
                     )
                 )
+                .where(
+                    AcmeAuthorization.id
+                    == AcmeOrder2AcmeAuthorization.acme_authorization_id
+                )
+                .where(AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id)
+                .where(AcmeOrder.acme_account_key_id == AcmeAccountKey.id)
                 .order_by(AcmeAuthorization.id.desc())
                 .limit(5)
                 .correlate()
@@ -2879,6 +2872,7 @@ AcmeAccountKey.acme_authorizations_pending__5 = sa_orm_relationship(
         )
     ),
     order_by=AcmeAuthorization.id.desc(),
+    uselist=True,
     viewonly=True,
 )
 

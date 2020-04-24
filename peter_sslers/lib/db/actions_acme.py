@@ -12,7 +12,6 @@ import pprint
 from dateutil import parser as dateutil_parser
 import sqlalchemy
 import transaction
-from zope.sqlalchemy import mark_changed
 
 # localapp
 from ... import lib
@@ -307,7 +306,10 @@ def _AcmeV2_factory_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
             create/update the Authorization object
             create/update the Challenge object
         """
-        log.info("-handle_authorization_payload %s", authorization_url)
+        log.info(
+            "_AcmeV2_factory_AuthHandlers.handle_authorization_payload( %s",
+            authorization_url,
+        )
         if transaction_commit is not True:
             raise ValueError("we must invoke this knowing it will commit")
 
@@ -342,6 +344,7 @@ def _AcmeV2_factory_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
                 transaction_commit=transaction_commit,
             )
 
+        log.info(") handle_authorization_payload(")
         return dbAcmeAuthorization
 
     return handle_authorization_payload
@@ -933,6 +936,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
 
         # TODO: raise an exception if we don't have an acmeOrderRfcObject
         # TODO: update the authorizations/challenges from the order
+        #       is this allowed though? the challenge doesn't have a revoked state
 
         # update the AcmeOrder if it's not the same on the database
         if not is_order_404:
@@ -1889,6 +1893,7 @@ def do__AcmeV2_AcmeOrder__retry(
         ctx,
         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_RETRY,
         private_key_cycle__renewal=dbAcmeOrder.private_key_cycle__renewal,
+        private_key_strategy__requested=dbAcmeOrder.private_key_strategy__requested,
         processing_strategy=dbAcmeOrder.acme_order_processing_strategy,
         dbAcmeOrder_retry_of=dbAcmeOrder,
     )

@@ -379,6 +379,10 @@ Acme_Status_Authorization.IDS_POSSIBLY_PENDING = [
 class Acme_Status_Challenge(_Acme_Status_All):
     """The status of a challenge"""
 
+    OPTIONS_DEACTIVATE = (
+        "pending",
+        "*discovered*",
+    )
     OPTIONS_POSSIBLY_ACTIVE = (
         "*discovered*",
         "pending",

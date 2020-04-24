@@ -23,7 +23,6 @@ from webtest import TestApp
 from ..web import main
 from ..web.models import get_engine
 from ..web.models import get_session_factory
-from ..web.models import get_tm_session
 from ..model import objects as model_objects
 from ..model import utils as model_utils
 from ..model import meta as model_meta
@@ -140,8 +139,8 @@ TEST_FILES = {
         },
     },
     "AcmeOrder": {
-        "test-extended-1": {
-            "acme-order/new/automated": {
+        "test-extended_html": {
+            "acme-order/new/automated#1": {
                 "account_key_option": "account_key_file",
                 "acme_account_provider_id": "1",
                 "account_key_file_pem": "AcmeAccountKey-1.pem",
@@ -150,6 +149,19 @@ TEST_FILES = {
                 "domain_names": [
                     "new-automated-1-a.example.com",
                     "new-automated-1-b.example.com",
+                ],
+                "private_key_cycle__renewal": "account_key_default",
+                "processing_strategy": "create_order",
+            },
+            "acme-order/new/automated#2": {
+                "account_key_option": "account_key_file",
+                "acme_account_provider_id": "1",
+                "account_key_file_pem": "AcmeAccountKey-1.pem",
+                "private_key_cycle": "account_daily",
+                "private_key_option": "private_key_for_account_key",
+                "domain_names": [
+                    "new-automated-1-c.example.com",
+                    "new-automated-1-d.example.com",
                 ],
                 "private_key_cycle__renewal": "account_key_default",
                 "processing_strategy": "create_order",
@@ -736,13 +748,9 @@ class AppTest(AppTestCore):
     def ctx(self):
         if self._ctx is None:
             dbSession_factory = self.testapp.app.registry["dbSession_factory"]
-            dbSessionLogger_factory = self.testapp.app.registry[
-                "dbSessionLogger_factory"
-            ]
             self._ctx = utils.ApiContext(
                 request=FakeRequest(),
                 dbSession=dbSession_factory(),
-                dbSessionLogger=dbSessionLogger_factory(),
                 timestamp=datetime.datetime.utcnow(),
             )
         return self._ctx

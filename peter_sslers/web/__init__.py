@@ -116,10 +116,7 @@ def main(global_config, **settings):
     )
     config.add_request_method(
         lambda request: ApiContext(
-            timestamp=request.a_timestamp,
-            dbSession=request.dbSession,
-            dbSessionLogger=request.dbSessionLogger,
-            request=request,
+            timestamp=request.a_timestamp, dbSession=request.dbSession, request=request,
         ),
         "api_context",
         reify=True,
@@ -158,10 +155,7 @@ def main(global_config, **settings):
         dbSession = models.get_tm_session(None, session_factory, transaction.manager)
 
         ctx = ApiContext(
-            timestamp=datetime.datetime.utcnow(),
-            dbSession=dbSession,
-            dbSessionLogger=None,
-            request=None,
+            timestamp=datetime.datetime.utcnow(), dbSession=dbSession, request=None,
         )
 
         # this will do the heavy lifting

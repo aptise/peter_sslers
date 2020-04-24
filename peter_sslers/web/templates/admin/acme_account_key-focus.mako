@@ -56,7 +56,7 @@
                         <td><timestamp>${AcmeAccountKey.timestamp_last_authenticated or ''}</timestamp>
                             % if AcmeAccountKey.is_can_authenticate:
                                 <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/authenticate" method="POST">
-                                    <button class="btn btn-xs btn-primary" type="submit">
+                                    <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
                                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                         Authenticate Against ACME Server
                                     </button>

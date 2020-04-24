@@ -1,6 +1,12 @@
+# logging
+import logging
+
+log = logging.getLogger(__name__)
+
+
 # stdlib
 import hashlib
-import logging
+import pdb
 import re
 
 # pypi
@@ -94,28 +100,20 @@ class ApiContext(object):
     :param request: - Pyramid `request` object
     :param timestamp: `datetime.datetime.utcnow()`
     :param dbSession: - SqlAlchemy `Session` object
-    :param dbSessionLogger: - SqlAlchemy `Session` object with autocommit
     :param dbOperationsEvent: - the top OperationsEvent object for the active `request`, if any
     """
 
     dbOperationsEvent = None
     dbSession = None
-    dbSessionLogger = None
     timestamp = None
     request = None
 
     def __init__(
-        self,
-        request=None,
-        dbOperationsEvent=None,
-        dbSession=None,
-        dbSessionLogger=None,
-        timestamp=None,
+        self, request=None, dbOperationsEvent=None, dbSession=None, timestamp=None,
     ):
         self.request = request
         self.dbOperationsEvent = dbOperationsEvent
         self.dbSession = dbSession
-        self.dbSessionLogger = dbSessionLogger
         self.timestamp = timestamp
 
     @property
@@ -125,7 +123,8 @@ class ApiContext(object):
 
     def pyramid_transaction_commit(self):
         """this method does some ugly stuff to commit the pyramid transaction"""
-        mark_changed(self.dbSession)
+        # mark_changed is oblivious to the `keep_session` we created the session with
+        mark_changed(self.dbSession, keep_session=True)
         self.transaction_manager.commit()
         self.transaction_manager.begin()
 

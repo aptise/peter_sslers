@@ -72,6 +72,15 @@ def tests_routes(*args):
     return _decorator
 
 
+# =====
+
+RE_AcmeOrder = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)$"""
+)
+
+# =====
+
+
 class FunctionalTests_Passes(AppTest):
     """
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Passes
@@ -3105,6 +3114,7 @@ class FunctionalTests_AcmeServer(AppTest):
             "admin:acme_order:focus:finalize",
             "admin:acme_order:focus:renew:custom",
             "admin:acme_order:focus:renew:quick",
+            "admin:acme_order:focus:acme_server:deactivate_authorizations",
         )
     )
     def test_AcmeOrder_extended_html(self):
@@ -3113,10 +3123,10 @@ class FunctionalTests_AcmeServer(AppTest):
 
         NOTE: if domains are not randomized for the order, one needs to reset the pebble instance
         """
-        _test_data = TEST_FILES["AcmeOrder"]["test-extended-1"]
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
         # we need two for this test
-        assert len(_test_data["acme-order/new/automated"]["domain_names"]) == 2
+        assert len(_test_data["acme-order/new/automated#1"]["domain_names"]) == 2
 
         # "admin:acme_order:new:automated",
         res = self.testapp.get(
@@ -3130,24 +3140,21 @@ class FunctionalTests_AcmeServer(AppTest):
         form["acme_account_provider_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated"]["account_key_file_pem"]
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
             )
         )
         form["private_key_cycle"].force_value("account_daily")
         form["private_key_cycle__renewal"].force_value("account_key_default")
         form["private_key_option"].force_value("private_key_for_account_key")
         form["domain_names"] = ",".join(
-            _test_data["acme-order/new/automated"]["domain_names"]
+            _test_data["acme-order/new/automated#1"]["domain_names"]
         )
         form["processing_strategy"].force_value("create_order")
         res2 = form.submit()
         assert res2.status_code == 303
 
         # "admin:acme_order:focus",
-        re_expected = re.compile(
-            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)$"""
-        )
-        matched = re_expected.match(res2.location)
+        matched = RE_AcmeOrder.match(res2.location)
         assert matched
         obj_id = matched.groups()[0]
 
@@ -3175,7 +3182,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         _dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
         assert len(_dbAcmeOrder.acme_authorizations) == len(
-            _test_data["acme-order/new/automated"]["domain_names"]
+            _test_data["acme-order/new/automated#1"]["domain_names"]
         )
         _authorization_pairs = [
             (i.id, i.acme_challenge_http01.id) for i in _dbAcmeOrder.acme_authorizations
@@ -3364,7 +3371,100 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/admin/acme-order/%s" % obj_id__custom, status=200
         )
 
-        print("!!!")
+        #
+        # to handle the next series, we must use a new order with different domains
+        #
+
+        # we need two for this test
+        assert len(_test_data["acme-order/new/automated#2"]["domain_names"]) == 2
+        # "admin:acme_order:new:automated",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/new/automated", status=200
+        )
+
+        form = res.form
+        _form_fields = form.fields.keys()
+        assert "account_key_option" in _form_fields
+        form["account_key_option"].force_value("account_key_file")
+        form["acme_account_provider_id"].force_value("1")
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#2"]["account_key_file_pem"]
+            )
+        )
+        form["private_key_cycle"].force_value("account_daily")
+        form["private_key_cycle__renewal"].force_value("account_key_default")
+        form["private_key_option"].force_value("private_key_for_account_key")
+        form["domain_names"] = ",".join(
+            _test_data["acme-order/new/automated#2"]["domain_names"]
+        )
+        form["processing_strategy"].force_value("create_order")
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        # "admin:acme_order:focus",
+        matched = RE_AcmeOrder.match(res2.location)
+        assert matched
+        obj_id__2 = matched.groups()[0]
+
+        # grb the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
+        )
+
+        # sync_authorizations
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations"
+            % obj_id__2,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync+authorizations"
+            % obj_id__2
+        )
+
+        # grab the order
+        # look for deactivate-authorizations
+        # note the space after `btn-info ` and no `disabled` class
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
+        )
+        re_expected = re.compile(
+            r'''href="/\.well-known/admin/acme-order/5/acme-server/deactivate-authorizations"[\n\s\ ]+class="btn btn-xs btn-info "'''
+        )
+        assert re_expected.findall(res.body)
+
+        # "admin:acme_order:focus:acme_server:deactivate_authorizations",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations"
+            % obj_id__2,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+deactivate+authorizations"
+            % obj_id__2
+        )
+
+        # grab the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
+        )
+        # look for deactivate-authorizations
+        # note the `disabled` class
+        re_expected = re.compile(
+            r'''href="/\.well-known/admin/acme-order/5/acme-server/deactivate-authorizations"[\n\s\ ]+class="btn btn-xs btn-info disabled"'''
+        )
+        assert re_expected.findall(res.body)
+
+        # "admin:acme_order:focus:retry",
+        assert "acme_order-retry" in res.forms
+        form = res.forms["acme_order-retry"]
+        res = form.submit()
+        assert res.status_code == 303
+
+        matched = RE_AcmeOrder.match(res.location)
+        assert matched
+        obj_id__3 = matched.groups()[0]
 
     # !!!: Tests below must be finished
 
@@ -3372,7 +3472,6 @@ class FunctionalTests_AcmeServer(AppTest):
     @tests_routes(
         (
             "admin:acme_order:focus:acme_process",
-            "admin:acme_order:focus:acme_server:deactivate_authorizations",
             "admin:acme_order:focus:mark",
             "admin:acme_order:focus:retry",
         )

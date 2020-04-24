@@ -268,10 +268,12 @@ def getcreate__AcmeAuthorizationUrl(ctx, authorization_url=None, dbAcmeOrder=Non
     :param authorization_url: (required) the url of an RFC-8555 authorization
     :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
     """
+    log.info("getcreate__AcmeAuthorizationUrl(")
     if not dbAcmeOrder:
         raise ValueError("`dbAcmeOrder` is required")
     is_created__AcmeAuthorization = False
     is_created__AcmeAuthorization2Order = None
+    _needs_association = None
     dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
         ctx, authorization_url
     )
@@ -286,7 +288,26 @@ def getcreate__AcmeAuthorizationUrl(ctx, authorization_url=None, dbAcmeOrder=Non
         ctx.dbSession.add(dbAcmeAuthorization)
         ctx.dbSession.flush(objects=[dbAcmeAuthorization])
         is_created__AcmeAuthorization = True
+        _needs_association = True
 
+    else:
+        # poop, this
+        # raise ValueError("this should be unique!")
+
+        _existingAssociation = (
+            ctx.dbSession.query(model_objects.AcmeOrder2AcmeAuthorization)
+            .filter(
+                model_objects.AcmeOrder2AcmeAuthorization.acme_order_id
+                == dbAcmeOrder.id,
+                model_objects.AcmeOrder2AcmeAuthorization.acme_authorization_id
+                == dbAcmeAuthorization.id,
+            )
+            .first()
+        )
+        if not _existingAssociation:
+            _needs_association = True
+
+    if not _needs_association:
         dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
         dbOrder2Auth.acme_order_id = dbAcmeOrder.id
         dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
@@ -296,10 +317,7 @@ def getcreate__AcmeAuthorizationUrl(ctx, authorization_url=None, dbAcmeOrder=Non
         )
         is_created__AcmeAuthorization2Order = True
 
-    else:
-        # poop, this
-        # raise ValueError("this should be unique!")
-        pass
+    log.info(") getcreate__AcmeAuthorizationUrl")
     return (dbAcmeAuthorization, is_created__AcmeAuthorization)
 
 
@@ -332,8 +350,10 @@ def getcreate__AcmeAuthorization(
     potentially raises:
         errors.AcmeMissingChallenges
     """
+    log.info("getcreate__AcmeAuthorization(")
     if not dbAcmeOrder:
         raise ValueError("do not invoke this without a `dbAcmeOrder`")
+
     is_created__AcmeAuthorization = None
     dbAcmeAuthorization = get__AcmeAuthorization__by_authorization_url(
         ctx, authorization_url
