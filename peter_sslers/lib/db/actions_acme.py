@@ -823,6 +823,10 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
+        handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
+            ctx, authenticatedUser, dbAcmeOrder
+        )
+
         is_order_404 = None
         try:
             (
@@ -848,6 +852,25 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
             )
             # just continue, as the internal orders are what we care about
 
+        # make sure we have all the authorizations
+        if not is_order_404:
+            _changed = None
+            for authorization_url in acmeOrderRfcObject.rfc_object.get(
+                "authorizations"
+            ):
+                (
+                    _dbAuthPlacholder,
+                    _is_auth_created,
+                    _is_auth_2_order_created,
+                ) = lib.db.getcreate.getcreate__AcmeAuthorizationUrl(
+                    ctx, authorization_url=authorization_url, dbAcmeOrder=dbAcmeOrder
+                )
+                if not _changed and (_is_auth_created or _is_auth_2_order_created):
+                    _changed = True
+            if _changed:
+                # the major benefit to commit here is to expire `dbAcmeOrder.acme_authorizations`
+                ctx.pyramid_transaction_commit()
+
         for dbAcmeAuthorization in dbAcmeOrder.acme_authorizations:
             try:
                 result = do__AcmeV2_AcmeAuthorization__acme_server_sync(
@@ -861,6 +884,62 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
 
         return (dbAcmeOrder, True)
 
+    finally:
+        # cleanup tmpfiles
+        for tf in tmpfiles:
+            tf.close()
+
+
+def do__AcmeV2_AcmeAccountKey__acme_server_deactivate_authorizations(
+    ctx, dbAcmeAccountKey=None, acme_authorization_ids=None, authenticatedUser=None,
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object that owns the authorization ids
+    :param int acme_authorization_ids: (required) An iterable of AcmeAuthoriationIds to deactivate
+    :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    """
+    if not dbAcmeAccountKey:
+        raise ValueError("Must submit `dbAcmeAccountKey`")
+
+    tmpfiles = []
+    try:
+        if authenticatedUser is None:
+            (authenticatedUser, tmpfile_account) = new_Authenticated_user(
+                ctx, dbAcmeAccountKey
+            )
+            tmpfiles.append(tmpfile_account)
+
+        dbAcmeAuthorizations = lib.db.get.get__AcmeAuthorizations__by_ids(
+            ctx, acme_authorization_ids, acme_account_key_id=dbAcmeAccountKey.id
+        )
+        results = {id_: False for id_ in acme_authorization_ids}
+        for dbAcmeAuthorization in dbAcmeAuthorizations:
+            if not dbAcmeAuthorization.is_acme_server_pending:
+                # no need to attempt turning off an auth that is not (potentially) pending
+                continue
+            try:
+                (
+                    authorization_response,
+                    dbAcmeEventLog_authorization_fetch,
+                ) = authenticatedUser.acme_authorization_deactivate(
+                    ctx,
+                    dbAcmeAuthorization=dbAcmeAuthorization,
+                    transaction_commit=True,
+                )
+                results[dbAcmeAuthorization.id] = True
+            except errors.AcmeServer404 as exc:
+                results[dbAcmeAuthorization.id] = None
+                authorization_response = acme_v2.new_response_404()
+            update_AcmeAuthorization_status(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response["status"],
+                transaction_commit=True,
+            )
+            # TODO: transition AcmeOrder
+            # TODO: transition AcmeChallenge
+        return results
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:

@@ -265,8 +265,9 @@ def create__AcmeOrder(
     # now loop the authorization URLs to create stub records for this order
     for authorization_url in acme_order_response.get("authorizations"):
         (
-            dbAuthPlacholder,
-            is_auth_created,
+            _dbAuthPlacholder,
+            _is_auth_created,
+            _is_auth_2_order_created,
         ) = lib.db.getcreate.getcreate__AcmeAuthorizationUrl(
             ctx, authorization_url=authorization_url, dbAcmeOrder=dbAcmeOrder
         )

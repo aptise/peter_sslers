@@ -478,6 +478,8 @@ class Acme_Status_Order(_Acme_Status_All):
         "valid",
         "*404*",
     )
+    OPTIONS_BLOCKING = ("pending",)
+    IDS_BLOCKING = None  # define after declaring the class
 
     _mapping = {
         0: "*discovered*",  # not an ACME status, but our internal marker
@@ -489,6 +491,11 @@ class Acme_Status_Order(_Acme_Status_All):
         404: "*404*",  # "Not Found"; resource is not on the server
         406: "*406*",  # "Not Acceptable"; the server returned a status we don't track
     }
+
+
+Acme_Status_Order.IDS_BLOCKING = [
+    Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_BLOCKING
+]
 
 
 class AcmeAccountKeySource(_mixin_mapping):

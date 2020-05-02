@@ -532,20 +532,23 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
 
     def _as_json(self, admin_url=""):
         return {
-            "id": self.acme_status_authorization,
+            "id": self.id,
             "acme_status_authorization": self.acme_status_authorization,
+            "acme_challenge_http01_id": self.acme_challenge_http01.id
+            if self.acme_challenge_http01
+            else None,
             "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,}
             if self.domain_id
             else None,
-            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server/sync.json"
+            "url_acme_server_sync": "%s/acme-authorization/%s/acme-server/sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
             else None,
-            "url_acme_server_trigger": "%s/acme-challenge/%s/acme-server/trigger.json"
+            "url_acme_server_trigger": "%s/acme-authorization/%s/acme-server/trigger.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_trigger
             else None,
-            "url_acme_server_deactivate": "%s/acme-challenge/%s/acme-server/deactivate.json"
+            "url_acme_server_deactivate": "%s/acme-authorization/%s/acme-server/deactivate.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_deactivate
             else None,
@@ -656,7 +659,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     id = sa.Column(sa.Integer, primary_key=True)
 
     # our challenge will either be from:
-    # 1) an `AcmeOrde``->`AcmeAuthorization`
+    # 1) an `AcmeOrder`->`AcmeAuthorization`
     acme_authorization_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True
     )
@@ -1210,6 +1213,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         )
 
     @property
+    def acme_authorization_ids(self):
+        return [i.acme_authorization_id for i in self.to_acme_authorizations]
+
+    @property
     def acme_authorizations(self):
         authorizations = []
         for _to_auth in self.to_acme_authorizations:
@@ -1336,8 +1343,13 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "acme_account_key_id": self.acme_account_key_id,
+            "acme_account_key_pem_md5": self.acme_account_key.key_pem_md5
+            if self.acme_account_key_id
+            else None,
             "acme_status_order": self.acme_status_order,
             "acme_order_type": self.acme_order_type,
+            "acme_order_processing_status": self.acme_order_processing_status,
+            "acme_order_processing_strategy": self.acme_order_processing_strategy,
             "certificate_request_id": self.certificate_request_id,
             "domains_as_list": self.domains_as_list,
             "finalize_url": self.finalize_url,
@@ -1350,9 +1362,15 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "is_renewable_custom": True if self.is_renewable_custom else False,
             "is_renewable_queue": True if self.is_renewable_queue else False,
             "is_renewable_quick": True if self.is_renewable_quick else False,
+            "is_can_acme_server_deactivate_authorizations": True
+            if self.is_can_acme_server_deactivate_authorizations
+            else False,
             "is_renewed": True if self.is_renewed else False,
             "order_url": self.order_url,
             "private_key_id": self.private_key_id,
+            "private_key_pem_md5": self.private_key.key_pem_md5
+            if self.private_key_id
+            else None,
             "server_certificate_id": self.server_certificate_id,
             "server_certificate_id__renewal_of": self.server_certificate_id__renewal_of,
             "timestamp_created": self.timestamp_created_isoformat,
@@ -1360,13 +1378,18 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "timestamp_finalized": self.timestamp_finalized_isoformat,
             "timestamp_updated": self.timestamp_updated_isoformat,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "url_acme_server_sync": "%s/acme-challenge/%s/acme-server/sync.json"
+            "url_acme_server_sync": "%s/acme-order/%s/acme-server/sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
+            else None,
+            "url_acme_process": "%s/acme-order/%s/acme-process.json"
+            % (admin_url, self.id)
+            if self.is_can_acme_process
             else None,
             "private_key_cycle__renewal": self.private_key_cycle__renewal,
             "private_key_strategy__requested": self.private_key_strategy__requested,
             "private_key_strategy__final": self.private_key_strategy__final,
+            "acme_authorization_ids": self.acme_authorization_ids,
         }
 
     @property
@@ -2307,7 +2330,6 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
         True  :  The QueueDomain is active and should be part of the next processing batch.
         False :  The QueueDomain has completed, it may be successful or a failure.
         None  :  The QueueDomain has been cancelled by the user.
-    ``:
     """
 
     __tablename__ = "queue_domain"

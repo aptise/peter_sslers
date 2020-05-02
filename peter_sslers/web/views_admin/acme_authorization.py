@@ -207,7 +207,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         """
         Acme Refresh should just update the record against the acme server.
         """
-        # todo: json response
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         try:
             if not dbAcmeAuthorization.is_can_acme_server_sync:
@@ -217,6 +216,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_sync(
                 self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
             )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "acme-server/sync",
+                    "AcmeAuthorization": dbAcmeAuthorization.as_json,
+                }
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+sync" % self._focus_url
             )
@@ -225,6 +230,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-server/sync",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+sync&message=%s"
                 % (self._focus_url, exc.as_querystring)
@@ -244,7 +255,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         """
         Acme Deactivate
         """
-        # todo: json response
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         try:
             if not dbAcmeAuthorization.is_can_acme_server_deactivate:
@@ -254,6 +264,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
                 self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
             )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "acme-server/deactivate",
+                    "AcmeAuthorization": dbAcmeAuthorization.as_json,
+                }
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+deactivate" % self._focus_url
             )
@@ -263,6 +279,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-server/deactivate",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+deactivate&message=%s"
                 % (self._focus_url, exc.as_querystring)
@@ -281,7 +303,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         """
         Acme Trigger
         """
-        # todo: json response
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         try:
             if not dbAcmeAuthorization.is_can_acme_server_trigger:
@@ -291,6 +312,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger(
                 self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
             )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "acme-server/trigger",
+                    "AcmeAuthorization": dbAcmeAuthorization.as_json,
+                }
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+trigger" % self._focus_url
             )
@@ -300,6 +327,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-server/trigger",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+trigger&message=%s"
                 % (self._focus_url, exc.as_querystring)

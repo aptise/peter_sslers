@@ -185,6 +185,20 @@ def get__AcmeAuthorization__by_id(ctx, item_id, eagerload_web=False):
     return item
 
 
+def get__AcmeAuthorizations__by_ids(ctx, item_ids, acme_account_key_id=None):
+    q = ctx.dbSession.query(model_objects.AcmeAuthorization).filter(
+        model_objects.AcmeAuthorization.id.in_(item_ids)
+    )
+    if acme_account_key_id is not None:
+        q = q.join(
+            model_objects.AcmeOrder,
+            model_objects.AcmeAuthorization.acme_order_id__created
+            == model_objects.AcmeOrder.id,
+        ).filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
+    items = q.all()
+    return items
+
+
 def get__AcmeAuthorization__by_authorization_url(ctx, authorization_url):
     q = ctx.dbSession.query(model_objects.AcmeAuthorization).filter(
         model_objects.AcmeAuthorization.authorization_url == authorization_url
@@ -371,15 +385,18 @@ def get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
 
 
 def get__AcmeChallenge__by_DomainId__active(ctx, domain_id):
+    """
+    AcmeStatus Codes
+          Challenge["pending" or "processing"]
+        + Authorization ["pending"] + ["*discovered*"]
+        + Order ["pending"]
+    - - - - - - - - - - - - - - - - - - - - - - - - -
+    """
+    # !!!: blocking AcmeChallenges
     # a domain can have one and only one active challenge
     query = (
         ctx.dbSession.query(model_objects.AcmeChallenge)
-        .join(
-            model_objects.AcmeOrderless,
-            model_objects.AcmeChallenge.acme_orderless_id
-            == model_objects.AcmeOrderless.id,
-            isouter=True,
-        )
+        # Path1: AcmeChallenge>AcmeAuthorization>AcmeOrder2AcmeAuthorization>AcmeOrder
         .join(
             model_objects.AcmeAuthorization,
             model_objects.AcmeChallenge.acme_authorization_id
@@ -387,15 +404,51 @@ def get__AcmeChallenge__by_DomainId__active(ctx, domain_id):
             isouter=True,
         )
         .join(
-            model_objects.AcmeOrder,
-            model_objects.AcmeAuthorization.id == model_objects.AcmeOrder.id,
+            model_objects.AcmeOrder2AcmeAuthorization,
+            model_objects.AcmeAuthorization.id
+            == model_objects.AcmeOrder2AcmeAuthorization.acme_order_id,
             isouter=True,
         )
+        .join(
+            model_objects.AcmeOrder,
+            model_objects.AcmeOrder2AcmeAuthorization.acme_order_id
+            == model_objects.AcmeOrder.id,
+            isouter=True,
+        )
+        # Path2: AcmeChallenge>AcmeOrderless
+        .join(
+            model_objects.AcmeOrderless,
+            model_objects.AcmeChallenge.acme_orderless_id
+            == model_objects.AcmeOrderless.id,
+            isouter=True,
+        )
+        # shared filters
         .filter(
             model_objects.AcmeChallenge.domain_id == domain_id,
+            # ???: http challenges only
+            # model_objects.AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallengeType.from_string("http-01"),
             sqlalchemy.or_(
-                model_objects.AcmeOrderless.is_processing.op("IS")(True),
-                model_objects.AcmeOrder.is_processing.op("IS")(True),
+                # Path1 - Order Based Authorizations
+                sqlalchemy.and_(
+                    model_objects.AcmeChallenge.acme_authorization_id.op("IS NOT")(
+                        None
+                    ),
+                    model_objects.AcmeChallenge.acme_status_challenge_id.in_(
+                        model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
+                    ),
+                    model_objects.AcmeAuthorization.acme_status_authorization_id.in_(
+                        model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
+                    ),
+                    model_objects.AcmeOrder.acme_status_order_id.in_(
+                        model_utils.Acme_Status_Order.IDS_BLOCKING
+                    ),
+                    # TOO LAX: model_objects.AcmeOrder.is_processing.op("IS")(True),
+                ),
+                # Path2 - Orderless
+                sqlalchemy.and_(
+                    model_objects.AcmeChallenge.acme_orderless_id.op("IS NOT")(None),
+                    model_objects.AcmeOrderless.is_processing.op("IS")(True),
+                ),
             ),
         )
     )
@@ -1095,18 +1148,22 @@ def get__Domain__by_name(
 
 
 def _get__Domains_challenged__core(ctx):
+    """
+    AcmeStatus Codes
+          Challenge["pending" or "processing"]
+        + Authorization ["pending"] + ["*discovered*"]
+        + Order ["pending"]
+    - - - - - - - - - - - - - - - - - - - - - - - - -
+    """
+    # !!!: blocking AcmeChallenges
     q = (
         ctx.dbSession.query(model_objects.Domain)
+        # domain joins on everything
         .join(
             model_objects.AcmeChallenge,
             model_objects.Domain.id == model_objects.AcmeChallenge.domain_id,
         )
-        .join(
-            model_objects.AcmeOrderless,
-            model_objects.AcmeChallenge.acme_orderless_id
-            == model_objects.AcmeOrderless.id,
-            isouter=True,
-        )
+        # Path1: AcmeChallenge>AcmeAuthorization>AcmeOrder2AcmeAuthorization>AcmeOrder
         .join(
             model_objects.AcmeAuthorization,
             model_objects.AcmeChallenge.acme_authorization_id
@@ -1125,10 +1182,39 @@ def _get__Domains_challenged__core(ctx):
             == model_objects.AcmeOrder.id,
             isouter=True,
         )
+        # Path2: AcmeChallenge>AcmeOrderless
+        .join(
+            model_objects.AcmeOrderless,
+            model_objects.AcmeChallenge.acme_orderless_id
+            == model_objects.AcmeOrderless.id,
+            isouter=True,
+        )
+        # shared filters
         .filter(
+            # ???: http challenges only
+            # model_objects.AcmeChallenge.acme_challenge_type_id == model_utils.AcmeChallengeType.from_string("http-01"),
             sqlalchemy.or_(
-                model_objects.AcmeOrderless.is_processing.op("IS")(True),
-                model_objects.AcmeOrder.is_processing.op("IS")(True),
+                # Path1 - Order Based Authorizations
+                sqlalchemy.and_(
+                    model_objects.AcmeChallenge.acme_authorization_id.op("IS NOT")(
+                        None
+                    ),
+                    model_objects.AcmeChallenge.acme_status_challenge_id.in_(
+                        model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
+                    ),
+                    model_objects.AcmeAuthorization.acme_status_authorization_id.in_(
+                        model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
+                    ),
+                    model_objects.AcmeOrder.acme_status_order_id.in_(
+                        model_utils.Acme_Status_Order.IDS_BLOCKING
+                    ),
+                    # TOO LAX: model_objects.AcmeOrder.is_processing.op("IS")(True),
+                ),
+                # Path2 - Orderless
+                sqlalchemy.and_(
+                    model_objects.AcmeChallenge.acme_orderless_id.op("IS NOT")(None),
+                    model_objects.AcmeOrderless.is_processing.op("IS")(True),
+                ),
             ),
         )
     )

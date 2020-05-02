@@ -3,28 +3,26 @@ Not Finished Yet
 
 Almost done:
 ------------
-* acme2 support  [2020.01.30]
-* these tests fail on a full suite, but pass individually.
-	test_focus (peter_sslers.tests.FunctionalTests_Certificate) ... FAIL
-	test_manipulate (peter_sslers.tests.FunctionalTests_Certificate) ... FAIL
-* a few pyramid-centric lines of code exist in the global lib. they have to do with 'request.registry.settings.
-* Python3 tests
 
 certificate renewal
 	- object should show if we can renew with account key
+	
+These sections still need to be redone:
 
-audit/remove
-	.acme_account_key - no longer on many objects
-	.is_can_renew_letsencrypt
+- queue domain
+- queue certificates
+- certificate-if-needed
 
-acme-account-keys:
-	only track 1 "contact" right now.
+Tests needed:
+
+	redis 
+		test via decorator that spins a subprocess, or something on the server?
+	nginx
+		test via decorator that spins a subprocess, or something on the server?
+		
 
 
-Potential Routes:
------------------
-	/.well-known/admin/acme-order/{id}/acme-challenges
-
+	
 
 
 asap tasks
@@ -61,8 +59,6 @@ deferred tasks
 * Acme2 -  remove PyOpenSSL - used to split fullchain 
 
 
-
-
 Long Term Questions:
 ==================================
 * decouple from openssl and use pure-python methods
@@ -70,10 +66,3 @@ Long Term Questions:
 	- if that happens, should requests be used?
 * remove pyramidtm? migrate to autocommit?  
 
-
-Additional Test coverage needed for
------------------------------------
-* /admin/certificate/5/renew/custom
-* /api/queue-renewals/process
-* /admin/private-key/7?operation=mark&action=default&result=success
-* queue_domains__process | /admin/queue-domains/process

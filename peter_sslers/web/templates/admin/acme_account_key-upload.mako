@@ -29,7 +29,7 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__AcmeAccountKey_file()}
+                ${admin_partials.formgroup__AcmeAccountKey_file(show_contact=True)}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>

@@ -169,8 +169,8 @@ json_capable = {
             "curl --form 'account_key_file_le_meta=@meta.json' 'account_key_file_le_pkey=@private_key.json' 'account_key_file_le_reg=@regr.json' {ADMIN_PREFIX}/acme-account-key/upload.json",
         ],
     },
-    "/acme-account-key/{ID}/authenticate.json": {
-        "endpoint": "/acme-account-key/{ID}/authenticate.json",
+    "/acme-account-key/{ID}/acme-server/authenticate.json": {
+        "endpoint": "/acme-account-key/{ID}/acme-server/authenticate.json",
         "section": "acme-account-key",
         "about": """authenticate the key against the provider's new-reg endpoint""",
         "POST": True,
@@ -178,8 +178,21 @@ json_capable = {
         "GET-SELF-DOCUMENTING": True,
         "args": None,
         "examples": [
-            "curl http://127.0.0.1:7201/.well-known/admin/acme-account-key/1/authenticate.json",
-            "curl -X POST http://127.0.0.1:7201/.well-known/admin/acme-account-key/1/authenticate.json",
+            "curl http://127.0.0.1:7201/.well-known/admin/acme-account-key/1/acme-server/authenticate.json",
+            "curl -X POST http://127.0.0.1:7201/.well-known/admin/acme-account-key/1/acme-server/authenticate.json",
+        ],
+    },
+    "/acme-account-key/{ID}/acme-server/deactivate-pending-authorizations.json": {
+        "endpoint": "/acme-account-key/{ID}/acme-server/deactivate-pending-authorizations.json",
+        "section": "acme-account-key",
+        "about": """deactivate pending authorizations on the acme server, must supply the authorization_ids.""",
+        "POST": True,
+        "GET": None,
+        "GET-SELF-DOCUMENTING": True,
+        "args": None,
+        "examples": [
+            "curl http://127.0.0.1:7201/.well-known/admin/acme-account-key/1/acme-server/deactivate-pending-authorizations.json",
+            "curl --form 'acme_authorization_id=1' --form 'acme_authorization_id=2'  http://127.0.0.1:7201/.well-known/admin/acme-account-key/1/acme-server/deactivate-pending-authorizations.json",
         ],
     },
     "/acme-account-key/{ID}/mark.json": {

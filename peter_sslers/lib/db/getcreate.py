@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # logging
 import logging
 
@@ -307,7 +309,7 @@ def getcreate__AcmeAuthorizationUrl(ctx, authorization_url=None, dbAcmeOrder=Non
         if not _existingAssociation:
             _needs_association = True
 
-    if not _needs_association:
+    if _needs_association:
         dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
         dbOrder2Auth.acme_order_id = dbAcmeOrder.id
         dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
@@ -318,7 +320,11 @@ def getcreate__AcmeAuthorizationUrl(ctx, authorization_url=None, dbAcmeOrder=Non
         is_created__AcmeAuthorization2Order = True
 
     log.info(") getcreate__AcmeAuthorizationUrl")
-    return (dbAcmeAuthorization, is_created__AcmeAuthorization)
+    return (
+        dbAcmeAuthorization,
+        is_created__AcmeAuthorization,
+        is_created__AcmeAuthorization2Order,
+    )
 
 
 def getcreate__AcmeAuthorization(
@@ -414,6 +420,7 @@ def process__AcmeAuthorization_payload(
     :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
     """
+    log.info("process__AcmeAuthorization_payload")
     is_created__AcmeAuthorization2Order = None
 
     # is this associated?

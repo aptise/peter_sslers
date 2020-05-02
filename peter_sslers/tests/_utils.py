@@ -1,5 +1,11 @@
 from __future__ import print_function
 
+import logging
+
+log = logging.getLogger(__name__)
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.INFO)
+
 # stdlib
 import datetime
 import os
@@ -33,13 +39,15 @@ from ..lib import utils
 # ==============================================================================
 
 """
-export SSL_RUN_NGINX_TESTS=True
-export SSL_RUN_REDIS_TESTS=True
-export SSL_RUN_API_TESTS__PEBBLE=True
-export SSL_PEBBLE_API_VALIDATES=True
+export SSL_RUN_NGINX_TESTS=1
+export SSL_RUN_REDIS_TESTS=1
+export SSL_RUN_API_TESTS__PEBBLE=1
+export SSL_PEBBLE_API_VALIDATES=1
 export SSL_TEST_DOMAINS=dev.cliqued.in  # can be a comma-separated string
 export SSL_TEST_PORT=7201
 export SSL_TEST_PORT=7201
+export SSL_BIN_REDIS_SERVER=/path/to
+export SSL_CONF_REDIS_SERVER=/path/to
 
 if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app so letsencrypt can access it
 
@@ -48,19 +56,22 @@ see the nginx test config file `testing.conf`
 """
 
 # run tests that expire nginx caches
-RUN_NGINX_TESTS = os.environ.get("SSL_RUN_NGINX_TESTS", False)
+RUN_NGINX_TESTS = bool(int(os.environ.get("SSL_RUN_NGINX_TESTS", 0)))
 # run tests to prime redis
-RUN_REDIS_TESTS = os.environ.get("SSL_RUN_REDIS_TESTS", False)
+RUN_REDIS_TESTS = bool(int(os.environ.get("SSL_RUN_REDIS_TESTS", 0)))
 # run tests against LE API
-RUN_API_TESTS__PEBBLE = os.environ.get("SSL_RUN_API_TESTS__PEBBLE", False)
+RUN_API_TESTS__PEBBLE = bool(int(os.environ.get("SSL_RUN_API_TESTS__PEBBLE", 0)))
 # does the LE validation work?  LE must be able to reach this
-LETSENCRYPT_API_VALIDATES = os.environ.get("SSL_PEBBLE_API_VALIDATES", False)
+LETSENCRYPT_API_VALIDATES = bool(int(os.environ.get("SSL_PEBBLE_API_VALIDATES", 0)))
 
 SSL_TEST_DOMAINS = os.environ.get("SSL_TEST_DOMAINS", "example.com")
 SSL_TEST_PORT = int(os.environ.get("SSL_TEST_PORT", 7201))
 
-DISABLE_UNWRITTEN_TESTS = True
-
+# coordinate the port with `test.ini`
+SSL_BIN_REDIS_SERVER = os.environ.get("SSL_BIN_REDIS_SERVER", None) or "redis-server"
+SSL_CONF_REDIS_SERVER = os.environ.get("SSL_CONF_REDIS_SERVER", None) or None
+if SSL_CONF_REDIS_SERVER is None:
+    SSL_CONF_REDIS_SERVER = "/".join(__file__.split("/")[:-1] + ["redis-server.conf",])
 
 PEBBLE_CONFIG = (
     "%s/src/github.com/letsencrypt/pebble/test/config/pebble-config.json"
@@ -89,6 +100,7 @@ def under_pebble(_function):
 
     @wraps(_function)
     def _wrapper(*args, **kwargs):
+        log.info("++ spinning up `pebble`")
         res = None  # scoping
         with psutil.Popen(
             ["pebble", "-config", PEBBLE_CONFIG],
@@ -101,8 +113,9 @@ def under_pebble(_function):
             # ensure the `pebble` server is running
             ready = False
             while not ready:
+                log.info("waiting for `pebble` to be ready")
                 for line in iter(proc.stdout.readline, b""):
-                    if "Listening on: 0.0.0.0:14000" in line:
+                    if b"Listening on: 0.0.0.0:14000" in line:
                         ready = True
                         break
                 time.sleep(1)
@@ -111,6 +124,46 @@ def under_pebble(_function):
             finally:
                 # explicitly terminate, otherwise it won't exit
                 # in a `finally` to ensure we terminate on exceptions
+                log.info("xx terminating `pebble`")
+                proc.terminate()
+        return res
+
+    return _wrapper
+
+
+def under_redis(_function):
+    """
+    decorator to spin up an external redis server
+    """
+
+    @wraps(_function)
+    def _wrapper(*args, **kwargs):
+        log.info("++ spinning up `pebble`")
+        res = None  # scoping
+        # /usr/local/Cellar/redis/3.0.7/bin/redis-server /Users/jvanasco/webserver/sites/CliquedInDeploy/trunk/config/environments/development/redis/redis-server--6379.conf
+        with psutil.Popen(
+            [SSL_BIN_REDIS_SERVER, SSL_CONF_REDIS_SERVER],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            # ensure the `pebble` server is running
+            ready = False
+            while not ready:
+                log.info("waiting for `redis` to be ready")
+                for line in iter(proc.stdout.readline, b""):
+                    if b"Can't chdir to" in line:
+                        raise ValueError(line)
+                    if b"The server is now ready to accept connections on port" in line:
+                        ready = True
+                        break
+                time.sleep(1)
+            try:
+                res = _function(*args, **kwargs)
+            finally:
+                # explicitly terminate, otherwise it won't exit
+                # in a `finally` to ensure we terminate on exceptions
+                log.info("xx terminating `redis`")
                 proc.terminate()
         return res
 
@@ -173,26 +226,31 @@ TEST_FILES = {
             "key": "acme_account_1.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
+            "contact": "contact.a@example.com",
         },
         "2": {
             "key": "acme_account_2.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
+            "contact": "contact.b@example.com",
         },
         "3": {
             "key": "acme_account_3.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
+            "contact": "contact.c@example.com",
         },
         "4": {
             "key": "acme_account_4.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
+            "contact": "contact.d@example.com",
         },
         "5": {
             "key": "acme_account_5.key",
             "provider": "pebble",
             "private_key_cycle": "single_certificate",
+            "contact": "contact.e@example.com",
         },
     },
     "CACertificates": {

@@ -136,6 +136,7 @@ def probe_letsencrypt_certificates():
         if resp.status_code != 200:
             raise ValueError("Could not load certificate")
         cert_pem_text = resp.content
+        cert_pem_text = cert_pem_text.decode("utf8")
         cert_pem_text = cert_utils.cleanup_pem_text(cert_pem_text)
         c["cert_pem"] = cert_pem_text
         c["cert_pem_md5"] = utils.md5_text(cert_pem_text)

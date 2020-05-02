@@ -44,7 +44,14 @@
         <div class="col-sm-12">
             % if AcmeAuthorizations:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_AcmeAuthorizations(AcmeAuthorizations, perspective='AcmeAccountKey')}
+                <form method="POST" action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/acme-server/deactivate-pending-authorizations">
+                    ${admin_partials.table_AcmeAuthorizations(AcmeAuthorizations, perspective='AcmeAccountKey', is_form_enabled=True)}
+                
+                    <button class="btn btn-xs btn-danger" type="submit"  name="submit" value="submit">
+                        <span class="glyphicon glyphicon-times" aria-hidden="true"></span>
+                        Deactivate Selected Pending Authorizations
+                    </button>
+                </form>
             % else:
                 No known AcmeAuthorizations.
             % endif

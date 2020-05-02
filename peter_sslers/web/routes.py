@@ -130,18 +130,26 @@ def _admin_views(config):
     )
 
     config.add_route_7(
-        "admin:acme_account_key:focus:authenticate",
-        "/acme-account-key/{@id}/authenticate",
-    )
-    config.add_route_7(
-        "admin:acme_account_key:focus:authenticate|json",
-        "/acme-account-key/{@id}/authenticate.json",
-    )
-    config.add_route_7(
         "admin:acme_account_key:focus:mark", "/acme-account-key/{@id}/mark"
     )
     config.add_route_7(
         "admin:acme_account_key:focus:mark|json", "/acme-account-key/{@id}/mark.json"
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:acme_server:authenticate",
+        "/acme-account-key/{@id}/acme-server/authenticate",
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:acme_server:authenticate|json",
+        "/acme-account-key/{@id}/acme-server/authenticate.json",
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:acme_server:deactivate_pending_authorizations",
+        "/acme-account-key/{@id}/acme-server/deactivate-pending-authorizations",
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:acme_server:deactivate_pending_authorizations|json",
+        "/acme-account-key/{@id}/acme-server/deactivate-pending-authorizations.json",
     )
 
     # !!!: AcmeAuthorizations

@@ -721,8 +721,6 @@ class AuthenticatedUser(object):
             stderr=subprocess.PIPE,
         ) as proc:
             csr_der, err = proc.communicate()
-            if six.PY3:
-                csr_der = csr_der.decode("utf8")
 
         acmeLoggedEvent = self.acmeLogger.log_order_finalize(
             "v2", transaction_commit=True
@@ -1136,8 +1134,12 @@ class AuthenticatedUser(object):
                     # can this be caught?
                     pass
             raise exc
-        if challenge_response["status"] != "pending":
-            raise ValueError("not pending!? how/!?")
+        if challenge_response["status"] not in ("pending", "valid"):
+            # this should ALMOST ALWAYS be "pending"
+            # on a test environment, the `Pebble` server might instantly transition from "pending" to "valid"
+            raise ValueError(
+                "AcmeChallenge is not 'pending' or 'valid' on the ACME server"
+            )
 
         # todo - COULD an accepted challenge be here?
         log.info(

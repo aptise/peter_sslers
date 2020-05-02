@@ -19,6 +19,7 @@ from ..lib.forms import Form_AcmeAccountKey_new__auth
 from ..lib.forms import Form_AcmeAccountKey_new__file
 from ..lib.forms import Form_AcmeAccountKey_mark
 from ..lib.forms import Form_AcmeAccountKey_edit
+from ..lib.forms import Form_AcmeAccountKey_deactivate_authorizations
 from ..lib.form_utils import AcmeAccountKeyUploadParser
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -428,7 +429,7 @@ class ViewAdmin_Focus(Handler):
             offset=offset,
         )
         if self.request.wants_json:
-            _authorizations = {k.id: k.as_json for k in items_paged}
+            _authorizations = [k.as_json for k in items_paged]
             return {
                 "AcmeAuthorizations": _authorizations,
                 "pagination": json_pagination(items_count, pager),
@@ -624,11 +625,15 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:acme_account_key:focus:authenticate", renderer=None)
     @view_config(
-        route_name="admin:acme_account_key:focus:authenticate|json", renderer="json"
+        route_name="admin:acme_account_key:focus:acme_server:authenticate",
+        renderer=None,
     )
-    def focus__authenticate(self):
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_server:authenticate|json",
+        renderer="json",
+    )
+    def focus__acme_server_authenticate(self):
         """
         this just hits the api, hoping we authenticate correctly.
         """
@@ -639,9 +644,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 return {
                     "error": error_message,
                 }
-            url_error = "%s?result=error&error=%s&operation=authenticate" % (
-                self._focus_url,
-                error_message.replace(" ", "+"),
+            url_error = (
+                "%s?result=error&error=%s&operation=acme-server--authenticate"
+                % (self._focus_url, error_message.replace(" ", "+"),)
             )
             return HTTPSeeOther(url_error)
         if self.request.method == "POST":
@@ -652,11 +657,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.wants_json:
             return {
                 "instructions": [
-                    """curl -X POST %s/authenticate.json""" % self._focus_url
+                    """curl -X POST %s/acme-server/authenticate.json"""
+                    % self._focus_url
                 ]
             }
         url_post_required = (
-            "%s?result=error&error=post+required&operation=authenticate"
+            "%s?result=error&error=post+required&operation=acme-server--authenticate"
             % (self._focus_url,)
         )
         return HTTPSeeOther(url_post_required)
@@ -670,7 +676,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.wants_json:
             return {"AcmeAccountKey": dbAcmeAccountKey.as_json}
         return HTTPSeeOther(
-            "%s?result=success&operation=authenticate&is_authenticated=%s"
+            "%s?result=success&operation=acme-server--authenticate&is_authenticated=%s"
             % (self._focus_url, True)
         )
 
@@ -790,3 +796,95 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 action,
             )
             raise HTTPSeeOther(url_failure)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_server:deactivate_pending_authorizations",
+        renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_account_key:focus:acme_server:deactivate_pending_authorizations|json",
+        renderer="json",
+    )
+    def focus__acme_server_deactivate_pending_authorizations(self):
+        """
+        this just hits the api, hoping we authenticate correctly.
+        """
+        dbAcmeAccountKey = self._focus()
+        if not dbAcmeAccountKey.is_can_authenticate:
+            error_message = "This AcmeAccountKey can not Authenticate"
+            if self.request.wants_json:
+                return {
+                    "error": error_message,
+                }
+            url_error = (
+                "%s?result=error&error=%s&operation=acme-server--deactivate-pending-authorizations"
+                % (self._focus_url, error_message.replace(" ", "+"),)
+            )
+            return HTTPSeeOther(url_error)
+        if self.request.method == "POST":
+            return self._focus__acme_server_deactivate_pending_authorizations__submit(
+                dbAcmeAccountKey
+            )
+        return self._focus__acme_server_deactivate_pending_authorizations__print(
+            dbAcmeAccountKey
+        )
+
+    def _focus__acme_server_deactivate_pending_authorizations__print(
+        self, dbAcmeAccountKey
+    ):
+        if self.request.wants_json:
+            return {
+                "form_fields": {
+                    "authorization_id": "the pending authorization id to delete ",
+                },
+                "instructions": [
+                    """curl -X POST %s/acme-server/deactivate-pending-authorizations.json"""
+                    % self._focus_url
+                ],
+            }
+        url_post_required = (
+            "%s/acme-authorizations?status=active&result=error&error=post+required&operation=acme-server--deactivate-pending-authorizations"
+            % (self._focus_url,)
+        )
+        return HTTPSeeOther(url_post_required)
+
+    def _focus__acme_server_deactivate_pending_authorizations__submit(
+        self, dbAcmeAccountKey
+    ):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_AcmeAccountKey_deactivate_authorizations,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            if not formStash.results["acme_authorization_id"]:
+                # `formStash.fatal_form()` will raise `FormInvalid()`
+                formStash.fatal_form(
+                    "You must supply at least one `acme_authorization_id` to deactivate."
+                )
+
+            dbAcmeAccountKey = self._focus()
+            results = lib_db.actions_acme.do__AcmeV2_AcmeAccountKey__acme_server_deactivate_authorizations(
+                self.request.api_context,
+                dbAcmeAccountKey=dbAcmeAccountKey,
+                acme_authorization_ids=formStash.results["acme_authorization_id"],
+            )
+            if self.request.wants_json:
+                return {"result": "success", "results": results}
+
+            return HTTPSeeOther(
+                "%s/acme-authorizations?status=active&result=success&operation=acme-server--deactivate-pending-authorizations"
+                % (self._focus_url,)
+            )
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return HTTPSeeOther(
+                "%s/acme-authorizations?status=active&result=error&error=%s&operation=acme-server--deactivate-pending-authorizations"
+                % (self._focus_url, errors.formstash_to_querystring(formStash),)
+            )

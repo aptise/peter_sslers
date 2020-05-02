@@ -62,7 +62,7 @@
 
 
 
-<%def name="table_AcmeAuthorizations(data, perspective=None)">
+<%def name="table_AcmeAuthorizations(data, perspective=None, is_form_enabled=None)">
     <%
         cols = ("id", 
                 "domain_id",
@@ -77,6 +77,8 @@
                )
         if perspective == 'AcmeAccountKey':
             cols = [c for c in cols]
+            if is_form_enabled:
+                cols.insert(0, "*checkbox*")
         elif perspective == 'AcmeOrder.to_acme_authorizations':
             cols = [c for c in cols if c != 'acme_order_id__created']
             data = [d.acme_authorization for d in data.to_acme_authorizations]
@@ -91,7 +93,21 @@
         <thead>
             <tr>
                 % for c in cols:
-                    <th>${c}</th>
+                    <th>
+                        % if c == '*checkbox*':
+                            <script type="text/javascript">
+                                function select_all(){
+                                    var inputs = document.querySelectorAll("input[type='checkbox']");
+                                    for(var i = 0; i < inputs.length; i++) {
+                                        inputs[i].checked = true;   
+                                    }
+                                }
+                            </script>
+                            <input type="checkbox" name="_select_all" value="" id="_select_all" onclick="javascript:select_all();">
+                        % else:
+                            ${c}
+                        % endif
+                    </th>
                 % endfor
             </tr>
         </thead>
@@ -100,7 +116,11 @@
                 <tr>
                     % for c in cols:
                         <td>
-                            % if c == 'id':
+                            % if c == '*checkbox*':
+                                % if acme_authorization.is_acme_server_pending:
+                                    <input type="checkbox" name="acme_authorization_id" value="${acme_authorization.id}" class="acme_authorization">
+                                % endif
+                            % elif c == 'id':
                                 <a href="${admin_prefix}/acme-authorization/${acme_authorization.id}" class="label label-info">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     AcmeAuthorization-${acme_authorization.id}
@@ -1016,7 +1036,7 @@
 </%def>
 
 
-<%def name="formgroup__AcmeAccountKey_file(show_header=True)">
+<%def name="formgroup__AcmeAccountKey_file(show_header=True, show_contact=True)">
     <table class="table table-condensed">
         <thead>
             <tr><th>Private Key Cycling (*required)</th></tr>
@@ -1068,6 +1088,16 @@
                         </th>
                         <td>
                             <input class="form-control" type="file" id="f1-account_key_file_pem" name="account_key_file_pem" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label for="contact">contact</label>
+                        </th>
+                        <td>
+                            <div class="form-group">
+                                <input class="form-control" type="text" name="contact" value=""/>
+                            </div>
                         </td>
                     </tr>
                 </table>

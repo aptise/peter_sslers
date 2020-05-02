@@ -120,7 +120,7 @@ class ApplicationSettings(dict):
             self["nginx.servers_pool"] = list(
                 set([i.strip() for i in settings["nginx.servers_pool"].split(",")])
             )
-            self["nginx.servers_pool"] = set_bool_setting(
+            self["nginx.servers_pool_allow_invalid"] = set_bool_setting(
                 settings, "nginx.servers_pool_allow_invalid"
             )
 

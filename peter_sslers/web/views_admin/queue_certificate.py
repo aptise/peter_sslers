@@ -257,7 +257,7 @@ class ViewFocus(Handler):
     def focus(self):
         dbQueueCertificate = self._focus()
         if self.request.wants_json:
-            return {"status": "success", "QueueCertificate": dbQueueCertificate.as_json}
+            return {"result": "success", "QueueCertificate": dbQueueCertificate.as_json}
         return {"project": "peter_sslers", "QueueCertificate": dbQueueCertificate}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

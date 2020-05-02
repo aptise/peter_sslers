@@ -284,7 +284,7 @@ class ViewAdmin_Focus(Handler):
         if self.request.wants_json:
             return {"result": "success", "operations_event": {"id": dbEvent.id}}
         return HTTPSeeOther(
-            "%s?result=success&operation=nginx_cache_expire&event.id=%s"
+            "%s?result=success&operation=nginx+cache+expire&event.id=%s"
             % (self._focus_url, dbEvent.id)
         )
 

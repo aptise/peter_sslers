@@ -1,5 +1,6 @@
 # pypi
 from formencode import Schema as _Schema
+from formencode.foreach import ForEach
 from formencode.validators import (
     _,
     Email,
@@ -217,6 +218,10 @@ class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
 
 class Form_AcmeAccountKey_mark(_Form_Schema_Base):
     action = OneOf(("global_default", "active", "inactive"), not_empty=True)
+
+
+class Form_AcmeAccountKey_deactivate_authorizations(_Form_Schema_Base):
+    acme_authorization_id = ForEach(Int())
 
 
 class Form_AcmeOrder_new_automated(_form_AccountKey_PrivateKey_core):

@@ -158,6 +158,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:acme_order:focus:acme_server:sync", renderer=None)
+    @view_config(
+        route_name="admin:acme_order:focus:acme_server:sync|json", renderer="json"
+    )
     def acme_server_sync(self):
         """
         Acme Refresh should just update the record against the acme server.
@@ -171,10 +174,21 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "acme-server/sync",
+                }
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+sync" % self._focus_url
             )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-server/sync",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+sync&message=%s"
                 % (self._focus_url, exc.as_querystring)
@@ -185,6 +199,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     @view_config(
         route_name="admin:acme_order:focus:acme_server:sync_authorizations",
         renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_order:focus:acme_server:sync_authorizations|json",
+        renderer="json",
     )
     def acme_server_sync_authorizations(self):
         """
@@ -202,11 +220,23 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "acme-server/sync-authorizations",
+                    "AcmeOrder": dbAcmeOrder.as_json,
+                }
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+sync+authorizations"
                 % self._focus_url
             )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-server/sync-authorizations",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+sync+authorizations&message=%s"
                 % (self._focus_url, exc.as_querystring)
@@ -217,6 +247,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     @view_config(
         route_name="admin:acme_order:focus:acme_server:deactivate_authorizations",
         renderer=None,
+    )
+    @view_config(
+        route_name="admin:acme_order:focus:acme_server:deactivate_authorizations|json",
+        renderer="json",
     )
     def acme_server_deactivate_authorizations(self):
         """
@@ -231,11 +265,23 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "acme-server/deactivate-authorizations",
+                    "AcmeOrder": dbAcmeOrder.as_json,
+                }
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+deactivate+authorizations"
                 % self._focus_url
             )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-server/deactivate-authorizations",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+deactivate+authorizations&message=%s"
                 % (self._focus_url, exc.as_querystring)
@@ -263,13 +309,25 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
-            if not exc:
-                return HTTPSeeOther(
-                    "%s?result=success&operation=acme+server+download+certificate"
-                    % self._focus_url
-                )
-            raise exc
+            if exc:
+                raise exc
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "acme-server/download-certificate",
+                    "AcmeOrder": dbAcmeOrder.as_json,
+                }
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme+server+download+certificate"
+                % self._focus_url
+            )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-server/download-certificate",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+download+certificate&message=%s"
                 % (self._focus_url, exc.as_querystring)
@@ -292,12 +350,24 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             (dbAcmeOrder, exc) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
-            if not exc:
-                return HTTPSeeOther(
-                    "%s?result=success&operation=process+order" % self._focus_url
-                )
-            raise exc
+            if exc:
+                raise exc
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "acme-process",
+                    "AcmeOrder": dbAcmeOrder.as_json,
+                }
+            return HTTPSeeOther(
+                "%s?result=success&operation=acme+process" % self._focus_url
+            )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-process",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=process&message=%s"
                 % (self._focus_url, exc.as_querystring)
@@ -318,14 +388,26 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             (dbAcmeOrder, exc) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
-            if not exc:
-                return HTTPSeeOther(
-                    "%s?result=success&operation=finalize+order" % self._focus_url
-                )
-            raise exc
-        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            if exc:
+                raise exc
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "finalize-order",
+                    "AcmeOrder": dbAcmeOrder.as_json,
+                }
             return HTTPSeeOther(
-                "%s?result=error&error=finalize&message=%s"
+                "%s?result=success&operation=finalize+order" % self._focus_url
+            )
+        except (errors.AcmeError, errors.InvalidRequest,) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "finalize-order",
+                    "error": str(exc),
+                }
+            return HTTPSeeOther(
+                "%s?result=error&error=finalize-order&message=%s"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -386,11 +468,23 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             else:
                 raise errors.InvalidRequest("invalid `operation`")
 
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": operation,
+                    "AcmeOrder": dbAcmeOrder.as_json,
+                }
             return HTTPSeeOther(
                 "%s?result=success&operation=%s" % (self._focus_url, operation)
             )
 
         except (errors.InvalidRequest,) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "mark",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=invalid&message=%s"
                 % (self._focus_url, exc.as_querystring)
@@ -420,19 +514,19 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 self.request.admin_url,
                 dbAcmeOrderNew.id,
             )
-            if not exc:
-                return HTTPSeeOther(
-                    "%s?result=success&operation=retry+order" % retry_url
-                )
-            if isinstance(exc, errors.AcmeError):
-                return HTTPSeeOther(
-                    "%s?operation=retry+order&error=retry&message=%s"
-                    % (retry_url, exc.as_querystring)
-                )
-            raise exc
+            if exc:
+                # exc likely errors.AcmeError, so just raise
+                raise exc
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "AcmeOrder": dbAcmeOrderNew.as_json,
+                }
+            return HTTPSeeOther("%s?result=success&operation=retry+order" % retry_url)
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
                 return {
+                    "result": "error",
                     "error": exc.args[0],
                 }
             return HTTPSeeOther(
@@ -545,8 +639,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise exc
             if self.request.wants_json:
                 return {
-                    "status": "success",
-                    "acme_order": dbAcmeOrderNew.as_json,
+                    "result": "success",
+                    "AcmeOrder": dbAcmeOrderNew.as_json,
                 }
             renew_url = "%s/acme-order/%s" % (
                 self.request.admin_url,
@@ -555,7 +649,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             return HTTPSeeOther("%s?result=success&operation=renew+custom" % renew_url)
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
-                return {"status": "error", "error": str(exc)}
+                return {"result": "error", "error": str(exc)}
             url_failure = "%s?result=error&error=%s&operation=renew+custom" % (
                 self._focus_url,
                 exc.as_querystring,
@@ -627,8 +721,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise exc
             if self.request.wants_json:
                 return {
-                    "status": "success",
-                    "acme_order": dbAcmeOrderNew.as_json,
+                    "result": "success",
+                    "AcmeOrder": dbAcmeOrderNew.as_json,
                 }
             renew_url = "%s/acme-order/%s" % (
                 self.request.admin_url,
@@ -637,7 +731,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             return HTTPSeeOther("%s?result=success&operation=renew+quick" % renew_url)
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
-                return {"status": "error", "error": str(exc)}
+                return {"result": "error", "error": str(exc)}
             url_failure = "%s?result=error&error=%s&operation=renew+quick" % (
                 self._focus_url,
                 exc.as_querystring,
@@ -824,6 +918,13 @@ class ViewAdmin_New(Handler):
                             )
                         )
                     raise exc
+
+                if self.request.wants_json:
+                    return {
+                        "result": "success",
+                        "AcmeOrder": dbAcmeOrder.as_json,
+                    }
+
                 return HTTPSeeOther(
                     "%s/acme-order/%s"
                     % (
@@ -832,9 +933,13 @@ class ViewAdmin_New(Handler):
                     )
                 )
             except errors.AcmeDuplicateChallenges as exc:
+                if self.request.wants_json:
+                    return {"result": "error", "error": str(exc)}
                 formStash.fatal_field(field="domain_names", message=exc.as_querystring)
 
             except (errors.AcmeError, errors.InvalidRequest,) as exc:
+                if self.request.wants_json:
+                    return {"result": "error", "error": str(exc)}
                 return HTTPSeeOther(
                     "%s/acme-orders?result=error&error=new-automated&message=%s"
                     % (

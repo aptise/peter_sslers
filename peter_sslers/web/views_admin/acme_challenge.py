@@ -142,16 +142,17 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         try:
             if not dbAcmeChallenge.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
-                    "ACME Server Sync is not allowed for this AcmeAuthorization"
+                    "ACME Server Sync is not allowed for this AcmeChallenge"
                 )
             result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_sync(
                 self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
             )
             if self.request.wants_json:
-                return HTTPSeeOther(
-                    "%s.json?result=success&operation=acme+server+sync"
-                    % self._focus_url
-                )
+                return {
+                    "result": "success",
+                    "operation": "acme-server/sync",
+                    "AcmeChallenge": dbAcmeChallenge.as_json,
+                }
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+sync" % self._focus_url
             )
@@ -162,10 +163,11 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             errors.InvalidRequest,
         ) as exc:
             if self.request.wants_json:
-                return HTTPSeeOther(
-                    "%s.json?result=error&error=acme+server+sync&message=%s"
-                    % (self._focus_url, exc.as_querystring)
-                )
+                return {
+                    "result": "error",
+                    "operation": "acme-server/sync",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+sync&message=%s"
                 % (self._focus_url, exc.as_querystring)
@@ -184,7 +186,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         """
         Acme Trigger
         """
-        # todo: json response
         dbAcmeChallenge = self._focus(eagerload_web=True)
         try:
             if not dbAcmeChallenge.is_can_acme_server_trigger:
@@ -194,6 +195,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
             )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "operation": "acme-server/trigger",
+                    "AcmeChallenge": dbAcmeChallenge.as_json,
+                }
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+trigger" % self._focus_url
             )
@@ -203,6 +210,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "operation": "acme-server/trigger",
+                    "error": str(exc),
+                }
             return HTTPSeeOther(
                 "%s?result=error&error=acme+server+trigger&message=%s"
                 % (self._focus_url, exc.as_querystring)

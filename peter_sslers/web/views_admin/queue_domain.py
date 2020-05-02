@@ -264,7 +264,7 @@ class ViewAdmin_Focus(Handler):
     def focus(self):
         dbQueueDomain = self._focus()
         if self.request.wants_json:
-            return {"status": "success", "QueueDomain": dbQueueDomain.as_json}
+            return {"result": "success", "QueueDomain": dbQueueDomain.as_json}
         return {"project": "peter_sslers", "QueueDomainItem": dbQueueDomain}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
