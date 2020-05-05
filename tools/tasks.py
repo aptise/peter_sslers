@@ -61,11 +61,11 @@ def import_certbot_cert_version(
     you can import a specific version, for example "3", with this command
 
     usage:
-        invoke import-certbot-cert-version  --server-url-root="http://127.0.0.1:7201/.well-known/admin" --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 
+        invoke import-certbot-cert-version  --server-url-root="http://127.0.0.1:7201/.well-known/admin" --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3
 
     usage:
         export PETER_SSLERS_SERVER_ROOT="http://127.0.0.1:7201/.well-known/admin"
-        invoke import-certbot-cert-version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 
+        invoke import-certbot-cert-version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3
     """
     peter_sslers.commandline.import_certbot_cert_version(
         domain_certs_path, certificate_version, server_url_root

@@ -1,11 +1,15 @@
-acme-v2 BRANCH
+ACME-v2 RELEASE
 ================================
 
 Hi!
 
-This is a big rewrite and still undergoing a lot of work.
-The tests are broken and the design isn't finalized yet.
+ACME-V2 support involved a large rewrite of the Client and the Certificate Manager's design.
 
+It is still undergoing a lot of work, and the design is not finalized yet.
+
+Most of the functionality is working and covered by tests.
+
+WE ARE ALMOST THERE.
 
 
 peter_sslers README
@@ -34,7 +38,10 @@ Peter combines an ACME V2 Client designed to operate against the LetsEncrypt ser
 The client supported ACME v1 until version `0.4.0`. 
 
 **As of 0.4.0, Only ACME V2 is now supported.**
+
 **Only LetsEncrypt is supported as a target ACME Server.**
+
+It is highly likely that PeterSSLers will work with most, if not all, ACME Servers. The LetsEncrypt/Boulder implementation of the RFC has some unique characteristics and this was written to support those.
 
 Peter's core tool is a lightweight database-backed `Pyramid` application that can:
 
@@ -71,7 +78,7 @@ THIS PACKAGE IS EXTREME TO THE MAX!!!
 
 Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable within Peter as well.
 
-Peter has absolutely no security measures and should only be used by people who understand that. This should be a self-selecting group, because many people won't want this tool. Peter is a honeybadger, he don't care. He does what he wants.
+*Peter has absolutely no security measures and should only be used by people who understand that.* This should be a self-selecting group, because many people won't want this tool. Peter is a honeybadger, he don't care. He does what he wants.
 
 Peter offers several commandline tools -- so spinning up a tool "webserver" mode may not be necessary at all -- or might only be needed for brief periods of time.
 
@@ -148,14 +155,27 @@ To more easily deal with this limit, Orders/Certificates/CertificateRequests are
 When requesting a new certificate or importing existing ones, most of this happens behind-the-scenes: a listing of Domains is turned into a unique set of Domain names.
 
 
+## Cryptography: Python vs OpenSSL
+
+When this package was initially written, a decision was made to avoid using Python cryptography libraries and wrap OpenSSL:
+
+* The Python crypto libraries required large downloads and/or builds
+* OpenSSL was on every target machine
+
+As time progressed, it has become much easier to deploy Python cryptography libraries onto target servers.
+
+The current library almost always uses OpenSSL, and offloads some tasks to Python.
+
+A future release is planned to support doing everything in Python if the libraries are installed.
+
 
 ## Certificates and Certificate Requests
 
 This handles several types of certificate requests
 
 1. Upload an existing Certificate Request and Certificate for tracking
-2. Have the built-in ACME-v2 client generate a Certificate Request and handle the challeges (Acme-Automated)
-3. Use an external tool to generate the certificate request, use PeterSSLers via HTML/API to manage the challenges (Acme-Flow)
+2. Have the built-in ACME-v2 client generate an AcmeOrder and it's own Certificate Request, then handle the challeges (Acme-Automated)
+3. Use an external tool to generate the Certificate Request, use PeterSSLers via HTML/API to manage the challenges (Acme-Flow)
 
 ## Input
 
@@ -368,6 +388,8 @@ These are documented at-length on the in-app settings page.
 * `certificate_authority_agreement` - the LetsEncrypt agreement URL used when creating new accounts.  Everything will probably fail if you don't include this argument.
 * `certificate_authority_endpoint` - acmev1; if `certificate_authority=custom` or `certificate_authority=pebble`, you must supply a url for the endpoint
 * `certificate_authority_directory` - acmev2; if `certificate_authority=custom` or `certificate_authority=pebble`, you must supply a url for the directory endpoint
+
+* `cleanup_pending_authorizations` - boolean, default True. if an AcmeChallenge fails when processing an AcmeOrder, should the remaining AcmeAuthorizations be deactivated?
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
