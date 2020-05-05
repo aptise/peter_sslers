@@ -79,6 +79,16 @@ def create__AcmeOrderless(
     if not domain_names:
         raise ValueError("Did not make a valid set of domain names")
 
+    _blacklisted_domain_names = []
+    for _domain_name in domain_names:
+        _dbDomainBlacklisted = lib.db.get.get__DomainBlacklisted__by_name(
+            ctx, _domain_name
+        )
+        if _dbDomainBlacklisted:
+            _blacklisted_domain_names.append(_domain_name)
+    if _blacklisted_domain_names:
+        raise errors.AcmeBlacklistedDomains(_blacklisted_domain_names)
+
     domain_objects = {
         _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
             ctx, _domain_name

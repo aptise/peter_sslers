@@ -448,7 +448,9 @@ class AppTestCore(unittest.TestCase):
             model_meta.Base.metadata.create_all(engine)
 
             dbSession = self._session_factory()
+            # this would have been invoked by `initialize_database`
             db._setup.initialize_AcmeAccountProviders(dbSession)
+            db._setup.initialize_DomainBlacklisted(dbSession)
             dbSession.commit()
             dbSession.close()
 
@@ -495,7 +497,6 @@ class AppTest(AppTestCore):
 
                     AcmeEventLog
                 """
-
                 # note: pre-populate AcmeAccountKey
                 # this should create `/acme-account-key/1`
                 _dbAcmeAccountKey_1 = None
@@ -817,7 +818,7 @@ class AppTest(AppTestCore):
                     remote_ip_address="127.1.1.2",
                 )
 
-                # note: pre-populate AcmeOrder;ess
+                # note: pre-populate AcmeOrderless
                 dbAcmeOrderless = db.create.create__AcmeOrderless(
                     self.ctx,
                     domain_names=("acme-orderless.example.com",),

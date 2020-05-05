@@ -79,26 +79,6 @@ def tests_routes(*args):
 
 # =====
 
-RE_AcmeOrder = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)$"""
-)
-RE_AcmeOrder_retry = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=retry\+order$"""
-)
-RE_AcmeOrder_deactivated = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=deactivate$"""
-)
-RE_AcmeOrder_invalidated = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=invalid$"""
-)
-
-RE_AcmeOrder_processed = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+process$"""
-)
-RE_AcmeOrder_can_process = re.compile(
-    r'''href="/\.well-known/admin/acme-order/\d+/acme-process"[\n\s\ ]+class="btn btn-xs btn-info "'''
-)
-
 RE_AcmeAccountKey_deactivate_pending_post_required = re.compile(
     r"""http://peter-sslers\.example\.com/\.well-known/admin/acme-account-key/(\d+)/acme-authorizations\?status=active&result=error&error=post\+required&operation=acme-server--deactivate-pending-authorizations"""
 )
@@ -149,6 +129,29 @@ RE_AcmeChallenge_trigger_fail = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=error&error=acme\+server\+trigger&message=ACME\+Server\+Trigger\+is\+not\+allowed\+for\+this\+AcmeChallenge"""
 )
 
+
+RE_AcmeOrder = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)$"""
+)
+RE_AcmeOrder_retry = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=retry\+order$"""
+)
+RE_AcmeOrder_deactivated = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=deactivate$"""
+)
+RE_AcmeOrder_invalidated = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=invalid$"""
+)
+
+RE_AcmeOrder_processed = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+process$"""
+)
+RE_AcmeOrder_can_process = re.compile(
+    r'''href="/\.well-known/admin/acme-order/\d+/acme-process"[\n\s\ ]+class="btn btn-xs btn-info "'''
+)
+RE_AcmeOrderless = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-orderless/(\d+)$"""
+)
 
 # =====
 
@@ -1038,10 +1041,7 @@ class FunctionalTests_AcmeOrderless(AppTest):
         res2 = form.submit()
         assert res2.status_code == 303
 
-        re_expected = re.compile(
-            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-orderless/(\d+)$"""
-        )
-        matched = re_expected.match(res2.location)
+        matched = RE_AcmeOrderless.match(res2.location)
         assert matched
         obj_id = matched.groups()[0]
 
@@ -1923,6 +1923,97 @@ class FunctionalTests_DomainBlacklisted(AppTest):
             "/.well-known/admin/domains-blacklisted/1.json", status=200
         )
         assert "DomainsBlacklisted" in res.json
+
+    def test_AcmeOrder_new_fails(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_DomainBlacklisted.test_AcmeOrder_new_fails
+        """
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        # "admin:acme_order:new:automated",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/new/automated", status=200
+        )
+
+        form = res.form
+        _form_fields = form.fields.keys()
+        assert "account_key_option" in _form_fields
+        form["account_key_option"].force_value("account_key_file")
+        form["acme_account_provider_id"].force_value("1")
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+            )
+        )
+        form["private_key_cycle"].force_value("account_daily")
+        form["private_key_cycle__renewal"].force_value("account_key_default")
+        form["private_key_option"].force_value("private_key_for_account_key")
+        form["domain_names"] = "always-fail.example.com, foo.example.com"
+        form["processing_strategy"].force_value("create_order")
+        res2 = form.submit()
+
+        assert res2.status_code == 200
+        assert "There was an error with your form." in res2.text
+        assert (
+            "The following Domains are blacklisted: always-fail.example.com"
+            in res2.text
+        )
+
+    def test_AcmeOrderless_new_fails(self):
+
+        res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
+        form = res.form
+        form["domain_names"] = "always-fail.example.com, foo.example.com"
+        res2 = form.submit()
+
+        assert res2.status_code == 200
+        assert "There was an error with your form." in res2.text
+        assert (
+            "The following Domains are blacklisted: always-fail.example.com"
+            in res2.text
+        )
+
+    def test_AcmeOrderless_add_fails(self):
+
+        res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
+        form = res.form
+        form["domain_names"] = "example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_AcmeOrderless.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        # build a new form and submit edits
+        res3 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s" % obj_id, status=200,
+        )
+        form = res3.forms["acmeorderless-add_challenge"]
+        add_fields = dict(form.submit_fields())
+        assert "keyauthorization" in add_fields
+        assert "domain" in add_fields
+        assert "token" in add_fields
+        form["keyauthorization"] = "keyauthorization_add"
+        form["domain"] = "always-fail.example.com"
+        form["token"] = "token_add"
+        res4 = form.submit()
+        assert res4.status_code == 200
+        assert "There was an error with your form." in res4.text
+        assert (
+            """<span class="help-inline">This domain is blacklisted.</span>"""
+            in res4.text
+        )
+
+    def test_QueueDomain_add_fails(self):
+        res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        form = res.form
+        form["domain_names"] = "always-fail.example.com,example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert (
+            res2.location
+            == """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&is_created=1&results=%7B%22example.com%22%3A+%22exists%22%2C+%22always-fail.example.com%22%3A+%22blacklisted%22%7D"""
+        )
 
 
 class FunctionalTests_Operations(AppTest):

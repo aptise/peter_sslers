@@ -80,11 +80,23 @@ def queue_domains__add(ctx, domain_names):
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for domain_name in domain_names:
+        # scoping
+        _result = None
+        _logger_args = {"event_status_id": None}
+
+        # step 1 - is this blacklisted?
+        _dbDomainBlacklisted = lib.db.get.get__DomainBlacklisted__by_name(
+            ctx, domain_name
+        )
+        if _dbDomainBlacklisted:
+            # no need to update `_logger_args`, just exit out fast
+            results[domain_name] = "blacklisted"
+            continue
+
+        # step 2 - is this known?
         _dbDomain = lib.db.get.get__Domain__by_name(
             ctx, domain_name, preload=False, active_only=False
         )
-        _result = None
-        _logger_args = {"event_status_id": None}
         if _dbDomain:
             if not _dbDomain.is_active:
                 # set this active

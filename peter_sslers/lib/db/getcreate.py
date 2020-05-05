@@ -28,6 +28,7 @@ from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__CACertificate__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
+from .get import get__DomainBlacklisted__by_name
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
 from .helpers import _certificate_parse_to_record
@@ -996,6 +997,15 @@ def getcreate__UniqueFQDNSet__by_domains(ctx, domain_names):
     domain_names = list(set(domain_names))
     if not domain_names:
         raise ValueError("no domain names!")
+
+    # ensure they are not blacklisted:
+    _blacklisted_domain_names = []
+    for _domain_name in domain_names:
+        _dbDomainBlacklisted = get__DomainBlacklisted__by_name(ctx, _domain_name)
+        if _dbDomainBlacklisted:
+            _blacklisted_domain_names.append(_domain_name)
+    if _blacklisted_domain_names:
+        raise errors.AcmeBlacklistedDomains(_blacklisted_domain_names)
 
     # ensure the domains are registered into our system
     domain_objects = {

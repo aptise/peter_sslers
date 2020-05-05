@@ -119,6 +119,17 @@ def initialize_AcmeAccountProviders(dbSession):
     return True
 
 
+def initialize_DomainBlacklisted(dbSession):
+
+    dbDomainBlacklisted = model_objects.DomainBlacklisted()
+    dbDomainBlacklisted.domain_name = "always-fail.example.com"
+    dbSession.add(dbDomainBlacklisted)
+    dbSession.flush(
+        objects=[dbDomainBlacklisted,]
+    )
+    return True
+
+
 def startup_AcmeAccountProviders(ctx, app_settings):
 
     # first handle the Default CertificateAuthority

@@ -12,6 +12,7 @@ import json
 # pypi
 import sqlalchemy
 import transaction
+from six.moves.urllib.parse import quote_plus
 
 # localapp
 from .. import lib
@@ -159,7 +160,7 @@ class ViewAdmin_New(Handler):
                 "%s/queue-domains?result=success&is_created=1&results=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
-                    results_json,
+                    quote_plus(results_json),
                 )
             )
 

@@ -179,9 +179,12 @@ class ViewAdmin_New(Handler):
                     domain_names=domain_names,
                     dbAcmeAccountKey=dbAcmeAccountKey,
                 )
+            except errors.AcmeBlacklistedDomains as exc:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(field="domain_names", message=str(exc))
             except errors.AcmeDuplicateChallenges as exc:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_form(message=exc.as_querystring)
+                formStash.fatal_form(message=str(exc))
 
             if self.request.wants_json:
                 return {
@@ -402,6 +405,15 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     field="domain", message="A valid Domain is required"
                 )
             domain_name = domain_names[0]
+
+            _dbDomainBlacklisted = lib_db.get.get__DomainBlacklisted__by_name(
+                self.request.api_context, domain_name
+            )
+            if _dbDomainBlacklisted:
+                # errors.AcmeBlacklistedDomains
+                formStash.fatal_field(
+                    field="domain", message="This domain is blacklisted.",
+                )
 
             (
                 dbDomain,

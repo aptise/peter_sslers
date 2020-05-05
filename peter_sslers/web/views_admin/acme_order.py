@@ -892,6 +892,19 @@ class ViewAdmin_New(Handler):
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             try:
+
+                # check for blacklists here
+                # this might be better in the AcmeOrder processor, but the orders are by UniqueFqdnSet
+                _blacklisted_domain_names = []
+                for _domain_name in domain_names:
+                    _dbDomainBlacklisted = lib_db.get.get__DomainBlacklisted__by_name(
+                        self.request.api_context, _domain_name
+                    )
+                    if _dbDomainBlacklisted:
+                        _blacklisted_domain_names.append(_domain_name)
+                if _blacklisted_domain_names:
+                    raise errors.AcmeBlacklistedDomains(_blacklisted_domain_names)
+
                 (
                     dbAcmeOrder,
                     exc,
@@ -938,10 +951,16 @@ class ViewAdmin_New(Handler):
                         dbAcmeOrder.id,
                     )
                 )
+
+            except errors.AcmeBlacklistedDomains as exc:
+                if self.request.wants_json:
+                    return {"result": "error", "error": str(exc)}
+                formStash.fatal_field(field="domain_names", message=str(exc))
+
             except errors.AcmeDuplicateChallenges as exc:
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
-                formStash.fatal_field(field="domain_names", message=exc.as_querystring)
+                formStash.fatal_field(field="domain_names", message=str(exc))
 
             except (errors.AcmeError, errors.InvalidRequest,) as exc:
                 if self.request.wants_json:
