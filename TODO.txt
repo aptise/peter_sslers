@@ -1,7 +1,36 @@
 Not Finished Yet
 ===============
+
+Almost done:
+------------
+
+certificate renewal
+	- object should show if we can renew with account key
+	
+These sections still need to be redone:
+
+- queue domain
+- queue certificates
+- certificate-if-needed
+
+Tests needed:
+
+	redis 
+		test via decorator that spins a subprocess, or something on the server?
+	nginx
+		test via decorator that spins a subprocess, or something on the server?
+		
+
+
+	
+
+
 asap tasks
 ---------------
+
+AcmeAccountKey.letsencrypt_data - audit. refresh? log?
+
+
 * ensure correct usage of `requests`
 	- currently using `.content`, which is raw bytes
 	- usually one uses `.text`, which is `.content` that is decoded
@@ -9,10 +38,10 @@ asap tasks
     @view_config(route_name='admin:queue_domains:process', renderer=None)
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
     def queue_domain_process(self):
-* search expiring soon | note: isn't this the `/certificates/expiring` view?
+* search expiring soon | note: isn't this the `/server-certificates/expiring` view?
 * migrate cert_subject hash and tracking to SAN
 * log full actual results; if a queue fails log that data too
-* CSR should have domain[0] as subject if there are multiple domains | note: letsencrypt does this at the server level?
+* CSR should have domain[0] as subject if there are multiple domains | note: LetsEncrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
 * build authorization deactivate tool
 * limit pending request search to 7 days
@@ -26,11 +55,8 @@ deferred tasks
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
 * deprecate the AcmeFlow helper (preferred) OR give it json endpoints.
-* acme2 support
-** served as fullchain, must split out.
-
-
-
+* migrate testing away from `setup.py`
+* Acme2 -  remove PyOpenSSL - used to split fullchain 
 
 
 Long Term Questions:
@@ -40,10 +66,3 @@ Long Term Questions:
 	- if that happens, should requests be used?
 * remove pyramidtm? migrate to autocommit?  
 
-
-Additional Test coverage needed for
------------------------------------
-* /admin/certificate/5/renew/custom
-* /api/queue-renewals/process
-* /admin/private-key/7?operation=mark&action=default&result=success
-* queue_domains__process | /admin/queue-domains/process

@@ -3,125 +3,420 @@ import logging
 
 log = logging.getLogger(__name__)
 
-# pypi
+# stdlib
 import datetime
+import pdb
 
 # localapp
-from ...models import models
 from .. import utils
+from ...model import utils as model_utils
+from ...model import objects as model_objects
 
+
+# logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 class AcmeLogger(object):
-    def __init__(self, ctx, dbAccountKey=None, dbCertificateRequest=None):
+    """
+    AcmeLogger is an interface used to log interactions with the LetsEncrypt API
+    This is designed to monitor usage and potential throttling concerns
+    """
+
+    ctx = None
+    dbAcmeAccountKey = None
+    dbAcmeOrder = None  # only set on orders
+
+    def __init__(self, ctx, dbAcmeAccountKey=None):
+        """
+        :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+        :param dbAcmeAccountKey: (optional) The :class:`model.objects.AcmeAccountKey`
+        """
         self.ctx = ctx
-        self.dbAccountKey = dbAccountKey
-        self.dbCertificateRequest = dbCertificateRequest
+        self.dbAcmeAccountKey = dbAcmeAccountKey
 
-    def log_registration(self):
-        """
-        logs a call to v1|/acme/new-reg
-        TODO: update with result?
-        """
-        sslAcmeEventLog = models.SslAcmeEventLog()
-        sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string("v1|/acme/new-reg")
-        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
-        return sslAcmeEventLog
+    @property
+    def dbSession(self):
+        return self.ctx.dbSession
 
-    def log_new_authz(self, domain):
+    def register_dbAcmeOrder(self, dbAcmeOrder):
         """
-        Logs a newauthz and the challenge option
+        Registers a :class:`model.objects.AcmeOrder` onto the event logger.
+
+        :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder`
         """
-        sslAcmeEventLog = models.SslAcmeEventLog()
-        sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
-            "v1|/acme/new-authz"
+        self.dbAcmeOrder = dbAcmeOrder
+
+    def log_newAccount(self, acme_version, transaction_commit=None):
+        """
+        Logs a call for the ACME Registration event
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        # ???: update with result?
+        if acme_version != "v2":
+            raise ValueError("invalid `acme_version``: %s" % acme_version)
+
+        acme_event_id = model_utils.AcmeEvent.from_string("v2|newAccount")
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.acme_event_id = acme_event_id
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
+
+    def log_newOrder(self, acme_version, dbUniqueFQDNSet, transaction_commit=None):
+        """
+        Logs a call for the ACME Registration event
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbUniqueFQDNSet: (required) The :class:`model.objects.UniqueFQDNSet` for the new order
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+
+        This WILL NOT SET:
+            `dbAcmeEventLog.acme_order_id` - must be set AFTER creating the database object
+            `self.dbAcmeOrder` - call `AcmeLogger.register_dbAcmeOrder(dbAcmeOrder)`
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+        acme_event_id = model_utils.AcmeEvent.from_string("v2|newOrder")
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.acme_event_id = acme_event_id
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.unique_fqdn_set_id = dbUniqueFQDNSet.id
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
+
+    def log_order_load(self, acme_version, dbAcmeOrder, transaction_commit=None):
+        """
+        Logs a call for the ACME order's endpint
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` for the existing order
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        acme_event_id = model_utils.AcmeEvent.from_string("v2|-order-location")
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.acme_event_id = acme_event_id
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
+
+    def log_authorization_request(
+        self, acme_version, dbAcmeAuthorization, transaction_commit=None
+    ):
+        """
+        Logs a new authorization and creates a challenge object
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeAuthorization: (required) The :class:`model.objects.AcmeAuthorization` we fetched
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-authorization-request"
         )
-        sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
-        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
-        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
-
-        sslAcmeChallengeLog = models.SslAcmeChallengeLog()
-        sslAcmeChallengeLog.timestamp_created = datetime.datetime.utcnow()
-        sslAcmeChallengeLog.ssl_acme_event_log_id = sslAcmeEventLog.id
-        sslAcmeChallengeLog.domain = domain
-        sslAcmeChallengeLog.ssl_acme_account_key_id = self.dbAccountKey.id
-        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-        self.ctx.dbSessionLogger.flush()
-        return (sslAcmeEventLog, sslAcmeChallengeLog)
-
-    def log_new_cert(self):
-        sslAcmeEventLog = models.SslAcmeEventLog()
-        sslAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        sslAcmeEventLog.acme_event_id = models.AcmeEvent.from_string(
-            "v1|/acme/new-cert"
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
         )
-        sslAcmeEventLog.ssl_acme_account_key_id = self.dbAccountKey.id
-        sslAcmeEventLog.ssl_certificate_request_id = self.dbCertificateRequest.id
-        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
-        return sslAcmeEventLog
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
 
-    def log_event_certificate(self, sslAcmeEventLog, dbServerCertificate):
-        """
-        Logs a challenge request
-        """
-        sslAcmeEventLog.ssl_server_certificate_id = dbServerCertificate.id
-        self.ctx.dbSessionLogger.add(sslAcmeEventLog)
-        self.ctx.dbSessionLogger.flush()
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
 
-    def log_challenge_trigger(self, sslAcmeChallengeLog):
-        """
-        Logs a challenge request
-        """
-        sslAcmeChallengeLog.timestamp_challenge_trigger = datetime.datetime.utcnow()
-        sslAcmeChallengeLog.count_polled = 0
-        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-        self.ctx.dbSessionLogger.flush()
+        return dbAcmeEventLog
 
-    def log_challenge_polled(self, sslAcmeChallengeLog):
-        """
-        Logs a challenge poll
-        """
-        sslAcmeChallengeLog.count_polled += 1
-        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-        self.ctx.dbSessionLogger.flush()
+    def log_authorization_deactivate(
+        self, acme_version, dbAcmeAuthorization, transaction_commit=None
+    ):
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
 
-    def log_challenge_pass(self, sslAcmeChallengeLog):
-        """
-        Logs a challenge as passed
-        """
-        sslAcmeChallengeLog.timestamp_challenge_pass = datetime.datetime.utcnow()
-        self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-        self.ctx.dbSessionLogger.flush()
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-authorization-deactivate"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id if self.dbAcmeOrder else None
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
 
-    def log_challenge_error(self, sslAcmeChallengeLog, failtype):
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
+
+    def log_challenge_PostAsGet(
+        self, acme_version, dbAcmeChallenge, transaction_commit=None
+    ):
+        """
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-challenge-PostAsGet"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
+        dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
+
+    def log_challenge_trigger(
+        self, acme_version, dbAcmeChallenge, transaction_commit=None
+    ):
+        """
+        Logs a new authorization and creates a challenge object
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-challenge-trigger"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
+        dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
+
+    def log_challenge_error(
+        self, acme_version, dbAcmeChallenge, failtype, transaction_commit=None
+    ):
         """
         Logs a challenge as error
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
+        :param failtype: (required) A string from :class:`model_utils.AcmeChallengeFailType`
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
         """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
         if failtype in ("pretest-1", "pretest-2"):
-            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string(
+            dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "setup-prevalidation"
             )
-            self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-            self.ctx.dbSessionLogger.flush()
+            self.dbSession.flush()
         elif failtype in ("fail-1", "fail-2"):
-            sslAcmeChallengeLog.acme_challenge_fail_type_id = models.AcmeChallengeFailType.from_string(
+            dbAcmeChallenge.acme_challenge_fail_type_id = model_utils.AcmeChallengeFailType.from_string(
                 "upstream-validation"
             )
-            self.ctx.dbSessionLogger.add(sslAcmeChallengeLog)
-            self.ctx.dbSessionLogger.flush()
+            self.dbSession.flush()
+        else:
+            raise ValueError("unknown `failtype")
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-challenge-fail"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
+        dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+    def log_challenge_pass(
+        self, acme_version, dbAcmeChallenge, transaction_commit=None
+    ):
+        """
+        Logs a challenge as passed
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbAcmeChallenge: (required) The :class:`model.objects.AcmeChallenge` we asked to trigger
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|-challenge-pass"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
+        dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+    def log_order_finalize(self, acme_version, transaction_commit=True):
+        """
+        Logs an AcmeOrder as finalized
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        if not self.dbAcmeOrder:
+            raise ValueError(
+                "the logger MUST be configured with a :attr:`.dbAcmeOrder`"
+            )
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|Order-finalize"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
+
+    # ==========================================================================
+
+    def log_CertificateProcured(
+        self,
+        acme_version,
+        dbServerCertificate=None,
+        dbCertificateRequest=None,
+        transaction_commit=True,
+    ):
+        """
+        Logs an AcmeOrder as finalized
+
+        :param acme_version: (required) The ACME version of the API we are using.
+        :param dbServerCertificate: (required) The :class:`model.objects.ServerCertificate`
+        :param dbCertificateRequest: (required) The :class:`model.objects.CertificateRequest`
+        :param transaction_commit: (option) Boolean. If True, commit the transaction
+        """
+        if acme_version != "v2":
+            raise ValueError("invalid version: %s" % acme_version)
+
+        if not self.dbAcmeOrder:
+            raise ValueError(
+                "the logger MUST be configured with a :attr:`.dbAcmeOrder`"
+            )
+
+        dbAcmeEventLog = model_objects.AcmeEventLog()
+        dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
+        dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
+            "v2|Certificate-procured"
+        )
+        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
+        dbAcmeEventLog.unique_fqdn_set_id = (
+            self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
+        )
+        dbAcmeEventLog.certificate_request_id = dbCertificateRequest.id
+        dbAcmeEventLog.server_certificate_id = dbServerCertificate.id
+        self.dbSession.add(dbAcmeEventLog)
+        self.dbSession.flush()
+
+        # persist to the database
+        if transaction_commit:
+            self.ctx.pyramid_transaction_commit()
+
+        return dbAcmeEventLog
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def log__SslOperationsEvent(
+def log__OperationsEvent(
     ctx,
     event_type_id,
     event_payload_dict=None,
@@ -129,7 +424,7 @@ def log__SslOperationsEvent(
     timestamp_event=None,
 ):
     """
-    creates a SslOperationsEvent instance
+    creates a OperationsEvent instance
     if needed, registers it into the ctx
     """
     # defaults
@@ -138,18 +433,19 @@ def log__SslOperationsEvent(
     # if we didn't pass in an explicit dbOperationsEvent_child_of, use the global
     dbOperationsEvent_child_of = dbOperationsEvent_child_of or ctx.dbOperationsEvent
 
+    # if dbOperationsEvent_child_of and (dbOperationsEvent_child_of not in ctx.dbSession):
+    #    dbOperationsEvent_child_of = ctx.dbSession.merge(dbOperationsEvent_child_of)
+
     if event_payload_dict is None:
         event_payload_dict = utils.new_event_payload_dict()
 
     # bookkeeping
-    dbOperationsEvent = models.SslOperationsEvent()
-    dbOperationsEvent.ssl_operations_event_type_id = event_type_id
+    dbOperationsEvent = model_objects.OperationsEvent()
+    dbOperationsEvent.operations_event_type_id = event_type_id
     dbOperationsEvent.timestamp_event = timestamp_event
     dbOperationsEvent.set_event_payload(event_payload_dict)
     if dbOperationsEvent_child_of:
-        dbOperationsEvent.ssl_operations_event_id__child_of = (
-            dbOperationsEvent_child_of.id
-        )
+        dbOperationsEvent.operations_event_id__child_of = dbOperationsEvent_child_of.id
     ctx.dbSession.add(dbOperationsEvent)
     ctx.dbSession.flush(objects=[dbOperationsEvent])
 
@@ -172,32 +468,32 @@ def _log_object_event(
     dbServerCertificate=None,
     dbUniqueFQDNSet=None,
     dbCertificateRequest=None,
-    dbQueueRenewal=None,
+    dbQueueCertificate=None,
     dbQueueDomain=None,
 ):
     """additional logging for objects"""
-    dbOperationsObjectEvent = models.SslOperationsObjectEvent()
-    dbOperationsObjectEvent.ssl_operations_event_id = dbOperationsEvent.id
-    dbOperationsObjectEvent.ssl_operations_object_event_status_id = event_status_id
+    dbOperationsObjectEvent = model_objects.OperationsObjectEvent()
+    dbOperationsObjectEvent.operations_event_id = dbOperationsEvent.id
+    dbOperationsObjectEvent.operations_object_event_status_id = event_status_id
 
     if dbAcmeAccountKey:
-        dbOperationsObjectEvent.ssl_acme_account_key_id = dbAcmeAccountKey.id
+        dbOperationsObjectEvent.acme_account_key_id = dbAcmeAccountKey.id
     elif dbCACertificate:
-        dbOperationsObjectEvent.ssl_ca_certificate_id = dbCACertificate.id
+        dbOperationsObjectEvent.ca_certificate_id = dbCACertificate.id
     elif dbDomain:
-        dbOperationsObjectEvent.ssl_domain_id = dbDomain.id
+        dbOperationsObjectEvent.domain_id = dbDomain.id
     elif dbPrivateKey:
-        dbOperationsObjectEvent.ssl_private_key_id = dbPrivateKey.id
+        dbOperationsObjectEvent.private_key_id = dbPrivateKey.id
     elif dbServerCertificate:
-        dbOperationsObjectEvent.ssl_server_certificate_id = dbServerCertificate.id
+        dbOperationsObjectEvent.server_certificate_id = dbServerCertificate.id
     elif dbUniqueFQDNSet:
-        dbOperationsObjectEvent.ssl_unique_fqdn_set_id = dbUniqueFQDNSet.id
+        dbOperationsObjectEvent.unique_fqdn_set_id = dbUniqueFQDNSet.id
     elif dbCertificateRequest:
-        dbOperationsObjectEvent.ssl_certificate_request_id = dbCertificateRequest.id
-    elif dbQueueRenewal:
-        dbOperationsObjectEvent.ssl_queue_renewal_id = dbQueueRenewal.id
+        dbOperationsObjectEvent.certificate_request_id = dbCertificateRequest.id
+    elif dbQueueCertificate:
+        dbOperationsObjectEvent.queue_certificate_id = dbQueueCertificate.id
     elif dbQueueDomain:
-        dbOperationsObjectEvent.ssl_queue_domain_id = dbQueueDomain.id
+        dbOperationsObjectEvent.queue_domain_id = dbQueueDomain.id
 
     ctx.dbSession.add(dbOperationsObjectEvent)
     ctx.dbSession.flush(objects=[dbOperationsObjectEvent])
@@ -208,4 +504,4 @@ def _log_object_event(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-__all__ = ("AcmeLogger", "log__SslOperationsEvent", "_log_object_event")
+__all__ = ("AcmeLogger", "log__OperationsEvent", "_log_object_event")

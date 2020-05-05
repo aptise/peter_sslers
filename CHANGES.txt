@@ -1,3 +1,17 @@
+0.4.0
+unreleased (2020-01-23)
+- implement ACME v2
+- removed support for ACME v1
+- added `pyproject.yaml`
+- Python3 support
+	- most file usage moved to context managers
+	- subprocess.Popen replaced now wrapped in context manager
+	- subprocess.Popen replaced with psutil.Popen, which provides a contextmanger on Python2
+- several changes to the database design; please start with a new database
+- standardizes newlines for storage
+- reorganized code, so Pyramid App is now a sub-package
+
+
 0.3.0
 2019.09.10
 - black

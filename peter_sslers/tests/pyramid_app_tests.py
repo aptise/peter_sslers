@@ -1,0 +1,5611 @@
+from __future__ import print_function
+
+# stdlib
+import datetime
+import json
+import os
+import pdb
+import pprint
+import re
+import unittest
+from functools import wraps
+
+# pypi
+from webtest import Upload
+from webtest.http import StopableWSGIServer
+import requests
+
+# local
+from ._utils import FakeRequest
+from ._utils import TEST_FILES
+from ._utils import AppTest
+from ._utils import AppTestWSGI
+from ._utils import under_pebble
+from ._utils import under_pebble_strict
+from ._utils import under_redis
+
+from ..lib.db import get as lib_db_get
+from ..model import objects as model_objects
+from ..model import utils as model_utils
+
+# local, flags
+from ._utils import LETSENCRYPT_API_VALIDATES
+from ._utils import RUN_API_TESTS__PEBBLE
+from ._utils import RUN_NGINX_TESTS
+from ._utils import RUN_REDIS_TESTS
+from ._utils import SSL_TEST_PORT
+
+
+# ==============================================================================
+
+
+_ROUTES_TESTED = {}
+
+
+def tests_routes(*args):
+    """
+    `@tests_routes` is a decorator
+    when writing/editing a test, declare what routes the test covers, like such:
+
+        @tests_routes(("foo", "bar"))
+        def test_foo_bar(self):
+            ...
+
+    this will populate a global variable `_ROUTES_TESTED` with the name of the
+    tested routes.
+
+    invoking the Audit test:
+
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AuditRoutes
+
+    will ensure all routes in Pyramid have test coverage
+    """
+    _routes = args[0]
+    if isinstance(_routes, (list, tuple)):
+        for _r in _routes:
+            _ROUTES_TESTED[_r] = True
+    else:
+        _ROUTES_TESTED[_routes] = True
+
+    def _decorator(_function):
+        @wraps(_function)
+        def _wrapper(*args, **kwargs):
+            return _function(*args, **kwargs)
+
+        return _wrapper
+
+    return _decorator
+
+
+# =====
+
+RE_AcmeAccountKey_deactivate_pending_post_required = re.compile(
+    r"""http://peter-sslers\.example\.com/\.well-known/admin/acme-account-key/(\d+)/acme-authorizations\?status=active&result=error&error=post\+required&operation=acme-server--deactivate-pending-authorizations"""
+)
+RE_AcmeAccountKey_deactivate_pending_success = re.compile(
+    r"""http://peter-sslers\.example\.com/\.well-known/admin/acme-account-key/(\d+)/acme-authorizations\?status=active&result=success&operation=acme-server--deactivate-pending-authorizations"""
+)
+
+
+RE_AcmeAuthorization_sync_btn = re.compile(
+    r'''href="/\.well-known/admin/acme-authorization/(\d+)/acme-server/sync"[\n\s\ ]+class="btn btn-xs btn-info "'''
+)
+RE_AcmeAuthorization_deactivate_btn = re.compile(
+    r'''href="/\.well-known/admin/acme-authorization/(\d+)/acme-server/deactivate"[\n\s\ ]+class="btn btn-xs btn-info "'''
+)
+RE_AcmeAuthorization_trigger_btn = re.compile(
+    r'''href="/\.well-known/admin/acme-authorization/(\d+)/acme-server/trigger"[\n\s\ ]+class="btn btn-xs btn-info "'''
+)
+
+RE_AcmeAuthorization_deactivated = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=success&operation=acme\+server\+deactivate"""
+)
+RE_AcmeAuthorization_deactivate_fail = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=error&error=acme\+server\+deactivate&message=ACME\+Server\+Sync\+is\+not\+allowed\+for\+this\+AcmeAuthorization"""
+)
+
+RE_AcmeAuthorization_triggered = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=success&operation=acme\+server\+trigger"""
+)
+
+RE_AcmeAuthorization_synced = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=success&operation=acme\+server\+sync"""
+)
+
+
+RE_AcmeChallenge_sync_btn = re.compile(
+    r'''href="/\.well-known/admin/acme-challenge/(\d+)/acme-server/sync"[\n\s\ ]+class="btn btn-xs btn-info"'''
+)
+RE_AcmeChallenge_trigger_btn = re.compile(
+    r'''href="/\.well-known/admin/acme-challenge/(\d+)/acme-server/trigger"[\n\s\ ]+class="btn btn-xs btn-info "'''
+)
+RE_AcmeChallenge_triggered = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=success&operation=acme\+server\+trigger"""
+)
+RE_AcmeChallenge_synced = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=success&operation=acme\+server\+sync"""
+)
+RE_AcmeChallenge_trigger_fail = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=error&error=acme\+server\+trigger&message=ACME\+Server\+Trigger\+is\+not\+allowed\+for\+this\+AcmeChallenge"""
+)
+
+
+RE_AcmeOrder = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)$"""
+)
+RE_AcmeOrder_retry = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=retry\+order$"""
+)
+RE_AcmeOrder_deactivated = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=deactivate$"""
+)
+RE_AcmeOrder_invalidated = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=invalid$"""
+)
+
+RE_AcmeOrder_processed = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+process$"""
+)
+RE_AcmeOrder_can_process = re.compile(
+    r'''href="/\.well-known/admin/acme-order/\d+/acme-process"[\n\s\ ]+class="btn btn-xs btn-info "'''
+)
+RE_AcmeOrderless = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-orderless/(\d+)$"""
+)
+
+# =====
+
+
+class FunctionalTests_Passes(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Passes
+    this is only used to test setup
+    """
+
+    def test_passes(self):
+        return True
+
+
+class FunctionalTests_Main(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Main
+    """
+
+    @tests_routes("admin")
+    def test_root(self):
+        res = self.testapp.get("/.well-known/admin", status=200)
+
+    @tests_routes("admin:whoami")
+    def test_admin_whoami(self):
+        res = self.testapp.get("/.well-known/admin/whoami", status=200)
+
+    @tests_routes("admin:help")
+    def test_help(self):
+        res = self.testapp.get("/.well-known/admin/help", status=200)
+
+    @tests_routes("admin:settings")
+    def test_settings(self):
+        res = self.testapp.get("/.well-known/admin/settings", status=200)
+
+    @tests_routes("admin:api")
+    def test_api_docs(self):
+        res = self.testapp.get("/.well-known/admin/api", status=200)
+
+    @tests_routes("admin:search")
+    def test_search(self):
+        res = self.testapp.get("/.well-known/admin/search", status=200)
+
+    @tests_routes("public_whoami")
+    def test_public_whoami(self):
+        res = self.testapp.get("/.well-known/public/whoami", status=200)
+
+
+class FunctionalTests_AcmeAccountKey(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeAccountKey
+    """
+
+    def _get_one(self):
+        # grab a Key
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.AcmeAccountKey)
+            .filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+            .filter(model_objects.AcmeAccountKey.is_global_default.op("IS NOT")(True))
+            .order_by(model_objects.AcmeAccountKey.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes("admin:acme_account_key:upload")
+    def test_upload_html(self):
+        """
+        formecode must be patched for this:
+            https://github.com/formencode/formencode/issues/101
+            https://github.com/valos/formencode/commit/987d29922b2a37eb969fb40658a1057bacbe1129
+        """
+        # this should be creating a new key
+        _key_filename = TEST_FILES["AcmeAccountKey"]["2"]["key"]
+        _private_key_cycle = TEST_FILES["AcmeAccountKey"]["2"]["private_key_cycle"]
+        key_filepath = self._filepath_testfile(_key_filename)
+
+        res = self.testapp.get("/.well-known/admin/acme-account-key/upload", status=200)
+        form = res.form
+        form["contact"] = TEST_FILES["AcmeAccountKey"]["2"]["contact"]
+        form["account_key_file_pem"] = Upload(key_filepath)
+        form["acme_account_provider_id"].force_value(
+            str(1)
+        )  # acme_account_provider_id(1) == pebble
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert res2.location.startswith(
+            """http://peter-sslers.example.com/.well-known/admin/acme-account-key/"""
+        )
+        assert res2.location.endswith(
+            """?result=success&operation=upload&is_created=1"""
+        ) or res2.location.endswith(
+            """?result=success&operation=upload&is_existing=1"""
+        )
+        res3 = self.testapp.get(res2.location, status=200)
+
+    @tests_routes("admin:acme_account_key:upload|json")
+    def test_upload_json(self):
+        _key_filename = TEST_FILES["AcmeAccountKey"]["2"]["key"]
+        _private_key_cycle = TEST_FILES["AcmeAccountKey"]["2"]["private_key_cycle"]
+        key_filepath = self._filepath_testfile(_key_filename)
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/upload.json", status=200
+        )
+        assert "instructions" in res.json
+
+        form = {}
+        form["contact"] = TEST_FILES["AcmeAccountKey"]["2"]["contact"]
+        form["account_key_file_pem"] = Upload(key_filepath)
+        form["acme_account_provider_id"] = "1"  # acme_account_provider_id(1) == pebble
+        res2 = self.testapp.post(
+            "/.well-known/admin/acme-account-key/upload.json", form
+        )
+        assert res2.status_code == 200
+        assert "result" in res2.json
+        assert res2.json["result"] == "error"
+        assert "form_errors" in res2.json
+        assert isinstance(res2.json["form_errors"], dict)
+        assert len(res2.json["form_errors"].keys()) == 2
+        assert (
+            res2.json["form_errors"]["Error_Main"]
+            == "There was an error with your form."
+        )
+        assert res2.json["form_errors"]["private_key_cycle"] == "Missing value"
+
+        form = {}
+        form["account_key_file_pem"] = Upload(key_filepath)
+        form["acme_account_provider_id"] = "1"  # acme_account_provider_id(1) == pebble
+        form["contact"] = TEST_FILES["AcmeAccountKey"]["2"]["contact"]
+        form["private_key_cycle"] = TEST_FILES["AcmeAccountKey"]["2"][
+            "private_key_cycle"
+        ]
+        res3 = self.testapp.post(
+            "/.well-known/admin/acme-account-key/upload.json", form
+        )
+        assert res3.status_code == 200
+        res3_json = json.loads(res3.text)
+        assert "result" in res3_json
+        assert res3_json["result"] == "success"
+
+    @tests_routes(("admin:acme_account_keys", "admin:acme_account_keys_paginated"))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/acme-account-keys", status=200)
+        # paginated
+        res = self.testapp.get("/.well-known/admin/acme-account-keys/1", status=200)
+
+    @tests_routes(
+        ("admin:acme_account_keys|json", "admin:acme_account_keys_paginated|json")
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get("/.well-known/admin/acme-account-keys.json", status=200)
+        assert "AcmeAccountKeys" in res.json
+
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-keys/1.json", status=200
+        )
+        assert "AcmeAccountKeys" in res.json
+
+    @tests_routes(
+        (
+            "admin:acme_account_key:focus",
+            "admin:acme_account_key:focus:acme_authorizations",
+            "admin:acme_account_key:focus:acme_authorizations_paginated",
+            "admin:acme_account_key:focus:acme_orders",
+            "admin:acme_account_key:focus:acme_orders_paginated",
+            "admin:acme_account_key:focus:private_keys",
+            "admin:acme_account_key:focus:private_keys_paginated",
+            "admin:acme_account_key:focus:server_certificates",
+            "admin:acme_account_key:focus:server_certificates_paginated",
+        )
+    )
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-orders" % focus_id, status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-orders/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/private-keys" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/private-keys/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/server-certificates" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/server-certificates/1" % focus_id,
+            status=200,
+        )
+
+    @tests_routes(
+        (
+            "admin:acme_account_key:focus|json",
+            "admin:acme_account_key:focus:config|json",
+            "admin:acme_account_key:focus:parse|json",
+            "admin:acme_account_key:focus:acme_authorizations|json",
+            "admin:acme_account_key:focus:acme_authorizations_paginated|json",
+        )
+    )
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s.json" % focus_id, status=200
+        )
+        assert "AcmeAccountKey" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/config.json" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/parse.json" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations.json"
+            % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations/1.json"
+            % focus_id,
+            status=200,
+        )
+
+    @tests_routes("admin:acme_account_key:focus:raw")
+    def test_focus_raw(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/key.key" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/key.pem" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/key.pem.txt" % focus_id, status=200
+        )
+
+    @tests_routes(
+        ("admin:acme_account_key:focus:edit", "admin:acme_account_key:focus:mark")
+    )
+    def test_manipulate_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/mark" % focus_id, status=303,
+        )
+        assert res.location.endswith("?result=error&error=post+required&operation=mark")
+
+        if focus_item.is_global_default:
+            raise ValueError("this should not be the global default")
+
+        if not focus_item.is_active:
+            raise ValueError("this should be active")
+
+        # fail making this active
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/mark" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith(
+            "?result=error&error=Error_Main--There+was+an+error+with+your+form.+Already+activated&operation=mark&action=active"
+        )
+
+        # inactive ROUNDTRIP
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/mark" % focus_id,
+            {"action": "inactive"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=inactive")
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/mark" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=active")
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/mark" % focus_id,
+            {"action": "global_default"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith(
+            "?result=success&operation=mark&action=global_default"
+        )
+
+        # edit it
+        # only the private_key_cycle
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/edit" % focus_id, status=200
+        )
+        form = res.form
+        _existing = form["private_key_cycle"].value
+        _new = None
+        if _existing == "single_certificate":
+            _new = "account_daily"
+        else:
+            _new = "single_certificate"
+        form["private_key_cycle"] = _new
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert (
+            res2.location
+            == """http://peter-sslers.example.com/.well-known/admin/acme-account-key/%s?result=success&operation=edit"""
+            % focus_id
+        )
+        res3 = self.testapp.get(res2.location, status=200)
+
+    @tests_routes(
+        (
+            "admin:acme_account_key:focus:edit|json",
+            "admin:acme_account_key:focus:mark|json",
+        )
+    )
+    def test_manipulate_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/mark.json" % focus_id, status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+
+        if focus_item.is_global_default:
+            raise ValueError("this should not be the global default")
+
+        if not focus_item.is_active:
+            raise ValueError("this should be active")
+
+        # fail making this active
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/mark.json" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Already activated"
+        )
+
+        # inactive ROUNDTRIP
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/mark.json" % focus_id,
+            {"action": "inactive"},
+        )
+        assert res.status_code == 200
+        assert "AcmeAccountKey" in res.json
+        assert res.json["AcmeAccountKey"]["is_active"] is False
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/mark.json" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 200
+        assert "AcmeAccountKey" in res.json
+        assert res.json["AcmeAccountKey"]["is_active"] is True
+
+        # then global_default
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/mark.json" % focus_id,
+            {"action": "global_default"},
+        )
+        assert res.status_code == 200
+        assert "AcmeAccountKey" in res.json
+        assert res.json["AcmeAccountKey"]["is_global_default"] is True
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/edit.json" % focus_id, status=200
+        )
+        assert "form_fields" in res.json
+
+        form = {}
+        res2 = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/edit.json" % focus_id, form
+        )
+        assert res2.json["result"] == "error"
+        assert "form_errors" in res2.json
+        assert isinstance(res2.json["form_errors"], dict)
+        assert len(res2.json["form_errors"]) == 1
+        assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        _existing = focus_item.private_key_cycle
+        _new = None
+        if _existing == "single_certificate":
+            _new = "account_daily"
+        else:
+            _new = "single_certificate"
+        form = {"private_key_cycle": _new}
+        res3 = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/edit.json" % focus_id, form
+        )
+        assert res3.json["result"] == "success"
+        assert "AcmeAccountKey" in res3.json
+
+
+class FunctionalTests_AcmeAuthorizations(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeAuthorizations
+    """
+
+    def _get_one(self):
+        # grab an order
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.AcmeAuthorization)
+            .order_by(model_objects.AcmeAuthorization.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(("admin:acme_authorizations", "admin:acme_authorizations_paginated"))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/acme-authorizations", status=200)
+        # paginated
+        res = self.testapp.get("/.well-known/admin/acme-authorizations/1", status=200)
+
+    @tests_routes(
+        ("admin:acme_authorizations|json", "admin:acme_authorizations_paginated|json")
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorizations.json", status=200
+        )
+        assert "AcmeAuthorizations" in res.json
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorizations/1.json", status=200
+        )
+        assert "AcmeAuthorizations" in res.json
+
+    @tests_routes(
+        (
+            "admin:acme_authorization:focus",
+            "admin:acme_authorization:focus:acme_orders",
+            "admin:acme_authorization:focus:acme_orders_paginated",
+            "admin:acme_authorization:focus:acme_challenges",
+            "admin:acme_authorization:focus:acme_challenges_paginated",
+        )
+    )
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-orders" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-orders/1" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-challenges" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-challenges/1" % focus_id,
+            status=200,
+        )
+
+    @tests_routes("admin:acme_authorization:focus|json")
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s.json" % focus_id, status=200
+        )
+        assert "AcmeAuthorization" in res.json
+
+
+class FunctionalTests_AcmeChallenges(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeChallenges
+    """
+
+    def _get_one(self):
+        # grab an order
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.AcmeChallenge)
+            .filter(
+                model_objects.AcmeChallenge.challenge_url
+                == "https://example.com/acme/chall/acmeOrder-1--authz-1--chall-1"
+            )
+            .one()
+        )
+        return focus_item
+
+    @tests_routes(("admin:acme_challenges", "admin:acme_challenges_paginated"))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/acme-challenges", status=200)
+        # paginated
+        res = self.testapp.get("/.well-known/admin/acme-challenges/1", status=200)
+
+    @tests_routes(
+        ("admin:acme_challenges|json", "admin:acme_challenges_paginated|json")
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get("/.well-known/admin/acme-challenges.json", status=200)
+        assert "AcmeChallenges" in res.json
+
+        # json paginated
+        res = self.testapp.get("/.well-known/admin/acme-challenges/1.json", status=200)
+        assert "AcmeChallenges" in res.json
+
+    @tests_routes(("admin:acme_challenge:focus"))
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s" % focus_id, status=200
+        )
+
+    @tests_routes(("public_challenge"))
+    def test_public_challenge(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        challenge = focus_item.keyauthorization
+
+        _extra_environ = {
+            "REMOTE_ADDR": "192.168.1.1",
+        }
+        resp_1 = self.testapp.get(
+            "/.well-known/acme-challenge/%s" % challenge,
+            extra_environ=_extra_environ,
+            status=200,
+        )
+        # this is not on an active domain
+        assert resp_1.text == "ERROR"
+
+        _extra_environ_2 = {
+            "REMOTE_ADDR": "192.168.1.1",
+            "HTTP_HOST": "selfsigned-1.example.com",
+        }
+        resp_2 = self.testapp.get(
+            "/.well-known/acme-challenge/%s" % challenge,
+            extra_environ=_extra_environ_2,
+            status=200,
+        )
+        assert resp_2.text == challenge
+
+    @tests_routes(("admin:acme_challenge:focus|json"))
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s.json" % focus_id, status=200
+        )
+        assert "AcmeChallenge" in res.json
+
+
+class FunctionalTests_AcmeChallengePolls(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeChallengePolls
+    """
+
+    @tests_routes(
+        ("admin:acme_challenge_polls", "admin:acme_challenge_polls_paginated")
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/acme-challenge-polls", status=200)
+        # paginated
+        res = self.testapp.get("/.well-known/admin/acme-challenge-polls/1", status=200)
+
+    @tests_routes(
+        ("admin:acme_challenge_polls|json", "admin:acme_challenge_polls_paginated|json")
+    )
+    def test_list_json(self):
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge-polls/1.json", status=200
+        )
+        assert "AcmeChallengePolls" in res.json
+
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge-polls/1.json", status=200
+        )
+        assert "AcmeChallengePolls" in res.json
+        assert "pagination" in res.json
+        assert res.json["pagination"]["total_items"] >= 1
+
+
+class FunctionalTests_AcmeChallengeUnknownPolls(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeChallengeUnknownPolls
+    """
+
+    @tests_routes(
+        (
+            "admin:acme_challenge_unknown_polls",
+            "admin:acme_challenge_unknown_polls_paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge-unknown-polls", status=200
+        )
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge-unknown-polls/1", status=200
+        )
+
+    @tests_routes(
+        (
+            "admin:acme_challenge_unknown_polls|json",
+            "admin:acme_challenge_unknown_polls_paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge-unknown-polls/1.json", status=200
+        )
+        assert "AcmeChallengeUnknownPolls" in res.json
+
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge-unknown-polls/1.json", status=200
+        )
+        assert "AcmeChallengeUnknownPolls" in res.json
+        assert "pagination" in res.json
+        assert res.json["pagination"]["total_items"] >= 1
+
+
+class FunctionalTests_AcmeEventLog(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeEventLog
+    """
+
+    def _get_one(self):
+        # grab an event
+        focus_item = self.ctx.dbSession.query(model_objects.AcmeEventLog).first()
+        return focus_item
+
+    @tests_routes(("admin:acme_event_log", "admin:acme_event_log_paginated"))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/acme-event-logs", status=200)
+        # paginated
+        res = self.testapp.get("/.well-known/admin/acme-event-logs/1", status=200)
+
+    @tests_routes(("admin:acme_event_log|json", "admin:acme_event_log_paginated|json"))
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get("/.well-known/admin/acme-event-logs.json", status=200)
+        assert "AcmeEventLogs" in res.json
+        # json paginated
+        res = self.testapp.get("/.well-known/admin/acme-event-logs/1.json", status=200)
+        assert "AcmeEventLogs" in res.json
+
+    @tests_routes(("admin:acme_event_log:focus"))
+    def test_focus_html(self):
+        """
+        AcmeEventLog entries are normally only created when hitting the ACME Server
+        BUT
+        We faked one when creating a new AcmeOrder in the setup routine
+        """
+        # focus
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-event-log/%s" % focus_id, status=200
+        )
+
+    @tests_routes(("admin:acme_event_log:focus|json"))
+    def test_focus_json(self):
+        """
+        AcmeEventLog entries are normally only created when hitting the ACME Server
+        BUT
+        We faked one when creating a new AcmeOrder in the setup routine
+        """
+        # focus
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-event-log/%s.json" % focus_id, status=200
+        )
+        assert "AcmeEventLog" in res.json
+
+
+class FunctionalTests_AcmeOrder(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeOrder
+    """
+
+    def _get_one(self):
+        # grab an order
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.AcmeOrder)
+            .order_by(model_objects.AcmeOrder.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(("admin:acme_orders", "admin:acme_orders_paginated",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/acme-orders", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-orders/1", status=200)
+
+    @tests_routes(("admin:acme_orders|json", "admin:acme_orders_paginated|json",))
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get("/.well-known/admin/acme-orders.json", status=200)
+        assert "AcmeOrders" in res.json
+
+        res = self.testapp.get("/.well-known/admin/acme-orders/1.json", status=200)
+        assert "AcmeOrders" in res.json
+
+    @tests_routes(
+        (
+            "admin:acme_order:focus",
+            "admin:acme_order:focus:acme_event_logs",
+            "admin:acme_order:focus:acme_event_logs_paginated",
+        )
+    )
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-event-logs" % focus_id, status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-event-logs/1" % focus_id, status=200,
+        )
+
+    @tests_routes("admin:acme_order:focus|json")
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % focus_id, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+
+class FunctionalTests_AcmeOrderless(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeOrderless
+    """
+
+    def _get_one(self):
+        # grab an order
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.AcmeOrderless)
+            .order_by(model_objects.AcmeOrderless.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(("admin:acme_orderlesss", "admin:acme_orderlesss_paginated",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/acme-orderlesss", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-orderlesss/1", status=200)
+
+    @tests_routes(
+        ("admin:acme_orderlesss|json", "admin:acme_orderlesss_paginated|json",)
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get("/.well-known/admin/acme-orderlesss.json", status=200)
+        assert "AcmeOrderless" in res.json
+        res = self.testapp.get("/.well-known/admin/acme-orderlesss/1.json", status=200)
+        assert "AcmeOrderless" in res.json
+
+    @tests_routes(("admin:acme_orderless:focus",))
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        challenge_id = focus_item.acme_challenges[0].id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s/acme-challenge/%s"
+            % (focus_id, challenge_id),
+            status=200,
+        )
+
+    @tests_routes(("admin:acme_orderless:focus|json",))
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        challenge_id = focus_item.acme_challenges[0].id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s.json" % focus_id, status=200
+        )
+        assert "AcmeOrderless" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s/acme-challenge/%s.json"
+            % (focus_id, challenge_id),
+            status=200,
+        )
+        assert "AcmeOrderless" in res.json
+        assert "AcmeChallenge" in res.json
+
+    @tests_routes(
+        (
+            "admin:acme_orderless:new",
+            "admin:acme_orderless:focus",
+            "admin:acme_orderless:focus:add",
+            "admin:acme_orderless:focus:update",
+            "admin:acme_orderless:focus:deactivate",
+            "admin:acme_orderless:focus:acme_challenge",
+        )
+    )
+    def test_new_html(self):
+        # TODO - test with acmeaccountkey and challenge url
+
+        res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
+        form = res.form
+        form["domain_names"] = ",".join(TEST_FILES["AcmeOrderless"]["new-1"]["domains"])
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        matched = RE_AcmeOrderless.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        # build a new form and submit edits
+        res3 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s" % obj_id, status=200,
+        )
+        form = res3.forms["acmeorderless-update"]
+        update_fields = dict(form.submit_fields())
+        _challenge_ids = update_fields["_challenges"].split(",")
+        assert len(_challenge_ids) == len(
+            TEST_FILES["AcmeOrderless"]["new-1"]["domains"]
+        )
+        for _id in _challenge_ids:
+            _field_token = "%s_token" % _id
+            assert _field_token in update_fields
+            assert update_fields[_field_token] == ""
+            form[_field_token] = "token_%s" % _id
+
+            _field_keyauthorization = "%s_keyauthorization" % _id
+            assert _field_keyauthorization in update_fields
+            assert update_fields[_field_keyauthorization] == ""
+            form[_field_keyauthorization] = "keyauthorization_%s" % _id
+
+        res4 = form.submit()
+        assert res4.status_code == 303
+        assert (
+            res4.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-orderless/%s?result=success"
+            % obj_id
+        )
+        res5 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s?result=success" % obj_id, status=200,
+        )
+
+        # build a new form to assert the previous edits worked
+        form = res5.forms["acmeorderless-update"]
+        update_fields = dict(form.submit_fields())
+        _challenge_ids = update_fields["_challenges"].split(",")
+        assert len(_challenge_ids) == len(
+            TEST_FILES["AcmeOrderless"]["new-1"]["domains"]
+        )
+        for _id in _challenge_ids:
+            _field_token = "%s_token" % _id
+            assert _field_token in update_fields
+            assert update_fields[_field_token] == "token_%s" % _id
+            _field_keyauthorization = "%s_keyauthorization" % _id
+            assert _field_keyauthorization in update_fields
+            assert update_fields[_field_keyauthorization] == "keyauthorization_%s" % _id
+
+        # try adding a challenge
+        form = res5.forms["acmeorderless-add_challenge"]
+        add_fields = dict(form.submit_fields())
+        assert "keyauthorization" in add_fields
+        assert "domain" in add_fields
+        assert "token" in add_fields
+        form["keyauthorization"] = "keyauthorization_add"
+        form["domain"] = "domain_add.example.com"
+        form["token"] = "token_add"
+
+        res6 = form.submit()
+        assert res6.status_code == 303
+        assert (
+            res6.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-orderless/%s?result=success"
+            % obj_id
+        )
+        res7 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s?status=success" % obj_id, status=200,
+        )
+
+        form = res7.forms["acmeorderless-update"]
+        update_fields = dict(form.submit_fields())
+        _challenge_ids = update_fields["_challenges"].split(",")
+        # we just added 1
+        assert len(_challenge_ids) == (
+            len(TEST_FILES["AcmeOrderless"]["new-1"]["domains"]) + 1
+        )
+
+        form = res7.forms["acmeorderless-deactivate"]
+        res8 = form.submit()
+        assert res8.status_code == 303
+        assert (
+            res8.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-orderless/%s?result=success"
+            % obj_id
+        )
+
+        res9 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s?result=success" % obj_id, status=200,
+        )
+        assert not res9.forms
+
+        res10 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s/acme-challenge/%s"
+            % (obj_id, _challenge_ids[0]),
+            status=200,
+        )
+
+    @tests_routes(
+        (
+            "admin:acme_orderless:new|json",
+            "admin:acme_orderless:focus|json",
+            "admin:acme_orderless:focus:add|json",
+            "admin:acme_orderless:focus:update|json",
+            "admin:acme_orderless:focus:deactivate|json",
+            "admin:acme_orderless:focus:acme_challenge|json",
+        )
+    )
+    def test_new_json(self):
+        # TODO - test with acmeaccountkey and challenge url
+
+        res = self.testapp.get("/.well-known/admin/acme-orderless/new.json", status=200)
+        assert "form_fields" in res.json
+
+        form = {}
+        form["domain_names"] = ",".join(TEST_FILES["AcmeOrderless"]["new-1"]["domains"])
+        res2 = self.testapp.post("/.well-known/admin/acme-orderless/new.json", form)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "error"
+        assert "form_errors" in res2.json
+        assert "account_key_option" in res2.json["form_errors"]
+        assert res2.json["form_errors"]["account_key_option"] == "Missing value"
+
+        form["account_key_option"] = "none"
+        res2b = self.testapp.post("/.well-known/admin/acme-orderless/new.json", form)
+        assert res2b.status_code == 200
+        assert res2b.json["result"] == "success"
+        assert "AcmeOrderless" in res2b.json
+
+        obj_id = res2b.json["AcmeOrderless"]["id"]
+
+        res3 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s.json" % obj_id, status=200,
+        )
+        assert "AcmeOrderless" in res3.json
+        assert "forms" in res3.json
+        assert "acmeorderless-update" in res3.json["forms"]
+
+        # build a new form and submit edits
+        form = res3.json["forms"]["acmeorderless-update"]
+        update_fields = dict(form.items())
+        _challenge_ids = update_fields["_challenges"].split(",")
+        assert len(_challenge_ids) == len(
+            TEST_FILES["AcmeOrderless"]["new-1"]["domains"]
+        )
+        for _id in _challenge_ids:
+            _field_token = "%s_token" % _id
+            assert _field_token in update_fields
+            assert update_fields[_field_token] == ""
+            update_fields[_field_token] = "token_%s" % _id
+
+            _field_keyauthorization = "%s_keyauthorization" % _id
+            assert _field_keyauthorization in update_fields
+            assert update_fields[_field_keyauthorization] == ""
+            update_fields[_field_keyauthorization] = "keyauthorization_%s" % _id
+        res4 = self.testapp.post(
+            "/.well-known/admin/acme-orderless/%s/update.json" % obj_id, update_fields
+        )
+        assert res4.status_code == 200
+        assert "AcmeOrderless" in res4.json
+        assert res4.json["changed"] is True
+
+        # build a new form to assert the previous edits worked
+        res3 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s.json" % obj_id, status=200,
+        )
+        assert "AcmeOrderless" in res3.json
+        assert "forms" in res3.json
+        assert "acmeorderless-update" in res3.json["forms"]
+        form = res3.json["forms"]["acmeorderless-update"]
+        update_fields = dict(form.items())
+        _challenge_ids = update_fields["_challenges"].split(",")
+        assert len(_challenge_ids) == len(
+            TEST_FILES["AcmeOrderless"]["new-1"]["domains"]
+        )
+        for _id in _challenge_ids:
+            _field_token = "%s_token" % _id
+            assert _field_token in update_fields
+            assert form[_field_token] == "token_%s" % _id
+            _field_keyauthorization = "%s_keyauthorization" % _id
+            assert _field_keyauthorization in update_fields
+            assert form[_field_keyauthorization] == "keyauthorization_%s" % _id
+
+        # try adding a challenge
+        form = res3.json["forms"]["acmeorderless-add_challenge"]
+        add_fields = dict(form.items())
+        assert "keyauthorization" in add_fields
+        assert "domain" in add_fields
+        assert "token" in add_fields
+        add_fields["keyauthorization"] = "keyauthorization_add"
+        add_fields["domain"] = "domain_add.example.com"
+        add_fields["token"] = "token_add"
+
+        res6 = self.testapp.post(
+            "/.well-known/admin/acme-orderless/%s/add.json" % obj_id, add_fields
+        )
+        assert res6.status_code == 200
+        assert "AcmeOrderless" in res6.json
+        assert add_fields["domain"] in res6.json["AcmeOrderless"]["domains_status"]
+
+        form = res3.json["forms"]["acmeorderless-deactivate"]
+        res7 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s/deactivate.json" % obj_id
+        )
+        assert "error" in res7.json
+        assert res7.json["error"] == "This route requires a POST"
+
+        res8 = self.testapp.post(
+            "/.well-known/admin/acme-orderless/%s/deactivate.json" % obj_id, {}
+        )
+        assert res8.status_code == 200
+        assert "result" in res8.json
+        assert res8.json["result"] == "success"
+        assert "AcmeOrderless" in res8.json
+        assert res8.json["AcmeOrderless"]["is_processing"] is False
+
+        res10 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s/acme-challenge/%s.json"
+            % (obj_id, _challenge_ids[0]),
+            status=200,
+        )
+        assert "result" in res10.json
+        assert res10.json["result"] == "success"
+        assert "AcmeOrderless" in res10.json
+        assert "AcmeChallenge" in res10.json
+
+
+class FunctionalTests_AcmeAccountProvider(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeAccountProvider
+    """
+
+    @tests_routes("admin:acme_account_providers")
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/acme-account-providers", status=200)
+
+    @tests_routes("admin:acme_account_providers|json")
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-providers.json", status=200
+        )
+        assert "AcmeAccountProviders" in res.json
+
+
+class FunctionalTests_CACertificate(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_CACertificate
+    """
+
+    @tests_routes(("admin:ca_certificates", "admin:ca_certificates_paginated",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/ca-certificates", status=200)
+        # paginated
+        res = self.testapp.get("/.well-known/admin/ca-certificates/1", status=200)
+
+    @tests_routes(
+        ("admin:ca_certificates|json", "admin:ca_certificates_paginated|json",)
+    )
+    def test_list_json(self):
+        # JSON root
+        res = self.testapp.get("/.well-known/admin/ca-certificates.json", status=200)
+        assert "CACertificates" in res.json
+
+        # JSON paginated
+        res = self.testapp.get("/.well-known/admin/ca-certificates/1.json", status=200)
+        assert "CACertificates" in res.json
+
+    @tests_routes(
+        (
+            "admin:ca_certificate:focus",
+            "admin:ca_certificate:focus:raw",
+            "admin:ca_certificate:focus:server_certificates",
+            "admin:ca_certificate:focus:server_certificates_paginated",
+        )
+    )
+    def test_focus_html(self):
+        res = self.testapp.get("/.well-known/admin/ca-certificate/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/1/chain.cer", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/1/chain.crt", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/1/chain.der", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/1/chain.pem", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/1/chain.pem.txt", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/1/server-certificates", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/1/server-certificates/1", status=200
+        )
+
+    @tests_routes(
+        ("admin:ca_certificate:focus|json", "admin:ca_certificate:focus:parse|json",)
+    )
+    def test_focus_json(self):
+        res = self.testapp.get("/.well-known/admin/ca-certificate/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/1/parse.json", status=200
+        )
+
+    @tests_routes(
+        ("admin:ca_certificate:upload", "admin:ca_certificate:upload_bundle",)
+    )
+    def test_upload_html(self):
+        """This should enter in item #3, but the CACertificates.order is 1; the other cert is a self-signed"""
+        _ca_cert_id = TEST_FILES["CACertificates"]["order"][1]
+        _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
+        _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
+
+        res = self.testapp.get("/.well-known/admin/ca-certificate/upload", status=200)
+        form = res.form
+        form["chain_file"] = Upload(_ca_cert_filepath)
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        re_expected = re.compile(
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/ca-certificate/(\d+)\?result=success&is_created=1$"""
+        )
+        matched = re_expected.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+        res3 = self.testapp.get(res2.location, status=200)
+
+        # try a bundle
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/upload-bundle", status=200
+        )
+        form = res.form
+        form["isrgrootx1_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["isrgrootx1"])
+        )
+        form["le_x1_auth_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x1_auth"])
+        )
+        form["le_x2_auth_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x2_auth"])
+        )
+        form["le_x1_cross_signed_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["CACertificates"]["cert"]["le_x1_cross_signed"]
+            )
+        )
+        form["le_x2_cross_signed_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["CACertificates"]["cert"]["le_x2_cross_signed"]
+            )
+        )
+        form["le_x3_cross_signed_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["CACertificates"]["cert"]["le_x3_cross_signed"]
+            )
+        )
+        form["le_x4_cross_signed_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["CACertificates"]["cert"]["le_x4_cross_signed"]
+            )
+        )
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert (
+            res2.location
+            == """http://peter-sslers.example.com/.well-known/admin/ca-certificates?uploaded=1"""
+        )
+        res3 = self.testapp.get(res2.location, status=200)
+
+        """This should enter in item #4"""
+        _ca_cert_id = TEST_FILES["CACertificates"]["order"][2]
+        _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
+        _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
+
+    @tests_routes(
+        ("admin:ca_certificate:upload|json", "admin:ca_certificate:upload_bundle|json",)
+    )
+    def test_upload_json(self):
+        _ca_cert_id = TEST_FILES["CACertificates"]["order"][1]
+        _ca_cert_filename = TEST_FILES["CACertificates"]["cert"][_ca_cert_id]
+        _ca_cert_filepath = self._filepath_testfile(_ca_cert_filename)
+
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/upload.json", status=200
+        )
+        _data = {"chain_file": Upload(_ca_cert_filepath)}
+        res2 = self.testapp.post("/.well-known/admin/ca-certificate/upload.json", _data)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+
+        # we may not have created this
+        assert res2.json["CACertificate"]["created"] in (True, False)
+        assert (
+            res2.json["CACertificate"]["id"] > 2
+        )  # the database was set up with 2 items
+        obj_id = res2.json["CACertificate"]["id"]
+
+        res3 = self.testapp.get(
+            "/.well-known/admin/ca-certificate/%s" % obj_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/ca-certificate/upload-bundle.json", status=200
+        )
+        chain_filepath = self._filepath_testfile("lets-encrypt-x1-cross-signed.pem.txt")
+        form = {}
+        form["isrgrootx1_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["isrgrootx1"])
+        )
+        form["le_x1_auth_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x1_auth"])
+        )
+        form["le_x2_auth_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x2_auth"])
+        )
+        form["le_x1_cross_signed_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["CACertificates"]["cert"]["le_x1_cross_signed"]
+            )
+        )
+        form["le_x2_cross_signed_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["CACertificates"]["cert"]["le_x2_cross_signed"]
+            )
+        )
+        form["le_x3_cross_signed_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["CACertificates"]["cert"]["le_x3_cross_signed"]
+            )
+        )
+        form["le_x4_cross_signed_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["CACertificates"]["cert"]["le_x4_cross_signed"]
+            )
+        )
+        res2 = self.testapp.post(
+            "/.well-known/admin/ca-certificate/upload-bundle.json", form
+        )
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+        # this is going to be too messy to check all the vars
+        # {u'isrgrootx1_pem': {u'id': 5, u'created': False}, u'le_x2_auth_pem': {u'id': 3, u'created': False}, u'le_x4_cross_signed_pem': {u'id': 6, u'created': False}, u'le_x2_cross_signed_pem': {u'id': 7, u'created': False}, u'le_x3_cross_signed_pem': {u'id': 8, u'created': False}, u'result': u'success', u'le_x1_cross_signed_pem': {u'id': 4, u'created': False}, u'le_x1_auth_pem': {u'id': 1, u'created': False}}
+
+
+class FunctionalTests_CertificateRequest(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_CertificateRequest
+    """
+
+    def _get_one(self):
+        # grab a certificate
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.CertificateRequest)
+            .order_by(model_objects.CertificateRequest.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(
+        ("admin:certificate_requests", "admin:certificate_requests_paginated",)
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/certificate-requests", status=200)
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/certificate-requests/1", status=200)
+
+    @tests_routes(
+        (
+            "admin:certificate_requests|json",
+            "admin:certificate_requests_paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-requests.json", status=200
+        )
+        assert "CertificateRequests" in res.json
+
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-requests/1.json", status=200
+        )
+        assert "CertificateRequests" in res.json
+
+    @tests_routes(
+        (
+            "admin:certificate_request:focus",
+            "admin:certificate_request:focus:acme_orders",
+            "admin:certificate_request:focus:acme_orders_paginated",
+        )
+    )
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-request/%s" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-request/%s/acme-orders" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-request/%s/acme-orders/1" % focus_id,
+            status=200,
+        )
+
+    @tests_routes(("admin:certificate_request:focus:raw",))
+    def test_focus_raw(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-request/%s/csr.csr" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-request/%s/csr.pem" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-request/%s/csr.pem.txt" % focus_id,
+            status=200,
+        )
+
+    @tests_routes(("admin:certificate_request:focus|json",))
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/certificate-request/%s.json" % focus_id, status=200
+        )
+        assert "CertificateRequest" in res.json
+
+
+class FunctionalTests_Domain(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Domain
+    """
+
+    def _get_one(self):
+        # grab a certificate
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.Domain)
+            .filter(model_objects.Domain.is_active.op("IS")(True))
+            .order_by(model_objects.Domain.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(
+        (
+            "admin:domains",
+            "admin:domains_paginated",
+            "admin:domains:challenged",
+            "admin:domains:challenged_paginated",
+            "admin:domains:expiring",
+            "admin:domains:expiring_paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/domains", status=200)
+        res = self.testapp.get("/.well-known/admin/domains/challenged", status=200)
+        res = self.testapp.get("/.well-known/admin/domains/expiring", status=200)
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/domains/1", status=200)
+        res = self.testapp.get("/.well-known/admin/domains/challenged/1", status=200)
+        res = self.testapp.get("/.well-known/admin/domains/expiring/1", status=200)
+
+    @tests_routes(
+        (
+            "admin:domains|json",
+            "admin:domains_paginated|json",
+            "admin:domains:challenged|json",
+            "admin:domains:challenged_paginated|json",
+            "admin:domains:expiring|json",
+            "admin:domains:expiring_paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get("/.well-known/admin/domains.json", status=200)
+        assert "Domains" in res.json
+
+        res = self.testapp.get("/.well-known/admin/domains/challenged.json", status=200)
+        assert "Domains" in res.json
+
+        res = self.testapp.get("/.well-known/admin/domains/expiring.json", status=200)
+        assert "Domains" in res.json
+
+        # json paginated
+        res = self.testapp.get("/.well-known/admin/domains/1.json", status=200)
+        assert "Domains" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/domains/challenged/1.json", status=200
+        )
+        assert "Domains" in res.json
+
+        res = self.testapp.get("/.well-known/admin/domains/expiring/1.json", status=200)
+        assert "Domains" in res.json
+
+    @tests_routes(("admin:domains:search",))
+    def test_search_html(self):
+        res = self.testapp.get("/.well-known/admin/domains/search", status=200)
+        res2 = self.testapp.post(
+            "/.well-known/admin/domains/search", {"domain": "example.com"}
+        )
+
+    @tests_routes(("admin:domains:search|json",))
+    def test_search_json(self):
+        res = self.testapp.get("/.well-known/admin/domains/search.json", status=200)
+        res2 = self.testapp.post(
+            "/.well-known/admin/domains/search.json", {"domain": "example.com"}
+        )
+
+    @tests_routes(
+        (
+            "admin:domain:focus",
+            "admin:domain:focus:acme_authorizations",
+            "admin:domain:focus:acme_authorizations_paginated",
+            "admin:domain:focus:acme_challenges",
+            "admin:domain:focus:acme_challenges_paginated",
+            "admin:domain:focus:acme_orders",
+            "admin:domain:focus:acme_orders_paginated",
+            "admin:domain:focus:acme_orderlesss",
+            "admin:domain:focus:acme_orderlesss_paginated",
+            "admin:domain:focus:certificate_requests",
+            "admin:domain:focus:certificate_requests_paginated",
+            "admin:domain:focus:server_certificates",
+            "admin:domain:focus:server_certificates_paginated",
+            "admin:domain:focus:unique_fqdn_sets",
+            "admin:domain:focus:unique_fqdn_sets_paginated",
+        )
+    )
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        focus_name = focus_item.domain_name
+
+        res = self.testapp.get("/.well-known/admin/domain/%s" % focus_id, status=200)
+        res = self.testapp.get("/.well-known/admin/domain/%s" % focus_name, status=200)
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-authorizations" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-authorizations/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-challenges" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-challenges/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-orders" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-orders/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-orderlesss" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-orderlesss/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/certificate-requests" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/certificate-requests/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/server-certificates" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/server-certificates/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/unique-fqdn-sets" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/unique-fqdn-sets/1" % focus_id, status=200
+        )
+
+    @tests_routes(
+        (
+            "admin:domain:focus|json",
+            "admin:domain:focus:config|json",
+            "admin:domain:focus:calendar|json",
+        )
+    )
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        focus_name = focus_item.domain_name
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s.json" % focus_id, status=200
+        )
+        assert "Domain" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s.json" % focus_name, status=200
+        )
+        assert "Domain" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/config.json" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/calendar.json" % focus_id, status=200
+        )
+
+    @tests_routes(("admin:domain:focus:mark",))
+    def test_manipulate_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/mark" % focus_id, status=303,
+        )
+        assert res.location.endswith("?result=error&error=post+required&operation=mark")
+
+        # the `focus_item` is active,
+        if not focus_item.is_active:
+            raise ValueError("NOT focus_item.is_active")
+
+        # fail making this active
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/mark" % focus_id, {"action": "active"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith(
+            "?result=error&error=Error_Main--There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
+        )
+
+        # inactive ROUNDTRIP
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/mark" % focus_id, {"action": "inactive"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=inactive")
+
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/mark" % focus_id, {"action": "active"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=active")
+
+    @tests_routes(("admin:domain:focus:mark|json",))
+    def test_manipulate_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        # GET
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/mark.json" % focus_id,
+            {"action": "active"},
+            status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+
+        # the `focus_item` is active,
+        if not focus_item.is_active:
+            raise ValueError("NOT focus_item.is_active")
+
+        # fail making this active
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/mark.json" % focus_id, {"action": "active"},
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Already active."
+        )
+
+        # inactive ROUNDTRIP
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/mark.json" % focus_id, {"action": "inactive"},
+        )
+        assert res.status_code == 200
+        assert "Domain" in res.json
+        assert res.json["Domain"]["is_active"] is False
+
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/mark.json" % focus_id, {"action": "active"},
+        )
+        assert res.status_code == 200
+        assert "Domain" in res.json
+        assert res.json["Domain"]["is_active"] is True
+
+    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @tests_routes(("admin:domain:focus:nginx_cache_expire",))
+    def test_nginx_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        focus_name = focus_item.domain_name
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/nginx-cache-expire" % focus_id, status=303
+        )
+        RE_success = re.compile(
+            r"^http://peter-sslers\.example\.com/\.well-known/admin/domain/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"
+            ""
+        )
+        assert RE_success.match(res.location)
+
+    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @tests_routes(("admin:domain:focus:nginx_cache_expire|json",))
+    def test_nginx_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        focus_name = focus_item.domain_name
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/nginx-cache-expire.json" % focus_id,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+
+
+class FunctionalTests_DomainBlacklisted(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_DomainBlacklisted
+    """
+
+    @tests_routes(("admin:domains_blacklisted", "admin:domains_blacklisted_paginated",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/domains-blacklisted", status=200)
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/domains-blacklisted/1", status=200)
+
+    @tests_routes(
+        ("admin:domains_blacklisted|json", "admin:domains_blacklisted_paginated|json",)
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get(
+            "/.well-known/admin/domains-blacklisted.json", status=200
+        )
+        assert "DomainsBlacklisted" in res.json
+
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/admin/domains-blacklisted/1.json", status=200
+        )
+        assert "DomainsBlacklisted" in res.json
+
+    def test_AcmeOrder_new_fails(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_DomainBlacklisted.test_AcmeOrder_new_fails
+        """
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        # "admin:acme_order:new:automated",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/new/automated", status=200
+        )
+
+        form = res.form
+        _form_fields = form.fields.keys()
+        assert "account_key_option" in _form_fields
+        form["account_key_option"].force_value("account_key_file")
+        form["acme_account_provider_id"].force_value("1")
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+            )
+        )
+        form["private_key_cycle"].force_value("account_daily")
+        form["private_key_cycle__renewal"].force_value("account_key_default")
+        form["private_key_option"].force_value("private_key_for_account_key")
+        form["domain_names"] = "always-fail.example.com, foo.example.com"
+        form["processing_strategy"].force_value("create_order")
+        res2 = form.submit()
+
+        assert res2.status_code == 200
+        assert "There was an error with your form." in res2.text
+        assert (
+            "The following Domains are blacklisted: always-fail.example.com"
+            in res2.text
+        )
+
+    def test_AcmeOrderless_new_fails(self):
+
+        res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
+        form = res.form
+        form["domain_names"] = "always-fail.example.com, foo.example.com"
+        res2 = form.submit()
+
+        assert res2.status_code == 200
+        assert "There was an error with your form." in res2.text
+        assert (
+            "The following Domains are blacklisted: always-fail.example.com"
+            in res2.text
+        )
+
+    def test_AcmeOrderless_add_fails(self):
+
+        res = self.testapp.get("/.well-known/admin/acme-orderless/new", status=200)
+        form = res.form
+        form["domain_names"] = "example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_AcmeOrderless.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        # build a new form and submit edits
+        res3 = self.testapp.get(
+            "/.well-known/admin/acme-orderless/%s" % obj_id, status=200,
+        )
+        form = res3.forms["acmeorderless-add_challenge"]
+        add_fields = dict(form.submit_fields())
+        assert "keyauthorization" in add_fields
+        assert "domain" in add_fields
+        assert "token" in add_fields
+        form["keyauthorization"] = "keyauthorization_add"
+        form["domain"] = "always-fail.example.com"
+        form["token"] = "token_add"
+        res4 = form.submit()
+        assert res4.status_code == 200
+        assert "There was an error with your form." in res4.text
+        assert (
+            """<span class="help-inline">This domain is blacklisted.</span>"""
+            in res4.text
+        )
+
+    def test_QueueDomain_add_fails(self):
+        res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        form = res.form
+        form["domain_names"] = "always-fail.example.com,example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert (
+            res2.location
+            == """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&is_created=1&results=%7B%22example.com%22%3A+%22exists%22%2C+%22always-fail.example.com%22%3A+%22blacklisted%22%7D"""
+        )
+
+
+class FunctionalTests_Operations(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Operations
+    """
+
+    @tests_routes(
+        (
+            "admin:operations",
+            "admin:operations:ca_certificate_probes",
+            "admin:operations:ca_certificate_probes_paginated",
+            "admin:operations:log",
+            "admin:operations:log_paginated",
+            "admin:operations:log:focus",
+            "admin:operations:object_log",
+            "admin:operations:object_log_paginated",
+            "admin:operations:object_log:focus",
+            "admin:operations:nginx",
+            "admin:operations:nginx_paginated",
+            "admin:operations:redis",
+            "admin:operations:redis_paginated",
+        )
+    )
+    def test_passive(self):
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.OperationsEvent)
+            .order_by(model_objects.OperationsEvent.id.asc())
+            .limit(1)
+            .one()
+        )
+
+        focus_item_event = (
+            self.ctx.dbSession.query(model_objects.OperationsObjectEvent)
+            .order_by(model_objects.OperationsObjectEvent.id.asc())
+            .limit(1)
+            .one()
+        )
+
+        # this should redirect
+        res = self.testapp.get("/.well-known/admin/operations", status=302)
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/operations/log"
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/operations/ca-certificate-probes", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/operations/ca-certificate-probes/1", status=200
+        )
+
+        res = self.testapp.get("/.well-known/admin/operations/log", status=200)
+        res = self.testapp.get("/.well-known/admin/operations/log/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/operations/log/item/%s" % focus_item.id, status=200
+        )
+
+        res = self.testapp.get("/.well-known/admin/operations/object-log", status=200)
+        res = self.testapp.get("/.well-known/admin/operations/object-log/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/operations/object-log/item/%s" % focus_item_event.id,
+            status=200,
+        )
+
+        _nginx = (
+            True
+            if (
+                ("enable_nginx" in self.testapp.app.registry.settings["app_settings"])
+                and (
+                    self.testapp.app.registry.settings["app_settings"]["enable_nginx"]
+                    is True
+                )
+            )
+            else False
+        )
+        if _nginx:
+            res = self.testapp.get("/.well-known/admin/operations/nginx", status=200)
+            res = self.testapp.get("/.well-known/admin/operations/nginx/1", status=200)
+        else:
+            res = self.testapp.get("/.well-known/admin/operations/nginx", status=302)
+            assert (
+                res.location
+                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=no+nginx"
+            )
+
+            res = self.testapp.get("/.well-known/admin/operations/nginx/1", status=302)
+            assert (
+                res.location
+                == "http://peter-sslers.example.com/.well-known/admin?result=error&error=no+nginx"
+            )
+
+        res = self.testapp.get("/.well-known/admin/operations/redis", status=200)
+        res = self.testapp.get("/.well-known/admin/operations/redis/1", status=200)
+
+
+class FunctionalTests_PrivateKey(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_PrivateKey
+    """
+
+    def _get_one(self):
+        # grab a Key
+        # loop these in desc order, because latter items shouldn't have anything associated on them.
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.PrivateKey)
+            .filter(
+                model_objects.PrivateKey.is_active.op("IS")(True),
+                model_objects.PrivateKey.private_key_type_id
+                != model_utils.PrivateKeyType.from_string("placeholder"),
+            )
+            .order_by(model_objects.PrivateKey.id.desc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(("admin:private_keys", "admin:private_keys_paginated",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/private-keys", status=200)
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/private-keys/1", status=200)
+
+    @tests_routes(("admin:private_keys|json", "admin:private_keys_paginated|json",))
+    def test_list_json(self):
+        # json
+        res = self.testapp.get("/.well-known/admin/private-keys.json", status=200)
+        assert "PrivateKeys" in res.json
+
+        res = self.testapp.get("/.well-known/admin/private-keys/1.json", status=200)
+        assert "PrivateKeys" in res.json
+
+    @tests_routes(
+        (
+            "admin:private_key:focus",
+            "admin:private_key:focus:certificate_requests",
+            "admin:private_key:focus:certificate_requests_paginated",
+            "admin:private_key:focus:server_certificates",
+            "admin:private_key:focus:server_certificates_paginated",
+        )
+    )
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/certificate-requests" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/certificate-requests/1" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/server-certificates" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/server-certificates/1" % focus_id,
+            status=200,
+        )
+
+    @tests_routes(
+        ("admin:private_key:focus|json", "admin:private_key:focus:parse|json",)
+    )
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s.json" % focus_id, status=200
+        )
+        assert "PrivateKey" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/parse.json" % focus_id, status=200
+        )
+        assert str(focus_id) in res.json
+
+    @tests_routes(("admin:private_key:focus:raw",))
+    def test_focus_raw(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/key.key" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/key.pem" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/key.pem.txt" % focus_id, status=200
+        )
+
+    @tests_routes(("admin:private_key:focus:mark",))
+    def test_manipulate_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/mark" % focus_id, status=303,
+        )
+        assert res.location.endswith("?result=error&error=post+required&operation=mark")
+
+        # the `focus_item` is active, so it can't be compromised or inactive
+        if focus_item.is_compromised:
+            raise ValueError("focus_item.is_compromised")
+
+        if not focus_item.is_active:
+            raise ValueError("NOT focus_item.is_active")
+
+        # fail making this active
+        res = self.testapp.post(
+            "/.well-known/admin/private-key/%s/mark" % focus_id, {"action": "active"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith(
+            "?result=error&error=Error_Main--There+was+an+error+with+your+form.+Already+activated&operation=mark&action=active"
+        )
+
+        # inactive ROUNDTRIP
+        res = self.testapp.post(
+            "/.well-known/admin/private-key/%s/mark" % focus_id, {"action": "inactive"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=inactive")
+
+        res = self.testapp.post(
+            "/.well-known/admin/private-key/%s/mark" % focus_id, {"action": "active"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=active")
+
+        # then compromised
+        res = self.testapp.post(
+            "/.well-known/admin/private-key/%s/mark" % focus_id,
+            {"action": "compromised"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith(
+            "?result=success&operation=mark&action=compromised"
+        )
+
+    @tests_routes(("admin:private_key:focus:mark|json",))
+    def test_manipulate_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/mark.json" % focus_id, status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+
+        # the `focus_item` is active, so it can't be compromised or inactive
+        if focus_item.is_compromised:
+            raise ValueError("focus_item.is_compromised")
+
+        if not focus_item.is_active:
+            raise ValueError("NOT focus_item.is_active")
+
+        # fail making this active
+        res = self.testapp.post(
+            "/.well-known/admin/private-key/%s/mark.json" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Already activated"
+        )
+
+        # inactive ROUNDTRIP
+        res = self.testapp.post(
+            "/.well-known/admin/private-key/%s/mark.json" % focus_id,
+            {"action": "inactive"},
+        )
+        assert res.status_code == 200
+        assert "PrivateKey" in res.json
+        assert res.json["PrivateKey"]["is_active"] is False
+
+        res = self.testapp.post(
+            "/.well-known/admin/private-key/%s/mark.json" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 200
+        assert "PrivateKey" in res.json
+        assert res.json["PrivateKey"]["is_active"] is True
+
+        # then compromised
+        res = self.testapp.post(
+            "/.well-known/admin/private-key/%s/mark.json" % focus_id,
+            {"action": "compromised"},
+        )
+        assert res.status_code == 200
+        assert "PrivateKey" in res.json
+        assert res.json["PrivateKey"]["is_active"] is False
+        assert res.json["PrivateKey"]["is_compromised"] is True
+
+    @tests_routes(("admin:private_key:upload", "admin:private_key:new",))
+    def test_new_html(self):
+        # this should be creating a new key
+        _key_filename = TEST_FILES["PrivateKey"]["2"]["file"]
+        key_filepath = self._filepath_testfile(_key_filename)
+        res = self.testapp.get("/.well-known/admin/private-key/upload", status=200)
+        form = res.form
+        form["private_key_file_pem"] = Upload(key_filepath)
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert """/.well-known/admin/private-key/""" in res2.location
+        # for some reason, we don't always "create" this.
+        assert """?result=success""" in res2.location
+        res3 = self.testapp.get(res2.location, status=200)
+
+        # okay now new
+        res = self.testapp.get("/.well-known/admin/private-key/new", status=200)
+        form = res.form
+        new_fields = dict(form.submit_fields())
+        assert "bits" in new_fields
+        assert new_fields["bits"] == "4096"
+
+        res2 = form.submit()
+        assert res2.status_code == 303
+        # 'http://peter-sslers.example.com/.well-known/admin/private-key/3?result=success&is_created=1'
+        assert res2.location.startswith(
+            """http://peter-sslers.example.com/.well-known/admin/private-key/"""
+        )
+        # for some reason, we don't always "create" this.
+        assert res2.location.endswith("""?result=success&is_created=1""")
+        res3 = self.testapp.get(res2.location, status=200)
+
+    @tests_routes(("admin:private_key:upload|json", "admin:private_key:new|json",))
+    def test_new_json(self):
+        _key_filename = TEST_FILES["PrivateKey"]["2"]["file"]
+        key_filepath = self._filepath_testfile(_key_filename)
+
+        res = self.testapp.get("/.well-known/admin/private-key/upload.json", status=200)
+        assert "form_fields" in res.json
+
+        form = {}
+        form["private_key_file_pem"] = Upload(key_filepath)
+        res2 = self.testapp.post("/.well-known/admin/private-key/upload.json", form)
+        assert res2.status_code == 200
+        assert "PrivateKey" in res2.json
+
+        res = self.testapp.get("/.well-known/admin/private-key/new.json", status=200)
+        assert "form_fields" in res.json
+
+        form = {"bits": 4096}
+        res2 = self.testapp.post("/.well-known/admin/private-key/new.json", form)
+        assert res2.status_code == 200
+        assert "PrivateKey" in res2.json
+
+
+class FunctionalTests_ServerCertificate(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_ServerCertificate
+    """
+
+    def _get_one(self):
+        # grab a certificate
+        # iterate backwards
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.ServerCertificate)
+            .filter(model_objects.ServerCertificate.is_active.op("IS")(True))
+            .order_by(model_objects.ServerCertificate.id.desc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(
+        (
+            "admin:server_certificates",
+            "admin:server_certificates_paginated",
+            "admin:server_certificates:active",
+            "admin:server_certificates:active_paginated",
+            "admin:server_certificates:expiring",
+            "admin:server_certificates:expiring_paginated",
+            "admin:server_certificates:inactive",
+            "admin:server_certificates:inactive_paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/server-certificates", status=200)
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/server-certificates/1", status=200)
+
+        for _type in (
+            "active",
+            "expiring",
+            "inactive",
+        ):
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificates/%s" % _type, status=200
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificates/%s/1" % _type, status=200
+            )
+
+    @tests_routes(
+        (
+            "admin:server_certificates|json",
+            "admin:server_certificates_paginated|json",
+            "admin:server_certificates:active|json",
+            "admin:server_certificates:active_paginated|json",
+            "admin:server_certificates:expiring|json",
+            "admin:server_certificates:expiring_paginated|json",
+            "admin:server_certificates:inactive|json",
+            "admin:server_certificates:inactive_paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # root
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificates.json", status=200
+        )
+        assert "ServerCertificates" in res.json
+
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificates/1.json", status=200
+        )
+        assert "ServerCertificates" in res.json
+
+        for _type in (
+            "active",
+            "expiring",
+            "inactive",
+        ):
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificates/%s.json" % _type, status=200
+            )
+            assert "ServerCertificates" in res.json
+
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificates/%s/1.json" % _type, status=200
+            )
+            assert "ServerCertificates" in res.json
+
+    @tests_routes(("admin:server_certificate:focus",))
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        if focus_item is None:
+            raise ValueError(
+                """This test currently fails when the ENTIRE SUITE is run """
+                """because `FunctionalTests_API.tests_manipulate` will """
+                """deactivate the certificate. Try running this test or """
+                """this tests's class directly to ensure a pass."""
+            )
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s" % focus_id, status=200
+        )
+
+    @tests_routes(
+        (
+            "admin:server_certificate:focus:chain:raw",
+            "admin:server_certificate:focus:fullchain:raw",
+            "admin:server_certificate:focus:privatekey:raw",
+            "admin:server_certificate:focus:cert:raw",
+        )
+    )
+    def test_focus_raw(self):
+        focus_item = self._get_one()
+        if focus_item is None:
+            raise ValueError(
+                """This test currently fails when the ENTIRE SUITE is run """
+                """because `FunctionalTests_API.tests_manipulate` will """
+                """deactivate the certificate. Try running this test or """
+                """this tests's class directly to ensure a pass."""
+            )
+        focus_id = focus_item.id
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/chain.cer" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/chain.crt" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/chain.der" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/chain.pem" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/chain.pem.txt" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/fullchain.pem" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/fullchain.pem.txt" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/privkey.key" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/privkey.pem" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/privkey.pem.txt" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/cert.crt" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/cert.pem" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/cert.pem.txt" % focus_id,
+            status=200,
+        )
+
+    @tests_routes(
+        (
+            "admin:server_certificate:focus|json",
+            "admin:server_certificate:focus:config|json",
+            "admin:server_certificate:focus:parse|json",
+        )
+    )
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        if focus_item is None:
+            raise ValueError(
+                """This test currently fails when the ENTIRE SUITE is run """
+                """because `FunctionalTests_API.tests_manipulate` will """
+                """deactivate the certificate. Try running this test or """
+                """this tests's class directly to ensure a pass."""
+            )
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s.json" % focus_id, status=200
+        )
+        assert "ServerCertificate" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/config.json" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/parse.json" % focus_id, status=200
+        )
+
+    @tests_routes(("admin:server_certificate:focus:mark",))
+    def test_manipulate_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/mark" % focus_id
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=error&error=post+required&operation=mark")
+
+        # the `focus_item` is active, so it can't be revoked or inactive
+        if focus_item.is_revoked:
+            raise ValueError("focus_item.is_revoked")
+
+        if not focus_item.is_active:
+            raise ValueError("NOT focus_item.is_active")
+
+        # fail making this active
+        res = self.testapp.post(
+            "/.well-known/admin/server-certificate/%s/mark" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 303
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/server-certificate/%s?&result=error&error=There+was+an+error+with+your+form.+Already+active.&operation=mark&action=active"
+            % focus_id
+        )
+
+        # inactive ROUNDTRIP
+        res = self.testapp.post(
+            "/.well-known/admin/server-certificate/%s/mark" % focus_id,
+            {"action": "inactive"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=inactive")
+
+        res = self.testapp.post(
+            "/.well-known/admin/server-certificate/%s/mark" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=active")
+
+        # then compromised
+        res = self.testapp.post(
+            "/.well-known/admin/server-certificate/%s/mark" % focus_id,
+            {"action": "revoked"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=revoked")
+
+    @tests_routes(("admin:server_certificate:focus:mark|json",))
+    def test_manipulate_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id, status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+
+        # the `focus_item` is active, so it can't be revoked or inactive
+        if focus_item.is_revoked:
+            raise ValueError("focus_item.is_revoked")
+
+        if not focus_item.is_active:
+            raise ValueError("NOT focus_item.is_active")
+
+        # fail making this active
+        res = self.testapp.post(
+            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "error"
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. Already active."
+        )
+
+        # inactive ROUNDTRIP
+        res = self.testapp.post(
+            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id,
+            {"action": "inactive"},
+        )
+        assert res.status_code == 200
+        assert "ServerCertificate" in res.json
+        assert res.json["ServerCertificate"]["is_active"] is False
+
+        res = self.testapp.post(
+            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id,
+            {"action": "active"},
+        )
+        assert res.status_code == 200
+        assert "ServerCertificate" in res.json
+        assert res.json["ServerCertificate"]["is_active"] is True
+
+        # then compromised
+        res = self.testapp.post(
+            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id,
+            {"action": "revoked"},
+        )
+        assert res.status_code == 200
+        assert "ServerCertificate" in res.json
+        assert res.json["ServerCertificate"]["is_active"] is False
+        assert res.json["ServerCertificate"]["is_revoked"] is True
+        assert res.json["ServerCertificate"]["is_deactivated"] is True
+
+    @tests_routes(("admin:server_certificate:upload",))
+    def test_upload_html(self):
+        #
+        # upload a new cert
+        #
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/upload", status=200
+        )
+        _SelfSigned_id = "1"
+        form = res.form
+        form["certificate_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
+            )
+        )
+        form["chain_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
+            )
+        )
+        form["private_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["pkey"]
+            )
+        )
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert res2.location.startswith(
+            """http://peter-sslers.example.com/.well-known/admin/server-certificate/"""
+        )
+
+    @tests_routes(("admin:server_certificate:upload|json",))
+    def test_upload_json(self):
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/upload.json", status=200
+        )
+        chain_filepath = self._filepath_testfile("lets-encrypt-x1-cross-signed.pem.txt")
+        _SelfSigned_id = "2"
+        form = {}
+        form["certificate_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
+            )
+        )
+        form["chain_file"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["cert"]
+            )
+        )
+        form["private_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                TEST_FILES["ServerCertificates"]["SelfSigned"][_SelfSigned_id]["pkey"]
+            )
+        )
+        res2 = self.testapp.post(
+            "/.well-known/admin/server-certificate/upload.json", form
+        )
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+        assert res2.json["ServerCertificate"]["created"] in (True, False)
+        certificate_id = res2.json["ServerCertificate"]["id"]
+        res3 = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s.json" % certificate_id, status=200
+        )
+        assert "ServerCertificate" in res3.json
+
+    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @tests_routes(("admin:server_certificate:focus:nginx_cache_expire",))
+    def test_nginx_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/nginx-cache-expire" % focus_id,
+            status=303,
+        )
+        RE_success = re.compile(
+            r"^http://peter-sslers\.example\.com/\.well-known/admin/server-certificate/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"
+            ""
+        )
+        assert RE_success.match(res.location)
+
+    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @tests_routes(("admin:server_certificate:focus:nginx_cache_expire|json",))
+    def test_nginx_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/nginx-cache-expire.json"
+            % focus_id,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+
+
+class FunctionalTests_UniqueFQDNSet(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_UniqueFQDNSet
+    """
+
+    def _get_one(self):
+        # grab a UniqueFqdnSet
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.UniqueFQDNSet)
+            .order_by(model_objects.UniqueFQDNSet.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(("admin:unique_fqdn_sets", "admin:unique_fqdn_sets_paginated",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/unique-fqdn-sets", status=200)
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/unique-fqdn-sets/1", status=200)
+
+    @tests_routes(
+        ("admin:unique_fqdn_sets|json", "admin:unique_fqdn_sets_paginated|json",)
+    )
+    def test_list_json(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/unique-fqdn-sets.json", status=200)
+        assert "UniqueFQDNSets" in res.json
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/unique-fqdn-sets/1.json", status=200)
+        assert "UniqueFQDNSets" in res.json
+
+    @tests_routes(
+        (
+            "admin:unique_fqdn_set:focus",
+            "admin:unique_fqdn_set:focus:acme_orders",
+            "admin:unique_fqdn_set:focus:acme_orders_paginated",
+            "admin:unique_fqdn_set:focus:certificate_requests",
+            "admin:unique_fqdn_set:focus:certificate_requests_paginated",
+            "admin:unique_fqdn_set:focus:server_certificates",
+            "admin:unique_fqdn_set:focus:server_certificates_paginated",
+        )
+    )
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/acme-orders" % focus_id, status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/acme-orders/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/certificate-requests" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/certificate-requests/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/server-certificates" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/server-certificates/1" % focus_id,
+            status=200,
+        )
+
+    @tests_routes(
+        (
+            "admin:unique_fqdn_set:focus|json",
+            "admin:unique_fqdn_set:focus:calendar|json",
+        )
+    )
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s.json" % focus_id, status=200
+        )
+        assert "UniqueFQDNSet" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/calendar.json" % focus_id, status=200
+        )
+
+
+class FunctionalTests_QueueCertificate(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate
+    """
+
+    def _get_one(self):
+        # grab an item
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.QueueCertificate)
+            .order_by(model_objects.QueueCertificate.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(
+        (
+            "admin:queue_certificates",
+            "admin:queue_certificates_paginated",
+            "admin:queue_certificates:all",
+            "admin:queue_certificates:all_paginated",
+            "admin:queue_certificates:active_failures",
+            "admin:queue_certificates:active_failures_paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/queue-certificates", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-certificates/all", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/active-failures", status=200
+        )
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/queue-certificates/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/all/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/active-failures/1", status=200
+        )
+
+    @tests_routes(
+        (
+            "admin:queue_certificates|json",
+            "admin:queue_certificates_paginated|json",
+            "admin:queue_certificates:all|json",
+            "admin:queue_certificates:all_paginated|json",
+            "admin:queue_certificates:active_failures|json",
+            "admin:queue_certificates:active_failures_paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # root|json
+        res = self.testapp.get("/.well-known/admin/queue-certificates.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/all.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/active-failures.json", status=200
+        )
+        # paginated|json
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/1.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/all/1.json", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/active-failures/1.json", status=200
+        )
+
+    @tests_routes(("admin:queue_certificate:focus",))
+    def test_focus_html(self):
+        """this doesn't work on solo tests"""
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/%s" % focus_id, status=200
+        )
+
+    @tests_routes(("admin:queue_certificate:focus|json",))
+    def test_focus_json(self):
+        """this doesn't work on solo tests"""
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/%s.json" % focus_id, status=200
+        )
+
+    @tests_routes(("admin:queue_certificate:focus:mark",))
+    def test_manipulate_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/%s/mark" % focus_id,
+            {"action": "cancel"},
+            status=303,
+        )
+
+    @tests_routes(("admin:queue_certificate:focus:mark|json",))
+    def test_manipulate_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+            status=200,
+        )
+
+
+class FunctionalTests_QueueDomains(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueDomains
+    """
+
+    def _get_one(self):
+        # grab an item
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.QueueDomain)
+            .filter(model_objects.QueueDomain.is_active.op("IS")(True))
+            .order_by(model_objects.QueueDomain.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @tests_routes(
+        (
+            "admin:queue_domains",
+            "admin:queue_domains_paginated",
+            "admin:queue_domains:all",
+            "admin:queue_domains:all_paginated",
+        )
+    )
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/queue-domains", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-domains/all", status=200)
+        # paginated
+        res = self.testapp.get("/.well-known/admin/queue-domains/1", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-domains/all/1", status=200)
+
+    @tests_routes(
+        (
+            "admin:queue_domains|json",
+            "admin:queue_domains_paginated|json",
+            "admin:queue_domains:all|json",
+            "admin:queue_domains:all_paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get("/.well-known/admin/queue-domains.json", status=200)
+        res = self.testapp.get("/.well-known/admin/queue-domains/all.json", status=200)
+        # json paginated
+        res = self.testapp.get("/.well-known/admin/queue-domains/1.json", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domains/all/1.json", status=200
+        )
+
+    @tests_routes(("admin:queue_domains:add",))
+    def test_add_html(self):
+        res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        form = res.form
+        form["domain_names"] = TEST_FILES["Domains"]["Queue"]["1"]["add"]
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert (
+            """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success"""
+            in res2.location
+        )
+
+    @tests_routes(("admin:queue_domains:add|json",))
+    def test_add_json(self):
+        res = self.testapp.get("/.well-known/admin/queue-domains/add.json", status=200)
+        _data = {"domain_names": TEST_FILES["Domains"]["Queue"]["1"]["add.json"]}
+        res2 = self.testapp.post("/.well-known/admin/queue-domains/add.json", _data)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+
+    @tests_routes(("admin:queue_domain:focus",))
+    def test_focus_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domain/%s" % focus_id, status=200
+        )
+
+    @tests_routes(("admin:queue_domain:focus|json",))
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domain/%s.json" % focus_id, status=200
+        )
+        assert res.json["result"] == "success"
+        assert "QueueDomain" in res.json
+
+    @tests_routes(("admin:queue_domain:focus:mark",))
+    def test_manipulate_html(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domain/%s/mark" % focus_id,
+            {"action": "cancel"},
+            status=303,
+        )
+
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=error&error=post+required&operation=mark"
+            % focus_id
+        )
+
+        res2 = self.testapp.post(
+            "/.well-known/admin/queue-domain/%s/mark" % focus_id, {"action": "cancel"}
+        )
+        assert res2.status_code == 303
+        assert (
+            res2.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=success&operation=mark&action=cancel"
+            % focus_id
+        )
+
+        res3 = self.testapp.post(
+            "/.well-known/admin/queue-domain/%s/mark" % focus_id, {"action": "cancel"}
+        )
+        assert res3.status_code == 303
+        assert (
+            res3.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-domain/%s?result=error&error=action--Already+cancelledError_Main--There+was+an+error+with+your+form.&operation=mark&action=cancel"
+            % focus_id
+        )
+
+    @tests_routes(("admin:queue_domain:focus:mark|json",))
+    def test_manipulate_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+            status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+
+        # make this inactive
+        res2 = self.testapp.post(
+            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+        )
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+        assert "QueueDomain" in res2.json
+        assert res2.json["QueueDomain"]["is_active"] is False
+
+        # fail it inactive
+        res3 = self.testapp.post(
+            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+        )
+        assert res3.status_code == 200
+        assert res3.json["result"] == "error"
+        assert "form_errors" in res3.json
+        assert res3.json["form_errors"]["action"] == "Already cancelled"
+
+
+class FunctionalTests_AcmeServer(AppTest):
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes("admin:acme_account_key:new")
+    def test_AcmeAccountKey_new_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_new_html
+        """
+
+        res = self.testapp.get("/.well-known/admin/acme-account-key/new", status=200)
+        form = res.form
+        form["acme_account_provider_id"].force_value(
+            str(1)
+        )  # acme_account_provider_id(1) == pebble
+        res2 = form.submit()
+        assert res2.status_code == 200
+        assert "There was an error with your form." in res2.text
+        assert "contact is required." in res2.text
+
+        form = res2.form
+        form["contact"].force_value("AcmeAccountKey.new.html@example.com")
+        res2 = form.submit()
+        assert res2.status_code == 303
+        re_expected = re.compile(
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-account-key/(\d+)\?result=success&operation=new&is_created=1$"""
+        )
+        matched = re_expected.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes("admin:acme_account_key:new|json")
+    def test_AcmeAccountKey_new_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_new_json
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/new.json", status=200
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+
+        form = {}
+        res2 = self.testapp.post("/.well-known/admin/acme-account-key/new.json", form)
+        assert res2.json["result"] == "error"
+        assert "form_errors" in res2.json
+        assert isinstance(res2.json["form_errors"], dict)
+        assert len(res2.json["form_errors"]) == 1
+        assert res2.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        form = {
+            "acme_account_provider_id": 1,
+            "contact": "AcmeAccountKey.new.json@example.com",
+            "private_key_cycle": "single_certificate",
+        }
+        res3 = self.testapp.post("/.well-known/admin/acme-account-key/new.json", form)
+        assert res3.json["result"] == "success"
+        assert "AcmeAccountKey" in res3.json
+        return True
+
+    def _get_one_AcmeAccountKey(self):
+        # grab an item
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.AcmeAccountKey)
+            .filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+            .filter(model_objects.AcmeAccountKey.acme_account_provider_id == 1)
+            .order_by(model_objects.AcmeAccountKey.id.asc())
+            .first()
+        )
+        return focus_item
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes("admin:acme_account_key:focus:acme_server:authenticate")
+    def test_AcmeAccountKey_authenticate_html(self):
+        """
+        # this hits Pebble via http
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_authenticate_html
+        """
+        focus_item = self._get_one_AcmeAccountKey()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-server/authenticate"
+            % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-account-key/%s?result=error&error=post+required&operation=acme-server--authenticate"
+            % focus_id
+        )
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/acme-server/authenticate"
+            % focus_id,
+            {},
+        )
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/acme-account-key/%s?result=success&operation=acme-server--authenticate&is_authenticated=True"""
+            % focus_id
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes("admin:acme_account_key:focus:acme_server:authenticate|json")
+    def test_AcmeAccountKey_authenticate_json(self):
+        """
+        # this hits Pebble via http
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_authenticate_json
+        """
+        focus_item = self._get_one_AcmeAccountKey()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-server/authenticate.json"
+            % focus_id,
+            status=200,
+        )
+        assert res.location is None  # no redirect
+        assert "instructions" in res.json
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/acme-server/authenticate.json"
+            % focus_id,
+            {},
+        )
+        assert res.status_code == 200
+        assert res.location is None  # no redirect
+        assert "AcmeAccountKey" in res.json
+
+    @tests_routes(
+        (
+            "admin:acme_order:new:automated",
+            "admin:acme_order:focus|json",
+            "admin:acme_account_key:focus",
+            "admin:acme_account_key:focus:acme_authorizations",
+            "admin:acme_account_key:focus:acme_authorizations|json",
+        )
+    )
+    def _prep__AcmeAccountKey_deactivate_pending_authorizations(self):
+        """
+        shared routine
+        this runs `@under_pebble`, but the invoking function should wrap it
+        """
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+        # we need two for this test
+        assert len(_test_data["acme-order/new/automated#1"]["domain_names"]) == 2
+
+        # "admin:acme_order:new:automated",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/new/automated", status=200
+        )
+        form = res.form
+        _form_fields = form.fields.keys()
+        assert "account_key_option" in _form_fields
+        form["account_key_option"].force_value("account_key_file")
+        form["acme_account_provider_id"].force_value("1")
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+            )
+        )
+        form["private_key_cycle"].force_value("account_daily")
+        form["private_key_cycle__renewal"].force_value("account_key_default")
+        form["private_key_option"].force_value("private_key_for_account_key")
+        form["domain_names"] = ",".join(
+            _test_data["acme-order/new/automated#1"]["domain_names"]
+        )
+        form["processing_strategy"].force_value("create_order")
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        matched = RE_AcmeOrder.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        # "admin:acme_order:focus|json",
+        res = self.testapp.get("%s.json" % res2.location, status=200)
+        assert "AcmeOrder" in res.json
+        acme_account_key_id = res.json["AcmeOrder"]["acme_account_key_id"]
+        assert acme_account_key_id
+
+        # admin:acme_account_key:focus
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s" % acme_account_key_id, status=200
+        )
+
+        return acme_account_key_id
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_account_key:focus:acme_server:deactivate_pending_authorizations",  # real test
+        )
+    )
+    def test_AcmeAccountKey_deactivate_pending_authorizations_html(self):
+        """
+        # this hits Pebble via http
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_deactivate_pending_authorizations_html
+        """
+        acme_account_key_id = (
+            self._prep__AcmeAccountKey_deactivate_pending_authorizations()
+        )
+
+        # get - fail!
+        res_bad = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-server/deactivate-pending-authorizations"
+            % acme_account_key_id,
+            status=303,
+        )
+        matched = RE_AcmeAccountKey_deactivate_pending_post_required.match(
+            res_bad.location
+        )
+        assert matched
+
+        # use the JSON route to grab authorization ids for our form
+        # admin:acme_account_key:focus:acme_authorizations
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations"
+            % acme_account_key_id,
+            status=200,
+        )
+        res2 = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations.json"
+            % acme_account_key_id,
+            status=200,
+        )
+        acme_authorization_ids = [
+            i["id"]
+            for i in res2.json["AcmeAuthorizations"]
+            if i["acme_status_authorization"]
+            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+        ]
+        assert len(acme_authorization_ids) == 2
+        form = res.form
+        form["acme_authorization_id"] = acme_authorization_ids
+        res3 = form.submit()
+
+        assert res3.status_code == 303
+        matched = RE_AcmeAccountKey_deactivate_pending_success.match(res3.location)
+
+        res4 = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations.json"
+            % acme_account_key_id,
+            status=200,
+        )
+        acme_authorization_ids_2 = [
+            i["id"]
+            for i in res4.json["AcmeAuthorizations"]
+            if i["acme_status_authorization"]
+            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+        ]
+        assert len(acme_authorization_ids_2) == 0
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_account_key:focus:acme_server:deactivate_pending_authorizations|json",  # real test
+        )
+    )
+    def test_AcmeAccountKey_deactivate_pending_authorizations_json(self):
+        """
+        # this hits Pebble via http
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccountKey_deactivate_pending_authorizations_json
+        """
+        acme_account_key_id = (
+            self._prep__AcmeAccountKey_deactivate_pending_authorizations()
+        )
+
+        # get - fail!
+        res_bad = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-server/deactivate-pending-authorizations.json"
+            % acme_account_key_id,
+            status=200,
+        )
+        assert "instructions" in res_bad.json
+
+        # use the JSON route to grab authorization ids for our form
+        # admin:acme_account_key:focus:acme_authorizations
+        res2 = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations.json"
+            % acme_account_key_id,
+            status=200,
+        )
+        acme_authorization_ids = [
+            i["id"]
+            for i in res2.json["AcmeAuthorizations"]
+            if i["acme_status_authorization"]
+            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+        ]
+        assert len(acme_authorization_ids) == 2
+
+        post_data = [
+            ("acme_authorization_id", acme_authorization_id)
+            for acme_authorization_id in acme_authorization_ids
+        ]
+        res3 = self.testapp.post(
+            "/.well-known/admin/acme-account-key/%s/acme-server/deactivate-pending-authorizations.json"
+            % acme_account_key_id,
+            post_data,
+        )
+        assert res3.status_code == 200
+
+        res4 = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/acme-authorizations.json"
+            % acme_account_key_id,
+            status=200,
+        )
+        acme_authorization_ids_2 = [
+            i["id"]
+            for i in res4.json["AcmeAuthorizations"]
+            if i["acme_status_authorization"]
+            in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
+        ]
+        assert len(acme_authorization_ids_2) == 0
+
+    @tests_routes(("admin:acme_order:new:automated",))
+    def _prep_AcmeOrder_html(self, processing_strategy=None):
+        """
+        this runs `@under_pebble`, but the invoking function should wrap it
+        """
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        # we need two for this test
+        assert len(_test_data["acme-order/new/automated#1"]["domain_names"]) == 2
+
+        # "admin:acme_order:new:automated",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/new/automated", status=200
+        )
+
+        form = res.form
+        _form_fields = form.fields.keys()
+        assert "account_key_option" in _form_fields
+        form["account_key_option"].force_value("account_key_file")
+        form["acme_account_provider_id"].force_value("1")
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+            )
+        )
+        form["private_key_cycle"].force_value("account_daily")
+        form["private_key_cycle__renewal"].force_value("account_key_default")
+        form["private_key_option"].force_value("private_key_for_account_key")
+        form["domain_names"] = ",".join(
+            _test_data["acme-order/new/automated#1"]["domain_names"]
+        )
+        if processing_strategy is None:
+            processing_strategy = "create_order"
+        form["processing_strategy"].force_value(processing_strategy)
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        # "admin:acme_order:focus",
+        matched = RE_AcmeOrder.match(res2.location)
+        assert matched
+        obj_id = matched.groups()[0]
+
+        return (obj_id, res2.location)
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_order:new:automated",
+            "admin:acme_order:focus",
+            "admin:acme_order:focus:acme_server:sync",
+            "admin:acme_order:focus:acme_server:sync_authorizations",
+            "admin:acme_authorization:focus",
+            "admin:acme_authorization:focus:acme_server:sync",
+            "admin:acme_authorization:focus:acme_server:trigger",
+            "admin:acme_challenge:focus",
+            "admin:acme_challenge:focus:acme_server:sync",
+            "admin:acme_challenge:focus:acme_server:trigger",
+            "admin:acme_order:focus:finalize",
+            "admin:acme_order:focus:renew:custom",
+            "admin:acme_order:focus:renew:quick",
+            "admin:acme_order:focus:acme_server:deactivate_authorizations",
+        )
+    )
+    def test_AcmeOrder_extended_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_extended_html
+
+        NOTE: if domains are not randomized for the order, one needs to reset the pebble instance
+        NOTE^^^ this now runs with it's own pebble instance
+        """
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        (obj_id, obj_url) = self._prep_AcmeOrder_html()
+
+        # /acme-order
+        res = self.testapp.get(obj_url, status=200)
+
+        # "admin:acme_order:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            % obj_id
+        )
+
+        # "admin:acme_order:focus:acme_server:sync_authorizations",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations" % obj_id,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync+authorizations"
+            % obj_id
+        )
+
+        _dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+        assert len(_dbAcmeOrder.acme_authorizations) == len(
+            _test_data["acme-order/new/automated#1"]["domain_names"]
+        )
+        _authorization_pairs = [
+            (i.id, i.acme_challenge_http01.id) for i in _dbAcmeOrder.acme_authorizations
+        ]
+        self.ctx.dbSession.rollback()
+
+        assert len(_authorization_pairs) == 2
+
+        # AuthPair 1
+        (auth_id_1, challenge_id_1) = _authorization_pairs[0]
+
+        # "admin:acme_authorization:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s" % auth_id_1, status=200
+        )
+        # "admin:acme_authorization:focus:sync"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % auth_id_1,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=success&operation=acme+server+sync"
+            % auth_id_1
+        )
+
+        # "admin:acme_authorization:focus:trigger"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger" % auth_id_1,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=success&operation=acme+server+trigger"
+            % auth_id_1
+        )
+
+        # "admin:acme_authorization:focus:trigger" AGAIN
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger" % auth_id_1,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=error&error=acme+server+trigger&message=ACME+Server+Trigger+is+not+allowed+for+this+AcmeAuthorization"
+            % auth_id_1
+        )
+
+        # AuthPair 2
+        (auth_id_2, challenge_id_2) = _authorization_pairs[1]
+
+        # "admin:acme_challenge:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s" % challenge_id_2, status=200
+        )
+
+        # "admin:acme_challenge:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/sync" % challenge_id_2,
+            status=303,
+        )
+        # "admin:acme_challenge:focus:acme_server:trigger",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/trigger" % challenge_id_2,
+            status=303,
+        )
+
+        # "admin:acme_authorization:focus:sync"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % auth_id_2,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=success&operation=acme+server+sync"
+            % auth_id_2
+        )
+
+        # now go back to the order
+        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200,)
+        assert (
+            """<td><span class="label label-default">processing_started</span></td>"""
+            in res.text
+        )
+
+        # "admin:acme_order:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            % obj_id
+        )
+
+        # "admin:acme_order:focus:finalize",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/finalize" % obj_id, status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=finalize+order"
+            % obj_id
+        )
+
+        # now go back to the order
+        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200,)
+        assert (
+            """<td><span class="label label-default">certificate_downloaded</span></td>"""
+            in res.text
+        )
+
+        # "admin:acme_order:focus:renew:quick",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/renew/quick" % obj_id, status=200
+        )
+        form = res.form
+        form["processing_strategy"].force_value("process_multi")
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        re_expected = re.compile(
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=renew\+quick$"""
+        )
+        matched = re_expected.match(res2.location)
+        assert matched
+        obj_id__quick = matched.groups()[0]
+
+        # "admin:acme_order:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
+        )
+        # "admin:acme_order:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id__quick,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            % obj_id__quick
+        )
+        # "admin:acme_order:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
+        )
+
+        # IMPORTANT
+        # pebble re-uses the authorizations
+        # so we can either "process" or "finalize" here
+
+        # let's call finalize
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/finalize" % obj_id__quick, status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=finalize+order"
+            % obj_id__quick
+        )
+
+        # "admin:acme_order:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
+        )
+
+        # "admin:acme_order:focus:renew:custom"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/renew/custom" % obj_id__quick, status=200
+        )
+        form = res.form
+        # we can just change the `processing_strategy`
+        form["processing_strategy"].force_value("process_multi")
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        re_expected = re.compile(
+            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=renew\+custom$"""
+        )
+        matched = re_expected.match(res2.location)
+        assert matched
+        obj_id__custom = matched.groups()[0]
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id__custom,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
+            % obj_id__custom
+        )
+        # "admin:acme_order:focus",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__custom, status=200
+        )
+
+        #
+        # to handle the next series, we must use a new order with different domains
+        #
+
+        # we need two for this test
+        assert len(_test_data["acme-order/new/automated#2"]["domain_names"]) == 2
+        # "admin:acme_order:new:automated",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/new/automated", status=200
+        )
+
+        form = res.form
+        _form_fields = form.fields.keys()
+        assert "account_key_option" in _form_fields
+        form["account_key_option"].force_value("account_key_file")
+        form["acme_account_provider_id"].force_value("1")
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#2"]["account_key_file_pem"]
+            )
+        )
+        form["private_key_cycle"].force_value("account_daily")
+        form["private_key_cycle__renewal"].force_value("account_key_default")
+        form["private_key_option"].force_value("private_key_for_account_key")
+        form["domain_names"] = ",".join(
+            _test_data["acme-order/new/automated#2"]["domain_names"]
+        )
+        form["processing_strategy"].force_value("create_order")
+        res2 = form.submit()
+        assert res2.status_code == 303
+
+        # "admin:acme_order:focus",
+        matched = RE_AcmeOrder.match(res2.location)
+        assert matched
+        obj_id__2 = matched.groups()[0]
+
+        # grab the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
+        )
+
+        # sync_authorizations
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations"
+            % obj_id__2,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync+authorizations"
+            % obj_id__2
+        )
+
+        # grab the order
+        # look for deactivate-authorizations
+        # note the space after `btn-info ` and no `disabled` class
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
+        )
+        re_expected = re.compile(
+            r'''href="/\.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations"[\n\s\ ]+class="btn btn-xs btn-info "'''
+            % obj_id__2
+        )
+        assert re_expected.findall(res.text)
+
+        # "admin:acme_order:focus:acme_server:deactivate_authorizations",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations"
+            % obj_id__2,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+deactivate+authorizations"
+            % obj_id__2
+        )
+
+        # grab the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
+        )
+        # look for deactivate-authorizations
+        # note the `disabled` class
+        re_expected = re.compile(
+            r'''href="/\.well-known/admin/acme-order/\d+/acme-server/deactivate-authorizations"[\n\s\ ]+class="btn btn-xs btn-info disabled"'''
+        )
+        assert re_expected.findall(res.text)
+
+        # "admin:acme_order:focus:retry",
+        assert "acme_order-retry" in res.forms
+        form = res.forms["acme_order-retry"]
+        res = form.submit()
+        assert res.status_code == 303
+
+        matched = RE_AcmeOrder_retry.match(res.location)
+        assert matched
+        obj_id__3 = matched.groups()[0]
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_order:new:automated",
+            "admin:acme_order:focus",
+            "admin:acme_order:focus:retry",
+            "admin:acme_order:focus:mark",
+        )
+    )
+    def test_AcmeOrder_mark_html(self):
+        (obj_id, obj_url) = self._prep_AcmeOrder_html()
+
+        # grab the order
+        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+
+        # "mark" deactivate
+        assert (
+            'href="/.well-known/admin/acme-order/%s/mark?operation=deactivate"' % obj_id
+            in res.text
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/mark?operation=deactivate" % obj_id,
+            status=303,
+        )
+        matched = RE_AcmeOrder_deactivated.match(res.location)
+        assert matched
+
+        # grab the order
+        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+
+        # "mark" invalid
+        assert (
+            'href="/.well-known/admin/acme-order/%s/mark?operation=invalid"' % obj_id
+            in res.text
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/mark?operation=invalid" % obj_id,
+            status=303,
+        )
+        matched = RE_AcmeOrder_invalidated.match(res.location)
+        assert matched
+
+        # grab the order
+        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+
+        # "admin:acme_order:focus:retry",
+        assert "acme_order-retry" in res.forms
+        form = res.forms["acme_order-retry"]
+        res = form.submit()
+        assert res.status_code == 303
+
+        matched = RE_AcmeOrder_retry.match(res.location)
+        assert matched
+        obj_id__4 = matched.groups()[0]
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:acme_order:new:automated", "admin:acme_order:focus",))
+    def test_AcmeOrder_process_single_html(self):
+        (obj_id, obj_url) = self._prep_AcmeOrder_html(
+            processing_strategy="process_single"
+        )
+
+        # /acme-order
+        res = self.testapp.get(obj_url, status=200)
+        assert (
+            """<td><span class="label label-default">process_single</span></td>"""
+            in res.text
+        )
+        assert """<td><code>valid</code>""" in res.text
+        assert (
+            """<td><span class="label label-default">certificate_downloaded</span></td>"""
+            in res.text
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_order:new:automated",
+            "admin:acme_order:focus",
+            "admin:acme_order:focus:acme_process",
+        )
+    )
+    def test_AcmeOrder_process_multi_html(self):
+        (obj_id, obj_url) = self._prep_AcmeOrder_html(
+            processing_strategy="process_multi"
+        )
+
+        # /acme-order
+        res = self.testapp.get(obj_url, status=200)
+        assert RE_AcmeOrder_can_process.findall(res.text)
+
+        process_url = "/.well-known/admin/acme-order/%s/acme-process" % obj_id
+
+        # get the first process
+        res = self.testapp.get(process_url, status=303)
+        assert RE_AcmeOrder_processed.match(res.location)
+
+        # get the order again, then the second process
+        res = self.testapp.get(obj_url, status=200)
+        assert RE_AcmeOrder_can_process.findall(res.text)
+        res_p = self.testapp.get(process_url, status=303)
+        assert RE_AcmeOrder_processed.match(res_p.location)
+
+        # get the order again, then the third process
+        res = self.testapp.get(obj_url, status=200)
+        assert RE_AcmeOrder_can_process.findall(res.text)
+        res_p = self.testapp.get(process_url, status=303)
+        assert RE_AcmeOrder_processed.match(res_p.location)
+
+        # get the order again, it should be done
+        res = self.testapp.get(obj_url, status=200)
+        assert not RE_AcmeOrder_can_process.findall(res.text)
+        assert "<td><code>valid</code>" in res.text
+        assert (
+            """<td><span class="label label-default">certificate_downloaded</span></td>"""
+            in res.text
+        )
+
+    @tests_routes(("admin:acme_order:new:automated|json",))
+    def _prep_AcmeOrder_json(self, processing_strategy=None):
+        """
+        this runs `@under_pebble`, but the invoking function should wrap it
+        """
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        # we need two for this test
+        assert len(_test_data["acme-order/new/automated#1"]["domain_names"]) == 2
+
+        # "admin:acme_order:new:automated",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/new/automated.json", status=200
+        )
+        assert "instructions" in res.json
+
+        form = {}
+        form["account_key_option"] = "account_key_file"
+        form["acme_account_provider_id"] = "1"
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+            )
+        )
+        form["private_key_cycle"] = "account_daily"
+        form["private_key_cycle__renewal"] = "account_key_default"
+        form["private_key_option"] = "private_key_for_account_key"
+        form["domain_names"] = ",".join(
+            _test_data["acme-order/new/automated#1"]["domain_names"]
+        )
+        if processing_strategy is None:
+            processing_strategy = "create_order"
+        form["processing_strategy"] = processing_strategy
+
+        res2 = self.testapp.post(
+            "/.well-known/admin/acme-order/new/automated.json", form
+        )
+        assert res2.status_code == 200
+        assert "AcmeOrder" in res2.json
+        obj_id = res2.json["AcmeOrder"]["id"]
+
+        return obj_id
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_order:new:automated|json",
+            "admin:acme_order:focus|json",
+            "admin:acme_order:focus:acme_server:sync|json",
+            "admin:acme_order:focus:acme_server:sync_authorizations|json",
+            "admin:acme_authorization:focus|json",
+            "admin:acme_authorization:focus:acme_server:sync|json",
+            "admin:acme_authorization:focus:acme_server:trigger|json",
+            "admin:acme_challenge:focus|json",
+            "admin:acme_challenge:focus:acme_server:sync|json",
+            "admin:acme_challenge:focus:acme_server:trigger|json",
+            "admin:acme_order:focus:finalize|json",
+            "admin:acme_order:focus:renew:custom|json",
+            "admin:acme_order:focus:renew:quick|json",
+            "admin:acme_order:focus:acme_server:deactivate_authorizations|json",
+        )
+    )
+    def test_AcmeOrder_extended_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_extended_json
+
+        NOTE: if domains are not randomized for the order, one needs to reset the pebble instance
+        NOTE^^^ this now runs with it's own pebble instance
+        """
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        obj_id = self._prep_AcmeOrder_json()
+
+        # "admin:acme_order:focus|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/sync"
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations.json"
+            % obj_id,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/sync-authorizations"
+
+        _dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
+        assert len(_dbAcmeOrder.acme_authorizations) == len(
+            _test_data["acme-order/new/automated#1"]["domain_names"]
+        )
+        _authorization_pairs = [
+            (i.id, i.acme_challenge_http01.id) for i in _dbAcmeOrder.acme_authorizations
+        ]
+        self.ctx.dbSession.rollback()
+        assert len(_authorization_pairs) == 2
+
+        # AuthPair 1
+        (auth_id_1, challenge_id_1) = _authorization_pairs[0]
+
+        # "admin:acme_authorization:focus|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s.json" % auth_id_1, status=200
+        )
+        assert "AcmeAuthorization" in res.json
+
+        # "admin:acme_authorization:focus:sync|json"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
+            % auth_id_1,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/sync"
+
+        # "admin:acme_authorization:focus:trigger|json"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger.json"
+            % auth_id_1,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/trigger"
+
+        # "admin:acme_authorization:focus:trigger|json" AGAIN
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger.json"
+            % auth_id_1,
+            status=200,
+        )
+        assert res.json["result"] == "error"
+        assert res.json["operation"] == "acme-server/trigger"
+        assert (
+            res.json["error"]
+            == "ACME Server Trigger is not allowed for this AcmeAuthorization"
+        )
+
+        # AuthPair 2
+        (auth_id_2, challenge_id_2) = _authorization_pairs[1]
+
+        # "admin:acme_challenge:focus|json"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s.json" % challenge_id_2, status=200
+        )
+        assert "AcmeChallenge" in res.json
+
+        # "admin:acme_challenge:focus:acme_server:sync|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/sync.json"
+            % challenge_id_2,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/sync"
+
+        # "admin:acme_challenge:focus:acme_server:trigger|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
+            % challenge_id_2,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/trigger"
+
+        # "admin:acme_authorization:focus:sync|json"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
+            % auth_id_2,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/sync"
+
+        # now go back to the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200,
+        )
+        assert "AcmeOrder" in res.json
+        assert (
+            res.json["AcmeOrder"]["acme_order_processing_status"]
+            == "processing_started"
+        )
+
+        # "admin:acme_order:focus:acme_server:sync|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/sync"
+
+        # "admin:acme_order:focus:finalize|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/finalize.json" % obj_id, status=200
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "finalize-order"
+
+        # now go back to the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200,
+        )
+        assert "AcmeOrder" in res.json
+        assert (
+            res.json["AcmeOrder"]["acme_order_processing_status"]
+            == "certificate_downloaded"
+        )
+
+        # "admin:acme_order:focus:renew:quick|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/renew/quick.json" % obj_id, status=200,
+        )
+        assert "instructions" in res.json
+
+        form = {"processing_strategy": "process_multi"}
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/renew/quick.json" % obj_id,
+            form,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert "AcmeOrder" in res.json
+        obj_id__quick = res.json["AcmeOrder"]["id"]
+
+        # "admin:acme_order:focus|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id__quick, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+        # "admin:acme_order:focus:acme_server:sync|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id__quick,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/sync"
+
+        # "admin:acme_order:focus|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id__quick, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+        # IMPORTANT
+        # pebble re-uses the authorizations
+        # so we can either "process" or "finalize" here
+
+        # let's call finalize
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/finalize.json" % obj_id__quick, status=200
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "finalize-order"
+
+        # "admin:acme_order:focus|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id__quick, status=200
+        )
+        assert "AcmeOrder" in res.json
+        account_key_reuse = res.json["AcmeOrder"]["acme_account_key_pem_md5"]
+        private_key_reuse = res.json["AcmeOrder"]["private_key_pem_md5"]
+
+        # "admin:acme_order:focus:renew:custom"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/renew/custom.json" % obj_id__quick,
+            status=200,
+        )
+        assert "instructions" in res.json
+
+        form = {}
+        form["processing_strategy"] = "process_multi"
+        form["account_key_option"] = "account_key_reuse"
+        form["account_key_reuse"] = account_key_reuse
+        form["private_key_cycle"] = "single_certificate"
+        form["private_key_option"] = "private_key_reuse"
+        form["private_key_reuse"] = private_key_reuse
+        form["private_key_cycle__renewal"] = "account_key_default"
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/renew/custom.json" % obj_id__quick,
+            form,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert "AcmeOrder" in res.json
+        obj_id__custom = res.json["AcmeOrder"]["id"]
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id__custom,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/sync"
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id__custom, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+        #
+        # to handle the next series, we must use a new order with different domains
+        #
+
+        # we need two for this test
+        assert len(_test_data["acme-order/new/automated#2"]["domain_names"]) == 2
+
+        # "admin:acme_order:new:automated",
+        form = {}
+        form["account_key_option"] = "account_key_file"
+        form["acme_account_provider_id"] = "1"
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#2"]["account_key_file_pem"]
+            )
+        )
+        form["private_key_cycle"] = "account_daily"
+        form["private_key_cycle__renewal"] = "account_key_default"
+        form["private_key_option"] = "private_key_for_account_key"
+        form["domain_names"] = ",".join(
+            _test_data["acme-order/new/automated#2"]["domain_names"]
+        )
+        form["processing_strategy"] = "create_order"
+
+        res2 = self.testapp.post(
+            "/.well-known/admin/acme-order/new/automated.json", form
+        )
+        assert res2.status_code == 200
+        assert "AcmeOrder" in res2.json
+        obj_id__2 = res2.json["AcmeOrder"]["id"]
+
+        # grab the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id__2, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations.json"
+            % obj_id__2,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/sync-authorizations"
+
+        # grab the order
+        # look for deactivate-authorizations, ENABLED
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id__2, status=200
+        )
+        assert "AcmeOrder" in res.json
+        assert (
+            res.json["AcmeOrder"]["is_can_acme_server_deactivate_authorizations"]
+            is True
+        )
+
+        # "admin:acme_order:focus:acme_server:deactivate_authorizations",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations.json"
+            % obj_id__2,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-server/deactivate-authorizations"
+
+        # grab the order
+        # look for deactivate-authorizations, DISABLED
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id__2, status=200
+        )
+        assert "AcmeOrder" in res.json
+        assert (
+            res.json["AcmeOrder"]["is_can_acme_server_deactivate_authorizations"]
+            is False
+        )
+
+        # "admin:acme_order:focus:retry",
+        assert res.json["AcmeOrder"]["is_can_retry"] is True
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/retry.json" % obj_id__2, status=200
+        )
+        assert res.json["result"] == "error"
+        assert res.json["error"] == "This must be a POST request."
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/retry.json" % obj_id__2, {}, status=200
+        )
+        assert res.json["result"] == "success"
+        assert "AcmeOrder" in res.json
+        obj_id__3 = res.json["AcmeOrder"]["id"]
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_order:new:automated|json",
+            "admin:acme_order:focus|json",
+            "admin:acme_order:focus:retry|json",
+            "admin:acme_order:focus:mark|json",
+        )
+    )
+    def test_AcmeOrder_mark_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_mark_json
+        """
+
+        obj_id = self._prep_AcmeOrder_json()
+
+        # grab the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+        # "mark" deactivate
+        assert res.json["AcmeOrder"]["is_processing"]
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/mark.json?operation=deactivate" % obj_id,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "deactivate"
+
+        # grab the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+        # "mark" invalid
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/mark.json?operation=invalid" % obj_id,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "invalid"
+
+        # grab the order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+        # "admin:acme_order:focus:retry",
+        assert "AcmeOrder" in res.json
+
+        assert res.json["AcmeOrder"]["is_can_retry"] is True
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/retry.json" % obj_id, status=200
+        )
+        assert res.json["result"] == "error"
+        assert res.json["error"] == "This must be a POST request."
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/retry.json" % obj_id, {}, status=200
+        )
+        assert res.json["result"] == "success"
+        assert "AcmeOrder" in res.json
+        obj_id__4 = res.json["AcmeOrder"]["id"]
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        ("admin:acme_order:new:automated|json", "admin:acme_order:focus|json",)
+    )
+    def test_AcmeOrder_process_single_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_process_single_json
+        """
+        obj_id = self._prep_AcmeOrder_json(processing_strategy="process_single")
+
+        # /acme-order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+        )
+        assert "AcmeOrder" in res.json
+        assert res.json["AcmeOrder"]["is_can_acme_process"] is False
+        assert res.json["AcmeOrder"]["acme_status_order"] == "valid"
+        assert (
+            res.json["AcmeOrder"]["acme_order_processing_status"]
+            == "certificate_downloaded"
+        )
+        assert (
+            res.json["AcmeOrder"]["acme_order_processing_strategy"] == "process_single"
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_order:new:automated|json",
+            "admin:acme_order:focus|json",
+            "admin:acme_order:focus:acme_process|json",
+        )
+    )
+    def test_AcmeOrder_process_multi_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_process_multi_json
+        """
+        obj_id = self._prep_AcmeOrder_json(processing_strategy="process_multi")
+
+        # /acme-order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+        )
+        assert "AcmeOrder" in res.json
+        assert (
+            res.json["AcmeOrder"]["acme_order_processing_strategy"] == "process_multi"
+        )
+        assert res.json["AcmeOrder"]["is_can_acme_process"] is True
+
+        process_url = "/.well-known/admin/acme-order/%s/acme-process.json" % obj_id
+
+        # get the first process
+        res = self.testapp.get(process_url, status=200)
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-process"
+        assert "AcmeOrder" in res.json
+        assert res.json["AcmeOrder"]["is_can_acme_process"] is True
+
+        # get the second process
+        res = self.testapp.get(process_url, status=200)
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-process"
+        assert "AcmeOrder" in res.json
+        assert res.json["AcmeOrder"]["is_can_acme_process"] is True
+
+        # get the third process
+        res = self.testapp.get(process_url, status=200)
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "acme-process"
+        assert "AcmeOrder" in res.json
+        assert res.json["AcmeOrder"]["is_can_acme_process"] is False
+        assert res.json["AcmeOrder"]["acme_status_order"] == "valid"
+        assert (
+            res.json["AcmeOrder"]["acme_order_processing_status"]
+            == "certificate_downloaded"
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            # "admin:acme_order:focus|json",
+            "admin:acme_authorization:focus",
+            "admin:acme_authorization:focus:acme_server:deactivate",
+            "admin:acme_authorization:focus:acme_server:sync",
+            "admin:acme_authorization:focus:acme_server:trigger",
+        )
+    )
+    def test_AcmeAuthorization_manipulate_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAuthorization_manipulate_html
+        """
+        (order_id, order_url) = self._prep_AcmeOrder_html()
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % order_id, status=200
+        )
+        assert "AcmeOrder" in res.json
+        acme_authorization_ids = res.json["AcmeOrder"]["acme_authorization_ids"]
+        assert len(acme_authorization_ids) == 2
+
+        # for #1, we deactivate then sync
+        id_ = acme_authorization_ids[0]
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s" % id_, status=200
+        )
+        matched = RE_AcmeAuthorization_deactivate_btn.search(res.text)
+        assert matched
+
+        res_deactivated = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate" % id_,
+            status=303,
+        )
+        assert RE_AcmeAuthorization_deactivated.match(res_deactivated.location)
+
+        # check the main record, ensure we don't have a match
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s" % id_, status=200
+        )
+        matched_btn = RE_AcmeAuthorization_deactivate_btn.search(res.text)
+        assert not matched_btn
+        matched_btn = RE_AcmeAuthorization_trigger_btn.search(res.text)
+        assert not matched_btn
+        matched_btn = RE_AcmeAuthorization_sync_btn.search(res.text)
+        assert matched_btn
+
+        # try again, and fail
+        res_deactivated = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate" % id_,
+            status=303,
+        )
+        assert RE_AcmeAuthorization_deactivate_fail.match(res_deactivated.location)
+
+        # now sync
+        res_synced = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % id_,
+            status=303,
+        )
+        assert RE_AcmeAuthorization_synced.match(res_synced.location)
+
+        # for #2, we: sync, then trigger, then deactivate
+        id_ = acme_authorization_ids[1]
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s" % id_, status=200
+        )
+        matched_btn = RE_AcmeAuthorization_sync_btn.search(res.text)
+        assert matched_btn
+
+        # now sync
+        res_synced = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % id_,
+            status=303,
+        )
+        assert RE_AcmeAuthorization_synced.match(res_synced.location)
+
+        # check the main record
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s" % id_, status=200
+        )
+        matched_btn = RE_AcmeAuthorization_deactivate_btn.search(res.text)
+        assert matched_btn
+        matched_btn = RE_AcmeAuthorization_trigger_btn.search(res.text)
+        assert matched_btn
+        matched_btn = RE_AcmeAuthorization_sync_btn.search(res.text)
+        assert matched_btn
+
+        # trigger
+        res_triggered = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger" % id_,
+            status=303,
+        )
+        assert RE_AcmeAuthorization_triggered.match(res_triggered.location)
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s" % id_, status=200
+        )
+        matched_btn = RE_AcmeAuthorization_trigger_btn.search(res.text)
+        assert not matched_btn
+
+        # deactivate; fails after a trigger
+        res_deactivated = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate" % id_,
+            status=303,
+        )
+        assert RE_AcmeAuthorization_deactivate_fail.match(res_deactivated.location)
+
+        # check the main record
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s" % id_, status=200
+        )
+        matched_btn = RE_AcmeAuthorization_deactivate_btn.search(res.text)
+        assert not matched_btn
+        matched_btn = RE_AcmeAuthorization_trigger_btn.search(res.text)
+        assert not matched_btn
+        matched_btn = RE_AcmeAuthorization_sync_btn.search(res.text)
+        assert matched_btn
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:acme_order:focus:acme_server:download_certificate",))
+    def test_AcmeOrder_download_certificate_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_download_certificate_html
+        """
+        raise ValueError("TODO")
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:acme_order:focus:acme_server:download_certificate|json",))
+    def test_AcmeOrder_download_certificate_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_download_certificate_json
+        """
+        raise ValueError("TODO")
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            # "admin:acme_order:focus|json",
+            "admin:acme_authorization:focus|json",
+            "admin:acme_authorization:focus:acme_server:deactivate|json",
+            "admin:acme_authorization:focus:acme_server:sync|json",
+            "admin:acme_authorization:focus:acme_server:trigger|json",
+        )
+    )
+    def test_AcmeAuthorization_manipulate_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAuthorization_manipulate_json
+        """
+        order_id = self._prep_AcmeOrder_json(processing_strategy="create_order")
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % order_id, status=200
+        )
+        assert "AcmeOrder" in res.json
+        acme_authorization_ids = res.json["AcmeOrder"]["acme_authorization_ids"]
+        assert len(acme_authorization_ids) == 2
+
+        # for #1, we deactivate then sync
+        id_ = acme_authorization_ids[0]
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s.json" % id_, status=200
+        )
+        assert "AcmeAuthorization" in res.json
+        assert res.json["AcmeAuthorization"]["url_acme_server_deactivate"] is not None
+
+        res_deactivated = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
+            % id_,
+            status=200,
+        )
+        assert res_deactivated.json["result"] == "success"
+        assert res_deactivated.json["operation"] == "acme-server/deactivate"
+
+        # check the main record, ensure we don't have a match
+        assert "AcmeAuthorization" in res_deactivated.json
+        assert (
+            res_deactivated.json["AcmeAuthorization"]["url_acme_server_deactivate"]
+            is None
+        )
+        assert (
+            res_deactivated.json["AcmeAuthorization"]["url_acme_server_trigger"] is None
+        )
+        assert (
+            res_deactivated.json["AcmeAuthorization"]["url_acme_server_sync"]
+            is not None
+        )
+
+        # try again, and fail
+        res_deactivated = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
+            % id_,
+            status=200,
+        )
+        assert res_deactivated.json["result"] == "error"
+        assert res_deactivated.json["operation"] == "acme-server/deactivate"
+        assert (
+            res_deactivated.json["error"]
+            == "ACME Server Sync is not allowed for this AcmeAuthorization"
+        )
+
+        # now sync
+        res_synced = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync.json" % id_,
+            status=200,
+        )
+        assert res_synced.json["result"] == "success"
+        assert res_synced.json["operation"] == "acme-server/sync"
+
+        # for #2, we: sync, then trigger, then deactivate
+        id_ = acme_authorization_ids[1]
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s.json" % id_, status=200
+        )
+        assert "AcmeAuthorization" in res.json
+        assert res.json["AcmeAuthorization"]["url_acme_server_sync"] is not None
+
+        # now sync
+        res_synced = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync.json" % id_,
+            status=200,
+        )
+        assert res_synced.json["result"] == "success"
+        assert res_synced.json["operation"] == "acme-server/sync"
+
+        # check the main record
+        assert "AcmeAuthorization" in res_synced.json
+        assert (
+            res_synced.json["AcmeAuthorization"]["url_acme_server_deactivate"]
+            is not None
+        )
+        assert (
+            res_synced.json["AcmeAuthorization"]["url_acme_server_trigger"] is not None
+        )
+        assert res_synced.json["AcmeAuthorization"]["url_acme_server_sync"] is not None
+
+        # trigger
+        res_triggered = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger.json" % id_,
+            status=200,
+        )
+        assert res_triggered.json["result"] == "success"
+        assert res_triggered.json["operation"] == "acme-server/trigger"
+        assert (
+            res_triggered.json["AcmeAuthorization"]["url_acme_server_trigger"] is None
+        )
+
+        # deactivate
+        res_deactivated = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
+            % id_,
+            status=200,
+        )
+        assert res_deactivated.json["result"] == "error"
+        assert res_deactivated.json["operation"] == "acme-server/deactivate"
+        assert (
+            res_deactivated.json["error"]
+            == "ACME Server Sync is not allowed for this AcmeAuthorization"
+        )
+
+        # check the main record
+        # must fetch the main record, because `AcmeAuthorization` does not appear in error
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s.json" % id_, status=200
+        )
+        assert "AcmeAuthorization" in res.json
+        assert res.json["AcmeAuthorization"]["url_acme_server_deactivate"] is None
+        assert res.json["AcmeAuthorization"]["url_acme_server_trigger"] is None
+        assert res.json["AcmeAuthorization"]["url_acme_server_sync"] is not None
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_challenge:focus",
+            "admin:acme_challenge:focus:acme_server:sync",
+            "admin:acme_challenge:focus:acme_server:trigger",
+        )
+    )
+    def test_AcmeChallenge_manipulate_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeChallenge_manipulate_html
+        """
+        (order_id, order_url) = self._prep_AcmeOrder_html()
+
+        res_order = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % order_id, status=200
+        )
+        acme_authorization_ids = res_order.json["AcmeOrder"]["acme_authorization_ids"]
+        assert len(acme_authorization_ids) == 2
+
+        # loop these as an enumeration
+        for (idx, authorization_id) in enumerate(acme_authorization_ids):
+
+            # Auth1
+            res_auth = self.testapp.get(
+                "/.well-known/admin/acme-authorization/%s.json" % authorization_id,
+                status=200,
+            )
+            # sync it to load the challenge
+            res_auth = self.testapp.get(
+                "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
+                % authorization_id,
+                status=200,
+            )
+            assert res_auth.json["result"] == "success"
+            assert res_auth.json["operation"] == "acme-server/sync"
+            assert (
+                res_auth.json["AcmeAuthorization"]["acme_status_authorization"]
+                == "pending"
+            )
+            challenge_id = res_auth.json["AcmeAuthorization"][
+                "acme_challenge_http01_id"
+            ]
+            assert challenge_id is not None
+
+            if idx == 0:
+                # iteration 1: sync then trigger
+
+                # Get/Audit Main Record
+                res_challenge = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                )
+                assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
+                assert RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
+
+                # sync
+                res_sync = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/sync"
+                    % challenge_id,
+                    status=303,
+                )
+                assert RE_AcmeChallenge_synced.match(res_sync.location)
+
+                # Get/Audit Main Record
+                res_challenge = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                )
+                assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
+                assert RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
+
+                # trigger
+                res_trigger = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger"
+                    % challenge_id,
+                    status=303,
+                )
+                assert RE_AcmeChallenge_triggered.match(res_trigger.location)
+
+                # Get/Audit Main Record
+                res_challenge = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                )
+                assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
+                assert not RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
+
+                # trigger fail
+                res_trigger = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger"
+                    % challenge_id,
+                    status=303,
+                )
+                assert RE_AcmeChallenge_trigger_fail.match(res_trigger.location)
+
+            else:
+
+                # iteration 2: trigger then sync
+
+                # Get/Audit Main Record
+                res_challenge = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                )
+                assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
+                assert RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
+
+                # trigger
+                res_trigger = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger"
+                    % challenge_id,
+                    status=303,
+                )
+                assert RE_AcmeChallenge_triggered.match(res_trigger.location)
+
+                # Get/Audit Main Record
+                res_challenge = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                )
+                assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
+                assert not RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
+
+                # sync
+                res_sync = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/sync"
+                    % challenge_id,
+                    status=303,
+                )
+                assert RE_AcmeChallenge_synced.match(res_sync.location)
+
+                # Get/Audit Main Record
+                res_challenge = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s" % challenge_id, status=200
+                )
+                assert RE_AcmeChallenge_sync_btn.search(res_challenge.text)
+                assert not RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(
+        (
+            "admin:acme_challenge:focus|json",
+            "admin:acme_challenge:focus:acme_server:sync|json",
+            "admin:acme_challenge:focus:acme_server:trigger|json",
+        )
+    )
+    def test_AcmeChallenge_manipulate_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeChallenge_manipulate_json
+        """
+
+        order_id = self._prep_AcmeOrder_json()
+
+        res_order = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % order_id, status=200
+        )
+        acme_authorization_ids = res_order.json["AcmeOrder"]["acme_authorization_ids"]
+        assert len(acme_authorization_ids) == 2
+
+        # loop these as an enumeration
+        for (idx, authorization_id) in enumerate(acme_authorization_ids):
+
+            # Auth1
+            res_auth = self.testapp.get(
+                "/.well-known/admin/acme-authorization/%s.json" % authorization_id,
+                status=200,
+            )
+            # sync it to load the challenge
+            res_auth = self.testapp.get(
+                "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
+                % authorization_id,
+                status=200,
+            )
+            assert res_auth.json["result"] == "success"
+            assert res_auth.json["operation"] == "acme-server/sync"
+            assert (
+                res_auth.json["AcmeAuthorization"]["acme_status_authorization"]
+                == "pending"
+            )
+            challenge_id = res_auth.json["AcmeAuthorization"][
+                "acme_challenge_http01_id"
+            ]
+            assert challenge_id is not None
+
+            if idx == 0:
+                # iteration 1: sync then trigger
+
+                # Get/Audit Main Record
+                res_challenge = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s.json" % challenge_id,
+                    status=200,
+                )
+                assert (
+                    res_challenge.json["AcmeChallenge"]["acme_status_challenge"]
+                    == "pending"
+                )
+                assert (
+                    res_challenge.json["AcmeChallenge"]["url_acme_server_sync"]
+                    is not None
+                )
+                assert (
+                    res_challenge.json["AcmeChallenge"]["url_acme_server_trigger"]
+                    is not None
+                )
+
+                # sync
+                res_sync = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/sync.json"
+                    % challenge_id,
+                    status=200,
+                )
+                assert res_sync.json["result"] == "success"
+                assert res_sync.json["operation"] == "acme-server/sync"
+                # Audit Main Record
+                assert (
+                    res_sync.json["AcmeChallenge"]["acme_status_challenge"] == "pending"
+                )
+                assert (
+                    res_sync.json["AcmeChallenge"]["url_acme_server_sync"] is not None
+                )
+                assert (
+                    res_sync.json["AcmeChallenge"]["url_acme_server_trigger"]
+                    is not None
+                )
+
+                # trigger
+                res_trigger = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
+                    % challenge_id,
+                    status=200,
+                )
+                assert res_trigger.json["result"] == "success"
+                assert res_trigger.json["operation"] == "acme-server/trigger"
+                # Audit Main Record
+                assert (
+                    res_trigger.json["AcmeChallenge"]["acme_status_challenge"]
+                    == "valid"
+                )
+                assert (
+                    res_trigger.json["AcmeChallenge"]["url_acme_server_sync"]
+                    is not None
+                )
+                assert (
+                    res_trigger.json["AcmeChallenge"]["url_acme_server_trigger"] is None
+                )
+
+                # trigger fail
+                res_trigger = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
+                    % challenge_id,
+                    status=200,
+                )
+                assert res_trigger.json["result"] == "error"
+                assert res_trigger.json["operation"] == "acme-server/trigger"
+                assert (
+                    res_trigger.json["error"]
+                    == "ACME Server Trigger is not allowed for this AcmeChallenge"
+                )
+
+            else:
+
+                # iteration 2: trigger then sync
+
+                # Get/Audit Main Record
+                res_challenge = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s.json" % challenge_id,
+                    status=200,
+                )
+                assert (
+                    res_challenge.json["AcmeChallenge"]["acme_status_challenge"]
+                    == "pending"
+                )
+                assert (
+                    res_challenge.json["AcmeChallenge"]["url_acme_server_sync"]
+                    is not None
+                )
+                assert (
+                    res_challenge.json["AcmeChallenge"]["url_acme_server_trigger"]
+                    is not None
+                )
+
+                # trigger
+                res_trigger = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
+                    % challenge_id,
+                    status=200,
+                )
+                assert res_trigger.json["result"] == "success"
+                assert res_trigger.json["operation"] == "acme-server/trigger"
+                # Audit Main Record
+                assert (
+                    res_trigger.json["AcmeChallenge"]["acme_status_challenge"]
+                    == "valid"
+                )
+                assert (
+                    res_trigger.json["AcmeChallenge"]["url_acme_server_sync"]
+                    is not None
+                )
+                assert (
+                    res_trigger.json["AcmeChallenge"]["url_acme_server_trigger"] is None
+                )
+
+                # sync
+                res_sync = self.testapp.get(
+                    "/.well-known/admin/acme-challenge/%s/acme-server/sync.json"
+                    % challenge_id,
+                    status=200,
+                )
+                assert res_sync.json["result"] == "success"
+                assert res_sync.json["operation"] == "acme-server/sync"
+                # Audit Main Record
+                assert (
+                    res_sync.json["AcmeChallenge"]["acme_status_challenge"] == "valid"
+                )
+                assert (
+                    res_sync.json["AcmeChallenge"]["url_acme_server_sync"] is not None
+                )
+                assert res_sync.json["AcmeChallenge"]["url_acme_server_trigger"] is None
+
+
+class FunctionalTests_API(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_API
+    """
+
+    @tests_routes(("admin:api",))
+    def test_passive(self):
+        res = self.testapp.get("/.well-known/admin/api", status=200)
+
+    @tests_routes(("admin:api:domain:enable", "admin:api:domain:disable",))
+    def test_domains(self):
+        # enable
+        _data = {"domain_names": "example.com,foo.example.com, bar.example.com"}
+        res = self.testapp.post("/.well-known/admin/api/domain/enable", _data)
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+
+        # disable
+        _data = {"domain_names": "example.com,biz.example.com"}
+        res = self.testapp.post("/.well-known/admin/api/domain/disable", _data)
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+
+    @tests_routes(
+        (
+            "admin:api:deactivate_expired",
+            "admin:api:deactivate_expired|json",
+            "admin:api:update_recents",
+            "admin:api:update_recents|json",
+        )
+    )
+    def test_manipulate(self):
+        # deactivate-expired
+        res = self.testapp.get("/.well-known/admin/api/deactivate-expired", status=303)
+        assert (
+            "/.well-known/admin/operations/log?result=success&event.id=" in res.location
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/api/deactivate-expired.json", status=200
+        )
+        assert "instructions" in res.json
+        assert (
+            res.json["instructions"] == "JSON endpoint requires a submission via `POST`"
+        )
+        res = self.testapp.post(
+            "/.well-known/admin/api/deactivate-expired.json", {}, status=200
+        )
+        assert res.json["result"] == "success"
+
+        # update-recents
+        res = self.testapp.get("/.well-known/admin/api/update-recents", status=303)
+        assert (
+            "/.well-known/admin/operations/log?result=success&event.id=" in res.location
+        )
+        res = self.testapp.get("/.well-known/admin/api/update-recents.json", status=200)
+        assert "instructions" in res.json
+        assert (
+            res.json["instructions"] == "JSON endpoint requires a submission via `POST`"
+        )
+        res = self.testapp.post(
+            "/.well-known/admin/api/update-recents.json", {}, status=200
+        )
+        assert res.json["result"] == "success"
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @tests_routes(
+        (
+            "admin:api:ca_certificate_probes:probe",
+            "admin:api:ca_certificate_probes:probe|json",
+        )
+    )
+    def test_api__pebble(self):
+        res = self.testapp.get(
+            "/.well-known/admin/api/ca-certificate-probes/probe", status=303
+        )
+        assert (
+            "/admin/operations/ca-certificate-probes?result=success&event.id="
+            in res.location
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/api/ca-certificate-probes/probe.json", status=200
+        )
+        assert "instructions" in res.json
+        assert (
+            res.json["instructions"] == "JSON endpoint requires a submission via `POST`"
+        )
+        res = self.testapp.post(
+            "/.well-known/admin/api/ca-certificate-probes/probe.json", {}, status=200,
+        )
+        assert res.json["result"] == "success"
+
+    @unittest.skipUnless(RUN_REDIS_TESTS, "not running against redis")
+    @under_redis
+    @tests_routes(("admin:api:redis:prime", "admin:api:redis:prime|json",))
+    def test_redis(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_API.test_redis
+        """
+        res = self.testapp.get("/.well-known/admin/api/redis/prime", status=303)
+        assert (
+            "/.well-known/admin/operations/redis?result=success&operation=redis_prime&event.id="
+            in res.location
+        )
+
+        res = self.testapp.get("/.well-known/admin/api/redis/prime.json", status=200)
+        assert "instructions" in res.json
+        assert (
+            res.json["instructions"] == "JSON endpoint requires a submission via `POST`"
+        )
+
+        res = self.testapp.post(
+            "/.well-known/admin/api/redis/prime.json", {}, status=200
+        )
+        assert res.json["result"] == "success"
+
+    @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
+    @tests_routes(
+        (
+            "admin:api:nginx:cache_flush",
+            "admin:api:nginx:cache_flush|json",
+            "admin:api:nginx:status|json",
+        )
+    )
+    def test_nginx(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_API.test_nginx
+        """
+        # TODO: this doesn't actually test nginx
+        # this will test the nginx routes work, but they will catch exceptions when trying to talk upstream
+        res = self.testapp.get("/.well-known/admin/api/nginx/cache-flush", status=303)
+        assert (
+            "/.well-known/admin/operations/nginx?result=success&operation=nginx_cache_flush&event.id="
+            in res.location
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/api/nginx/cache-flush.json", status=200
+        )
+        assert res.json["result"] == "success"
+
+        res = self.testapp.get("/.well-known/admin/api/nginx/status.json", status=200)
+        assert res.json["result"] == "success"
+
+
+class FunctionalTests_UNWRITTEN(AppTest):
+    """python -m unittest peter_sslers.tests.FunctionalTests_UNWRITTEN"""
+
+    @tests_routes(("admin:api:domain:certificate-if-needed",))
+    def test_domains_certificate(self):
+        raise ValueError("TODO - admin:api:domain:certificate-if-needed")
+
+    @tests_routes(
+        (
+            "admin:api:queue_certificates:process",
+            "admin:api:queue_certificates:process|json",
+        )
+    )
+    def test_QueueCertificates_api_process(self):
+        raise ValueError("todo")
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/process", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/process.json", status=200
+        )
+
+    @tests_routes(
+        (
+            "admin:api:queue_certificates:update",
+            "admin:api:queue_certificates:update|json",
+        )
+    )
+    def test_QueueCertificates_api_update(self):
+        raise ValueError("todo")
+        res = self.testapp.get(
+            "/.well-known/admin/api/queue-certificates/update.json", status=200
+        )
+
+    @tests_routes(("admin:queue_domains:process",))
+    def test_QueueDomains_process(self):
+        raise ValueError("todo")
+        res = self.testapp.get("/.well-known/admin/queue-domains/process", status=200)
+
+    @tests_routes(("admin:queue_domains:process|json",))
+    def test_QueueDomains_process_json(self):
+        raise ValueError("todo")
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domains/process.json", status=200
+        )
+
+
+class FunctionalTests_AuditRoutes(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AuditRoutes
+    """
+
+    def test_audit(self):
+        """
+        This test is used to audit the pyramid app's registered routes for coverage
+        against tests that are registered with the `@tests_routes` decorator
+        """
+        pyramid_route_names = [
+            r
+            for r in [i.name for i in self.testapp.app.routes_mapper.routelist]
+            if r[:3] != "__."
+        ]
+        names_missing = [
+            r for r in pyramid_route_names if r not in _ROUTES_TESTED.keys()
+        ]
+        if names_missing:
+            raise ValueError(
+                "no coverage for %s routes: %s" % (len(names_missing), names_missing)
+            )
+
+
+class IntegratedTests_AcmeServer(AppTestWSGI):
+    """
+    This test suite runs against a Pebble instance, which will try to validate the domains.
+    This tests serving and responding to validations.
+
+    python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer
+    """
+
+    def _calculate_stats(self):
+        stats = {}
+        stats["count-Domain"] = self.ctx.dbSession.query(model_objects.Domain).count()
+        stats["count-AcmeOrder"] = self.ctx.dbSession.query(
+            model_objects.AcmeOrder
+        ).count()
+        stats["count-AcmeChallenge"] = self.ctx.dbSession.query(
+            model_objects.AcmeChallenge
+        ).count()
+        stats["count-AcmeAuthorization"] = self.ctx.dbSession.query(
+            model_objects.AcmeAuthorization
+        ).count()
+        stats["count-AcmeAuthorization-pending"] = (
+            self.ctx.dbSession.query(model_objects.AcmeAuthorization)
+            .filter(
+                model_objects.AcmeAuthorization.acme_status_authorization_id.in_(
+                    model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
+                )
+            )
+            .count()
+        )
+        stats["count-UniqueFQDNSet"] = self.ctx.dbSession.query(
+            model_objects.UniqueFQDNSet
+        ).count()
+        return stats
+
+    def _add_blacklisted_domain(self, domains_list, blacklisted_domain):
+        "inserts a domain into the blacklist database and list of domain names"
+        domains_list.insert(0, blacklisted_domain)
+        dbDomainBlacklisted = lib_db_get.get__DomainBlacklisted__by_name(
+            self.ctx, blacklisted_domain
+        )
+        if not dbDomainBlacklisted:
+            dbDomainBlacklisted = model_objects.DomainBlacklisted()
+            dbDomainBlacklisted.domain_name = blacklisted_domain.lower()
+            self.ctx.dbSession.add(dbDomainBlacklisted)
+            self.ctx.pyramid_transaction_commit()
+        return domains_list
+
+    def _place_order(self, account_key_file_pem, domain_names):
+
+        resp = requests.get(
+            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/automated.json"
+        )
+        assert resp.status_code == 200
+        assert "instructions" in resp.json()
+
+        form = {}
+        files = {}
+        form["account_key_option"] = "account_key_file"
+        form["acme_account_provider_id"] = "1"
+        files["account_key_file_pem"] = open(
+            self._filepath_testfile(account_key_file_pem), "rb",
+        )
+        form["private_key_cycle"] = "account_daily"
+        form["private_key_cycle__renewal"] = "account_key_default"
+        form["private_key_option"] = "private_key_for_account_key"
+        form["domain_names"] = ",".join(domain_names)
+        form["processing_strategy"] = "process_single"
+        resp = requests.post(
+            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/automated.json",
+            data=form,
+            files=files,
+        )
+        return resp
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble_strict
+    def test_AcmeOrder_multiple_domains(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_AcmeOrder_multiple_domains
+
+        this test is not focused on routes, but a success
+        """
+
+        # don't re-use the domains, but use the core info
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        domain_names_a = ["pass-a-%s.example.com" % i for i in range(1, 20)]
+
+        resp = self._place_order(
+            _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
+            domain_names_a,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["result"] == "success"
+        assert "AcmeOrder" in resp.json()
+        obj_id = resp.json()["AcmeOrder"]["id"]
+        assert resp.json()["AcmeOrder"]["certificate_url"] is not None
+        assert resp.json()["AcmeOrder"]["acme_status_order"] == "valid"
+        assert (
+            resp.json()["AcmeOrder"]["acme_order_processing_status"]
+            == "certificate_downloaded"
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble_strict
+    def test_AcmeOrder_cleanup(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_AcmeOrder_cleanup
+
+        this test is not focused on routes, but cleaning up an order
+        """
+        # Functional Tests: self.testapp.app.registry.settings
+        # Integrated Tests: self.testapp_wsgi.test_app.registry.settings
+        # by default, this should be True
+        assert (
+            self.testapp_wsgi.test_app.registry.settings["app_settings"][
+                "cleanup_pending_authorizations"
+            ]
+            is True
+        )
+
+        # don't re-use the domains, but use the core info
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        # our domains
+        domain_names_a = ["cleanup-a-%s.example.com" % i for i in range(1, 20)]
+
+        # prepend DomainBlacklisted
+        _blacklisted_domain = "cleanup-a-fail.example.com"
+        domain_names_a = self._add_blacklisted_domain(
+            domain_names_a, _blacklisted_domain
+        )
+
+        stats_og = self._calculate_stats()
+        resp = self._place_order(
+            _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
+            domain_names_a,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["result"] == "error"
+        assert resp.json()["error"] == "`pending` AcmeOrder failed an AcmeAuthorization"
+        assert "AcmeOrder" in resp.json()
+        obj_id = resp.json()["AcmeOrder"]["id"]
+
+        # # test for resync bug
+        # url = "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id
+        # rrr = requests.post(url)
+        # pdb.set_trace()
+
+        assert resp.json()["AcmeOrder"]["certificate_url"] is None
+        assert resp.json()["AcmeOrder"]["acme_status_order"] == "invalid"
+        assert (
+            resp.json()["AcmeOrder"]["acme_order_processing_status"]
+            == "processing_deactivated"
+        )
+
+        stats_a = self._calculate_stats()
+
+        # compare backend stats
+        assert stats_a["count-Domain"] == stats_og["count-Domain"] + 20
+        assert stats_a["count-UniqueFQDNSet"] == stats_og["count-UniqueFQDNSet"] + 1
+        assert stats_a["count-AcmeOrder"] == stats_og["count-AcmeOrder"] + 1
+        assert (
+            stats_a["count-AcmeAuthorization"]
+            == stats_og["count-AcmeAuthorization"] + 20
+        )
+        assert (
+            stats_a["count-AcmeAuthorization-pending"]
+            == stats_og["count-AcmeAuthorization-pending"]
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble_strict
+    def test_AcmeOrder_nocleanup(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_AcmeOrder_nocleanup
+
+        this test is not focused on routes, but cleaning up an order
+        """
+        try:
+            # Functional Tests: self.testapp.app.registry.settings
+            # Integrated Tests: self.testapp_wsgi.test_app.registry.settings
+            # by default, this should be True
+            assert (
+                self.testapp_wsgi.test_app.registry.settings["app_settings"][
+                    "cleanup_pending_authorizations"
+                ]
+                is True
+            )
+            # now set this as False
+            self.testapp_wsgi.test_app.registry.settings["app_settings"][
+                "cleanup_pending_authorizations"
+            ] = False
+
+            # don't re-use the domains, but use the core info
+            _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+            # our domains
+            domain_names_b = ["cleanup-b-%s.example.com" % i for i in range(1, 20)]
+
+            # prepend DomainBlacklisted
+            _blacklisted_domain = "cleanup-b-fail.example.com"
+            domain_names_b = self._add_blacklisted_domain(
+                domain_names_b, _blacklisted_domain
+            )
+
+            stats_og = self._calculate_stats()
+            resp = self._place_order(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
+                domain_names_b,
+            )
+            assert resp.status_code == 200
+            assert resp.json()["result"] == "error"
+            assert (
+                resp.json()["error"]
+                == "`pending` AcmeOrder failed an AcmeAuthorization"
+            )
+            assert "AcmeOrder" in resp.json()
+            obj_id = resp.json()["AcmeOrder"]["id"]
+            assert resp.json()["AcmeOrder"]["certificate_url"] is None
+            assert resp.json()["AcmeOrder"]["acme_status_order"] == "invalid"
+            assert (
+                resp.json()["AcmeOrder"]["acme_order_processing_status"]
+                == "processing_completed_failure"
+            )
+
+            stats_b = self._calculate_stats()
+
+            # compare backend stats
+            assert stats_b["count-Domain"] == stats_og["count-Domain"] + 20
+            assert stats_b["count-UniqueFQDNSet"] == stats_og["count-UniqueFQDNSet"] + 1
+            assert stats_b["count-AcmeOrder"] == stats_og["count-AcmeOrder"] + 1
+            assert (
+                stats_b["count-AcmeAuthorization"]
+                == stats_og["count-AcmeAuthorization"] + 20
+            )
+            # this one is hard to figure out
+            # start with 20 auths
+            _expected = stats_og["count-AcmeAuthorization-pending"] + 20
+            # then figure out the difference in challenges
+            _expected = _expected - (
+                stats_b["count-AcmeChallenge"] - stats_og["count-AcmeChallenge"]
+            )
+            # no need to subtract one for the failed auth, because it's part of the `count-AcmeChallenge`
+            # _expected = _expected - 1
+
+            assert stats_b["count-AcmeAuthorization-pending"] == _expected
+
+        finally:
+            # reset
+            self.testapp_wsgi.test_app.registry.settings["app_settings"][
+                "cleanup_pending_authorizations"
+            ] = True

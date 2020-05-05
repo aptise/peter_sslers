@@ -10,18 +10,21 @@ with open(os.path.join(here, "CHANGES.txt")) as f:
 
 requires = [
     "formencode",
+    "cryptography",  # for pyopenssl; temporary until refactored out
+    "pyopenssl",  # import OpenSSL; temporary until refactored out
     "pypages",
     "pyramid_debugtoolbar>=4.4",
-    "pyramid_formencode_classic >=0.4.0, <0.5.0",
+    "pyramid_formencode_classic >=0.4.2, <0.5.0",
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
     "pyramid_tm",
     "pyramid",
     "python-dateutil",
+    "psutil>=4.4.0",  # for Python2/3 compat
     "redis",
     "requests",
     "six",
-    "SQLAlchemy",
+    "SQLAlchemy<1.4.0",  # scalar_subquery API change
     "transaction",
     "waitress",
     "zope.sqlalchemy",
@@ -29,7 +32,7 @@ requires = [
 
 setup(
     name="peter_sslers",
-    version="0.3.0",
+    version="0.4.0",
     description="peter_sslers",
     long_description=README + "\n\n" + CHANGES,
     classifiers=[
@@ -46,12 +49,13 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    test_suite="peter_sslers",
+    test_suite="peter_sslers.tests",
     install_requires=requires,
     entry_points="""\
       [paste.app_factory]
-      main = peter_sslers:main
+      main = peter_sslers.web:main
       [console_scripts]
-      initialize_peter_sslers_db = peter_sslers.scripts.initializedb:main
+      initialize_peter_sslers_db = peter_sslers.web.scripts.initializedb:main
+      disable_acme_account_providers = peter_sslers.web.scripts.disable_acme_account_providers:main
       """,
 )

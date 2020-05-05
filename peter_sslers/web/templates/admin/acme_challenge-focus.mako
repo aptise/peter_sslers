@@ -1,0 +1,199 @@
+<%inherit file="/admin/-site_template.mako"/>
+<%namespace name="admin_partials" file="/admin/-partials.mako"/>
+
+
+<%block name="breadcrumb">
+    <ol class="breadcrumb">
+        ${request.breadcrumb_prefix|n}
+        <li><a href="${admin_prefix}">Admin</a></li>
+        <li><a href="${admin_prefix}/acme-challenges">Acme Challenge</a></li>
+        <li class="active">Focus: ${AcmeChallenge.id}</li>
+    </ol>
+</%block>
+
+
+<%block name="page_header_col">
+    <h2>Acme Challenge: Focus ${AcmeChallenge.id}</h2>
+</%block>
+
+
+
+<%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
+</%block>
+
+
+<%block name="content_main">
+    ${admin_partials.handle_querystring_result()}
+
+    <div class="row">
+        <div class="col-sm-12">
+            <table class="table table-striped table-condensed">
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                            ACME Server Operations
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Sync</th>
+                        <td>
+                            <p>
+                                <% sync_btn_class = '' if AcmeChallenge.is_can_acme_server_sync else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/sync"
+                                    class="btn btn-xs btn-info"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Sync AcmeChallenge Against ACME Server
+                                </a>
+                            </p>
+                            <p>
+                                <% trigger_btn_class = '' if AcmeChallenge.is_can_acme_server_trigger else 'disabled' %>
+                                <a
+                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/trigger"
+                                    class="btn btn-xs btn-info ${trigger_btn_class}"
+                                >
+                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                    Trigger ACME Server
+                                </a>
+                            </p>
+                        </td>
+                    </tr>
+                </tbody>
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                            Core Details
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>id</th>
+                        <td><span class="label label-default">${AcmeChallenge.id}</span></td>
+                    </tr>
+                    <tr>
+                        <th>AcmeAuthorization</th>
+                        <td>
+                            % if AcmeChallenge.acme_authorization_id:
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/acme-authorization/${AcmeChallenge.acme_authorization_id}"
+                                >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeAuthorization-${AcmeChallenge.acme_authorization_id}
+                                </a>
+                                <hr/>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeOrderless</th>
+                        <td>
+                            % if AcmeChallenge.acme_orderless_id:
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/acme-orderless/${AcmeChallenge.acme_orderless_id}"
+                                >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrderless-${AcmeChallenge.acme_orderless_id}
+                                </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>domain</th>
+                        <td>
+                            % if AcmeChallenge.domain_id:
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/domain/${AcmeChallenge.domain_id}"
+                                >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    Domain-${AcmeChallenge.domain_id}
+                                </a>
+                                <code>${AcmeChallenge.domain.domain_name}</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>acme_challenge_type</th>
+                        <td><span class="label label-default">${AcmeChallenge.acme_challenge_type}</span></td>
+                    </tr>
+                    
+                    <tr>
+                        <th>test</th>
+                        <td>
+                            % if AcmeChallenge.acme_challenge_type == "http-01":
+                                % if AcmeChallenge.token:
+                                    <a href="http://${AcmeChallenge.domain.domain_name}/.well-known/acme-challenge/${AcmeChallenge.token}?test=1"
+                                       target="_blank"
+                                       class="btn btn-success"
+                                    >
+                                        <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
+                                    </a>
+                                % endif
+                            % endif
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th>challenge_url</th>
+                        <td>${AcmeChallenge.challenge_url}</td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_created</th>
+                        <td><timestamp>${AcmeChallenge.timestamp_created}</timestamp></td>
+                    </tr>
+                    <tr>
+                        <th>status</th>
+                        <td><code>${AcmeChallenge.acme_status_challenge}</code></td>
+                    </tr>
+                    <tr>
+                        <th>token</th>
+                        <td><code>${AcmeChallenge.token}</code></td>
+                    </tr>
+                    <tr>
+                        <th>timestamp_updated</th>
+                        <td><timestamp>${AcmeChallenge.timestamp_updated}</timestamp></td>
+                    </tr>
+                    <tr>
+                        <th>keyauthorization</th>
+                        <td><code>${AcmeChallenge.keyauthorization}</code></td>
+                    </tr>
+                </tbody>
+                <thead>
+                    <tr>
+                        <th colspan="2">
+                        </th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">
+                            Polls
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    % for poll in AcmeChallenge.acme_challenge_polls:
+                        <tr>
+                            <td>
+                                <span class="label label-default">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    ${poll.id}
+                                </span>
+                            </td>
+                            <td><timestamp>${poll.timestamp_polled}</timestamp></td>
+                            <td>${poll.remote_ip_address.remote_ip_address}</td>
+                        </tr>
+                    % endfor
+                </tbody>
+            </table>
+        </div>
+    </div>
+</%block>
+

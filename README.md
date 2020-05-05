@@ -1,70 +1,97 @@
+acme-v2 BRANCH
+================================
+
+Hi!
+
+This is a big rewrite and still undergoing a lot of work.
+The tests are broken and the design isn't finalized yet.
+
+
+
 peter_sslers README
 ================================
 
-Peter SSLers *or how i stopped worrying and learned to love the ssl certificate*.
+Peter SSLers *or how i stopped worrying and learned to LOVE the SSL Certificate*.
 
-`peter_sslers` is a package designed to help *experienced* admins and devops people manage SSL Certificates and deploy them on larger systems.
+`peter_sslers` is a package designed to help *experienced* admins and DevOps people manage SSL Certificates and deploy them on larger systems (e.g. you have lots of domains and/or nodes).
 
-What's in the box ?
+What's in the "box" ?
 
-* SSL Certificate Manager
-* ACME v1 client for LetsEncrypt Certificate Authority
-* OpenResty Lua module for Dynamic SSL Certificate Handling on the Nginx webserver
+* `OpenResty` Lua module to enable Dynamic SSL Certificate Handling on the `Nginx` webserver
+* A robust SSL Certificate Manager
+* An integrated ACME V2 Client for LetsEncrypt Certificate Authority
 
 THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
 
-AMAZING, RIGHT?
+Amazing, right?
 
-This package is *not* aimed at casual or single-site users.  This package is *not* aimed at novice users.
+This package is *not* aimed at casual users or people concerned with a handful of websites or servers.
 
-Peter offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.
+Peter, as we fondly call this package, offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.  PostgreSQL is recommended; Sqlite is supported and the primary testing environment.  A good-faith effort is made to get this to work on MySQL, but, well, sigh.
 
-Peter combines an ACME v1 client designed to operate against the LetsEncrypt v1 service, alongside tools designed to manage & deploy certificates.
+Peter combines an ACME V2 Client designed to operate against the LetsEncrypt service, alongside tools designed to manage & deploy Signed SSL Certificates.
 
-ACME v2 support is being worked on.
+The client supported ACME v1 until version `0.4.0`. 
+
+**As of 0.4.0, Only ACME V2 is now supported.**
+**Only LetsEncrypt is supported as a target ACME Server.**
 
 Peter's core tool is a lightweight database-backed `Pyramid` application that can:
 
-* act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver
-* import existing ssl certificates
-* ease provisioning certificates onto various servers
-* browse certificate data and easily see what needs to be renewed
-* communicate with a properly configured `OpenResty` enabled `Nginx` web server (see next section)
-* translate certificates into different formats
+* Act as a client for the entire "LetsEncrypt" issuance process, operating behind a proxied webserver
+* Offer a simple API for creating and managing the ACME process. Your software talks to Peter, not LetsEncrypt.
+* Import existing ssl Certificates
+* Ease provisioning Certificates onto various servers across your systems
+* Browse certificate data and easily see what needs to be renewed
+* Interact with the upstream ACME Servers to deal with accounts and pending authorizations, and all that mess.
+* Communicate with a properly configured `OpenResty` enabled `Nginx` web server (see next section)
+* Prime a Redis cache with certificate data
+* Translate Certificates into different formats
+* Be the source of lots of puns!
 
 Peter ships alongside a `Lua` `opm` module for the `OpenResty` framework on the `Nginx` server which will:
 
-* dynamically request certificates from a primed Redis cache
-* store data in shared `Nginx` worker memory and
-* expose routes to flush the worker shared memory or expire select keys. 
+* Dynamically request Certificates from a primed `Redis` cache
+* Store data in shared `Nginx` worker memory and
+* Expose routes to flush the worker shared memory or expire select keys. 
 
-The module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your OpenResty/Nginx server via the `opm` package installer
+The `OpenResty` module is available in a separate project, https://github.com/aptise/peter_sslers-lua-resty and can be installed into your `OpenResty`/`Nginx` server via the `opm` package installer.  It has been used in production for several years.
 
-The `Pyramid` based application can function as a daemon or a commandline script.  Most pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window. Don't want to do things manually? Ok - everything was built to be readable on commandline browsers... yes, this is actually developed-for and tested-with lynx.
+The `Pyramid` based application can function as a daemon for Admin or API access, or even a commandline script. Most web pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window. Don't want to do things manually? Ok - everything was built to be readable on commandline browsers... yes, this is actually developed-for and tested-with Lynx. I shit you not, Lynx.
 
-Do you like book-keeping?  Peter's `Pryamid` component logs everything into sql.  
+Do you like book-keeping?  Peter's `Pryamid` component logs everything into SQL so you can easily find the answers to burning questions like:
+
+* What authorizations are still pending?
+* What challenges are active?
+* Which external ips are triggering my challenges?
+* Where did this PrivateKey come from?
+* How many requests have I been making to upstream servers?
+
+THIS PACKAGE IS EXTREME TO THE MAX!!!
 
 Do you like cross-referencing?  Your certs are broken down into fields that are cross-referenced or searchable within Peter as well.
 
-Peter has absolutely no security measures and should only be used by people who understand that (that should be a self-selecting group, because many people won't want this tool).  Peter is a honeybadger, he don't care.  He just takes what he wants.
+Peter has absolutely no security measures and should only be used by people who understand that. This should be a self-selecting group, because many people won't want this tool. Peter is a honeybadger, he don't care. He does what he wants.
 
 Peter offers several commandline tools -- so spinning up a tool "webserver" mode may not be necessary at all -- or might only be needed for brief periods of time.
 
-SqlAlchemy is the backing database library, so virtually any database can be used (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but the package has been tested against PostgreSQL.  SQLite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
+SqlAlchemy is the backing database library, so virtually any database can be used (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but the package has been tested against PostgreSQL. SQLite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
 
-Peter leverages the system's OpenSSL instead of using Python's modules. The reason is to minimize the amount of downloads/packages.
+Peter tries to leverage the system's OpenSSL instead of using Python's modules whenever possible. The reason is to minimize the amount of downloads/packages.  A future version will allow switching between the two.
+
+Although Python2 is no longer supported by Python itself, Python2 and Python3 are targeted platforms for this library because we all have to deal legacy systems.
 
 
 ## Why?
 
-Most of us hate having to spend time on DevOps tasks.  Personally, I would rather spend time working on the core product or consumer products.  This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting.  This is pre-release and still being worked on as it fixes new issues on a production system.  PRs are absolutely welcome, even if just fixes or additions to the test-suite.
+Most of us hate having to spend time on DevOps tasks. Personally, I would rather spend time working on the core product or consumer products. This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting. This is pre-release and still being worked on as it fixes new issues on a production system. PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
 
 ## Status
 
 This largely works for certificate management, manual/queued renewal and for transitions.
 
-The endpoint related to "requesting" domains and handling dynamic queues of new certificates do not work yet.
+The endpoint related to "requesting" Domains and handling dynamic queues of new Certificates do not work yet.
 
 
 # An important WARNING:
@@ -76,23 +103,15 @@ The endpoint related to "requesting" domains and handling dynamic queues of new 
 
 # The Components
 
-## "Peter SSLers" - a Pyramid Application
+## "Peter SSLers" - a `Pyramid` Application
 
-"Peter SSLers" is the core toolkit.  It is a `Pyramid` application that can be spun up as a webserver or used via a commandline interface.  Peter is your friend and handles all of the Certificate Management and translation functions for you.  He's a bit eccentric, but basically a good guy.
+"Peter SSLers" is the core toolkit. It is a `Pyramid` application that can be spun up as a webserver or used via a commandline interface. Peter is your friend and handles all of the Certificate Management and translation functions for you. He's a bit eccentric, but basically a good guy.
 
 ## "SSL Minnow" - The Datastore
 
-By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`.  It is the backing datastore for SSL Certificates and the operations log.  Your data is ONLY saved to the SSL Minnow - not to the filesystem like other LE clients - so you should be careful with it.  If the Minnow would be lost, it can not be recovered.  Be a good skipper, or your three hour tour could end up taking many years and might involve the Harlem Globetrotters.
+By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`. It is the backing datastore for SSL Certificates and the operations log. Your data is ONLY saved to the SSL Minnow - not to the filesystem like other LE clients - so you should be careful with it. If the Minnow would be lost, it can not be recovered. Be a good skipper, or your three hour tour could end up taking many years and might involve the Harlem Globetrotters, who are great to watch but do you want to be stuck on a remote desert island with them?!?! No.
 
-## "Tools"
-
-The "/tools" directory contains scripts useful for certificate operations.  Currently this includes:
-
-* an `invoke` script for some miscellaneous tasks
-* a sample `fake_server.py` that will spin up a server with routes that you can test against.  this will allow you to setup your integration without running peter_sslers
-* a sample `fake_boulder.py` that will spin up a fake boulder server that can be used as a certificate authority when testing
-
-## The OpenResty package
+## The `OpenResty` package
 
 Available via the opm package manager:
 
@@ -100,41 +119,68 @@ Available via the opm package manager:
 
 The source and docs are available on github https://github.com/aptise/peter_sslers-lua-resty
 
+## "Tools"
+
+The "/tools" directory contains scripts useful for certificate operations. Currently this includes:
+
+* an `invoke` script for some miscellaneous tasks
+* a sample `fake_server.py` that will spin up a server with routes that you can test against. this will allow you to setup your integration without running peter_sslers
+
+
 
 # General Management Concepts
+
+## A single web application?
+
+In a perfect world we could deploy the combination of web application (enter data, serve responses) and a task runner (process ACME Server interactions) - but that involves quite a bit of overhead to deploy and run.
+
+The `Pyramid` framework has a wonderful utility called `prequest` (https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/prequest.html) which allows you to make artificial requests on the commandline.
+
+Using `prequest`, long-running processes can be easily triggered.
+
+
+## Unique Fully Qualified Domain Sets (UniqueFQDNSet)
+
+One of the LetsEncrypt service's ratelimits is based on a Certificate Request's "uniqueness" of Domains.
+
+To more easily deal with this limit, Orders/Certificates/CertificateRequests are designed around the idea of a "UniqueFQDNSet" and not a single Domain.
+
+When requesting a new certificate or importing existing ones, most of this happens behind-the-scenes: a listing of Domains is turned into a unique set of Domain names.
+
+
 
 ## Certificates and Certificate Requests
 
 This handles several types of certificate requests
 
 1. Upload an existing Certificate Request and Certificate for tracking
-2. Have the built-in ACME-v1 client generate a Certificate Request and handle the challeges (Acme-Automated)
+2. Have the built-in ACME-v2 client generate a Certificate Request and handle the challeges (Acme-Automated)
 3. Use an external tool to generate the certificate request, use PeterSSLers via HTML/API to manage the challenges (Acme-Flow)
 
 ## Input
 
-1. An admin dashboard allows you to upload certificates (in a triplet of Cert, Signing Key, CA-Chain)
-2. An admin dashboard allows you to initiate LetsEncrypt certificate signing. Upload a list of domains, your LetsEncrypt account key, and private key used for signing/serving, and the system will generate the CSR and perform all the verifications.
-3. A public interface allows you to proxypass the acme-challenges that LetsEncrypt issues for manual verification. (ie, run this behind Nginx)
+1. An admin dashboard allows you to upload Certificates (in a triplet of Cert, Signing Key, CA-Chain)
+2. An admin dashboard allows you to initiate LetsEncrypt certificate signing. Upload a list of Domains, your LetsEncrypt account key, and private key used for signing/serving, and the system will generate the CSR and perform all the verifications.
+3. A public interface allows you to proxypass the acme-challenges that LetsEncrypt issues for manual verification. (ie, run this behind `Nginx`)
 4. You can run the 'webserver' on a private IP, and `curl` data into it via the commandline or miscellaneous scripts
 
 ## Output
 
 1. All the keys & certs are viewable in a wonderfully connected RDMBS browser.
 2. Any keys/certs/chains can be queried in PEM & DER formats.
-3. All the certificates are checked to track their validity dates, so you can search and re-issue
-4. This can "prime" a Redis cache with SSL Cert info in several formats.  A Lua script for OpenResty is included that enables dynamic SSL certs.
+3. All the Certificates are checked to track their validity dates, so you can search and re-issue
+4. This can "prime" a `Redis` cache with SSL Cert info in several formats.  A Lua script for `OpenResty` is included that enables dynamic SSL certs.
 
 ## Management
 
 * Everything is in the RDBMS and de-duped.
-* chains are built on-the-fly.
+* certificate chains are built on-the-fly.
 * a growing API powers most functionality
 * public and admin routes can be isolated in the app & firewall, so you can just turn this on/off as needed
-* you can easily see when certificates and/or domains expire and need to be renewed
+* you can easily see when Certificates and/or Domains expire and need to be renewed
 * if SQLite is your backend, you can just run this for signing and deployment; then handle everything else offline.
 * "Admin" and "Public" functions are isolated from each other. By changing the config, you can run a public-only "validation" interface or enable the admin tools that broadcast certificate information.
-* the Pyramid server can query Nginx locations to clear out the shared cache 
+* the `Pyramid` server can query `Nginx` locations to clear out the shared cache 
 
 
 # Installation
@@ -159,7 +205,7 @@ Here we go...
 	cd peter_sslers
 	python setup.py develop
 	initialize_peter_sslers_db example_development.ini	
-	prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
+	prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
 	pserve --reload example_development.ini
 	
 Then you can visit `http://127.0.0.1:7201`
@@ -168,9 +214,9 @@ Editing the `example_development.ini` file will let you specify how the package 
 
 `Pyramid` applications are based on `.ini` configuration files.  You can use multiple files to deploy the server differently on the same machine, or on different environments.
 
-You can run this on SQLite or switch to Posgtresql by adjusting the sqlalchemy url
+You can run this on SQLite or switch to PosgtreSQL by adjusting the SqlAlchemy url
 
-If you run via sqlalchemy, you'll need to setup the database BEFORE running `initialize_peter_sslers_db`
+If you run via PosgtreSQL, you'll need to setup the database BEFORE running `initialize_peter_sslers_db`
 
 roughly, that entails...
 
@@ -178,21 +224,29 @@ roughly, that entails...
 	psql> create user ssl_minnow with password '{PASSWORD}';
 	psql> create database ssl_minnow with owner ssl_minnow ;
 
-Some tools are provided to automatically import existing certificates and chains (see below).
+Some tools are provided to automatically import existing Certificates and chains (see below).
 
 It is recommended to open up a new terminal and do the following commands
 
 	cd certificate_admin
 	source peter_sslers-venv/bin/activate
 	cd peter_sslers
-	prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
-	cd tools
-	invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
-	invoke import_letsencrypt_accounts_all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json
+	pserve example_development.ini
 
-The `prequest` command above will import the current LetsEncrypt certificates to get you started.
-The first `invoke` command will import existing LetsEncrypt issued certificates
-The second `invoke` command will import existing LetsEncrypt accounts
+then in another terminal window:	
+
+	cd certificate_admin
+	source peter_sslers-venv/bin/activate
+	cd peter_sslers/tools
+	invoke import-certbot-certs-live  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/live'
+	invoke import-certbot-certs-archive  --server-url-root='http://127.0.0.1:7201/.well-known/admin' --live-path='/etc/letsencrypt/archive' 
+	invoke import-certbot-accounts-all --accounts-all-path='/etc/letsencrypt/accounts' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+
+The `prequest` command above will import the current LetsEncrypt Certificates to get you started.
+The first `invoke` command will import existing LetsEncrypt live Certificates
+The second `invoke` command will import all existing LetsEncrypt issued Certificates
+The third `invoke` command will import existing LetsEncrypt accounts
 
 
 # Implementation Details
@@ -216,30 +270,30 @@ By default, the `example_production.ini` file won't even run the admin tools.  t
 
 Again, the purpose of this package is to enable certificate management in systems where one or more of the following apply:
 
-* you have a lot of domains
+* you have a lot of Domains
 * you have a lot of machines
-* your domains resolve to more than one IP address
+* your Domains resolve to more than one IP address
 
-Imagine you want to issue a certificate for 100 domains, which could be served from any one of 5 machines (load balancers or round-robin dns) and the certificates need to be deployable to all 5 machines.
+Imagine you want to issue a certificate for 100 Domains, which could be served from any one of 5 machines (load balancers or round-robin dns) and the Certificates need to be deployable to all 5 machines.
 
 To solve this you can:
 
 * proxy external ` /.well-known/acme-challenge/` to one or more machines running this tool (they just need to share a common datastore)
 * make ` /.well-known/admin` only usable within your LAN or NEVER USABLE
-* on a machine within your LAN, you can query for the latest certs for domain(s) using simple `curl` commands
+* on a machine within your LAN, you can query for the latest certs for Domain(s) using simple `curl` commands
 
-In a more advanced implementation (such as what this was originally designed to manage) the certificates need to be loaded into a `Redis` server for use by an `OpenResty`/`Nginx` webserver/gateway that will dynamically handle ssl certificates.
+In a more advanced implementation (such as what this was originally designed to manage) the Certificates need to be loaded into a `Redis` server for use by an `OpenResty`/`Nginx` webserver/gateway that will dynamically handle ssl Certificates.
 
-In a simple example, OpenResty/Nginx will query `/.well-known/admin/domain/example.com/config.json` to pull the active certificate information for a domain.  In advanced versions, that certificate information will be cached into multiple levels of OpenResty/Nginx and Redis using different optimization strategies.
+In a simple example, `OpenResty`/`Nginx` will query `/.well-known/admin/domain/example.com/config.json` to pull the active certificate information for a domain.  In advanced versions, that certificate information will be cached into multiple levels of `OpenResty`/`Nginx` and `Redis` using different optimization strategies.
 
-This package does all the annoying openssl work in terms of building chains and converting formats *You just tell it what domains you need certificates for and in which format and THERE YOU GO.*
+This package does all the annoying openssl work in terms of building chains and converting formats *You just tell it what domains you need Certificates for and in which format and THERE YOU GO.*
 
 
 # Deployment Concepts
 
 ![Network Map: Simple](https://raw.github.com/aptise/peter_sslers/master/docs/assets/network_map-01.png)
 
-PeterSSlers can run as a standalone service OR proxied behind Nginx/Apache/etc
+PeterSSlers can run as a standalone service OR proxied behind `Nginx`/`Apache`/etc
 
 The SSLMinnow datastore is entirely separate and standalone.  It is portable.
 
@@ -310,21 +364,23 @@ These are documented at-length on the in-app settings page.
 * `openssl_path` - the full path to your openssl binary (default `openssl`)
 * `openssl_path_conf` - the full path to your openssl binary (default `/etc/ssl/openssl.cnf`)
 
-* `certificate_authority` - the LetsEncrypt certificate authority. by default we use their staging URL. you will have to manually put in the real URL as defined on their docs.
+* `certificate_authority` - the LetsEncrypt certificate authority. by default we use their staging URL. you will have to manually put in the real URL as defined on their docs.  you can also use the string "pebble" or "custom" to enable local testing.
 * `certificate_authority_agreement` - the LetsEncrypt agreement URL used when creating new accounts.  Everything will probably fail if you don't include this argument.
+* `certificate_authority_endpoint` - acmev1; if `certificate_authority=custom` or `certificate_authority=pebble`, you must supply a url for the endpoint
+* `certificate_authority_directory` - acmev2; if `certificate_authority=custom` or `certificate_authority=pebble`, you must supply a url for the directory endpoint
 
 * `enable_views_public` - boolean, should we enable the public views?
 * `enable_views_admin` - boolean, should we enable the admin views?
 * `enable_acme_flow` - boolean, should we enable the acme-flow tool?
 
-* `redis.url` - URL of Redis (includes port)
-* `redis.prime_style` - MUST be "1" or "2"; see Redis Prime section below.
+* `redis.url` - URL of `Redis` (includes port)
+* `redis.prime_style` - MUST be "1" or "2"; see `Redis` Prime section below.
 * `redis.timeout.cacert` - INT seconds (default None)
 * `redis.timeout.cert` - INT seconds (default None)
 * `redis.timeout.pkey` - INT seconds (default None)
 * `redis.timeout.domain` - INT seconds (default None)
 
-* `nginx.servers_pool` - comma(,) separated list of servers with an expiry route; see Redis Prime section below
+* `nginx.servers_pool` - comma(,) separated list of servers with an expiry route; see `Redis` Prime section below
 * `nginx.userpass` - http authhentication (username:password) which will be provided to each server in `nginx.servers_pool`
 * `nginx.reset_path` - defaults to `/.peter_sslers/nginx/shared_cache/expire`
 * `nginx.status_path` - defaults to `/.peter_sslers/nginx/shared_cache/status`
@@ -349,14 +405,14 @@ there is an `invoke` script in the `tools` directory that can be used to automat
 
 right now the invoke script offers:
 
-* `import_letsencrypt_certs_archive` given a directory of your local LetsEncrypt archive (which has versioned certs), it will import them all into a server of your choice.
-* `import_letsencrypt_certs_live` given a directory of your local LetsEncrypt install, it will import the active onesinto a server of your choice.
-* `import_letsencrypt_cert_version` given a specific directory of your LetsEncrypt archive, it will import specific items
-* `import_letsencrypt_cert_plain` given a directory of an unversioned cert (like a particular directory within the "live" certs), will import it.
+* `import-certbot-certs-archive` given a directory of your local LetsEncrypt archive (which has versioned certs), it will import them all into a server of your choice.
+* `import-certbot-certs-live` given a directory of your local LetsEncrypt install, it will import the active onesinto a server of your choice.
+* `import-certbot-cert-version` given a specific directory of your LetsEncrypt archive, it will import specific items
+* `import-certbot-cert-plain` given a directory of an unversioned cert (like a particular directory within the "live" certs), will import it.
 
-* `import_letsencrypt_account` import a specific letsencrypt account
-* `import_letsencrypt_accounts_server` import all accounts for a letsencrypt server (i.e. v1, v1-staging)
-* `import_letsencrypt_accounts_all` import all accounts for all letsencrypt servers
+* `import-certbot-account` import a specific LetsEncrypt account
+* `import-certbot-accounts-server` import all accounts for a LetsEncrypt server (i.e. v1, v1-staging)
+* `import-certbot-accounts-all` import all accounts for all LetsEncrypt servers
 
 
 ## Commandline Interface
@@ -367,9 +423,9 @@ You can interact with this project via a commandline interface in several ways.
 * run explicit routes via `prequest`. this allows you to do admin tasks without spinnig up a server
 
 
-## OpenResty/Nginx Lua integration
+## `OpenResty`/`Nginx` Lua integration
 
-The OpenResty/Nginx implementation was migrated to it's own project, handled by `opm` distribution
+The `OpenResty`/`Nginx` implementation was migrated to a dedicated sibling repository, handled by `opm` distribution
 
 https://github.com/aptise/peter_sslers-lua-resty
 
@@ -378,10 +434,12 @@ https://github.com/aptise/peter_sslers-lua-resty
 
 ## prequest
 
-You can use Pyramid's `prequest` syntax to spin up a URL and get or post data
+You can use Pyramid's `prequest` syntax to spin up a URL and GET/POST data
 
-`$VENV/bin/prequest example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json`
-`$VENV/bin/prequest example_development.ini /.well-known/admin/api/redis/prime.json`
+`$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/ca-certificate-probes/probe.json`
+`$VENV/bin/prequest -m POST example_development.ini /.well-known/admin/api/redis/prime.json`
+
+using `prequest` is recommended in most contexts, because it will not timeout. this will allow for long-running processes.
 
 
 ## Routes Designed for JSON Automation
@@ -399,7 +457,7 @@ Deactivates expired certs
 
 ### `/.well-known/admin/api/redis/prime.json`
 
-Primes a Redis cache with domain data.
+Primes a `Redis` cache with domain data.
 
 ### `/.well-known/admin/api/update-recents.json`
 
@@ -412,13 +470,13 @@ several routes have support for JSON requests via a `.json` suffix.
 
 these are usually documented on the html version
 
-### `/.well-known/admin/certificate/upload.json`
+### `/.well-known/admin/server-certificate/upload.json`
 
 This can be used used to directly import certs issued by LetsEncrypt
 
-	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:7201/.well-known/admin/certificate/upload.json
+	curl --form "private_key_file=@privkey1.pem" --form "certificate_file=@cert1.pem" --form "chain_file=@chain1.pem" http://127.0.0.1:7201/.well-known/admin/server-certificate/upload.json
 
-	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:7201/.well-known/admin/certificate/upload.json
+	curl --form "private_key_file=@privkey2.pem" --form "certificate_file=@cert2.pem" --form "chain_file=@chain2.pem" http://127.0.0.1:7201/.well-known/admin/server-certificate/upload.json
 	
 Note that the url is not `/upload` like the html form but `/upload.json`
 
@@ -430,13 +488,13 @@ if data is not POSTed to the form, instructions are returned in the json.
 
 There is even an `invoke` script to automate these imports:
 
-	invoke import_letsencrypt_certs_archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	invoke import-certbot-certs-archive --archive-path='/path/to/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 	
-    invoke import_letsencrypt_cert_version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://127.0.0.1:7201/.well-known/admin"
+    invoke import-certbot-cert-version --domain-certs-path="/path/to/ssl/archive/example.com" --certificate-version=3 --server-url-root="http://127.0.0.1:7201/.well-known/admin"
 
-	invoke import_letsencrypt_certs_live --live-path='/etc/letsencrypt/live' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	invoke import-certbot-certs-live --live-path='/etc/letsencrypt/live' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
-	invoke import_letsencrypt_cert_plain --cert-path='/etc/letsencrypt/live/example.com' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+	invoke import-certbot-cert-plain --cert-path='/etc/letsencrypt/live/example.com' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
 ### `/.well-known/admin/ca-certificate/upload.json`
@@ -481,9 +539,9 @@ If you pass in the querystring '?idonly=1', the PEMs will not be returned.
 
 Notice that the numeric ids are returned as strings. This is by design.
 
-If you pass in the querystring '?openresty=1' to identify the request as coming from OpenResty (as an api request), this will function as a write-through cache for Redis and load the domain's info into Redis (if Redis is configured).
+If you pass in the querystring '?openresty=1' to identify the request as coming from `OpenResty` (as an api request), this will function as a write-through cache for `Redis` and load the domain's info into `Redis` (if `Redis` is configured).
 
-This is the route use by the OpenResty Lua script to query domain data.
+This is the route use by the `OpenResty` Lua script to query domain data.
 
 
 ### `/.well-known/admin/certificate/{ID}/config.json` Certificate Data
@@ -509,19 +567,19 @@ notice that the numeric ids are returned as strings. this is by design.
 
 Need to get the cert data directly? NO SWEAT. Peter transforms this for you on the server, and sends it to you with the appropriate headers.
 
-* /.well-known/admin/certificate/{ID}/cert.crt
-* /.well-known/admin/certificate/{ID}/cert.pem
-* /.well-known/admin/certificate/{ID}/cert.pem.txt
-* /.well-known/admin/certificate/{ID}/chain.cer
-* /.well-known/admin/certificate/{ID}/chain.crt
-* /.well-known/admin/certificate/{ID}/chain.der
-* /.well-known/admin/certificate/{ID}/chain.pem
-* /.well-known/admin/certificate/{ID}/chain.pem.txt
-* /.well-known/admin/certificate/{ID}/fullchain.pem
-* /.well-known/admin/certificate/{ID}/fullchain.pem.txt
-* /.well-known/admin/certificate/{ID}/privkey.key
-* /.well-known/admin/certificate/{ID}/privkey.pem
-* /.well-known/admin/certificate/{ID}/privkey.pem.txt
+* /.well-known/admin/server-certificate/{ID}/cert.crt
+* /.well-known/admin/server-certificate/{ID}/cert.pem
+* /.well-known/admin/server-certificate/{ID}/cert.pem.txt
+* /.well-known/admin/server-certificate/{ID}/chain.cer
+* /.well-known/admin/server-certificate/{ID}/chain.crt
+* /.well-known/admin/server-certificate/{ID}/chain.der
+* /.well-known/admin/server-certificate/{ID}/chain.pem
+* /.well-known/admin/server-certificate/{ID}/chain.pem.txt
+* /.well-known/admin/server-certificate/{ID}/fullchain.pem
+* /.well-known/admin/server-certificate/{ID}/fullchain.pem.txt
+* /.well-known/admin/server-certificate/{ID}/privkey.key
+* /.well-known/admin/server-certificate/{ID}/privkey.pem
+* /.well-known/admin/server-certificate/{ID}/privkey.pem.txt
 
 
 # Workflow Concepts
@@ -532,7 +590,7 @@ Need to get the cert data directly? NO SWEAT. Peter transforms this for you on t
 
 #### `is_active`
 
-If a domain is "active", then it is actively managed and should be included in certificate renewals or generating Nginx configuration.
+If a domain is "active", then it is actively managed and should be included in certificate renewals or generating `Nginx` configuration.
 
 ### Certificate
 
@@ -542,7 +600,7 @@ Set to `True` by default.  If `True`, this certificate will be auto-renewed by t
 
 #### `is_active`
 
-If a certificate is "active" (`True` by default) then it is actively managed and should be included in generating Nginx configuration.
+If a certificate is "active" (`True` by default) then it is actively managed and should be included in generating `Nginx` configuration.
 
 #### `is_deactivated` and `is_revoked`
 
@@ -561,7 +619,7 @@ If a domain is added to the queue, the following logic takes place:
 
 ## Renewal Queue
 
-* `update` will calculate which certificates need to be renewed
+* `update` will calculate which Certificates need to be renewed
 * `process` will do the actual renewal
 
 Certificates end up in the renewal queue through the `update` command or being individually queued.
@@ -582,45 +640,47 @@ There are simple ways to process the entire queue though:
 
 ## Does this reformat certs?
 
-Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input). This seems to be one of the more common standards people have for saving certs. Otherwise certs are left as-is.
+Yes. PEM certs are reformatted to have a single trailing newline (via stripping then padding the input) and newlines are standardized to unix ("\n"). This seems to be one of the more common standards people have for saving certs. Otherwise certs are left as-is.
 
 
 ## Is there a fast way to import existing certs?
 
-Yes. Use `curl` on the commandline. see the TOOLS section for an `invoke` script that can automate many certificates from the Letsencrypt Store.
+Yes. Use `curl` on the commandline. see the TOOLS section for an `invoke` script that can automate many Certificates from the LetsEncrypt Store.
 
 
-## What happens if multiple certs are available for a domain ?
+## What happens if multiple Certificates are available for a domain ?
 
-Multiple Domains on a cert make this part of management epically & especially annoying.
+Multiple Domains on a Certificate make this part of management epically & especially annoying.
 
 The current solution:
 
-* there is a an API endpoint to cache the most-recent "multi" and "single" cert for every domain onto the domain's record (update-recents)
-* certificates *will not* be deactivated if they are the most-recent "multi" or "single" cert for any one domain.
+* There is a an API endpoint to cache the most-recent "multi" and "single" cert for every domain onto the domain's record (update-recents)
+* Certificates *will not* be deactivated if they are the most-recent "multi" or "single" cert for any one Domain.
 
-This means that a cert will stay active so long as any one domain has not yet-replaced it.
+This means that a Certificate will stay active so long as any one Domain has not yet-replaced it.
 
-When querying for a domain's cert, the system will currently send the most recent cert. a future feature might allow for this to be customized, and show the most widely usable cert.
+When querying for a domain's Certificate, the system will currently send the most recent Certificate. a future feature might allow for this to be customized, and show the most widely usable Certificate.
 
 
 ## How does this handle LetsEncrypt accounts keys?
 
-Account keys from the letsencrypt client are reformatted into PEM-encoded RSA keys. The data from the various json files are archived into the database for use later.  The account data is searched for the actual environment it is registered with, and that becomes part of the account record.
+Account keys from the LetsEncrypt client are reformatted into PEM-encoded RSA keys. The data from the various json files are archived into the database for use later.  The account data is searched for the actual environment it is registered with, and that becomes part of the account record.
 
 
-## Why use openssl directly? / does this work on windows?
+## Why use OpenSsl directly? / does this work on windows?
 
-It was much easier to peg this to `openssl` in a linux environment for now; which rules out windows.
+When this package was first developed, installing the necessary python packages for cryptography required a lot of work and downloading.  OpenSSL should already be running on any machine PeterSslers needs to work on, so it was chosen for easy in quick deployment.
+
+It was also much easier to peg this to `openssl` in a linux environment for now; which rules out windows.
 
 In the future this could all be done with Python's crypto library. However openssl is fast and this was primarily designed for dealing with linux environments. sorry.
 
-If someone wants to make a PR to make this fully Python based... ok!
+If someone wants to make a PR to make this fully Python based now that a lot of dependencies are worked out... ok!
 
 
 ## Where does the various data come from?
 
-When imported, certificates are read into "text" form and parsed for data.
+When imported, Certificates are read into "text" form and parsed for data.
 
 When generated via the acme protocol, certificate data is provided in the headers.
 
@@ -631,40 +691,40 @@ Useful fields are duplicated from the certificate into SQL to allow for better s
 
 So far this has been tested behind a couple of load balancers that use round-robin dns. They were both in the same physical network.
 
-* Nginx is on port 80. everything in the `/.well-known directory` is proxied to an internal machine *which is not guaranteed to be up*
+* `Nginx` is on port 80. everything in the `/.well-known directory` is proxied to an internal machine *which is not guaranteed to be up*
 * this service is only spun up when certificate management is needed
 * `/.well-known/admin` is not on the public internet
 
-For testing certificates, these 2 commands can be useful:
+For testing Certificates, these 2 commands can be useful:
 
-reprime Redis cache
+reprime `Redis` cache
 
-	$ prequest example_development.ini /.well-known/admin/api/redis/prime.json
+	$ prequest -m POST example_development.ini /.well-known/admin/api/redis/prime.json
 
-clear out Nginx cache
+clear out `Nginx` cache
 
     curl -k -f https://127.0.0.1/.peter_sslers/nginx/shared_cache/expire/all
 
 the `-k` will keep the cert from verifying, the `-f` wont blow up from errors
 
-# Redis support
+# `Redis` support
 
-There are several `.ini` config options for Redis support, they are listed above.
+There are several `.ini` config options for `Redis` support, they are listed above.
 
-## Redis priming style
+## `Redis` priming style
 
 currently only `redis.prime_style = 1` and `redis.prime_style = 2` are supported.
 
 ### prime_style = 1
 
-This prime style will store data into Redis in the following format:
+This prime style will store data into `Redis` in the following format:
 
 * `d:{DOMAIN_NAME}` a 3 element hash for ServerCertificate (c), PrivateKey (p), CACertificate (i). note it has a leading colon.
 * `c{ID}` the ServerCertificate in PEM format; (c)ert
 * `p{ID}` the PrivateKey in PEM format; (p)rivate
 * `i{ID}` the CACertificate in PEM format; (i)ntermediate cert
 
-The Redis datastore might look something like this:
+The `Redis` datastore might look something like this:
 
 	r['d:foo.example.com'] = {'c': '1', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
 	r['d:foo2.example.com'] = {'c': '2', 'p': '1', 'i' :'99'}  # certid, pkeyid, chainid
@@ -684,11 +744,11 @@ to assemble the data for `foo.example.com`:
 
 ### prime_style = 2
 
-This prime style will store data into Redis in the following format:
+This prime style will store data into `Redis` in the following format:
 
 * `{DOMAIN_NAME}` a 2 element hash for FullChain [ServerCertificate+CACertificate] (f), PrivateKey (p)
 
-The Redis datastore might look something like this:
+The `Redis` datastore might look something like this:
 
 	r['foo.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
 	r['foo2.example.com'] = {'f': 'FullChain', 'p': 'PrivateKey'}
@@ -702,10 +762,10 @@ To keep things simple, tests are run using unittest.
 
 There are a few environment variables you can set:
 
-	# run tests that hit Nginx for cache clearing
+	# run tests that hit `Nginx` for cache clearing
 	export SSL_RUN_NGINX_TESTS=True
 
-	# run tests that hit Redis for cache priming
+	# run tests that hit `Redis` for cache priming
 	export SSL_RUN_REDIS_TESTS=True
 
 	# run tests that hit the LetsEncryptAPI
@@ -720,7 +780,7 @@ Tests are done on a SQLite database as specified in `test.ini` AND WILL REQUIRE 
 
 The `test.ini` should also reflect the openssl for your distribution. YOU PROBABLY HAVE TO EDIT THIS.
 
-`test_data/` contains the keys and certificates used for testing
+`test_data/` contains the keys and Certificates used for testing
 
 You can overwrite the testdb; beware that it CAN NOT run as a memory db.  it must be a disk file due to how the tests are structured.
 
@@ -728,13 +788,13 @@ If running tests against the LetsEncrypt test API, there are some extra configur
 
 * `SSL_TEST_DOMAINS` should reflect one or more domains that point to the IP address the server runs on.  this will be used for verification challenges
 * `SSL_TEST_PORT` lets you specify which port the test server should bind to
-* `/tools/nginx_conf/testing.conf` is an Nginx configuration file that can be used for testing.  it includes a flag check so you can just touch/remove a file to alter how Nginx proxies.
+* `/tools/nginx_conf/testing.conf` is an `Nginx` configuration file that can be used for testing.  it includes a flag check so you can just touch/remove a file to alter how `Nginx` proxies.
 
 
 Gotchas
 -------
 
-1. This requires a relatively new version of openssl to handle multiple-domain certificates.
+1. This requires a relatively new version of openssl to handle multiple-domain Certificates.
 2. When using SQLite, two databases/database files are required. one is dedicated to handling the logging.  This is because of how SQLite locks the database file during certain operations.  A future version of this library will not use the pyramid_tm transaction manager and avoid this scenario.
 
 
@@ -760,7 +820,7 @@ Getting Started
 - $VENV/bin/pserve example_development.ini
 
 
-Import Letsencrypt Data?
+Import LetsEncrypt Data?
 -------------------------
 
 after running the server, in another window...
@@ -769,7 +829,7 @@ after running the server, in another window...
 
 - cd tools
 
-- $VENV/bin/invoke import_letsencrypt_certs_archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
+- $VENV/bin/invoke import-certbot-certs-archive --archive-path='/etc/letsencrypt/archive' --server-url-root='http://127.0.0.1:7201/.well-known/admin'
 
 
 There is also a button under "operations" to probe LetsEncrypt's public website and update your certs with data.
@@ -778,9 +838,9 @@ There is also a button under "operations" to probe LetsEncrypt's public website 
 How to check if it's working?
 -----------------------------
 
-The Lua script for SSL certificate handling makes a handful of DEBUG and NOTICE calls during certain actions. Nginx typically ignores DEBUG unless you build enable it at configuration/build time.
+The Lua script for SSL certificate handling makes a handful of DEBUG and NOTICE calls during certain actions. `Nginx` typically ignores DEBUG unless you build enable it at configuration/build time.
 
-After querying the server, you can check the Redis server directly to see if keys are being set.  Assuming Redis is configured to use 127.0.0.1:6379:9
+After querying the server, you can check the `Redis` server directly to see if keys are being set.  Assuming `Redis` is configured to use 127.0.0.1:6379:9
 
 	workstation username$ redis-cli
 	127.0.0.1:6379> select 9
