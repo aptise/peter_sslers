@@ -7,6 +7,8 @@ ACME-V2 support involved a large rewrite of the Client and the Certificate Manag
 
 It is still undergoing a lot of work, and the design is not finalized yet.
 
+Most of the functionality is working and covered by tests.
+
 WE ARE ALMOST THERE.
 
 
