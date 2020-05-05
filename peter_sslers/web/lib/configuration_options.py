@@ -98,6 +98,12 @@ documentation_grid = {
             "default-notes": "",
             "show_on_settings": True,
         },
+        "cleanup_pending_authorizations": {
+            "docstring": "If an AcmeChallenge fails when processing an AcmeOrder, should the remaining AcmeAuthorizations be deactivated?",
+            "default": "`True`",
+            "default-notes": "",
+            "show_on_settings": True,
+        },
     },
     "NGINX Configuration": {
         ".section_requires": "enable_nginx",
