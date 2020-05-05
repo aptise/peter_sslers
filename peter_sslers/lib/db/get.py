@@ -340,6 +340,11 @@ def get__AcmeChallenge__by_challenge_url(ctx, challenge_url):
 
 def get__AcmeChallenge__challenged(ctx, domain_name, challenge):
     # todo - ensure the AcmeAuthorization or AcmeOrderless is active
+    # see https://tools.ietf.org/html/rfc8555#section-8.3
+    # GET : /path/to/{token}
+    # the following two are IDENTICAL:
+    # RESPONSE : {keyauth}
+    # RESPONSE : {token}.{thumbprint}
     active_request = (
         ctx.dbSession.query(model_objects.AcmeChallenge)
         .join(
@@ -347,7 +352,7 @@ def get__AcmeChallenge__challenged(ctx, domain_name, challenge):
             model_objects.AcmeChallenge.domain_id == model_objects.Domain.id,
         )
         .filter(
-            model_objects.AcmeChallenge.keyauthorization == challenge,
+            model_objects.AcmeChallenge.token == challenge,
             sqlalchemy.func.lower(model_objects.Domain.domain_name)
             == sqlalchemy.func.lower(domain_name),
         )
@@ -1147,6 +1152,39 @@ def get__Domain__by_name(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__DomainBlacklisted__by_name(ctx, domain_name):
+    q = ctx.dbSession.query(model_objects.DomainBlacklisted).filter(
+        sqlalchemy.func.lower(model_objects.DomainBlacklisted.domain_name)
+        == sqlalchemy.func.lower(domain_name)
+    )
+    item = q.first()
+    return item
+
+
+def get__DomainBlacklisted__count(ctx):
+    q = ctx.dbSession.query(model_objects.DomainBlacklisted)
+    counted = q.count()
+    return counted
+
+
+def get__DomainBlacklisted__paginated(
+    ctx, limit=None, offset=0,
+):
+    q = (
+        ctx.dbSession.query(model_objects.DomainBlacklisted)
+        .order_by(
+            sqlalchemy.func.lower(model_objects.DomainBlacklisted.domain_name).asc()
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def _get__Domains_challenged__core(ctx):
     """
     AcmeStatus Codes
@@ -1407,7 +1445,7 @@ def get__PrivateKey_CurrentDay_Global(ctx):
     return item
 
 
-def get__PrivateKey_CurrentWeek_AcmeAccountKey(ctx, account_key_id):
+def get__PrivateKey_CurrentWeek_AcmeAccountKey(ctx, acme_account_key_id):
     q = ctx.dbSession.query(model_objects.PrivateKey).filter(
         model_objects.PrivateKey.private_key_type_id
         == model_utils.PrivateKeyType.from_string("account_weekly"),

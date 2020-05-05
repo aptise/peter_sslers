@@ -2,6 +2,8 @@ from __future__ import print_function
 
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import sessionmaker
+
+# from sqlalchemy import event
 import zope.sqlalchemy
 
 
@@ -14,8 +16,6 @@ from ... import model
 
 # ==============================================================================
 
-
-from sqlalchemy import event
 
 # standard decorator style
 # @event.listens_for(SomeSessionOrFactory, 'persistent_to_detached')

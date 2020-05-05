@@ -13,14 +13,18 @@ from functools import wraps
 # pypi
 from webtest import Upload
 from webtest.http import StopableWSGIServer
+import requests
 
 # local
 from ._utils import FakeRequest
 from ._utils import TEST_FILES
 from ._utils import AppTest
+from ._utils import AppTestWSGI
 from ._utils import under_pebble
+from ._utils import under_pebble_strict
 from ._utils import under_redis
 
+from ..lib.db import get as lib_db_get
 from ..model import objects as model_objects
 from ..model import utils as model_utils
 
@@ -1889,6 +1893,36 @@ class FunctionalTests_Domain(AppTest):
             status=200,
         )
         assert res.json["result"] == "success"
+
+
+class FunctionalTests_DomainBlacklisted(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_DomainBlacklisted
+    """
+
+    @tests_routes(("admin:domains_blacklisted", "admin:domains_blacklisted_paginated",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/domains-blacklisted", status=200)
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/domains-blacklisted/1", status=200)
+
+    @tests_routes(
+        ("admin:domains_blacklisted|json", "admin:domains_blacklisted_paginated|json",)
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get(
+            "/.well-known/admin/domains-blacklisted.json", status=200
+        )
+        assert "DomainsBlacklisted" in res.json
+
+        # json paginated
+        res = self.testapp.get(
+            "/.well-known/admin/domains-blacklisted/1.json", status=200
+        )
+        assert "DomainsBlacklisted" in res.json
 
 
 class FunctionalTests_Operations(AppTest):
@@ -5229,3 +5263,258 @@ class FunctionalTests_AuditRoutes(AppTest):
             raise ValueError(
                 "no coverage for %s routes: %s" % (len(names_missing), names_missing)
             )
+
+
+class IntegratedTests_AcmeServer(AppTestWSGI):
+    """
+    This test suite runs against a Pebble instance, which will try to validate the domains.
+    This tests serving and responding to validations.
+
+    python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer
+    """
+
+    def _calculate_stats(self):
+        stats = {}
+        stats["count-Domain"] = self.ctx.dbSession.query(model_objects.Domain).count()
+        stats["count-AcmeOrder"] = self.ctx.dbSession.query(
+            model_objects.AcmeOrder
+        ).count()
+        stats["count-AcmeChallenge"] = self.ctx.dbSession.query(
+            model_objects.AcmeChallenge
+        ).count()
+        stats["count-AcmeAuthorization"] = self.ctx.dbSession.query(
+            model_objects.AcmeAuthorization
+        ).count()
+        stats["count-AcmeAuthorization-pending"] = (
+            self.ctx.dbSession.query(model_objects.AcmeAuthorization)
+            .filter(
+                model_objects.AcmeAuthorization.acme_status_authorization_id.in_(
+                    model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
+                )
+            )
+            .count()
+        )
+        stats["count-UniqueFQDNSet"] = self.ctx.dbSession.query(
+            model_objects.UniqueFQDNSet
+        ).count()
+        return stats
+
+    def _add_blacklisted_domain(self, domains_list, blacklisted_domain):
+        "inserts a domain into the blacklist database and list of domain names"
+        domains_list.insert(0, blacklisted_domain)
+        dbDomainBlacklisted = lib_db_get.get__DomainBlacklisted__by_name(
+            self.ctx, blacklisted_domain
+        )
+        if not dbDomainBlacklisted:
+            dbDomainBlacklisted = model_objects.DomainBlacklisted()
+            dbDomainBlacklisted.domain_name = blacklisted_domain.lower()
+            self.ctx.dbSession.add(dbDomainBlacklisted)
+            self.ctx.pyramid_transaction_commit()
+        return domains_list
+
+    def _place_order(self, account_key_file_pem, domain_names):
+
+        resp = requests.get(
+            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/automated.json"
+        )
+        assert resp.status_code == 200
+        assert "instructions" in resp.json()
+
+        form = {}
+        files = {}
+        form["account_key_option"] = "account_key_file"
+        form["acme_account_provider_id"] = "1"
+        files["account_key_file_pem"] = open(
+            self._filepath_testfile(account_key_file_pem), "rb",
+        )
+        form["private_key_cycle"] = "account_daily"
+        form["private_key_cycle__renewal"] = "account_key_default"
+        form["private_key_option"] = "private_key_for_account_key"
+        form["domain_names"] = ",".join(domain_names)
+        form["processing_strategy"] = "process_single"
+        resp = requests.post(
+            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/automated.json",
+            data=form,
+            files=files,
+        )
+        return resp
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble_strict
+    def test_AcmeOrder_multiple_domains(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_AcmeOrder_multiple_domains
+
+        this test is not focused on routes, but a success
+        """
+
+        # don't re-use the domains, but use the core info
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        domain_names_a = ["pass-a-%s.example.com" % i for i in range(1, 20)]
+
+        resp = self._place_order(
+            _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
+            domain_names_a,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["result"] == "success"
+        assert "AcmeOrder" in resp.json()
+        obj_id = resp.json()["AcmeOrder"]["id"]
+        assert resp.json()["AcmeOrder"]["certificate_url"] is not None
+        assert resp.json()["AcmeOrder"]["acme_status_order"] == "valid"
+        assert (
+            resp.json()["AcmeOrder"]["acme_order_processing_status"]
+            == "certificate_downloaded"
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble_strict
+    def test_AcmeOrder_cleanup(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_AcmeOrder_cleanup
+
+        this test is not focused on routes, but cleaning up an order
+        """
+        # Functional Tests: self.testapp.app.registry.settings
+        # Integrated Tests: self.testapp_wsgi.test_app.registry.settings
+        # by default, this should be True
+        assert (
+            self.testapp_wsgi.test_app.registry.settings["app_settings"][
+                "cleanup_pending_authorizations"
+            ]
+            is True
+        )
+
+        # don't re-use the domains, but use the core info
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+        # our domains
+        domain_names_a = ["cleanup-a-%s.example.com" % i for i in range(1, 20)]
+
+        # prepend DomainBlacklisted
+        _blacklisted_domain = "cleanup-a-fail.example.com"
+        domain_names_a = self._add_blacklisted_domain(
+            domain_names_a, _blacklisted_domain
+        )
+
+        stats_og = self._calculate_stats()
+        resp = self._place_order(
+            _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
+            domain_names_a,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["result"] == "error"
+        assert resp.json()["error"] == "`pending` AcmeOrder failed an AcmeAuthorization"
+        assert "AcmeOrder" in resp.json()
+        obj_id = resp.json()["AcmeOrder"]["id"]
+
+        # # test for resync bug
+        # url = "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id
+        # rrr = requests.post(url)
+        # pdb.set_trace()
+
+        assert resp.json()["AcmeOrder"]["certificate_url"] is None
+        assert resp.json()["AcmeOrder"]["acme_status_order"] == "invalid"
+        assert (
+            resp.json()["AcmeOrder"]["acme_order_processing_status"]
+            == "processing_deactivated"
+        )
+
+        stats_a = self._calculate_stats()
+
+        # compare backend stats
+        assert stats_a["count-Domain"] == stats_og["count-Domain"] + 20
+        assert stats_a["count-UniqueFQDNSet"] == stats_og["count-UniqueFQDNSet"] + 1
+        assert stats_a["count-AcmeOrder"] == stats_og["count-AcmeOrder"] + 1
+        assert (
+            stats_a["count-AcmeAuthorization"]
+            == stats_og["count-AcmeAuthorization"] + 20
+        )
+        assert (
+            stats_a["count-AcmeAuthorization-pending"]
+            == stats_og["count-AcmeAuthorization-pending"]
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble_strict
+    def test_AcmeOrder_nocleanup(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_AcmeOrder_nocleanup
+
+        this test is not focused on routes, but cleaning up an order
+        """
+        try:
+            # Functional Tests: self.testapp.app.registry.settings
+            # Integrated Tests: self.testapp_wsgi.test_app.registry.settings
+            # by default, this should be True
+            assert (
+                self.testapp_wsgi.test_app.registry.settings["app_settings"][
+                    "cleanup_pending_authorizations"
+                ]
+                is True
+            )
+            # now set this as False
+            self.testapp_wsgi.test_app.registry.settings["app_settings"][
+                "cleanup_pending_authorizations"
+            ] = False
+
+            # don't re-use the domains, but use the core info
+            _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+
+            # our domains
+            domain_names_b = ["cleanup-b-%s.example.com" % i for i in range(1, 20)]
+
+            # prepend DomainBlacklisted
+            _blacklisted_domain = "cleanup-b-fail.example.com"
+            domain_names_b = self._add_blacklisted_domain(
+                domain_names_b, _blacklisted_domain
+            )
+
+            stats_og = self._calculate_stats()
+            resp = self._place_order(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
+                domain_names_b,
+            )
+            assert resp.status_code == 200
+            assert resp.json()["result"] == "error"
+            assert (
+                resp.json()["error"]
+                == "`pending` AcmeOrder failed an AcmeAuthorization"
+            )
+            assert "AcmeOrder" in resp.json()
+            obj_id = resp.json()["AcmeOrder"]["id"]
+            assert resp.json()["AcmeOrder"]["certificate_url"] is None
+            assert resp.json()["AcmeOrder"]["acme_status_order"] == "invalid"
+            assert (
+                resp.json()["AcmeOrder"]["acme_order_processing_status"]
+                == "processing_completed_failure"
+            )
+
+            stats_b = self._calculate_stats()
+
+            # compare backend stats
+            assert stats_b["count-Domain"] == stats_og["count-Domain"] + 20
+            assert stats_b["count-UniqueFQDNSet"] == stats_og["count-UniqueFQDNSet"] + 1
+            assert stats_b["count-AcmeOrder"] == stats_og["count-AcmeOrder"] + 1
+            assert (
+                stats_b["count-AcmeAuthorization"]
+                == stats_og["count-AcmeAuthorization"] + 20
+            )
+            # this one is hard to figure out
+            # start with 20 auths
+            _expected = stats_og["count-AcmeAuthorization-pending"] + 20
+            # then figure out the difference in challenges
+            _expected = _expected - (
+                stats_b["count-AcmeChallenge"] - stats_og["count-AcmeChallenge"]
+            )
+            # no need to subtract one for the failed auth, because it's part of the `count-AcmeChallenge`
+            # _expected = _expected - 1
+
+            assert stats_b["count-AcmeAuthorization-pending"] == _expected
+
+        finally:
+            # reset
+            self.testapp_wsgi.test_app.registry.settings["app_settings"][
+                "cleanup_pending_authorizations"
+            ] = True

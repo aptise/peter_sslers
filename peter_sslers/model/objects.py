@@ -1804,6 +1804,26 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class DomainBlacklisted(Base, _Mixin_Timestamps_Pretty):
+    """
+    A Fully Qualified Domain that has been blacklisted from the system
+    """
+
+    __tablename__ = "domain_blacklisted"
+    id = sa.Column(sa.Integer, primary_key=True)
+    domain_name = sa.Column(sa.Unicode(255), nullable=False)
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "domain_name": self.domain_name,
+        }
+
+
+# ==============================================================================
+
+
 class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
     """
     Certain events are tracked for bookkeeping

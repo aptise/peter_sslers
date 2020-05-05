@@ -34,16 +34,20 @@ class ViewPublic(Handler):
             challenge,
         )
 
-        dbAcmeChallenge = lib_db.get.get__AcmeChallenge__challenged(
-            self.request.api_context, self.request.active_domain_name, challenge,
+        dbDomainBlacklisted = lib_db.get.get__DomainBlacklisted__by_name(
+            self.request.api_context, self.request.active_domain_name
         )
-        if dbAcmeChallenge:
-            lib_db.create.create__AcmeChallengePoll(
-                self.request.api_context,
-                dbAcmeChallenge=dbAcmeChallenge,
-                remote_ip_address=self.request.environ["REMOTE_ADDR"],
+        if not dbDomainBlacklisted:
+            dbAcmeChallenge = lib_db.get.get__AcmeChallenge__challenged(
+                self.request.api_context, self.request.active_domain_name, challenge,
             )
-            return dbAcmeChallenge.keyauthorization
+            if dbAcmeChallenge:
+                lib_db.create.create__AcmeChallengePoll(
+                    self.request.api_context,
+                    dbAcmeChallenge=dbAcmeChallenge,
+                    remote_ip_address=self.request.environ["REMOTE_ADDR"],
+                )
+                return dbAcmeChallenge.keyauthorization
 
         # okay this is unkonwn
         lib_db.create.create__AcmeChallengeUnknownPoll(

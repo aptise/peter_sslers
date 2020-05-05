@@ -625,6 +625,16 @@ def _admin_views(config):
         "/domain/{domain_identifier}/nginx-cache-expire.json",
     )
 
+    # !!!: DomainBlacklist
+    config.add_route_7("admin:domains_blacklisted", "/domains-blacklisted")
+    config.add_route_7("admin:domains_blacklisted|json", "/domains-blacklisted.json")
+    config.add_route_7(
+        "admin:domains_blacklisted_paginated", "/domains-blacklisted/{@page}"
+    )
+    config.add_route_7(
+        "admin:domains_blacklisted_paginated|json", "/domains-blacklisted/{@page}.json"
+    )
+
     # !!!: Operations & Sync Events
     config.add_route_7("admin:operations", "/operations")
     # -

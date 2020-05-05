@@ -875,7 +875,11 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 acme_authorization_ids=formStash.results["acme_authorization_id"],
             )
             if self.request.wants_json:
-                return {"result": "success", "results": results}
+                return {
+                    "result": "success",
+                    "results": results,
+                    "AcmeAccountKey": dbAcmeAccountKey.as_json,
+                }
 
             return HTTPSeeOther(
                 "%s/acme-authorizations?status=active&result=success&operation=acme-server--deactivate-pending-authorizations"

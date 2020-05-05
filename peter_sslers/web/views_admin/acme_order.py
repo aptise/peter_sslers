@@ -178,6 +178,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 return {
                     "result": "success",
                     "operation": "acme-server/sync",
+                    "AcmeOrder": dbAcmeOrder.as_json,
                 }
             return HTTPSeeOther(
                 "%s?result=success&operation=acme+server+sync" % self._focus_url
@@ -905,8 +906,13 @@ class ViewAdmin_New(Handler):
                     dbPrivateKey=privateKeySelection.PrivateKey,
                 )
                 if exc:
-                    raise
                     if isinstance(exc, errors.AcmeError):
+                        if self.request.wants_json:
+                            return {
+                                "result": "error",
+                                "error": str(exc),
+                                "AcmeOrder": dbAcmeOrder.as_json,
+                            }
                         return HTTPSeeOther(
                             "%s/acme-order/%s?result=error&error=new-automated&message=%s"
                             % (

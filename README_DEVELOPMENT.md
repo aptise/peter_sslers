@@ -90,8 +90,91 @@ ACME v1 is no longer supported in peter_sslers.
 * Database operations are consolidated into `/lib/db` and should not happen in the web-application views. this is to foster development of non-web-application work.
 
 
+## Unit Tests
+
+The unit tests have several suites:
+
+* FunctionalTests - designed to test the Pyramid Server and routes. Some items will communicate with a Pebble Certificate Authority
+* IntegratedTests- designed to test validation by upstream servers . Some items will communicate with a Pebble Certificate Authority
+
+The testing tool spins up a dedicated Pebble instance for each test.
+
+
+### sample domains - unit tests
+
+the unit tests require the following domains to point to localhost:
+
+	# run after editing: dscacheutil -flushcache
+	127.0.0.1 peter-sslers.example.com
+	127.0.0.1 always-fail.example.com
+	127.0.0.1 cleanup-a-fail.example.com
+	127.0.0.1 cleanup-a-1.example.com
+	127.0.0.1 cleanup-a-2.example.com
+	127.0.0.1 cleanup-a-3.example.com
+	127.0.0.1 cleanup-a-4.example.com
+	127.0.0.1 cleanup-a-5.example.com
+	127.0.0.1 cleanup-a-6.example.com
+	127.0.0.1 cleanup-a-7.example.com
+	127.0.0.1 cleanup-a-8.example.com
+	127.0.0.1 cleanup-a-9.example.com
+	127.0.0.1 cleanup-a-10.example.com
+	127.0.0.1 cleanup-a-11.example.com
+	127.0.0.1 cleanup-a-12.example.com
+	127.0.0.1 cleanup-a-13.example.com
+	127.0.0.1 cleanup-a-14.example.com
+	127.0.0.1 cleanup-a-15.example.com
+	127.0.0.1 cleanup-a-16.example.com
+	127.0.0.1 cleanup-a-17.example.com
+	127.0.0.1 cleanup-a-18.example.com
+	127.0.0.1 cleanup-a-19.example.com
+	127.0.0.1 cleanup-a-20.example.com
+	127.0.0.1 cleanup-b-fail.example.com
+	127.0.0.1 cleanup-b-1.example.com
+	127.0.0.1 cleanup-b-2.example.com
+	127.0.0.1 cleanup-b-3.example.com
+	127.0.0.1 cleanup-b-4.example.com
+	127.0.0.1 cleanup-b-5.example.com
+	127.0.0.1 cleanup-b-6.example.com
+	127.0.0.1 cleanup-b-7.example.com
+	127.0.0.1 cleanup-b-8.example.com
+	127.0.0.1 cleanup-b-9.example.com
+	127.0.0.1 cleanup-b-10.example.com
+	127.0.0.1 cleanup-b-11.example.com
+	127.0.0.1 cleanup-b-12.example.com
+	127.0.0.1 cleanup-b-13.example.com
+	127.0.0.1 cleanup-b-14.example.com
+	127.0.0.1 cleanup-b-15.example.com
+	127.0.0.1 cleanup-b-16.example.com
+	127.0.0.1 cleanup-b-17.example.com
+	127.0.0.1 cleanup-b-18.example.com
+	127.0.0.1 cleanup-b-19.example.com
+	127.0.0.1 cleanup-b-20.example.com
+	127.0.0.1 pass-a-1.example.com
+	127.0.0.1 pass-a-2.example.com
+	127.0.0.1 pass-a-3.example.com
+	127.0.0.1 pass-a-4.example.com
+	127.0.0.1 pass-a-5.example.com
+	127.0.0.1 pass-a-6.example.com
+	127.0.0.1 pass-a-7.example.com
+	127.0.0.1 pass-a-8.example.com
+	127.0.0.1 pass-a-9.example.com
+	127.0.0.1 pass-a-10.example.com
+	127.0.0.1 pass-a-1.example.com
+	127.0.0.1 pass-a-11.example.com
+	127.0.0.1 pass-a-12.example.com
+	127.0.0.1 pass-a-13.example.com
+	127.0.0.1 pass-a-14.example.com
+	127.0.0.1 pass-a-15.example.com
+	127.0.0.1 pass-a-16.example.com
+	127.0.0.1 pass-a-17.example.com
+	127.0.0.1 pass-a-18.example.com
+	127.0.0.1 pass-a-19.example.com
+	127.0.0.1 pass-a-20.example.com
 
 
 ## sample domains
 
 a.example.com, b.example.com, c.example.com, d.example.com, e.example.com, f.example.com, g.example.com, h.example.com, i.example.com, j.example.com, k.example.com, l.example.com, m.example.com, n.example.com, o.example.com, p.example.com, q.example.com, r.example.com, s.example.com, t.example.com, u.example.com, v.example.com, w.example.com, x.example.com, y.example.com, z.example.com
+
+
+

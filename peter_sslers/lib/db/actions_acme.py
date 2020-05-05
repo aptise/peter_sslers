@@ -395,8 +395,19 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                 ctx,
                 dbAcmeOrder,
                 acmeOrderRfcObject.rfc_object,
+                acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
                 transaction_commit=True,
             )
+            if ctx.request.registry.settings["app_settings"][
+                "cleanup_pending_authorizations"
+            ]:
+                log.info(
+                    "AcmeOrder failed, going to deactivate remaining authorizations"
+                )
+                do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
+                    ctx, dbAcmeOrder=dbAcmeOrder, authenticatedUser=authenticatedUser,
+                )
+
             raise errors.AcmeOrderFatal(
                 "`pending` AcmeOrder failed an AcmeAuthorization"
             )
@@ -1030,7 +1041,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 return updated_AcmeOrder_status(
                     ctx,
                     dbAcmeOrder,
-                    acme_v2.new_response_404(),
+                    acmeOrderRfcObject.rfc_object,
                     acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
                     is_processing_False=True,
                     transaction_commit=True,

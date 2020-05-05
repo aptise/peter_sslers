@@ -17,6 +17,7 @@ class ApplicationSettings(dict):
             "certificate_authority_protocol",
             "certificate_authority_testing",
             "certificate_authority",
+            "cleanup_pending_authorizations",
             "enable_acme_flow",
             "enable_views_admin",
             "enable_views_public",
@@ -62,6 +63,11 @@ class ApplicationSettings(dict):
             cert_utils.openssl_path_conf = self["openssl_path_conf"] = settings[
                 "openssl_path_conf"
             ]
+
+        # should we cleanup challenges
+        self["cleanup_pending_authorizations"] = set_bool_setting(
+            settings, "cleanup_pending_authorizations", default=True
+        )
 
         # will we redirect on error?
         self["exception_redirect"] = set_bool_setting(settings, "exception_redirect")
@@ -180,14 +186,19 @@ class ApplicationSettings(dict):
 # ------------------------------------------------------------------------------
 
 
-def set_bool_setting(settings, key):
+def set_bool_setting(settings, key, default=False):
     """
     originally designed to modify Pyramid's '`config.registry.settings` in-place
     modify's a setting in-place an returns it.
     """
-    _bool = False
-    if (key in settings) and (settings[key].lower() in ("1", "true")):
-        _bool = True
+    _bool = None
+    if key in settings:
+        if settings[key].lower() in ("1", "true"):
+            _bool = True
+        elif settings[key].lower() in ("0", "false"):
+            _bool = False
+    if _bool is None:
+        _bool = default
     settings[key] = _bool
     return _bool
 

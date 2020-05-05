@@ -24,6 +24,7 @@ from pyramid.paster import get_appsettings
 import psutil
 import transaction
 from webtest import TestApp
+from webtest.http import StopableWSGIServer
 
 # local
 from ..web import main
@@ -83,6 +84,11 @@ PEBBLE_ENV["PEBBLE_VA_ALWAYS_VALID"] = "1"
 PEBBLE_ENV["PEBBLE_AUTHZREUSE"] = "100"
 PEBBLE_ENV["PEBBLE_VA_NOSLEEP"] = "1"
 
+PEBBLE_ENV_STRICT = os.environ.copy()
+PEBBLE_ENV_STRICT["PEBBLE_VA_ALWAYS_VALID"] = "0"
+PEBBLE_ENV_STRICT["PEBBLE_AUTHZREUSE"] = "0"
+PEBBLE_ENV_STRICT["PEBBLE_VA_NOSLEEP"] = "1"
+
 
 # ==============================================================================
 
@@ -109,6 +115,44 @@ def under_pebble(_function):
             stderr=subprocess.PIPE,
             cwd=PEBBLE_DIR,
             env=PEBBLE_ENV,
+        ) as proc:
+            # ensure the `pebble` server is running
+            ready = False
+            while not ready:
+                log.info("waiting for `pebble` to be ready")
+                for line in iter(proc.stdout.readline, b""):
+                    if b"Listening on: 0.0.0.0:14000" in line:
+                        ready = True
+                        break
+                time.sleep(1)
+            try:
+                res = _function(*args, **kwargs)
+            finally:
+                # explicitly terminate, otherwise it won't exit
+                # in a `finally` to ensure we terminate on exceptions
+                log.info("xx terminating `pebble`")
+                proc.terminate()
+        return res
+
+    return _wrapper
+
+
+def under_pebble_strict(_function):
+    """
+    decorator to spin up an external pebble server
+    """
+
+    @wraps(_function)
+    def _wrapper(*args, **kwargs):
+        log.info("++ spinning up `pebble`")
+        res = None  # scoping
+        with psutil.Popen(
+            ["pebble", "-config", PEBBLE_CONFIG],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=PEBBLE_DIR,
+            env=PEBBLE_ENV_STRICT,
         ) as proc:
             # ensure the `pebble` server is running
             ready = False
@@ -375,6 +419,7 @@ class AppTestCore(unittest.TestCase):
     testapp_http = None
     _session_factory = None
     _DB_INTIALIZED = False
+    _settings = None
 
     def _filepath_testfile(self, filename):
         return os.path.join(self._data_root, filename)
@@ -385,9 +430,10 @@ class AppTestCore(unittest.TestCase):
         return data
 
     def setUp(self):
-        settings = get_appsettings(
+        self._settings = settings = get_appsettings(
             "test.ini", name="main"
         )  # this can cause an unclosed resource
+
         # sqlalchemy.url = sqlite:///%(here)s/example_ssl_minnow_test.sqlite
         if False:
             settings["sqlalchemy.url"] = "sqlite://"
@@ -812,3 +858,37 @@ class AppTest(AppTestCore):
                 timestamp=datetime.datetime.utcnow(),
             )
         return self._ctx
+
+
+# ==============================================================================
+
+
+class AppTestWSGI(AppTest):
+    _data_root = None
+    testapp = None
+    testapp_http = None
+    _session_factory = None
+    _DB_INTIALIZED = False
+
+    def _filepath_testfile(self, filename):
+        return os.path.join(self._data_root, filename)
+
+    def _filedata_testfile(self, filename):
+        with open(os.path.join(self._data_root, filename), "rt", encoding="utf-8") as f:
+            data = f.read()
+        return data
+
+    def setUp(self):
+        AppTest.setUp(self)
+        app = main(global_config=None, **self._settings)
+        self.testapp_wsgi = StopableWSGIServer.create(
+            app, host="peter-sslers.example.com", port=5002
+        )
+
+    def tearDown(self):
+        AppTest.tearDown(self)
+        if self.testapp_wsgi is not None:
+            self.testapp_wsgi.shutdown()
+
+
+# ==============================================================================
