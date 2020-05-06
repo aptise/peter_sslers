@@ -721,13 +721,14 @@ class FunctionalTests_AcmeChallenges(AppTest):
         focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
-        challenge = focus_item.keyauthorization
+        token = focus_item.token
+        keyauthorization = focus_item.keyauthorization
 
         _extra_environ = {
             "REMOTE_ADDR": "192.168.1.1",
         }
         resp_1 = self.testapp.get(
-            "/.well-known/acme-challenge/%s" % challenge,
+            "/.well-known/acme-challenge/%s" % token,
             extra_environ=_extra_environ,
             status=200,
         )
@@ -739,11 +740,11 @@ class FunctionalTests_AcmeChallenges(AppTest):
             "HTTP_HOST": "selfsigned-1.example.com",
         }
         resp_2 = self.testapp.get(
-            "/.well-known/acme-challenge/%s" % challenge,
+            "/.well-known/acme-challenge/%s" % token,
             extra_environ=_extra_environ_2,
             status=200,
         )
-        assert resp_2.text == challenge
+        assert resp_2.text == keyauthorization
 
     @tests_routes(("admin:acme_challenge:focus|json"))
     def test_focus_json(self):

@@ -91,14 +91,23 @@ Although Python2 is no longer supported by Python itself, Python2 and Python3 ar
 
 ## Why?
 
-Most of us hate having to spend time on DevOps tasks. Personally, I would rather spend time working on the core product or consumer products. This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting. This is pre-release and still being worked on as it fixes new issues on a production system. PRs are absolutely welcome, even if just fixes or additions to the test-suite.
+Most of us hate having to spend time on DevOps tasks. Personally, I would rather spend time working on the core product or consumer products. This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting. This also allow for programmatic control of many ACME operations that can be difficult to accomplish with Certbot or other popular clients.
+
+This is a pre-release but deployable for many situations; it is actively being worked on as it fixes new issues on production system. PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
 
 ## Status
 
-This largely works for certificate management, manual/queued renewal and for transitions.
+This works in production environments for:
 
-The endpoint related to "requesting" Domains and handling dynamic queues of new Certificates do not work yet.
+* certificate management
+* manual renewal
+* interrogating and syncing with ACME Servers
+
+The following features are being reworked:
+
+* queuing new domains
+* automatic renewal
 
 
 # An important WARNING:
@@ -133,18 +142,17 @@ The "/tools" directory contains scripts useful for certificate operations. Curre
 * an `invoke` script for some miscellaneous tasks
 * a sample `fake_server.py` that will spin up a server with routes that you can test against. this will allow you to setup your integration without running peter_sslers
 
-
-
 # General Management Concepts
 
-## A single web application?
+## Intuitive Hierarchy of Related Objects
 
-In a perfect world we could deploy the combination of web application (enter data, serve responses) and a task runner (process ACME Server interactions) - but that involves quite a bit of overhead to deploy and run.
+* With a migration to ACME-2, this project shifted the "core" object from a ServerCertificate to the AcmeOrder.
+* An ACME-Order's primary relations are an AcmeAccountKey (who owns the order?) and a UniqueFQDNSet (what domains are in the order?)
+* A PrivateKey is considered a secondary item. One can be specified for an AcmeOrder, but the AcmeAccountKey can specify it's own strategy
+* A PrivateKey can be re-used across new/renewed AcmeOrders if specified
+* An AcmeAccountKey can specify: use the same PrivateKey, always use a unique PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week
 
-The `Pyramid` framework has a wonderful utility called `prequest` (https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/prequest.html) which allows you to make artificial requests on the commandline.
-
-Using `prequest`, long-running processes can be easily triggered.
-
+Re-using PrivateKeys across orders is supported because this application's OpenResty plugin leverages a three-level cache (nginx-worker, nginx-master, redis) for dynamic certificate lookups.
 
 ## Unique Fully Qualified Domain Sets (UniqueFQDNSet)
 
@@ -154,6 +162,15 @@ To more easily deal with this limit, Orders/Certificates/CertificateRequests are
 
 When requesting a new certificate or importing existing ones, most of this happens behind-the-scenes: a listing of Domains is turned into a unique set of Domain names.
 
+## A single web application?
+
+In a perfect world we could deploy the combination of web application (enter data, serve responses) and a task runner (process ACME Server interactions) - but that involves quite a bit of overhead to deploy and run.
+
+The ACME protocol requires a web-server to respond to validation requests. A web-server is a great choice for an admin interface, and to provide a programmatic API.
+
+The `Pyramid` framework has a wonderful utility called `prequest` (https://docs.pylonsproject.org/projects/pyramid/en/latest/pscripts/prequest.html) which allows you to invoke web requests from the commandline.
+
+Using `prequest`, long-running processes can be easily triggered off the commandline.
 
 ## Cryptography: Python vs OpenSSL
 
@@ -201,7 +218,6 @@ This handles several types of certificate requests
 * if SQLite is your backend, you can just run this for signing and deployment; then handle everything else offline.
 * "Admin" and "Public" functions are isolated from each other. By changing the config, you can run a public-only "validation" interface or enable the admin tools that broadcast certificate information.
 * the `Pyramid` server can query `Nginx` locations to clear out the shared cache 
-
 
 # Installation
 
@@ -342,37 +358,37 @@ Peter shows you buttons for available formats on each page.
 
 ### CA Certificate
 
-	could be `cert` or `chain`
+    could be `cert` or `chain`
 
-	cert.pem 		PEM		application/x-pem-file
-	cert.pem.txt	PEM		text/plain
-	cert.cer 		DER		application/pkix-cert
-	cert.der 		DER		application/x-x509-ca-cert
-	cert.crt 		DER		application/x-x509-ca-cert
+    cert.pem        PEM     application/x-pem-file
+    cert.pem.txt    PEM     text/plain
+    cert.cer        DER     application/pkix-cert
+    cert.der        DER     application/x-x509-ca-cert
+    cert.crt        DER     application/x-x509-ca-cert
 
 ### Signed Certificate
 
-	cert.pem 		PEM		application/x-pem-file
-	cert.pem.txt	PEM		text/plain
-	cert.crt 		DER		application/x-x509-server-cert
+    cert.pem        PEM     application/x-pem-file
+    cert.pem.txt    PEM     text/plain
+    cert.crt        DER     application/x-x509-server-cert
 
 ### Certificate Request
 
-	csr.pem 		PEM		application/x-pem-file
-	csr.pem.txt		PEM		text/plain
-	csr.csr 		PEM		application/pkcs10
+    csr.pem         PEM     application/x-pem-file
+    csr.pem.txt     PEM     text/plain
+    csr.csr         PEM     application/pkcs10
 
 ### Account/Domain Keys
 
-	key.pem 		PEM		application/x-pem-file
-	key.pem.txt		PEM		text/plain
-	key.key 		DER		application/pkcs8
+    key.pem         PEM     application/x-pem-file
+    key.pem.txt     PEM     text/plain
+    key.key         DER     application/pkcs8
 
 ### Account/Domain Keys
 
-	key.pem 		PEM		application/x-pem-file
-	key.pem.txt		PEM		text/plain
-	key.key 		DER		application/pkcs8
+    key.pem         PEM     application/x-pem-file
+    key.pem.txt     PEM     text/plain
+    key.key         DER     application/pkcs8
 
 
 # Configuration options
@@ -423,9 +439,9 @@ These options are used by the server AND by the test suite.
 
 ## `invoke` Script
 
-there is an `invoke` script in the `tools` directory that can be used to automate certain tasks.
+There is an `invoke` script in the `tools` directory that can be used to automate certain tasks.
 
-right now the invoke script offers:
+Right now the invoke script offers:
 
 * `import-certbot-certs-archive` given a directory of your local LetsEncrypt archive (which has versioned certs), it will import them all into a server of your choice.
 * `import-certbot-certs-live` given a directory of your local LetsEncrypt install, it will import the active onesinto a server of your choice.
@@ -614,11 +630,13 @@ Need to get the cert data directly? NO SWEAT. Peter transforms this for you on t
 
 If a domain is "active", then it is actively managed and should be included in certificate renewals or generating `Nginx` configuration.
 
-### Certificate
+### AcmeOrder
 
 #### `is_auto_renew`
 
 Set to `True` by default.  If `True`, this certificate will be auto-renewed by the renewal queue.  If `False`, renewals must be manual.
+
+### ServerCertificate
 
 #### `is_active`
 
