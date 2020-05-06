@@ -394,6 +394,14 @@ class Form_API_Domain_disable(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
 
 
-class Form_API_Domain_certificate_if_needed(_Form_Schema_Base):
+class Form_API_Domain_certificate_if_needed(_form_AccountKey_PrivateKey_core):
     domain_names = UnicodeString(not_empty=True)
-    account_key_file_pem = FieldStorageUploadConverter(not_empty=False, if_missing=None)
+    processing_strategy = OneOf(
+        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE, not_empty=True,
+    )
+
+    # this is the `private_key_cycle` of the AcmeOrder renewals
+    private_key_cycle__renewal = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+        not_empty=True,
+    )

@@ -1135,6 +1135,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_orders",
     )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="AcmeOrder.id==OperationsObjectEvent.acme_order_id",
+        back_populates="acme_order",
+    )
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="AcmeOrder.private_key_id==PrivateKey.id",
@@ -1903,6 +1908,8 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
+            " CASE WHEN acme_order_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
             " CASE WHEN unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
             " ) = 1",
             name="check1",
@@ -1927,6 +1934,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     acme_account_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
     )
+    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
     private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
@@ -1974,6 +1982,13 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     acme_account_key = sa_orm_relationship(
         "AcmeAccountKey",
         primaryjoin="OperationsObjectEvent.acme_account_key_id==AcmeAccountKey.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
+    acme_order = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="OperationsObjectEvent.acme_order_id==AcmeOrder.id",
         uselist=False,
         back_populates="operations_object_events",
     )

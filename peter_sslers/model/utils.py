@@ -564,6 +564,7 @@ class AcmeOrder_ProcessingStrategy(_mixin_mapping):
         "process_single",
         "process_multi",
     )
+    OPTIONS_IMMEDIATE = ("process_single",)
 
 
 class AcmeOrder_ProcessingStatus(_mixin_mapping):
@@ -597,6 +598,7 @@ class AcmeOrderType(_mixin_mapping):
     ACME_AUTOMATED_RETRY = 2
     ACME_AUTOMATED_RENEW_QUICK = 3
     ACME_AUTOMATED_RENEW_CUSTOM = 4
+    ACME_AUTOMATED_NEW__CIN = 5  # CIN=Certificate-If-Needed
     QUEUE_RENEWAL = 11
     QUEUE_DOMAINS = 12
     _mapping = {
@@ -604,6 +606,7 @@ class AcmeOrderType(_mixin_mapping):
         2: "ACME Automated (Retry)",
         3: "ACME Automated (Renew Quick)",
         4: "ACME Automated (Renew Custom)",
+        5: "ACME Automated (New - Certificate if Needed)",
         11: "Queue - Renewals",
         12: "Queue - Domains",
     }

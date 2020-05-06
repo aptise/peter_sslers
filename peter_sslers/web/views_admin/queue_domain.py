@@ -319,7 +319,7 @@ class ViewAdmin_Focus(Handler):
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                     formStash.fatal_field(field="action", message="Already cancelled")
 
-                lib_db.queues.dequeue_QueuedDomain(
+                lib_db.update.update_QueuedDomain_dequeue(
                     self.request.api_context,
                     dbQueueDomain,
                     dbOperationsEvent=dbOperationsEvent,

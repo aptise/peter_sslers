@@ -1059,10 +1059,10 @@ def get__Domain__paginated(
     eagerload_web=False,
     limit=None,
     offset=0,
-    active_only=False,
+    active_certs_only=None,
 ):
     q = ctx.dbSession.query(model_objects.Domain)
-    if active_only and not expiring_days:
+    if active_certs_only and not expiring_days:
         q = q.filter(
             sqlalchemy.or_(
                 model_objects.Domain.server_certificate_id__latest_single.op("IS NOT")(
@@ -1386,14 +1386,17 @@ def get__OperationsEvent__certificate_probe__paginated(ctx, limit=None, offset=0
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__PrivateKey__count(ctx):
-    counted = ctx.dbSession.query(model_objects.PrivateKey).count()
+def get__PrivateKey__count(ctx, active_usage_only=None):
+    q = ctx.dbSession.query(model_objects.PrivateKey)
+    if active_usage_only:
+        q = q.filter(model_objects.PrivateKey.count_active_certificates >= 1)
+    counted = q.count()
     return counted
 
 
-def get__PrivateKey__paginated(ctx, limit=None, offset=0, active_only=False):
+def get__PrivateKey__paginated(ctx, limit=None, offset=0, active_usage_only=None):
     q = ctx.dbSession.query(model_objects.PrivateKey)
-    if active_only:
+    if active_usage_only:
         q = q.filter(model_objects.PrivateKey.count_active_certificates >= 1)
     q = q.order_by(model_objects.PrivateKey.id.desc()).limit(limit).offset(offset)
     items_paged = q.all()

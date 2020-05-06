@@ -462,6 +462,7 @@ def _log_object_event(
     dbOperationsEvent=None,
     event_status_id=None,
     dbAcmeAccountKey=None,
+    dbAcmeOrder=None,
     dbCACertificate=None,
     dbDomain=None,
     dbPrivateKey=None,
@@ -478,6 +479,8 @@ def _log_object_event(
 
     if dbAcmeAccountKey:
         dbOperationsObjectEvent.acme_account_key_id = dbAcmeAccountKey.id
+    elif dbAcmeOrder:
+        dbOperationsObjectEvent.acme_order_id = dbAcmeOrder.id
     elif dbCACertificate:
         dbOperationsObjectEvent.ca_certificate_id = dbCACertificate.id
     elif dbDomain:

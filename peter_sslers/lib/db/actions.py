@@ -24,80 +24,12 @@ from .. import errors
 from .. import utils
 from .. import utils_certbot as utils_certbot
 from . import actions_acme
+from . import update
 
 # local
 from .logger import AcmeLogger
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def disable_Domain(
-    ctx,
-    dbDomain,
-    dbOperationsEvent=None,
-    event_status="Domain__mark__inactive",
-    action="deactivated",
-):
-    """
-    Disables a domain
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbDomain: (required) A :class:`model.objects.Domain` object
-    :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
-
-    :param event_status: (optional) A string event status conforming to :class:`model_utils.OperationsObjectEventStatus`
-    :param action: (optional) A string action. default = "deactivated"
-    """
-    event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["domain.id"] = dbDomain.id
-    event_payload_dict["action"] = action
-    dbDomain.is_active = False
-    ctx.dbSession.flush(objects=[dbDomain])
-
-    _log_object_event(
-        ctx,
-        dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            event_status
-        ),
-        dbDomain=dbDomain,
-    )
-    return True
-
-
-def enable_Domain(
-    ctx,
-    dbDomain,
-    dbOperationsEvent=None,
-    event_status="Domain__mark__active",
-    action="activated",
-):
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbDomain: (required) A :class:`model.objects.Domain` object
-    :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
-
-    :param event_status: (optional) A string event status conforming to :class:`model_utils.OperationsObjectEventStatus`
-    :param action: (optional) A string action. default = "activated"
-    """
-    event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["domain.id"] = dbDomain.id
-    event_payload_dict["action"] = action
-    dbDomain.is_active = True
-    ctx.dbSession.flush(objects=[dbDomain])
-
-    _log_object_event(
-        ctx,
-        dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            event_status
-        ),
-        dbDomain=dbDomain,
-    )
-    return True
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -522,7 +454,10 @@ def api_domains__enable(ctx, domain_names):
 
 def api_domains__disable(ctx, domain_names):
     """
-    disables domains
+    disables `domain_names` from the system
+    
+    * If the `domain_name` represents a `Domain`, it is marked inactive
+    * If the `domain_name` represents a `QueueDomain`, it is removed from the queue
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: (required) a list of domain names
@@ -544,7 +479,7 @@ def api_domains__disable(ctx, domain_names):
         )
         if _dbDomain:
             if _dbDomain.is_active:
-                disable_Domain(
+                update.update_Domain_disable(
                     ctx,
                     _dbDomain,
                     dbOperationsEvent=dbOperationsEvent,
@@ -559,7 +494,7 @@ def api_domains__disable(ctx, domain_names):
                 ctx, domain_name
             )
             if _dbQueueDomain:
-                lib.db.queues.dequeue_QueuedDomain(
+                lib.db.update.update_QueuedDomain_dequeue(
                     ctx,
                     _dbQueueDomain,
                     dbOperationsEvent=dbOperationsEvent,
@@ -582,16 +517,26 @@ def api_domains__disable(ctx, domain_names):
 
 
 def api_domains__certificate_if_needed(
-    ctx, domain_names, account_key_pem=None, dbPrivateKey=None
+    ctx,
+    domain_names,
+    processing_strategy=None,
+    private_key_cycle__renewal=None,
+    private_key_strategy__requested=None,
+    dbAcmeAccountKey=None,
+    dbPrivateKey=None,
 ):
     """
     Adds domains if needed
     2016.06.29
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domain_names: (required) a list of domain names
+    :param domain_names: (required) An iteratble list of domain names
     :param account_key_pem: (required) the acme-account-key used for new orders
-    :param dbPrivateKey: (required) the class:`model.objects.PrivateKey` used to sign requests
+    :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
+    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
+    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
 
     results will be a dict:
 
@@ -607,6 +552,17 @@ def api_domains__certificate_if_needed(
         2016: 'ApiDomains__certificate_if_needed__certificate_new_success',
         2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
+    # validate this first!
+    acme_order_processing_strategy_id = model_utils.AcmeOrder_ProcessingStrategy.from_string(
+        processing_strategy
+    )
+    private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
+        private_key_cycle__renewal
+    )
+    private_key_strategy_id__requested = model_utils.PrivateKeyStrategy.from_string(
+        private_key_strategy__requested
+    )
+
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
@@ -617,70 +573,46 @@ def api_domains__certificate_if_needed(
         event_payload_dict,
     )
 
-    dbAcmeAccountKey = None
-    if account_key_pem is not None:
-        raise ValueError("acmeAccountProvider_id")
-        raise ValueError("contact")
-        raise ValueError("private_key_cycle")
-        # event_type="AcmeAccountKey__insert",
-        dbAcmeAccountKey, _is_created = lib.db.getcreate.getcreate__AcmeAccountKey(
-            ctx,
-            account_key_pem,
-            acmeAccountProvider_id=None,
-            contact=None,
-            acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
-                "imported"
-            ),
-            private_key_cycle_id=model_utils.PrivateKeyCycle.from_string("????"),
-        )
-        if not dbAcmeAccountKey:
-            raise errors.DisplayableError("Could not create an AccountKey")
+    if dbAcmeAccountKey is None:
+        raise errors.DisplayableError("missing AcmeAccountKey")
+    if not dbAcmeAccountKey.is_active:
+        raise errors.DisplayableError("AcmeAccountKey is not active")
 
-    if account_key_pem is None:
-        dbAcmeAccountKey = lib.db.get.get__AcmeAccountKey__GlobalDefault(ctx)
-        if not dbAcmeAccountKey:
-            raise errors.DisplayableError("Could not grab an AccountKey")
-
-    if dbPrivateKey is None:
-        dbPrivateKey = lib.db.get.get__PrivateKey_CurrentWeek_Global(ctx)
-        if not dbPrivateKey:
-            dbPrivateKey = lib.db.create.create__PrivateKey(
-                ctx,
-                # bits=4096,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string(
-                    "global_weekly"
-                ),
-            )
-        if not dbPrivateKey:
-            raise errors.DisplayableError("Could not grab a PrivateKey")
+    if not dbPrivateKey:
+        raise errors.DisplayableError("missing PrivateKey")
 
     domain_names = utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
-    for domain_name in domain_names:
+    for _domain_name in domain_names:
+        # scoping
+        _logger_args = {"event_status_id": None}
         _result = {
             "domain.status": None,
-            "certificate.status": None,
             "domain.id": None,
             "server_certificate.id": None,
+            "server_certificate.status": None,
+            "acme_order.id": None,
         }
-
         _dbQueueDomain = None
 
-        # go for the domain
-        _logger_args = {"event_status_id": None}
+        # Step 1- is the domain_name blacklisted?
+        _dbDomainBlacklisted = lib.db.get.get__DomainBlacklisted__by_name(
+            ctx, _domain_name
+        )
+        if _dbDomainBlacklisted:
+            _result["domain.status"] = "blacklisted"
+            continue
+
+        # Step 2- is the domain_name a Domain or QueueDomain?
         _dbDomain = lib.db.get.get__Domain__by_name(
-            ctx, domain_name, preload=False, active_only=False
+            ctx, _domain_name, preload=False, active_only=False
         )
         if _dbDomain:
             _result["domain.id"] = _dbDomain.id
 
             if not _dbDomain.is_active:
-                _result["domain.status"] = "activated"
-
+                _result["domain.status"] = "existing.activated"
                 _logger_args[
                     "event_status_id"
                 ] = model_utils.OperationsObjectEventStatus.from_string(
@@ -689,11 +621,11 @@ def api_domains__certificate_if_needed(
                 _logger_args["dbDomain"] = _dbDomain
 
                 # set this active
-                _dbDomain.is_active = True
-                ctx.dbSession.flush(objects=[_dbDomain])
-
+                lib.db.update.update_Domain_enable(
+                    ctx, _dbDomain, dbOperationsEvent=dbOperationsEvent
+                )
             else:
-                _result["domain.status"] = "exists"
+                _result["domain.status"] = "existing.active"
 
                 _logger_args[
                     "event_status_id"
@@ -705,7 +637,7 @@ def api_domains__certificate_if_needed(
         elif not _dbDomain:
 
             _dbDomain = lib.db.getcreate.getcreate__Domain__by_domainName(
-                ctx, domain_name
+                ctx, _domain_name
             )[
                 0
             ]  # (dbDomain, _is_created)
@@ -718,11 +650,11 @@ def api_domains__certificate_if_needed(
             )
             _logger_args["dbDomain"] = _dbDomain
 
-        # log domain event
+        # log Domain event
         _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
 
-        # do commit, just because we may have created a domain, AND THE LOGGGING
-        transaction.commit()
+        # do commit, just because we may have created a domain; also, logging!
+        ctx.pyramid_transaction_commit()
 
         # go for the certificate
         _logger_args = {"event_status_id": None}
@@ -730,7 +662,7 @@ def api_domains__certificate_if_needed(
             ctx, _dbDomain.id
         )
         if _dbServerCertificate:
-            _result["certificate.status"] = "exists"
+            _result["server_certificate.status"] = "exists"
             _result["server_certificate.id"] = _dbServerCertificate.id
             _logger_args[
                 "event_status_id"
@@ -740,58 +672,82 @@ def api_domains__certificate_if_needed(
             _logger_args["dbServerCertificate"] = _dbServerCertificate
         else:
             try:
-                raise ValueError("this changed a lot")
-                _dbServerCertificate = actions_acme._do__AcmeV2_AcmeOrder__core(
+                (dbAcmeOrder, exc,) = actions_acme.do__AcmeV2_AcmeOrder__automated(
                     ctx,
-                    domain_names,
+                    acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW__CIN,
+                    domain_names=domain_names,
+                    private_key_cycle__renewal=private_key_cycle__renewal,
+                    private_key_strategy__requested=private_key_strategy__requested,
+                    processing_strategy=processing_strategy,
                     dbAcmeAccountKey=dbAcmeAccountKey,
                     dbPrivateKey=dbPrivateKey,
                 )
-                _result["certificate.status"] = "new"
-                _result["server_certificate.id"] = _dbServerCertificate.id
+                _logger_args["dbAcmeOrder"] = dbAcmeOrder
+                _result["acme_order.id"] = dbAcmeOrder.id
+                if exc:
+                    if isinstance(exc, errors.AcmeError):
+                        _result["error"] = "Could not process AcmeOrder, %s" % str(exc)
+                        _result["server_certificate.status"] = "fail"
+                        _logger_args[
+                            "event_status_id"
+                        ] = model_utils.OperationsObjectEventStatus.from_string(
+                            "ApiDomains__certificate_if_needed__certificate_new_fail"
+                        )
+                    else:
+                        raise exc
+                else:
+                    if dbAcmeOrder.server_certificate_id:
+                        _result["server_certificate.status"] = "new"
+                        _result[
+                            "server_certificate.id"
+                        ] = dbAcmeOrder.server_certificate_id
+                        _logger_args[
+                            "event_status_id"
+                        ] = model_utils.OperationsObjectEventStatus.from_string(
+                            "ApiDomains__certificate_if_needed__certificate_new_success"
+                        )
+                        _logger_args[
+                            "dbServerCertificate"
+                        ] = dbAcmeOrder.server_certificate
+                    else:
+                        _result[
+                            "error"
+                        ] = "AcmeOrder did not generate a ServerCertificate"
+                        _result["server_certificate.status"] = "fail"
+                        _logger_args[
+                            "event_status_id"
+                        ] = model_utils.OperationsObjectEventStatus.from_string(
+                            "ApiDomains__certificate_if_needed__certificate_new_fail"
+                        )
 
-                _logger_args[
-                    "event_status_id"
-                ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "ApiDomains__certificate_if_needed__certificate_new_success"
-                )
-                _logger_args["dbServerCertificate"] = _dbServerCertificate
-
-            except errors.DomainVerificationError as exc:
-                _result["certificate.status"] = "fail"
-                _result["server_certificate.id"] = None
-
-                _logger_args[
-                    "event_status_id"
-                ] = model_utils.OperationsObjectEventStatus.from_string(
-                    "ApiDomains__certificate_if_needed__certificate_new_fail"
-                )
-                _logger_args["dbServerCertificate"] = None
-
-        # dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
+            except Exception as exc:
+                raise
 
         # log domain event
         _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)
 
         # do commit, just because THE LOGGGING
-        transaction.commit()
+        ctx.pyramid_transaction_commit()
 
         # remove from queue if it exists
-        _dbQueueDomain = lib.db.get.get__QueueDomain__by_name__single(ctx, domain_name)
-        if _dbQueueDomain:
-            lib.db.queues.dequeue_QueuedDomain(
-                ctx,
-                _dbQueueDomain,
-                dbOperationsEvent=dbOperationsEvent,
-                event_status="QueueDomain__mark__already_processed",
-                action="already_processed",
+        if _result["server_certificate.status"] in ("new", "exists"):
+            _dbQueueDomain = lib.db.get.get__QueueDomain__by_name__single(
+                ctx, _domain_name
             )
+            if _dbQueueDomain:
+                lib.db.update.update_QueuedDomain_dequeue(
+                    ctx,
+                    _dbQueueDomain,
+                    dbOperationsEvent=dbOperationsEvent,
+                    event_status="QueueDomain__mark__already_processed",
+                    action="already_processed",
+                )
 
         # do commit, just because THE LOGGGING
-        transaction.commit()
+        ctx.pyramid_transaction_commit()
 
         # note result
-        results[domain_name] = _result
+        results[_domain_name] = _result
 
     event_payload_dict["results"] = results
     # dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)

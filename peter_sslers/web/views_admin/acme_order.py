@@ -588,6 +588,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "account_key_option": model_utils.AcmeAccontKey_options_b,
                     "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                     "private_key_option": model_utils.PrivateKey_options_b,
+                    "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
+                    if self.dbAcmeAccountKey_GlobalDefault
+                    else None,
                 },
                 "requirements": [
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
@@ -761,6 +764,7 @@ class ViewAdmin_New(Handler):
         if self.request.wants_json:
             return {
                 "form_fields": {
+                    "domain_names": "required; a comma separated list of domain names to process",
                     "processing_strategy": "How should the order be processed?",
                     "account_key_option": "How is the AcmeAccountKey specified?",
                     "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
@@ -792,6 +796,9 @@ class ViewAdmin_New(Handler):
                     "account_key_option": model_utils.AcmeAccontKey_options_b,
                     "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                     "private_key_option": model_utils.PrivateKey_options_b,
+                    "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
+                    if self.dbAcmeAccountKey_GlobalDefault
+                    else None,
                 },
                 "requirements": [
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
@@ -811,6 +818,9 @@ class ViewAdmin_New(Handler):
         )
 
     def _new_automated__submit(self):
+        """
+        much of this logic is shared with /api/domain-certificate-if-needed
+        """
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_AcmeOrder_new_automated, validate_get=False,

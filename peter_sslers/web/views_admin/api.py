@@ -7,6 +7,7 @@ from pyramid.httpexceptions import HTTPSeeOther
 # stdlib
 import datetime
 import json
+import pdb
 
 # pypi
 import six
@@ -20,6 +21,7 @@ from ..lib import formhandling
 from ..lib.forms import Form_API_Domain_enable
 from ..lib.forms import Form_API_Domain_disable
 from ..lib.forms import Form_API_Domain_certificate_if_needed
+from ..lib import form_utils as form_utils
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -27,6 +29,7 @@ from ...lib import errors
 from ...lib import utils
 from ...lib import utils_nginx
 from ...lib import utils_redis
+from ...model import objects as model_objects
 from ...model import utils as model_utils
 
 
@@ -165,7 +168,7 @@ class ViewAdminApi(Handler):
             api_results = lib_db.actions.api_domains__enable(
                 self.request.api_context, domain_names
             )
-            return {"result": "success", "domains": api_results}
+            return {"result": "success", "domain_results": api_results}
 
         except formhandling.FormInvalid as exc:
             return {"result": "error", "form_errors": formStash.errors}
@@ -204,7 +207,7 @@ class ViewAdminApi(Handler):
             api_results = lib_db.actions.api_domains__disable(
                 self.request.api_context, domain_names
             )
-            return {"result": "success", "domains": api_results}
+            return {"result": "success", "domain_results": api_results}
 
         except formhandling.FormInvalid as exc:
             return {"result": "error", "form_errors": formStash.errors}
@@ -212,21 +215,63 @@ class ViewAdminApi(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:domain:certificate-if-needed", renderer="json")
-    def api_domain_certificate_if_needed(self):
+    def domain_certificate_if_needed(self):
+        self._load_AcmeAccountKey_GlobalDefault()
+        self._load_AcmeAccountProviders()
         if self.request.method == "POST":
-            return self._api_domain_certificate_if_needed__submit()
-        return self._api_domain_certificate_if_needed__print()
+            return self._domain_certificate_if_needed__submit()
+        return self._domain_certificate_if_needed__print()
 
-    def _api_domain_certificate_if_needed__print(self):
+    def _domain_certificate_if_needed__print(self):
         return {
-            "instructions": """POST `domain_names""",
+            "instructions": [
+                """POST domain_names for certificates.  curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/new/automated.json"""
+                % self.request.admin_url
+            ],
+            "requirements": [
+                "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+            ],
             "form_fields": {
-                "domain_names": "required",
-                "account_key_file_pem": "optional",
+                "domain_names": "required; a comma separated list of domain names to process",
+                "processing_strategy": "How should the order be processed?",
+                "account_key_option": "How is the AcmeAccountKey specified?",
+                "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                "private_key_option": "How is the PrivateKey being specified?",
+                "private_key_existing": "pem_md5 of existing key",
+                "private_key_file_pem": "pem to upload",
+            },
+            "form_fields_related": [
+                ["account_key_file_pem", "acme_account_provider_id"],
+                [
+                    "account_key_file_le_meta",
+                    "account_key_file_le_pkey",
+                    "account_key_file_le_reg",
+                ],
+            ],
+            "valid_options": {
+                "acme_account_provider_id": {
+                    i.id: "%s (%s)" % (i.name, i.url)
+                    for i in self.dbAcmeAccountProviders
+                },
+                "account_key_option": model_utils.AcmeAccontKey_options_a,
+                "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
+                "private_key_option": model_utils.PrivateKey_options_a,
+                "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
+                if self.dbAcmeAccountKey_GlobalDefault
+                else None,
             },
         }
 
-    def _api_domain_certificate_if_needed__submit(self):
+    def _domain_certificate_if_needed__submit(self):
+        """
+        much of this logic is shared with /acme-order/new/automated
+        """
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -250,19 +295,74 @@ class ViewAdminApi(Handler):
                     message="This endpoint currently supports only 1 domain name",
                 )
 
-            account_key_pem = None
-            if formStash.results["account_key_file_pem"] is not None:
-                account_key_pem = formhandling.slurp_file_field(
-                    formStash, "account_key_file_pem"
+            accountKeySelection = form_utils.parse_AcmeAccountKeySelection(
+                self.request,
+                formStash,
+                account_key_option=formStash.results["account_key_option"],
+                require_contact=False,
+            )
+            if accountKeySelection.selection == "upload":
+                key_create_args = accountKeySelection.upload_parsed.getcreate_args
+                key_create_args["event_type"] = "AcmeAccountKey__insert"
+                key_create_args[
+                    "acme_account_key_source_id"
+                ] = model_utils.AcmeAccountKeySource.from_string("imported")
+                (
+                    dbAcmeAccountKey,
+                    _is_created,
+                ) = lib_db.getcreate.getcreate__AcmeAccountKey(
+                    self.request.api_context, **key_create_args
                 )
-                if six.PY3:
-                    if not isinstance(account_key_pem, str):
-                        account_key_pem = account_key_pem.decode("utf8")
+                accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
+
+            privateKeySelection = form_utils.parse_PrivateKeySelection(
+                self.request,
+                formStash,
+                private_key_option=formStash.results["private_key_option"],
+            )
+
+            if privateKeySelection.selection == "upload":
+                key_create_args = privateKeySelection.upload_parsed.getcreate_args
+                key_create_args["event_type"] = "PrivateKey__insert"
+                key_create_args[
+                    "private_key_source_id"
+                ] = model_utils.PrivateKeySource.from_string("imported")
+                key_create_args[
+                    "private_key_type_id"
+                ] = model_utils.PrivateKeyType.from_string("standard")
+                (
+                    dbPrivateKey,
+                    _is_created,
+                ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
+                    self.request.api_context, **key_create_args
+                )
+                privateKeySelection.PrivateKey = dbPrivateKey
+
+            elif privateKeySelection.selection in (
+                "generate",
+                "private_key_for_account_key",
+            ):
+                pass
+
+            else:
+                formStash.fatal_field(
+                    field="private_key_option",
+                    message="Could not load the default private key",
+                )
+
+            processing_strategy = formStash.results["processing_strategy"]
+            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
 
             api_results = lib_db.actions.api_domains__certificate_if_needed(
-                self.request.api_context, domain_names, account_key_pem=account_key_pem
+                self.request.api_context,
+                domain_names=domain_names,
+                private_key_cycle__renewal=private_key_cycle__renewal,
+                private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
+                processing_strategy=processing_strategy,
+                dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
+                dbPrivateKey=privateKeySelection.PrivateKey,
             )
-            return {"result": "success", "domains": api_results}
+            return {"result": "success", "domain_results": api_results}
 
         except (formhandling.FormInvalid, errors.DisplayableError) as exc:
             message = "There was an error with your form."
@@ -338,11 +438,17 @@ class ViewAdminApi(Handler):
             offset = 0
             limit = 100
             while True:
+                lib_db.get.get__PrivateKey__paginated(
+                    self.request.api_context,
+                    offset=0,
+                    limit=100,
+                    active_usage_only=False,
+                )
                 active_keys = lib_db.get.get__PrivateKey__paginated(
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
-                    active_only=True,
+                    active_usage_only=True,
                 )
                 if not active_keys:
                     # no keys
@@ -366,7 +472,7 @@ class ViewAdminApi(Handler):
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
-                    active_only=True,
+                    active_certs_only=True,
                 )
                 if not active_domains:
                     # no domains
@@ -374,6 +480,7 @@ class ViewAdminApi(Handler):
                 for dbDomain in active_domains:
                     # favor the multi:
                     total_primed["domain"] += 1
+                    total_primed["cert"] += 1
                     is_primed = utils_redis.redis_prime_logic__style_1_Domain(
                         redis_client, dbDomain, redis_timeouts
                     )
@@ -405,14 +512,15 @@ class ViewAdminApi(Handler):
                     self.request.api_context,
                     offset=offset,
                     limit=limit,
-                    active_only=True,
+                    active_certs_only=True,
                 )
                 if not active_domains:
                     # no domains
                     break
-                for domain in active_domains:
+                for dbDomain in active_domains:
                     # favor the multi:
                     total_primed["domain"] += 1
+                    total_primed["cert"] += 1
                     is_primed = utils_redis.redis_prime_logic__style_2_domain(
                         redis_client, dbDomain, redis_timeouts
                     )

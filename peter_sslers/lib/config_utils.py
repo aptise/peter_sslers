@@ -92,9 +92,13 @@ class ApplicationSettings(dict):
             # try to load, otherwise error out
             import redis  # noqa
 
+            if "redis.url" not in settings:
+                raise ValueError("No `redis.url` is configured")
+
             if "redis.prime_style" not in settings:
                 raise ValueError("No `redis.prime_style` is configured")
 
+            self["redis.url"] = settings["redis.url"]
             self["redis.prime_style"] = settings["redis.prime_style"]
 
         # disable the ssl warning from requests?

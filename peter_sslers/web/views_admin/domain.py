@@ -606,7 +606,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     # `formStash.fatal_form()` will raise `FormInvalid()`
                     formStash.fatal_form("Already active.")
 
-                lib_db.actions.enable_Domain(
+                lib_db.updates.update_Domain_enable(
                     self.request.api_context,
                     dbDomain,
                     dbOperationsEvent=dbOperationsEvent,
@@ -619,7 +619,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     # `formStash.fatal_form()` will raise `FormInvalid()`
                     formStash.fatal_form("Already inactive.")
 
-                lib_db.actions.disable_Domain(
+                lib_db.update.update_Domain_disable(
                     self.request.api_context,
                     dbDomain,
                     dbOperationsEvent=dbOperationsEvent,

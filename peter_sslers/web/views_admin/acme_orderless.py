@@ -118,6 +118,9 @@ class ViewAdmin_New(Handler):
                         for i in self.dbAcmeAccountProviders
                     },
                     "account_key_option": model_utils.AcmeAccontKey_options_c,
+                    "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
+                    if self.dbAcmeAccountKey_GlobalDefault
+                    else None,
                 },
                 "requirements": [
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."

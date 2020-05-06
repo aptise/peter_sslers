@@ -25,42 +25,6 @@ from .logger import _log_object_event
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def dequeue_QueuedDomain(
-    ctx,
-    dbQueueDomain,
-    dbOperationsEvent=None,
-    event_status="QueueDomain__mark__cancelled",
-    action="de-queued",
-):
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbQueueDomain: (required) The :class:`model.objects.QueueDomain`
-    :param dbOperationsEvent:
-    :param event_status:
-    :param action:
-    """
-    event_payload_dict = utils.new_event_payload_dict()
-    event_payload_dict["queue_domain.id"] = dbQueueDomain.id
-    event_payload_dict["action"] = action
-
-    dbQueueDomain.is_active = None
-    dbQueueDomain.timestamp_processed = ctx.timestamp
-    ctx.dbSession.flush(objects=[dbQueueDomain])
-
-    _log_object_event(
-        ctx,
-        dbOperationsEvent=dbOperationsEvent,
-        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-            event_status
-        ),
-        dbQueueDomain=dbQueueDomain,
-    )
-    return True
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 def queue_domains__add(ctx, domain_names):
     """
     Adds domains to the queue if needed
@@ -661,7 +625,6 @@ def queue_certificates__process(ctx):
 
 
 __all__ = (
-    "dequeue_QueuedDomain",
     "queue_domains__add",
     "queue_domains__process",
     "queue_certificates__update",

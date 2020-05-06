@@ -5240,6 +5240,15 @@ class FunctionalTests_API(AppTest):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_API.test_redis
         """
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # NOTE: prep work, ensure we updated recents
+        res = self.testapp.post(
+            "/.well-known/admin/api/update-recents.json", {}, status=200
+        )
+        assert res.json["result"] == "success"
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
         res = self.testapp.get("/.well-known/admin/api/redis/prime", status=303)
         assert (
             "/.well-known/admin/operations/redis?result=success&operation=redis_prime&event.id="
@@ -5288,10 +5297,6 @@ class FunctionalTests_API(AppTest):
 
 class FunctionalTests_UNWRITTEN(AppTest):
     """python -m unittest peter_sslers.tests.FunctionalTests_UNWRITTEN"""
-
-    @tests_routes(("admin:api:domain:certificate-if-needed",))
-    def test_domains_certificate(self):
-        raise ValueError("TODO - admin:api:domain:certificate-if-needed")
 
     @tests_routes(
         (
@@ -5593,3 +5598,210 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             self.testapp_wsgi.test_app.registry.settings["app_settings"][
                 "cleanup_pending_authorizations"
             ] = True
+
+    @under_pebble_strict
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @tests_routes(("admin:api:domain:certificate-if-needed",))
+    def test_domain_certificate_if_needed(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_domain_certificate_if_needed
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/api/domain/certificate-if-needed", status=200
+        )
+        assert "instructions" in res.json
+        assert "AcmeAccountKey_GlobalDefault" in res.json["valid_options"]
+        key_pem_md5 = res.json["valid_options"]["AcmeAccountKey_GlobalDefault"][
+            "key_pem_md5"
+        ]
+
+        res2 = self.testapp.post(
+            "/.well-known/admin/api/domain/certificate-if-needed", {}, status=200
+        )
+        assert "instructions" not in res2.json
+        assert res2.json["result"] == "error"
+
+        # prep the form
+        form = {}
+        form["account_key_option"] = "account_key_global_default"
+        form["account_key_global_default"] = key_pem_md5
+        form["private_key_cycle"] = "account_daily"
+        form["private_key_cycle__renewal"] = "account_key_default"
+        form["private_key_option"] = "private_key_for_account_key"
+        form["processing_strategy"] = "process_single"
+
+        # Pass 1 - Generate a single domain
+        _domain_name = "pass-a-1.example.com"
+        form["domain_names"] = _domain_name
+        res3 = self.testapp.post(
+            "/.well-known/admin/api/domain/certificate-if-needed", form
+        )
+        assert res3.status_code == 200
+        assert res3.json["result"] == "success"
+        assert "domain_results" in res3.json
+        assert _domain_name in res3.json["domain_results"]
+        assert (
+            res3.json["domain_results"][_domain_name]["server_certificate.status"]
+            == "new"
+        )
+        assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
+        assert res3.json["domain_results"][_domain_name]["acme_order.id"] is not None
+
+        # Pass 2 - Try multiple domains
+        _domain_names = ("pass-a-1.example.com", "pass-a-2.example.com")
+        form["domain_names"] = ",".join(_domain_names)
+        res4 = self.testapp.post(
+            "/.well-known/admin/api/domain/certificate-if-needed", form
+        )
+        assert res4.status_code == 200
+        assert res4.json["result"] == "error"
+        assert (
+            res4.json["form_errors"]["domain_names"]
+            == "This endpoint currently supports only 1 domain name"
+        )
+
+        # Pass 3 - Try a failure domain
+        _domain_name = "fail-a-1.example.com"
+        form["domain_names"] = _domain_name
+        res5 = self.testapp.post(
+            "/.well-known/admin/api/domain/certificate-if-needed", form
+        )
+        assert res5.status_code == 200
+        assert res5.json["result"] == "success"
+        assert (
+            res5.json["domain_results"][_domain_name]["server_certificate.status"]
+            == "fail"
+        )
+        assert res5.json["domain_results"][_domain_name]["domain.status"] == "new"
+        assert res5.json["domain_results"][_domain_name]["acme_order.id"] is not None
+        assert (
+            res5.json["domain_results"][_domain_name]["error"]
+            == "Could not process AcmeOrder, `pending` AcmeOrder failed an AcmeAuthorization"
+        )
+
+        # Pass 4 - redo the first domain, again
+        _domain_name = "pass-a-1.example.com"
+        form["domain_names"] = _domain_name
+        res6 = self.testapp.post(
+            "/.well-known/admin/api/domain/certificate-if-needed", form
+        )
+        assert res6.status_code == 200
+        assert res6.json["result"] == "success"
+        assert "domain_results" in res6.json
+        assert _domain_name in res6.json["domain_results"]
+        assert (
+            res6.json["domain_results"][_domain_name]["server_certificate.status"]
+            == "exists"
+        )
+        assert (
+            res6.json["domain_results"][_domain_name]["domain.status"]
+            == "existing.active"
+        )
+        assert res6.json["domain_results"][_domain_name]["acme_order.id"] is None
+
+        # Pass 5 - make the existing domain inactive, then submit
+        _domain_name = "pass-a-1.example.com"
+        form_disable = {"domain_names": _domain_name}
+        res_disable = self.testapp.post(
+            "/.well-known/admin/api/domain/disable", form_disable
+        )
+        assert res_disable.status_code == 200
+        assert res_disable.json["result"] == "success"
+
+        _domain_name = "pass-a-1.example.com"
+        form["domain_names"] = _domain_name
+        res7 = self.testapp.post(
+            "/.well-known/admin/api/domain/certificate-if-needed", form
+        )
+        assert res7.status_code == 200
+        assert res7.json["result"] == "success"
+        assert "domain_results" in res7.json
+        assert _domain_name in res7.json["domain_results"]
+        assert (
+            res7.json["domain_results"][_domain_name]["server_certificate.status"]
+            == "exists"
+        )
+        assert (
+            res7.json["domain_results"][_domain_name]["domain.status"]
+            == "existing.activated"
+        )
+        assert res7.json["domain_results"][_domain_name]["acme_order.id"] is None
+
+    @unittest.skipUnless(RUN_REDIS_TESTS, "not running against redis")
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "not running against pebble")
+    @under_pebble
+    @under_redis
+    @tests_routes(("admin:api:redis:prime", "admin:api:redis:prime|json",))
+    def test_redis(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_redis
+        """
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # NOTE: prep work, ensure we have a cert
+        # prep the form
+        res = self.testapp.get(
+            "/.well-known/admin/api/domain/certificate-if-needed", status=200
+        )
+        assert "instructions" in res.json
+        assert "AcmeAccountKey_GlobalDefault" in res.json["valid_options"]
+        key_pem_md5 = res.json["valid_options"]["AcmeAccountKey_GlobalDefault"][
+            "key_pem_md5"
+        ]
+
+        form = {}
+        form["account_key_option"] = "account_key_global_default"
+        form["account_key_global_default"] = key_pem_md5
+        form["private_key_cycle"] = "account_daily"
+        form["private_key_cycle__renewal"] = "account_key_default"
+        form["private_key_option"] = "private_key_for_account_key"
+        form["processing_strategy"] = "process_single"
+        # Pass 1 - Generate a single domain
+        _domain_name = "pass-a-1.example.com"
+        form["domain_names"] = _domain_name
+        res = self.testapp.post(
+            "/.well-known/admin/api/domain/certificate-if-needed", form
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert "domain_results" in res.json
+        assert _domain_name in res.json["domain_results"]
+        assert (
+            res.json["domain_results"][_domain_name]["server_certificate.status"]
+            == "new"
+        )
+        assert res.json["domain_results"][_domain_name]["domain.status"] == "new"
+        assert res.json["domain_results"][_domain_name]["acme_order.id"] is not None
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # NOTE: prep work, ensure we updated recents
+        res = self.testapp.post(
+            "/.well-known/admin/api/update-recents.json", {}, status=200
+        )
+        assert res.json["result"] == "success"
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        # okay, loop the prime styles
+        _prime_styles = ("1", "2")
+        _existing_prime_style = self.testapp.app.registry.settings["app_settings"][
+            "redis.prime_style"
+        ]
+        try:
+            for _prime_style in _prime_styles:
+                if _prime_style == _existing_prime_style:
+                    continue
+                self.testapp.app.registry.settings["app_settings"][
+                    "redis.prime_style"
+                ] = _prime_style
+
+                res = self.testapp.post(
+                    "/.well-known/admin/api/redis/prime.json", {}, status=200
+                )
+                assert res.json["result"] == "success"
+
+        finally:
+            # reset
+            self.testapp.app.registry.settings["app_settings"][
+                "redis.prime_style"
+            ] = _existing_prime_style

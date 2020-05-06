@@ -12,9 +12,11 @@ from dateutil import parser as dateutil_parser
 # localapp
 from ...model import utils as model_utils
 from ...lib import errors
+from .. import utils
 from .get import get__AcmeAccountKey__GlobalDefault
 from .get import get__AcmeAccountProvider__default
 from .get import get__Domain__by_name
+from .logger import _log_object_event
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -154,6 +156,72 @@ def update_AcmeAuthorization_from_payload(
     return False
 
 
+def update_Domain_disable(
+    ctx,
+    dbDomain,
+    dbOperationsEvent=None,
+    event_status="Domain__mark__inactive",
+    action="deactivated",
+):
+    """
+    Disables a domain
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbDomain: (required) A :class:`model.objects.Domain` object
+    :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
+
+    :param event_status: (optional) A string event status conforming to :class:`model_utils.OperationsObjectEventStatus`
+    :param action: (optional) A string action. default = "deactivated"
+    """
+    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict["domain.id"] = dbDomain.id
+    event_payload_dict["action"] = action
+    dbDomain.is_active = False
+    ctx.dbSession.flush(objects=[dbDomain])
+
+    _log_object_event(
+        ctx,
+        dbOperationsEvent=dbOperationsEvent,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+            event_status
+        ),
+        dbDomain=dbDomain,
+    )
+    return True
+
+
+def update_Domain_enable(
+    ctx,
+    dbDomain,
+    dbOperationsEvent=None,
+    event_status="Domain__mark__active",
+    action="activated",
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbDomain: (required) A :class:`model.objects.Domain` object
+    :param dbOperationsEvent: (required) A :class:`model.objects.OperationsObjectEvent` object
+
+    :param event_status: (optional) A string event status conforming to :class:`model_utils.OperationsObjectEventStatus`
+    :param action: (optional) A string action. default = "activated"
+    """
+    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict["domain.id"] = dbDomain.id
+    event_payload_dict["action"] = action
+    dbDomain.is_active = True
+    ctx.dbSession.flush(objects=[dbDomain])
+
+    _log_object_event(
+        ctx,
+        dbOperationsEvent=dbOperationsEvent,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+            event_status
+        ),
+        dbDomain=dbDomain,
+    )
+    return True
+
+
 def update_PrivateKey__set_active(ctx, dbPrivateKey):
     if dbPrivateKey.is_active:
         raise errors.InvalidTransition("Already activated")
@@ -179,6 +247,45 @@ def update_PrivateKey__set_compromised(ctx, dbPrivateKey):
     dbPrivateKey.is_compromised = True
     event_status = "PrivateKey__mark__compromised"
     return event_status
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def update_QueuedDomain_dequeue(
+    ctx,
+    dbQueueDomain,
+    dbOperationsEvent=None,
+    event_status="QueueDomain__mark__cancelled",
+    action="de-queued",
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbQueueDomain: (required) The :class:`model.objects.QueueDomain`
+    :param dbOperationsEvent:
+    :param event_status:
+    :param action:
+    """
+    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict["queue_domain.id"] = dbQueueDomain.id
+    event_payload_dict["action"] = action
+
+    dbQueueDomain.is_active = None
+    dbQueueDomain.timestamp_processed = ctx.timestamp
+    ctx.dbSession.flush(objects=[dbQueueDomain])
+
+    _log_object_event(
+        ctx,
+        dbOperationsEvent=dbOperationsEvent,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+            event_status
+        ),
+        dbQueueDomain=dbQueueDomain,
+    )
+    return True
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 def update_ServerCertificate__set_active(ctx, dbServerCertificate):
