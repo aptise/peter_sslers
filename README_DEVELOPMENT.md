@@ -107,7 +107,6 @@ the unit tests require the following domains to point to localhost:
 	# run after editing: dscacheutil -flushcache
 	127.0.0.1 peter-sslers.example.com
 	127.0.0.1 always-fail.example.com
-	127.0.0.1 cleanup-a-fail.example.com
 	127.0.0.1 cleanup-a-1.example.com
 	127.0.0.1 cleanup-a-2.example.com
 	127.0.0.1 cleanup-a-3.example.com
@@ -128,7 +127,6 @@ the unit tests require the following domains to point to localhost:
 	127.0.0.1 cleanup-a-18.example.com
 	127.0.0.1 cleanup-a-19.example.com
 	127.0.0.1 cleanup-a-20.example.com
-	127.0.0.1 cleanup-b-fail.example.com
 	127.0.0.1 cleanup-b-1.example.com
 	127.0.0.1 cleanup-b-2.example.com
 	127.0.0.1 cleanup-b-3.example.com

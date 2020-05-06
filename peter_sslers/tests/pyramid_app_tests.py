@@ -5391,19 +5391,6 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         ).count()
         return stats
 
-    def _add_blacklisted_domain(self, domains_list, blacklisted_domain):
-        "inserts a domain into the blacklist database and list of domain names"
-        domains_list.insert(0, blacklisted_domain)
-        dbDomainBlacklisted = lib_db_get.get__DomainBlacklisted__by_name(
-            self.ctx, blacklisted_domain
-        )
-        if not dbDomainBlacklisted:
-            dbDomainBlacklisted = model_objects.DomainBlacklisted()
-            dbDomainBlacklisted.domain_name = blacklisted_domain.lower()
-            self.ctx.dbSession.add(dbDomainBlacklisted)
-            self.ctx.pyramid_transaction_commit()
-        return domains_list
-
     def _place_order(self, account_key_file_pem, domain_names):
 
         resp = requests.get(
@@ -5484,11 +5471,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         # our domains
         domain_names_a = ["cleanup-a-%s.example.com" % i for i in range(1, 20)]
 
-        # prepend DomainBlacklisted
-        _blacklisted_domain = "cleanup-a-fail.example.com"
-        domain_names_a = self._add_blacklisted_domain(
-            domain_names_a, _blacklisted_domain
-        )
+        # prepend domain to fail
+        _fail_domain = "cleanup-a-fail.example.com"
+        domain_names_a.insert(0, _fail_domain)
 
         stats_og = self._calculate_stats()
         resp = self._place_order(
@@ -5557,11 +5542,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             # our domains
             domain_names_b = ["cleanup-b-%s.example.com" % i for i in range(1, 20)]
 
-            # prepend DomainBlacklisted
-            _blacklisted_domain = "cleanup-b-fail.example.com"
-            domain_names_b = self._add_blacklisted_domain(
-                domain_names_b, _blacklisted_domain
-            )
+            # prepend domain to fail
+            _fail_domain = "cleanup-b-fail.example.com"
+            domain_names_b.insert(0, _fail_domain)
 
             stats_og = self._calculate_stats()
             resp = self._place_order(
