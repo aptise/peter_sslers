@@ -122,6 +122,82 @@ class ViewAdmin_Focus(Handler):
             }
         return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:acme_order:focus:audit",
+        renderer="/admin/acme_order-focus-audit.mako",
+    )
+    @view_config(route_name="admin:acme_order:focus:audit|json", renderer="json")
+    def audit(self):
+        dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.wants_json:
+            audit_report = {
+                "result": "success",
+                "AuditReport": {
+                    "AcmeOrder": {
+                        "id": dbAcmeOrder.id,
+                        "timestamp_created": dbAcmeOrder.timestamp_created_isoformat,
+                        "acme_order_type": dbAcmeOrder.acme_order_type,
+                        "acme_order_processing_strategy": dbAcmeOrder.acme_order_processing_strategy,
+                        "acme_order_processing_status": dbAcmeOrder.acme_order_processing_status,
+                        "is_processing": dbAcmeOrder.is_processing,
+                        "acme_status_order": dbAcmeOrder.acme_status_order,
+                        "timestamp_expires": dbAcmeOrder.timestamp_expires_isoformat,
+                        "private_key_strategy__requested": dbAcmeOrder.private_key_strategy__requested,
+                        "private_key_strategy__final": dbAcmeOrder.private_key_strategy__final,
+                        "domains": dbAcmeOrder.domains_as_list,
+                    },
+                    "AcmeAccountKey": {
+                        "id": dbAcmeOrder.acme_account_key_id,
+                        "contact": dbAcmeOrder.acme_account_key.contact,
+                        "private_key_cycle": dbAcmeOrder.acme_account_key.private_key_cycle,
+                    },
+                    "AcmeAccountProvider": {
+                        "id": dbAcmeOrder.acme_account_key.acme_account_provider_id,
+                        "name": dbAcmeOrder.acme_account_key.acme_account_provider.name,
+                        "url": dbAcmeOrder.acme_account_key.acme_account_provider.url,
+                    },
+                    "PrivateKey": {
+                        "id": dbAcmeOrder.private_key_id,
+                        "private_key_source": dbAcmeOrder.private_key.private_key_source,
+                        "private_key_type": dbAcmeOrder.private_key.private_key_type,
+                    },
+                    "UniqueFQDNSet": {"id": dbAcmeOrder.unique_fqdn_set_id,},
+                    "AcmeAuthorizations": [],
+                },
+            }
+            auths_list = []
+            for to_acme_authorization in dbAcmeOrder.to_acme_authorizations:
+                dbAcmeAuthorization = to_acme_authorization.acme_authorization
+                dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http01
+                auth_local = {
+                    "AcmeAuthorization": {
+                        "id": dbAcmeAuthorization.id,
+                        "acme_status_authorization": dbAcmeAuthorization.acme_status_authorization,
+                        "timestamp_updated": dbAcmeAuthorization.timestamp_updated_isoformat,
+                    },
+                    "AcmeChallenge": None,
+                    "Domain": None,
+                }
+                if dbAcmeAuthorization.domain_id:
+                    auth_local["Domain"] = {
+                        "id": dbAcmeAuthorization.domain_id,
+                        "domain_name": dbAcmeAuthorization.domain.domain_name,
+                    }
+                if dbAcmeChallenge:
+                    auth_local["AcmeChallenge"] = {
+                        "id": dbAcmeChallenge.id,
+                        "acme_status_challenge": dbAcmeChallenge.acme_status_challenge,
+                        "timestamp_updated": dbAcmeChallenge.timestamp_updated_isoformat,
+                        "keyauthorization": dbAcmeChallenge.keyauthorization,
+                    }
+
+                auths_list.append(auth_local)
+            audit_report["AuditReport"]["AcmeAuthorizations"] = auths_list
+            return audit_report
+        return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
+
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     @view_config(

@@ -3,24 +3,16 @@ Not Finished Yet
 
 Almost done:
 ------------
-
-certificate renewal
-	- object should show if we can renew with account key
 	
 These sections still need to be redone:
 
 - queue domain
 - queue certificates
-- certificate-if-needed
 
-Tests needed:
 
-	redis 
-		test via decorator that spins a subprocess, or something on the server?
-	nginx
-		test via decorator that spins a subprocess, or something on the server?
-		
-
+certificate renewal
+	- object should show if we can renew with account key
+	- better programmatic work is needed when cycling a multi-process request
 
 	
 
@@ -41,6 +33,7 @@ AcmeAccountKey.letsencrypt_data - audit. refresh? log?
 * search expiring soon | note: isn't this the `/server-certificates/expiring` view?
 * migrate cert_subject hash and tracking to SAN
 * log full actual results; if a queue fails log that data too
+	this happens to standard python logging
 * CSR should have domain[0] as subject if there are multiple domains | note: LetsEncrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
 * build authorization deactivate tool

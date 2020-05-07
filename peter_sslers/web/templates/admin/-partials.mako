@@ -145,7 +145,7 @@
                                 <timestamp>${acme_authorization.timestamp_created or ''}</timestamp>
                             % elif c == 'timestamp_expires':
                                 <timestamp>${acme_authorization.timestamp_expires or ''}</timestamp>
-                            % elif c == 'timestamp_expires':
+                            % elif c == 'timestamp_updated':
                                 <timestamp>${acme_authorization.timestamp_updated or ''}</timestamp>
                             % elif c == 'wildcard':
                                 <code>${acme_authorization.wildcard or ''}</code>
@@ -167,6 +167,80 @@
     </table>
 </%def>
     
+<%def name="table_AcmeAuthorizationChallenges(AcmeOrder, perspective=None)">
+<% 
+    if perspective != 'AcmeOrder':
+        raise ValueError("invalid perspective")
+%>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>AcmeAuthorization</th>
+                <th>AcmeChallenge</th>
+                <th>Domain</th>
+                <th>Authorization Status</th>
+                <th>Authorization Updated</th>
+                <th>Challenge Status</th>
+                <th>Challenge Updated</th>
+                <th>Challenge Keyauthorization</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for to_acme_authorization in AcmeOrder.to_acme_authorizations:
+                <%
+                    AcmeAuthorization = to_acme_authorization.acme_authorization
+                    AcmeChallenge = AcmeAuthorization.acme_challenge_http01
+                %>
+                <tr>
+                    <td>
+                        <a href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeAuthorization-${AcmeAuthorization.id}
+                        </a>
+                    </td>
+                    <td>
+                        % if AcmeChallenge:
+                            <a href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeChallenge-${AcmeChallenge.id}
+                            </a>
+                        % endif
+                    </td>
+                    <td>
+                        % if AcmeAuthorization.domain_id:
+                            <a class="label label-info" href="${admin_prefix}/domain/${AcmeAuthorization.domain_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                Domain-${AcmeAuthorization.domain_id}
+                            </a>
+                            <code>${AcmeAuthorization.domain.domain_name}</code>
+                        % endif
+                    </td>
+                    <td>
+                        <code>${AcmeAuthorization.acme_status_authorization or ''}</code>
+                    </td>
+                    <td>
+                        <timestamp>${AcmeAuthorization.timestamp_updated or ''}</timestamp>
+                    </td>
+                    <td>
+                        % if AcmeChallenge:
+                            <code>${AcmeChallenge.acme_status_challenge or ''}</code>
+                        % endif
+                    </td>
+                    <td>
+                        % if AcmeChallenge:
+                            <timestamp>${AcmeChallenge.timestamp_updated or ''}</timestamp>
+                        % endif
+                    </td>
+                    <td>
+                        % if AcmeChallenge:
+                            <code>${AcmeChallenge.keyauthorization or ''}</code>
+                        % endif
+                    </td>
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
 
 
 <%def name="table_AcmeChallenges(acme_challenges, perspective=None)">

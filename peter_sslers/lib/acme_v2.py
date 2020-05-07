@@ -65,6 +65,8 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
     :param dict post_data: (optional) Data to POST to the url
     :param str err_msg: (optional) A custom error message
     :param int depth: (optional) An integer nothing the depth of this function being called
+
+    returns (resp_data, status_code, headers)
     """
     log.info("acme_v2.url_request(%s, %s", url, post_data)
     context = None
@@ -79,17 +81,17 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
             ctx.verify_mode = ssl.CERT_NONE
             context = ctx
         resp = urlopen(Request(url, data=post_data, headers=headers), context=ctx)
-        resp_data, code, headers = (
+        resp_data, status_code, headers = (
             resp.read().decode("utf8"),
             resp.getcode(),
             resp.headers,
         )
-        log.info(") url_request < code       < %s", code)
-        log.info(") url_request < resp_data  < %s", resp_data)
-        log.info(") url_request < headers    < %s", headers)
+        log.info(") url_request < status_code < %s", status_code)
+        log.info(") url_request < resp_data   < %s", resp_data)
+        log.info(") url_request < headers     < %s", headers)
     except IOError as exc:
         resp_data = exc.read().decode("utf8") if hasattr(exc, "read") else str(exc)
-        code, headers = getattr(exc, "code", None), {}
+        status_code, headers = getattr(exc, "code", None), {}
         # potentially there is a code=400  body=json{"type": "urn:ietf:params:acme:error:badNonce"}
         # that is caught below
     except Exception as exc:
@@ -99,27 +101,27 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
         resp_data = json.loads(resp_data)  # try to parse json results
     except ValueError:
         pass  # ignore json parsing errors
-    if code == 404:
+    if status_code == 404:
         raise errors.AcmeServer404(404, resp_data)
-    if code == 400:
+    elif status_code == 400:
         # this happens on pebble if we set it to http, not https
         if resp_data == "Client sent an HTTP request to an HTTPS server.\n":
             raise IndexError(resp_data)
     if (
         depth < 100
-        and code == 400
+        and status_code == 400
         and resp_data["type"] == "urn:ietf:params:acme:error:badNonce"
     ):
         raise IndexError(resp_data)  # allow 100 retrys for bad nonces
-    if code not in [200, 201, 204]:
+    if status_code not in [200, 201, 204]:
         if isinstance(resp_data, dict):
-            raise errors.AcmeServerError(code, resp_data)
+            raise errors.AcmeServerError(status_code, resp_data)
         msg = "{0}:\nUrl: {1}\nData: {2}\nResponse Code: {3}\nResponse: {4}".format(
-            err_msg, url, post_data, code, resp_data
+            err_msg, url, post_data, status_code, resp_data
         )
         # raise ValueError(msg)
         raise errors.AcmeServerError(msg)
-    return resp_data, code, headers
+    return resp_data, status_code, headers
 
 
 # ------------------------------------------------------------------------------
@@ -165,7 +167,7 @@ def acme_directory_get(acmeAccountKey=None):
     url_directory = acmeAccountKey.acme_account_provider.directory
     if not url_directory:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
-    directory_payload, _code, _headers = url_request(
+    directory_payload, _status_code, _headers = url_request(
         url_directory, err_msg="Error getting directory"
     )
     if not directory_payload:
@@ -294,6 +296,9 @@ class AuthenticatedUser(object):
         :param url: (required) The url
         :param payload: (optional) A Python dict of data to POST to the url
         :param depth: (optional) An integer nothing the depth of this function being called
+
+        This proxies `url_request` with a signed payload
+        returns (resp_data, status_code, headers)
         """
         payload64 = "" if payload is None else _b64(json.dumps(payload).encode("utf8"))
         if self._next_nonce:
@@ -362,7 +367,9 @@ class AuthenticatedUser(object):
         while _result is None or _result["status"] in _pending_statuses:
             assert time.time() - _t0 < 3600, "Polling timeout"  # 1 hour timeout
             time.sleep(0 if _result is None else 2)
-            _result, _, _ = self._send_signed_request(_url, payload=None,)
+            _result, _status_code, _headers = self._send_signed_request(
+                _url, payload=None,
+            )
         return _result
 
     def update_contact(self, ctx, contact=None):
@@ -373,10 +380,18 @@ class AuthenticatedUser(object):
         """
         log.info("acme_v2.AuthenticatedUser.update_contact( {0}".format(contact))
         payload_contact = {"contact": contact}
-        (acme_account_object, _, _) = self._send_signed_request(
+        (
+            acme_account_object,
+            _status_code,
+            _acme_account_headers,
+        ) = self._send_signed_request(
             self._api_account_headers["Location"], payload=payload_contact,
         )
         self._api_account_object = acme_account_object
+        log.debug(") update_contact | acme_account_object: %s" % acme_account_object)
+        log.debug(
+            ") update_contact | _acme_account_headers: %s" % _acme_account_headers
+        )
         log.info(
             ") update_contact | updated {0}".format(
                 " ; ".join(acme_account_object["contact"])
@@ -499,17 +514,24 @@ class AuthenticatedUser(object):
                 ]
             (
                 acme_account_object,
-                code,
+                status_code,
                 acme_account_headers,
             ) = self._send_signed_request(
                 self.acme_directory["newAccount"], payload=payload_registration
             )
             self._api_account_object = acme_account_object
             self._api_account_headers = acme_account_headers
-
+            log.debug(") authenticate | acme_account_object: %s" % acme_account_object)
+            log.debug(
+                ") authenticate | acme_account_headers: %s" % acme_account_headers
+            )
             log.info(
                 ") authenticate = %s"
-                % ("acme_v2 Registered!" if code == 201 else "Already registered!")
+                % (
+                    "acme_v2 Registered!"
+                    if status_code == 201
+                    else "Already registered!"
+                )
             )
 
             # this would raise if we couldn't authenticate
@@ -543,9 +565,11 @@ class AuthenticatedUser(object):
 
         try:
             log.info("acme_v2.AuthenticatedUser.acme_order_load(")
-            (acme_order_object, _code, acme_order_headers) = self._send_signed_request(
-                dbAcmeOrder.order_url, None
-            )
+            (
+                acme_order_object,
+                _status_code,
+                acme_order_headers,
+            ) = self._send_signed_request(dbAcmeOrder.order_url, None)
             log.debug(") acme_order_load | acme_order_object: %s" % acme_order_object)
             log.debug(") acme_order_load | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServer404 as exc:
@@ -589,7 +613,11 @@ class AuthenticatedUser(object):
         payload_order = {
             "identifiers": [{"type": "dns", "value": d} for d in domain_names]
         }
-        (acme_order_object, _code, acme_order_headers) = self._send_signed_request(
+        (
+            acme_order_object,
+            _status_code,
+            acme_order_headers,
+        ) = self._send_signed_request(
             self.acme_directory["newOrder"], payload=payload_order,
         )
         log.debug(") acme_order_new | acme_order_object: %s" % acme_order_object)
@@ -728,8 +756,18 @@ class AuthenticatedUser(object):
 
         payload_finalize = {"csr": _b64(csr_der)}
         try:
-            (finalize_response, _, _) = self._send_signed_request(
+            (
+                finalize_response,
+                _status_code,
+                _finalize_headers,
+            ) = self._send_signed_request(
                 dbAcmeOrder.finalize_url, payload=payload_finalize,
+            )
+            log.debug(
+                ") acme_order_finalize | finalize_response: %s" % finalize_response
+            )
+            log.debug(
+                ") acme_order_finalize | _finalize_headers: %s" % _finalize_headers
             )
         except errors.AcmeServer404 as exc:
             finalize_response = new_response_404()
@@ -771,8 +809,12 @@ class AuthenticatedUser(object):
 
         # download the certificate
         # ACME-V2 furnishes a FULLCHAIN (certificate_pem + chain_pem)
-        (fullchain_pem, _, certificate_headers) = self._send_signed_request(
+        (fullchain_pem, _status_code, _certificate_headers) = self._send_signed_request(
             url_certificate, None
+        )
+        log.debug(") download_certificate | fullchain_pem: %s" % fullchain_pem)
+        log.debug(
+            ") download_certificate | _certificate_headers: %s" % _certificate_headers
         )
         log.info(") download_certificate | downloaded signed certificate!")
         return fullchain_pem
@@ -820,8 +862,18 @@ class AuthenticatedUser(object):
 
         # in v1, we know the domain before the authorization request
         # in v2, we hit an order's authorization url to get the domain
-        (authorization_response, _, authorization_headers,) = self._send_signed_request(
-            authorization_url, payload=None,
+        (
+            authorization_response,
+            _status_code,
+            _authorization_headers,
+        ) = self._send_signed_request(authorization_url, payload=None,)
+        log.debug(
+            ") acme_authorization_process_url | authorization_response: %s"
+            % authorization_response
+        )
+        log.debug(
+            ") acme_authorization_process_url | _authorization_headers: %s"
+            % _authorization_headers
         )
         log.info(") .acme_authorization_process_url | handle_authorization_payload(")
         dbAcmeAuthorization = handle_authorization_payload(
@@ -1002,9 +1054,17 @@ class AuthenticatedUser(object):
         try:
             (
                 authorization_response,
-                _,
-                authorization_headers,
+                _status_code,
+                _authorization_headers,
             ) = self._send_signed_request(dbAcmeAuthorization.authorization_url, None)
+            log.debug(
+                ") acme_authorization_load | authorization_response: %s"
+                % authorization_response
+            )
+            log.debug(
+                ") acme_authorization_load | _authorization_headers: %s"
+                % _authorization_headers
+            )
         except errors.AcmeServer404 as exc:
             authorization_response = new_response_404()
 
@@ -1047,10 +1107,18 @@ class AuthenticatedUser(object):
         try:
             (
                 authorization_response,
-                _,
-                authorization_headers,
+                _status_code,
+                _authorization_headers,
             ) = self._send_signed_request(
                 dbAcmeAuthorization.authorization_url, {"status": "deactivated"}
+            )
+            log.debug(
+                ") acme_authorization_deactivate | authorization_response: %s"
+                % authorization_response
+            )
+            log.debug(
+                ") acme_authorization_deactivate | _authorization_headers: %s"
+                % _authorization_headers
             )
         except errors.AcmeServer404 as exc:
             authorization_response = new_response_404()
@@ -1077,8 +1145,16 @@ class AuthenticatedUser(object):
             raise ValueError("the challenge does not have a `challenge_url`")
 
         try:
-            (challenge_response, _, challenge_headers) = self._send_signed_request(
-                dbAcmeChallenge.challenge_url, None
+            (
+                challenge_response,
+                _status_code,
+                _challenge_headers,
+            ) = self._send_signed_request(dbAcmeChallenge.challenge_url, None)
+            log.debug(
+                ") acme_challenge_load | challenge_response: %s" % challenge_response
+            )
+            log.debug(
+                ") acme_challenge_load | _challenge_headers: %s" % _challenge_headers
             )
         except errors.AcmeServer404 as exc:
             challenge_response = new_response_404()
@@ -1123,11 +1199,19 @@ class AuthenticatedUser(object):
         # to invoke a GET-as-POST functionality and load the challenge resource
         # POSTing an empty `dict` will trigger the challenge
         try:
-            (challenge_response, _, _) = self._send_signed_request(
-                dbAcmeChallenge.challenge_url, payload={},
+            (
+                challenge_response,
+                _status_code,
+                _challenge_headers,
+            ) = self._send_signed_request(dbAcmeChallenge.challenge_url, payload={},)
+            log.debug(
+                ") acme_challenge_trigger | challenge_response: %s" % challenge_response
+            )
+            log.debug(
+                ") acme_challenge_trigger | _challenge_headers: %s" % _challenge_headers
             )
         except errors.AcmeServerError as exc:
-            (_code, _resp) = exc.args
+            (_status_code, _resp) = exc.args
             if isinstance(_resp, dict):
                 if _resp["type"].startswith("urn:ietf:params:acme:error:"):
                     # {u'status': 400, u'type': u'urn:ietf:params:acme:error:malformed', u'detail': u'Authorization expired 2020-02-28T20:25:02Z'}

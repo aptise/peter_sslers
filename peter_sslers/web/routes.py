@@ -282,6 +282,10 @@ def _admin_views(config):
     config.add_route_7("admin:acme_orders_paginated|json", "/acme-orders/{@page}.json")
     config.add_route_7("admin:acme_order:focus|json", "/acme-order/{@id}.json")
     config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
+    config.add_route_7(
+        "admin:acme_order:focus:audit|json", "/acme-order/{@id}/audit.json"
+    )
+    config.add_route_7("admin:acme_order:focus:audit", "/acme-order/{@id}/audit")
 
     config.add_route_7(
         "admin:acme_order:focus:acme_event_logs", "/acme-order/{@id}/acme-event-logs"

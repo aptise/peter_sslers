@@ -100,74 +100,82 @@ The unit tests have several suites:
 The testing tool spins up a dedicated Pebble instance for each test.
 
 
-### sample domains - unit tests
+### sample domains - testing suites
 
-the unit tests require the following domains to point to localhost:
+The testing suites require the following domains to point to localhost:
 
 	# run after editing: dscacheutil -flushcache
 	127.0.0.1 peter-sslers.example.com
 	127.0.0.1 always-fail.example.com
-	127.0.0.1 cleanup-a-1.example.com
-	127.0.0.1 cleanup-a-2.example.com
-	127.0.0.1 cleanup-a-3.example.com
-	127.0.0.1 cleanup-a-4.example.com
-	127.0.0.1 cleanup-a-5.example.com
-	127.0.0.1 cleanup-a-6.example.com
-	127.0.0.1 cleanup-a-7.example.com
-	127.0.0.1 cleanup-a-8.example.com
-	127.0.0.1 cleanup-a-9.example.com
-	127.0.0.1 cleanup-a-10.example.com
-	127.0.0.1 cleanup-a-11.example.com
-	127.0.0.1 cleanup-a-12.example.com
-	127.0.0.1 cleanup-a-13.example.com
-	127.0.0.1 cleanup-a-14.example.com
-	127.0.0.1 cleanup-a-15.example.com
-	127.0.0.1 cleanup-a-16.example.com
-	127.0.0.1 cleanup-a-17.example.com
-	127.0.0.1 cleanup-a-18.example.com
-	127.0.0.1 cleanup-a-19.example.com
-	127.0.0.1 cleanup-a-20.example.com
-	127.0.0.1 cleanup-b-1.example.com
-	127.0.0.1 cleanup-b-2.example.com
-	127.0.0.1 cleanup-b-3.example.com
-	127.0.0.1 cleanup-b-4.example.com
-	127.0.0.1 cleanup-b-5.example.com
-	127.0.0.1 cleanup-b-6.example.com
-	127.0.0.1 cleanup-b-7.example.com
-	127.0.0.1 cleanup-b-8.example.com
-	127.0.0.1 cleanup-b-9.example.com
-	127.0.0.1 cleanup-b-10.example.com
-	127.0.0.1 cleanup-b-11.example.com
-	127.0.0.1 cleanup-b-12.example.com
-	127.0.0.1 cleanup-b-13.example.com
-	127.0.0.1 cleanup-b-14.example.com
-	127.0.0.1 cleanup-b-15.example.com
-	127.0.0.1 cleanup-b-16.example.com
-	127.0.0.1 cleanup-b-17.example.com
-	127.0.0.1 cleanup-b-18.example.com
-	127.0.0.1 cleanup-b-19.example.com
-	127.0.0.1 cleanup-b-20.example.com
-	127.0.0.1 pass-a-1.example.com
-	127.0.0.1 pass-a-2.example.com
-	127.0.0.1 pass-a-3.example.com
-	127.0.0.1 pass-a-4.example.com
-	127.0.0.1 pass-a-5.example.com
-	127.0.0.1 pass-a-6.example.com
-	127.0.0.1 pass-a-7.example.com
-	127.0.0.1 pass-a-8.example.com
-	127.0.0.1 pass-a-9.example.com
-	127.0.0.1 pass-a-10.example.com
-	127.0.0.1 pass-a-11.example.com
-	127.0.0.1 pass-a-12.example.com
-	127.0.0.1 pass-a-13.example.com
-	127.0.0.1 pass-a-14.example.com
-	127.0.0.1 pass-a-15.example.com
-	127.0.0.1 pass-a-16.example.com
-	127.0.0.1 pass-a-17.example.com
-	127.0.0.1 pass-a-18.example.com
-	127.0.0.1 pass-a-19.example.com
-	127.0.0.1 pass-a-20.example.com
-	127.0.0.1 pass-b-1.example.com
+
+	127.0.0.1 test-AcmeOrder-multiple-domains-1.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-2.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-3.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-4.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-5.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-6.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-7.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-8.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-9.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-10.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-11.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-12.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-13.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-14.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-15.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-16.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-17.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-18.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-19.example.com
+	127.0.0.1 test-AcmeOrder-multiple-domains-20.example.com
+
+	127.0.0.1 test-AcmeOrder-cleanup-1.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-2.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-3.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-4.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-5.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-6.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-7.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-8.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-9.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-10.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-1.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-11.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-12.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-13.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-14.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-15.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-16.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-17.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-18.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-19.example.com
+	127.0.0.1 test-AcmeOrder-cleanup-20.example.com
+
+	127.0.0.1 test-AcmeOrder-nocleanup-1.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-2.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-3.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-4.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-5.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-6.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-7.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-8.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-9.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-10.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-11.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-12.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-13.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-14.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-15.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-16.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-17.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-18.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-19.example.com
+	127.0.0.1 test-AcmeOrder-nocleanup-20.example.com
+
+	127.0.0.1 test_domain_certificate_if_needed-1.example.com
+	127.0.0.1 test_domain_certificate_if_needed-2.example.com
+
+	127.0.0.1 test_redis-1.example.com
 
 
 ## sample domains

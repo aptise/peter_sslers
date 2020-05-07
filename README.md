@@ -66,13 +66,19 @@ The `OpenResty` module is available in a separate project, https://github.com/ap
 
 The `Pyramid` based application can function as a daemon for Admin or API access, or even a commandline script. Most web pages offer `.json` endpoints, so you can easily issue commands via `curl` and have human-readable data in a terminal window. Don't want to do things manually? Ok - everything was built to be readable on commandline browsers... yes, this is actually developed-for and tested-with Lynx. I shit you not, Lynx.
 
-Do you like book-keeping?  Peter's `Pryamid` component logs everything into SQL so you can easily find the answers to burning questions like:
+Do you like book-keeping and logging?  Peter's ACME Client logs everything into SQL so you can easily find the answers to burning questions like:
 
 * What authorizations are still pending?
 * What challenges are active?
 * Which external ips are triggering my challenges?
 * Where did this PrivateKey come from?
 * How many requests have I been making to upstream servers?
+
+All communication to the upstream ACME server is logged using Python's standard `logging` module.
+
+	module: peter_sslers.lib.acme_v2
+	log level: logging.info will show the raw data received
+	log level: logging.debug will show the response parsed to json, when applicable
 
 THIS PACKAGE IS EXTREME TO THE MAX!!!
 

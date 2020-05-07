@@ -928,6 +928,7 @@ class FunctionalTests_AcmeOrder(AppTest):
             "admin:acme_order:focus",
             "admin:acme_order:focus:acme_event_logs",
             "admin:acme_order:focus:acme_event_logs_paginated",
+            "admin:acme_order:focus:audit",
         )
     )
     def test_focus_html(self):
@@ -944,8 +945,11 @@ class FunctionalTests_AcmeOrder(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/acme-order/%s/acme-event-logs/1" % focus_id, status=200,
         )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/audit" % focus_id, status=200
+        )
 
-    @tests_routes("admin:acme_order:focus|json")
+    @tests_routes(("admin:acme_order:focus|json", "admin:acme_order:focus:audit|json"))
     def test_focus_json(self):
         focus_item = self._get_one()
         assert focus_item is not None
@@ -955,6 +959,17 @@ class FunctionalTests_AcmeOrder(AppTest):
             "/.well-known/admin/acme-order/%s.json" % focus_id, status=200
         )
         assert "AcmeOrder" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/audit.json" % focus_id, status=200
+        )
+        assert "AuditReport" in res.json
+        assert "AcmeOrder" in res.json["AuditReport"]
+        assert "AcmeAccountKey" in res.json["AuditReport"]
+        assert "AcmeAccountProvider" in res.json["AuditReport"]
+        assert "PrivateKey" in res.json["AuditReport"]
+        assert "UniqueFQDNSet" in res.json["AuditReport"]
+        assert "AcmeAuthorizations" in res.json["AuditReport"]
 
 
 class FunctionalTests_AcmeOrderless(AppTest):
@@ -5435,11 +5450,13 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         # don't re-use the domains, but use the core info
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
-        domain_names_a = ["pass-a-%s.example.com" % i for i in range(1, 20)]
+        domain_names = [
+            "test-AcmeOrder-multiple-domains-%s.example.com" % i for i in range(1, 20)
+        ]
 
         resp = self._place_order(
             _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
-            domain_names_a,
+            domain_names,
         )
         assert resp.status_code == 200
         assert resp.json()["result"] == "success"
@@ -5474,16 +5491,18 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
         # our domains
-        domain_names_a = ["cleanup-a-%s.example.com" % i for i in range(1, 20)]
+        domain_names = [
+            "test-AcmeOrder-cleanup-%s.example.com" % i for i in range(1, 20)
+        ]
 
         # prepend domain to fail
-        _fail_domain = "cleanup-a-fail.example.com"
-        domain_names_a.insert(0, _fail_domain)
+        _fail_domain = "test-AcmeOrder-cleanup-fail.example.com"
+        domain_names.insert(0, _fail_domain)
 
         stats_og = self._calculate_stats()
         resp = self._place_order(
             _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
-            domain_names_a,
+            domain_names,
         )
         assert resp.status_code == 200
         assert resp.json()["result"] == "error"
@@ -5545,16 +5564,18 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
             # our domains
-            domain_names_b = ["cleanup-b-%s.example.com" % i for i in range(1, 20)]
+            domain_names = [
+                "test-AcmeOrder-nocleanup-%s.example.com" % i for i in range(1, 20)
+            ]
 
             # prepend domain to fail
-            _fail_domain = "cleanup-b-fail.example.com"
-            domain_names_b.insert(0, _fail_domain)
+            _fail_domain = "test-AcmeOrder-nocleanup-fail.example.com"
+            domain_names.insert(0, _fail_domain)
 
             stats_og = self._calculate_stats()
             resp = self._place_order(
                 _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
-                domain_names_b,
+                domain_names,
             )
             assert resp.status_code == 200
             assert resp.json()["result"] == "error"
@@ -5631,7 +5652,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["processing_strategy"] = "process_single"
 
         # Pass 1 - Generate a single domain
-        _domain_name = "pass-a-1.example.com"
+        _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form["domain_names"] = _domain_name
         res3 = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
@@ -5640,15 +5661,23 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert res3.json["result"] == "success"
         assert "domain_results" in res3.json
         assert _domain_name in res3.json["domain_results"]
-        assert (
-            res3.json["domain_results"][_domain_name]["server_certificate.status"]
-            == "new"
-        )
-        assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
+        try:
+            assert (
+                res3.json["domain_results"][_domain_name]["server_certificate.status"]
+                == "new"
+            )
+            assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
+        except:
+            pprint.pprint(res3.json)
+            pdb.set_trace()
+            raise
         assert res3.json["domain_results"][_domain_name]["acme_order.id"] is not None
 
         # Pass 2 - Try multiple domains
-        _domain_names = ("pass-a-1.example.com", "pass-a-2.example.com")
+        _domain_names = (
+            "test-domain-certificate-if-needed-1.example.com",
+            "test-domain-certificate-if-needed-2.example.com",
+        )
         form["domain_names"] = ",".join(_domain_names)
         res4 = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
@@ -5680,7 +5709,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         )
 
         # Pass 4 - redo the first domain, again
-        _domain_name = "pass-a-1.example.com"
+        _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form["domain_names"] = _domain_name
         res6 = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
@@ -5700,7 +5729,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert res6.json["domain_results"][_domain_name]["acme_order.id"] is None
 
         # Pass 5 - make the existing domain inactive, then submit
-        _domain_name = "pass-a-1.example.com"
+        _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form_disable = {"domain_names": _domain_name}
         res_disable = self.testapp.post(
             "/.well-known/admin/api/domain/disable", form_disable
@@ -5708,7 +5737,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert res_disable.status_code == 200
         assert res_disable.json["result"] == "success"
 
-        _domain_name = "pass-a-1.example.com"
+        _domain_name = "test-domain-certificate-if-needed-1.example.com"
         form["domain_names"] = _domain_name
         res7 = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
@@ -5757,7 +5786,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["private_key_option"] = "private_key_for_account_key"
         form["processing_strategy"] = "process_single"
         # Pass 1 - Generate a single domain
-        _domain_name = "pass-b-1.example.com"
+        _domain_name = "test-redis-1.example.com"
         form["domain_names"] = _domain_name
         res = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form

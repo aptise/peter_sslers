@@ -455,7 +455,7 @@ def api_domains__enable(ctx, domain_names):
 def api_domains__disable(ctx, domain_names):
     """
     disables `domain_names` from the system
-    
+
     * If the `domain_name` represents a `Domain`, it is marked inactive
     * If the `domain_name` represents a `QueueDomain`, it is removed from the queue
 

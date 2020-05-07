@@ -37,11 +37,11 @@ class UnitTest_OpenSSL(AppTestCore):
 class UnitTest_PrivateKeyCycling(AppTest):
     """
     uses `AppTest` so we have access to a `self.ctx`
-    
-    These tests ensure that PrivateKey cycling for an AcmeAccountKey works 
-    
+
+    These tests ensure that PrivateKey cycling for an AcmeAccountKey works
+
     It tests `getcreate__PrivateKey_for_AcmeAccountKey`, which is invoked during AcmeOrder processing
-    
+
     python -m unittest peter_sslers.tests.unit_tests.UnitTest_PrivateKeyCycling
     """
 

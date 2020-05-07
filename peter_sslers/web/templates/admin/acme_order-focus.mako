@@ -185,6 +185,16 @@
                             <span class="label label-default">
                                 ${AcmeOrder.id}
                             </span>
+                            &nbsp;
+                            |
+                            &nbsp;
+                            <a
+                                href="${admin_prefix}/acme-order/${AcmeOrder.id}/audit"
+                                class="btn btn-xs btn-info"
+                            >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                Audit Report
+                            </a>
                         </td>
                     </tr>
                     <tr>
@@ -378,18 +388,18 @@
                             % endif
                         </td>
                     </tr>
-                        <tr>
-                            <th>PrivateKeyCycle - renewals</th>
-                            <td><code>${AcmeOrder.private_key_cycle__renewal}</code></td>
-                        </tr>
-                        <tr>
-                            <th>PrivateKeyStrategy - requested</th>
-                            <td><code>${AcmeOrder.private_key_strategy__requested}</code></td>
-                        </tr>
-                        <tr>
-                            <th>PrivateKeyStrategy - final</th>
-                            <td><code>${AcmeOrder.private_key_strategy__final}</code></td>
-                        </tr>
+                    <tr>
+                        <th>PrivateKeyCycle - renewals</th>
+                        <td><code>${AcmeOrder.private_key_cycle__renewal}</code></td>
+                    </tr>
+                    <tr>
+                        <th>PrivateKeyStrategy - requested</th>
+                        <td><code>${AcmeOrder.private_key_strategy__requested}</code></td>
+                    </tr>
+                    <tr>
+                        <th>PrivateKeyStrategy - final</th>
+                        <td><code>${AcmeOrder.private_key_strategy__final}</code></td>
+                    </tr>
                     <tr>
                         <th>ServerCertificate</th>
                         <td>
