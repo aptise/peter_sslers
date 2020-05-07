@@ -149,7 +149,6 @@ class ApplicationSettings(dict):
         )
         if self["certificate_authority_testing"]:
             acme_v2.TESTING_ENVIRONMENT = True
-            model_objects.TESTING_ENVIRONMENT = True
 
         self["enable_views_admin"] = set_bool_setting(settings, "enable_views_admin")
         self["enable_views_public"] = set_bool_setting(settings, "enable_views_public")

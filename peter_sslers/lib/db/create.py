@@ -800,12 +800,11 @@ def create__ServerCertificate(
         # so we don't need to handle this or save it
         cert_domains = cert_utils.parse_cert_domains(_tmpfileCert.name)
         if set(cert_domains_expected) != set(cert_domains):
-            # if not acme_v2.TESTING_ENVIRONMENT:
             log.error("set(cert_domains_expected) != set(cert_domains)")
             log.error(cert_domains_expected)
             log.error(cert_domains)
             raise ValueError(
-                "Certificate Domains do not match the expected ones! this should never happen!"
+                "ServerCertificate Domains do not match the expected ones! this should never happen!"
             )
 
         # ok, now pull the dates off the cert
