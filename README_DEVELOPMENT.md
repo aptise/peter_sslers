@@ -157,7 +157,6 @@ the unit tests require the following domains to point to localhost:
 	127.0.0.1 pass-a-8.example.com
 	127.0.0.1 pass-a-9.example.com
 	127.0.0.1 pass-a-10.example.com
-	127.0.0.1 pass-a-1.example.com
 	127.0.0.1 pass-a-11.example.com
 	127.0.0.1 pass-a-12.example.com
 	127.0.0.1 pass-a-13.example.com
@@ -168,6 +167,7 @@ the unit tests require the following domains to point to localhost:
 	127.0.0.1 pass-a-18.example.com
 	127.0.0.1 pass-a-19.example.com
 	127.0.0.1 pass-a-20.example.com
+	127.0.0.1 pass-b-1.example.com
 
 
 ## sample domains

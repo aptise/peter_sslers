@@ -5757,7 +5757,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["private_key_option"] = "private_key_for_account_key"
         form["processing_strategy"] = "process_single"
         # Pass 1 - Generate a single domain
-        _domain_name = "pass-a-1.example.com"
+        _domain_name = "pass-b-1.example.com"
         form["domain_names"] = _domain_name
         res = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form

@@ -21,6 +21,9 @@ from .. import utils
 from ...lib import errors
 from ...model import utils as model_utils
 from ...model import objects as model_objects
+from .create import create__AcmeChallenge
+from .create import create__CertificateRequest
+from .create import create__PrivateKey
 from .create import create__ServerCertificate
 from .get import get__AcmeAccountProviders__paginated
 from .get import get__AcmeAuthorization__by_authorization_url
@@ -29,6 +32,10 @@ from .get import get__CACertificate__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
 from .get import get__DomainBlacklisted__by_name
+from .get import get__PrivateKey_CurrentDay_AcmeAccountKey
+from .get import get__PrivateKey_CurrentDay_Global
+from .get import get__PrivateKey_CurrentWeek_AcmeAccountKey
+from .get import get__PrivateKey_CurrentWeek_Global
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
 from .helpers import _certificate_parse_to_record
@@ -512,7 +519,7 @@ def getcreate__AcmeChallengeHttp01_via_payload(
             if authenticatedUser
             else None
         )
-        dbAcmeChallenge = lib.db.create.create__AcmeChallenge(
+        dbAcmeChallenge = create__AcmeChallenge(
             ctx,
             dbAcmeAuthorization=dbAcmeAuthorization,
             dbDomain=dbAcmeAuthorization.domain,
@@ -664,7 +671,7 @@ def getcreate__CertificateRequest__by_pem_text(
     is_created = False
     dbCertificateRequest = get__CertificateRequest__by_pem_text(ctx, csr_pem)
     if not dbCertificateRequest:
-        dbCertificateRequest = lib.db.create.create__CertificateRequest(
+        dbCertificateRequest = create__CertificateRequest(
             ctx,
             csr_pem,
             certificate_request_source_id=certificate_request_source_id,
@@ -808,6 +815,113 @@ def getcreate__PrivateKey__by_pem_text(
         )
 
     return (dbPrivateKey, is_created)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def getcreate__PrivateKey_for_AcmeAccountKey(ctx, dbAcmeAccountKey=None):
+    """
+    getcreate wrapping a RemoteIpAddress
+
+    returns: dbAcmeAccountKey
+    raises: ValueError
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` that owns the certificate
+    """
+    private_key_cycle = dbAcmeAccountKey.private_key_cycle
+    acme_account_key_id__owner = dbAcmeAccountKey.id
+    if private_key_cycle == "single_certificate":
+        # NOTE: AcmeAccountKeyNeedsPrivateKey ; single_certificate
+        dbPrivateKey_new = create__PrivateKey(
+            ctx,
+            # bits=4096,
+            acme_account_key_id__owner=acme_account_key_id__owner,
+            private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
+            private_key_type_id=model_utils.PrivateKeyType.from_string(
+                "single_certificate"
+            ),
+        )
+        return dbPrivateKey_new
+
+    elif private_key_cycle == "account_daily":
+        # NOTE: AcmeAccountKeyNeedsPrivateKey ; account_daily
+        dbPrivateKey_new = get__PrivateKey_CurrentDay_AcmeAccountKey(
+            ctx, acme_account_key_id__owner
+        )
+        if not dbPrivateKey_new:
+            dbPrivateKey_new = create__PrivateKey(
+                ctx,
+                acme_account_key_id__owner=acme_account_key_id__owner,
+                # bits=4096,
+                private_key_source_id=model_utils.PrivateKeySource.from_string(
+                    "generated"
+                ),
+                private_key_type_id=model_utils.PrivateKeyType.from_string(
+                    "account_daily"
+                ),
+            )
+        return dbPrivateKey_new
+
+    elif private_key_cycle == "global_daily":
+        # NOTE: AcmeAccountKeyNeedsPrivateKey ; global_daily
+        dbPrivateKey_new = get__PrivateKey_CurrentDay_Global(ctx)
+        if not dbPrivateKey_new:
+            dbPrivateKey_new = create__PrivateKey(
+                ctx,
+                # bits=4096,
+                private_key_source_id=model_utils.PrivateKeySource.from_string(
+                    "generated"
+                ),
+                private_key_type_id=model_utils.PrivateKeyType.from_string(
+                    "global_daily"
+                ),
+            )
+        return dbPrivateKey_new
+
+    elif private_key_cycle == "account_weekly":
+        # NOTE: AcmeAccountKeyNeedsPrivateKey ; account_weekly
+        dbPrivateKey_new = get__PrivateKey_CurrentWeek_AcmeAccountKey(
+            ctx, acme_account_key_id__owner
+        )
+        if not dbPrivateKey_new:
+            dbPrivateKey_new = create__PrivateKey(
+                ctx,
+                acme_account_key_id__owner=acme_account_key_id__owner,
+                # bits=4096,
+                private_key_source_id=model_utils.PrivateKeySource.from_string(
+                    "generated"
+                ),
+                private_key_type_id=model_utils.PrivateKeyType.from_string(
+                    "account_weekly"
+                ),
+            )
+        return dbPrivateKey_new
+
+    elif private_key_cycle == "global_weekly":
+        # NOTE: AcmeAccountKeyNeedsPrivateKey ; global_weekly
+        dbPrivateKey_new = get__PrivateKey_CurrentWeek_Global(ctx)
+        if not dbPrivateKey_new:
+            dbPrivateKey_new = create__PrivateKey(
+                ctx,
+                # bits=4096,
+                private_key_source_id=model_utils.PrivateKeySource.from_string(
+                    "generated"
+                ),
+                private_key_type_id=model_utils.PrivateKeyType.from_string(
+                    "global_weekly"
+                ),
+            )
+        return dbPrivateKey_new
+
+    elif private_key_cycle == "account_key_default":
+        # NOTE: AcmeAccountKeyNeedsPrivateKey ; account_key_default | INVALID
+        raise ValueError("invalid option `account_key_default`")
+
+    else:
+        # NOTE: AcmeAccountKeyNeedsPrivateKey | INVALID
+        raise ValueError("invalid option")
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

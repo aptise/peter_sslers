@@ -33,6 +33,12 @@ openssl genrsa -out AcmeAccountKey-3.pem 2048
 openssl genrsa -out AcmeAccountKey-4.pem 2048
 openssl genrsa -out AcmeAccountKey-5.pem 2048
 
+openssl genrsa -out AcmeAccountKey-cycle-single_certificate.pem 2048
+openssl genrsa -out AcmeAccountKey-cycle-account_daily.pem 2048
+openssl genrsa -out AcmeAccountKey-cycle-global_daily.pem 2048
+openssl genrsa -out AcmeAccountKey-cycle-account_weekly.pem 2048
+openssl genrsa -out AcmeAccountKey-cycle-global_weekly.pem 2048
+
 
 ================================================================================
 
