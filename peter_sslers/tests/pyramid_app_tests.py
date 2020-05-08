@@ -142,15 +142,21 @@ RE_AcmeOrder_deactivated = re.compile(
 RE_AcmeOrder_invalidated = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=invalid$"""
 )
-
 RE_AcmeOrder_processed = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+process$"""
 )
 RE_AcmeOrder_can_process = re.compile(
     r'''href="/\.well-known/admin/acme-order/\d+/acme-process"[\n\s\ ]+class="btn btn-xs btn-info "'''
 )
+RE_AcmeOrder_downloaded_certificate = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+server\+download\+certificate$"""
+)
 RE_AcmeOrderless = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-orderless/(\d+)$"""
+)
+
+RE_server_certificate_link = re.compile(
+    r"""href="/\.well-known/admin/server-certificate/(\d+)"""
 )
 
 # =====
@@ -4690,7 +4696,34 @@ class FunctionalTests_AcmeServer(AppTest):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_download_certificate_html
         """
-        raise ValueError("TODO")
+        (obj_id, obj_url) = self._prep_AcmeOrder_html(
+            processing_strategy="process_single"
+        )
+        dbAcmeOrder = lib_db_get.get__AcmeOrder__by_id(self.ctx, obj_id)
+        assert dbAcmeOrder is not None
+        assert dbAcmeOrder.server_certificate_id is not None
+
+        # stash the `server_certificate_id` and delete it from the backend
+        server_certificate_id__og = dbAcmeOrder.server_certificate_id
+        dbAcmeOrder.server_certificate_id = None
+        self.ctx.pyramid_transaction_commit()
+
+        # grab the order
+        res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+        assert "acme_order-download_certificate" in res.forms
+        form = res.forms["acme_order-download_certificate"]
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert RE_AcmeOrder_downloaded_certificate.match(res2.location)
+
+        # grab the order again!
+        res3 = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
+        assert "acme_order-download_certificate" not in res3.forms
+        server_certificate_ids = RE_server_certificate_link.findall(res3.text)
+        assert server_certificate_ids
+        assert len(server_certificate_ids) >= 1
+        server_certificate_id__downloaded = int(server_certificate_ids[0])
+        assert server_certificate_id__og == server_certificate_id__downloaded
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @under_pebble
@@ -4699,7 +4732,38 @@ class FunctionalTests_AcmeServer(AppTest):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_download_certificate_json
         """
-        raise ValueError("TODO")
+        obj_id = self._prep_AcmeOrder_json(processing_strategy="process_single")
+        dbAcmeOrder = lib_db_get.get__AcmeOrder__by_id(self.ctx, obj_id)
+        assert dbAcmeOrder is not None
+        assert dbAcmeOrder.server_certificate_id is not None
+
+        # stash the `server_certificate_id` and delete it from the backend
+        server_certificate_id__og = dbAcmeOrder.server_certificate_id
+        dbAcmeOrder.server_certificate_id = None
+        self.ctx.pyramid_transaction_commit()
+
+        # grab the order
+        res2 = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id, status=200
+        )
+        assert "AcmeOrder" in res2.json
+        assert res2.json["AcmeOrder"]["server_certificate_id"] is None
+        url_acme_server_certificate_download = res2.json["AcmeOrder"][
+            "url_acme_server_certificate_download"
+        ]
+        assert url_acme_server_certificate_download is not None
+
+        # trigger a download
+        res3 = self.testapp.post(url_acme_server_certificate_download, {}, status=200)
+        assert res3.json["AcmeOrder"]["url_acme_server_certificate_download"] is None
+        assert res3.json["AcmeOrder"]["server_certificate_id"] is not None
+        server_certificate_id__downloaded = res3.json["AcmeOrder"][
+            "server_certificate_id"
+        ]
+        assert server_certificate_id__downloaded is not None
+
+        # compare the certs
+        assert server_certificate_id__og == server_certificate_id__downloaded
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @under_pebble

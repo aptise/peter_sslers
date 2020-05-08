@@ -1287,6 +1287,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_acme_server_download_certificate(self):
+        """
+        can we download a ServerCertificate from the AcmeServer?
+        only works for VALID AcmeOrder if we do not have a ServerCertificate
+        """
         if self.acme_status_order == "valid":
             if self.certificate_url:
                 if not self.server_certificate_id:
@@ -1385,6 +1389,10 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "url_acme_server_sync": "%s/acme-order/%s/acme-server/sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
+            else None,
+            "url_acme_server_certificate_download": "%s/acme-order/%s/acme-server/download-certificate.json"
+            % (admin_url, self.id)
+            if self.is_can_acme_server_download_certificate
             else None,
             "url_acme_process": "%s/acme-order/%s/acme-process.json"
             % (admin_url, self.id)

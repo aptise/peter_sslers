@@ -1839,6 +1839,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             cert_domains_expected=dbAcmeOrder.domains_as_list,
             dbAcmeOrder=dbAcmeOrder,
             dbCACertificate=dbCACertificate,
+            dbPrivateKey=dbAcmeOrder.private_key,
         )
         if dbAcmeOrder.server_certificate:
             if dbAcmeOrder.server_certificate_id != dbServerCertificate.id:
