@@ -45,13 +45,13 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="contact">contact</label>
-                    <input class="form-control" type="text" name="contact" value=""/>
+                    <label for="account_key__contact">contact</label>
+                    <input class="form-control" type="text" name="account_key__contact" value=""/>
                 </div>
 
                 <div class="form-group">
                     <label for="private_key_cyle">PrivateKey Cycling</label>
-                    <select class="form-control" name="private_key_cycle">
+                    <select class="form-control" name="account_key__private_key_cycle">
                         <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccountKey %>
                         % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle:
                             <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>

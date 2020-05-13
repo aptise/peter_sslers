@@ -3,6 +3,17 @@
 	`/acme-order/{ID}/audit`
 	`/acme-order/{ID}/audit.json`
 - tests for PrivateKey cycling
+- renamed form fields for clarity:
+	- "private_key_cycle" -> "account_key__private_key_cycle"
+	- "contact" -> "account_key__contact"
+- added "resolved" AcmeChallenge search
+- added "processing" AcmeChallenge search
+- updated config validation on:
+	`queue_domains_min_per_cert`
+	`queue_domains_max_per_cert`
+- removed "returned" exception objects, which were a terrible idea
+- updated (json.dumps) to use `sort_keys=True` as needed
+- (queue-domains/process(.json)?) working and tested
 
 
 0.4.0

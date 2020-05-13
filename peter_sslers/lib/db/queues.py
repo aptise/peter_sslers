@@ -6,6 +6,7 @@ log = logging.getLogger(__name__)
 
 # stdlib
 import datetime
+import pdb
 
 # pypi
 import transaction
@@ -177,7 +178,13 @@ def _get_default_PrivateKey(ctx):
 
 
 def queue_domains__process(
-    ctx, dbAcmeAccountKey=None, dbPrivateKey=None, max_domains_per_certificate=50
+    ctx,
+    dbAcmeAccountKey=None,
+    dbPrivateKey=None,
+    max_domains_per_certificate=50,
+    processing_strategy=None,
+    private_key_cycle__renewal=None,
+    private_key_strategy__requested=None,
 ):
     """
     This endpoint should pull `1-100[configurable]` domains from the queue, and create a certificate for them
@@ -185,29 +192,37 @@ def queue_domains__process(
     * if there are more than 100, should we process them, or return that info in json?
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccountKey:
-    :param dbPrivateKey:
+    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
+    :param max_domains_per_certificate: (required) int The maximum number of domains to be put on each Certificate.
+    :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
+    :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     """
-    if not ctx.request:
-        # ToDo: refactor `ctx.request.registry.settings`
-        raise ValueError("must be invoked within Pyramid")
+    if (
+        processing_strategy
+        in model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_REQUIRE_PYRAMID
+    ):
+        if not ctx.request:
+            raise ValueError("must be invoked within Pyramid")
 
     if not all((dbAcmeAccountKey, dbPrivateKey)):
         raise ValueError("must be invoked with dbAcmeAccountKey, dbPrivateKey")
 
-    try:
-        min_domains = ctx.request.registry.settings["app_settings"][
-            "queue_domains_min_per_cert"
-        ]
-        _max_max_domains = ctx.request.registry.settings["app_settings"][
-            "queue_domains_max_per_cert"
-        ]
-        max_domains_per_certificate = (
-            _max_max_domains
-            if max_domains_per_certificate > _max_max_domains
-            else max_domains_per_certificate
+    min_domains = ctx.request.registry.settings["app_settings"][
+        "queue_domains_min_per_cert"
+    ]
+    _max_max_domains = ctx.request.registry.settings["app_settings"][
+        "queue_domains_max_per_cert"
+    ]
+    if (max_domains_per_certificate < min_domains) or (
+        max_domains_per_certificate > _max_max_domains
+    ):
+        raise ValueError(
+            "invalid `max_domains_per_certificate`: %s" % max_domains_per_certificate
         )
 
+    try:
         items_paged = lib.db.get.get__QueueDomain__paginated(
             ctx, unprocessed_only=True, limit=max_domains_per_certificate, offset=0
         )
@@ -284,17 +299,24 @@ def queue_domains__process(
             domain_names = [d.domain_name for d in domainObjects]
 
             # processing_strategy: AcmeOrder_ProcessingStrategy('create_order', 'process_single', 'process_multi')
-            (
-                dbAcmeOrder,
-                result,
-            ) = lib.db.actions_acme.do__AcmeV2_AcmeOrder__automated(
-                ctx,
-                acme_order_type_id=model_utils.AcmeOrderType.QUEUE_DOMAINS,
-                domain_names=domain_names,
-                processing_strategy="create_order",
-                dbAcmeAccountKey=dbAcmeAccountKey,
-                dbPrivateKey=dbPrivateKey,
-            )
+            try:
+                dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__automated(
+                    ctx,
+                    acme_order_type_id=model_utils.AcmeOrderType.QUEUE_DOMAINS,
+                    domain_names=domain_names,
+                    private_key_cycle__renewal=private_key_cycle__renewal,
+                    private_key_strategy__requested=private_key_strategy__requested,
+                    processing_strategy=processing_strategy,
+                    dbAcmeAccountKey=dbAcmeAccountKey,
+                    dbPrivateKey=dbPrivateKey,
+                )
+            except Exception as exc:
+                # unpack a `errors.AcmeOrderCreatedError` to local vars
+                if isinstance(exc, errors.AcmeOrderCreatedError):
+                    dbAcmeOrder = exc.acme_order
+                    exc = exc.original_exception
+                raise
+
             for qdomain in items_paged:
                 # this may have committed
                 qdomain.timestamp_processed = _timestamp
@@ -305,7 +327,22 @@ def queue_domains__process(
             dbOperationsEvent.set_event_payload(event_payload_dict)
             ctx.dbSession.flush(objects=[dbOperationsEvent])
 
+            _timestamp = ctx.timestamp
+            for qd in items_paged:
+                _log_object_event(
+                    ctx,
+                    dbOperationsEvent=dbOperationsEvent,
+                    event_status_id=model_utils.OperationsEventType.from_string(
+                        "QueueDomain__process__success"
+                    ),
+                    dbQueueDomain=qd,
+                )
+
+            ctx.pyramid_transaction_commit()
+            return dbAcmeOrder
+
         except (errors.AcmeOrderFatal, errors.DomainVerificationError) as exc:
+
             if isinstance(exc, errors.AcmeOrderFatal):
                 event_payload_dict["status"] = "error - AcmeOrderFatal"
             else:
@@ -325,19 +362,6 @@ def queue_domains__process(
                     dbQueueDomain=qd,
                 )
             raise
-
-        _timestamp = ctx.timestamp
-        for qd in items_paged:
-            _log_object_event(
-                ctx,
-                dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsEventType.from_string(
-                    "QueueDomain__process__success"
-                ),
-                dbQueueDomain=qd,
-            )
-
-        return True
 
     except Exception as exc:
         raise
@@ -510,7 +534,6 @@ def queue_certificates__process(ctx):
                 _need_default_AccountKey = True
                 break
 
-        dbPrivateKey_GlobalDefault = None
         _need_default_PrivateKey = False
         for dbQueueCertificate in items_paged:
             if (
@@ -524,10 +547,6 @@ def queue_certificates__process(ctx):
         if _need_default_AccountKey:
             # raises an error if we fail
             dbAcmeAccountKey_GlobalDefault = _get_default_AccountKey(ctx)
-
-        if _need_default_PrivateKey:
-            # raises an error if we fail
-            dbPrivateKey_GlobalDefault = _get_default_PrivateKey(ctx)
 
         for dbQueueCertificate in items_paged:
             if dbQueueCertificate not in ctx.dbSession:
@@ -547,24 +566,31 @@ def queue_certificates__process(ctx):
             _dbAcmeAccountKey = (
                 dbQueueCertificate.renewal_AccountKey or dbAcmeAccountKey_GlobalDefault
             )
-            _dbPrivateKey = (
-                dbQueueCertificate.renewal_PrivateKey or dbPrivateKey_GlobalDefault
-            )
+
+            raise ValueError("changed")
+            _dbPrivateKey = dbQueueCertificate.renewal_PrivateKey or None
             try:
                 timestamp_attempt = datetime.datetime.utcnow()
                 raise ValueError("this changed a lot")
-                (
-                    dbAcmeOrder,
-                    result,
-                ) = lib.db.actions_acme.do__AcmeV2_AcmeOrder__automated(
-                    ctx,
-                    acme_order_type_id=model_utils.AcmeOrderType.QUEUE_RENEWAL,
-                    domain_names=dbQueueCertificate.domains_as_list,
-                    dbAcmeAccountKey=_dbAcmeAccountKey,
-                    dbPrivateKey=_dbPrivateKey,
-                    dbServerCertificate__renewal_of=dbQueueCertificate.server_certificate,
-                    dbQueueCertificate__of=dbQueueCertificate,
-                )
+                try:
+                    dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__automated(
+                        ctx,
+                        acme_order_type_id=model_utils.AcmeOrderType.QUEUE_RENEWAL,
+                        domain_names=dbQueueCertificate.domains_as_list,
+                        dbAcmeAccountKey=_dbAcmeAccountKey,
+                        dbPrivateKey=_dbPrivateKey,
+                        dbServerCertificate__renewal_of=dbQueueCertificate.server_certificate,
+                        dbQueueCertificate__of=dbQueueCertificate,
+                    )
+                except Exception as exc:
+                    # unpack a `errors.AcmeOrderCreatedError` to local vars
+                    if isinstance(exc, errors.AcmeOrderCreatedError):
+                        dbAcmeOrder = exc.acme_order
+                        exc = exc.original_exception
+                    raise
+
+                # THE BELOW IS WRONG!
+
                 if dbServerCertificate:
                     _log_object_event(
                         ctx,

@@ -133,8 +133,8 @@ class _form_AccountKey_PrivateKey_core(_Form_Schema_Base):
     account_key_global_default = UnicodeString(not_empty=False, if_missing=None)
     account_key_existing = UnicodeString(not_empty=False, if_missing=None)
 
-    # this is the `private_key_cycle` of the AcmeAccountKey, not the private_key
-    private_key_cycle = OneOf(
+    # this is the `private_key_cycle` of the AcmeAccountKey
+    account_key__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
         not_empty=True,
     )
@@ -168,8 +168,8 @@ class _form_AccountKey_PrivateKey_reuse(_form_AccountKey_PrivateKey_core):
 
 class Form_AcmeAccountKey_edit(_Form_Schema_Base):
 
-    # this is the `private_key_cycle` of the AcmeAccountKey, not the private_key
-    private_key_cycle = OneOf(
+    # this is the `private_key_cycle` of the AcmeAccountKey
+    account_key__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
         not_empty=True,
     )
@@ -177,10 +177,10 @@ class Form_AcmeAccountKey_edit(_Form_Schema_Base):
 
 class Form_AcmeAccountKey_new__auth(_Form_Schema_Base):
     acme_account_provider_id = Int(not_empty=True, if_missing=None)
-    contact = Email(not_empty=False, if_missing=None)  # use it or don't
+    account_key__contact = Email(not_empty=False, if_missing=None)  # use it or don't
 
-    # this is the `private_key_cycle` of the AcmeAccountKey, not the private_key
-    private_key_cycle = OneOf(
+    # this is the `private_key_cycle` of the AcmeAccountKey
+    account_key__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
         not_empty=True,
     )
@@ -192,10 +192,10 @@ class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
         * Form_AcmeOrder_new_automated
     """
 
-    contact = Email(not_empty=False, if_missing=None)  # use it or don't
+    account_key__contact = Email(not_empty=False, if_missing=None)  # use it or don't
 
-    # this is the `private_key_cycle` of the AcmeAccountKey, not the private_key
-    private_key_cycle = OneOf(
+    # this is the `private_key_cycle` of the AcmeAccountKey
+    account_key__private_key_cycle = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
         not_empty=True,
     )
@@ -247,6 +247,7 @@ class Form_AcmeOrder_renew_custom(_form_AccountKey_PrivateKey_reuse):
     processing_strategy = OneOf(
         model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL, not_empty=True,
     )
+
     # this is the `private_key_cycle` of the AcmeOrder renewals
     private_key_cycle__renewal = OneOf(
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
@@ -343,31 +344,6 @@ class Form_PrivateKey_mark(_Form_Schema_Base):
     action = OneOf(("compromised", "active", "inactive",), not_empty=True)
 
 
-class _Form_QueueCertificate_new(_form_AccountKey_PrivateKey_core):
-    queue_source = OneOf(
-        ("AcmeOrder", "ServerCertificate", "UniqueFQDNSet"), not_empty=True
-    )
-    acme_order_id = Int(not_empty=False, if_missing=None)
-    server_certificate_id = Int(not_empty=False, if_missing=None)
-    unique_fqdn_set_id = Int(not_empty=False, if_missing=None)
-
-
-class Form_QueueCertificate_new_AcmeOrder(
-    _Form_QueueCertificate_new, _form_AccountKey_reuse
-):
-    acme_order_id = Int(not_empty=True, if_missing=None)
-
-
-class Form_QueueCertificate_new_ServerCertificate(
-    _Form_QueueCertificate_new, _form_AccountKey_reuse, _form_PrivateKey_reuse
-):
-    server_certificate_id = Int(not_empty=True, if_missing=None)
-
-
-class Form_QueueCertificate_new_UniqueFQDNSet(_Form_QueueCertificate_new):
-    unique_fqdn_set_id = Int(not_empty=True, if_missing=None)
-
-
 class Form_QueueCertificate_mark(_Form_Schema_Base):
     action = OneOf(("cancel",), not_empty=True)
 
@@ -384,6 +360,16 @@ class Form_QueueDomains_process(_form_AccountKey_PrivateKey_core):
     """just use the PrivateKey and AcmeAccountKey in the parent class"""
 
     max_domains_per_certificate = Int(not_empty=True, max=100, min=1)
+
+    processing_strategy = OneOf(
+        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL, not_empty=True,
+    )
+
+    # this is the `private_key_cycle` of the AcmeOrder renewals
+    private_key_cycle__renewal = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+        not_empty=True,
+    )
 
 
 class Form_API_Domain_enable(_Form_Schema_Base):

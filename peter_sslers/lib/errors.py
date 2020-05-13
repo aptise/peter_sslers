@@ -78,6 +78,27 @@ class AcmeOrderFatal(AcmeOrderError):
     pass
 
 
+class AcmeOrderCreatedError(AcmeOrderError):
+    """
+    If an exception occurs AFTER an AcmeOrder is created, raise this.
+    It should have two attributes:
+    
+        args[0] - AcmeOrder
+        args[1] - original exception
+    """
+
+    def __str__(self):
+        return "An AcmeOrder-{0} was created but errored".format(self.args[0])
+
+    @property
+    def acme_order(self):
+        return self.args[0]
+
+    @property
+    def original_exception(self):
+        return self.args[1]
+
+
 class AcmeMissingChallenges(AcmeError):
     """There are no Acme Challenges"""
 

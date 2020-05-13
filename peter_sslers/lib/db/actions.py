@@ -672,7 +672,7 @@ def api_domains__certificate_if_needed(
             _logger_args["dbServerCertificate"] = _dbServerCertificate
         else:
             try:
-                (dbAcmeOrder, exc,) = actions_acme.do__AcmeV2_AcmeOrder__automated(
+                dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__automated(
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW__CIN,
                     domain_names=domain_names,
@@ -682,46 +682,47 @@ def api_domains__certificate_if_needed(
                     dbAcmeAccountKey=dbAcmeAccountKey,
                     dbPrivateKey=dbPrivateKey,
                 )
+
                 _logger_args["dbAcmeOrder"] = dbAcmeOrder
                 _result["acme_order.id"] = dbAcmeOrder.id
-                if exc:
-                    if isinstance(exc, errors.AcmeError):
-                        _result["error"] = "Could not process AcmeOrder, %s" % str(exc)
-                        _result["server_certificate.status"] = "fail"
-                        _logger_args[
-                            "event_status_id"
-                        ] = model_utils.OperationsObjectEventStatus.from_string(
-                            "ApiDomains__certificate_if_needed__certificate_new_fail"
-                        )
-                    else:
-                        raise exc
+                if dbAcmeOrder.server_certificate_id:
+                    _result["server_certificate.status"] = "new"
+                    _result["server_certificate.id"] = dbAcmeOrder.server_certificate_id
+                    _logger_args[
+                        "event_status_id"
+                    ] = model_utils.OperationsObjectEventStatus.from_string(
+                        "ApiDomains__certificate_if_needed__certificate_new_success"
+                    )
+                    _logger_args["dbServerCertificate"] = dbAcmeOrder.server_certificate
                 else:
-                    if dbAcmeOrder.server_certificate_id:
-                        _result["server_certificate.status"] = "new"
-                        _result[
-                            "server_certificate.id"
-                        ] = dbAcmeOrder.server_certificate_id
-                        _logger_args[
-                            "event_status_id"
-                        ] = model_utils.OperationsObjectEventStatus.from_string(
-                            "ApiDomains__certificate_if_needed__certificate_new_success"
-                        )
-                        _logger_args[
-                            "dbServerCertificate"
-                        ] = dbAcmeOrder.server_certificate
-                    else:
-                        _result[
-                            "error"
-                        ] = "AcmeOrder did not generate a ServerCertificate"
-                        _result["server_certificate.status"] = "fail"
-                        _logger_args[
-                            "event_status_id"
-                        ] = model_utils.OperationsObjectEventStatus.from_string(
-                            "ApiDomains__certificate_if_needed__certificate_new_fail"
-                        )
+                    _result["error"] = "AcmeOrder did not generate a ServerCertificate"
+                    _result["server_certificate.status"] = "fail"
+                    _logger_args[
+                        "event_status_id"
+                    ] = model_utils.OperationsObjectEventStatus.from_string(
+                        "ApiDomains__certificate_if_needed__certificate_new_fail"
+                    )
 
             except Exception as exc:
-                raise
+
+                # unpack a `errors.AcmeOrderCreatedError` to local vars
+                if isinstance(exc, errors.AcmeOrderCreatedError):
+                    dbAcmeOrder = exc.acme_order
+                    exc = exc.original_exception
+
+                    _logger_args["dbAcmeOrder"] = dbAcmeOrder
+                    _result["acme_order.id"] = dbAcmeOrder.id
+
+                if isinstance(exc, errors.AcmeError):
+                    _result["error"] = "Could not process AcmeOrder, %s" % str(exc)
+                    _result["server_certificate.status"] = "fail"
+                    _logger_args[
+                        "event_status_id"
+                    ] = model_utils.OperationsObjectEventStatus.from_string(
+                        "ApiDomains__certificate_if_needed__certificate_new_fail"
+                    )
+                else:
+                    raise
 
         # log domain event
         _log_object_event(ctx, dbOperationsEvent=dbOperationsEvent, **_logger_args)

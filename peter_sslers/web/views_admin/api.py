@@ -12,7 +12,6 @@ import pdb
 # pypi
 import six
 import sqlalchemy
-import transaction
 
 # localapp
 from .. import lib
@@ -350,6 +349,7 @@ class ViewAdminApi(Handler):
                     message="Could not load the default private key",
                 )
 
+            # TODO - include an offset of the last domain added, so there isn't a race condition
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
 
@@ -605,7 +605,7 @@ class ViewAdminApi(Handler):
                 % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
         except Exception as exc:
-            transaction.abort()
+            self.request.api_context.pyramid_transaction_rollback()
             if self.request.wants_json:
                 return {"result": "error", "error": exc.as_querystring}
             raise
@@ -624,7 +624,7 @@ class ViewAdminApi(Handler):
             if self.request.wants_json:
                 return {"result": "success", "queue_results": queue_results}
             if queue_results:
-                queue_results = json.dumps(queue_results)
+                queue_results = json.dumps(queue_results, sort_keys=True)
             return HTTPSeeOther(
                 "%s/api/queue-certificates?process=1&results=%s"
                 % (
@@ -633,7 +633,7 @@ class ViewAdminApi(Handler):
                 )
             )
         except Exception as exc:
-            transaction.abort()
+            self.request.api_context.pyramid_transaction_rollback()
             if self.request.wants_json:
                 return {"result": "error", "error": exc.as_querystring}
             raise

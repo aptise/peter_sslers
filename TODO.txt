@@ -5,20 +5,53 @@ Almost done:
 ------------
 	
 These sections still need to be redone:
-
-- queue domain
 - queue certificates
+- automatic renewal
 
+order processing
+	- if a challenge fails, make the order invalid OR sync the order to invalid
+
+AcmeOrder:
+    dbQueueCertificate__of:
+    dbServerCertificate__renewal_of:
 
 certificate renewal
 	- object should show if we can renew with account key
 	- better programmatic work is needed when cycling a multi-process request
 
+
+
+
 	
-
-
 asap tasks
 ---------------
+
+Queue Processing
+- include an offset of the last domain added, so there isn't a race condition
+
+---
+These routes triggered an issue on the ENTIRE test suite, but not on individual or class tests
+
+	ERROR: test_manipulate_html (peter_sslers.tests.pyramid_app_tests.FunctionalTests_ServerCertificate.test_manipulate_html
+	ERROR: test_manipulate_json (peter_sslers.tests.pyramid_app_tests.FunctionalTests_ServerCertificate.test_manipulate_json
+
+		  File "peter_sslers/web/views_admin/server_certificate.py", line 499, in mark
+			return self._mark__submit(dbServerCertificate)
+		  File "peter_sslers/web/views_admin/server_certificate.py", line 613, in _mark__submit
+			self.request.api_context, dbServerCertificate
+		  File "peter_sslers/lib/events.py", line 99, in Certificate_unactivated
+			_handle_Certificate_unactivated(ctx, serverCertificate)
+		  File "peter_sslers/lib/events.py", line 45, in _handle_Certificate_unactivated
+			dbServerCertificate=serverCertificate,
+		  File "peter_sslers/lib/db/create.py", line 641, in create__QueueCertificate
+			raise ValueError("must supply active `dbPrivateKey`")
+		ValueError: must supply active `dbPrivateKey`
+
+	Fix: test for a situation where the dbPrivateKey for a certificate is deactivated before 
+---
+
+
+
 
 AcmeAccountKey.letsencrypt_data - audit. refresh? log?
 
@@ -47,7 +80,6 @@ deferred tasks
 * upload CERT/Chains for 'flow' CSR | once the flow is finished, upload a cert into it.
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
-* deprecate the AcmeFlow helper (preferred) OR give it json endpoints.
 * migrate testing away from `setup.py`
 * Acme2 -  remove PyOpenSSL - used to split fullchain 
 

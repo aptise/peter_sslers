@@ -171,7 +171,7 @@ def getcreate__AcmeAccountKey(
             regr.json = tos, save for info
         """
         letsencrypt_data = {"meta.json": le_meta_json, "regr.json": le_reg_json}
-        letsencrypt_data = json.dumps(letsencrypt_data)
+        letsencrypt_data = json.dumps(letsencrypt_data, sort_keys=True)
 
         if contact is None:
             try:

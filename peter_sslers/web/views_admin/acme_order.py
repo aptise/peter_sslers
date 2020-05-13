@@ -267,7 +267,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=acme+server+sync&message=%s"
+                "%s?result=error&error=%s&operation=acme+server+sync"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -291,10 +291,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Sync is not allowed for this AcmeOrder"
                 )
-            (
-                dbAcmeOrder,
-                result,
-            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
+            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
             if self.request.wants_json:
@@ -315,7 +312,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=acme+server+sync+authorizations&message=%s"
+                "%s?result=error&error=%s&operation=acme+server+sync+authorizations"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -360,7 +357,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=acme+server+deactivate+authorizations&message=%s"
+                "%s?result=error&error=%s&operation=acme+server+deactivate+authorizations"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -380,14 +377,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
-            (
-                dbAcmeOrder,
-                exc,
-            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
+            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
-            if exc:
-                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -406,7 +398,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=acme+server+download+certificate&message=%s"
+                "%s?result=error&error=%s&operation=acme+server+download+certificate"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -424,11 +416,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise errors.InvalidRequest(
                     "ACME Process is not allowed for this AcmeOrder"
                 )
-            (dbAcmeOrder, exc) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
+            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__process(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
-            if exc:
-                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -446,7 +436,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=process&message=%s"
+                "%s?result=error&error=%s&operation=process+order"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -462,11 +452,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise errors.InvalidRequest(
                     "ACME Finalize is not allowed for this AcmeOrder"
                 )
-            (dbAcmeOrder, exc) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
+            dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__finalize(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
             )
-            if exc:
-                raise exc
             if self.request.wants_json:
                 return {
                     "result": "success",
@@ -484,7 +472,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=finalize-order&message=%s"
+                "%s?result=error&error=%s&operation=finalize+order"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -563,7 +551,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=invalid&message=%s"
+                "%s?result=error&error=%s&operation=mark"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -584,22 +572,33 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 raise errors.InvalidRequest(
                     "ACME Retry is not allowed for this AcmeOrder"
                 )
-            (dbAcmeOrderNew, exc) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__retry(
-                self.request.api_context, dbAcmeOrder=dbAcmeOrder,
-            )
-            retry_url = "%s/acme-order/%s" % (
-                self.request.admin_url,
-                dbAcmeOrderNew.id,
-            )
-            if exc:
-                # exc likely errors.AcmeError, so just raise
-                raise exc
+            try:
+                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__retry(
+                    self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                )
+            except errors.AcmeOrderCreatedError as exc:
+                # unpack a `errors.AcmeOrderCreatedError` to local vars
+                dbAcmeOrderNew = exc.acme_order
+                exc = exc.original_exception
+                if self.request.wants_json:
+                    return {
+                        "result": "error",
+                        "error": exc.args[0],
+                        "AcmeOrder": dbAcmeOrderNew.as_json,
+                    }
+                return HTTPSeeOther(
+                    "%s/acme-order/%s?result=error&error=%s&opertion=retry+order"
+                    % (self.request.admin_url, dbAcmeOrderNew.id, exc.as_querystring,)
+                )
             if self.request.wants_json:
                 return {
                     "result": "success",
                     "AcmeOrder": dbAcmeOrderNew.as_json,
                 }
-            return HTTPSeeOther("%s?result=success&operation=retry+order" % retry_url)
+            return HTTPSeeOther(
+                "%s/acme-order/%s?result=success&operation=retry+order"
+                % (self.request.admin_url, dbAcmeOrderNew.id)
+            )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
                 return {
@@ -607,7 +606,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": exc.args[0],
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=retry&message=%s"
+                "%s?result=error&error=%s&operation=retry+order"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -704,37 +703,46 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             )
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
-            (
-                dbAcmeOrderNew,
-                exc,
-            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
-                self.request.api_context,
-                private_key_cycle__renewal=private_key_cycle__renewal,
-                processing_strategy=processing_strategy,
-                dbAcmeOrder=dbAcmeOrder,
-                dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
-                dbPrivateKey=privateKeySelection.PrivateKey,
-            )
-            if exc:
-                raise exc
+            try:
+                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_custom(
+                    self.request.api_context,
+                    private_key_cycle__renewal=private_key_cycle__renewal,
+                    processing_strategy=processing_strategy,
+                    dbAcmeOrder=dbAcmeOrder,
+                    dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
+                    dbPrivateKey=privateKeySelection.PrivateKey,
+                )
+            except errors.AcmeOrderCreatedError as exc:
+                # unpack a `errors.AcmeOrderCreatedError` to local vars
+                dbAcmeOrderNew = exc.acme_order
+                exc = exc.original_exception
+                if self.request.wants_json:
+                    return {
+                        "result": "error",
+                        "error": str(exc),
+                        "AcmeOrder": dbAcmeOrderNew.as_json,
+                    }
+                return HTTPSeeOther(
+                    "%s/acme-order/%s?result=error&error=%s&operation=renew+custom"
+                    % (self.request.admin_url, dbAcmeOrderNew.id, exc.as_querystring)
+                )
+
             if self.request.wants_json:
                 return {
                     "result": "success",
                     "AcmeOrder": dbAcmeOrderNew.as_json,
                 }
-            renew_url = "%s/acme-order/%s" % (
-                self.request.admin_url,
-                dbAcmeOrderNew.id,
+            return HTTPSeeOther(
+                "%s/acme-order/%s?result=success&operation=renew+custom"
+                % (self.request.admin_url, dbAcmeOrderNew.id)
             )
-            return HTTPSeeOther("%s?result=success&operation=renew+custom" % renew_url)
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
-            url_failure = "%s?result=error&error=%s&operation=renew+custom" % (
-                self._focus_url,
-                exc.as_querystring,
+            raise HTTPSeeOther(
+                "%s?result=error&error=%s&operation=renew+custom"
+                % (self._focus_url, exc.as_querystring,)
             )
-            raise HTTPSeeOther(url_failure)
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
@@ -789,26 +797,35 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             if not result:
                 raise formhandling.FormInvalid()
             processing_strategy = formStash.results["processing_strategy"]
-            (
-                dbAcmeOrderNew,
-                exc,
-            ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_quick(
-                self.request.api_context,
-                processing_strategy=processing_strategy,
-                dbAcmeOrder=dbAcmeOrder,
-            )
-            if exc:
-                raise exc
+            try:
+                dbAcmeOrderNew = lib_db.actions_acme.do__AcmeV2_AcmeOrder__renew_quick(
+                    self.request.api_context,
+                    processing_strategy=processing_strategy,
+                    dbAcmeOrder=dbAcmeOrder,
+                )
+            except errors.AcmeOrderCreatedError as exc:
+                # unpack a `errors.AcmeOrderCreatedError` to local vars
+                dbAcmeOrderNew = exc.acme_order
+                exc = exc.original_exception
+                if self.request.wants_json:
+                    return {
+                        "result": "error",
+                        "error": str(exc),
+                        "AcmeOrder": dbAcmeOrderNew.as_json,
+                    }
+                return HTTPSeeOther(
+                    "%s/acme-order/%s?result=error&error=%s&operation=renew+quick"
+                    % (self.request.admin_url, dbAcmeOrderNew.id, exc.as_querystring)
+                )
             if self.request.wants_json:
                 return {
                     "result": "success",
                     "AcmeOrder": dbAcmeOrderNew.as_json,
                 }
-            renew_url = "%s/acme-order/%s" % (
-                self.request.admin_url,
-                dbAcmeOrderNew.id,
+            return HTTPSeeOther(
+                "%s/acme-order/%s?result=success&operation=renew+quick"
+                % (self.request.admin_url, dbAcmeOrderNew.id)
             )
-            return HTTPSeeOther("%s?result=success&operation=renew+quick" % renew_url)
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
                 return {"result": "error", "error": str(exc)}
@@ -991,20 +1008,24 @@ class ViewAdmin_New(Handler):
                 if _blacklisted_domain_names:
                     raise errors.AcmeBlacklistedDomains(_blacklisted_domain_names)
 
-                (
-                    dbAcmeOrder,
-                    exc,
-                ) = lib_db.actions_acme.do__AcmeV2_AcmeOrder__automated(
-                    self.request.api_context,
-                    acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
-                    domain_names=domain_names,
-                    private_key_cycle__renewal=private_key_cycle__renewal,
-                    private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
-                    processing_strategy=processing_strategy,
-                    dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
-                    dbPrivateKey=privateKeySelection.PrivateKey,
-                )
-                if exc:
+                try:
+                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__automated(
+                        self.request.api_context,
+                        acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
+                        domain_names=domain_names,
+                        private_key_cycle__renewal=private_key_cycle__renewal,
+                        private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
+                        processing_strategy=processing_strategy,
+                        dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
+                        dbPrivateKey=privateKeySelection.PrivateKey,
+                    )
+                except Exception as exc:
+
+                    # unpack a `errors.AcmeOrderCreatedError` to local vars
+                    if isinstance(exc, errors.AcmeOrderCreatedError):
+                        dbAcmeOrder = exc.acme_order
+                        exc = exc.original_exception
+
                     if isinstance(exc, errors.AcmeError):
                         if self.request.wants_json:
                             return {
@@ -1013,7 +1034,7 @@ class ViewAdmin_New(Handler):
                                 "AcmeOrder": dbAcmeOrder.as_json,
                             }
                         return HTTPSeeOther(
-                            "%s/acme-order/%s?result=error&error=new-automated&message=%s"
+                            "%s/acme-order/%s?result=error&error=%s&operation=new+automated"
                             % (
                                 self.request.registry.settings["app_settings"][
                                     "admin_prefix"
@@ -1022,7 +1043,7 @@ class ViewAdmin_New(Handler):
                                 exc.as_querystring,
                             )
                         )
-                    raise exc
+                    raise
 
                 if self.request.wants_json:
                     return {
@@ -1052,7 +1073,7 @@ class ViewAdmin_New(Handler):
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
                 return HTTPSeeOther(
-                    "%s/acme-orders?result=error&error=new-automated&message=%s"
+                    "%s/acme-orders?result=error&error=%s&operation=new+automated"
                     % (
                         self.request.registry.settings["app_settings"]["admin_prefix"],
                         exc.as_querystring,
@@ -1064,7 +1085,7 @@ class ViewAdmin_New(Handler):
                 # raise
                 if self.request.registry.settings["exception_redirect"]:
                     return HTTPSeeOther(
-                        "%s/acme-orders?result=error&error=new-automated"
+                        "%s/acme-orders?result=error&operation=new-automated"
                         % self.request.registry.settings["app_settings"]["admin_prefix"]
                     )
                 raise

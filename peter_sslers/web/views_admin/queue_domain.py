@@ -8,10 +8,10 @@ from pyramid.httpexceptions import HTTPSeeOther
 # stdlib
 import datetime
 import json
+import pdb
 
 # pypi
 import sqlalchemy
-import transaction
 from six.moves.urllib.parse import quote_plus
 
 # localapp
@@ -155,9 +155,9 @@ class ViewAdmin_New(Handler):
 
             if self.request.wants_json:
                 return {"result": "success", "domains": queue_results}
-            results_json = json.dumps(queue_results)
+            results_json = json.dumps(queue_results, sort_keys=True)
             return HTTPSeeOther(
-                "%s/queue-domains?result=success&is_created=1&results=%s"
+                "%s/queue-domains?result=success&operation=add&results=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     quote_plus(results_json),
@@ -176,45 +176,125 @@ class ViewAdmin_Process(Handler):
     def process(self):
         self._load_AcmeAccountKey_GlobalDefault()
         self._load_AcmeAccountProviders()
+
+        self.QueueDomains_count = lib_db.get.get__QueueDomain__count(
+            self.request.api_context, show_all=False, unprocessed_only=True,
+        )
+
         if self.request.method == "POST":
             return self._process__submit()
         return self._process__print()
 
     def _process__print(self):
+        queue_items = []
+        if self.QueueDomains_count:
+            queue_items = lib_db.get.get__QueueDomain__paginated(
+                self.request.api_context,
+                show_all=False,
+                unprocessed_only=True,
+                limit=100,
+                offset=0,
+            )
+
+        if self.request.wants_json:
+            queue_items = [q.domain_name for q in queue_items]
+            return {
+                "form_fields": {
+                    "processing_strategy": "How should the order be processed?",
+                    "account_key_option": "How is the AcmeAccountKey specified?",
+                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                    "private_key_option": "How is the PrivateKey being specified?",
+                    "private_key_existing": "pem_md5 of existing key",
+                    "private_key_file_pem": "pem to upload",
+                },
+                "form_fields_related": [
+                    ["account_key_file_pem", "acme_account_provider_id"],
+                    [
+                        "account_key_file_le_meta",
+                        "account_key_file_le_pkey",
+                        "account_key_file_le_reg",
+                    ],
+                ],
+                "valid_options": {
+                    "acme_account_provider_id": {
+                        i.id: "%s (%s)" % (i.name, i.url)
+                        for i in self.dbAcmeAccountProviders
+                    },
+                    "account_key_option": model_utils.AcmeAccontKey_options_a,
+                    "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
+                    "private_key_option": model_utils.PrivateKey_options_a,
+                    "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
+                    if self.dbAcmeAccountKey_GlobalDefault
+                    else None,
+                },
+                "requirements": [
+                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+                ],
+                "instructions": ["""POST required"""],
+                "extra": {
+                    "queue.count": self.QueueDomains_count,
+                    "queue.items_100": queue_items,
+                },
+            }
+
         return render_to_response(
             "/admin/queue_domains-process.mako",
             {
                 "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
+                "QueueDomain_Count": self.QueueDomains_count,
+                "QueueDomain_100": queue_items,
             },
             self.request,
         )
 
     def _process__submit(self):
         try:
+            if not self.QueueDomains_count:
+                raise errors.DisplayableError("No items in the Domain Queue to process")
+
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_QueueDomains_process, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()
 
+            processing_strategy = formStash.results["processing_strategy"]
+            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
+            max_domains_per_certificate = formStash.results[
+                "max_domains_per_certificate"
+            ]
+
             (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(
                 self.request, formStash, require_contact=False,
             )
 
-            queue_results = lib_db.queues.queue_domains__process(
+            dbAcmeOrder = lib_db.queues.queue_domains__process(
                 self.request.api_context,
                 dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
                 dbPrivateKey=privateKeySelection.PrivateKey,
-                max_domains_per_certificate=formStash.results[
-                    "max_domains_per_certificate"
-                ],
+                private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
+                processing_strategy=processing_strategy,
+                private_key_cycle__renewal=private_key_cycle__renewal,
+                max_domains_per_certificate=max_domains_per_certificate,
             )
             if self.request.wants_json:
-                return {"result": "success"}
+                return {
+                    "result": "success",
+                    "AcmeOrder": dbAcmeOrder.as_json,
+                }
             return HTTPSeeOther(
-                "%s/queue-domains?processed=1"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                "%s/queue-domains?result=success&operation=processed&acme-order-id=%s"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    dbAcmeOrder.id,
+                )
             )
         except (
             errors.AcmeError,
@@ -226,7 +306,7 @@ class ViewAdmin_Process(Handler):
             if self.request.wants_json:
                 return {"result": "error", "error": exc.as_querystring}
             return HTTPSeeOther(
-                "%s/queue-domains?processed=0&error=%s"
+                "%s/queue-domains?result=error&error=%s&operation=processed"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
                     exc.as_querystring,
@@ -238,7 +318,7 @@ class ViewAdmin_Process(Handler):
             return formhandling.form_reprint(self.request, self._process__print)
 
         except Exception as exc:
-            transaction.abort()
+            self.request.api_context.pyramid_transaction_rollback()
             if self.request.wants_json:
                 return {"result": "error", "error": exc.as_querystring}
             raise

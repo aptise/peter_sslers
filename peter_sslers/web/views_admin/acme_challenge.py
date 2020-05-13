@@ -43,6 +43,15 @@ class ViewAdmin_List(Handler):
     )
     def list(self):
         wants_active = True if self.request.params.get("status") == "active" else False
+        wants_resolved = (
+            True if self.request.params.get("status") == "resolved" else False
+        )
+        wants_processing = (
+            True if self.request.params.get("status") == "processing" else False
+        )
+        active_only = None
+        resolved_only = None
+        processing_only = None
         if wants_active:
             sidenav_option = "active"
             active_only = True
@@ -54,6 +63,32 @@ class ViewAdmin_List(Handler):
             else:
                 url_template = (
                     "%s/acme-challenges/{0}?status=active"
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
+                )
+        elif wants_resolved:
+            sidenav_option = "resolved"
+            resolved_only = True
+            if self.request.wants_json:
+                url_template = (
+                    "%s/acme-challenges/{0}.json?status=resolved"
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
+                )
+            else:
+                url_template = (
+                    "%s/acme-challenges/{0}?status=resolved"
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
+                )
+        elif wants_processing:
+            sidenav_option = "processing"
+            processing_only = True
+            if self.request.wants_json:
+                url_template = (
+                    "%s/acme-challenges/{0}.json?status=processing"
+                    % self.request.registry.settings["app_settings"]["admin_prefix"]
+                )
+            else:
+                url_template = (
+                    "%s/acme-challenges/{0}?status=processing"
                     % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
         else:
@@ -70,12 +105,17 @@ class ViewAdmin_List(Handler):
                     % self.request.registry.settings["app_settings"]["admin_prefix"]
                 )
         items_count = lib_db.get.get__AcmeChallenge__count(
-            self.request.api_context, active_only=active_only
+            self.request.api_context,
+            active_only=active_only,
+            resolved_only=resolved_only,
+            processing_only=processing_only,
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template,)
         items_paged = lib_db.get.get__AcmeChallenge__paginated(
             self.request.api_context,
             active_only=active_only,
+            resolved_only=resolved_only,
+            processing_only=processing_only,
             limit=items_per_page,
             offset=offset,
         )
@@ -169,7 +209,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=acme+server+sync&message=%s"
+                "%s?result=error&error=%s&operation=acme+server+sync"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -217,6 +257,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=acme+server+trigger&message=%s"
+                "%s?result=error&error=%s&operation=acme+server+trigger"
                 % (self._focus_url, exc.as_querystring)
             )

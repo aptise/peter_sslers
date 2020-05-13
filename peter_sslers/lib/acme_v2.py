@@ -1018,9 +1018,9 @@ class AuthenticatedUser(object):
                                 )
                             )
                         raise
-            except (AssertionError, ValueError) as e:
+            except (AssertionError, ValueError) as exc:
                 raise errors.DomainVerificationError(
-                    "couldn't download {0}: {1}".format(wellknown_url, e)
+                    "couldn't download {0}: {1}".format(wellknown_url, exc)
                 )
 
             self.acme_challenge_trigger(
@@ -1217,7 +1217,7 @@ class AuthenticatedUser(object):
                     # {u'status': 400, u'type': u'urn:ietf:params:acme:error:malformed', u'detail': u'Authorization expired 2020-02-28T20:25:02Z'}
                     # can this be caught?
                     pass
-            raise exc
+            raise
         if challenge_response["status"] not in ("pending", "valid"):
             # this should ALMOST ALWAYS be "pending"
             # on a test environment, the `Pebble` server might instantly transition from "pending" to "valid"

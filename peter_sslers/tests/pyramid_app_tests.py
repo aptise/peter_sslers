@@ -101,7 +101,7 @@ RE_AcmeAuthorization_deactivated = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=success&operation=acme\+server\+deactivate"""
 )
 RE_AcmeAuthorization_deactivate_fail = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=error&error=acme\+server\+deactivate&message=ACME\+Server\+Sync\+is\+not\+allowed\+for\+this\+AcmeAuthorization"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=error&error=ACME\+Server\+Sync\+is\+not\+allowed\+for\+this\+AcmeAuthorization&operation=acme\+server\+deactivate"""
 )
 
 RE_AcmeAuthorization_triggered = re.compile(
@@ -126,7 +126,7 @@ RE_AcmeChallenge_synced = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=success&operation=acme\+server\+sync"""
 )
 RE_AcmeChallenge_trigger_fail = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=error&error=acme\+server\+trigger&message=ACME\+Server\+Trigger\+is\+not\+allowed\+for\+this\+AcmeChallenge"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=error&error=ACME\+Server\+Trigger\+is\+not\+allowed\+for\+this\+AcmeChallenge&operation=acme\+server\+trigger"""
 )
 
 
@@ -155,9 +155,15 @@ RE_AcmeOrderless = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-orderless/(\d+)$"""
 )
 
+RE_QueueDomain_process_success = re.compile(
+    """^http://peter-sslers\.example\.com/\.well-known/admin/queue-domains\?result=success&operation=processed&acme-order-id=(\d+)"""
+)
+
+
 RE_server_certificate_link = re.compile(
     r"""href="/\.well-known/admin/server-certificate/(\d+)"""
 )
+
 
 # =====
 
@@ -236,7 +242,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
 
         res = self.testapp.get("/.well-known/admin/acme-account-key/upload", status=200)
         form = res.form
-        form["contact"] = TEST_FILES["AcmeAccountKey"]["2"]["contact"]
+        form["account_key__contact"] = TEST_FILES["AcmeAccountKey"]["2"]["contact"]
         form["account_key_file_pem"] = Upload(key_filepath)
         form["acme_account_provider_id"].force_value(
             str(1)
@@ -265,7 +271,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
         assert "instructions" in res.json
 
         form = {}
-        form["contact"] = TEST_FILES["AcmeAccountKey"]["2"]["contact"]
+        form["account_key__contact"] = TEST_FILES["AcmeAccountKey"]["2"]["contact"]
         form["account_key_file_pem"] = Upload(key_filepath)
         form["acme_account_provider_id"] = "1"  # acme_account_provider_id(1) == pebble
         res2 = self.testapp.post(
@@ -281,13 +287,16 @@ class FunctionalTests_AcmeAccountKey(AppTest):
             res2.json["form_errors"]["Error_Main"]
             == "There was an error with your form."
         )
-        assert res2.json["form_errors"]["private_key_cycle"] == "Missing value"
+        assert (
+            res2.json["form_errors"]["account_key__private_key_cycle"]
+            == "Missing value"
+        )
 
         form = {}
         form["account_key_file_pem"] = Upload(key_filepath)
         form["acme_account_provider_id"] = "1"  # acme_account_provider_id(1) == pebble
-        form["contact"] = TEST_FILES["AcmeAccountKey"]["2"]["contact"]
-        form["private_key_cycle"] = TEST_FILES["AcmeAccountKey"]["2"][
+        form["account_key__contact"] = TEST_FILES["AcmeAccountKey"]["2"]["contact"]
+        form["account_key__private_key_cycle"] = TEST_FILES["AcmeAccountKey"]["2"][
             "private_key_cycle"
         ]
         res3 = self.testapp.post(
@@ -488,13 +497,13 @@ class FunctionalTests_AcmeAccountKey(AppTest):
             "/.well-known/admin/acme-account-key/%s/edit" % focus_id, status=200
         )
         form = res.form
-        _existing = form["private_key_cycle"].value
+        _existing = form["account_key__private_key_cycle"].value
         _new = None
         if _existing == "single_certificate":
             _new = "account_daily"
         else:
             _new = "single_certificate"
-        form["private_key_cycle"] = _new
+        form["account_key__private_key_cycle"] = _new
         res2 = form.submit()
         assert res2.status_code == 303
         assert (
@@ -586,7 +595,7 @@ class FunctionalTests_AcmeAccountKey(AppTest):
             _new = "account_daily"
         else:
             _new = "single_certificate"
-        form = {"private_key_cycle": _new}
+        form = {"account_key__private_key_cycle": _new}
         res3 = self.testapp.post(
             "/.well-known/admin/acme-account-key/%s/edit.json" % focus_id, form
         )
@@ -697,8 +706,26 @@ class FunctionalTests_AcmeChallenges(AppTest):
     def test_list_html(self):
         # root
         res = self.testapp.get("/.well-known/admin/acme-challenges", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges?status=active", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges?status=resolved", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges?status=processing", status=200
+        )
         # paginated
         res = self.testapp.get("/.well-known/admin/acme-challenges/1", status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges/1?status=active", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges/1?status=resolved", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges/1?status=processing", status=200
+        )
 
     @tests_routes(
         ("admin:acme_challenges|json", "admin:acme_challenges_paginated|json")
@@ -707,9 +734,33 @@ class FunctionalTests_AcmeChallenges(AppTest):
         # json root
         res = self.testapp.get("/.well-known/admin/acme-challenges.json", status=200)
         assert "AcmeChallenges" in res.json
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges.json?status=active", status=200
+        )
+        assert "AcmeChallenges" in res.json
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges.json?status=resolved", status=200
+        )
+        assert "AcmeChallenges" in res.json
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges.json?status=processing", status=200
+        )
+        assert "AcmeChallenges" in res.json
 
         # json paginated
         res = self.testapp.get("/.well-known/admin/acme-challenges/1.json", status=200)
+        assert "AcmeChallenges" in res.json
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges/1.json?status=active", status=200
+        )
+        assert "AcmeChallenges" in res.json
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges/1.json?status=resolved", status=200
+        )
+        assert "AcmeChallenges" in res.json
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenges/1.json?status=processing", status=200
+        )
         assert "AcmeChallenges" in res.json
 
     @tests_routes(("admin:acme_challenge:focus"))
@@ -1967,7 +2018,7 @@ class FunctionalTests_DomainBlacklisted(AppTest):
                 _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
             )
         )
-        form["private_key_cycle"].force_value("account_daily")
+        form["account_key__private_key_cycle"].force_value("account_daily")
         form["private_key_cycle__renewal"].force_value("account_key_default")
         form["private_key_option"].force_value("private_key_for_account_key")
         form["domain_names"] = "always-fail.example.com, foo.example.com"
@@ -2034,9 +2085,8 @@ class FunctionalTests_DomainBlacklisted(AppTest):
         assert res2.status_code == 303
         assert (
             res2.location
-            == """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&is_created=1&results=%7B%22example.com%22%3A+%22exists%22%2C+%22always-fail.example.com%22%3A+%22blacklisted%22%7D"""
+            == """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results=%7B%22always-fail.example.com%22%3A+%22blacklisted%22%2C+%22example.com%22%3A+%22queued%22%7D"""
         )
-
 
 class FunctionalTests_Operations(AppTest):
     """
@@ -3212,10 +3262,10 @@ class FunctionalTests_AcmeServer(AppTest):
         res2 = form.submit()
         assert res2.status_code == 200
         assert "There was an error with your form." in res2.text
-        assert "contact is required." in res2.text
+        assert "`account_key__contact` is required." in res2.text
 
         form = res2.form
-        form["contact"].force_value("AcmeAccountKey.new.html@example.com")
+        form["account_key__contact"].force_value("AcmeAccountKey.new.html@example.com")
         res2 = form.submit()
         assert res2.status_code == 303
         re_expected = re.compile(
@@ -3248,8 +3298,8 @@ class FunctionalTests_AcmeServer(AppTest):
 
         form = {
             "acme_account_provider_id": 1,
-            "contact": "AcmeAccountKey.new.json@example.com",
-            "private_key_cycle": "single_certificate",
+            "account_key__contact": "AcmeAccountKey.new.json@example.com",
+            "account_key__private_key_cycle": "single_certificate",
         }
         res3 = self.testapp.post("/.well-known/admin/acme-account-key/new.json", form)
         assert res3.json["result"] == "success"
@@ -3362,7 +3412,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
             )
         )
-        form["private_key_cycle"].force_value("account_daily")
+        form["account_key__private_key_cycle"].force_value("account_daily")
         form["private_key_cycle__renewal"].force_value("account_key_default")
         form["private_key_option"].force_value("private_key_for_account_key")
         form["domain_names"] = ",".join(
@@ -3543,7 +3593,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
             )
         )
-        form["private_key_cycle"].force_value("account_daily")
+        form["account_key__private_key_cycle"].force_value("account_daily")
         form["private_key_cycle__renewal"].force_value("account_key_default")
         form["private_key_option"].force_value("private_key_for_account_key")
         form["domain_names"] = ",".join(
@@ -3659,7 +3709,7 @@ class FunctionalTests_AcmeServer(AppTest):
             status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=error&error=acme+server+trigger&message=ACME+Server+Trigger+is+not+allowed+for+this+AcmeAuthorization"
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=error&error=ACME+Server+Trigger+is+not+allowed+for+this+AcmeAuthorization&operation=acme+server+trigger"
             % auth_id_1
         )
 
@@ -3827,7 +3877,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 _test_data["acme-order/new/automated#2"]["account_key_file_pem"]
             )
         )
-        form["private_key_cycle"].force_value("account_daily")
+        form["account_key__private_key_cycle"].force_value("account_daily")
         form["private_key_cycle__renewal"].force_value("account_key_default")
         form["private_key_option"].force_value("private_key_for_account_key")
         form["domain_names"] = ",".join(
@@ -4047,7 +4097,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
             )
         )
-        form["private_key_cycle"] = "account_daily"
+        form["account_key__private_key_cycle"] = "account_daily"
         form["private_key_cycle__renewal"] = "account_key_default"
         form["private_key_option"] = "private_key_for_account_key"
         form["domain_names"] = ",".join(
@@ -4305,7 +4355,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["processing_strategy"] = "process_multi"
         form["account_key_option"] = "account_key_reuse"
         form["account_key_reuse"] = account_key_reuse
-        form["private_key_cycle"] = "single_certificate"
+        form["account_key__private_key_cycle"] = "single_certificate"
         form["private_key_option"] = "private_key_reuse"
         form["private_key_reuse"] = private_key_reuse
         form["private_key_cycle__renewal"] = "account_key_default"
@@ -4346,7 +4396,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 _test_data["acme-order/new/automated#2"]["account_key_file_pem"]
             )
         )
-        form["private_key_cycle"] = "account_daily"
+        form["account_key__private_key_cycle"] = "account_daily"
         form["private_key_cycle__renewal"] = "account_key_default"
         form["private_key_option"] = "private_key_for_account_key"
         form["domain_names"] = ",".join(
@@ -5218,6 +5268,218 @@ class FunctionalTests_AcmeServer(AppTest):
                 )
                 assert res_sync.json["AcmeChallenge"]["url_acme_server_trigger"] is None
 
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:queue_domains:add", "admin:queue_domains:process",))
+    def test_QueueDomains_process_html__create_order(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueDomains_process_html__create_order
+        """
+        _domain_names = [
+            "test-QueueDomains-process-html-create-order--1.example.com",
+            "test-QueueDomains-process-html-create-order--2.example.com",
+        ]
+
+        # start off with some domains in the queue!
+        res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        form = res.form
+        form["domain_names"] = ",".join(_domain_names)
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert res2.location.startswith(
+            """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results="""
+        )
+
+        # try to process; a CREATE only
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+        res3 = self.testapp.get("/.well-known/admin/queue-domains/process", status=200)
+        form = res3.form
+        form["account_key_option"].force_value("account_key_file")
+        form["acme_account_provider_id"].force_value("1")
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+            )
+        )
+        form["account_key__private_key_cycle"].force_value("account_daily")
+        form["private_key_cycle__renewal"].force_value("account_key_default")
+        form["private_key_option"].force_value("private_key_for_account_key")
+        form["processing_strategy"].force_value("create_order")
+        form["max_domains_per_certificate"].force_value(10)
+        res4 = form.submit()
+        assert res4.status_code == 303
+
+        matched = RE_QueueDomain_process_success.match(res4.location)
+        assert matched
+        acme_order_id = matched.groups()[0]
+        assert acme_order_id
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:queue_domains:add", "admin:queue_domains:process",))
+    def test_QueueDomains_process_html__process_single(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueDomains_process_html__process_single
+        
+        NOTE: it is not necessary to test `process_multi` as that just does "create_order" with processing done via the AcmeOrder endpoints
+        """
+        _domain_names = [
+            "test-QueueDomains-process-html-process-single--1.example.com",
+            "test-QueueDomains-process-html-process-single--2.example.com",
+        ]
+
+        # start off with some domains in the queue!
+        res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        form = res.form
+        form["domain_names"] = ",".join(_domain_names)
+        res2 = form.submit()
+        assert res2.status_code == 303
+        assert res2.location.startswith(
+            """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results="""
+        )
+
+        # try to process; use process_single
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+        res3 = self.testapp.get("/.well-known/admin/queue-domains/process", status=200)
+        form = res3.form
+        form["account_key_option"].force_value("account_key_file")
+        form["acme_account_provider_id"].force_value("1")
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+            )
+        )
+        form["account_key__private_key_cycle"].force_value("account_daily")
+        form["private_key_cycle__renewal"].force_value("account_key_default")
+        form["private_key_option"].force_value("private_key_for_account_key")
+        form["processing_strategy"].force_value("process_single")
+        form["max_domains_per_certificate"].force_value(10)
+        res4 = form.submit()
+        assert res4.status_code == 303
+
+        matched = RE_QueueDomain_process_success.match(res4.location)
+        assert matched
+        acme_order_id = matched.groups()[0]
+        assert acme_order_id
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:queue_domains:add|json", "admin:queue_domains:process|json",))
+    def test_QueueDomains_process_json__create_order(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueDomains_process_json__create_order
+        """
+        _domain_names = [
+            "test-QueueDomains-process-json-create-order--1.example.com",
+            "test-QueueDomains-process-json-create-order--2.example.com",
+        ]
+
+        # start off with some domains in the queue!
+        res = self.testapp.get("/.well-known/admin/queue-domains/add.json", status=200)
+        _data = {"domain_names": ",".join(_domain_names)}
+        res2 = self.testapp.post("/.well-known/admin/queue-domains/add.json", _data)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+        assert "domains" in res2.json
+        for _domain in _domain_names:
+            _domain = _domain.lower()
+            assert _domain in res2.json["domains"]
+            assert res2.json["domains"][_domain] == "queued"
+
+        # nothing on GET
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domains/process.json", status=200
+        )
+        assert "instructions" in res.json
+
+        # try to process; a CREATE only
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+        form = {}
+        form["account_key_option"] = "account_key_file"
+        form["acme_account_provider_id"] = "1"
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+            )
+        )
+        form["account_key__private_key_cycle"] = "account_daily"
+        form["private_key_cycle__renewal"] = "account_key_default"
+        form["private_key_option"] = "private_key_for_account_key"
+        form["processing_strategy"] = "create_order"
+        form["max_domains_per_certificate"] = 10
+
+        res2 = self.testapp.post("/.well-known/admin/queue-domains/process.json", form)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+        assert "AcmeOrder" in res2.json
+        acme_order_id = res2.json["AcmeOrder"]["id"]
+        assert acme_order_id
+        assert res2.json["AcmeOrder"]["acme_status_order"] == "pending"
+        for _domain in _domain_names:
+            _domain = _domain.lower()
+            assert _domain in res2.json["AcmeOrder"]["domains_as_list"]
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:queue_domains:process|json",))
+    def test_QueueDomains_process_json__process_single(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueDomains_process_json__process_single
+        """
+        _domain_names = [
+            "test-QueueDomains-process-json-process-single--1.example.com",
+            "test-QueueDomains-process-json-process-single--2.example.com",
+        ]
+
+        # start off with some domains in the queue!
+        res = self.testapp.get("/.well-known/admin/queue-domains/add.json", status=200)
+        _data = {"domain_names": ",".join(_domain_names)}
+        res2 = self.testapp.post("/.well-known/admin/queue-domains/add.json", _data)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+        assert "domains" in res2.json
+
+        for _domain in _domain_names:
+            _domain = _domain.lower()
+            assert _domain in res2.json["domains"]
+            assert res2.json["domains"][_domain] == "queued"
+
+        # nothing on GET
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domains/process.json", status=200
+        )
+        assert "instructions" in res.json
+
+        # try to process; PROCESS_SINGLE
+        _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
+        form = {}
+        form["account_key_option"] = "account_key_file"
+        form["acme_account_provider_id"] = "1"
+        form["account_key_file_pem"] = Upload(
+            self._filepath_testfile(
+                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+            )
+        )
+        form["account_key__private_key_cycle"] = "account_daily"
+        form["private_key_cycle__renewal"] = "account_key_default"
+        form["private_key_option"] = "private_key_for_account_key"
+        form["processing_strategy"] = "process_single"
+        form["max_domains_per_certificate"] = 10
+
+        # post it
+        res2 = self.testapp.post("/.well-known/admin/queue-domains/process.json", form)
+        assert res2.status_code == 200
+        assert res2.json["result"] == "success"
+        assert "AcmeOrder" in res2.json
+        acme_order_id = res2.json["AcmeOrder"]["id"]
+        assert acme_order_id
+        # `@under_pebble` WILL be valid
+        # `@under_pebble_strict` WILL NOT be valid
+        assert res2.json["AcmeOrder"]["acme_status_order"] == "valid"
+        for _domain in _domain_names:
+            _domain = _domain.lower()
+            assert _domain in res2.json["AcmeOrder"]["domains_as_list"]
+
 
 class FunctionalTests_API(AppTest):
     """
@@ -5404,42 +5666,6 @@ class FunctionalTests_UNWRITTEN(AppTest):
             "/.well-known/admin/api/queue-certificates/update.json", status=200
         )
 
-    @tests_routes(("admin:queue_domains:process",))
-    def test_QueueDomains_process(self):
-        raise ValueError("todo")
-        res = self.testapp.get("/.well-known/admin/queue-domains/process", status=200)
-
-    @tests_routes(("admin:queue_domains:process|json",))
-    def test_QueueDomains_process_json(self):
-        raise ValueError("todo")
-        res = self.testapp.get(
-            "/.well-known/admin/queue-domains/process.json", status=200
-        )
-
-
-class FunctionalTests_AuditRoutes(AppTest):
-    """
-    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AuditRoutes
-    """
-
-    def test_audit(self):
-        """
-        This test is used to audit the pyramid app's registered routes for coverage
-        against tests that are registered with the `@tests_routes` decorator
-        """
-        pyramid_route_names = [
-            r
-            for r in [i.name for i in self.testapp.app.routes_mapper.routelist]
-            if r[:3] != "__."
-        ]
-        names_missing = [
-            r for r in pyramid_route_names if r not in _ROUTES_TESTED.keys()
-        ]
-        if names_missing:
-            raise ValueError(
-                "no coverage for %s routes: %s" % (len(names_missing), names_missing)
-            )
-
 
 class IntegratedTests_AcmeServer(AppTestWSGI):
     """
@@ -5490,7 +5716,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         files["account_key_file_pem"] = open(
             self._filepath_testfile(account_key_file_pem), "rb",
         )
-        form["private_key_cycle"] = "account_daily"
+        form["account_key__private_key_cycle"] = "account_daily"
         form["private_key_cycle__renewal"] = "account_key_default"
         form["private_key_option"] = "private_key_for_account_key"
         form["domain_names"] = ",".join(domain_names)
@@ -5710,7 +5936,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form = {}
         form["account_key_option"] = "account_key_global_default"
         form["account_key_global_default"] = key_pem_md5
-        form["private_key_cycle"] = "account_daily"
+        form["account_key__private_key_cycle"] = "account_daily"
         form["private_key_cycle__renewal"] = "account_key_default"
         form["private_key_option"] = "private_key_for_account_key"
         form["processing_strategy"] = "process_single"
@@ -5845,7 +6071,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form = {}
         form["account_key_option"] = "account_key_global_default"
         form["account_key_global_default"] = key_pem_md5
-        form["private_key_cycle"] = "account_daily"
+        form["account_key__private_key_cycle"] = "account_daily"
         form["private_key_cycle__renewal"] = "account_key_default"
         form["private_key_option"] = "private_key_for_account_key"
         form["processing_strategy"] = "process_single"
@@ -5898,3 +6124,27 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             self.testapp.app.registry.settings["app_settings"][
                 "redis.prime_style"
             ] = _existing_prime_style
+
+
+class CoverageAssurance_AuditTests(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.CoverageAssurance_AuditTests
+    """
+
+    def test_audit_route_coverage(self):
+        """
+        This test is used to audit the pyramid app's registered routes for coverage
+        against tests that are registered with the `@tests_routes` decorator
+        """
+        pyramid_route_names = [
+            r
+            for r in [i.name for i in self.testapp.app.routes_mapper.routelist]
+            if r[:3] != "__."
+        ]
+        names_missing = [
+            r for r in pyramid_route_names if r not in _ROUTES_TESTED.keys()
+        ]
+        if names_missing:
+            raise ValueError(
+                "no coverage for %s routes: %s" % (len(names_missing), names_missing)
+            )

@@ -169,10 +169,19 @@ class ApplicationSettings(dict):
         """
         Validates the settings.
         """
-        if self["queue_domains_max_per_cert"] > 100:
-            raise ValueError("The absolute max for `queue_domains_max_per_cert` is 100")
-        if self["queue_domains_min_per_cert"] < 1:
-            raise ValueError("The absolute min for `queue_domains_min_per_cert` is 1")
+        if (self["queue_domains_max_per_cert"] < 1) or (
+            self["queue_domains_max_per_cert"] > 100
+        ):
+            raise ValueError("`queue_domains_max_per_cert` must be between 1 and 100")
+        if (self["queue_domains_min_per_cert"] < 1) or (
+            self["queue_domains_max_per_cert"] > 100
+        ):
+            raise ValueError("`queue_domains_min_per_cert` must be between 1 and 100")
+        if self["queue_domains_min_per_cert"] > self["queue_domains_max_per_cert"]:
+            raise ValueError(
+                "`queue_domains_max_per_cert` must be greater than `queue_domains_min_per_cert`"
+            )
+
         _redis_prime_style = self.get("redis.prime_style")
         if _redis_prime_style and _redis_prime_style not in ("1", "2"):
             raise ValueError("`redis.prime_style` must be one of: (`1`, `2`)")

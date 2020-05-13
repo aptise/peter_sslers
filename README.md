@@ -5,7 +5,7 @@ Hi!
 
 ACME-V2 support involved a large rewrite of the Client and the Certificate Manager's design.
 
-It is still undergoing a lot of work, and the design is not finalized yet.
+It is still undergoing active development, and the design is not entirely finalized yet.
 
 Most of the functionality is working and covered by tests.
 

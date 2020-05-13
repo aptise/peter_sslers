@@ -301,25 +301,51 @@ def get__AcmeAuthorization__by_DomainId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeChallenge__count(ctx, active_only=None):
-    q = ctx.dbSession.query(model_objects.AcmeChallenge)
+def _get__AcmeChallenge__filter(
+    q, active_only=None, resolved_only=None, processing_only=None
+):
+    # shared filtering for `AcmeChallenge`
+    q_filter = None
     if active_only:
-        q = q.filter(
-            model_objects.AcmeChallenge.acme_status_challenge_id.in_(
-                model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
-            )
-        )
+        q_filter = model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
+    elif resolved_only:
+        q_filter = model_utils.Acme_Status_Challenge.IDS_RESOLVED
+    elif processing_only:
+        q_filter = model_utils.Acme_Status_Challenge.IDS_PROCESSING
+    #
+    if q_filter:
+        q = q.filter(model_objects.AcmeChallenge.acme_status_challenge_id.in_(q_filter))
+    return q
+
+
+def get__AcmeChallenge__count(
+    ctx, active_only=None, resolved_only=None, processing_only=None
+):
+    q = ctx.dbSession.query(model_objects.AcmeChallenge)
+    q = _get__AcmeChallenge__filter(
+        q,
+        active_only=active_only,
+        resolved_only=resolved_only,
+        processing_only=processing_only,
+    )
     return q.count()
 
 
-def get__AcmeChallenge__paginated(ctx, limit=None, offset=0, active_only=None):
+def get__AcmeChallenge__paginated(
+    ctx,
+    limit=None,
+    offset=0,
+    active_only=None,
+    resolved_only=None,
+    processing_only=None,
+):
     q = ctx.dbSession.query(model_objects.AcmeChallenge)
-    if active_only:
-        q = q.filter(
-            model_objects.AcmeChallenge.acme_status_challenge_id.in_(
-                model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
-            )
-        )
+    q = _get__AcmeChallenge__filter(
+        q,
+        active_only=active_only,
+        resolved_only=resolved_only,
+        processing_only=processing_only,
+    )
     q = q.order_by(model_objects.AcmeChallenge.id.desc()).limit(limit).offset(offset)
     dbAcmeChallenges = q.all()
     return dbAcmeChallenges

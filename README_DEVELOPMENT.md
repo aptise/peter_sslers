@@ -99,6 +99,13 @@ The unit tests have several suites:
 
 The testing tool spins up a dedicated Pebble instance for each test.
 
+If there is an error, tests and code should be constructed with the following querystring:
+
+	?result=error&error={ERROR}[&operation={OPERATION}[&action={ACTION}]]
+
+please note the order:
+
+	result, error, operation, action
 
 ### sample domains - testing suites
 

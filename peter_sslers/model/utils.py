@@ -389,6 +389,11 @@ class Acme_Status_Challenge(_Acme_Status_All):
         "pending",
         "processing",
     )
+    OPTIONS_RESOLVED = (
+        "valid",
+        "invalid",
+    )
+    OPTIONS_PROCESSING = ("processing",)
     IDS_POSSIBLY_ACTIVE = None  # define after declaring the class
     OPTIONS_INACTIVE = ("valid", "invalid", "*404*")
     IDS_INACTIVE = None  # define after declaring the class
@@ -410,6 +415,13 @@ Acme_Status_Challenge.IDS_INACTIVE = [
 Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE = [
     Acme_Status_Challenge.from_string(i)
     for i in Acme_Status_Challenge.OPTIONS_POSSIBLY_ACTIVE
+]
+Acme_Status_Challenge.IDS_RESOLVED = [
+    Acme_Status_Challenge.from_string(i) for i in Acme_Status_Challenge.OPTIONS_RESOLVED
+]
+Acme_Status_Challenge.IDS_PROCESSING = [
+    Acme_Status_Challenge.from_string(i)
+    for i in Acme_Status_Challenge.OPTIONS_PROCESSING
 ]
 
 
@@ -565,6 +577,10 @@ class AcmeOrder_ProcessingStrategy(_mixin_mapping):
         "process_multi",
     )
     OPTIONS_IMMEDIATE = ("process_single",)
+    OPTIONS_REQUIRE_PYRAMID = (
+        "process_single",
+        "process_multi",
+    )
 
 
 class AcmeOrder_ProcessingStatus(_mixin_mapping):

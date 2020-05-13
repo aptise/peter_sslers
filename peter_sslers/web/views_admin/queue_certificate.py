@@ -19,9 +19,8 @@ from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
 from ..lib.forms import Form_QueueCertificate_mark
-from ..lib.forms import Form_QueueCertificate_new_AcmeOrder
-from ..lib.forms import Form_QueueCertificate_new_ServerCertificate
-from ..lib.forms import Form_QueueCertificate_new_UniqueFQDNSet
+
+# from ..lib.forms import Form_QueueCertificate_new
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -191,12 +190,12 @@ class ViewNew(Handler):
             )
             if not dbAcmeOrder:
                 raise HTTPSeeOther(
-                    "%s?result=error&operation=new&error=invalid+acme+order"
+                    "%s?result=error&error=invalid+acme+order&operation=new"
                     % _failure_url
                 )
             if not dbAcmeOrder.is_renewable_queue:
                 raise HTTPSeeOther(
-                    "%s?result=error&operation=new&error=acme+order+ineligible"
+                    "%s?result=error&error=acme+order+ineligible&operation=new"
                     % _failure_url
                 )
             queue_data["AcmeOrder"] = dbAcmeOrder
@@ -209,7 +208,7 @@ class ViewNew(Handler):
             )
             if not dbServerCertificate:
                 raise HTTPSeeOther(
-                    "%s?result=error&operation=new&error=invalid+server+certificate"
+                    "%s?result=error&error=invalid+server+certificate&operation=new"
                     % _failure_url
                 )
             queue_data["ServerCertificate"] = dbServerCertificate
@@ -221,13 +220,13 @@ class ViewNew(Handler):
             )
             if not dbUniqueFQDNSet:
                 raise HTTPSeeOther(
-                    "%s?result=error&operation=new&error=invalid+uniqe+fqdn+set"
+                    "%s?result=error&error=invalid+uniqe+fqdn+set&operation=new"
                     % _failure_url
                 )
             queue_data["UniqueFQDNSet"] = dbUniqueFQDNSet
         else:
             raise HTTPSeeOther(
-                "%s?result=error&operation=new&error=invalid+queue+source"
+                "%s?result=error&error=invalid+queue+source&operation=new"
                 % _failure_url
             )
         return queue_data

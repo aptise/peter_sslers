@@ -151,13 +151,14 @@
                 <li><a href="${admin_prefix}/domains/search">
                     <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                     search domains</a></li>
+                <li><a href="${admin_prefix}/domains/challenged">
+                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                    domains with blocking challenges</a></li>
             </ul>
             ${admin_partials.operations_options(enable_redis=enable_redis,
                                                 enable_nginx=enable_nginx,
                                                 as_list=True,
                                                 )}
-
-
         </div>
         <div class="col-sm-4">
             <h3>New ServerCertificates</h3>

@@ -288,7 +288,8 @@ def acme_newreg(request):
                 "key": key,
                 "status": "good",
                 "contact": ["mailto:cert-admin@example.com", "tel:+12025551212"],
-            }
+            },
+            sort_keys=True,
         )
     except:
         raise ValueError("invalid input")

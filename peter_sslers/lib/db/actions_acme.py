@@ -590,6 +590,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object to trigger against the server
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    
+    :returns: a boolean result True/False
     """
     if not dbAcmeChallenge:
         raise ValueError("Must submit `dbAcmeChallenge`")
@@ -680,7 +682,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         # cleanup tmpfiles
         for tf in tmpfiles:
             tf.close()
-    return True, True
+    return True
 
 
 def do__AcmeV2_AcmeChallenge__acme_server_sync(
@@ -816,8 +818,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to refresh against the server
     :param authenticatedUser: (optional) a loaded `authenticatedUser`
 
-    returns:
-        (dbAcmeOrder, True)
+    :returns:  The :class:`model.objects.AcmeOrder` originally passed in as `dbAcmeOrder`
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -893,7 +894,7 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 print(exc)
                 raise
 
-        return (dbAcmeOrder, True)
+        return dbAcmeOrder
 
     finally:
         # cleanup tmpfiles
@@ -1065,6 +1066,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
     :param authenticatedUser: (required) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
 
+    :returns:  The :class:`model.objects.AcmeOrder` originally passed in as `dbAcmeOrder`
+
     Finalizing an order means signing the CertificateSigningRequest.
     If the PrivateKey is DEFERRED or INVALID, attempt to associate the correct one.
     """
@@ -1215,7 +1218,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             updated_AcmeOrder_status(
                 ctx, dbAcmeOrder, acme_v2.new_response_404(), transaction_commit=True
             )
-            return (dbAcmeOrder, exc)
+            raise
 
         (certificate_pem, ca_chain_pem) = utils_certbot.cert_and_chain_from_fullchain(
             fullchain_pem
@@ -1264,7 +1267,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         )
 
         # don't commit here, as that will trigger an error on object refresh
-        return (dbAcmeOrder, None)
+        return dbAcmeOrder
 
     except Exception as exc:
         raise
@@ -1316,9 +1319,7 @@ def _do__AcmeV2_AcmeOrder__core(
         domain_names
         dbUniqueFQDNSet
 
-    :returns: A two element tuple consisting of:
-        0 :class:`model.objects.AcmeOrder` object
-        1 `None` on success, or any exceptions raised.
+    :returns: A class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
     # validate this first!
     acme_order_processing_strategy_id = model_utils.AcmeOrder_ProcessingStrategy.from_string(
@@ -1549,13 +1550,12 @@ def _do__AcmeV2_AcmeOrder__core(
             if dbAcmeOrder.acme_status_order == "ready":
                 FINALIZE_READY_ORDERS = False
                 if FINALIZE_READY_ORDERS:
-                    (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
+                    dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
                         ctx,
                         authenticatedUser=authenticatedUser,
                         dbAcmeOrder=dbAcmeOrder,
                     )
-                    return (dbAcmeOrder, exc)
-            return (dbAcmeOrder, None)
+            return dbAcmeOrder
 
         if (
             acme_order_processing_strategy_id
@@ -1567,17 +1567,17 @@ def _do__AcmeV2_AcmeOrder__core(
                 ctx, authenticatedUser, dbAcmeOrder, acmeOrderRfcObject
             )
             if not _todo_finalize_order:
-                return (dbAcmeOrder, None)
+                return dbAcmeOrder
 
-            (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
+            dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
                 ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
             )
-            return (dbAcmeOrder, exc)
+            return dbAcmeOrder
 
-        return (dbAcmeOrder, None)
+        return dbAcmeOrder
 
     except errors.AcmeOrderFatal as exc:
-        return (dbAcmeOrder, exc)
+        raise errors.AcmeOrderCreatedError(dbAcmeOrder, exc)
 
     except Exception as exc:
         raise
@@ -1602,6 +1602,8 @@ def do__AcmeV2_AcmeOrder__finalize(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
+    
+    :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -1620,11 +1622,11 @@ def do__AcmeV2_AcmeOrder__finalize(
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
-        (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
+        dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
             ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
         )
 
-        return (dbAcmeOrder, exc)
+        return dbAcmeOrder
 
     finally:
         # cleanup tmpfiles
@@ -1644,6 +1646,8 @@ def do__AcmeV2_AcmeOrder__process(
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
 
     This processes authorizations in sequence
+
+    :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -1712,7 +1716,7 @@ def do__AcmeV2_AcmeOrder__process(
                         "unsure how this happened; pending but no active authorizations"
                     )
                 elif dbAcmeOrder.acme_status_order == "ready":
-                    (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
+                    dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
                         ctx,
                         authenticatedUser=authenticatedUser,
                         dbAcmeOrder=dbAcmeOrder,
@@ -1720,13 +1724,13 @@ def do__AcmeV2_AcmeOrder__process(
                 else:
                     raise errors.GarfieldMinusGarfield("unsure how this happened")
         elif dbAcmeOrder.acme_status_order == "ready":
-            (dbAcmeOrder, exc) = _do__AcmeV2_AcmeOrder__finalize(
+            dbAcmeOrder = _do__AcmeV2_AcmeOrder__finalize(
                 ctx, authenticatedUser=authenticatedUser, dbAcmeOrder=dbAcmeOrder,
             )
         else:
             raise errors.GarfieldMinusGarfield("unsure how this happened")
 
-        return (dbAcmeOrder, None)
+        return dbAcmeOrder
 
     finally:
         # cleanup tmpfiles
@@ -1791,6 +1795,8 @@ def do__AcmeV2_AcmeOrder__download_certificate(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
+
+    :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -1864,7 +1870,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         )
 
         # don't commit here, as that will trigger an error on object refresh
-        return (dbAcmeOrder, None)
+        return dbAcmeOrder
 
     finally:
         # cleanup tmpfiles
@@ -1882,6 +1888,8 @@ def do__AcmeV2_AcmeOrder__retry(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
+
+    :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -1911,6 +1919,8 @@ def do__AcmeV2_AcmeOrder__renew_custom(
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
+
+    :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
@@ -1941,6 +1951,8 @@ def do__AcmeV2_AcmeOrder__renew_quick(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to retry
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
+
+    :returns: A :class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")

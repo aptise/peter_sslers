@@ -18,6 +18,14 @@
 
 
 <%block name="page_header_nav">
+    <div class="clearfix">
+        <p class="pull-right">
+            <a href="${admin_prefix}/queue-domains/process.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+                .json
+            </a>
+        </p>
+    </div>
 </%block>
 
 
@@ -29,9 +37,18 @@
 
             <h4>Process the existing Domains Queue into Certificates</h4>
             
-            <p>This should NOT be invoked via a web browser as it is a long-running process.</p>
-            
             <p>Upon submission, the following combination will be used by the processing queue:</p>
+
+            <p><b>There are ${QueueDomain_Count} domains in the queue</b></p>
+
+            % if QueueDomain_Count:
+                <p><b>The next max-100 domains in the queue are</b></p>
+                <ul>
+                    % for QueueDomain in QueueDomain_100:
+                        <li><code>${QueueDomain.domain_name}</code></li>
+                    % endfor
+                </ul>
+            % endif
             
             <form
                 action="${admin_prefix}/queue-domains/process"
@@ -51,7 +68,7 @@
                         <tr>
                             <th>PrivateKey</th>
                             <td>
-                                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_generate_new=True)}
+                                ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_key_default=True, option_generate_new=True)}
                             </td>
                         </tr>
                         <tr>
@@ -60,7 +77,19 @@
                                 <input type="text" name="max_domains_per_certificate" value="50" />
                             </td>
                         </tr>
-                        
+
+                        <tr>
+                            <th>Private Key Cycling: Renewals</th>
+                            <td>
+                                ${admin_partials.formgroup__private_key_cycle__renewal()}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Processing Strategy</th>
+                            <td>
+                                ${admin_partials.formgroup__processing_strategy()}
+                            </td>
+                        </tr>
                         <tr>
                             <th></th>
                             <td>

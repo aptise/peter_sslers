@@ -365,7 +365,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "AcmeOrderless": dbAcmeOrderless.as_json,
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=already+deactivated" % self._focus_url
+                "%s?result=error&error=already+deactivated&operation=deactivate"
+                % self._focus_url
             )
 
         # todo: migrate to the `update` api

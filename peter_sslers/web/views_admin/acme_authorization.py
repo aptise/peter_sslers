@@ -237,7 +237,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=acme+server+sync&message=%s"
+                "%s?result=error&error=%s&operation=acme+server+sync"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -286,7 +286,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=acme+server+deactivate&message=%s"
+                "%s?result=error&error=%s&operation=acme+server+deactivate"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -334,6 +334,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=acme+server+trigger&message=%s"
+                "%s?result=error&error=%s&operation=acme+server+trigger"
                 % (self._focus_url, exc.as_querystring)
             )

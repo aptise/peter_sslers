@@ -18,6 +18,14 @@
 
 <%block name="page_header_nav">
     ${admin_partials.standard_error_display()}
+    <div class="clearfix">
+        <p class="pull-right">
+            <a href="${admin_prefix}/queue-domains.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        </p>
+    </div>
     <ul class="nav nav-pills nav-stacked">
       <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-domains">Unprocessed Items</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-domains/all">All Items</a></li>
@@ -39,11 +47,36 @@
     <div class="row">
         <div class="col-sm-12">
             <%
+                result = request.params.get('result')
+                operation = request.params.get('operation')
+                error = request.params.get('error')
+                
+                # only for `add`
                 results = request.params.get('results')
+
+                # only for `processed`
+                acme_order_id = request.params.get('acme-order-id')
             %>
+            % if result:
+                <h3>Result: ${operation or ''}</h3>
+                Your request resulted in: ${result}
+            % endif
+            % if error:
+                <h4>Error</h4>
+                ${error}
+            % endif
             % if results:
                 <h4>Results</h4>
                 <textarea class="form-control">${results}</textarea>
+                <hr/>
+            % endif
+            % if acme_order_id:
+                <h4>AcmeOrder</h4>
+                    The following item was created:
+                    <a class="label label-info" href="${admin_prefix}/acme-order/${acme_order_id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeOrder-${acme_order_id}
+                    </a>
                 <hr/>
             % endif
 

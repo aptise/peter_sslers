@@ -22,7 +22,7 @@
 <%block name="page_header_nav">
     <p class="pull-right">
         <a href="${admin_prefix}/acme-order/${AcmeOrder.id}.json" class="btn btn-xs btn-info">
-            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
             .json
         </a>
     </p>
@@ -82,7 +82,7 @@
                                 </a>
                             </td>
                             <td>
-                                ${admin_partials.formgroup__PrivateKey_selector__advanced(dbPrivateKeyReuse=AcmeOrder.private_key, option_generate_new=True)}
+                                ${admin_partials.formgroup__PrivateKey_selector__advanced(dbPrivateKeyReuse=AcmeOrder.private_key, option_account_key_default=True, option_generate_new=True)}
                             </td>
                         </tr>
                         <tr>

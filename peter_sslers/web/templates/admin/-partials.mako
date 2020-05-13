@@ -17,7 +17,6 @@
 </%def>
 
 
-
 <%def name="table_AcmeAccountKeys(data, perspective=None)">
     <table class="table table-striped">
         <thead>
@@ -58,13 +57,13 @@
                 </tr>
             % endfor
         </tbody>
-    </table></%def>
-
+    </table>
+</%def>
 
 
 <%def name="table_AcmeAuthorizations(data, perspective=None, is_form_enabled=None)">
     <%
-        cols = ("id", 
+        cols = ("id",
                 "domain_id",
                 "pending",
                 "status",
@@ -99,7 +98,7 @@
                                 function select_all(){
                                     var inputs = document.querySelectorAll("input[type='checkbox']");
                                     for(var i = 0; i < inputs.length; i++) {
-                                        inputs[i].checked = true;   
+                                        inputs[i].checked = true;
                                     }
                                 }
                             </script>
@@ -166,9 +165,10 @@
         </tbody>
     </table>
 </%def>
-    
+
+
 <%def name="table_AcmeAuthorizationChallenges(AcmeOrder, perspective=None)">
-<% 
+<%
     if perspective != 'AcmeOrder':
         raise ValueError("invalid perspective")
 %>
@@ -371,6 +371,7 @@
     </table>
 </%def>
 
+
 <%def name="table_AcmeOrderlesss(acme_orderlesss, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
@@ -421,7 +422,7 @@
 
 <%def name="table_AcmeOrders(acme_orders, perspective=None)">
     <%
-        cols = ("id", 
+        cols = ("id",
                 "is_processing",
                 "status",
                 "is_auto_renew",
@@ -530,7 +531,7 @@
         </tbody>
     </table>
 </%def>
-    
+
 
 <%def name="table_CertificateRequests(certificate_requests, perspective=None)">
     <%
@@ -538,7 +539,7 @@
         show_certificate = True if perspective in ("ServerCertificate", 'CertificateRequest', ) else False
     %>
     <%
-        cols = ("id", 
+        cols = ("id",
                 "type"
                 "timestamp_created",
                 "certificate_request_source_id",
@@ -602,7 +603,6 @@
         </tbody>
     </table>
 </%def>
-
 
 
 <%def name="table_OperationsEvents(OperationsEvents, show_event=None, event_type_listable=None)">
@@ -758,7 +758,8 @@
         % endfor
     </table>
 </%def>
-          
+
+
 <%def name="table_QueueCertificate(renewal_items, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
@@ -814,7 +815,6 @@
         </tbody>
     </table>
 </%def>
-
 
 
 <%def name="table_ServerCertificates(certificates, perspective=None, show_domains=False, show_expiring_days=False)">
@@ -880,7 +880,6 @@
         </tbody>
     </table>
 </%def>
-
 
 
 <%def name="table_UniqueFQDNSets(unique_fqdn_sets, perspective=None)">
@@ -1033,7 +1032,7 @@
                     <input type="radio" name="account_key_option" value="none" checked="checked"/>
                     Do not associate this Orderless with an AcmeAccountKey
                 </label>
-            </div>        
+            </div>
         % endif
         % if dbAcmeAccountKeyReuse:
             <div class="radio">
@@ -1081,7 +1080,7 @@
             <div class="alert alert-warning">
                 <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                 There is no Global Default AcmeAccountKey configured. Any key can be configured as the Global Default.
-                Browse keys at 
+                Browse keys at
                 <a  class="label label-info"
                     href="${admin_prefix}/acme-account-keys"
                 >
@@ -1118,7 +1117,7 @@
         <tbody>
             <tr><td>
                 <div class="form-group">
-                    <select class="form-control" name="private_key_cycle">
+                    <select class="form-control" name="account_key__private_key_cycle">
                         <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccountKey %>
                         % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle:
                             <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
@@ -1170,7 +1169,7 @@
                         </th>
                         <td>
                             <div class="form-group">
-                                <input class="form-control" type="text" name="contact" value=""/>
+                                <input class="form-control" type="text" name="account_key__contact" value=""/>
                             </div>
                         </td>
                     </tr>
@@ -1217,7 +1216,6 @@
 </%def>
 
 
-
 <%def name="formgroup__CACertificateChain_file(show_text=False)">
     <div class="form-group clearfix">
         <label for="f1-chain_file">Chain File</label>
@@ -1234,7 +1232,6 @@
         % endif
     </div>
 </%def>
-
 
 
 <%def name="formgroup__CACertificateChain_bundle_file(CA_CROSS_SIGNED_X=None, CA_AUTH_X=None)">
@@ -1330,7 +1327,7 @@
 <%def name="formgroup__private_key_cycle__renewal(default=None)">
     <% default = default or model_websafe.PrivateKeyCycle._DEFAULT_AcmeOrder %>
     <div class="form-group">
-        <label for="private_key_cycle">Private Key Cycle - Renewals</label>
+        <label for="private_key_cycle__renewal">Private Key Cycle - Renewals</label>
         <select class="form-control" name="private_key_cycle__renewal">
             % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeOrder_private_key_cycle:
                 <option value="${_option_text}"${" selected" if (_option_text == default) else ""}>${_option_text}</option>
@@ -1338,7 +1335,6 @@
         </select>
     </div>
 </%def>
-
 
 
 <%def name="formgroup__PrivateKey_selector__advanced(show_text=None, dbPrivateKeyReuse=None, option_account_key_default=None, option_generate_new=None, default=None)">
@@ -1430,7 +1426,7 @@
             <tr><td>
                 <p class="help-block">
                     Upload a RSA PrivateKey in PEM format.
-                    This will be used to sign CertificateRequests and is required for ServerCertificate deployment. 
+                    This will be used to sign CertificateRequests and is required for ServerCertificate deployment.
                     The key will be saved into the system.
                 </p>
                 <table class="table table-condensed table-striped">
@@ -1449,8 +1445,6 @@
         </tbody>
     </table>
 </%def>
-
-
 
 
 <%def name="nav_pagination(pager)">
@@ -1582,7 +1576,7 @@
     %>
     % if error:
         <div class="alert alert-danger">
-            ## result=error&operation=mark&action=deactivate&error=Can%20not%20deactivate%20the%20default
+            ## result=error&error=Can%20not%20deactivate%20the%20default&operation=mark&action=deactivate
             <b>Error</b>
             <p>
                 % if message:
@@ -1633,6 +1627,8 @@
     <ul class="nav nav-pills nav-stacked">
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/acme-challenges">All AcmeChallenges</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'active' else ''}"><a href="${admin_prefix}/acme-challenges?status=active">Active AcmeChallenges</a></li>
+      <li role="presentation" class="${'resolved' if sidenav_option == 'resolved' else ''}"><a href="${admin_prefix}/acme-challenges?status=resolved">Resolved AcmeChallenges</a></li>
+      <li role="presentation" class="${'processing' if sidenav_option == 'processing' else ''}"><a href="${admin_prefix}/acme-challenges?status=processing">Processing AcmeChallenges</a></li>
     </ul>
     <p class="pull-right">
         % if sidenav_option == 'all' :
@@ -1641,7 +1637,17 @@
                 .json
             </a>
         % elif sidenav_option == 'active' :
-            <a href="${admin_prefix}/acme-challenges.json?status=ending" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/acme-challenges.json?status=active" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % elif sidenav_option == 'resolved' :
+            <a href="${admin_prefix}/acme-challenges.json?status=resolved" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                .json
+            </a>
+        % elif sidenav_option == 'processing' :
+            <a href="${admin_prefix}/acme-challenges.json?status=processing" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>

@@ -17,6 +17,18 @@
 </%block>
 
 
+<%block name="page_header_nav">
+    <div class="clearfix">
+        <p class="pull-right">
+            <a href="${admin_prefix}/queue-domains/add.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+                .json
+            </a>
+        </p>
+    </div>
+</%block>
+
+
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-6">

@@ -97,8 +97,8 @@ class ViewAdmin_New(Handler):
                     "account_key_file_le_meta": "Group B",
                     "account_key_file_le_pkey": "Group B",
                     "account_key_file_le_reg": "Group B",
-                    "contact": "acme contact",
-                    "private_key_cycle": "how should the PrivateKey be cycled for this account?",
+                    "account_key__contact": "the contact's email address for the ACME Server",
+                    "account_key__private_key_cycle": "how should the PrivateKey be cycled for this account?",
                 },
                 "notes": ["You must submit ALL items from Group A or Group B"],
                 "valid_options": {
@@ -106,7 +106,7 @@ class ViewAdmin_New(Handler):
                         i.id: "%s (%s)" % (i.name, i.url)
                         for i in self.dbAcmeAccountProviders
                     },
-                    "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
+                    "account_key__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
@@ -192,8 +192,8 @@ class ViewAdmin_New(Handler):
                 ],
                 "form_fields": {
                     "acme_account_provider_id": "which provider",
-                    "contact": "acme contact",
-                    "private_key_cycle": "how should the PrivateKey be cycled for this account?",
+                    "account_key__contact": "the contact's email address for the ACME Server",
+                    "account_key__private_key_cycle": "how should the PrivateKey be cycled for this account?",
                 },
                 "notes": [""],
                 "valid_options": {
@@ -201,7 +201,7 @@ class ViewAdmin_New(Handler):
                         i.id: "%s (%s)" % (i.name, i.url)
                         for i in self.dbAcmeAccountProviders
                     },
-                    "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
+                    "account_key__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
                 },
             }
         # quick setup, we need a bunch of options for dropdowns...
@@ -551,15 +551,15 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         if self.request.wants_json:
             return {
                 "instructions": [
-                    """curl --form 'private_key_cycle=certificate' %s/acme-account-key/{ID}/edit.json"""
+                    """curl --form 'account_key__private_key_cycle=certificate' %s/acme-account-key/{ID}/edit.json"""
                     % self.request.admin_url,
                 ],
                 "form_fields": {
-                    "private_key_cycle": "option for cycling the PrivateKey on renewals",
+                    "account_key__private_key_cycle": "option for cycling the PrivateKey on renewals",
                 },
                 "notes": [""],
                 "valid_options": {
-                    "private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
+                    "account_key__private_key_cycle": model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle,
                 },
             }
         return render_to_response(
@@ -591,7 +591,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 event_status = lib_db.update.update_AcmeAccountKey__private_key_cycle(
                     self.request.api_context,
                     self.dbAcmeAccountKey,
-                    formStash.results["private_key_cycle"],
+                    formStash.results["account_key__private_key_cycle"],
                 )
             except errors.InvalidTransition as exc:
                 # `formStash.fatal_form(` will raise a `FormInvalid()`

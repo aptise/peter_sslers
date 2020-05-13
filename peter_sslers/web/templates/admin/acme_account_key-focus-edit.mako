@@ -88,7 +88,7 @@
                                 <%
                                     _selected = AcmeAccountKey.private_key_cycle
                                 %>
-                                <select class="form-control" name="private_key_cycle">
+                                <select class="form-control" name="account_key__private_key_cycle">
                                     % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle:
                                         <%
                                             _selected = ' selected' if _option_text == _selected else ''

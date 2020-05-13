@@ -1886,7 +1886,7 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
     _event_payload_json = None
 
     def set_event_payload(self, payload_dict):
-        self.event_payload = json.dumps(payload_dict)
+        self.event_payload = json.dumps(payload_dict, sort_keys=True)
 
 
 # ==============================================================================
