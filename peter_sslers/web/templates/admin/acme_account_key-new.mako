@@ -64,7 +64,7 @@
         </div>
         <div class="col-sm-6">
             ${admin_partials.info_AcmeAccountKey()}
-            <h3>This form accepts JSON</h3>
+            <h3>This form is JSON capable</h3>
 
             <p>
                 <code>curl ${request.api_host}${admin_prefix}/acme-account-key/new.json</code>

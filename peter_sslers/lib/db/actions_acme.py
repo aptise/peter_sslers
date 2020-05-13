@@ -1741,7 +1741,7 @@ def do__AcmeV2_AcmeOrder__process(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def do__AcmeV2_AcmeOrder__automated(
+def do__AcmeV2_AcmeOrder__new(
     ctx,
     acme_order_type_id=None,
     domain_names=None,

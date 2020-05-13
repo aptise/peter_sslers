@@ -1684,16 +1684,28 @@ def get__QueueCertificate__paginated(
         )  # noqa
     if eagerload_web:
         q = q.options(
-            sqlalchemy.orm.joinedload("certificate")
-            .joinedload("unique_fqdn_set")
+            sqlalchemy.orm.joinedload("acme_order__source"),
+            sqlalchemy.orm.joinedload("server_certificate__source"),
+            sqlalchemy.orm.joinedload("unique_fqdn_set__source"),
+            sqlalchemy.orm.joinedload("acme_order__generated"),
+            sqlalchemy.orm.joinedload("certificate_request__generated"),
+            sqlalchemy.orm.joinedload("server_certificate__generated"),
+            sqlalchemy.orm.joinedload("acme_account_key"),
+            sqlalchemy.orm.joinedload("private_key"),
+            sqlalchemy.orm.joinedload("unique_fqdn_set")
             .joinedload("to_domains")
-            .joinedload("domain")
+            .joinedload("domain"),
         )
     elif eagerload_renewal:
         q = q.options(
-            sqlalchemy.orm.joinedload("server_certificate"),
-            sqlalchemy.orm.subqueryload("server_certificate.acme_account_key"),
-            sqlalchemy.orm.subqueryload("server_certificate.private_key"),
+            sqlalchemy.orm.joinedload("acme_order__source"),
+            sqlalchemy.orm.joinedload("server_certificate__source"),
+            sqlalchemy.orm.joinedload("unique_fqdn_set__source"),
+            sqlalchemy.orm.joinedload("acme_account_key"),
+            sqlalchemy.orm.joinedload("private_key"),
+            sqlalchemy.orm.joinedload("unique_fqdn_set")
+            .joinedload("to_domains")
+            .joinedload("domain"),
         )
     q = q.order_by(model_objects.QueueCertificate.id.desc())
     q = q.limit(limit).offset(offset)

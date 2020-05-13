@@ -1009,7 +1009,7 @@ class ViewAdmin_New(Handler):
                     raise errors.AcmeBlacklistedDomains(_blacklisted_domain_names)
 
                 try:
-                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__automated(
+                    dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                         self.request.api_context,
                         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
                         domain_names=domain_names,

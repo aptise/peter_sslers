@@ -2079,14 +2079,19 @@ class FunctionalTests_DomainBlacklisted(AppTest):
 
     def test_QueueDomain_add_fails(self):
         res = self.testapp.get("/.well-known/admin/queue-domains/add", status=200)
+        _domain_names = [
+            "always-fail.example.com",
+            "test-queuedomain-add-fails.example.com",
+        ]
         form = res.form
-        form["domain_names"] = "always-fail.example.com,example.com"
+        form["domain_names"] = ",".join(_domain_names)
         res2 = form.submit()
         assert res2.status_code == 303
         assert (
             res2.location
-            == """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results=%7B%22always-fail.example.com%22%3A+%22blacklisted%22%2C+%22example.com%22%3A+%22queued%22%7D"""
+            == """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results=%7B%22always-fail.example.com%22%3A+%22blacklisted%22%2C+%22test-queuedomain-add-fails.example.com%22%3A+%22queued%22%7D"""
         )
+
 
 class FunctionalTests_Operations(AppTest):
     """
@@ -5480,6 +5485,66 @@ class FunctionalTests_AcmeServer(AppTest):
             _domain = _domain.lower()
             assert _domain in res2.json["AcmeOrder"]["domains_as_list"]
 
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:api:queue_certificates:update",))
+    def test_QueueCertificates_api_update_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueCertificates_api_update_html
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/api/queue-certificates/update", status=303
+        )
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=success&operation=update&results=true"""
+        )
+        # TODO - populate the database so it will actually update the queue, retest
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:api:queue_certificates:update|json",))
+    def test_QueueCertificates_api_update_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueCertificates_api_update_json
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/api/queue-certificates/update.json", status=200
+        )
+        assert "instructions" in res.json
+        assert res.json["instructions"] == "POST required"
+
+        res = self.testapp.post(
+            "/.well-known/admin/api/queue-certificates/update.json", status=200
+        )
+        assert res.json["result"] == "success"
+        assert res.json["results"] is True
+        # TODO - populate the database so it will actually update the queue, retest
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:api:queue_certificates:process",))
+    def test_QueueCertificates_api_process_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueCertificates_api_process_html
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/api/queue-certificates/process.json", status=200
+        )
+        pdb.set_trace()
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:api:queue_certificates:process|json",))
+    def test_QueueCertificates_api_process_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueCertificates_api_process_json
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/api/queue-certificates/process", status=200
+        )
+        pdb.set_trace()
+
 
 class FunctionalTests_API(AppTest):
     """
@@ -5634,37 +5699,6 @@ class FunctionalTests_API(AppTest):
 
         res = self.testapp.get("/.well-known/admin/api/nginx/status.json", status=200)
         assert res.json["result"] == "success"
-
-
-class FunctionalTests_UNWRITTEN(AppTest):
-    """python -m unittest peter_sslers.tests.FunctionalTests_UNWRITTEN"""
-
-    @tests_routes(
-        (
-            "admin:api:queue_certificates:process",
-            "admin:api:queue_certificates:process|json",
-        )
-    )
-    def test_QueueCertificates_api_process(self):
-        raise ValueError("todo")
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/process", status=200
-        )
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/process.json", status=200
-        )
-
-    @tests_routes(
-        (
-            "admin:api:queue_certificates:update",
-            "admin:api:queue_certificates:update|json",
-        )
-    )
-    def test_QueueCertificates_api_update(self):
-        raise ValueError("todo")
-        res = self.testapp.get(
-            "/.well-known/admin/api/queue-certificates/update.json", status=200
-        )
 
 
 class IntegratedTests_AcmeServer(AppTestWSGI):
@@ -5959,7 +5993,6 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             assert res3.json["domain_results"][_domain_name]["domain.status"] == "new"
         except:
             pprint.pprint(res3.json)
-            pdb.set_trace()
             raise
         assert res3.json["domain_results"][_domain_name]["acme_order.id"] is not None
 

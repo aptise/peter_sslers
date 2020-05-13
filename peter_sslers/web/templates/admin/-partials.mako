@@ -998,19 +998,62 @@
 
 <%def name="info_AcmeAccountKey()">
     <h3>Need an AcmeAccountKey?</h3>
-        <p>Use an Existing LetsEncrypt key from their client.
-           This is the easiest way to register with LetsEncrypt and opt into their TOS.
-        </p>
+    <p>PeterSslers can help you register for an AcmeAccountKey, or you can import one from Certbot.</p>
+    <ul class="list">
+        <li>
+            <a  href="${admin_prefix}/acme-account-key/new"
+                class="btn btn-xs btn-primary"
+            >
+                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                New AcmeAccountKey
+            </a>
+        </li>
+        <li>
+            <a  href="${admin_prefix}/acme-account-key/upload"
+                class="btn btn-xs btn-primary"
+            >
+                <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+                Upload AcmeAccountKey
+            </a>
+        </li>
+    </ul>
+
+
+http://127.0.0.1:7201/.well-known/admin/acme-account-key/new
 </%def>
 
 
 <%def name="info_PrivateKey()">
     <h3>Need a Private Key?</h3>
-        <p>NOTE: you can not use your AcmeAccountKey as your PrivateKey for certificate signing</p>
-        <p>You can genrate a new PrivateKey using the web interface, or create one locally to upload:</p>
-        <p>
-            <code>openssl genrsa 4096 > domain.key</code>
-        </p>
+    <ul class="list">
+        <li>PeterSslers will automatically generate new keys for you.</li>
+        <li>Alternately:
+            <ul class="list">
+                <li>
+                    <a  href="${admin_prefix}/private-key/new"
+                        class="btn btn-xs btn-primary"
+                    >
+                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                        New Private Key
+                    </a>
+                </li>
+                <li>
+                    <a  href="${admin_prefix}/private-key/upload"
+                        class="btn btn-xs btn-primary"
+                    >
+                        <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+                        Upload: Private Key
+                    </a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+    <p>NOTE: you can not use your AcmeAccountKey as your PrivateKey for certificate signing</p>
+    <p>You can generate a new PrivateKey locally to upload with this command:</p>
+    <p>
+        <code>openssl genrsa 4096 > private.key</code>
+    </p>
+    
 </%def>
 
 

@@ -672,7 +672,7 @@ def api_domains__certificate_if_needed(
             _logger_args["dbServerCertificate"] = _dbServerCertificate
         else:
             try:
-                dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__automated(
+                dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__new(
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW__CIN,
                     domain_names=domain_names,

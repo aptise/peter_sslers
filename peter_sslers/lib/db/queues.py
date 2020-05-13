@@ -132,51 +132,6 @@ def queue_domains__add(ctx, domain_names):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _get_default_AccountKey(ctx):
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    This is a shortcut.
-    """
-    # raises an error if we fail
-    dbAcmeAccountKey_GlobalDefault = lib.db.get.get__AcmeAccountKey__GlobalDefault(
-        ctx, active_only=True
-    )
-    if not dbAcmeAccountKey_GlobalDefault:
-        raise ValueError("Could not load a default AccountKey.")
-    return dbAcmeAccountKey_GlobalDefault
-
-
-def _get_default_PrivateKey(ctx):
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    """
-    # raises an error if we fail
-    # which private-key should we use?
-
-    if not ctx.request:
-        # ToDo: refactor `ctx.request.registry.settings`
-        raise ValueError("must be invoked within Pyramid")
-
-    raise ValueError("deprecated for key-cycling")
-    use_weekly_key = ctx.request.registry.settings["app_settings"][
-        "queue_domains_use_weekly_key"
-    ]
-    dbPrivateKey = lib.db.get.get__PrivateKey_CurrentWeek_Global(ctx)
-    if not dbPrivateKey:
-        dbPrivateKey = lib.db.create.create__PrivateKey(
-            ctx,
-            # bits=4096,
-            private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
-            private_key_type_id=model_utils.PrivateKeyType.from_string("global_weekly"),
-        )
-    if not dbPrivateKey:
-        raise errors.DisplayableError("Could not load a default PrivateKey")
-    return dbPrivateKey
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 def queue_domains__process(
     ctx,
     dbAcmeAccountKey=None,
@@ -300,7 +255,7 @@ def queue_domains__process(
 
             # processing_strategy: AcmeOrder_ProcessingStrategy('create_order', 'process_single', 'process_multi')
             try:
-                dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__automated(
+                dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.QUEUE_DOMAINS,
                     domain_names=domain_names,
@@ -524,31 +479,20 @@ def queue_certificates__process(ctx):
         dbAcmeAccountKey_GlobalDefault = None
         _need_default_AccountKey = False
         for dbQueueCertificate in items_paged:
-            if (
-                (not dbQueueCertificate.server_certificate)
-                or (not dbQueueCertificate.server_certificate.acme_account_key_id)
-                or (
-                    not dbQueueCertificate.server_certificate.acme_account_key.is_active
-                )
-            ):
+            if not dbQueueCertificate.acme_account_key.is_active:
                 _need_default_AccountKey = True
-                break
-
-        _need_default_PrivateKey = False
-        for dbQueueCertificate in items_paged:
-            if (
-                (not dbQueueCertificate.server_certificate)
-                or (not dbQueueCertificate.server_certificate.private_key_id)
-                or (not dbQueueCertificate.server_certificate.private_key.is_active)
-            ):
-                _need_default_PrivateKey = True
                 break
 
         if _need_default_AccountKey:
             # raises an error if we fail
-            dbAcmeAccountKey_GlobalDefault = _get_default_AccountKey(ctx)
+            dbAcmeAccountKey_GlobalDefault = lib.db.get.get__AcmeAccountKey__GlobalDefault(
+                ctx, active_only=True
+            )
+            if not dbAcmeAccountKey_GlobalDefault:
+                raise ValueError("Could not load a default AccountKey.")
 
         for dbQueueCertificate in items_paged:
+
             if dbQueueCertificate not in ctx.dbSession:
                 dbQueueCertificate = ctx.dbSession.merge(dbQueueCertificate)
 
@@ -573,7 +517,7 @@ def queue_certificates__process(ctx):
                 timestamp_attempt = datetime.datetime.utcnow()
                 raise ValueError("this changed a lot")
                 try:
-                    dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__automated(
+                    dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__new(
                         ctx,
                         acme_order_type_id=model_utils.AcmeOrderType.QUEUE_RENEWAL,
                         domain_names=dbQueueCertificate.domains_as_list,

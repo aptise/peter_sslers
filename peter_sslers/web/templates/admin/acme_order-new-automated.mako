@@ -14,7 +14,7 @@
 
 <%block name="page_header_col">
     <h2>AcmeOrder | New</h2>
-    <p><em>${request.text_library.info_AcmeOrder_new_Automated[1]}</em></p>
+    <p><em>${request.text_library.info_AcmeOrder_new_automated[1]}</em></p>
     <div class="alert alert-info">
         <em>
             Requests will be performed against the Certificate Authority associated with the Account Key

@@ -55,7 +55,7 @@ class ViewAdminApi(Handler):
     )
     def ca_certificate_probes__probe(self):
         if self.request.wants_json:
-            if self.request.method == "GET":
+            if self.request.method != "POST":
                 return docs.json_docs_post_only
 
         operations_event = lib_db.actions.ca_certificate_probe(self.request.api_context)
@@ -87,7 +87,7 @@ class ViewAdminApi(Handler):
     @view_config(route_name="admin:api:deactivate_expired|json", renderer="json")
     def deactivate_expired(self):
         if self.request.wants_json:
-            if self.request.method == "GET":
+            if self.request.method != "POST":
                 return docs.json_docs_post_only
 
         operations_event = lib_db.actions.operations_deactivate_expired(
@@ -117,7 +117,7 @@ class ViewAdminApi(Handler):
     @view_config(route_name="admin:api:update_recents|json", renderer="json")
     def update_recents(self):
         if self.request.wants_json:
-            if self.request.method == "GET":
+            if self.request.method != "POST":
                 return docs.json_docs_post_only
         operations_event = lib_db.actions.operations_update_recents(
             self.request.api_context
@@ -224,7 +224,7 @@ class ViewAdminApi(Handler):
     def _domain_certificate_if_needed__print(self):
         return {
             "instructions": [
-                """POST domain_names for certificates.  curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/new/automated.json"""
+                """POST domain_names for certificates.  curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/api/domain/certificate-if-needed.json"""
                 % self.request.admin_url
             ],
             "requirements": [
@@ -375,7 +375,7 @@ class ViewAdminApi(Handler):
     @view_config(route_name="admin:api:redis:prime|json", renderer="json")
     def redis_prime(self):
         if self.request.wants_json:
-            if self.request.method == "GET":
+            if self.request.method != "POST":
                 return docs.json_docs_post_only
 
         self._ensure_redis()
@@ -560,6 +560,7 @@ class ViewAdminApi(Handler):
     @view_config(route_name="admin:api:nginx:cache_flush", renderer=None)
     @view_config(route_name="admin:api:nginx:cache_flush|json", renderer="json")
     def admin_nginx_cache_flush(self):
+        # ???: This endpoint will allow JSON GET ?
         self._ensure_nginx()
         success, dbEvent, servers_status = utils_nginx.nginx_flush_cache(
             self.request, self.request.api_context
@@ -583,6 +584,7 @@ class ViewAdminApi(Handler):
 
     @view_config(route_name="admin:api:nginx:status|json", renderer="json")
     def admin_nginx_status(self):
+        # ???: This endpoint will allow JSON GET ?
         self._ensure_nginx()
         servers_status = utils_nginx.nginx_status(
             self.request, self.request.api_context
@@ -595,20 +597,35 @@ class ViewAdminApi(Handler):
     @view_config(route_name="admin:api:queue_certificates:update|json", renderer="json")
     def queue_certificate_update(self):
         try:
+            if self.request.wants_json:
+                if self.request.method != "POST":
+                    return {
+                        "instructions": """POST required""",
+                    }
             queue_results = lib_db.queues.queue_certificates__update(
                 self.request.api_context
             )
             if self.request.wants_json:
-                return {"result": "success"}
+                return {"result": "success", "results": queue_results}
             return HTTPSeeOther(
-                "%s/api/queue-certificates?update=1"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
+                "%s/queue-certificates?result=success&operation=update&results=%s"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    json.dumps(queue_results, sort_keys=True),
+                )
             )
         except Exception as exc:
             self.request.api_context.pyramid_transaction_rollback()
             if self.request.wants_json:
                 return {"result": "error", "error": exc.as_querystring}
             raise
+            return HTTPSeeOther(
+                "%s/queue-certificates?result=error&error=%s&operation=update"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    str(exc),
+                )
+            )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -618,6 +635,11 @@ class ViewAdminApi(Handler):
     )
     def queue_certificate_process(self):
         try:
+            if self.request.wants_json:
+                if self.request.method != "POST":
+                    return {
+                        "instructions": """POST required""",
+                    }
             queue_results = lib_db.queues.queue_certificates__process(
                 self.request.api_context
             )
@@ -626,10 +648,10 @@ class ViewAdminApi(Handler):
             if queue_results:
                 queue_results = json.dumps(queue_results, sort_keys=True)
             return HTTPSeeOther(
-                "%s/api/queue-certificates?process=1&results=%s"
+                "%s/queue-certificates?result=success&operation=process&results=%s"
                 % (
                     self.request.registry.settings["app_settings"]["admin_prefix"],
-                    queue_results,
+                    json.dumps(queue_results, sort_keys=True),
                 )
             )
         except Exception as exc:
@@ -637,3 +659,10 @@ class ViewAdminApi(Handler):
             if self.request.wants_json:
                 return {"result": "error", "error": exc.as_querystring}
             raise
+            return HTTPSeeOther(
+                "%s/queue-certificates?result=error&error=%s&operation=process"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    str(exc),
+                )
+            )

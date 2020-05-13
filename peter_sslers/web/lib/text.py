@@ -52,7 +52,7 @@ info_AcmeOrderless_new = [
     "ACME-Orderless lets you manage the well-known placements only.",
     "ACME-Orderless lets you manage the well-known placements only.",
 ]
-info_AcmeOrder_new_Automated = [
+info_AcmeOrder_new_automated = [
     "ACME-Automated automates the entire certifcate request process.",
     "ACME-Automated automates the entire certifcate request process.",
 ]

@@ -50,8 +50,7 @@
             <p>New certificates are automatically recorded when discovered.</p>
             <p>You can also "probe" the certificate authority to sync discovered certificates with human-readable information.</p>
 
-            <h3>This form accepts JSON</h3>
-
+            <h3>This form is JSON capable</h3>
             <p>
                 <code>curl ${request.admin_url}/ca-certificate/upload.json</code>
             </p>

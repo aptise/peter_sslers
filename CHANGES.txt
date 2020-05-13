@@ -15,7 +15,6 @@
 - updated (json.dumps) to use `sort_keys=True` as needed
 - (queue-domains/process(.json)?) working and tested
 
-
 0.4.0
 unreleased (2020-01-23)
 - implement ACME v2

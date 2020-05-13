@@ -29,7 +29,7 @@
 
     <p class="pull-right">
         <a  href="${admin_prefix}/acme-order/new/automated"
-            title="${request.text_library.info_AcmeOrder_new_Automated[0]}"
+            title="${request.text_library.info_AcmeOrder_new_automated[0]}"
             class="btn btn-xs btn-primary"
         >
         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
