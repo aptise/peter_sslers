@@ -5531,7 +5531,7 @@ class FunctionalTests_AcmeServer(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/api/queue-certificates/process.json", status=200
         )
-        pdb.set_trace()
+        # pdb.set_trace()
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @under_pebble
@@ -5543,7 +5543,7 @@ class FunctionalTests_AcmeServer(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/api/queue-certificates/process", status=200
         )
-        pdb.set_trace()
+        # pdb.set_trace()
 
 
 class FunctionalTests_API(AppTest):
