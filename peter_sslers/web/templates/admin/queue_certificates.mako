@@ -17,10 +17,19 @@
 
 
 <%block name="page_header_nav">
+    <div class="clearfix">
+        <p class="pull-right">
+            <a href="${admin_prefix}/queue-certificates/${sidenav_option}.json" class="btn btn-xs btn-info">
+                <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+                .json
+            </a>
+        </p>
+    </div>
     <ul class="nav nav-pills nav-stacked">
-      <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-certificates">Unprocessed Items</a></li>
-      <li role="presentation" class="${'active' if sidenav_option == 'active-failures' else ''}"><a href="${admin_prefix}/queue-certificates/active-failures">Unprocessed Failures</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/queue-certificates/all">All Items</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'failures' else ''}"><a href="${admin_prefix}/queue-certificates/failures">Failures</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'successes' else ''}"><a href="${admin_prefix}/queue-certificates/successes">Successes</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'unprocessed' else ''}"><a href="${admin_prefix}/queue-certificates/unprocessed">Unprocessed Items</a></li>
       <li role="presentation" class="">
         <a href="${admin_prefix}/api/queue-certificates/update">
         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -70,6 +79,7 @@
                     <thead>
                         <tr>
                             <th>id</th>
+                            <th>is_active</th>
                             <th>Covering</th>
                             <th>AcmeOrder<br/>source</th>
                             <th>ServerCertificate<br/>source</th>
@@ -85,6 +95,13 @@
                             <td><a class="label label-info" href="${admin_prefix}/queue-certificate/${q.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.id}</a>
+                            </td>
+                            <td>
+                                % if q.is_active:
+                                    <div class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></div>
+                                % else:
+                                    <div class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></div>
+                                % endif
                             </td>
                             <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.unique_fqdn_set_id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>

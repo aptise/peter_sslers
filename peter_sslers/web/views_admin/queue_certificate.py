@@ -45,13 +45,20 @@ class ViewList(Handler):
     To be removed, it must suucceed or be explicitly removed from the queue.
     """
 
-    @view_config(
-        route_name="admin:queue_certificates", renderer="/admin/queue_certificates.mako"
-    )
-    @view_config(
-        route_name="admin:queue_certificates_paginated",
-        renderer="/admin/queue_certificates.mako",
-    )
+    @view_config(route_name="admin:queue_certificates")
+    @view_config(route_name="admin:queue_certificates|json")
+    def list_redirect(self):
+        url_redirect = (
+            "%s/queue-certificates/all"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
+        if self.request.wants_json:
+            raise HTTPSeeOther("%s.json" % url_redirect)
+        else:
+            raise HTTPSeeOther(url_redirect)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:queue_certificates:all",
         renderer="/admin/queue_certificates.mako",
@@ -61,77 +68,97 @@ class ViewList(Handler):
         renderer="/admin/queue_certificates.mako",
     )
     @view_config(
-        route_name="admin:queue_certificates:active_failures",
+        route_name="admin:queue_certificates:failures",
         renderer="/admin/queue_certificates.mako",
     )
     @view_config(
-        route_name="admin:queue_certificates:active_failures_paginated",
+        route_name="admin:queue_certificates:failures_paginated",
         renderer="/admin/queue_certificates.mako",
     )
-    @view_config(route_name="admin:queue_certificates|json", renderer="json")
-    @view_config(route_name="admin:queue_certificates_paginated|json", renderer="json")
+    @view_config(
+        route_name="admin:queue_certificates:successes",
+        renderer="/admin/queue_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:queue_certificates:successes_paginated",
+        renderer="/admin/queue_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:queue_certificates:unprocessed",
+        renderer="/admin/queue_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:queue_certificates:unprocessed_paginated",
+        renderer="/admin/queue_certificates.mako",
+    )
     @view_config(route_name="admin:queue_certificates:all|json", renderer="json")
     @view_config(
         route_name="admin:queue_certificates:all_paginated|json", renderer="json"
     )
+    @view_config(route_name="admin:queue_certificates:failures|json", renderer="json")
     @view_config(
-        route_name="admin:queue_certificates:active_failures|json", renderer="json"
+        route_name="admin:queue_certificates:failures_paginated|json", renderer="json",
+    )
+    @view_config(route_name="admin:queue_certificates:successes|json", renderer="json")
+    @view_config(
+        route_name="admin:queue_certificates:successes_paginated|json", renderer="json",
     )
     @view_config(
-        route_name="admin:queue_certificates:active_failures_paginated|json",
+        route_name="admin:queue_certificates:unprocessed|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:queue_certificates:unprocessed_paginated|json",
         renderer="json",
     )
     def list(self):
         get_kwargs = {}
         url_template = None
         sidenav_option = None
+
         if self.request.matched_route.name in (
-            "admin:queue_certificates",
-            "admin:queue_certificates_paginated",
-        ):
-            get_kwargs["unprocessed_only"] = True
-            if self.request.wants_json:
-                url_template = (
-                    "%s/queue-certificates/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/queue-certificates/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            sidenav_option = "unprocessed"
-        elif self.request.matched_route.name in (
             "admin:queue_certificates:all",
             "admin:queue_certificates:all_paginated",
+            "admin:queue_certificates:all|json",
+            "admin:queue_certificates:all_paginated|json",
         ):
-            if self.request.wants_json:
-                url_template = (
-                    "%s/queue-certificates/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/queue-certificates/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
             sidenav_option = "all"
+            url_template = "%s/queue-certificates/all/{0}"
         elif self.request.matched_route.name in (
-            "admin:queue_certificates:active_failures",
-            "admin:queue_certificates:active_failures_paginated",
+            "admin:queue_certificates:failures",
+            "admin:queue_certificates:failures_paginated",
+            "admin:queue_certificates:failures|json",
+            "admin:queue_certificates:failures_paginated|json",
         ):
-            get_kwargs["unprocessed_failures_only"] = True
-            if self.request.wants_json:
-                url_template = (
-                    "%s/queue-certificates/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/queue-certificates/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            sidenav_option = "active-failures"
+            sidenav_option = "failures"
+            get_kwargs["failures_only"] = True
+            url_template = "%s/queue-certificates/failures/{0}"
+        elif self.request.matched_route.name in (
+            "admin:queue_certificates:successes",
+            "admin:queue_certificates:successes_paginated",
+            "admin:queue_certificates:successes|json",
+            "admin:queue_certificates:successes_paginated|json",
+        ):
+            sidenav_option = "successes"
+            get_kwargs["successes_only"] = True
+            url_template = "%s/queue-certificates/successes/{0}"
+        elif self.request.matched_route.name in (
+            "admin:queue_certificates:unprocessed",
+            "admin:queue_certificates:unprocessed_paginated",
+            "admin:queue_certificates:unprocessed|json",
+            "admin:queue_certificates:unprocessed_paginated|json",
+        ):
+            get_kwargs["unprocessed_only"] = True
+            sidenav_option = "unprocessed"
+            url_template = "%s/queue-certificates/unprocessed/{0}"
+
+        # update the url_template with our prefix
+        url_template = (
+            url_template
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
+        # and make it json if needed
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
 
         items_count = lib_db.get.get__QueueCertificate__count(
             self.request.api_context, **get_kwargs

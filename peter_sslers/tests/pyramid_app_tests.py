@@ -2977,6 +2977,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         # grab an item
         focus_item = (
             self.ctx.dbSession.query(model_objects.QueueCertificate)
+            .filter(model_objects.QueueCertificate.is_active.is_(True))
             .order_by(model_objects.QueueCertificate.id.asc())
             .first()
         )
@@ -2985,63 +2986,126 @@ class FunctionalTests_QueueCertificate(AppTest):
     @tests_routes(
         (
             "admin:queue_certificates",
-            "admin:queue_certificates_paginated",
             "admin:queue_certificates:all",
             "admin:queue_certificates:all_paginated",
-            "admin:queue_certificates:active_failures",
-            "admin:queue_certificates:active_failures_paginated",
+            "admin:queue_certificates:failures",
+            "admin:queue_certificates:failures_paginated",
+            "admin:queue_certificates:successes",
+            "admin:queue_certificates:successes_paginated",
+            "admin:queue_certificates:unprocessed",
+            "admin:queue_certificates:unprocessed_paginated",
         )
     )
     def test_list_html(self):
+        # root redirects
+        res = self.testapp.get("/.well-known/admin/queue-certificates", status=303)
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/all"
+        )
+
         # root
-        res = self.testapp.get("/.well-known/admin/queue-certificates", status=200)
         res = self.testapp.get("/.well-known/admin/queue-certificates/all", status=200)
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/active-failures", status=200
+            "/.well-known/admin/queue-certificates/failures", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/successes", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/unprocessed", status=200
         )
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/queue-certificates/1", status=200)
         res = self.testapp.get(
             "/.well-known/admin/queue-certificates/all/1", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/active-failures/1", status=200
+            "/.well-known/admin/queue-certificates/failures/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/successes/1", status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/unprocessed/1", status=200
         )
 
     @tests_routes(
         (
             "admin:queue_certificates|json",
-            "admin:queue_certificates_paginated|json",
             "admin:queue_certificates:all|json",
             "admin:queue_certificates:all_paginated|json",
-            "admin:queue_certificates:active_failures|json",
-            "admin:queue_certificates:active_failures_paginated|json",
+            "admin:queue_certificates:failures|json",
+            "admin:queue_certificates:failures_paginated|json",
+            "admin:queue_certificates:successes|json",
+            "admin:queue_certificates:successes_paginated|json",
+            "admin:queue_certificates:unprocessed|json",
+            "admin:queue_certificates:unprocessed_paginated|json",
         )
     )
     def test_list_json(self):
-        # root|json
-        res = self.testapp.get("/.well-known/admin/queue-certificates.json", status=200)
+        # root|json redirects
+        res = self.testapp.get("/.well-known/admin/queue-certificates.json", status=303)
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/all.json"
+        )
+
+        # root
         res = self.testapp.get(
             "/.well-known/admin/queue-certificates/all.json", status=200
         )
+        assert "pagination" in res.json
+        assert "QueueCertificates" in res.json
+
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/active-failures.json", status=200
+            "/.well-known/admin/queue-certificates/failures.json", status=200
         )
-        # paginated|json
+        assert "pagination" in res.json
+        assert "QueueCertificates" in res.json
+
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/1.json", status=200
+            "/.well-known/admin/queue-certificates/successes.json", status=200
         )
+        assert "pagination" in res.json
+        assert "QueueCertificates" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/unprocessed.json", status=200
+        )
+        assert "pagination" in res.json
+        assert "QueueCertificates" in res.json
+
+        # paginated
         res = self.testapp.get(
             "/.well-known/admin/queue-certificates/all/1.json", status=200
         )
+        assert "pagination" in res.json
+        assert "QueueCertificates" in res.json
+
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificates/active-failures/1.json", status=200
+            "/.well-known/admin/queue-certificates/failures/1.json", status=200
         )
+        assert "pagination" in res.json
+        assert "QueueCertificates" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/successes/1.json", status=200
+        )
+        assert "pagination" in res.json
+        assert "QueueCertificates" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificates/unprocessed/1.json", status=200
+        )
+        assert "pagination" in res.json
+        assert "QueueCertificates" in res.json
 
     @tests_routes(("admin:queue_certificate:focus",))
     def test_focus_html(self):
-        """this doesn't work on solo tests"""
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_focus_html
+        """
         focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
@@ -3051,7 +3115,10 @@ class FunctionalTests_QueueCertificate(AppTest):
 
     @tests_routes(("admin:queue_certificate:focus|json",))
     def test_focus_json(self):
-        """this doesn't work on solo tests"""
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_focus_json
+        """
+        pdb.set_trace()
         focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
@@ -3061,6 +3128,9 @@ class FunctionalTests_QueueCertificate(AppTest):
 
     @tests_routes(("admin:queue_certificate:focus:mark",))
     def test_manipulate_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_manipulate_html
+        """
         focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
@@ -3070,9 +3140,39 @@ class FunctionalTests_QueueCertificate(AppTest):
             {"action": "cancel"},
             status=303,
         )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?&result=error&error=post+required&operation=mark"
+            % focus_id
+        )
+
+        res2 = self.testapp.post(
+            "/.well-known/admin/queue-certificate/%s/mark" % focus_id,
+            {"action": "cancel"},
+            status=303,
+        )
+        assert (
+            res2.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?result=success&operation=mark"
+            % focus_id
+        )
+
+        res3 = self.testapp.post(
+            "/.well-known/admin/queue-certificate/%s/mark" % focus_id,
+            {"action": "cancel"},
+            status=303,
+        )
+        assert (
+            res3.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?result=error&error=action--Already+cancelledError_Main--There+was+an+error+with+your+form.&operation=mark&action=cancel"
+            % focus_id
+        )
 
     @tests_routes(("admin:queue_certificate:focus:mark|json",))
     def test_manipulate_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_manipulate_json
+        """
         focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
@@ -3082,6 +3182,23 @@ class FunctionalTests_QueueCertificate(AppTest):
             {"action": "cancel"},
             status=200,
         )
+        assert "instructions" in res.json
+
+        res2 = self.testapp.post(
+            "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+            status=200,
+        )
+        assert res2.json["result"] == "success"
+        assert res2.json["QueueCertificate"]["is_active"] is False
+
+        res3 = self.testapp.post(
+            "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+            status=200,
+        )
+        assert res3.json["result"] == "error"
+        assert res3.json["form_errors"]["action"] == "Already cancelled"
 
     @tests_routes(("admin:queue_certificate:new_structured",))
     def test_new_html(self):

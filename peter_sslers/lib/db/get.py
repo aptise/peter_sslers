@@ -1636,52 +1636,68 @@ def get__OperationsQueueDomainEvent__paginated(ctx, limit=None, offset=0):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__QueueCertificate__count(
-    ctx, unprocessed_only=False, unprocessed_failures_only=None
+def _get__QueueCertificate__core(
+    ctx, failures_only=None, successes_only=None, unprocessed_only=None,
 ):
-    if unprocessed_failures_only and unprocessed_only:
+    if sum(bool(f) for f in (failures_only, successes_only, unprocessed_only,)) > 1:
         raise ValueError("only submit one strategy")
     q = ctx.dbSession.query(model_objects.QueueCertificate)
-    if unprocessed_failures_only:
+    if failures_only:
         q = q.filter(
-            model_objects.QueueCertificate.timestamp_processed.op("IS")(None),  # noqa
+            model_objects.QueueCertificate.timestamp_processed.op("IS NOT")(
+                None
+            ),  # noqa
             model_objects.QueueCertificate.timestamp_process_attempt.op("IS NOT")(
                 None
             ),  # noqa
             model_objects.QueueCertificate.process_result.op("IS")(False),  # noqa
         )
-    if unprocessed_only:
+    elif successes_only:
+        q = q.filter(
+            model_objects.QueueCertificate.timestamp_processed.op("IS NOT")(
+                None
+            ),  # noqa
+            model_objects.QueueCertificate.timestamp_process_attempt.op("IS NOT")(
+                None
+            ),  # noqa
+            model_objects.QueueCertificate.process_result.op("IS")(True),  # noqa
+        )
+    elif unprocessed_only:
         q = q.filter(
             model_objects.QueueCertificate.timestamp_processed.op("IS")(None)
         )  # noqa
+    return q
+
+
+def get__QueueCertificate__count(
+    ctx, failures_only=None, successes_only=None, unprocessed_only=False,
+):
+    q = _get__QueueCertificate__core(
+        ctx,
+        failures_only=failures_only,
+        successes_only=successes_only,
+        unprocessed_only=unprocessed_only,
+    )
     counted = q.count()
     return counted
 
 
 def get__QueueCertificate__paginated(
     ctx,
+    failures_only=None,
+    successes_only=None,
     unprocessed_only=False,
-    unprocessed_failures_only=None,
     eagerload_web=False,
     eagerload_renewal=False,
     limit=None,
     offset=0,
 ):
-    if unprocessed_failures_only and unprocessed_only:
-        raise ValueError("only submit one strategy")
-    q = ctx.dbSession.query(model_objects.QueueCertificate)
-    if unprocessed_failures_only:
-        q = q.filter(
-            model_objects.QueueCertificate.timestamp_processed.op("IS")(None),  # noqa
-            model_objects.QueueCertificate.timestamp_process_attempt.op("IS NOT")(
-                None
-            ),  # noqa
-            model_objects.QueueCertificate.process_result.op("IS")(False),  # noqa
-        )
-    if unprocessed_only:
-        q = q.filter(
-            model_objects.QueueCertificate.timestamp_processed.op("IS")(None)
-        )  # noqa
+    q = _get__QueueCertificate__core(
+        ctx,
+        failures_only=failures_only,
+        successes_only=successes_only,
+        unprocessed_only=unprocessed_only,
+    )
     if eagerload_web:
         q = q.options(
             sqlalchemy.orm.joinedload("acme_order__source"),

@@ -715,14 +715,10 @@ def _admin_views(config):
     config.add_route_7("admin:private_key:upload|json", "/private-key/upload.json")
 
     # !!!: Queue Certificates
+    # these 2 redirect to /all or /unprocessed
     config.add_route_7("admin:queue_certificates", "/queue-certificates")
     config.add_route_7("admin:queue_certificates|json", "/queue-certificates.json")
-    config.add_route_7(
-        "admin:queue_certificates_paginated", "/queue-certificates/{@page}"
-    )
-    config.add_route_7(
-        "admin:queue_certificates_paginated|json", "/queue-certificates/{@page}.json"
-    )
+    # all
     config.add_route_7("admin:queue_certificates:all", "/queue-certificates/all")
     config.add_route_7(
         "admin:queue_certificates:all_paginated", "/queue-certificates/all/{@page}"
@@ -734,21 +730,51 @@ def _admin_views(config):
         "admin:queue_certificates:all_paginated|json",
         "/queue-certificates/all/{@page}.json",
     )
+    # failures
     config.add_route_7(
-        "admin:queue_certificates:active_failures",
-        "/queue-certificates/active-failures",
+        "admin:queue_certificates:failures", "/queue-certificates/failures",
     )
     config.add_route_7(
-        "admin:queue_certificates:active_failures_paginated",
-        "/queue-certificates/active-failures/{@page}",
+        "admin:queue_certificates:failures_paginated",
+        "/queue-certificates/failures/{@page}",
     )
     config.add_route_7(
-        "admin:queue_certificates:active_failures|json",
-        "/queue-certificates/active-failures.json",
+        "admin:queue_certificates:failures|json", "/queue-certificates/failures.json",
     )
     config.add_route_7(
-        "admin:queue_certificates:active_failures_paginated|json",
-        "/queue-certificates/active-failures/{@page}.json",
+        "admin:queue_certificates:failures_paginated|json",
+        "/queue-certificates/failures/{@page}.json",
+    )
+    # successes
+    config.add_route_7(
+        "admin:queue_certificates:successes", "/queue-certificates/successes",
+    )
+    config.add_route_7(
+        "admin:queue_certificates:successes_paginated",
+        "/queue-certificates/successes/{@page}",
+    )
+    config.add_route_7(
+        "admin:queue_certificates:successes|json", "/queue-certificates/successes.json",
+    )
+    config.add_route_7(
+        "admin:queue_certificates:successes_paginated|json",
+        "/queue-certificates/successes/{@page}.json",
+    )
+    # unprocessed
+    config.add_route_7(
+        "admin:queue_certificates:unprocessed", "/queue-certificates/unprocessed",
+    )
+    config.add_route_7(
+        "admin:queue_certificates:unprocessed_paginated",
+        "/queue-certificates/unprocessed/{@page}",
+    )
+    config.add_route_7(
+        "admin:queue_certificates:unprocessed|json",
+        "/queue-certificates/unprocessed.json",
+    )
+    config.add_route_7(
+        "admin:queue_certificates:unprocessed_paginated|json",
+        "/queue-certificates/unprocessed/{@page}.json",
     )
 
     config.add_route_7(

@@ -572,6 +572,8 @@ class AppTest(AppTestCore):
                 # this should create `/server-certificate/1`
                 #
                 _dbServerCertificate_1 = None
+                _dbServerCertificate_2 = None
+                _dbServerCertificate_3 = None
                 _dbPrivateKey_1 = None
                 _dbUniqueFQDNSet_1 = None
                 for _id in TEST_FILES["ServerCertificates"]["SelfSigned"].keys():
@@ -645,6 +647,10 @@ class AppTest(AppTestCore):
                         _dbServerCertificate_1 = _dbServerCertificate
                         _dbPrivateKey_1 = _dbPrivateKey
                         _dbUniqueFQDNSet_1 = _dbUniqueFQDNSet
+                    elif _id == "2":
+                        _dbServerCertificate_2 = _dbServerCertificate
+                    elif _id == "3":
+                        _dbServerCertificate_3 = _dbServerCertificate
 
                 # note: pre-populate Domain
                 # ensure we have domains?
@@ -702,6 +708,22 @@ class AppTest(AppTestCore):
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                 )
                 # self.ctx.pyramid_transaction_commit()
+
+                # we need at least 3 of these
+                _dbQueue2 = db.create.create__QueueCertificate(
+                    self.ctx,
+                    dbAcmeAccountKey=_dbAcmeAccountKey_1,
+                    dbPrivateKey=_dbPrivateKey_1,
+                    dbServerCertificate=_dbServerCertificate_2,
+                    private_key_cycle_id__renewal=1,  # "single_certificate"
+                )
+                _dbQueue3 = db.create.create__QueueCertificate(
+                    self.ctx,
+                    dbAcmeAccountKey=_dbAcmeAccountKey_1,
+                    dbPrivateKey=_dbPrivateKey_1,
+                    dbServerCertificate=_dbServerCertificate_3,
+                    private_key_cycle_id__renewal=1,  # "single_certificate"
+                )
 
                 # TODO: the dbSessions don't seem to be the same
                 #       to get around this, commit now
