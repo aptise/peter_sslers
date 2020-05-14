@@ -1739,12 +1739,120 @@ def get__QueueCertificate__by_id(ctx, set_id, load_events=None):
     return item
 
 
+def get__QueueCertificate__by_AcmeAccountKeyId__count(ctx, acme_account_key_id):
+    counted = (
+        ctx.dbSession.query(model_objects.QueueCertificate)
+        .filter(
+            model_objects.QueueCertificate.acme_account_key_id == acme_account_key_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__QueueCertificate__by_AcmeAccountKeyId__paginated(
+    ctx, acme_account_key_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.QueueCertificate)
+        .filter(
+            model_objects.QueueCertificate.acme_account_key_id == acme_account_key_id
+        )
+        .order_by(model_objects.QueueCertificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def _get__QueueCertificate__by_DomainId__core(ctx, domain_id):
+    q = (
+        ctx.dbSession.query(model_objects.QueueCertificate)
+        .join(
+            model_objects.UniqueFQDNSet,
+            model_objects.QueueCertificate.unique_fqdn_set_id
+            == model_objects.UniqueFQDNSet.id,
+        )
+        .join(
+            model_objects.UniqueFQDNSet2Domain,
+            model_objects.UniqueFQDNSet.id
+            == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(model_objects.UniqueFQDNSet2Domain.domain_id == domain_id)
+    )
+    return q
+
+
+def get__QueueCertificate__by_DomainId__count(ctx, domain_id):
+    q = _get__QueueCertificate__by_DomainId__core(ctx, domain_id)
+    counted = q.count()
+    return counted
+
+
+def get__QueueCertificate__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
+    q = _get__QueueCertificate__by_DomainId__core(ctx, domain_id)
+    items_paged = (
+        q.order_by(model_objects.QueueCertificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__QueueCertificate__by_PrivateKeyId__count(ctx, private_key_id):
+    counted = (
+        ctx.dbSession.query(model_objects.QueueCertificate)
+        .filter(model_objects.QueueCertificate.private_key_id == private_key_id)
+        .count()
+    )
+    return counted
+
+
+def get__QueueCertificate__by_PrivateKeyId__paginated(
+    ctx, private_key_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.QueueCertificate)
+        .filter(model_objects.QueueCertificate.private_key_id == private_key_id)
+        .order_by(model_objects.QueueCertificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
 def get__QueueCertificate__by_UniqueFQDNSetId__active(ctx, set_id):
     q = ctx.dbSession.query(model_objects.QueueCertificate).filter(
         model_objects.QueueCertificate.unique_fqdn_set_id == set_id,
         model_objects.QueueCertificate.timestamp_processed.op("IS")(None),
     )
     items_paged = q.all()
+    return items_paged
+
+
+def get__QueueCertificate__by_UniqueFQDNSetId__count(ctx, unique_fqdn_set_id):
+    counted = (
+        ctx.dbSession.query(model_objects.QueueCertificate)
+        .filter(model_objects.QueueCertificate.unique_fqdn_set_id == unique_fqdn_set_id)
+        .count()
+    )
+    return counted
+
+
+def get__QueueCertificate__by_UniqueFQDNSetId__paginated(
+    ctx, unique_fqdn_set_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.QueueCertificate)
+        .filter(model_objects.QueueCertificate.unique_fqdn_set_id == unique_fqdn_set_id)
+        .order_by(model_objects.QueueCertificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
     return items_paged
 
 

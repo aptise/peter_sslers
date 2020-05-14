@@ -339,6 +339,8 @@ class FunctionalTests_AcmeAccountKey(AppTest):
             "admin:acme_account_key:focus:private_keys_paginated",
             "admin:acme_account_key:focus:server_certificates",
             "admin:acme_account_key:focus:server_certificates_paginated",
+            "admin:acme_account_key:focus:queue_certificates",
+            "admin:acme_account_key:focus:queue_certificates_paginated",
         )
     )
     def test_focus_html(self):
@@ -382,6 +384,15 @@ class FunctionalTests_AcmeAccountKey(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/admin/acme-account-key/%s/server-certificates/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/queue-certificates" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account-key/%s/queue-certificates/1" % focus_id,
             status=200,
         )
 
@@ -1762,6 +1773,8 @@ class FunctionalTests_Domain(AppTest):
             "admin:domain:focus:certificate_requests_paginated",
             "admin:domain:focus:server_certificates",
             "admin:domain:focus:server_certificates_paginated",
+            "admin:domain:focus:queue_certificates",
+            "admin:domain:focus:queue_certificates_paginated",
             "admin:domain:focus:unique_fqdn_sets",
             "admin:domain:focus:unique_fqdn_sets_paginated",
         )
@@ -1815,6 +1828,12 @@ class FunctionalTests_Domain(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/admin/domain/%s/server-certificates/1" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/queue-certificates" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/queue-certificates/1" % focus_id, status=200
         )
 
         res = self.testapp.get(
@@ -2230,6 +2249,8 @@ class FunctionalTests_PrivateKey(AppTest):
             "admin:private_key:focus:certificate_requests_paginated",
             "admin:private_key:focus:server_certificates",
             "admin:private_key:focus:server_certificates_paginated",
+            "admin:private_key:focus:queue_certificates",
+            "admin:private_key:focus:queue_certificates_paginated",
         )
     )
     def test_focus_html(self):
@@ -2254,6 +2275,14 @@ class FunctionalTests_PrivateKey(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/admin/private-key/%s/server-certificates/1" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/queue-certificates" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/queue-certificates/1" % focus_id,
             status=200,
         )
 
@@ -2541,7 +2570,13 @@ class FunctionalTests_ServerCertificate(AppTest):
             )
             assert "ServerCertificates" in res.json
 
-    @tests_routes(("admin:server_certificate:focus",))
+    @tests_routes(
+        (
+            "admin:server_certificate:focus",
+            "admin:server_certificate:focus:queue_certificates",
+            "admin:server_certificate:focus:queue_certificates_paginated",
+        )
+    )
     def test_focus_html(self):
         focus_item = self._get_one()
         if focus_item is None:
@@ -2555,6 +2590,15 @@ class FunctionalTests_ServerCertificate(AppTest):
 
         res = self.testapp.get(
             "/.well-known/admin/server-certificate/%s" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/queue-certificates" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/queue-certificates/1" % focus_id,
+            status=200,
         )
 
     @tests_routes(
@@ -2873,7 +2917,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
     """
 
     def _get_one(self):
-        # grab a UniqueFqdnSet
+        # grab a UniqueFQDNSet
         focus_item = (
             self.ctx.dbSession.query(model_objects.UniqueFQDNSet)
             .order_by(model_objects.UniqueFQDNSet.id.asc())
@@ -2910,6 +2954,8 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             "admin:unique_fqdn_set:focus:certificate_requests_paginated",
             "admin:unique_fqdn_set:focus:server_certificates",
             "admin:unique_fqdn_set:focus:server_certificates_paginated",
+            "admin:unique_fqdn_set:focus:queue_certificates",
+            "admin:unique_fqdn_set:focus:queue_certificates_paginated",
         )
     )
     def test_focus_html(self):
@@ -2944,6 +2990,15 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         )
         res = self.testapp.get(
             "/.well-known/admin/unique-fqdn-set/%s/server-certificates/1" % focus_id,
+            status=200,
+        )
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/queue-certificates" % focus_id,
+            status=200,
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/queue-certificates/1" % focus_id,
             status=200,
         )
 
@@ -3200,22 +3255,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         assert res3.json["result"] == "error"
         assert res3.json["form_errors"]["action"] == "Already cancelled"
 
-    @tests_routes(("admin:queue_certificate:new_structured",))
-    def test_new_html(self):
-        """
-        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_new_html
-        """
-        raise ValueError("todo")
-
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new-structured", status=303
-        )
-        assert (
-            res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=error&error=invalid+queue+source&operation=new"
-        )
-
-        # try with an AcmeOrder
+    def _get_queueable_AcmeOrder(self):
         dbAcmeOrder = (
             self.ctx.dbSession.query(model_objects.AcmeOrder)
             .join(
@@ -3232,12 +3272,54 @@ class FunctionalTests_QueueCertificate(AppTest):
             .order_by(model_objects.AcmeOrder.id.asc())
             .one()
         )
+        return dbAcmeOrder
+
+    def _get_queueable_UniqueFQDNSet(self):
+        dbAcmeOrder = (
+            self.ctx.dbSession.query(model_objects.UniqueFQDNSet)
+            .order_by(model_objects.UniqueFQDNSet.id.asc())
+            .one()
+        )
+        return dbAcmeOrder
+
+    @tests_routes(("admin:queue_certificate:new_structured",))
+    def test_new_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_new_html
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new-structured", status=303
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=error&error=invalid+queue+source&operation=new"
+        )
+
+        # try with an AcmeOrder
+        dbAcmeOrder = self._get_queueable_AcmeOrder()
         res = self.testapp.get(
             "/.well-known/admin/queue-certificate/new-structured?queue_source=AcmeOrder&acme_order=%s"
             % dbAcmeOrder.id,
             status=200,
         )
+        pdb.set_trace()
 
+        # try with a ServerCertificate
+        dbServerCertificate = self._get_queueable_ServerCertificate()
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new-structured?queue_source=ServerCertificate&server_certificate=%s"
+            % dbServerCertificate.id,
+            status=200,
+        )
+        pdb.set_trace()
+
+        # try with an UniqueFQDNSet
+        dbUniqueFQDNSet = self._get_queueable_UniqueFQDNSet()
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new-structured?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
+            % dbUniqueFQDNSet.id,
+            status=200,
+        )
         pdb.set_trace()
 
     @tests_routes(("admin:queue_certificate:new_structured|json",))

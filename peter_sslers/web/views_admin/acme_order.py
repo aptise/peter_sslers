@@ -646,6 +646,8 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "private_key_reuse": "pem_md5 of existing key",
                     "private_key_existing": "pem_md5 of existing key",
                     "private_key_file_pem": "pem to upload",
+                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
                 },
                 "form_fields_related": [
                     ["account_key_file_pem", "acme_account_provider_id"],
@@ -666,6 +668,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
                     if self.dbAcmeAccountKey_GlobalDefault
                     else None,
+                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
                 },
                 "requirements": [
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
@@ -872,6 +875,7 @@ class ViewAdmin_New(Handler):
                     "private_key_reuse": "pem_md5 of existing key",
                     "private_key_existing": "pem_md5 of existing key",
                     "private_key_file_pem": "pem to upload",
+                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
                 },
                 "form_fields_related": [
                     ["account_key_file_pem", "acme_account_provider_id"],
@@ -892,6 +896,7 @@ class ViewAdmin_New(Handler):
                     "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
                     if self.dbAcmeAccountKey_GlobalDefault
                     else None,
+                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
                 },
                 "requirements": [
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
@@ -997,7 +1002,7 @@ class ViewAdmin_New(Handler):
             try:
 
                 # check for blacklists here
-                # this might be better in the AcmeOrder processor, but the orders are by UniqueFqdnSet
+                # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
                 _blacklisted_domain_names = []
                 for _domain_name in domain_names:
                     _dbDomainBlacklisted = lib_db.get.get__DomainBlacklisted__by_name(

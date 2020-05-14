@@ -226,8 +226,10 @@ class ViewNew(Handler):
                     % _failure_url
                 )
             queue_data["AcmeOrder"] = dbAcmeOrder
-            queue_data["AcmeAccountKey_reuse"] = dbAcmeOrder.acme_account_key
-            queue_data["PrivateKey_reuse"] = dbAcmeOrder.private_key
+            if dbAcmeOrder.acme_account_key.is_active:
+                queue_data["AcmeAccountKey_reuse"] = dbAcmeOrder.acme_account_key
+            if dbAcmeOrder.private_key.is_active:
+                queue_data["PrivateKey_reuse"] = dbAcmeOrder.private_key
 
         elif (queue_source == "ServerCertificate") and server_certificate_id:
             dbServerCertificate = lib_db.get.get__ServerCertificate__by_id(
@@ -239,7 +241,8 @@ class ViewNew(Handler):
                     % _failure_url
                 )
             queue_data["ServerCertificate"] = dbServerCertificate
-            queue_data["PrivateKey_reuse"] = dbServerCertificate.private_key
+            if dbServerCertificate.private_key.is_active:
+                queue_data["PrivateKey_reuse"] = dbServerCertificate.private_key
 
         elif (queue_source == "UniqueFQDNSet") and unique_fqdn_set_id:
             dbUniqueFQDNSet = lib_db.get.get__UniqueFQDNSet__by_id(
@@ -274,7 +277,47 @@ class ViewNew(Handler):
         if self.request.wants_json:
             return {
                 "instructions": """POST required""",
-                "form_fields": {},
+                "form_fields": {
+                    "queue_source": "what is the source of the queue item?",
+                    "acme_order": "If queue_source is `AcmeOrder`, the corresponding id",
+                    "server_certificate": "If queue_source is `AcmeOrder`, the corresponding id",
+                    "unique_fqdn_set": "If queue_source is `AcmeOrder`, the corresponding id",
+                    "account_key_option": "How is the AcmeAccountKey specified?",
+                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                    "private_key_option": "How is the PrivateKey being specified?",
+                    "private_key_reuse": "pem_md5 of existing key",
+                    "private_key_existing": "pem_md5 of existing key",
+                    "private_key_file_pem": "pem to upload",
+                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+                },
+                "form_fields_related": [
+                    ["acme_order", "server_certificate", "unique_fqdn_set",],
+                ],
+                "valid_options": {
+                    "queue_source": (
+                        "AcmeOrder",
+                        "ServerCertificate",
+                        "UniqueFQDNSet",
+                    ),
+                    "private_key_cycle__renewal": None,
+                    "acme_account_provider_id": {
+                        i.id: "%s (%s)" % (i.name, i.url)
+                        for i in self.dbAcmeAccountProviders
+                    },
+                    "account_key_option": model_utils.AcmeAccontKey_options_b,
+                    "private_key_option": model_utils.PrivateKey_options_b,
+                    "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
+                    if self.dbAcmeAccountKey_GlobalDefault
+                    else None,
+                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+                },
             }
         return render_to_response(
             "/admin/queue_certificate-new-structured.mako",
@@ -283,7 +326,7 @@ class ViewNew(Handler):
                 "AcmeOrder": self.queue_data["AcmeOrder"],
                 "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
-                "AcmeAccountKey_resuse": self.queue_data["AcmeAccountKey_reuse"],
+                "AcmeAccountKey_reuse": self.queue_data["AcmeAccountKey_reuse"],
                 "PrivateKey_reuse": self.queue_data["PrivateKey_reuse"],
                 "ServerCertificate": self.queue_data["ServerCertificate"],
                 "UniqueFQDNSet": self.queue_data["UniqueFQDNSet"],

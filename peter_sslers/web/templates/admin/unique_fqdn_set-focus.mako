@@ -215,15 +215,15 @@
                             % endif
                         </td>
                     </tr>
-                    ## TODO: queue_certificate
-                    % if False:
-                        <tr>
-                            <th>Queue: Renewals</th>
-                            <td>
-                            ${admin_partials.table_QueueCertificate(UniqueFQDNSet.queue_certificate__active, perspective="UniqueFQDNSet")}
-                            </td>
-                        </tr>
-                    % endif
+                    <tr>
+                        <th>Queue: Certificates</th>
+                        <td>
+                            ${admin_partials.table_QueueCertificates(UniqueFQDNSet.queue_certificates__5, perspective="UniqueFQDNSet")}
+                            % if UniqueFQDNSet.queue_certificates__5:
+                                ${admin_partials.nav_pager("%s/unique-fqdn-set/%s/queue-certificates" % (admin_prefix, UniqueFQDNSet.id))}
+                            % endif
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>

@@ -16,6 +16,7 @@
 - (queue-domains/process(.json)?) working and tested
 - `acme-order/new/automated` is now `acme-order/new/freeform`
 - slight reorganization of queue-certificates listing and logic
+- creating queue-certificates/structured done
 
 
 0.4.0

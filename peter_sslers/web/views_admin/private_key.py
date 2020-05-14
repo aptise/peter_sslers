@@ -198,6 +198,38 @@ class ViewAdmin_Focus(Handler):
             "pager": pager,
         }
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:private_key:focus:queue_certificates",
+        renderer="/admin/private_key-focus-queue_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:private_key:focus:queue_certificates_paginated",
+        renderer="/admin/private_key-focus-queue_certificates.mako",
+    )
+    def related__QueueCertificates(self):
+        dbPrivateKey = self._focus()
+        items_count = lib_db.get.get__QueueCertificate__by_PrivateKeyId__count(
+            self.request.api_context, dbPrivateKey.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/queue-certificates/{0}" % (self._focus_url)
+        )
+        items_paged = lib_db.get.get__QueueCertificate__by_PrivateKeyId__paginated(
+            self.request.api_context,
+            dbPrivateKey.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "PrivateKey": dbPrivateKey,
+            "QueueCertificates_count": items_count,
+            "QueueCertificates": items_paged,
+            "pager": pager,
+        }
+
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     @view_config(route_name="admin:private_key:focus:mark", renderer=None)

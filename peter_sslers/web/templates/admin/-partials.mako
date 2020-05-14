@@ -760,20 +760,24 @@
 </%def>
 
 
-<%def name="table_QueueCertificate(renewal_items, perspective=None)">
+<%def name="table_QueueCertificates(renewal_items, perspective=None)">
+    <%
+        show_unique_fqdn_set = False if perspective == "UniqueFQDNSet" else True
+    %>
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
                 <th>id</th>
                 <th>active?</th>
-                % if show_certificate:
-                    <th>certificate</th>
+                <th>result</th>
+                % if show_unique_fqdn_set:
+                    <th>UniqueFQDNSet</th>
                 % endif
+                <th>Server Certificate (Generated)</th>
                 <th>timestamp_entered</th>
                 <th>operations_event_id__created</th>
                 <th>timestamp_processed</th>
                 <th>timestamp_process_attempt</th>
-                <th>result</th>
             </tr>
         </thead>
         <tbody>
@@ -781,26 +785,13 @@
             <tr>
                 <td><a href="${admin_prefix}/queue-certificate/${queue_certificate.id}" class="label label-info">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                    qrenew-${queue_certificate.id}</a>
+                    QueueCertificate-${queue_certificate.id}</a>
                 </td>
                 <td>
                     <span class="label label-${'success' if queue_certificate.is_active else 'warning'}">
                         ${'active' if queue_certificate.is_active else 'no'}
                     </span>
                 </td>
-                % if show_certificate:
-                    <td>
-                        % if queue_certificate.server_certificate_id:
-                            <a href="${admin_prefix}/server-certificate/${queue_certificate.server_certificate_id}" class="label label-info">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ServerCertificate-${queue_certificate.server_certificate_id}</a>
-                        % endif
-                    </td>
-                % endif
-                <td><timestamp>${queue_certificate.timestamp_entered or ''}</timestamp></td>
-                <td><span class="label label-info">${queue_certificate.operations_event_id__created}</span></td>
-                <td><timestamp>${queue_certificate.timestamp_processed or ''}</timestamp></td>
-                <td><timestamp>${queue_certificate.timestamp_process_attempt or ''}</timestamp></td>
                 <td>
                     % if queue_certificate.process_result is None:
                         &nbsp;
@@ -810,6 +801,24 @@
                         <span class="label label-success"><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
                     % endif
                 </td>
+                % if show_unique_fqdn_set:
+                    <td>
+                        <a href="${admin_prefix}/unique-fqdn-set/${queue_certificate.unique_fqdn_set_id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            UniqueFQDNSet-${queue_certificate.unique_fqdn_set_id}</a>
+                    </td>
+                % endif
+                <td>
+                    % if queue_certificate.server_certificate_id__generated:
+                        <a href="${admin_prefix}/server-certificate/${queue_certificate.server_certificate_id__generated}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            ServerCertificate-${queue_certificate.server_certificate_id__generated}</a>
+                    % endif
+                </td>
+                <td><timestamp>${queue_certificate.timestamp_entered or ''}</timestamp></td>
+                <td><span class="label label-info">${queue_certificate.operations_event_id__created}</span></td>
+                <td><timestamp>${queue_certificate.timestamp_processed or ''}</timestamp></td>
+                <td><timestamp>${queue_certificate.timestamp_process_attempt or ''}</timestamp></td>
             </tr>
         % endfor
         </tbody>
@@ -1067,12 +1076,23 @@ http://127.0.0.1:7201/.well-known/admin/acme-account-key/new
 
 
 <%def name="formgroup__AcmeAccountKey_selector__advanced(dbAcmeAccountKeyReuse=None, allow_no_key=False)">
+    <%
+        checked = {
+            "none": "",
+            "account_key_reuse": "",
+            "account_key_global_default": "",
+        }
+        if dbAcmeAccountKeyReuse:
+            checked["account_key_reuse"] = 'checked="checked"'
+        elif not dbAcmeAccountKeyReuse and not allow_no_key:
+            checked["account_key_global_default"] = 'checked="checked"'
+    %>
     <p>Select an AcmeAccountKey with one of the following options</p>
     <div class="form-horizontal">
         % if allow_no_key:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" value="none" checked="checked"/>
+                    <input type="radio" name="account_key_option" value="none" ${checked["none"]}/>
                     Do not associate this Orderless with an AcmeAccountKey
                 </label>
             </div>
@@ -1080,7 +1100,7 @@ http://127.0.0.1:7201/.well-known/admin/acme-account-key/new
         % if dbAcmeAccountKeyReuse:
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" checked="checked"/>
+                    <input type="radio" name="account_key_option" id="account_key_option-account_key_reuse" value="account_key_reuse" ${checked["account_key_reuse"]}/>
                     <input type="hidden" name="account_key_reuse" value="${dbAcmeAccountKeyReuse.key_pem_md5}"/>
                     Select to renew with the same AcmeAccountKey
                 </label>
@@ -1102,10 +1122,9 @@ http://127.0.0.1:7201/.well-known/admin/acme-account-key/new
             </div>
         % endif
         % if AcmeAccountKey_GlobalDefault:
-            <% checked = ' checked="checked"' if not dbAcmeAccountKeyReuse and not allow_no_key else '' %>
             <div class="radio">
                 <label>
-                    <input type="radio" name="account_key_option" id="account_key_option-account_key_global_default" value="account_key_global_default"${checked}/>
+                    <input type="radio" name="account_key_option" id="account_key_option-account_key_global_default" value="account_key_global_default" ${checked["account_key_global_default"]}/>
                     The Global Default AcmeAccountKey.
                 </label>
                 <p class="form-control-static">

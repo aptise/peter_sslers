@@ -1335,9 +1335,8 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_renewable_queue(self):
-        if self.acme_status_order in model_utils.Acme_Status_Order.OPTIONS_RENEW:
-            if self.acme_account_key.is_active:
-                return True
+        if self.acme_account_key.is_active:
+            return True
         return False
 
     @property
@@ -3038,6 +3037,26 @@ AcmeAccountKey.server_certificates__5 = sa_orm_relationship(
 )
 
 
+# note: AcmeAccountKey.queue_certificates__5
+AcmeAccountKey.queue_certificates__5 = sa_orm_relationship(
+    QueueCertificate,
+    primaryjoin=(
+        sa.and_(
+            AcmeAccountKey.id == QueueCertificate.acme_account_key_id,
+            QueueCertificate.id.in_(
+                sa.select([QueueCertificate.id])
+                .where(AcmeAccountKey.id == QueueCertificate.acme_account_key_id)
+                .order_by(QueueCertificate.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=QueueCertificate.id.desc(),
+    viewonly=True,
+)
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -3128,6 +3147,25 @@ PrivateKey.server_certificates__5 = sa_orm_relationship(
         )
     ),
     order_by=ServerCertificate.id.desc(),
+    viewonly=True,
+)
+
+# note: PrivateKey.queue_certificates__5
+PrivateKey.queue_certificates__5 = sa_orm_relationship(
+    QueueCertificate,
+    primaryjoin=(
+        sa.and_(
+            PrivateKey.id == QueueCertificate.private_key_id,
+            QueueCertificate.id.in_(
+                sa.select([QueueCertificate.id])
+                .where(PrivateKey.id == QueueCertificate.private_key_id)
+                .order_by(QueueCertificate.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=QueueCertificate.id.desc(),
     viewonly=True,
 )
 
@@ -3331,8 +3369,39 @@ Domain.certificate_requests__5 = sa_orm_relationship(
 )
 
 
+# note: Domain.queue_certificates__5
+Domain.queue_certificates__5 = sa_orm_relationship(
+    QueueCertificate,
+    primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
+    secondary=(
+        """join(UniqueFQDNSet2Domain,
+                QueueCertificate,
+                UniqueFQDNSet2Domain.unique_fqdn_set_id == QueueCertificate.unique_fqdn_set_id
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            QueueCertificate.unique_fqdn_set_id
+            == sa.orm.foreign(UniqueFQDNSet2Domain.unique_fqdn_set_id),
+            QueueCertificate.id.in_(
+                sa.select([QueueCertificate.id])
+                .where(
+                    QueueCertificate.unique_fqdn_set_id
+                    == UniqueFQDNSet2Domain.unique_fqdn_set_id
+                )
+                .where(UniqueFQDNSet2Domain.domain_id == Domain.id)
+                .order_by(QueueCertificate.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=QueueCertificate.id.desc(),
+    viewonly=True,
+)
+
+
 # note: Domain.server_certificates__5
-# returns an object with a `certificate` on it
 Domain.server_certificates__5 = sa_orm_relationship(
     ServerCertificate,
     primaryjoin="Domain.id == UniqueFQDNSet2Domain.domain_id",
@@ -3381,6 +3450,36 @@ Domain.to_unique_fqdn_sets__5 = sa_orm_relationship(
         )
     ),
     order_by=UniqueFQDNSet2Domain.unique_fqdn_set_id.desc(),
+    viewonly=True,
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# note: ServerCertificate.queue_certificates__5
+ServerCertificate.queue_certificates__5 = sa_orm_relationship(
+    QueueCertificate,
+    primaryjoin="""ServerCertificate.unique_fqdn_set_id == UniqueFQDNSet.id""",
+    secondary="""join(UniqueFQDNSet,
+                      QueueCertificate,
+                      UniqueFQDNSet.id == QueueCertificate.unique_fqdn_set_id
+                      )""",
+    secondaryjoin=(
+        sa.and_(
+            QueueCertificate.id.in_(
+                sa.select([QueueCertificate.id])
+                .where(
+                    ServerCertificate.unique_fqdn_set_id
+                    == QueueCertificate.unique_fqdn_set_id
+                )
+                .order_by(QueueCertificate.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=QueueCertificate.id.desc(),
     viewonly=True,
 )
 
@@ -3447,6 +3546,24 @@ UniqueFQDNSet.server_certificates__5 = sa_orm_relationship(
     viewonly=True,
 )
 
+# note: UniqueFQDNSet.queue_certificates__5
+UniqueFQDNSet.queue_certificates__5 = sa_orm_relationship(
+    QueueCertificate,
+    primaryjoin=(
+        sa.and_(
+            UniqueFQDNSet.id == QueueCertificate.unique_fqdn_set_id,
+            QueueCertificate.id.in_(
+                sa.select([QueueCertificate.id])
+                .where(UniqueFQDNSet.id == QueueCertificate.unique_fqdn_set_id)
+                .order_by(QueueCertificate.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=QueueCertificate.id.desc(),
+    viewonly=True,
+)
 
 # note: UniqueFQDNSet.latest_certificate
 UniqueFQDNSet.latest_certificate = sa_orm_relationship(

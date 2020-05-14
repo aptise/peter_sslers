@@ -779,12 +779,12 @@ def create__ServerCertificate(
     if dbCertificateRequest:
         if dbUniqueFQDNSet:
             if dbUniqueFQDNSet.id != dbCertificateRequest.unique_fqdn_set_id:
-                raise ValueError("could not compute the correct UniqueFqdnSet")
+                raise ValueError("could not compute the correct UniqueFQDNSet")
         else:
             dbUniqueFQDNSet = dbCertificateRequest.unique_fqdn_set
 
     if not dbUniqueFQDNSet:
-        raise ValueError("a `UniqueFqdnSet` should have been computed by now")
+        raise ValueError("a `UniqueFQDNSet` should have been computed by now")
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()

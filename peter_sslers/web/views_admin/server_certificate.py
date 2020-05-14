@@ -461,6 +461,43 @@ class ViewAdmin_Focus(Handler):
             rval = dbServerCertificate.config_payload
         return rval
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:server_certificate:focus:queue_certificates",
+        renderer="/admin/server_certificate-focus-queue_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:server_certificate:focus:queue_certificates_paginated",
+        renderer="/admin/server_certificate-focus-queue_certificates.mako",
+    )
+    def related__QueueCertificates(self):
+        dbServerCertificate = self._focus()
+        items_count = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__count(
+            self.request.api_context, dbServerCertificate.unique_fqdn_set_id
+        )
+        (pager, offset) = self._paginate(
+            items_count,
+            url_template="%s/server-certifivate/%s/queue-certificates/{0}"
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                dbServerCertificate.id,
+            ),
+        )
+        items_paged = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__paginated(
+            self.request.api_context,
+            dbServerCertificate.unique_fqdn_set_id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "ServerCertificate": dbServerCertificate,
+            "QueueCertificates_count": items_count,
+            "QueueCertificates": items_paged,
+            "pager": pager,
+        }
+
 
 class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
     @view_config(

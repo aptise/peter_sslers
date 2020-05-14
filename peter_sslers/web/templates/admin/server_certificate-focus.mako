@@ -268,7 +268,7 @@
                                 UniqueFQDNSet-${ServerCertificate.unique_fqdn_set_id}
                             </a>
                             <br/>
-                            <em>The ServerCertificate covers the domains in this UniqueFqdnSet.</em>
+                            <em>The ServerCertificate covers the domains in this UniqueFQDNSet.</em>
                             <br/>
                             <%
                                 latest_certificate = ServerCertificate.unique_fqdn_set.latest_certificate
@@ -566,21 +566,14 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th>renewal requests</th>
+                        <th>QueueCertificates</th>
                         <td>
-                            ## TODO: MIGRATE
-                            ## ${admin_partials.table_CertificateRequests(ServerCertificate.certificate_request__renewals, perspective='ServerCertificate')}
+                            ${admin_partials.table_QueueCertificates(ServerCertificate.queue_certificates__5, perspective="ServerCertificate")}
+                            % if ServerCertificate.queue_certificates__5:
+                                ${admin_partials.nav_pager("%s/server-certificate/%s/queue-certificates" % (admin_prefix, ServerCertificate.id))}
+                            % endif
                         </td>
                     </tr>
-                    ## TODO: queue_certificate
-                    % if False:
-                        <tr>
-                            <th>Queue: Renewals</th>
-                            <td>
-                                ${admin_partials.table_QueueCertificate(ServerCertificate.queue_certificate, perspective="Certificate")}
-                            </td>
-                        </tr>
-                    % endif
                 </tbody>
             </table>
         </div>

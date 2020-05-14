@@ -1064,7 +1064,7 @@ def getcreate__ServerCertificate(
         is_created = False
         if dbUniqueFQDNSet:
             if dbServerCertificate.unique_fqdn_set_id != dbUniqueFQDNSet.id:
-                raise ValueError("Integrity Error. UniqueFqdnSet differs.")
+                raise ValueError("Integrity Error. UniqueFQDNSet differs.")
         if dbPrivateKey and (dbServerCertificate.private_key_id != dbPrivateKey.id):
             if dbServerCertificate.private_key_id:
                 raise ValueError("Integrity Error. Competing PrivateKey (!?)")

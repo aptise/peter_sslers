@@ -201,6 +201,15 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>UniqueFQDNSets</th>
+                        <td>
+                            ${admin_partials.table_UniqueFQDNSets([i.unique_fqdn_set for i in Domain.to_unique_fqdn_sets__5], perspective="Domain")}
+                            % if Domain.to_unique_fqdn_sets__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/unique-fqdn-sets" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>ServerCertificates</th>
                         <td>
                             ${admin_partials.table_ServerCertificates(Domain.server_certificates__5, show_domains=True, show_expiring_days=True)}
@@ -210,20 +219,20 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>CertificateRequests</th>
+                        <th>QueueCertificates</th>
                         <td>
-                            ${admin_partials.table_CertificateRequests(Domain.certificate_requests__5, perspective="Domain")}
-                            % if Domain.certificate_requests__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, Domain.id))}
+                            ${admin_partials.table_QueueCertificates(Domain.queue_certificates__5, perspective="Domain")}
+                            % if Domain.queue_certificates__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/queue-certificates" % (admin_prefix, Domain.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
-                        <th>UniqueFQDNSets</th>
+                        <th>AcmeOrders</th>
                         <td>
-                            ${admin_partials.table_UniqueFQDNSets([i.unique_fqdn_set for i in Domain.to_unique_fqdn_sets__5], perspective="Domain")}
-                            % if Domain.to_unique_fqdn_sets__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/unique-fqdn-sets" % (admin_prefix, Domain.id))}
+                            ${admin_partials.table_AcmeOrders(Domain.acme_orders__5, perspective="Domain")}
+                            % if Domain.acme_orders__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/acme-orders" % (admin_prefix, Domain.id))}
                             % endif
                         </td>
                     </tr>
@@ -246,15 +255,14 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeOrders</th>
+                        <th>CertificateRequests</th>
                         <td>
-                            ${admin_partials.table_AcmeOrders(Domain.acme_orders__5, perspective="Domain")}
-                            % if Domain.acme_orders__5:
-                                ${admin_partials.nav_pager("%s/domain/%s/acme-orders" % (admin_prefix, Domain.id))}
+                            ${admin_partials.table_CertificateRequests(Domain.certificate_requests__5, perspective="Domain")}
+                            % if Domain.certificate_requests__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/certificate-requests" % (admin_prefix, Domain.id))}
                             % endif
                         </td>
                     </tr>
-
                     <tr>
                         <th>AcmeOrderless</th>
                         <td>

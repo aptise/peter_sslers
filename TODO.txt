@@ -5,8 +5,11 @@ Almost done:
 ------------
 	
 These sections still need to be redone:
-- queue certificates
-- automatic renewal
+- queue certificates - proces
+- automatic renewal - update to create queues
+
+- creating queue-certificates/freeform (domains)
+
 
 order processing
 	- if a challenge fails, make the order invalid OR sync the order to invalid
@@ -16,7 +19,7 @@ AcmeOrder:
     dbServerCertificate__renewal_of:
 
 certificate renewal
-	- object should show if we can renew with account key
+	- object should show if we can renew with account key; or maybe not. just allow it to be renewed
 	- better programmatic work is needed when cycling a multi-process request
 
 

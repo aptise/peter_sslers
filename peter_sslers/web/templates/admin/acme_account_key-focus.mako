@@ -251,6 +251,15 @@
                             % endif
                         </td>
                     </tr>
+                    <tr>
+                        <th>QueueCertificate(s)</th>
+                        <td>
+                            ${admin_partials.table_QueueCertificates(AcmeAccountKey.queue_certificates__5, perspective="AcmeAccountKey")}
+                            % if AcmeAccountKey.queue_certificates__5:
+                                ${admin_partials.nav_pager("%s/acme-account-key/%s/queue-certificates" % (admin_prefix, AcmeAccountKey.id))}
+                            % endif
+                        </td>
+                    </tr>
 
 
                     <tr>

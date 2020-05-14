@@ -128,6 +128,14 @@ def _admin_views(config):
         "admin:acme_account_key:focus:server_certificates_paginated",
         "/acme-account-key/{@id}/server-certificates/{@page}",
     )
+    config.add_route_7(
+        "admin:acme_account_key:focus:queue_certificates",
+        "/acme-account-key/{@id}/queue-certificates",
+    )
+    config.add_route_7(
+        "admin:acme_account_key:focus:queue_certificates_paginated",
+        "/acme-account-key/{@id}/queue-certificates/{@page}",
+    )
 
     config.add_route_7(
         "admin:acme_account_key:focus:mark", "/acme-account-key/{@id}/mark"
@@ -601,6 +609,14 @@ def _admin_views(config):
         "/domain/{domain_identifier}/server-certificates/{@page}",
     )
     config.add_route_7(
+        "admin:domain:focus:queue_certificates",
+        "/domain/{domain_identifier}/queue-certificates",
+    )
+    config.add_route_7(
+        "admin:domain:focus:queue_certificates_paginated",
+        "/domain/{domain_identifier}/queue-certificates/{@page}",
+    )
+    config.add_route_7(
         "admin:domain:focus:certificate_requests",
         "/domain/{domain_identifier}/certificate-requests",
     )
@@ -702,6 +718,14 @@ def _admin_views(config):
     config.add_route_7(
         "admin:private_key:focus:server_certificates_paginated",
         "/private-key/{@id}/server-certificates/{@page}",
+    )
+    config.add_route_7(
+        "admin:private_key:focus:queue_certificates",
+        "/private-key/{@id}/queue-certificates",
+    )
+    config.add_route_7(
+        "admin:private_key:focus:queue_certificates_paginated",
+        "/private-key/{@id}/queue-certificates/{@page}",
     )
     config.add_route_7("admin:private_key:focus:mark", "/private-key/{@id}/mark")
     config.add_route_7(
@@ -928,6 +952,14 @@ def _admin_views(config):
         "admin:server_certificate:focus:mark|json",
         "/server-certificate/{@id}/mark.json",
     )
+    config.add_route_7(
+        "admin:server_certificate:focus:queue_certificates",
+        "/server-certificate/{@id}/queue-certificates",
+    )
+    config.add_route_7(
+        "admin:server_certificate:focus:queue_certificates_paginated",
+        "/server-certificate/{@id}/queue-certificates/{@page}",
+    )
 
     # !!!: Unique FQDN Sets
     # tied to Certs and Ratelimits
@@ -969,6 +1001,14 @@ def _admin_views(config):
     config.add_route_7(
         "admin:unique_fqdn_set:focus:server_certificates_paginated",
         "/unique-fqdn-set/{@id}/server-certificates/{@page}",
+    )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:queue_certificates",
+        "/unique-fqdn-set/{@id}/queue-certificates",
+    )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:queue_certificates_paginated",
+        "/unique-fqdn-set/{@id}/queue-certificates/{@page}",
     )
 
     config.scan("peter_sslers.web.views_admin")

@@ -529,6 +529,40 @@ class ViewAdmin_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:domain:focus:queue_certificates",
+        renderer="/admin/domain-focus-queue_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:queue_certificates_paginated",
+        renderer="/admin/domain-focus-queue_certificates.mako",
+    )
+    def related__QueueCertificates(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__QueueCertificate__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count,
+            url_template="%s/domain/%s/queue-certificates/{0}"
+            % (
+                self.request.registry.settings["app_settings"]["admin_prefix"],
+                dbDomain.id,
+            ),
+        )
+        items_paged = lib_db.get.get__QueueCertificate__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "QueueCertificates_count": items_count,
+            "QueueCertificates": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
         route_name="admin:domain:focus:unique_fqdn_sets",
         renderer="/admin/domain-focus-unique_fqdn_sets.mako",
     )

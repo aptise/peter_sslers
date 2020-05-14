@@ -212,6 +212,7 @@ class ViewAdmin_Process(Handler):
                     "private_key_option": "How is the PrivateKey being specified?",
                     "private_key_existing": "pem_md5 of existing key",
                     "private_key_file_pem": "pem to upload",
+                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
                 },
                 "form_fields_related": [
                     ["account_key_file_pem", "acme_account_provider_id"],
@@ -232,6 +233,7 @@ class ViewAdmin_Process(Handler):
                     "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
                     if self.dbAcmeAccountKey_GlobalDefault
                     else None,
+                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
                 },
                 "requirements": [
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
