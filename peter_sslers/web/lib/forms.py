@@ -189,7 +189,7 @@ class Form_AcmeAccountKey_new__auth(_Form_Schema_Base):
 class Form_AcmeAccountKey_new__file(_Form_Schema_Base):
     """
     copied into a few other forms
-        * Form_AcmeOrder_new_automated
+        * Form_AcmeOrder_new_freeform
     """
 
     account_key__contact = Email(not_empty=False, if_missing=None)  # use it or don't
@@ -224,7 +224,7 @@ class Form_AcmeAccountKey_deactivate_authorizations(_Form_Schema_Base):
     acme_authorization_id = ForEach(Int())
 
 
-class Form_AcmeOrder_new_automated(_form_AccountKey_PrivateKey_core):
+class Form_AcmeOrder_new_freeform(_form_AccountKey_PrivateKey_core):
     domain_names = UnicodeString(not_empty=True)
     processing_strategy = OneOf(
         model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL, not_empty=True,
@@ -342,6 +342,27 @@ class Form_PrivateKey_new__file(_Form_Schema_Base):
 
 class Form_PrivateKey_mark(_Form_Schema_Base):
     action = OneOf(("compromised", "active", "inactive",), not_empty=True)
+
+
+class Form_QueueCertificate_new_structured(_form_AccountKey_PrivateKey_reuse):
+    queue_source = OneOf(
+        ("AcmeOrder", "ServerCertificate", "UniqueFQDNSet",), not_empty=True
+    )
+    acme_order = Int(not_empty=False, if_missing=None)
+    server_certificate = Int(not_empty=False, if_missing=None)
+    unique_fqdn_set = Int(not_empty=False, if_missing=None)
+
+    # this is the `private_key_cycle` of the AcmeOrder renewals
+    private_key_cycle__renewal = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+        not_empty=True,
+    )
+
+    chained_validators = [
+        OnlyOneOf(
+            ("acme_order", "server_certificate", "unique_fqdn_set"), not_empty=True
+        )
+    ]
 
 
 class Form_QueueCertificate_mark(_Form_Schema_Base):

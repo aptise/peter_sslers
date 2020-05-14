@@ -342,14 +342,20 @@ class ViewAdmin_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            dbPrivateKey = lib_db.create.create__PrivateKey(
-                self.request.api_context,
-                # bits=4096,
-                private_key_source_id=model_utils.PrivateKeySource.from_string(
-                    "generated"
-                ),
-                private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
-            )
+            try:
+                dbPrivateKey = lib_db.create.create__PrivateKey(
+                    self.request.api_context,
+                    # bits=4096,
+                    private_key_source_id=model_utils.PrivateKeySource.from_string(
+                        "generated"
+                    ),
+                    private_key_type_id=model_utils.PrivateKeyType.from_string(
+                        "standard"
+                    ),
+                )
+            except Exception as exc:
+                log.critical("create__PrivateKey: %s", exc)
+                raise
 
             if self.request.wants_json:
                 return {

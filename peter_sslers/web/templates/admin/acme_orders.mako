@@ -28,7 +28,7 @@
     </ul>
 
     <p class="pull-right">
-        <a  href="${admin_prefix}/acme-order/new/automated"
+        <a  href="${admin_prefix}/acme-order/new/freeform"
             title="${request.text_library.info_AcmeOrder_new_automated[0]}"
             class="btn btn-xs btn-primary"
         >

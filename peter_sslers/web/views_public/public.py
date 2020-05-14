@@ -42,18 +42,24 @@ class ViewPublic(Handler):
                 self.request.api_context, self.request.active_domain_name, challenge,
             )
             if dbAcmeChallenge:
-                lib_db.create.create__AcmeChallengePoll(
-                    self.request.api_context,
-                    dbAcmeChallenge=dbAcmeChallenge,
-                    remote_ip_address=self.request.environ["REMOTE_ADDR"],
-                )
+                try:
+                    lib_db.create.create__AcmeChallengePoll(
+                        self.request.api_context,
+                        dbAcmeChallenge=dbAcmeChallenge,
+                        remote_ip_address=self.request.environ["REMOTE_ADDR"],
+                    )
+                except Exception as exc:
+                    log.critical("create__AcmeChallengePoll: %s", exc)
                 return dbAcmeChallenge.keyauthorization
 
-        # okay this is unkonwn
-        lib_db.create.create__AcmeChallengeUnknownPoll(
-            self.request.api_context,
-            domain=self.request.active_domain_name,
-            challenge=challenge,
-            remote_ip_address=self.request.environ["REMOTE_ADDR"],
-        )
+        # okay this is unknown
+        try:
+            lib_db.create.create__AcmeChallengeUnknownPoll(
+                self.request.api_context,
+                domain=self.request.active_domain_name,
+                challenge=challenge,
+                remote_ip_address=self.request.environ["REMOTE_ADDR"],
+            )
+        except Exception as exc:
+            log.critical("create__AcmeChallengeUnknownPoll: %s", exc)
         return "ERROR"

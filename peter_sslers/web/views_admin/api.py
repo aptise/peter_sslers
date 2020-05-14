@@ -269,7 +269,7 @@ class ViewAdminApi(Handler):
 
     def _domain_certificate_if_needed__submit(self):
         """
-        much of this logic is shared with /acme-order/new/automated
+        much of this logic is shared with /acme-order/new/freeform
         """
         try:
             (result, formStash) = formhandling.form_validate(

@@ -237,28 +237,28 @@ TEST_FILES = {
     },
     "AcmeOrder": {
         "test-extended_html": {
-            "acme-order/new/automated#1": {
+            "acme-order/new/freeform#1": {
                 "account_key_option": "account_key_file",
                 "acme_account_provider_id": "1",
                 "account_key_file_pem": "AcmeAccountKey-1.pem",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
                 "domain_names": [
-                    "new-automated-1-a.example.com",
-                    "new-automated-1-b.example.com",
+                    "new-freeform-1-a.example.com",
+                    "new-freeform-1-b.example.com",
                 ],
                 "private_key_cycle__renewal": "account_key_default",
                 "processing_strategy": "create_order",
             },
-            "acme-order/new/automated#2": {
+            "acme-order/new/freeform#2": {
                 "account_key_option": "account_key_file",
                 "acme_account_provider_id": "1",
                 "account_key_file_pem": "AcmeAccountKey-1.pem",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
                 "domain_names": [
-                    "new-automated-1-c.example.com",
-                    "new-automated-1-d.example.com",
+                    "new-freeform-1-c.example.com",
+                    "new-freeform-1-d.example.com",
                 ],
                 "private_key_cycle__renewal": "account_key_default",
                 "processing_strategy": "create_order",
@@ -699,6 +699,7 @@ class AppTest(AppTestCore):
                     dbAcmeAccountKey=_dbAcmeAccountKey_1,
                     dbPrivateKey=_dbPrivateKey_1,
                     dbServerCertificate=_dbServerCertificate_1,
+                    private_key_cycle_id__renewal=1,  # "single_certificate"
                 )
                 # self.ctx.pyramid_transaction_commit()
 

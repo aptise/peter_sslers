@@ -17,7 +17,7 @@ from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
 from ..lib import text as lib_text
-from ..lib.forms import Form_AcmeOrder_new_automated
+from ..lib.forms import Form_AcmeOrder_new_freeform
 from ..lib.forms import Form_AcmeOrder_renew_custom
 from ..lib.forms import Form_AcmeOrder_renew_quick
 from ..lib.handler import Handler, items_per_page
@@ -844,16 +844,16 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 
 
 class ViewAdmin_New(Handler):
-    @view_config(route_name="admin:acme_order:new:automated")
-    @view_config(route_name="admin:acme_order:new:automated|json", renderer="json")
-    def new_automated(self):
+    @view_config(route_name="admin:acme_order:new:freeform")
+    @view_config(route_name="admin:acme_order:new:freeform|json", renderer="json")
+    def new_freeform(self):
         self._load_AcmeAccountKey_GlobalDefault()
         self._load_AcmeAccountProviders()
         if self.request.method == "POST":
-            return self._new_automated__submit()
-        return self._new_automated__print()
+            return self._new_freeform__submit()
+        return self._new_freeform__print()
 
-    def _new_automated__print(self):
+    def _new_freeform__print(self):
         if self.request.wants_json:
             return {
                 "form_fields": {
@@ -897,12 +897,12 @@ class ViewAdmin_New(Handler):
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
                 ],
                 "instructions": [
-                    """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/new/automated.json"""
+                    """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/new/freeform.json"""
                     % self.request.admin_url
                 ],
             }
         return render_to_response(
-            "/admin/acme_order-new-automated.mako",
+            "/admin/acme_order-new-freeform.mako",
             {
                 "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
                 "AcmeAccountProviders": self.dbAcmeAccountProviders,
@@ -910,13 +910,13 @@ class ViewAdmin_New(Handler):
             self.request,
         )
 
-    def _new_automated__submit(self):
+    def _new_freeform__submit(self):
         """
         much of this logic is shared with /api/domain-certificate-if-needed
         """
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_AcmeOrder_new_automated, validate_get=False,
+                self.request, schema=Form_AcmeOrder_new_freeform, validate_get=False,
             )
             if not result:
                 raise formhandling.FormInvalid()
@@ -1034,7 +1034,7 @@ class ViewAdmin_New(Handler):
                                 "AcmeOrder": dbAcmeOrder.as_json,
                             }
                         return HTTPSeeOther(
-                            "%s/acme-order/%s?result=error&error=%s&operation=new+automated"
+                            "%s/acme-order/%s?result=error&error=%s&operation=new+freeform"
                             % (
                                 self.request.registry.settings["app_settings"][
                                     "admin_prefix"
@@ -1073,7 +1073,7 @@ class ViewAdmin_New(Handler):
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
                 return HTTPSeeOther(
-                    "%s/acme-orders?result=error&error=%s&operation=new+automated"
+                    "%s/acme-orders?result=error&error=%s&operation=new+freeform"
                     % (
                         self.request.registry.settings["app_settings"]["admin_prefix"],
                         exc.as_querystring,
@@ -1085,7 +1085,7 @@ class ViewAdmin_New(Handler):
                 # raise
                 if self.request.registry.settings["exception_redirect"]:
                     return HTTPSeeOther(
-                        "%s/acme-orders?result=error&operation=new-automated"
+                        "%s/acme-orders?result=error&operation=new-freeform"
                         % self.request.registry.settings["app_settings"]["admin_prefix"]
                     )
                 raise
@@ -1093,4 +1093,4 @@ class ViewAdmin_New(Handler):
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            return formhandling.form_reprint(self.request, self._new_automated__print)
+            return formhandling.form_reprint(self.request, self._new_freeform__print)

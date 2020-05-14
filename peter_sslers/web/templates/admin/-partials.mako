@@ -1394,12 +1394,23 @@ http://127.0.0.1:7201/.well-known/admin/acme-account-key/new
             selected[default] = _checked
         else:
             if dbPrivateKeyReuse:
-                selected["private_key_reuse"] = _checked
+                if option_account_key_default:
+                    selected["private_key_for_account_key"] = _checked
+                else:
+                    selected["private_key_reuse"] = _checked
             else:
                 selected["private_key_for_account_key"] = _checked
     %>
     <p>Select a PrivateKey with one of the following options</p>
     <div class="form-horizontal">
+        % if option_account_key_default:
+            <div class="radio">
+                <label for="private_key_option-private_key_for_account_key">
+                    <input type="radio" name="private_key_option" id="private_key_option-private_key_for_account_key" value="private_key_for_account_key" ${selected["private_key_for_account_key"]}>
+                    Use the AcmeAccountKey&#39;s Default PrivateKey or Strategy
+                </label>
+            </div>
+        % endif
         % if dbPrivateKeyReuse:
             <div class="radio">
                 <label>
@@ -1423,15 +1434,7 @@ http://127.0.0.1:7201/.well-known/admin/acme-account-key/new
                     </a>
                 </p>
             </div>
-        % endif
-        % if option_account_key_default:
-            <div class="radio">
-                <label for="private_key_option-private_key_for_account_key">
-                    <input type="radio" name="private_key_option" id="private_key_option-private_key_for_account_key" value="private_key_for_account_key" ${selected["private_key_for_account_key"]}>
-                    Use the AcmeAccountKey&#39;s Default PrivateKey or Strategy
-                </label>
-            </div>
-        % endif
+        % endif        
         % if option_generate_new:
             <div class="radio">
                 <label for="private_key_option-private_key_generate">

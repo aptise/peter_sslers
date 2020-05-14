@@ -77,13 +77,17 @@
                     <th>PrivateKey</th>
                     <td>
                         <a class="label label-info"
-                            href="${admin_prefix}/private-key/${QueueCertificate.private_key}"
+                            href="${admin_prefix}/private-key/${QueueCertificate.private_key_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             PrivateKey-${QueueCertificate.private_key_id}</a>
                         </hr/>
                         <code>${QueueCertificate.private_key_id}</code>
                     </td>
+                </tr>
+                <tr>
+                    <th>PrivateKeyCycle - renewals</th>
+                    <td><code>${QueueCertificate.private_key_cycle__renewal}</code></td>
                 </tr>
                 <tr>
                     <th>Source</th>

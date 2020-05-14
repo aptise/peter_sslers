@@ -188,6 +188,9 @@ class ViewAdmin_New(Handler):
             except errors.AcmeDuplicateChallenges as exc:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_form(message=str(exc))
+            except Exception as exc:
+                log.critical("create__AcmeOrderless: %s", exc)
+                raise
 
             if self.request.wants_json:
                 return {

@@ -27,12 +27,12 @@
     <div class="row">
         <div class="col-sm-12">
 
-            <h4>Queue a Renewal Certificate for the Following?</h4>
+            <h4>Queue a Renewal?</h4>
             
             <p>Upon submission, the following combination will be added to the processing queue for AcmeOrders.</p>
             
             <form
-                action="${admin_prefix}/queue-certificate/new"
+                action="${admin_prefix}/queue-certificate/new-structured"
                 method="POST"
                 enctype="multipart/form-data"
             >
@@ -129,7 +129,14 @@
                                 % endif
                             </td>
                             <td>
-                                ${admin_partials.formgroup__PrivateKey_selector__advanced(dbPrivateKeyReuse=PrivateKey_resuse, option_account_key_default=True, option_generate_new=True)}
+                                ${admin_partials.formgroup__PrivateKey_selector__advanced(dbPrivateKeyReuse=PrivateKey_reuse, option_account_key_default=True, option_generate_new=True)}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Private Key Cycling: Renewals</th>
+                            <td></td>
+                            <td>
+                                ${admin_partials.formgroup__private_key_cycle__renewal()}
                             </td>
                         </tr>
                         <tr>

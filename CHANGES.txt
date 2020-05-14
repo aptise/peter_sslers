@@ -14,6 +14,8 @@
 - removed "returned" exception objects, which were a terrible idea
 - updated (json.dumps) to use `sort_keys=True` as needed
 - (queue-domains/process(.json)?) working and tested
+- `acme-order/new/automated` is now `acme-order/new/freeform`
+
 
 0.4.0
 unreleased (2020-01-23)

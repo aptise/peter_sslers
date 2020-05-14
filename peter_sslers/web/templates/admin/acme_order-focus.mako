@@ -278,18 +278,18 @@
 
                             <% renew_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${renew_btn_class}"
-                                href="${admin_prefix}/queue-certificate/new?queue_source=AcmeOrder&acme_order=${AcmeOrder.id}"
-                                title="Queue a renewal with same AcmeAccount."
+                                href="${admin_prefix}/queue-certificate/new-structured?queue_source=AcmeOrder&acme_order=${AcmeOrder.id}"
+                                title="Queue a Renewal."
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                Queue a Renewal ServerCertificate
+                                Queue a Renewal
                             </a>
                             &nbsp;
 
                             <% renew_btn_class = '' if AcmeOrder.is_renewable_quick else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${renew_btn_class}"
                                 href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/quick"
-                                title="Renew immediately with the same AcmeAccount."
+                                title="Renew immediately."
                             >
                                 <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
                                 Quick Renewal
@@ -299,7 +299,7 @@
                             <% renew_btn_class = '' if AcmeOrder.is_renewable_custom else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${renew_btn_class}"
                                 href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/custom"
-                                title="Select a new AccountKey for renewal."
+                                title="Renew with options."
                             >
                                 <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
                                 Custom Renewal

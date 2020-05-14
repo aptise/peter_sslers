@@ -359,9 +359,9 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_order:focus:renew:quick|json", "/acme-order/{@id}/renew/quick.json",
     )
-    config.add_route_7("admin:acme_order:new:automated", "/acme-order/new/automated")
+    config.add_route_7("admin:acme_order:new:freeform", "/acme-order/new/freeform")
     config.add_route_7(
-        "admin:acme_order:new:automated|json", "/acme-order/new/automated.json"
+        "admin:acme_order:new:freeform|json", "/acme-order/new/freeform.json"
     )
 
     # !!!: AcmeOrderless / AcmeFlow - our manual system
@@ -750,6 +750,16 @@ def _admin_views(config):
         "admin:queue_certificates:active_failures_paginated|json",
         "/queue-certificates/active-failures/{@page}.json",
     )
+
+    config.add_route_7(
+        "admin:queue_certificate:new_structured", "/queue-certificate/new-structured"
+    )
+    config.add_route_7(
+        "admin:queue_certificate:new_structured|json",
+        "/queue-certificate/new-structured.json",
+    )
+    # config.add_route_7("admin:queue_certificate:new_freeform", "/queue-certificate/new-freeform")
+    # config.add_route_7("admin:queue_certificate:new_freeform|json", "/queue-certificate/new-freeform.json")
 
     config.add_route_7("admin:queue_certificate:focus", "/queue-certificate/{@id}")
     config.add_route_7(

@@ -509,6 +509,9 @@ class Acme_Status_Order(_Acme_Status_All):
 Acme_Status_Order.IDS_BLOCKING = [
     Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_BLOCKING
 ]
+Acme_Status_Order.IDS_RENEW = [
+    Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_RENEW
+]
 
 
 class AcmeAccountKeySource(_mixin_mapping):
@@ -674,6 +677,7 @@ class PrivateKeyCycle(_mixin_mapping):
     )
     _DEFAULT_AcmeAccountKey = "single_certificate"
     _DEFAULT_AcmeOrder = "account_key_default"
+    _DEFAULT_system_renewal = "single_certificate"
 
 
 # compute this for ease of `curl` options

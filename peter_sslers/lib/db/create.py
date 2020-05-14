@@ -611,6 +611,7 @@ def create__QueueCertificate(
     ctx,
     dbAcmeAccountKey=None,
     dbPrivateKey=None,
+    private_key_cycle_id__renewal=None,
     dbAcmeOrder=None,
     dbServerCertificate=None,
     dbUniqueFQDNSet=None,
@@ -623,6 +624,7 @@ def create__QueueCertificate(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object
+    :param private_key_cycle_id__renewal: (required) Valid options are in `:class:model.utils.PrivateKeyCycle`
 
     :param dbAcmeOrder: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbServerCertificate: (optional) A :class:`model.objects.ServerCertificate` object
@@ -633,6 +635,11 @@ def create__QueueCertificate(
     :returns :class:`model.objects.QueueCertificate`
 
     """
+    if private_key_cycle_id__renewal not in model_utils.PrivateKeyCycle._mapping:
+        raise ValueError(
+            "Unsupported `private_key_cycle_id__renewal`: %s"
+            % private_key_cycle_id__renewal
+        )
     if not all((dbAcmeAccountKey, dbPrivateKey)):
         raise ValueError("must supply both `dbAcmeAccountKey` and `dbPrivateKey`")
     if not dbAcmeAccountKey.is_active:
@@ -664,11 +671,13 @@ def create__QueueCertificate(
     dbQueueCertificate.timestamp_entered = ctx.timestamp
     dbQueueCertificate.timestamp_processed = None
     dbQueueCertificate.operations_event_id__created = dbOperationsEvent.id
+    dbQueueCertificate.private_key_cycle_id__renewal = private_key_cycle_id__renewal
 
     # core elements
     dbQueueCertificate.acme_account_key_id = dbAcmeAccountKey.id
     dbQueueCertificate.private_key_id = dbPrivateKey.id
     dbQueueCertificate.unique_fqdn_set_id = unique_fqdn_set_id
+
     # the source elements
     dbQueueCertificate.acme_order_id__source = dbAcmeOrder.id if dbAcmeOrder else None
     dbQueueCertificate.server_certificate_id__source = (

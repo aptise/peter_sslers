@@ -2003,10 +2003,8 @@ class FunctionalTests_DomainBlacklisted(AppTest):
         """
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
-        # "admin:acme_order:new:automated",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/new/automated", status=200
-        )
+        # "admin:acme_order:new:freeform",
+        res = self.testapp.get("/.well-known/admin/acme-order/new/freeform", status=200)
 
         form = res.form
         _form_fields = form.fields.keys()
@@ -2015,7 +2013,7 @@ class FunctionalTests_DomainBlacklisted(AppTest):
         form["acme_account_provider_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"].force_value("account_daily")
@@ -3085,6 +3083,50 @@ class FunctionalTests_QueueCertificate(AppTest):
             status=200,
         )
 
+    @tests_routes(("admin:queue_certificate:new_structured",))
+    def test_new_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_new_html
+        """
+        raise ValueError("todo")
+
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new-structured", status=303
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=error&error=invalid+queue+source&operation=new"
+        )
+
+        # try with an AcmeOrder
+        dbAcmeOrder = (
+            self.ctx.dbSession.query(model_objects.AcmeOrder)
+            .join(
+                model_objects.AcmeAccountKey,
+                model_objects.AcmeOrder.acme_account_key_id
+                == model_objects.AcmeAccountKey.id,
+            )
+            .filter(
+                model_objects.AcmeAccountKey.is_active.is_(True),
+                model_objects.AcmeOrder.acme_status_order_id.in_(
+                    model_utils.Acme_Status_Order.IDS_RENEW
+                ),
+            )
+            .order_by(model_objects.AcmeOrder.id.asc())
+            .one()
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new-structured?queue_source=AcmeOrder&acme_order=%s"
+            % dbAcmeOrder.id,
+            status=200,
+        )
+
+        pdb.set_trace()
+
+    @tests_routes(("admin:queue_certificate:new_structured|json",))
+    def test_new_json(self):
+        raise ValueError("todo")
+
 
 class FunctionalTests_QueueDomains(AppTest):
     """
@@ -3387,7 +3429,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
     @tests_routes(
         (
-            "admin:acme_order:new:automated",
+            "admin:acme_order:new:freeform",
             "admin:acme_order:focus|json",
             "admin:acme_account_key:focus",
             "admin:acme_account_key:focus:acme_authorizations",
@@ -3401,12 +3443,10 @@ class FunctionalTests_AcmeServer(AppTest):
         """
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
         # we need two for this test
-        assert len(_test_data["acme-order/new/automated#1"]["domain_names"]) == 2
+        assert len(_test_data["acme-order/new/freeform#1"]["domain_names"]) == 2
 
-        # "admin:acme_order:new:automated",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/new/automated", status=200
-        )
+        # "admin:acme_order:new:freeform",
+        res = self.testapp.get("/.well-known/admin/acme-order/new/freeform", status=200)
         form = res.form
         _form_fields = form.fields.keys()
         assert "account_key_option" in _form_fields
@@ -3414,14 +3454,14 @@ class FunctionalTests_AcmeServer(AppTest):
         form["acme_account_provider_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"].force_value("account_daily")
         form["private_key_cycle__renewal"].force_value("account_key_default")
         form["private_key_option"].force_value("private_key_for_account_key")
         form["domain_names"] = ",".join(
-            _test_data["acme-order/new/automated#1"]["domain_names"]
+            _test_data["acme-order/new/freeform#1"]["domain_names"]
         )
         form["processing_strategy"].force_value("create_order")
         res2 = form.submit()
@@ -3573,7 +3613,7 @@ class FunctionalTests_AcmeServer(AppTest):
         ]
         assert len(acme_authorization_ids_2) == 0
 
-    @tests_routes(("admin:acme_order:new:automated",))
+    @tests_routes(("admin:acme_order:new:freeform",))
     def _prep_AcmeOrder_html(self, processing_strategy=None):
         """
         this runs `@under_pebble`, but the invoking function should wrap it
@@ -3581,12 +3621,10 @@ class FunctionalTests_AcmeServer(AppTest):
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
         # we need two for this test
-        assert len(_test_data["acme-order/new/automated#1"]["domain_names"]) == 2
+        assert len(_test_data["acme-order/new/freeform#1"]["domain_names"]) == 2
 
-        # "admin:acme_order:new:automated",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/new/automated", status=200
-        )
+        # "admin:acme_order:new:freeform",
+        res = self.testapp.get("/.well-known/admin/acme-order/new/freeform", status=200)
 
         form = res.form
         _form_fields = form.fields.keys()
@@ -3595,14 +3633,14 @@ class FunctionalTests_AcmeServer(AppTest):
         form["acme_account_provider_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"].force_value("account_daily")
         form["private_key_cycle__renewal"].force_value("account_key_default")
         form["private_key_option"].force_value("private_key_for_account_key")
         form["domain_names"] = ",".join(
-            _test_data["acme-order/new/automated#1"]["domain_names"]
+            _test_data["acme-order/new/freeform#1"]["domain_names"]
         )
         if processing_strategy is None:
             processing_strategy = "create_order"
@@ -3621,7 +3659,7 @@ class FunctionalTests_AcmeServer(AppTest):
     @under_pebble
     @tests_routes(
         (
-            "admin:acme_order:new:automated",
+            "admin:acme_order:new:freeform",
             "admin:acme_order:focus",
             "admin:acme_order:focus:acme_server:sync",
             "admin:acme_order:focus:acme_server:sync_authorizations",
@@ -3672,7 +3710,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         _dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
         assert len(_dbAcmeOrder.acme_authorizations) == len(
-            _test_data["acme-order/new/automated#1"]["domain_names"]
+            _test_data["acme-order/new/freeform#1"]["domain_names"]
         )
         _authorization_pairs = [
             (i.id, i.acme_challenge_http01.id) for i in _dbAcmeOrder.acme_authorizations
@@ -3866,11 +3904,9 @@ class FunctionalTests_AcmeServer(AppTest):
         #
 
         # we need two for this test
-        assert len(_test_data["acme-order/new/automated#2"]["domain_names"]) == 2
-        # "admin:acme_order:new:automated",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/new/automated", status=200
-        )
+        assert len(_test_data["acme-order/new/freeform#2"]["domain_names"]) == 2
+        # "admin:acme_order:new:freeform",
+        res = self.testapp.get("/.well-known/admin/acme-order/new/freeform", status=200)
 
         form = res.form
         _form_fields = form.fields.keys()
@@ -3879,14 +3915,14 @@ class FunctionalTests_AcmeServer(AppTest):
         form["acme_account_provider_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#2"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#2"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"].force_value("account_daily")
         form["private_key_cycle__renewal"].force_value("account_key_default")
         form["private_key_option"].force_value("private_key_for_account_key")
         form["domain_names"] = ",".join(
-            _test_data["acme-order/new/automated#2"]["domain_names"]
+            _test_data["acme-order/new/freeform#2"]["domain_names"]
         )
         form["processing_strategy"].force_value("create_order")
         res2 = form.submit()
@@ -3961,7 +3997,7 @@ class FunctionalTests_AcmeServer(AppTest):
     @under_pebble
     @tests_routes(
         (
-            "admin:acme_order:new:automated",
+            "admin:acme_order:new:freeform",
             "admin:acme_order:focus",
             "admin:acme_order:focus:retry",
             "admin:acme_order:focus:mark",
@@ -4015,7 +4051,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @under_pebble
-    @tests_routes(("admin:acme_order:new:automated", "admin:acme_order:focus",))
+    @tests_routes(("admin:acme_order:new:freeform", "admin:acme_order:focus",))
     def test_AcmeOrder_process_single_html(self):
         (obj_id, obj_url) = self._prep_AcmeOrder_html(
             processing_strategy="process_single"
@@ -4037,7 +4073,7 @@ class FunctionalTests_AcmeServer(AppTest):
     @under_pebble
     @tests_routes(
         (
-            "admin:acme_order:new:automated",
+            "admin:acme_order:new:freeform",
             "admin:acme_order:focus",
             "admin:acme_order:focus:acme_process",
         )
@@ -4078,7 +4114,7 @@ class FunctionalTests_AcmeServer(AppTest):
             in res.text
         )
 
-    @tests_routes(("admin:acme_order:new:automated|json",))
+    @tests_routes(("admin:acme_order:new:freeform|json",))
     def _prep_AcmeOrder_json(self, processing_strategy=None):
         """
         this runs `@under_pebble`, but the invoking function should wrap it
@@ -4086,11 +4122,11 @@ class FunctionalTests_AcmeServer(AppTest):
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
         # we need two for this test
-        assert len(_test_data["acme-order/new/automated#1"]["domain_names"]) == 2
+        assert len(_test_data["acme-order/new/freeform#1"]["domain_names"]) == 2
 
-        # "admin:acme_order:new:automated",
+        # "admin:acme_order:new:freeform",
         res = self.testapp.get(
-            "/.well-known/admin/acme-order/new/automated.json", status=200
+            "/.well-known/admin/acme-order/new/freeform.json", status=200
         )
         assert "instructions" in res.json
 
@@ -4099,21 +4135,21 @@ class FunctionalTests_AcmeServer(AppTest):
         form["acme_account_provider_id"] = "1"
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"] = "account_daily"
         form["private_key_cycle__renewal"] = "account_key_default"
         form["private_key_option"] = "private_key_for_account_key"
         form["domain_names"] = ",".join(
-            _test_data["acme-order/new/automated#1"]["domain_names"]
+            _test_data["acme-order/new/freeform#1"]["domain_names"]
         )
         if processing_strategy is None:
             processing_strategy = "create_order"
         form["processing_strategy"] = processing_strategy
 
         res2 = self.testapp.post(
-            "/.well-known/admin/acme-order/new/automated.json", form
+            "/.well-known/admin/acme-order/new/freeform.json", form
         )
         assert res2.status_code == 200
         assert "AcmeOrder" in res2.json
@@ -4125,7 +4161,7 @@ class FunctionalTests_AcmeServer(AppTest):
     @under_pebble
     @tests_routes(
         (
-            "admin:acme_order:new:automated|json",
+            "admin:acme_order:new:freeform|json",
             "admin:acme_order:focus|json",
             "admin:acme_order:focus:acme_server:sync|json",
             "admin:acme_order:focus:acme_server:sync_authorizations|json",
@@ -4175,7 +4211,7 @@ class FunctionalTests_AcmeServer(AppTest):
 
         _dbAcmeOrder = self.ctx.dbSession.query(model_objects.AcmeOrder).get(obj_id)
         assert len(_dbAcmeOrder.acme_authorizations) == len(
-            _test_data["acme-order/new/automated#1"]["domain_names"]
+            _test_data["acme-order/new/freeform#1"]["domain_names"]
         )
         _authorization_pairs = [
             (i.id, i.acme_challenge_http01.id) for i in _dbAcmeOrder.acme_authorizations
@@ -4390,27 +4426,27 @@ class FunctionalTests_AcmeServer(AppTest):
         #
 
         # we need two for this test
-        assert len(_test_data["acme-order/new/automated#2"]["domain_names"]) == 2
+        assert len(_test_data["acme-order/new/freeform#2"]["domain_names"]) == 2
 
-        # "admin:acme_order:new:automated",
+        # "admin:acme_order:new:freeform",
         form = {}
         form["account_key_option"] = "account_key_file"
         form["acme_account_provider_id"] = "1"
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#2"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#2"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"] = "account_daily"
         form["private_key_cycle__renewal"] = "account_key_default"
         form["private_key_option"] = "private_key_for_account_key"
         form["domain_names"] = ",".join(
-            _test_data["acme-order/new/automated#2"]["domain_names"]
+            _test_data["acme-order/new/freeform#2"]["domain_names"]
         )
         form["processing_strategy"] = "create_order"
 
         res2 = self.testapp.post(
-            "/.well-known/admin/acme-order/new/automated.json", form
+            "/.well-known/admin/acme-order/new/freeform.json", form
         )
         assert res2.status_code == 200
         assert "AcmeOrder" in res2.json
@@ -4480,7 +4516,7 @@ class FunctionalTests_AcmeServer(AppTest):
     @under_pebble
     @tests_routes(
         (
-            "admin:acme_order:new:automated|json",
+            "admin:acme_order:new:freeform|json",
             "admin:acme_order:focus|json",
             "admin:acme_order:focus:retry|json",
             "admin:acme_order:focus:mark|json",
@@ -4548,7 +4584,7 @@ class FunctionalTests_AcmeServer(AppTest):
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @under_pebble
     @tests_routes(
-        ("admin:acme_order:new:automated|json", "admin:acme_order:focus|json",)
+        ("admin:acme_order:new:freeform|json", "admin:acme_order:focus|json",)
     )
     def test_AcmeOrder_process_single_json(self):
         """
@@ -4575,7 +4611,7 @@ class FunctionalTests_AcmeServer(AppTest):
     @under_pebble
     @tests_routes(
         (
-            "admin:acme_order:new:automated|json",
+            "admin:acme_order:new:freeform|json",
             "admin:acme_order:focus|json",
             "admin:acme_order:focus:acme_process|json",
         )
@@ -5303,7 +5339,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["acme_account_provider_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"].force_value("account_daily")
@@ -5351,7 +5387,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["acme_account_provider_id"].force_value("1")
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"].force_value("account_daily")
@@ -5404,7 +5440,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["acme_account_provider_id"] = "1"
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"] = "account_daily"
@@ -5462,7 +5498,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["acme_account_provider_id"] = "1"
         form["account_key_file_pem"] = Upload(
             self._filepath_testfile(
-                _test_data["acme-order/new/automated#1"]["account_key_file_pem"]
+                _test_data["acme-order/new/freeform#1"]["account_key_file_pem"]
             )
         )
         form["account_key__private_key_cycle"] = "account_daily"
@@ -5738,7 +5774,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
     def _place_order(self, account_key_file_pem, domain_names):
 
         resp = requests.get(
-            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/automated.json"
+            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/freeform.json"
         )
         assert resp.status_code == 200
         assert "instructions" in resp.json()
@@ -5756,7 +5792,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["domain_names"] = ",".join(domain_names)
         form["processing_strategy"] = "process_single"
         resp = requests.post(
-            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/automated.json",
+            "http://peter-sslers.example.com:5002/.well-known/admin/acme-order/new/freeform.json",
             data=form,
             files=files,
         )
@@ -5779,7 +5815,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         ]
 
         resp = self._place_order(
-            _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
+            _test_data["acme-order/new/freeform#1"]["account_key_file_pem"],
             domain_names,
         )
         assert resp.status_code == 200
@@ -5825,7 +5861,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         stats_og = self._calculate_stats()
         resp = self._place_order(
-            _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
+            _test_data["acme-order/new/freeform#1"]["account_key_file_pem"],
             domain_names,
         )
         assert resp.status_code == 200
@@ -5898,7 +5934,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
             stats_og = self._calculate_stats()
             resp = self._place_order(
-                _test_data["acme-order/new/automated#1"]["account_key_file_pem"],
+                _test_data["acme-order/new/freeform#1"]["account_key_file_pem"],
                 domain_names,
             )
             assert resp.status_code == 200

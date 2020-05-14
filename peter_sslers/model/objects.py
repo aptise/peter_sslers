@@ -2271,6 +2271,11 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
 
+    # let's require this
+    private_key_cycle_id__renewal = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.PrivateKeyCycle
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     acme_account_key = sa.orm.relationship(
@@ -2335,6 +2340,10 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     def domains_as_list(self):
         return self.unique_fqdn_set.domains_as_list
 
+    @reify
+    def private_key_cycle__renewal(self):
+        return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__renewal)
+
     @property
     def as_json(self):
         return {
@@ -2345,6 +2354,7 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
             "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
             "is_active": True if self.is_active else False,
             "acme_account_key_id": self.acme_account_key_id,
+            "private_key_cycle__renewal": self.private_key_cycle__renewal,
             "private_key_id": self.private_key_id,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "acme_order_id__source": self.acme_order_id__source,

@@ -164,7 +164,7 @@
             <h3>New ServerCertificates</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
-                    <a  href="${admin_prefix}/acme-order/new/automated"
+                    <a  href="${admin_prefix}/acme-order/new/freeform"
                         title="${request.text_library.info_AcmeOrder_new_automated[0]}"
                         class="btn btn-primary"
                     >

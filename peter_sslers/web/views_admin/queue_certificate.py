@@ -20,7 +20,7 @@ from ..lib import formhandling
 from ..lib import form_utils as form_utils
 from ..lib.forms import Form_QueueCertificate_mark
 
-# from ..lib.forms import Form_QueueCertificate_new
+from ..lib.forms import Form_QueueCertificate_new_structured
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -190,12 +190,12 @@ class ViewNew(Handler):
             )
             if not dbAcmeOrder:
                 raise HTTPSeeOther(
-                    "%s?result=error&error=invalid+acme+order&operation=new"
+                    "%s?result=error&error=invalid+acme-order&operation=new"
                     % _failure_url
                 )
             if not dbAcmeOrder.is_renewable_queue:
                 raise HTTPSeeOther(
-                    "%s?result=error&error=acme+order+ineligible&operation=new"
+                    "%s?result=error&error=acme-order+ineligible&operation=new"
                     % _failure_url
                 )
             queue_data["AcmeOrder"] = dbAcmeOrder
@@ -208,7 +208,7 @@ class ViewNew(Handler):
             )
             if not dbServerCertificate:
                 raise HTTPSeeOther(
-                    "%s?result=error&error=invalid+server+certificate&operation=new"
+                    "%s?result=error&error=invalid+server-certificate&operation=new"
                     % _failure_url
                 )
             queue_data["ServerCertificate"] = dbServerCertificate
@@ -220,7 +220,7 @@ class ViewNew(Handler):
             )
             if not dbUniqueFQDNSet:
                 raise HTTPSeeOther(
-                    "%s?result=error&error=invalid+uniqe+fqdn+set&operation=new"
+                    "%s?result=error&error=invalid+unique-fqdn-set&operation=new"
                     % _failure_url
                 )
             queue_data["UniqueFQDNSet"] = dbUniqueFQDNSet
@@ -230,6 +230,104 @@ class ViewNew(Handler):
                 % _failure_url
             )
         return queue_data
+
+    @view_config(route_name="admin:queue_certificate:new_structured")
+    @view_config(
+        route_name="admin:queue_certificate:new_structured|json", renderer="json"
+    )
+    def new_structured(self):
+        self._load_AcmeAccountKey_GlobalDefault()
+        self._load_AcmeAccountProviders()
+        self.queue_data = self._parse_queue_source()
+        if self.request.method == "POST":
+            return self._new_structured__submit()
+        return self._new_structured__print()
+
+    def _new_structured__print(self):
+        if self.request.wants_json:
+            return {
+                "instructions": """POST required""",
+                "form_fields": {},
+            }
+        return render_to_response(
+            "/admin/queue_certificate-new-structured.mako",
+            {
+                "queue_source": self.queue_data["queue_source"],
+                "AcmeOrder": self.queue_data["AcmeOrder"],
+                "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
+                "AcmeAccountProviders": self.dbAcmeAccountProviders,
+                "AcmeAccountKey_resuse": self.queue_data["AcmeAccountKey_reuse"],
+                "PrivateKey_reuse": self.queue_data["PrivateKey_reuse"],
+                "ServerCertificate": self.queue_data["ServerCertificate"],
+                "UniqueFQDNSet": self.queue_data["UniqueFQDNSet"],
+            },
+            self.request,
+        )
+        return render_to_response(
+            "/admin/queue_certificate-new-structured.mako", {}, self.request
+        )
+
+    def _new_structured__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_QueueCertificate_new_structured,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(
+                self.request, formStash, require_contact=False,
+            )
+            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
+            private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
+                private_key_cycle__renewal
+            )
+
+            kwargs_create = {
+                "dbAcmeAccountKey": accountKeySelection.AcmeAccountKey,
+                "dbPrivateKey": privateKeySelection.PrivateKey,
+                "private_key_cycle_id__renewal": private_key_cycle_id__renewal,
+            }
+            _queue_source = self.queue_data["queue_source"]
+            if _queue_source == "AcmeOrder":
+                kwargs_create["dbAcmeOrder"] = self.queue_data["AcmeOrder"]
+            elif _queue_source == "ServerCertificate":
+                kwargs_create["dbServerCertificate"] = self.queue_data[
+                    "ServerCertificate"
+                ]
+            elif _queue_source == "UniqueFQDNSet":
+                kwargs_create["dbUniqueFQDNSet"] = self.queue_data["UniqueFQDNSet"]
+
+            try:
+                dbQueueCertificate = lib_db.create.create__QueueCertificate(
+                    self.request.api_context, **kwargs_create
+                )
+            except Exception as exc:
+                log.critical("create__QueueCertificate: %s", exc)
+                # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_form(message="Could not create the QueueCertificate")
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "QueueCertificate": dbQueueCertificate.as_json,
+                }
+            return HTTPSeeOther(
+                "%s/queue-certificate/%s"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    dbQueueCertificate.id,
+                )
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._new_structured__print)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 class ViewFocus(Handler):

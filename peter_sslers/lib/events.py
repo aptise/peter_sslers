@@ -28,10 +28,18 @@ def _handle_Certificate_unactivated(ctx, serverCertificate):
     :param serverCertificate: (required) A :class:`model.objects.ServerCertificate` object
     """
     # ok. so let's find out the fqdn...
-    requeue = None
     dbLatestActiveCert = lib.db.get.get__ServerCertificate__by_UniqueFQDNSetId__latest_active(
         ctx, serverCertificate.unique_fqdn_set_id
     )
+    requeue = None
+    if serverCertificate.acme_order:
+        private_key_cycle_id__renewal = (
+            serverCertificate.acme_order.private_key_cycle__renewal
+        )
+    else:
+        private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
+            model_utils.PrivateKeyCycle._DEFAULT_system_renewal
+        )
     if not dbLatestActiveCert:
         if serverCertificate.acme_account_key:
             requeue = True
@@ -43,6 +51,7 @@ def _handle_Certificate_unactivated(ctx, serverCertificate):
             dbAcmeAccountKey=serverCertificate.acme_account_key,
             dbPrivateKey=serverCertificate.private_key,
             dbServerCertificate=serverCertificate,
+            private_key_cycle_id__renewal=private_key_cycle_id__renewal,
         )
         return True
     return False
