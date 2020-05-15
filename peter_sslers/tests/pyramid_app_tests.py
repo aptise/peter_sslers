@@ -3176,13 +3176,15 @@ class FunctionalTests_QueueCertificate(AppTest):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_focus_json
         """
-        pdb.set_trace()
         focus_item = self._get_one()
         assert focus_item is not None
         focus_id = focus_item.id
         res = self.testapp.get(
             "/.well-known/admin/queue-certificate/%s.json" % focus_id, status=200
         )
+        assert res.json["result"] == "success"
+        assert "QueueCertificate" in res.json
+        assert res.json["QueueCertificate"]["id"] == focus_id
 
     @tests_routes(("admin:queue_certificate:focus:mark",))
     def test_manipulate_html(self):
