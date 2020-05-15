@@ -349,11 +349,14 @@ def queue_certificates__via_fqdns(
             if not dbUniqueFQDNSet:
                 unique_fqdn_set_ids__bad.append(fqdns_id)
                 continue
+            raise ValueError("TODO")
             dbQueueCertificate = lib.db.create.create__QueueCertificate(
                 ctx,
                 dbAcmeAccountKey=None,
                 dbPrivateKey=None,
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
+                private_key_cycle_id__renewal=FOO,
+                private_key_strategy_id__requested=FOO,
             )
             renewals.append(dbQueueCertificate)
         event_payload_dict["unique_fqdn_set-queued.ids"] = [
@@ -422,12 +425,15 @@ def queue_certificates__update(ctx):
         )
         results = _core_query.all()
         for dbAcmeOrder in results:
+            raise ValueError("TODO")
             # this will call `_log_object_event` as needed
             dbQueueCertificate = lib.db.create.create__QueueCertificate(
                 ctx,
                 dbAcmeAccountKey=dbAcmeOrder.acme_account_key,
                 dbPrivateKey=dbAcmeOrder.private_key,
                 dbAcmeOrder=dbAcmeOrder,
+                private_key_cycle_id__renewal=FOO,
+                private_key_strategy_id__requested=FOO,
             )
             renewals.append(dbQueueCertificate)
         event_payload_dict["server_certificate-queued.ids"] = ",".join(

@@ -942,60 +942,9 @@ class ViewAdmin_New(Handler):
                     message="invalid or no valid domain names detected",
                 )
 
-            accountKeySelection = form_utils.parse_AcmeAccountKeySelection(
-                self.request,
-                formStash,
-                account_key_option=formStash.results["account_key_option"],
-                require_contact=False,
+            (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(
+                self.request, formStash, require_contact=False,
             )
-            if accountKeySelection.selection == "upload":
-                key_create_args = accountKeySelection.upload_parsed.getcreate_args
-                key_create_args["event_type"] = "AcmeAccountKey__insert"
-                key_create_args[
-                    "acme_account_key_source_id"
-                ] = model_utils.AcmeAccountKeySource.from_string("imported")
-                (
-                    dbAcmeAccountKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__AcmeAccountKey(
-                    self.request.api_context, **key_create_args
-                )
-                accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
-
-            privateKeySelection = form_utils.parse_PrivateKeySelection(
-                self.request,
-                formStash,
-                private_key_option=formStash.results["private_key_option"],
-            )
-
-            if privateKeySelection.selection == "upload":
-                key_create_args = privateKeySelection.upload_parsed.getcreate_args
-                key_create_args["event_type"] = "PrivateKey__insert"
-                key_create_args[
-                    "private_key_source_id"
-                ] = model_utils.PrivateKeySource.from_string("imported")
-                key_create_args[
-                    "private_key_type_id"
-                ] = model_utils.PrivateKeyType.from_string("standard")
-                (
-                    dbPrivateKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__PrivateKey__by_pem_text(
-                    self.request.api_context, **key_create_args
-                )
-                privateKeySelection.PrivateKey = dbPrivateKey
-
-            elif privateKeySelection.selection in (
-                "generate",
-                "private_key_for_account_key",
-            ):
-                pass
-
-            else:
-                formStash.fatal_field(
-                    field="private_key_option",
-                    message="Could not load the default private key",
-                )
 
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
@@ -1065,8 +1014,6 @@ class ViewAdmin_New(Handler):
                 )
 
             except errors.AcmeBlacklistedDomains as exc:
-                if self.request.wants_json:
-                    return {"result": "error", "error": str(exc)}
                 formStash.fatal_field(field="domain_names", message=str(exc))
 
             except errors.AcmeDuplicateChallenges as exc:

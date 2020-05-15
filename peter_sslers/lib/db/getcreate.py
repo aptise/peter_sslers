@@ -745,9 +745,9 @@ def getcreate__PrivateKey__by_pem_text(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param str key_pem:
-    :param int acme_account_key_id__owner: (optional) the id of a `:class:model.objects.AcmeAccountKey` which owns this `:class:model.objects.PrivateKey`
+    :param int acme_account_key_id__owner: (optional) the id of a :class:`model.objects.AcmeAccountKey` which owns this :class:`model.objects.PrivateKey`
     :param int private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
-    :param int private_key_type_id: (required) Valid options are in `:class:model.utils.PrivateKeyType`
+    :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKeyType`
     :param int private_key_id__replaces: (required) if this key replaces a compromised key, note it.
     """
     is_created = False
@@ -1099,12 +1099,18 @@ def getcreate__ServerCertificate(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__UniqueFQDNSet__by_domains(ctx, domain_names):
+def getcreate__UniqueFQDNSet__by_domains(
+    ctx, domain_names, allow_blacklisted_domains=False
+):
     """
     getcreate wrapping unique fqdn
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: a list of domains names (strings)
+    :param allow_blacklisted_domains: boolean, default `False`. If `True`, disables check against domains blacklist
+    
+    :returns: A tuple consisting of (:class:`model.objects.UniqueFQDNSet`, :bool:`is_created`)
+    :raises: `errors.AcmeBlacklistedDomains`
     """
     # we should have cleaned this up before submitting, but just be safe!
     domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
@@ -1112,14 +1118,15 @@ def getcreate__UniqueFQDNSet__by_domains(ctx, domain_names):
     if not domain_names:
         raise ValueError("no domain names!")
 
-    # ensure they are not blacklisted:
-    _blacklisted_domain_names = []
-    for _domain_name in domain_names:
-        _dbDomainBlacklisted = get__DomainBlacklisted__by_name(ctx, _domain_name)
-        if _dbDomainBlacklisted:
-            _blacklisted_domain_names.append(_domain_name)
-    if _blacklisted_domain_names:
-        raise errors.AcmeBlacklistedDomains(_blacklisted_domain_names)
+    if not allow_blacklisted_domains:
+        # ensure they are not blacklisted:
+        _blacklisted_domain_names = []
+        for _domain_name in domain_names:
+            _dbDomainBlacklisted = get__DomainBlacklisted__by_name(ctx, _domain_name)
+            if _dbDomainBlacklisted:
+                _blacklisted_domain_names.append(_domain_name)
+        if _blacklisted_domain_names:
+            raise errors.AcmeBlacklistedDomains(_blacklisted_domain_names)
 
     # ensure the domains are registered into our system
     domain_objects = {

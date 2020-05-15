@@ -89,6 +89,10 @@
                     <th>PrivateKeyCycle - renewals</th>
                     <td><code>${QueueCertificate.private_key_cycle__renewal}</code></td>
                 </tr>
+                    <tr>
+                        <th>PrivateKeyStrategy - requested</th>
+                        <td><code>${QueueCertificate.private_key_strategy__requested}</code></td>
+                    </tr>
                 <tr>
                     <th>Source</th>
                     <td>

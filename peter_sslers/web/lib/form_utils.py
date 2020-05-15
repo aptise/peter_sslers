@@ -250,6 +250,12 @@ class _PrivateKeySelection(object):
     private_key_strategy__requested = None
     PrivateKey = None
 
+    @property
+    def private_key_strategy_id__requested(self):
+        return model_utils.PrivateKeyStrategy.from_string(
+            self.private_key_strategy__requested
+        )
+
 
 def parse_AcmeAccountKeySelection(
     request, formStash, account_key_option=None, allow_none=None, require_contact=None,
@@ -326,7 +332,7 @@ def parse_AcmeAccountKeySelection(
 def parse_PrivateKeySelection(request, formStash, private_key_option=None):
     private_key_pem = None
     private_key_pem_md5 = None
-    PrivateKey = None  # `:class:model.objects.PrivateKey`
+    PrivateKey = None  # :class:`model.objects.PrivateKey`
 
     # handle the explicit-option
     privateKeySelection = _PrivateKeySelection()
@@ -338,18 +344,24 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
         # update our object
         privateKeySelection.selection = "upload"
         privateKeySelection.upload_parsed = parser
-        privateKeySelection.private_key_strategy__requested = "specified"
+        privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
+            "upload"
+        ]
 
         return privateKeySelection
 
     else:
         if private_key_option == "private_key_existing":
             privateKeySelection.selection = "existing"
-            privateKeySelection.private_key_strategy__requested = "specified"
+            privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
+                "existing"
+            ]
             private_key_pem_md5 = formStash.results["private_key_existing"]
         elif private_key_option == "private_key_reuse":
             privateKeySelection.selection = "reuse"
-            privateKeySelection.private_key_strategy__requested = "specified"
+            privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
+                "reuse"
+            ]
             private_key_pem_md5 = formStash.results["private_key_reuse"]
         elif private_key_option in (
             "private_key_generate",
@@ -364,14 +376,14 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
             privateKeySelection.PrivateKey = dbPrivateKey
             if private_key_option == "private_key_generate":
                 privateKeySelection.selection = "generate"
-                privateKeySelection.private_key_strategy__requested = (
-                    "deferred-generate"
-                )
+                privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
+                    "generate"
+                ]
             elif private_key_option == "private_key_for_account_key":
                 privateKeySelection.selection = "private_key_for_account_key"
-                privateKeySelection.private_key_strategy__requested = (
-                    "deferred-associate"
-                )
+                privateKeySelection.private_key_strategy__requested = model_utils.PrivateKeySelection_2_PrivateKeyStrategy[
+                    "private_key_for_account_key"
+                ]
             return privateKeySelection
         else:
             # `formStash.fatal_form()` will raise `FormInvalid()`

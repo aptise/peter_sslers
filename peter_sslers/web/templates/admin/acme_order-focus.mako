@@ -278,7 +278,7 @@
 
                             <% renew_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${renew_btn_class}"
-                                href="${admin_prefix}/queue-certificate/new-structured?queue_source=AcmeOrder&acme_order=${AcmeOrder.id}"
+                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=AcmeOrder&acme_order=${AcmeOrder.id}"
                                 title="Queue a Renewal."
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>

@@ -13,6 +13,22 @@
 
 <%block name="page_header_col">
     <h2>Queue: Certificates</h2>
+    <p>Most QueueCertificates can be created from a link on an exisiting object's "Focus" page to the <code>/new/structured</code> form.
+        <ul>
+            <li>AcmeOrder</li>
+            <li>ServerCertificate</li>
+            <li>UniqueFQDNSet</li>
+        </ul>
+    </p>
+    <p>
+        If you do not have an existing UniqueFQDNSet, you can use the <code>/new/freeform</code> form:
+            <a href="${admin_prefix}/queue-certificate/new/freeform"
+               class="btn btn-primary btn-xs"
+            >
+                <span class="glyphicon glyphicon-plus"></span>
+                QueueCertificate    
+            </a>
+    </p>
 </%block>
 
 

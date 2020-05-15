@@ -706,6 +706,9 @@ class AppTest(AppTestCore):
                     dbPrivateKey=_dbPrivateKey_1,
                     dbServerCertificate=_dbServerCertificate_1,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
+                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
+                        "specified"
+                    ),
                 )
                 # self.ctx.pyramid_transaction_commit()
 
@@ -716,6 +719,9 @@ class AppTest(AppTestCore):
                     dbPrivateKey=_dbPrivateKey_1,
                     dbServerCertificate=_dbServerCertificate_2,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
+                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
+                        "specified"
+                    ),
                 )
                 _dbQueue3 = db.create.create__QueueCertificate(
                     self.ctx,
@@ -723,6 +729,9 @@ class AppTest(AppTestCore):
                     dbPrivateKey=_dbPrivateKey_1,
                     dbServerCertificate=_dbServerCertificate_3,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
+                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
+                        "specified"
+                    ),
                 )
 
                 # TODO: the dbSessions don't seem to be the same

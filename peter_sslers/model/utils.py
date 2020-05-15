@@ -714,6 +714,7 @@ class PrivateKeyStrategy(_mixin_mapping):
         3: "deferred-associate",  # use the daily/weekly/account/per-certificate when the order is made
         4: "backup",  # if there is an issue using the intended PrivateKey, backup to a new one
     }
+    _DEFAULT_system_renewal = "deferred-generate"
 
 
 class PrivateKeyType(_mixin_mapping):
@@ -793,3 +794,22 @@ PrivateKey_options_b = (
     "private_key_generate",
     "private_key_for_account_key",
 )
+
+
+PrivateKeySelection_2_PrivateKeyStrategy = {
+    "upload": "specified",
+    "existing": "specified",
+    "reuse": "specified",
+    "generate": "deferred-generate",
+    "private_key_for_account_key": "deferred-associate",
+}
+
+
+PrivateKeyCycle_2_PrivateKeyStrategy = {
+    "single_certificate": "deferred-generate",
+    "account_daily": "deferred-associate",
+    "global_daily": "deferred-associate",
+    "account_weekly": "deferred-associate",
+    "global_weekly": "deferred-associate",
+    "account_key_default": "*lookup*",
+}

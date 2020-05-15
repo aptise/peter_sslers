@@ -451,7 +451,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
-        # see `:method:AcmeAuthorization.to_acme_orders`
+        # see :method:`AcmeAuthorization.to_acme_orders`
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
 
         # we need to use tmpfiles on the disk
@@ -511,7 +511,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
-        # see `:method:AcmeAuthorization.to_acme_orders`
+        # see :method:`AcmeAuthorization.to_acme_orders`
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
 
         if authenticatedUser is None:
@@ -609,7 +609,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
             raise ValueError("can not proceed without an order for this authorization")
 
         # the authorization could be on multiple AcmeOrders
-        # see `:method:AcmeAuthorization.to_acme_orders`
+        # see :method:`AcmeAuthorization.to_acme_orders`
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
         _passes = None
         for _to_acme_order in dbAcmeAuthorization.to_acme_orders:

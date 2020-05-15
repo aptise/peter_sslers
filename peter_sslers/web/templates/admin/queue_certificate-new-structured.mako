@@ -18,6 +18,12 @@
 
 
 <%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/queue-certificate/new/structured.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
 </%block>
 
 
@@ -25,14 +31,14 @@
     ${admin_partials.standard_error_display()}
     ${admin_partials.handle_querystring_result()}
     <div class="row">
-        <div class="col-sm-12">
+        <div class="col-sm-6">
 
             <h4>Queue a Renewal?</h4>
             
             <p>Upon submission, the following combination will be added to the processing queue for AcmeOrders.</p>
             
             <form
-                action="${admin_prefix}/queue-certificate/new-structured"
+                action="${admin_prefix}/queue-certificate/new/structured"
                 method="POST"
                 enctype="multipart/form-data"
             >
@@ -153,6 +159,11 @@
                     </tbody>
                 </table>
             </form>
+        </div>
+        <div class="col-sm-6">
+            <p>This route supports JSON and is self-documenting on GET requests.</p>
+            ${admin_partials.info_AcmeAccountKey()}
+            ${admin_partials.info_PrivateKey()}
         </div>
     </div>
 </%block>

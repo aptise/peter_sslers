@@ -22,12 +22,15 @@ certificate renewal
 	- object should show if we can renew with account key; or maybe not. just allow it to be renewed
 	- better programmatic work is needed when cycling a multi-process request
 
-
-
-
 	
 asap tasks
 ---------------
+
+consolidate the `# check for blacklists here` code
+new queue-certificates need to track private_key_id__requested
+
+`account_key__private_key_cycle` is required on all forms but often unused
+	it should be conditional, based on the presences of uploading a new account-key
 
 Queue Processing
 - include an offset of the last domain added, so there isn't a race condition

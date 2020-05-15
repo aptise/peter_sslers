@@ -411,7 +411,7 @@
                         <td>
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/queue-certificate/new-structured?queue_source=ServerCertificate&server_certificate=${ServerCertificate.id}"
+                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=ServerCertificate&server_certificate=${ServerCertificate.id}"
                                 title="Queue a ServerCertificate"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>

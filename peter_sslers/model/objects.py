@@ -2235,6 +2235,9 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    private_key_strategy_id__requested = sa.Column(
+        sa.Integer, nullable=False
+    )  # see .utils.PrivateKeyStrategy
 
     # this is our core requirements. all must be present
     acme_account_key_id = sa.Column(
@@ -2343,6 +2346,16 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     def private_key_cycle__renewal(self):
         return model_utils.PrivateKeyCycle.as_string(self.private_key_cycle_id__renewal)
 
+    @reify
+    def private_key_strategy__requested(self):
+        return (
+            model_utils.PrivateKeyStrategy.as_string(
+                self.private_key_strategy_id__requested
+            )
+            if self.private_key_strategy_id__requested
+            else ""
+        )
+
     @property
     def as_json(self):
         return {
@@ -2353,6 +2366,7 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
             "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
             "is_active": True if self.is_active else False,
             "acme_account_key_id": self.acme_account_key_id,
+            "private_key_strategy__requested": self.private_key_strategy__requested,
             "private_key_cycle__renewal": self.private_key_cycle__renewal,
             "private_key_id": self.private_key_id,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
@@ -2675,6 +2689,32 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     @property
     def domains_as_list(self):
         return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def renewal__private_key_cycle_id(self):
+        if self.acme_order:
+            return self.acme_order.private_key_cycle_id__renewal
+        else:
+            return model_utils.PrivateKeyCycle.from_string(
+                model_utils.PrivateKeyCycle._DEFAULT_system_renewal
+            )
+
+    @property
+    def renewal__private_key_strategy_id(self):
+        if self.acme_order:
+            _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
+            if _private_key_cycle__renewal != "account_key_default":
+                return model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
+                    _private_key_cycle__renewal
+                ]
+            else:
+                return model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
+                    self.acme_order.acme_account_key.private_key_cycle
+                ]
+        else:
+            return model_utils.PrivateKeyStrategy.from_string(
+                model_utils.PrivateKeyStrategy._DEFAULT_system_renewal
+            )
 
     @property
     def as_json(self):

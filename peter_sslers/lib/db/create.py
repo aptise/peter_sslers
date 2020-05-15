@@ -36,7 +36,7 @@ def create__AcmeAccountProvider(ctx, name=None, directory=None, protocol=None):
     :param directory: (required) The directory
     :param protocol: (required) The protocol, must be "acme-v2"
 
-    returns: `:class:model.objects.AcmeAccountProvider`
+    returns: :class:`model.objects.AcmeAccountProvider`
     """
     if not directory or (
         not directory.startswith("http://") and not directory.startswith("https://")
@@ -150,11 +150,11 @@ def create__AcmeOrder(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param acme_order_response: (required) dictionary object from the server, representing an ACME payload
-    :param acme_order_type_id: (required) What type of order is this? Valid options are in `:class:model.utils.AcmeOrderType`
-    :param acme_order_processing_status_id: (required) Valid options are in `:class:model.utils.AcmeOrder_ProcessingStatus`
-    :param acme_order_processing_strategy_id: (required) Valid options are in `:class:model.utils.AcmeOrder_ProcessingStrategy`
-    :param private_key_cycle_id__renewal: (required) Valid options are in `:class:model.utils.PrivateKeyCycle`
-    :param private_key_strategy_id__requested: (required) Valid options are in `:class:model.utils.PrivateKeyStrategy`
+    :param acme_order_type_id: (required) What type of order is this? Valid options are in :class:`model.utils.AcmeOrderType`
+    :param acme_order_processing_status_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStatus`
+    :param acme_order_processing_strategy_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStrategy`
+    :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
     :param is_auto_renew: (optional) should this be auto-renewed?
     :param order_url: (required) the url of the object
     :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` associated with the order
@@ -428,7 +428,7 @@ def create__CertificateRequest(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param csr_pem: (required) A Certificate Signing Request with PEM formatting
-    :param certificate_request_source_id: (required) What is the source of this? Valid options are in `:class:model.utils.CertificateRequestSource`
+    :param certificate_request_source_id: (required) What is the source of this? Valid options are in :class:`model.utils.CertificateRequestSource`
     :param dbPrivateKey: (required) Private Key used to sign the CSR
 
     :param dbServerCertificate__issued: (optional) a `model_objects.ServerCertificate`
@@ -586,10 +586,10 @@ def create__PrivateKey(
     This function is a bit weird, because we invoke a GetCreate
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param int acme_account_key_id__owner: (optional) the id of a `:class:model.objects.AcmeAccountKey` which owns this `:class:model.objects.PrivateKey`
+    :param int acme_account_key_id__owner: (optional) the id of a :class:`model.objects.AcmeAccountKey` which owns this :class:`model.objects.PrivateKey`
     # :param int bits: (required) how many bits for the PrivateKey
     :param int private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
-    :param int private_key_type_id: (required) Valid options are in `:class:model.utils.PrivateKeyType`
+    :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKeyType`
     :param int private_key_id__replaces: (required) if this key replaces a compromised key, note it.
     """
     key_pem = cert_utils.new_private_key()
@@ -612,6 +612,7 @@ def create__QueueCertificate(
     dbAcmeAccountKey=None,
     dbPrivateKey=None,
     private_key_cycle_id__renewal=None,
+    private_key_strategy_id__requested=None,
     dbAcmeOrder=None,
     dbServerCertificate=None,
     dbUniqueFQDNSet=None,
@@ -624,13 +625,14 @@ def create__QueueCertificate(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object
-    :param private_key_cycle_id__renewal: (required) Valid options are in `:class:model.utils.PrivateKeyCycle`
+    :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
+    :param private_key_strategy_id__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
 
     :param dbAcmeOrder: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbServerCertificate: (optional) A :class:`model.objects.ServerCertificate` object
     :param dbUniqueFQDNSet: (optional) A :class:`model.objects.UniqueFQDNSet` object
 
-    one and only one of (dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet) should be supplied
+    one and only one of (dbAcmeOrder, dbServerCertificate, dbUniqueFQDNSet) must be supplied
 
     :returns :class:`model.objects.QueueCertificate`
 
@@ -639,6 +641,14 @@ def create__QueueCertificate(
         raise ValueError(
             "Unsupported `private_key_cycle_id__renewal`: %s"
             % private_key_cycle_id__renewal
+        )
+    if (
+        private_key_strategy_id__requested
+        not in model_utils.PrivateKeyStrategy._mapping
+    ):
+        raise ValueError(
+            "Unsupported `private_key_strategy_id__requested`: %s"
+            % private_key_strategy_id__requested
         )
     if not all((dbAcmeAccountKey, dbPrivateKey)):
         raise ValueError("must supply both `dbAcmeAccountKey` and `dbPrivateKey`")
@@ -672,6 +682,9 @@ def create__QueueCertificate(
     dbQueueCertificate.timestamp_processed = None
     dbQueueCertificate.operations_event_id__created = dbOperationsEvent.id
     dbQueueCertificate.private_key_cycle_id__renewal = private_key_cycle_id__renewal
+    dbQueueCertificate.private_key_strategy_id__requested = (
+        private_key_strategy_id__requested
+    )
 
     # core elements
     dbQueueCertificate.acme_account_key_id = dbAcmeAccountKey.id

@@ -802,14 +802,19 @@ def _admin_views(config):
     )
 
     config.add_route_7(
-        "admin:queue_certificate:new_structured", "/queue-certificate/new-structured"
+        "admin:queue_certificate:new_structured", "/queue-certificate/new/structured"
     )
     config.add_route_7(
         "admin:queue_certificate:new_structured|json",
-        "/queue-certificate/new-structured.json",
+        "/queue-certificate/new/structured.json",
     )
-    # config.add_route_7("admin:queue_certificate:new_freeform", "/queue-certificate/new-freeform")
-    # config.add_route_7("admin:queue_certificate:new_freeform|json", "/queue-certificate/new-freeform.json")
+    config.add_route_7(
+        "admin:queue_certificate:new_freeform", "/queue-certificate/new/freeform"
+    )
+    config.add_route_7(
+        "admin:queue_certificate:new_freeform|json",
+        "/queue-certificate/new/freeform.json",
+    )
 
     config.add_route_7("admin:queue_certificate:focus", "/queue-certificate/{@id}")
     config.add_route_7(

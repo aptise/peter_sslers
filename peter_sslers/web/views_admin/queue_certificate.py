@@ -20,6 +20,7 @@ from ..lib import formhandling
 from ..lib import form_utils as form_utils
 from ..lib.forms import Form_QueueCertificate_mark
 
+from ..lib.forms import Form_QueueCertificate_new_freeform
 from ..lib.forms import Form_QueueCertificate_new_structured
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -197,7 +198,9 @@ class ViewList(Handler):
 
 class ViewNew(Handler):
     def _parse_queue_source(self):
-        _failure_url = "%s/queue-certificates" % (self.request.admin_url,)
+        """
+        raises `errors.InvalidRequest` if there are queryarg concerns
+        """
         queue_source = self.request.params.get("queue_source")
         acme_order_id = self.request.params.get("acme_order")
         server_certificate_id = self.request.params.get("server_certificate")
@@ -216,15 +219,9 @@ class ViewNew(Handler):
                 self.request.api_context, acme_order_id
             )
             if not dbAcmeOrder:
-                raise HTTPSeeOther(
-                    "%s?result=error&error=invalid+acme-order&operation=new"
-                    % _failure_url
-                )
+                raise errors.InvalidRequest("invalid acme-order")
             if not dbAcmeOrder.is_renewable_queue:
-                raise HTTPSeeOther(
-                    "%s?result=error&error=acme-order+ineligible&operation=new"
-                    % _failure_url
-                )
+                raise errors.InvalidRequest("ineligible acme-order")
             queue_data["AcmeOrder"] = dbAcmeOrder
             if dbAcmeOrder.acme_account_key.is_active:
                 queue_data["AcmeAccountKey_reuse"] = dbAcmeOrder.acme_account_key
@@ -236,10 +233,7 @@ class ViewNew(Handler):
                 self.request.api_context, server_certificate_id
             )
             if not dbServerCertificate:
-                raise HTTPSeeOther(
-                    "%s?result=error&error=invalid+server-certificate&operation=new"
-                    % _failure_url
-                )
+                raise errors.InvalidRequest("invalid server-certificate")
             queue_data["ServerCertificate"] = dbServerCertificate
             if dbServerCertificate.private_key.is_active:
                 queue_data["PrivateKey_reuse"] = dbServerCertificate.private_key
@@ -249,16 +243,10 @@ class ViewNew(Handler):
                 self.request.api_context, unique_fqdn_set_id
             )
             if not dbUniqueFQDNSet:
-                raise HTTPSeeOther(
-                    "%s?result=error&error=invalid+unique-fqdn-set&operation=new"
-                    % _failure_url
-                )
+                raise errors.InvalidRequest("invalid unique-fqdn-set")
             queue_data["UniqueFQDNSet"] = dbUniqueFQDNSet
         else:
-            raise HTTPSeeOther(
-                "%s?result=error&error=invalid+queue+source&operation=new"
-                % _failure_url
-            )
+            raise errors.InvalidRequest("invalid queue source")
         return queue_data
 
     @view_config(route_name="admin:queue_certificate:new_structured")
@@ -268,7 +256,16 @@ class ViewNew(Handler):
     def new_structured(self):
         self._load_AcmeAccountKey_GlobalDefault()
         self._load_AcmeAccountProviders()
-        self.queue_data = self._parse_queue_source()
+        try:
+            self.queue_data = self._parse_queue_source()
+        except errors.InvalidRequest as exc:
+            if self.request.wants_json:
+                return {"result": "error", "error": exc.args[0]}
+            raise HTTPSeeOther(
+                "%s/queue-certificates?result=error&error=%s&operation=new-structured"
+                % (self.request.admin_url, exc.as_querystring)
+            )
+
         if self.request.method == "POST":
             return self._new_structured__submit()
         return self._new_structured__print()
@@ -333,9 +330,6 @@ class ViewNew(Handler):
             },
             self.request,
         )
-        return render_to_response(
-            "/admin/queue_certificate-new-structured.mako", {}, self.request
-        )
 
     def _new_structured__submit(self):
         try:
@@ -359,6 +353,7 @@ class ViewNew(Handler):
                 "dbAcmeAccountKey": accountKeySelection.AcmeAccountKey,
                 "dbPrivateKey": privateKeySelection.PrivateKey,
                 "private_key_cycle_id__renewal": private_key_cycle_id__renewal,
+                "private_key_strategy_id__requested": privateKeySelection.private_key_strategy_id__requested,
             }
             _queue_source = self.queue_data["queue_source"]
             if _queue_source == "AcmeOrder":
@@ -398,6 +393,142 @@ class ViewNew(Handler):
             return formhandling.form_reprint(self.request, self._new_structured__print)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:queue_certificate:new_freeform")
+    @view_config(
+        route_name="admin:queue_certificate:new_freeform|json", renderer="json"
+    )
+    def new_freeform(self):
+        self._load_AcmeAccountKey_GlobalDefault()
+        self._load_AcmeAccountProviders()
+        if self.request.method == "POST":
+            return self._new_freeform__submit()
+        return self._new_freeform__print()
+
+    def _new_freeform__print(self):
+        if self.request.wants_json:
+            return {
+                "instructions": """POST required""",
+                "form_fields": {
+                    "domain_names": "comma separated list of domain names",
+                    "account_key_option": "How is the AcmeAccountKey specified?",
+                    "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
+                    "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
+                    "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
+                    "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
+                    "acme_account_provider_id": "account provider. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is used.",
+                    "account_key_file_le_meta": "LetsEncrypt Certbot file. Must/Only submit if `account_key_option==account_key_file` and `account_key_file_pem` is not used",
+                    "account_key_file_le_pkey": "LetsEncrypt Certbot file",
+                    "account_key_file_le_reg": "LetsEncrypt Certbot file",
+                    "private_key_option": "How is the PrivateKey being specified?",
+                    "private_key_reuse": "pem_md5 of existing key",
+                    "private_key_existing": "pem_md5 of existing key",
+                    "private_key_file_pem": "pem to upload",
+                    "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
+                },
+                "form_fields_related": [],
+                "valid_options": {
+                    "private_key_cycle__renewal": None,
+                    "acme_account_provider_id": {
+                        i.id: "%s (%s)" % (i.name, i.url)
+                        for i in self.dbAcmeAccountProviders
+                    },
+                    "account_key_option": model_utils.AcmeAccontKey_options_b,
+                    "private_key_option": model_utils.PrivateKey_options_b,
+                    "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
+                    if self.dbAcmeAccountKey_GlobalDefault
+                    else None,
+                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+                },
+            }
+        return render_to_response(
+            "/admin/queue_certificate-new-freeform.mako",
+            {
+                "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
+                "AcmeAccountProviders": self.dbAcmeAccountProviders,
+            },
+            self.request,
+        )
+
+    def _new_freeform__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_QueueCertificate_new_freeform,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            try:
+                domain_names = utils.domains_from_string(
+                    formStash.results["domain_names"]
+                )
+            except ValueError as exc:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names", message="invalid domain names detected"
+                )
+            if not domain_names:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names",
+                    message="invalid or no valid domain names detected",
+                )
+
+            (accountKeySelection, privateKeySelection) = form_utils.form_key_selection(
+                self.request, formStash, require_contact=False,
+            )
+            private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
+            private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
+                private_key_cycle__renewal
+            )
+            try:
+
+                # this will check for blacklisted domains
+                (
+                    dbUniqueFQDNSet,
+                    is_created,
+                ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                    self.request.api_context,
+                    domain_names,
+                    allow_blacklisted_domains=False,
+                )
+
+            except errors.AcmeBlacklistedDomains as exc:
+                formStash.fatal_field(field="domain_names", message=str(exc))
+
+            try:
+                dbQueueCertificate = lib_db.create.create__QueueCertificate(
+                    self.request.api_context,
+                    dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
+                    dbPrivateKey=privateKeySelection.PrivateKey,
+                    dbUniqueFQDNSet=dbUniqueFQDNSet,
+                    private_key_cycle_id__renewal=private_key_cycle_id__renewal,
+                    private_key_strategy_id__requested=privateKeySelection.private_key_strategy_id__requested,
+                )
+            except Exception as exc:
+                log.critical("create__QueueCertificate: %s", exc)
+                # `formStash.fatal_form()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_form(message="Could not create the QueueCertificate")
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "QueueCertificate": dbQueueCertificate.as_json,
+                }
+            return HTTPSeeOther(
+                "%s/queue-certificate/%s"
+                % (
+                    self.request.registry.settings["app_settings"]["admin_prefix"],
+                    dbQueueCertificate.id,
+                )
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._new_freeform__print)
 
 
 class ViewFocus(Handler):

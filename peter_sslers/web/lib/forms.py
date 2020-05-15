@@ -344,6 +344,15 @@ class Form_PrivateKey_mark(_Form_Schema_Base):
     action = OneOf(("compromised", "active", "inactive",), not_empty=True)
 
 
+class Form_QueueCertificate_new_freeform(_form_AccountKey_PrivateKey_reuse):
+    # this is the `private_key_cycle` of the AcmeOrder renewals
+    private_key_cycle__renewal = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+        not_empty=True,
+    )
+    domain_names = UnicodeString(not_empty=True)
+
+
 class Form_QueueCertificate_new_structured(_form_AccountKey_PrivateKey_reuse):
     queue_source = OneOf(
         ("AcmeOrder", "ServerCertificate", "UniqueFQDNSet",), not_empty=True

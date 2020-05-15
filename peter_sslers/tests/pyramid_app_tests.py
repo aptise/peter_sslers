@@ -159,6 +159,9 @@ RE_QueueDomain_process_success = re.compile(
     """^http://peter-sslers\.example\.com/\.well-known/admin/queue-domains\?result=success&operation=processed&acme-order-id=(\d+)"""
 )
 
+RE_QueueCertificate = re.compile(
+    """^http://peter-sslers\.example\.com/\.well-known/admin/queue-certificate/(\d+)$"""
+)
 
 RE_server_certificate_link = re.compile(
     r"""href="/\.well-known/admin/server-certificate/(\d+)"""
@@ -3256,6 +3259,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         assert res3.json["form_errors"]["action"] == "Already cancelled"
 
     def _get_queueable_AcmeOrder(self):
+        # see `AcmeOrder.is_renewable_queue`
         dbAcmeOrder = (
             self.ctx.dbSession.query(model_objects.AcmeOrder)
             .join(
@@ -3263,32 +3267,39 @@ class FunctionalTests_QueueCertificate(AppTest):
                 model_objects.AcmeOrder.acme_account_key_id
                 == model_objects.AcmeAccountKey.id,
             )
-            .filter(
-                model_objects.AcmeAccountKey.is_active.is_(True),
-                model_objects.AcmeOrder.acme_status_order_id.in_(
-                    model_utils.Acme_Status_Order.IDS_RENEW
-                ),
-            )
+            .filter(model_objects.AcmeAccountKey.is_active.is_(True),)
             .order_by(model_objects.AcmeOrder.id.asc())
-            .one()
+            .first()
         )
+        assert dbAcmeOrder
         return dbAcmeOrder
+
+    def _get_queueable_ServerCertificate(self):
+        dbServerCertificate = (
+            self.ctx.dbSession.query(model_objects.ServerCertificate)
+            .order_by(model_objects.ServerCertificate.id.asc())
+            .first()
+        )
+        assert dbServerCertificate
+        return dbServerCertificate
 
     def _get_queueable_UniqueFQDNSet(self):
-        dbAcmeOrder = (
+        dbUniqueFQDNSet = (
             self.ctx.dbSession.query(model_objects.UniqueFQDNSet)
             .order_by(model_objects.UniqueFQDNSet.id.asc())
-            .one()
+            .first()
         )
-        return dbAcmeOrder
+        assert dbUniqueFQDNSet
+        return dbUniqueFQDNSet
 
     @tests_routes(("admin:queue_certificate:new_structured",))
-    def test_new_html(self):
+    def test_new_structured_html(self):
         """
-        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_new_html
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_new_structured_html
         """
+        # TODO: test with objects that have issues
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new-structured", status=303
+            "/.well-known/admin/queue-certificate/new/structured", status=303
         )
         assert (
             res.location
@@ -3298,33 +3309,185 @@ class FunctionalTests_QueueCertificate(AppTest):
         # try with an AcmeOrder
         dbAcmeOrder = self._get_queueable_AcmeOrder()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new-structured?queue_source=AcmeOrder&acme_order=%s"
+            "/.well-known/admin/queue-certificate/new/structured?queue_source=AcmeOrder&acme_order=%s"
             % dbAcmeOrder.id,
             status=200,
         )
-        pdb.set_trace()
+        form = res.form
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_QueueCertificate.match(res2.location)
+        assert matched
+        queue_id_1 = matched.groups()[0]
 
         # try with a ServerCertificate
         dbServerCertificate = self._get_queueable_ServerCertificate()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new-structured?queue_source=ServerCertificate&server_certificate=%s"
+            "/.well-known/admin/queue-certificate/new/structured?queue_source=ServerCertificate&server_certificate=%s"
             % dbServerCertificate.id,
             status=200,
         )
-        pdb.set_trace()
+        form = res.form
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_QueueCertificate.match(res2.location)
+        assert matched
+        queue_id_2 = matched.groups()[0]
 
         # try with an UniqueFQDNSet
         dbUniqueFQDNSet = self._get_queueable_UniqueFQDNSet()
         res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new-structured?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
+            "/.well-known/admin/queue-certificate/new/structured?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
             % dbUniqueFQDNSet.id,
             status=200,
         )
-        pdb.set_trace()
+        form = res.form
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_QueueCertificate.match(res2.location)
+        assert matched
+        queue_id_3 = matched.groups()[0]
 
     @tests_routes(("admin:queue_certificate:new_structured|json",))
-    def test_new_json(self):
-        raise ValueError("todo")
+    def test_new_structured_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_new_structured_json
+        """
+        # TODO: test with objects that have issues
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new/structured.json", status=200
+        )
+        assert res.json["result"] == "error"
+        assert res.json["error"] == "invalid queue source"
+
+        # try with an AcmeOrder
+        dbAcmeOrder = self._get_queueable_AcmeOrder()
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=AcmeOrder&acme_order=%s"
+            % dbAcmeOrder.id,
+            status=200,
+        )
+        assert "instructions" in res.json
+
+        form = {
+            "queue_source": "AcmeOrder",
+            "acme_order": dbAcmeOrder.id,
+            "account_key_option": "account_key_reuse",
+            "account_key_reuse": dbAcmeOrder.acme_account_key.key_pem_md5,
+            "account_key__private_key_cycle": "single_certificate",
+            "private_key_option": "private_key_for_account_key",
+            "private_key_cycle__renewal": "account_key_default",
+        }
+        res = self.testapp.post(
+            "/.well-known/admin/queue-certificate/new/structured.json",
+            form,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert "QueueCertificate" in res.json
+        queue_id_1 = res.json["QueueCertificate"]
+
+        # try with a ServerCertificate
+        dbServerCertificate = self._get_queueable_ServerCertificate()
+        res_instructions = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=ServerCertificate&server_certificate=%s"
+            % dbServerCertificate.id,
+            status=200,
+        )
+        account_key_global_default = res_instructions.json["valid_options"][
+            "AcmeAccountKey_GlobalDefault"
+        ]["key_pem_md5"]
+        form = {
+            "queue_source": "ServerCertificate",
+            "server_certificate": dbServerCertificate.id,
+            "account_key_option": "account_key_global_default",
+            "account_key_global_default": account_key_global_default,
+            "account_key__private_key_cycle": "single_certificate",
+            "private_key_option": "private_key_for_account_key",
+            "private_key_cycle__renewal": "account_key_default",
+        }
+        res = self.testapp.post(
+            "/.well-known/admin/queue-certificate/new/structured.json",
+            form,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert "QueueCertificate" in res.json
+        queue_id_2 = res.json["QueueCertificate"]
+
+        # try with an UniqueFQDNSet
+        dbUniqueFQDNSet = self._get_queueable_UniqueFQDNSet()
+        res_instructions = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=UniqueFQDNSet&unique_fqdn_set=%s"
+            % dbUniqueFQDNSet.id,
+            status=200,
+        )
+        form = {
+            "queue_source": "UniqueFQDNSet",
+            "unique_fqdn_set": dbUniqueFQDNSet.id,
+            "account_key_option": "account_key_global_default",
+            "account_key_global_default": account_key_global_default,
+            "account_key__private_key_cycle": "single_certificate",
+            "private_key_option": "private_key_for_account_key",
+            "private_key_cycle__renewal": "account_key_default",
+        }
+        res = self.testapp.post(
+            "/.well-known/admin/queue-certificate/new/structured.json",
+            form,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert "QueueCertificate" in res.json
+        queue_id_3 = res.json["QueueCertificate"]
+
+    @tests_routes(("admin:queue_certificate:new_freeform",))
+    def test_new_freeform_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_new_freeform_html
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new/freeform", status=200
+        )
+        form = res.form
+        form["domain_names"] = "test-new-freeform-html.example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_QueueCertificate.match(res2.location)
+        assert matched
+        queue_id_1 = matched.groups()[0]
+
+    @tests_routes(("admin:queue_certificate:new_freeform_json",))
+    def test_new_freeform_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_new_freeform_json
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new/freeform.json", status=200
+        )
+        assert "instructions" in res.json
+
+        res2 = self.testapp.post(
+            "/.well-known/admin/queue-certificate/new/freeform.json", {}, status=200
+        )
+        assert res2.json["result"] == "error"
+        assert "form_errors" in res2.json
+
+        form = {}
+        form["account_key_option"] = "account_key_global_default"
+        account_key_global_default = res.json["valid_options"][
+            "AcmeAccountKey_GlobalDefault"
+        ]["key_pem_md5"]
+        form["account_key_global_default"] = account_key_global_default
+        form["account_key__private_key_cycle"] = "single_certificate"
+        form["private_key_option"] = "private_key_for_account_key"
+        form["private_key_cycle__renewal"] = "account_key_default"
+        form["domain_names"] = "test-new-freeform-json.example.com"
+        res3 = self.testapp.post(
+            "/.well-known/admin/queue-certificate/new/freeform.json", form, status=200
+        )
+        assert res3.json["result"] == "success"
+        assert "QueueCertificate" in res3.json
+        queue_id_1 = res3.json["QueueCertificate"]
 
 
 class FunctionalTests_QueueDomains(AppTest):

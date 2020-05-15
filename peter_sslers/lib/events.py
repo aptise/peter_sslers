@@ -32,26 +32,20 @@ def _handle_Certificate_unactivated(ctx, serverCertificate):
         ctx, serverCertificate.unique_fqdn_set_id
     )
     requeue = None
-    if serverCertificate.acme_order:
-        private_key_cycle_id__renewal = (
-            serverCertificate.acme_order.private_key_cycle__renewal
-        )
-    else:
-        private_key_cycle_id__renewal = model_utils.PrivateKeyCycle.from_string(
-            model_utils.PrivateKeyCycle._DEFAULT_system_renewal
-        )
+
     if not dbLatestActiveCert:
         if serverCertificate.acme_account_key:
             requeue = True
         else:
             requeue = False
     if requeue:
-        dbQuque = lib.db.create.create__QueueCertificate(
+        dbQueue = lib.db.create.create__QueueCertificate(
             ctx,
             dbAcmeAccountKey=serverCertificate.acme_account_key,
             dbPrivateKey=serverCertificate.private_key,
             dbServerCertificate=serverCertificate,
-            private_key_cycle_id__renewal=private_key_cycle_id__renewal,
+            private_key_cycle_id__renewal=serverCertificate.renewal__private_key_cycle_id,
+            private_key_strategy_id__requested=serverCertificate.renewal__private_key_strategy_id,
         )
         return True
     return False
@@ -200,6 +194,7 @@ def PrivateKey_compromised(ctx, privateKeyCompromised, dbOperationsEvent=None):
                     # we can't queue these
                     certificates_not_renewable.extend(queue_unique_fqdn_set_ids)
                     continue
+                raise ValueError("TODO")
                 result = lib.db.queues.queue_certificates__via_fqdns(
                     ctx,
                     dbAcmeAccountKey=dbAcmeAccountKey,

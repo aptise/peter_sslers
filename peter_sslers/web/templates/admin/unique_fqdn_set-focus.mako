@@ -108,7 +108,7 @@
                         <td>
                             &nbsp;
                             <a  class="btn btn-xs btn-primary"
-                                href="${admin_prefix}/queue-certificate/new-structured?queue_source=UniqueFQDNSet&unique_fqdn_set=${UniqueFQDNSet.id}"
+                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=UniqueFQDNSet&unique_fqdn_set=${UniqueFQDNSet.id}"
                                 title="Queue a ServerCertificate"
                             >
                                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>

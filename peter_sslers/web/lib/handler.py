@@ -34,7 +34,7 @@ class Handler(object):
     """core response class
     """
 
-    #: The active `:class:Pyramid.request.Request`
+    #: The active :class:`Pyramid.request.Request`
     request = None
 
     #: The default :class:`model.objects.AcmeAccountKey`
@@ -42,7 +42,7 @@ class Handler(object):
 
     def __init__(self, request):
         """
-        :param request: A `:class:Pyramid.request.Request` instance.
+        :param request: A :class:`Pyramid.request.Request` instance.
         """
         self.request = request
         self.request.text_library = text
