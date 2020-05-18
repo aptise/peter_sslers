@@ -309,7 +309,7 @@ class Form_Certificate_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
 
 
-class Form_Certificate_mark(_Form_Schema_Base):
+class Form_ServerCertificate_mark(_Form_Schema_Base):
     action = OneOf(
         ("active", "inactive", "revoked", "renew_manual", "renew_auto", "unrevoke"),
         not_empty=True,

@@ -1238,7 +1238,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
         if is_created__CACertificate:
             ctx.pyramid_transaction_commit()
 
-        # immediately commit this
         dbServerCertificate = lib.db.create.create__ServerCertificate(
             ctx,
             cert_pem=certificate_pem,
@@ -1247,13 +1246,6 @@ def _do__AcmeV2_AcmeOrder__finalize(
             dbAcmeOrder=dbAcmeOrder,
             dbCACertificate=dbCACertificate,
             dbCertificateRequest=dbCertificateRequest,
-        )
-        # dbAcmeOrder.server_certificate_id = dbServerCertificate.id
-        dbAcmeOrder.server_certificate = dbServerCertificate
-
-        # note that we've completed this!
-        dbAcmeOrder.acme_order_processing_status_id = (
-            model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
         )
 
         ctx.pyramid_transaction_commit()

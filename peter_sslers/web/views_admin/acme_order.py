@@ -485,9 +485,9 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         Mark an order
         """
         dbAcmeOrder = self._focus(eagerload_web=True)
-        operation = self.request.params.get("operation")
+        action = self.request.params.get("action", None)
         try:
-            if operation == "invalid":
+            if action == "invalid":
                 if not dbAcmeOrder.is_can_mark_invalid:
                     raise errors.InvalidRequest("Can not mark this order as 'invalid'.")
                 lib_db.actions_acme.updated_AcmeOrder_status(
@@ -497,7 +497,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     transaction_commit=True,
                 )
 
-            elif operation == "deactivate":
+            elif action == "deactivate":
                 """
                 `deactivate` should mark the order as:
                     `is_processing = False`
@@ -510,7 +510,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 dbAcmeOrder.timestamp_updated = self.request.api_context.timestamp
                 self.request.api_context.dbSession.flush(objects=[dbAcmeOrder])
 
-            elif operation == "renew.auto":
+            elif action == "renew_auto":
                 if dbAcmeOrder.is_auto_renew:
                     raise errors.InvalidRequest("Can not mark this order for renewal.")
 
@@ -519,7 +519,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 # cleanup options
                 event_status = "AcmeOrder__mark__renew_auto"
 
-            elif operation == "renew.manual":
+            elif action == "renew_manual":
                 if not dbAcmeOrder.is_auto_renew:
                     raise errors.InvalidRequest(
                         "Can not unmark this order for renewal."
@@ -531,16 +531,17 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 event_status = "AcmeOrder__mark__renew_manual"
 
             else:
-                raise errors.InvalidRequest("invalid `operation`")
+                raise errors.InvalidRequest("invalid `action`")
 
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "operation": operation,
+                    "operation": "mark",
+                    "action": action,
                     "AcmeOrder": dbAcmeOrder.as_json,
                 }
             return HTTPSeeOther(
-                "%s?result=success&operation=%s" % (self._focus_url, operation)
+                "%s?result=success&operation=mark&action=%s" % (self._focus_url, action)
             )
 
         except (errors.InvalidRequest,) as exc:
@@ -550,10 +551,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "operation": "mark",
                     "error": str(exc),
                 }
-            return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=mark"
-                % (self._focus_url, exc.as_querystring)
-            )
+            url_failure =  "%s?result=error&error=%s&operation=mark" % (self._focus_url, exc.as_querystring)
+            if action:
+                url_failure = "%s&action=%s" % (url_failure, action)
+            return HTTPSeeOther(url_failure)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -952,15 +953,8 @@ class ViewAdmin_New(Handler):
 
                 # check for blacklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                _blacklisted_domain_names = []
-                for _domain_name in domain_names:
-                    _dbDomainBlacklisted = lib_db.get.get__DomainBlacklisted__by_name(
-                        self.request.api_context, _domain_name
-                    )
-                    if _dbDomainBlacklisted:
-                        _blacklisted_domain_names.append(_domain_name)
-                if _blacklisted_domain_names:
-                    raise errors.AcmeBlacklistedDomains(_blacklisted_domain_names)
+                # this may raise errors.AcmeBlacklistedDomains
+                lib_db.validate.validate_domain_names(self.request.api_context, domain_names)
 
                 try:
                     dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(

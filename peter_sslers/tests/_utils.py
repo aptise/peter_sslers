@@ -525,9 +525,10 @@ class AppTest(AppTestCore):
                     # self.ctx.pyramid_transaction_commit()
                     if _id == "1":
                         _dbAcmeAccountKey_1 = _dbAcmeAccountKey
-                        db.update.update_AcmeAccountKey__set_global_default(
-                            self.ctx, _dbAcmeAccountKey
-                        )
+                        if not _dbAcmeAccountKey.is_global_default:
+                            db.update.update_AcmeAccountKey__set_global_default(
+                                self.ctx, _dbAcmeAccountKey
+                            )
                         self.ctx.pyramid_transaction_commit()
 
                 # note: pre-populate CACertificate

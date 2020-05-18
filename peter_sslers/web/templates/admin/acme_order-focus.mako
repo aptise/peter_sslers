@@ -211,7 +211,7 @@
                         <td><span class="label label-default">${AcmeOrder.acme_order_processing_strategy}</span></td>
                     </tr>
                     <tr>
-                        <th>Processing Stratus</th>
+                        <th>Processing Status</th>
                         <td><span class="label label-default">${AcmeOrder.acme_order_processing_status}</span></td>
                     </tr>
 
@@ -251,7 +251,7 @@
                             &nbsp;
                             % if AcmeOrder.is_auto_renew:
                                 <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;" id="acme_order-mark-renew_manual">
-                                    <input type="hidden" name="operation" value="renew.manual"/>
+                                    <input type="hidden" name="action" value="renew_manual"/>
                                     <button class="btn btn-xs btn-warning" type="submit" name="submit" value="submit">
                                         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                                         deactivate auto-renew
@@ -259,7 +259,7 @@
                                 </form>
                             % else:
                                 <form action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark" method="POST" style="display:inline;" id="acme_order-mark-renew_auto">
-                                    <input type="hidden" name="operation" value="renew.auto"/>
+                                    <input type="hidden" name="action" value="renew_auto"/>
                                     <button class="btn btn-xs btn-success" type="submit" name="submit" value="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                         enable auto-renew

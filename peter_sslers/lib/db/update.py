@@ -288,6 +288,16 @@ def update_QueuedDomain_dequeue(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def update_ServerCertificate__mark_compromised(ctx, dbServerCertificate):
+    # the PrivateKey has been compromised
+    dbServerCertificate.is_compromised_private_key = True
+    dbServerCertificate.is_revoked = True  # TODO: this has nothing to do with the acme-server
+    if dbServerCertificate.is_active:
+        dbServerCertificate.is_active = False
+    event_status = "ServerCertificate__mark__compromised"
+    return event_status
+
+
 def update_ServerCertificate__set_active(ctx, dbServerCertificate):
 
     if dbServerCertificate.is_active:
@@ -325,6 +335,28 @@ def update_ServerCertificate__unset_active(ctx, dbServerCertificate):
     dbServerCertificate.is_active = False
 
     event_status = "ServerCertificate__mark__inactive"
+    return event_status
+
+
+def update_ServerCertificate__set_renew_auto(ctx, dbServerCertificate):
+    if dbServerCertificate.renewals_managed_by == "AcmeOrder":
+        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
+    if dbServerCertificate.is_auto_renew:
+        raise errors.InvalidTransition("Already active.")
+    # activate!
+    dbServerCertificate.is_auto_renew = True
+    event_status = "ServerCertificate__mark__renew_auto"
+    return event_status
+
+
+def update_ServerCertificate__set_renew_manual(ctx, dbServerCertificate):
+    if dbServerCertificate.renewals_managed_by == "AcmeOrder":
+        raise errors.InvalidTransition("auto-renew is managed by the AcmeOrder")
+    if not dbServerCertificate.is_auto_renew:
+        raise errors.InvalidTransition("Already inactive.")
+    # deactivate!
+    dbServerCertificate.is_auto_renew = False
+    event_status = "ServerCertificate__mark__renew_manual"
     return event_status
 
 

@@ -261,7 +261,10 @@ class _OperationsUnified(_mixin_mapping):
         721: "ServerCertificate__mark__active",
         722: "ServerCertificate__mark__inactive",
         723: "ServerCertificate__mark__revoked",
+        724: "ServerCertificate__mark__compromised",  # the PrivateKey has been compromised
         726: "ServerCertificate__mark__unrevoked",
+        727: "ServerCertificate__mark__renew_auto",
+        728: "ServerCertificate__mark__renew_manual",
         740: "ServerCertificate__revoke",
         751: "ServerCertificate__deactivate_expired",
         752: "ServerCertificate__deactivate_duplicate",

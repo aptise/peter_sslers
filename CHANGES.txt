@@ -17,6 +17,9 @@
 - `acme-order/new/automated` is now `acme-order/new/freeform`
 - slight reorganization of queue-certificates listing and logic
 - creating queue-certificates/structured largely done
+- consolidated domain blacklist checks to a new `validate` file
+??? adding acme_order_id__generated_by to server_certificate
+
 
 
 0.4.0

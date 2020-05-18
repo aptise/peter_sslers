@@ -23,6 +23,7 @@ from ...lib.utils import url_to_server
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
 from .helpers import _certificate_parse_to_record
+from .validate import validate_domain_names
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -79,15 +80,8 @@ def create__AcmeOrderless(
     if not domain_names:
         raise ValueError("Did not make a valid set of domain names")
 
-    _blacklisted_domain_names = []
-    for _domain_name in domain_names:
-        _dbDomainBlacklisted = lib.db.get.get__DomainBlacklisted__by_name(
-            ctx, _domain_name
-        )
-        if _dbDomainBlacklisted:
-            _blacklisted_domain_names.append(_domain_name)
-    if _blacklisted_domain_names:
-        raise errors.AcmeBlacklistedDomains(_blacklisted_domain_names)
+    # this may raise errors.AcmeBlacklistedDomains
+    validate_domain_names(ctx, domain_names)
 
     domain_objects = {
         _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
@@ -830,7 +824,6 @@ def create__ServerCertificate(
             )
 
         # ok, now pull the dates off the cert
-
         dbServerCertificate = model_objects.ServerCertificate()
         dbServerCertificate.cert_pem = cert_pem
         dbServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
@@ -842,7 +835,7 @@ def create__ServerCertificate(
             dbServerCertificate.is_single_domain_cert = True
         elif dbUniqueFQDNSet.count_domains >= 1:
             dbServerCertificate.is_single_domain_cert = False
-
+        
         """
         The following are set by `_certificate_parse_to_record`
             :attr:`model.utils.ServerCertificate.cert_pem_modulus_md5`
@@ -896,6 +889,16 @@ def create__ServerCertificate(
         # final, just to be safe
         ctx.dbSession.flush()
 
+        if dbAcmeOrder:
+            # dbServerCertificate.acme_order_id__generated_by = dbAcmeOrder.id
+            dbAcmeOrder.server_certificate = dbServerCertificate  # dbAcmeOrder.server_certificate_id = dbServerCertificate.id
+            dbAcmeOrder.acme_order_processing_status_id = (
+                model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
+            ) # note that we've completed this!
+
+            # final, just to be safe
+            ctx.dbSession.flush()
+            
     except Exception as exc:
         raise
     finally:

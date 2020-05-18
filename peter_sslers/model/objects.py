@@ -2514,6 +2514,11 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         sa.DateTime, nullable=True
     )  # if set, the cert was reported revoked upstream and this is FINAL
 
+    # preferably use the acme-order's auto-renew
+    is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=None)
+
+    # acme_order_id__generated_by = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
+
     # this is the LetsEncrypt key
     ca_certificate_id__upchain = sa.Column(
         sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=False
@@ -2681,7 +2686,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         # if self.acme_account_key_id:
         #    return True
         return False
-
+    
     @property
     def domains_as_string(self):
         return self.unique_fqdn_set.domains_as_string
@@ -2689,6 +2694,28 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     @property
     def domains_as_list(self):
         return self.unique_fqdn_set.domains_as_list
+
+    @property
+    def renewals_managed_by(self):
+        if self.acme_order:
+            return "AcmeOrder"
+        return "ServerCertificate"
+
+    '''
+    @property
+    def backup__private_key_cycle_id(self):
+        if self.acme_order:
+            _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
+            if _private_key_cycle__renewal == "account_key_default":
+                
+            
+            
+            return self.acme_order.private_key_cycle_id__renewal
+        else:
+            return model_utils.PrivateKeyCycle.from_string(
+                model_utils.PrivateKeyCycle._DEFAULT_system_renewal
+            )
+    '''
 
     @property
     def renewal__private_key_cycle_id(self):
@@ -2704,13 +2731,14 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         if self.acme_order:
             _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
             if _private_key_cycle__renewal != "account_key_default":
-                return model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
+                _private_key_strategy = model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
                     _private_key_cycle__renewal
                 ]
             else:
-                return model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
+                _private_key_strategy = model_utils.PrivateKeyCycle_2_PrivateKeyStrategy[
                     self.acme_order.acme_account_key.private_key_cycle
                 ]
+            return model_utils.PrivateKeyStrategy.from_string(_private_key_strategy)
         else:
             return model_utils.PrivateKeyStrategy.from_string(
                 model_utils.PrivateKeyStrategy._DEFAULT_system_renewal
@@ -2736,6 +2764,8 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             "private_key_id": self.private_key_id,
             # "acme_account_key_id": self.acme_account_key_id,
             "domains_as_list": self.domains_as_list,
+            "renewals_managed_by" : self.renewals_managed_by,
+            "is_auto_renew": bool(self.is_auto_renew if (self.renewals_managed_by == "ServerCertificate") else self.acme_order.is_auto_renew),
         }
 
 

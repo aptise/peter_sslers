@@ -105,7 +105,14 @@ class AcmeMissingChallenges(AcmeError):
     pass
 
 
-class AcmeBlacklistedDomains(AcmeError):
+class AcmeInvalidDomains(AcmeError):
+    def __str__(self):
+        return "The following Domains are invalid: {0}".format(
+            ", ".join(self.args[0])
+        )
+
+
+class AcmeBlacklistedDomains(AcmeInvalidDomains):
     def __str__(self):
         return "The following Domains are blacklisted: {0}".format(
             ", ".join(self.args[0])

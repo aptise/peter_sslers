@@ -17,7 +17,7 @@ from .. import lib
 from ..lib import form_utils as form_utils
 from ..lib import formhandling
 from ..lib import text as lib_text
-from ..lib.forms import Form_Certificate_mark
+from ..lib.forms import Form_ServerCertificate_mark
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -561,9 +561,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         return HTTPSeeOther(url_post_required)
 
     def _mark__submit(self, dbServerCertificate):
+        action = None
         try:
             (result, formStash) = formhandling.form_validate(
-                self.request, schema=Form_Certificate_mark, validate_get=False
+                self.request, schema=Form_ServerCertificate_mark, validate_get=False
             )
             if not result:
                 raise formhandling.FormInvalid()
@@ -605,8 +606,18 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     unactivated = True
                     event_type = "ServerCertificate__revoke"
 
+                elif action == "renew_manual":
+                    event_status = lib_db.update.update_ServerCertificate__set_renew_manual(
+                        self.request.api_context, dbServerCertificate
+                    )
+
+                elif action == "renew_auto":
+                    event_status = lib_db.update.update_ServerCertificate__set_renew_auto(
+                        self.request.api_context, dbServerCertificate
+                    )
+
                 elif action == "unrevoke":
-                    raise errors.InvalidTransition("invalid option")
+                    raise errors.InvalidTransition("invalid option, unrevoke")
                     """
                     event_status = lib_db.update.update_ServerCertificate__unset_revoked(
                         self.request.api_context, dbServerCertificate
@@ -668,11 +679,12 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
         except formhandling.FormInvalid as exc:
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
-            url_failure = "%s?&result=error&error=%s&operation=mark&action=%s" % (
+            url_failure = "%s?&result=error&error=%s&operation=mark" % (
                 self._focus_url,
                 formStash.errors["Error_Main"].replace("\n", "+").replace(" ", "+"),
-                action,
             )
+            if action:
+                url_failure = "%s&action=%s" % (url_failure, action)
             raise HTTPSeeOther(url_failure)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

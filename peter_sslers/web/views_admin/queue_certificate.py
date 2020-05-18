@@ -485,7 +485,7 @@ class ViewNew(Handler):
             )
             try:
 
-                # this will check for blacklisted domains
+                # this may raise errors.AcmeBlacklistedDomains
                 (
                     dbUniqueFQDNSet,
                     is_created,

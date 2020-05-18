@@ -55,7 +55,7 @@
                         <td><span class="label label-default">${AcmeOrder.acme_order_processing_strategy}</span></td>
                     </tr>
                     <tr>
-                        <th>Processing Stratus</th>
+                        <th>Processing Status</th>
                         <td><span class="label label-default">${AcmeOrder.acme_order_processing_status}</span></td>
                     </tr>
                     <tr>
