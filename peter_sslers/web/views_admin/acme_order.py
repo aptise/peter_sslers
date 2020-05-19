@@ -551,7 +551,10 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "operation": "mark",
                     "error": str(exc),
                 }
-            url_failure =  "%s?result=error&error=%s&operation=mark" % (self._focus_url, exc.as_querystring)
+            url_failure = "%s?result=error&error=%s&operation=mark" % (
+                self._focus_url,
+                exc.as_querystring,
+            )
             if action:
                 url_failure = "%s&action=%s" % (url_failure, action)
             return HTTPSeeOther(url_failure)
@@ -954,7 +957,9 @@ class ViewAdmin_New(Handler):
                 # check for blacklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
                 # this may raise errors.AcmeBlacklistedDomains
-                lib_db.validate.validate_domain_names(self.request.api_context, domain_names)
+                lib_db.validate.validate_domain_names(
+                    self.request.api_context, domain_names
+                )
 
                 try:
                     dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(

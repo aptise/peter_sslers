@@ -535,6 +535,29 @@ def _admin_views(config):
         "/certificate-request/{@id}/csr.{format:(csr|pem|pem.txt)}",
     )
 
+    # !!!: CoverageAssuranceEvents
+    config.add_route_7("admin:coverage_assurance_events", "/coverage-assurance-events")
+    config.add_route_7(
+        "admin:coverage_assurance_events:all", "/coverage-assurance-events/all"
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_events:all_paginated",
+        "/coverage-assurance-events/all/{@page}",
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_events:unresolved",
+        "/coverage-assurance-events/unresolved",
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_events:unresolved_paginated",
+        "/coverage-assurance-events/unresolved/{@page}",
+    )
+
+    # !!!: CoverageAssuranceEvent - Focus
+    config.add_route_7(
+        "admin:coverage_assurance_event:focus", "/coverage-assurance-event/{@id}"
+    )
+
     # !!!: Domains
     config.add_route_7("admin:domains", "/domains")
     config.add_route_7("admin:domains|json", "/domains.json")

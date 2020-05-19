@@ -650,6 +650,34 @@ class CertificateRequestSource(_mixin_mapping):
     }
 
 
+class CoverageAssuranceEventType(_mixin_mapping):
+    _mapping = {
+        # 1: "PrivateKey_compromised",
+        2: "PrivateKey_mark_revoked",
+        3: "PrivateKey_acme_revoked",
+        4: "ServerCertificate_mark_revoked",
+        5: "ServerCertificate_acme_revoked",
+    }
+
+
+class CoverageAssuranceResolution(_mixin_mapping):
+    _mapping = {
+        1: "unresolved",
+        2: "abandoned",
+        3: "PrivateKey_replaced",
+        4: "ServerCertificate_replaced",
+    }
+
+
+class CoverageAssuranceEventStatus(_mixin_mapping):
+    _mapping = {
+        1: "reported",
+        2: "reported+deactivated",
+        3: "resolved-ignored",
+        4: "resolved-replaced",
+    }
+
+
 class PrivateKeyCycle(_mixin_mapping):
     """
     How should a PrivateKey be cycled on renewal/queues?

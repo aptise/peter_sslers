@@ -291,7 +291,9 @@ def update_QueuedDomain_dequeue(
 def update_ServerCertificate__mark_compromised(ctx, dbServerCertificate):
     # the PrivateKey has been compromised
     dbServerCertificate.is_compromised_private_key = True
-    dbServerCertificate.is_revoked = True  # TODO: this has nothing to do with the acme-server
+    dbServerCertificate.is_revoked = (
+        True  # TODO: this has nothing to do with the acme-server
+    )
     if dbServerCertificate.is_active:
         dbServerCertificate.is_active = False
     event_status = "ServerCertificate__mark__compromised"

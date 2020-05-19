@@ -147,7 +147,6 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_account_keys",
     )
-
     acme_orders = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="AcmeAccountKey.id==AcmeOrder.acme_account_key_id",
@@ -155,19 +154,16 @@ class AcmeAccountKey(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_account_key",
     )
-
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="AcmeAccountKey.id==OperationsObjectEvent.acme_account_key_id",
         back_populates="acme_account_key",
     )
-
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="AcmeAccountKey.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
-
     private_keys__owned = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="AcmeAccountKey.id==PrivateKey.acme_account_key_id__owner",
@@ -425,7 +421,6 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_authorizations",
     )
-
     acme_challenge_http01 = sa_orm_relationship(
         "AcmeChallenge",
         primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
@@ -433,13 +428,11 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_authorization",
     )
-
     acme_order_created = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="AcmeAuthorization.acme_order_id__created==AcmeOrder.id",
         uselist=False,
     )
-
     to_acme_orders = sa_orm_relationship(
         "AcmeOrder2AcmeAuthorization",
         primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
@@ -706,21 +699,18 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="acme_challenge",
     )
-
     acme_authorization = sa_orm_relationship(
         "AcmeAuthorization",
         primaryjoin="AcmeChallenge.acme_authorization_id==AcmeAuthorization.id",
         uselist=False,
         back_populates="acme_challenge_http01",
     )
-
     acme_orderless = sa_orm_relationship(
         "AcmeOrderless",
         primaryjoin="AcmeChallenge.acme_orderless_id==AcmeOrderless.id",
         uselist=False,
         back_populates="acme_challenges",
     )
-
     domain = sa_orm_relationship(
         "Domain",
         primaryjoin="AcmeChallenge.domain_id==Domain.id",
@@ -828,7 +818,6 @@ class AcmeChallengePoll(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_challenge_polls",
     )
-
     remote_ip_address = sa_orm_relationship(
         "RemoteIpAddress",
         primaryjoin="AcmeChallengePoll.remote_ip_address_id==RemoteIpAddress.id",
@@ -1429,7 +1418,6 @@ class AcmeOrder2AcmeAuthorization(Base):
         uselist=False,
         back_populates="to_acme_authorizations",
     )
-
     acme_authorization = sa_orm_relationship(
         "AcmeAuthorization",
         primaryjoin="AcmeOrder2AcmeAuthorization.acme_authorization_id==AcmeAuthorization.id",
@@ -1542,7 +1530,6 @@ class CACertificate(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="CACertificate.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
-
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="CACertificate.id==OperationsObjectEvent.ca_certificate_id",
@@ -1713,6 +1700,69 @@ class CertificateRequest(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
+    """
+    A CoverageAssuranceEvent occurs when a ServerCertificate is deactivated
+    """
+
+    __tablename__ = "coverage_assurance_event"
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    private_key_id = sa.Column(
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
+    )
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=False
+    )
+    coverage_assurance_event_type_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # `model_utils.CoverageAssuranceEventType`
+    coverage_assurance_event_status_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # `model_utils.CoverageAssuranceEventStatus`
+    coverage_assurance_resolution_id = sa.Column(
+        sa.Integer, nullable=False
+    )  # `model_utils.CoverageAssuranceResolution`
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    private_key = sa_orm_relationship(
+        "PrivateKey",
+        primaryjoin="CoverageAssuranceEvent.private_key_id==PrivateKey.id",
+        back_populates="coverage_assurance_events",
+        uselist=False,
+    )
+    server_certificate = sa_orm_relationship(
+        "ServerCertificate",
+        primaryjoin="CoverageAssuranceEvent.server_certificate_id==ServerCertificate.id",
+        back_populates="coverage_assurance_events",
+        uselist=False,
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def coverage_assurance_event_type(self):
+        return model_utils.CoverageAssuranceEventType.from_string(
+            self.coverage_assurance_event_type_id
+        )
+
+    @property
+    def coverage_assurance_event_status(self):
+        return model_utils.CoverageAssuranceEventStatus.from_string(
+            self.coverage_assurance_event_status_id
+        )
+
+    @property
+    def coverage_assurance_event_type(self):
+        return model_utils.CoverageAssuranceEventResolution.from_string(
+            self.coverage_assurance_resolution_id
+        )
+
+
+# ==============================================================================
+
+
 class Domain(Base, _Mixin_Timestamps_Pretty):
     """
     A Fully Qualified Domain
@@ -1747,39 +1797,33 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="domain",
     )
-
     acme_challenges = sa_orm_relationship(
         "AcmeChallenge",
         primaryjoin="Domain.id==AcmeChallenge.domain_id",
         uselist=True,
         back_populates="domain",
     )
-
     queue_domain = sa.orm.relationship(
         "QueueDomain",
         primaryjoin="Domain.id==QueueDomain.domain_id",
         uselist=False,
         back_populates="domain",
     )
-
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="Domain.id==OperationsObjectEvent.domain_id",
         back_populates="domain",
     )
-
     server_certificate__latest_single = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="Domain.server_certificate_id__latest_single==ServerCertificate.id",
         uselist=False,
     )
-
     server_certificate__latest_multi = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="Domain.server_certificate_id__latest_multi==ServerCertificate.id",
         uselist=False,
     )
-
     to_fqdns = sa_orm_relationship(
         "UniqueFQDNSet2Domain",
         primaryjoin="Domain.id==UniqueFQDNSet2Domain.domain_id",
@@ -1858,14 +1902,12 @@ class OperationsEvent(Base, model_utils._mixin_OperationsEventType):
         primaryjoin="OperationsEvent.id==OperationsObjectEvent.operations_event_id",
         back_populates="operations_event",
     )
-
     children = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="OperationsEvent.id==OperationsEvent.operations_event_id__child_of",
         remote_side="OperationsEvent.operations_event_id__child_of",
         back_populates="parent",
     )
-
     parent = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="OperationsEvent.operations_event_id__child_of==OperationsEvent.id",
@@ -1963,70 +2005,60 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="object_events",
     )
-
     ca_certificate = sa_orm_relationship(
         "CACertificate",
         primaryjoin="OperationsObjectEvent.ca_certificate_id==CACertificate.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-
     certificate_request = sa_orm_relationship(
         "CertificateRequest",
         primaryjoin="OperationsObjectEvent.certificate_request_id==CertificateRequest.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-
     domain = sa_orm_relationship(
         "Domain",
         primaryjoin="OperationsObjectEvent.domain_id==Domain.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-
     acme_account_key = sa_orm_relationship(
         "AcmeAccountKey",
         primaryjoin="OperationsObjectEvent.acme_account_key_id==AcmeAccountKey.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-
     acme_order = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="OperationsObjectEvent.acme_order_id==AcmeOrder.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="OperationsObjectEvent.private_key_id==PrivateKey.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-
     queue_domain = sa_orm_relationship(
         "QueueDomain",
         primaryjoin="OperationsObjectEvent.queue_domain_id==QueueDomain.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-
     queue_certificate = sa_orm_relationship(
         "QueueCertificate",
         primaryjoin="OperationsObjectEvent.queue_certificate_id==QueueCertificate.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-
     server_certificate = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="OperationsObjectEvent.server_certificate_id==ServerCertificate.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-
     unique_fqdn_set = sa_orm_relationship(
         "UniqueFQDNSet",
         primaryjoin="OperationsObjectEvent.unique_fqdn_set_id==UniqueFQDNSet.id",
@@ -2090,34 +2122,35 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="private_keys__owned",
     )
-
     acme_orders = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="PrivateKey.id==AcmeOrder.private_key_id",
         order_by="AcmeOrder.id.desc()",
         back_populates="private_key",
     )
-
     certificate_requests = sa_orm_relationship(
         "CertificateRequest",
         primaryjoin="PrivateKey.id==CertificateRequest.private_key_id",
         order_by="CertificateRequest.id.desc()",
         back_populates="private_key",
     )
-
+    coverage_assurance_events = sa_orm_relationship(
+        "CoverageAssuranceEvent",
+        primaryjoin="PrivateKey.id==CoverageAssuranceEvent.private_key_id",
+        back_populates="private_key",
+        uselist=True,
+    )
     server_certificates = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="PrivateKey.id==ServerCertificate.private_key_id",
         order_by="ServerCertificate.id.desc()",
         back_populates="private_key",
     )
-
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="PrivateKey.id==OperationsObjectEvent.private_key_id",
         back_populates="private_key",
     )
-
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="PrivateKey.operations_event_id__created==OperationsEvent.id",
@@ -2571,6 +2604,12 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="ServerCertificate.ca_certificate_id__upchain==CACertificate.id",
         uselist=False,
     )
+    coverage_assurance_events = sa_orm_relationship(
+        "CoverageAssuranceEvent",
+        primaryjoin="ServerCertificate.id==CoverageAssuranceEvent.server_certificate_id",
+        back_populates="server_certificate",
+        uselist=True,
+    )
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="ServerCertificate.operations_event_id__created==OperationsEvent.id",
@@ -2686,7 +2725,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         # if self.acme_account_key_id:
         #    return True
         return False
-    
+
     @property
     def domains_as_string(self):
         return self.unique_fqdn_set.domains_as_string
@@ -2701,7 +2740,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             return "AcmeOrder"
         return "ServerCertificate"
 
-    '''
+    """
     @property
     def backup__private_key_cycle_id(self):
         if self.acme_order:
@@ -2715,7 +2754,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             return model_utils.PrivateKeyCycle.from_string(
                 model_utils.PrivateKeyCycle._DEFAULT_system_renewal
             )
-    '''
+    """
 
     @property
     def renewal__private_key_cycle_id(self):
@@ -2764,8 +2803,12 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             "private_key_id": self.private_key_id,
             # "acme_account_key_id": self.acme_account_key_id,
             "domains_as_list": self.domains_as_list,
-            "renewals_managed_by" : self.renewals_managed_by,
-            "is_auto_renew": bool(self.is_auto_renew if (self.renewals_managed_by == "ServerCertificate") else self.acme_order.is_auto_renew),
+            "renewals_managed_by": self.renewals_managed_by,
+            "is_auto_renew": bool(
+                self.is_auto_renew
+                if (self.renewals_managed_by == "ServerCertificate")
+                else self.acme_order.is_auto_renew
+            ),
         }
 
 
@@ -2801,43 +2844,36 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="unique_fqdn_set",
     )
-
     certificate_requests = sa_orm_relationship(
         "CertificateRequest",
         primaryjoin="UniqueFQDNSet.id==CertificateRequest.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
-
     server_certificates = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="UniqueFQDNSet.id==ServerCertificate.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
-
     to_domains = sa_orm_relationship(
         "UniqueFQDNSet2Domain",
         primaryjoin="UniqueFQDNSet.id==UniqueFQDNSet2Domain.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
-
     queue_certificates = sa_orm_relationship(
         "QueueCertificate",
         primaryjoin="UniqueFQDNSet.id==QueueCertificate.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
-
     queue_certificates__active = sa_orm_relationship(
         "QueueCertificate",
         primaryjoin="and_(UniqueFQDNSet.id==QueueCertificate.unique_fqdn_set_id, QueueCertificate.is_active==True)",
         back_populates="unique_fqdn_set",
     )
-
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="UniqueFQDNSet.id==OperationsObjectEvent.unique_fqdn_set_id",
         back_populates="unique_fqdn_set",
     )
-
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="UniqueFQDNSet.operations_event_id__created==OperationsEvent.id",
@@ -2896,7 +2932,6 @@ class UniqueFQDNSet2Domain(Base):
         uselist=False,
         back_populates="to_domains",
     )
-
     domain = sa_orm_relationship(
         "Domain",
         primaryjoin="UniqueFQDNSet2Domain.domain_id==Domain.id",

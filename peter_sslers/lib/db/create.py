@@ -566,6 +566,84 @@ def create__CertificateRequest(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def create__CoverageAssuranceEvent(
+    ctx,
+    coverage_assurance_event_type_id=None,
+    coverage_assurance_event_status_id=None,
+    coverage_assurance_resolution_id=None,
+    dbPrivateKey=None,
+    dbServerCertificate=None,
+):
+    """
+    Create a new Certificate Signing Request (CSR)
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param coverage_assurance_event_type_id: (required) :class:`model.utils.CoverageAssuranceEvent`
+    :param coverage_assurance_event_status_id: (required) :class:`model.utils.CoverageAssuranceEventStatus`
+
+    :param dbPrivateKey: a `model_objects.PrivateKey`
+    :param dbServerCertificate__issued: (optional) a `model_objects.ServerCertificate`
+    """
+    if (
+        coverage_assurance_event_type_id
+        not in model_utils.CoverageAssuranceEvent._mapping
+    ):
+        raise ValueError(
+            "Unsupported `coverage_assurance_event_type_id`: %s"
+            % coverage_assurance_event_type_id
+        )
+    if (
+        coverage_assurance_event_status_id
+        not in model_utils.CoverageAssuranceStatus._mapping
+    ):
+        raise ValueError(
+            "Unsupported `coverage_assurance_event_status_id`: %s"
+            % coverage_assurance_event_status_id
+        )
+    if coverage_assurance_resolution_id is None:
+        coverage_assurance_resolution_id = model_utils.CoverageAssuranceResolution.from_string(
+            "unresolved"
+        )
+    else:
+        if (
+            coverage_assurance_resolution_id
+            not in model_utils.CoverageAssuranceResolution._mapping
+        ):
+            raise ValueError(
+                "Unsupported `coverage_assurance_resolution_id`: %s"
+                % coverage_assurance_resolution_id
+            )
+
+    if not any((dbPrivateKey, dbServerCertificate)):
+        raise ValueError(
+            "must submit at least one of (dbPrivateKey, dbServerCertificate)"
+        )
+
+    dbCoverageAssuranceEvent = model_objects.CoverageAssuranceEvent()
+    dbCoverageAssuranceEvent.timestamp_created = ctx.timestamp
+    dbCoverageAssuranceEvent.coverage_assurance_event_type_id = (
+        coverage_assurance_event_type_id
+    )
+    dbCoverageAssuranceEvent.coverage_assurance_event_status_id = (
+        coverage_assurance_event_status_id
+    )
+    dbCoverageAssuranceEvent.coverage_assurance_resolution_id = (
+        coverage_assurance_resolution_id
+    )
+    if dbPrivateKey:
+        dbCoverageAssuranceEvent.private_key_id = dbPrivateKey.id
+    if dbServerCertificate:
+        dbCoverageAssuranceEvent.server_certificate = dbServerCertificate.id
+
+    ctx.dbSession.add(dbCoverageAssuranceEvent)
+    ctx.dbSession.flush(objects=[dbCoverageAssuranceEvent])
+
+    return dbCoverageAssuranceEvent
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def create__PrivateKey(
     ctx,
     # bits=None,
@@ -835,7 +913,7 @@ def create__ServerCertificate(
             dbServerCertificate.is_single_domain_cert = True
         elif dbUniqueFQDNSet.count_domains >= 1:
             dbServerCertificate.is_single_domain_cert = False
-        
+
         """
         The following are set by `_certificate_parse_to_record`
             :attr:`model.utils.ServerCertificate.cert_pem_modulus_md5`
@@ -894,11 +972,11 @@ def create__ServerCertificate(
             dbAcmeOrder.server_certificate = dbServerCertificate  # dbAcmeOrder.server_certificate_id = dbServerCertificate.id
             dbAcmeOrder.acme_order_processing_status_id = (
                 model_utils.AcmeOrder_ProcessingStatus.certificate_downloaded
-            ) # note that we've completed this!
+            )  # note that we've completed this!
 
             # final, just to be safe
             ctx.dbSession.flush()
-            
+
     except Exception as exc:
         raise
     finally:

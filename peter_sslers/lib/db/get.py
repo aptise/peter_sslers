@@ -1021,6 +1021,43 @@ def get__CertificateRequest__by_UniqueFQDNSetId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__CoverageAssuranceEvent__count(ctx, unresolved_only=None):
+    q = ctx.dbSession.query(model_objects.CoverageAssuranceEvent)
+    if unresolved_only:
+        q = q.filter(
+            model_objects.CoverageAssuranceEvent.coverage_assurance_resolution_id
+            == model_utils.CoverageAssuranceResolution.from_string("unresolved")
+        )
+    counted = q.count()
+    return counted
+
+
+def get__CoverageAssuranceEvent__paginated(
+    ctx, show_all=None, unresolved_only=None, limit=None, offset=0
+):
+    q = ctx.dbSession.query(model_objects.CoverageAssuranceEvent)
+    if unresolved_only:
+        q = q.filter(
+            model_objects.CoverageAssuranceEvent.coverage_assurance_resolution_id
+            == model_utils.CoverageAssuranceResolution.from_string("unresolved")
+        )
+    q = q.order_by(model_objects.CoverageAssuranceEvent.id.desc())
+    q = q.limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+def get__CoverageAssuranceEvent__by_id(ctx, event_id):
+    q = ctx.dbSession.query(model_objects.CoverageAssuranceEvent).filter(
+        model_objects.CoverageAssuranceEvent.id == event_id
+    )
+    item = q.first()
+    return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def _Domain_inject_exipring_days(ctx, q, expiring_days, order=False):
     """helper function for the count/paginated queries"""
     ServerCertificateMulti = sqlalchemy.orm.aliased(model_objects.ServerCertificate)
