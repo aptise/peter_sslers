@@ -53,17 +53,17 @@
                         <td></td>
                     </tr>
                     <tr>
-                        <th>AcmeAccountKey</th>
+                        <th>AcmeAccount</th>
                         <td>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-account-key/${AcmeOrder.acme_account_key_id}"
+                                href="${admin_prefix}/acme-account/${AcmeOrder.acme_account_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountKey-${AcmeOrder.acme_account_key_id}
+                                AcmeAccount-${AcmeOrder.acme_account_id}
                             </a>
                         </td>
-                        <td><code>${AcmeOrder.acme_account_key.key_pem_sample}</code></td>
+                        <td><code>${AcmeOrder.acme_account.acme_account_key.key_pem_sample}</code></td>
                     </tr>
                     <tr>
                         <th>PrivateKey</th>

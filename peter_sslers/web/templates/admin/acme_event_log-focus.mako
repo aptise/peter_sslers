@@ -45,14 +45,14 @@
                     <td><span class="label label-default">${AcmeEventLog.acme_event}</span></td>
                 </tr>
                 <tr>
-                    <th>acme_account_key_id</th>
+                    <th>acme_account_id</th>
                     <td>
-                        % if AcmeEventLog.acme_account_key_id:
+                        % if AcmeEventLog.acme_account_id:
                             <a  class="label label-info"
-                                href="${admin_prefix}/acme-account-key/${AcmeEventLog.acme_account_key_id}"
+                                href="${admin_prefix}/acme-account/${AcmeEventLog.acme_account_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountKey-${AcmeEventLog.acme_account_key_id}
+                                AcmeAccount-${AcmeEventLog.acme_account_id}
                             </a>
                         % endif
                     </td>

@@ -46,9 +46,9 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>AcmeAccountKey</th>
-                    <td>A Secret Key that is registered with the LetsEncrypt service.
-                        The <em>AcmeAccountKey</em> is only used for Authentication against the LetsEncrypt service.
+                    <th>AcmeAccount</th>
+                    <td>An Account and Secret Key that is registered with the LetsEncrypt service.
+                        The <em>AcmeAccount</em> has an <em>AcmeAccountKey</em> that is only used for Authentication against the LetsEncrypt service.
                     </td>
                 </tr>
                 <tr>

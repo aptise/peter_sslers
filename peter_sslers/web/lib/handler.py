@@ -37,8 +37,8 @@ class Handler(object):
     #: The active :class:`Pyramid.request.Request`
     request = None
 
-    #: The default :class:`model.objects.AcmeAccountKey`
-    dbAcmeAccountKey_GlobalDefault = None
+    #: The default :class:`model.objects.AcmeAccount`
+    dbAcmeAccount_GlobalDefault = None
 
     def __init__(self, request):
         """
@@ -100,14 +100,14 @@ class Handler(object):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def _load_AcmeAccountKey_GlobalDefault(self):
+    def _load_AcmeAccount_GlobalDefault(self):
         """
-        Loads the default :class:`model.objects.AcmeAccountKey` into the view's :attr:`.dbAcmeAccountKey_GlobalDefault`.
+        Loads the default :class:`model.objects.AcmeAccount` into the view's :attr:`.dbAcmeAccount_GlobalDefault`.
         """
-        self.dbAcmeAccountKey_GlobalDefault = db.get.get__AcmeAccountKey__GlobalDefault(
+        self.dbAcmeAccount_GlobalDefault = db.get.get__AcmeAccount__GlobalDefault(
             self.request.api_context, active_only=True
         )
-        return self.dbAcmeAccountKey_GlobalDefault
+        return self.dbAcmeAccount_GlobalDefault
 
     def _load_AcmeAccountProviders(self):
         """

@@ -188,16 +188,20 @@ class _OperationsUnified(_mixin_mapping):
 
     _mapping = {
         1: "_DatabaseInitialization",
-        110: "AcmeAccountKey__insert",
-        111: "AcmeAccountKey__create",
-        120: "AcmeAccountKey__authenticate",
-        130: "AcmeAccountKey__mark",
-        131: "AcmeAccountKey__mark__active",
-        132: "AcmeAccountKey__mark__inactive",
-        133: "AcmeAccountKey__mark__default",
-        134: "AcmeAccountKey__mark__notdefault",
-        135: "AcmeAccountKey__edit",
-        136: "AcmeAccountKey__edit__primary_key_cycle",
+        110: "AcmeAccount__insert",
+        111: "AcmeAccount__create",
+        120: "AcmeAccount__authenticate",
+        130: "AcmeAccount__mark",
+        131: "AcmeAccount__mark__active",
+        132: "AcmeAccount__mark__inactive",
+        133: "AcmeAccount__mark__default",
+        134: "AcmeAccount__mark__notdefault",
+        135: "AcmeAccount__edit",
+        136: "AcmeAccount__edit__primary_key_cycle",
+        137: "AcmeAccount__edit_AcmeAccountKey",
+        150: "AcmeAccountKey__insert",
+        151: "AcmeAccountKey__create",
+        152: "AcmeAccountKey__mark__inactive",
         640: "AcmeOrder_New_Automated",
         650: "AcmeOrder_New_Retry",
         651: "AcmeOrder_Renew_Custom",
@@ -653,10 +657,12 @@ class CertificateRequestSource(_mixin_mapping):
 class CoverageAssuranceEventType(_mixin_mapping):
     _mapping = {
         # 1: "PrivateKey_compromised",
-        2: "PrivateKey_mark_revoked",
-        3: "PrivateKey_acme_revoked",
-        4: "ServerCertificate_mark_revoked",
-        5: "ServerCertificate_acme_revoked",
+        2: "PrivateKey_compromised",  # we mark it as compromised
+        3: "PrivateKey_compromised_acme",  # the ACME server is confirmed to have it as compromised
+        4: "ServerCertificate_revoked_mark",  # we mark it as revoked
+        5: "ServerCertificate_revoked_acme",  # ACME confirms it as revoked
+        6: "AccountKey_revoked_mark",  # we mark it as revoked
+        7: "AccountKey_revoked_acme",  # ACME confirms it as recoked
     }
 
 
@@ -691,7 +697,7 @@ class PrivateKeyCycle(_mixin_mapping):
         5: "global_weekly",
         6: "account_key_default",  # use the options for the AcmeAcountKey
     }
-    _options_AcmeAccountKey_private_key_cycle_id = (
+    _options_AcmeAccount_private_key_cycle_id = (
         1,
         2,
         3,
@@ -706,15 +712,15 @@ class PrivateKeyCycle(_mixin_mapping):
         5,
         6,
     )
-    _DEFAULT_AcmeAccountKey = "single_certificate"
+    _DEFAULT_AcmeAccount = "single_certificate"
     _DEFAULT_AcmeOrder = "account_key_default"
     _DEFAULT_system_renewal = "single_certificate"
 
 
 # compute this for ease of `curl` options
-PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle = [
+PrivateKeyCycle._options_AcmeAccount_private_key_cycle = [
     PrivateKeyCycle._mapping[_id]
-    for _id in PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle_id
+    for _id in PrivateKeyCycle._options_AcmeAccount_private_key_cycle_id
 ]
 PrivateKeyCycle._options_AcmeOrder_private_key_cycle = [
     PrivateKeyCycle._mapping[_id]

@@ -45,8 +45,8 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <h3>AcmeAccountKey</h3>
-                ${admin_partials.formgroup__AcmeAccountKey_selector__advanced()}
+                <h3>AcmeAccount</h3>
+                ${admin_partials.formgroup__AcmeAccount_selector__advanced()}
                 <hr/>
 
                 <h3>PrivateKey</h3>
@@ -64,7 +64,7 @@
         </div>
         <div class="col-sm-6">
             <p>This route supports JSON and is self-documenting on GET requests.</p>
-            ${admin_partials.info_AcmeAccountKey()}
+            ${admin_partials.info_AcmeAccount()}
             ${admin_partials.info_PrivateKey()}
         </div>
     </div>

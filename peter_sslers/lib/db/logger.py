@@ -25,16 +25,16 @@ class AcmeLogger(object):
     """
 
     ctx = None
-    dbAcmeAccountKey = None
+    dbAcmeAccount = None
     dbAcmeOrder = None  # only set on orders
 
-    def __init__(self, ctx, dbAcmeAccountKey=None):
+    def __init__(self, ctx, dbAcmeAccount=None):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-        :param dbAcmeAccountKey: (optional) The :class:`model.objects.AcmeAccountKey`
+        :param dbAcmeAccount: (optional) The :class:`model.objects.AcmeAccount`
         """
         self.ctx = ctx
-        self.dbAcmeAccountKey = dbAcmeAccountKey
+        self.dbAcmeAccount = dbAcmeAccount
 
     @property
     def dbSession(self):
@@ -63,7 +63,7 @@ class AcmeLogger(object):
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
 
@@ -92,7 +92,7 @@ class AcmeLogger(object):
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.unique_fqdn_set_id = dbUniqueFQDNSet.id
         self.dbSession.add(dbAcmeEventLog)
         self.dbSession.flush()
@@ -118,7 +118,7 @@ class AcmeLogger(object):
         dbAcmeEventLog = model_objects.AcmeEventLog()
         dbAcmeEventLog.acme_event_id = acme_event_id
         dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
         dbAcmeEventLog.unique_fqdn_set_id = self.dbAcmeOrder.unique_fqdn_set_id
         self.dbSession.add(dbAcmeEventLog)
@@ -148,7 +148,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-authorization-request"
         )
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id if self.dbAcmeOrder else None
         dbAcmeEventLog.unique_fqdn_set_id = (
@@ -174,7 +174,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-authorization-deactivate"
         )
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeAuthorization.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id if self.dbAcmeOrder else None
         dbAcmeEventLog.unique_fqdn_set_id = (
@@ -205,7 +205,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-PostAsGet"
         )
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
@@ -239,7 +239,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-trigger"
         )
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
@@ -286,7 +286,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-fail"
         )
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
@@ -318,7 +318,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|-challenge-pass"
         )
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_authorization_id = dbAcmeChallenge.acme_authorization_id
         dbAcmeEventLog.acme_challenge_id = dbAcmeChallenge.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
@@ -352,7 +352,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|Order-finalize"
         )
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
         dbAcmeEventLog.unique_fqdn_set_id = (
             self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
@@ -396,7 +396,7 @@ class AcmeLogger(object):
         dbAcmeEventLog.acme_event_id = model_utils.AcmeEvent.from_string(
             "v2|Certificate-procured"
         )
-        dbAcmeEventLog.acme_account_key_id = self.dbAcmeAccountKey.id
+        dbAcmeEventLog.acme_account_id = self.dbAcmeAccount.id
         dbAcmeEventLog.acme_order_id = self.dbAcmeOrder.id
         dbAcmeEventLog.unique_fqdn_set_id = (
             self.dbAcmeOrder.unique_fqdn_set_id if self.dbAcmeOrder else None
@@ -461,6 +461,7 @@ def _log_object_event(
     ctx,
     dbOperationsEvent=None,
     event_status_id=None,
+    dbAcmeAccount=None,
     dbAcmeAccountKey=None,
     dbAcmeOrder=None,
     dbCACertificate=None,
@@ -477,7 +478,9 @@ def _log_object_event(
     dbOperationsObjectEvent.operations_event_id = dbOperationsEvent.id
     dbOperationsObjectEvent.operations_object_event_status_id = event_status_id
 
-    if dbAcmeAccountKey:
+    if dbAcmeAccount:
+        dbOperationsObjectEvent.acme_account_id = dbAcmeAccount.id
+    elif dbAcmeAccountKey:
         dbOperationsObjectEvent.acme_account_key_id = dbAcmeAccountKey.id
     elif dbAcmeOrder:
         dbOperationsObjectEvent.acme_order_id = dbAcmeOrder.id

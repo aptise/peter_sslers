@@ -101,7 +101,7 @@
                         <code>${AcmeChallenge.keyauthorization or ''}</code>
                     </td>
                 </tr>
-                % if AcmeOrderless.acme_account_key_id:
+                % if AcmeOrderless.acme_account_id:
                     <tr>
                         <th>challenge_url</th>
                         <td>

@@ -6,21 +6,21 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
-        <li class="active">Focus [${AcmeAccountKey.id}]</li>
+        <li><a href="${admin_prefix}/acme-accounts">AcmeAccounts</a></li>
+        <li class="active">Focus [${AcmeAccount.id}]</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeAccountKeys - Focus</h2>
-    <p>${request.text_library.info_AcmeAccountKeys[1]}</p>
+    <h2>AcmeAccounts - Focus</h2>
+    <p>${request.text_library.info_AcmeAccounts[1]}</p>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-account/${AcmeAccount.id}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -47,15 +47,15 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${AcmeAccountKey.id}
+                                ${AcmeAccount.id}
                             </span>
                         </td>
                     </tr>
                     <tr>
                         <th>timestamp_last_authenticated</th>
-                        <td><timestamp>${AcmeAccountKey.timestamp_last_authenticated or ''}</timestamp>
-                            % if AcmeAccountKey.is_can_authenticate:
-                                <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/acme-server/authenticate" method="POST">
+                        <td><timestamp>${AcmeAccount.timestamp_last_authenticated or ''}</timestamp>
+                            % if AcmeAccount.is_can_authenticate:
+                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/acme-server/authenticate" method="POST">
                                     <button class="btn btn-xs btn-primary" type="submit"  name="submit" value="submit">
                                         <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                         Authenticate Against ACME Server
@@ -67,12 +67,12 @@
                     <tr>
                         <th>active?</th>
                         <td>
-                            <span class="label label-${'success' if AcmeAccountKey.is_active else 'warning'}">
-                                ${'active' if AcmeAccountKey.is_active else 'inactive'}
+                            <span class="label label-${'success' if AcmeAccount.is_active else 'warning'}">
+                                ${'active' if AcmeAccount.is_active else 'inactive'}
                             </span>
                             &nbsp;
-                            % if not AcmeAccountKey.is_active:
-                                <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
+                            % if not AcmeAccount.is_active:
+                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="active"/>
                                     <button class="btn btn-xs btn-info" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -80,8 +80,8 @@
                                     </button>
                                 </form>
                             % else:
-                                % if not AcmeAccountKey.is_global_default:
-                                    <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
+                                % if not AcmeAccount.is_global_default:
+                                    <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
                                         <input type="hidden" name="action" value="inactive"/>
                                         <button class="btn btn-xs btn-danger" type="submit">
                                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -102,14 +102,14 @@
                     <tr>
                         <th>Global Default</th>
                         <td>
-                            % if AcmeAccountKey.is_global_default:
+                            % if AcmeAccount.is_global_default:
                                 <span class="label label-success">Global Default</span>
                             % else:
                                 <span class="label label-default"></span>
                             % endif
                             &nbsp;
-                            % if AcmeAccountKey.is_global_default_candidate:
-                                <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/mark" method="POST" style="display:inline;">
+                            % if AcmeAccount.is_global_default_candidate:
+                                <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/mark" method="POST" style="display:inline;">
                                     <input type="hidden" name="action" value="global_default"/>
                                     <button class="btn btn-xs btn-primary" type="submit">
                                         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -122,7 +122,7 @@
                     <tr>
                         <th>source</th>
                         <td>
-                            <span class="label label-default">${AcmeAccountKey.acme_account_key_source}</span>
+                            <span class="label label-default">${AcmeAccount.acme_account_key.acme_account_key_source}</span>
                         </td>
                     </tr>
                     <tr>
@@ -133,75 +133,92 @@
                                 href="${admin_prefix}/acme-account-providers"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountProvider-${AcmeAccountKey.acme_account_provider_id}
-                                [${AcmeAccountKey.acme_account_provider.name}]
-                                (${AcmeAccountKey.acme_account_provider.url})
+                                AcmeAccountProvider-${AcmeAccount.acme_account_provider_id}
+                                [${AcmeAccount.acme_account_provider.name}]
+                                (${AcmeAccount.acme_account_provider.url})
                             </a>
                         </td>
                     </tr>
                     <tr>
                         <th>contact</th>
-                        <td><code>${AcmeAccountKey.contact or ''}</code></td>
+                        <td><code>${AcmeAccount.contact or ''}</code></td>
                     </tr>
                     <tr>
                         <th>account url</th>
-                        <td><code>${AcmeAccountKey.account_url or ''}</code></td>
+                        <td><code>${AcmeAccount.account_url or ''}</code></td>
                     </tr>
                     <tr>
                         <th>terms of service</th>
-                        <td><code>${AcmeAccountKey.terms_of_service or ''}</code></td>
+                        <td><code>${AcmeAccount.terms_of_service or ''}</code></td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>
-                        <td><timestamp>${AcmeAccountKey.timestamp_created or ''}</timestamp></td>
+                        <td><timestamp>${AcmeAccount.timestamp_created or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_last_certificate_request</th>
-                        <td><timestamp>${AcmeAccountKey.timestamp_last_certificate_request or ''}</timestamp></td>
+                        <td><timestamp>${AcmeAccount.timestamp_last_certificate_request or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_last_certificate_issue</th>
-                        <td><timestamp>${AcmeAccountKey.timestamp_last_certificate_issue or ''}</timestamp></td>
+                        <td><timestamp>${AcmeAccount.timestamp_last_certificate_issue or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>count_certificate_requests</th>
-                        <td><span class="badge">${AcmeAccountKey.count_certificate_requests or ''}</span></td>
+                        <td><span class="badge">${AcmeAccount.count_certificate_requests or ''}</span></td>
                     </tr>
                     <tr>
                         <th>count_certificates_issued</th>
-                        <td><span class="badge">${AcmeAccountKey.count_certificates_issued or ''}</span></td>
+                        <td><span class="badge">${AcmeAccount.count_certificates_issued or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>key_pem_md5</th>
-                        <td><code>${AcmeAccountKey.key_pem_md5}</code></td>
-                    </tr>
-                    <tr>
-                        <th>key_pem_modulus_md5</th>
+                        <th>AcmeAccountKey</th>
                         <td>
-                            <code>${AcmeAccountKey.key_pem_modulus_md5}</code>
-                            <a
-                                class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${AcmeAccountKey.key_pem_modulus_search}"
-                            >
-                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>key_pem</th>
-                        <td>
-                            ## ${'tracked' if AcmeAccountKey.key_pem else 'untracked'}
-                            ## <textarea class="form-control">${AcmeAccountKey.key_pem}</textarea>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.pem">key.pem</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.pem.txt">key.pem.txt</a>
-                            <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/key.key">key.key (der)</a>
+                            <table class="table table-striped table-condensed">
+                                <tr>
+                                    <th>AcmeAccountKey</th>
+                                    <td>
+                                        <span class="label label-default"
+                                        >
+                                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                            AcmeAccountKey-${AcmeAccount.acme_account_key.id}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>key_pem_md5</th>
+                                    <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>key_pem_modulus_md5</th>
+                                    <td>
+                                        <code>${AcmeAccount.acme_account_key.key_pem_modulus_md5}</code>
+                                        <a
+                                            class="btn btn-xs btn-info"
+                                            href="${admin_prefix}/search?${AcmeAccount.acme_account_key.key_pem_modulus_search}"
+                                        >
+                                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>key_pem</th>
+                                    <td>
+                                        ## ${'tracked' if AcmeAccount.acme_account_key.key_pem else 'untracked'}
+                                        ## <textarea class="form-control">${AcmeAccount.acme_account_key.key_pem}</textarea>
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem">key.pem</a>
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.pem.txt">key.pem.txt</a>
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/acme-account/${AcmeAccount.id}/key.key">key.key (der)</a>
+                                    </td>
+                                </tr>                        
+                            </table>
                         </td>
                     </tr>
                     <tr>
                         <th>PrivateKey cycle</th>
                         <td>
-                            <code>${AcmeAccountKey.private_key_cycle}</code>
-                            <a  href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/edit"
+                            <code>${AcmeAccount.private_key_cycle}</code>
+                            <a  href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                                 class="btn btn-xs btn-info"
                             >
                                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
@@ -209,7 +226,7 @@
                             </a>                        
                         </td>
                     </tr>
-                    ${admin_partials.table_tr_OperationsEventCreated(AcmeAccountKey)}
+                    ${admin_partials.table_tr_OperationsEventCreated(AcmeAccount)}
                 </tbody>
                 <thead>
                     <tr>
@@ -227,36 +244,36 @@
                     <tr>
                         <th>AcmeAuthorizations</th>
                         <td>
-                            ${admin_partials.table_AcmeAuthorizations(AcmeAccountKey.acme_authorizations__5, perspective="AcmeAccountKey")}
-                            % if AcmeAccountKey.acme_authorizations__5:
-                                ${admin_partials.nav_pager("%s/acme-account-key/%s/acme-authorizations" % (admin_prefix, AcmeAccountKey.id))}
+                            ${admin_partials.table_AcmeAuthorizations(AcmeAccount.acme_authorizations__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.acme_authorizations__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/acme-authorizations" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>AcmeAuthorizations Pending</th>
                         <td>
-                            ${admin_partials.table_AcmeAuthorizations(AcmeAccountKey.acme_authorizations_pending__5, perspective="AcmeAccountKey")}
-                            % if AcmeAccountKey.acme_authorizations_pending__5:
-                                ${admin_partials.nav_pager("%s/acme-account-key/%s/acme-authorizations?status=active" % (admin_prefix, AcmeAccountKey.id))}
+                            ${admin_partials.table_AcmeAuthorizations(AcmeAccount.acme_authorizations_pending__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.acme_authorizations_pending__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/acme-authorizations?status=active" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>ServerCertificate(s)</th>
                         <td>
-                            ${admin_partials.table_ServerCertificates(AcmeAccountKey.server_certificates__5, show_domains=True, show_expiring_days=True)}
-                            % if AcmeAccountKey.server_certificates__5:
-                                ${admin_partials.nav_pager("%s/acme-account-key/%s/server-certificates" % (admin_prefix, AcmeAccountKey.id))}
+                            ${admin_partials.table_ServerCertificates(AcmeAccount.server_certificates__5, show_domains=True, show_expiring_days=True)}
+                            % if AcmeAccount.server_certificates__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/server-certificates" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>QueueCertificate(s)</th>
                         <td>
-                            ${admin_partials.table_QueueCertificates(AcmeAccountKey.queue_certificates__5, perspective="AcmeAccountKey")}
-                            % if AcmeAccountKey.queue_certificates__5:
-                                ${admin_partials.nav_pager("%s/acme-account-key/%s/queue-certificates" % (admin_prefix, AcmeAccountKey.id))}
+                            ${admin_partials.table_QueueCertificates(AcmeAccount.queue_certificates__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.queue_certificates__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/queue-certificates" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>
@@ -265,16 +282,16 @@
                     <tr>
                         <th>AcmeOrder(s)</th>
                         <td>
-                            ${admin_partials.table_AcmeOrders(AcmeAccountKey.acme_orders__5, perspective="AcmeAccountKey")}
-                            % if AcmeAccountKey.acme_orders__5:
-                                ${admin_partials.nav_pager("%s/acme-account-key/%s/acme-orders" % (admin_prefix, AcmeAccountKey.id))}
+                            ${admin_partials.table_AcmeOrders(AcmeAccount.acme_orders__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.acme_orders__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/acme-orders" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>
                     <tr>
                         <th>AcmeOrderless(s)</th>
                         <td>
-                            ${admin_partials.table_AcmeOrderlesss(AcmeAccountKey.acme_orderlesss__5, perspective="AcmeAccountKey")}
+                            ${admin_partials.table_AcmeOrderlesss(AcmeAccount.acme_orderlesss__5, perspective="AcmeAccount")}
                         </td>
                     </tr>
 
@@ -282,9 +299,9 @@
                     <tr>
                         <th>PrivateKey(s) Owned</th>
                         <td>
-                            ${admin_partials.table_PrivateKeys(AcmeAccountKey.private_keys__owned__5, perspective="AcmeAccountKey")}
-                            % if AcmeAccountKey.private_keys__owned__5:
-                                ${admin_partials.nav_pager("%s/acme-account-key/%s/private-keys" % (admin_prefix, AcmeAccountKey.id))}
+                            ${admin_partials.table_PrivateKeys(AcmeAccount.private_keys__owned__5, perspective="AcmeAccount")}
+                            % if AcmeAccount.private_keys__owned__5:
+                                ${admin_partials.nav_pager("%s/acme-account/%s/private-keys" % (admin_prefix, AcmeAccount.id))}
                             % endif
                         </td>
                     </tr>

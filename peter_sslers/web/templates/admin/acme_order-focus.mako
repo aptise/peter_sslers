@@ -233,7 +233,7 @@
                             % endif
                             % if AcmeOrder.is_processing:
                                 <a
-                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?operation=deactivate"
+                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?action=deactivate"
                                     class="btn btn-xs btn-danger"
                                 >
                                     <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
@@ -312,7 +312,7 @@
                         <td><code>${AcmeOrder.acme_status_order or ''}</code>
                             % if AcmeOrder.is_can_mark_invalid:
                                 <a
-                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?operation=invalid"
+                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?action=invalid"
                                     class="btn btn-xs btn-danger"
                                 >
                                     <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
@@ -322,14 +322,14 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeAccountKey</th>
+                        <th>AcmeAccount</th>
                         <td>
                             <a
                                 class="label label-info"
-                                href="${admin_prefix}/acme-account-key/${AcmeOrder.acme_account_key_id}"
+                                href="${admin_prefix}/acme-account/${AcmeOrder.acme_account_id}"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountKey-${AcmeOrder.acme_account_key_id}
+                                AcmeAccount-${AcmeOrder.acme_account_id}
                             </a>
                         </td>
                     </tr>

@@ -27,9 +27,9 @@
         <div class="row">
             <div class="col-sm-9">
 
-                % if show_only['AcmeAccountKey']:
-                    <h4>AcmeAccountKeys</h4>
-                    % if results['AcmeAccountKey']['count']:
+                % if show_only['AcmeAccount']:
+                    <h4>AcmeAccounts</h4>
+                    % if results['AcmeAccount']['count']:
                         <table class="table table-condensed">
                             <thead>
                                 <tr>
@@ -40,24 +40,24 @@
                                 </tr>
                             </thead>
                             <body>
-                            % for key in results['AcmeAccountKey']['items']:
+                            % for acme_account in results['AcmeAccount']['items']:
                                 <tr>
                                     <td>
                                         <a  class="btn btn-xs btn-info"
-                                            href="${admin_prefix}/acme-account-key/${key.id}"
+                                            href="${admin_prefix}/acme-account/${acme_account.id}"
                                         >
                                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                            account-${key.id}</a>
+                                            AcmeAccount-${acme_account.id}</a>
                                     </td>
-                                    <td><code>${key.key_pem_modulus_md5}</code></td>
-                                    <td><timestamp>${key.timestamp_last_certificate_request}</timestamp></td>
-                                    <td><timestamp>${key.timestamp_last_certificate_issue}</timestamp></td>
+                                    <td><code>${acme_account.acme_account_key.key_pem_modulus_md5}</code></td>
+                                    <td><timestamp>${acme_account.timestamp_last_certificate_request}</timestamp></td>
+                                    <td><timestamp>${acme_account.timestamp_last_certificate_issue}</timestamp></td>
                                 </tr>
                             % endfor
                             </body>
                         </table>
-                        % if results['AcmeAccountKey']['next']:
-                            <a href="${results['AcmeAccountKey']['next']}">More</a>
+                        % if results['AcmeAccount']['next']:
+                            <a href="${results['AcmeAccount']['next']}">More</a>
                         % endif
                     % else:
                         <em>None</em>

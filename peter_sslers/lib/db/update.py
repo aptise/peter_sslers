@@ -13,7 +13,7 @@ from dateutil import parser as dateutil_parser
 from ...model import utils as model_utils
 from ...lib import errors
 from .. import utils
-from .get import get__AcmeAccountKey__GlobalDefault
+from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeAccountProvider__default
 from .get import get__Domain__by_name
 from .logger import _log_object_event
@@ -48,51 +48,51 @@ def update_AcmeAccountProvider__set_is_enabled(ctx, dbAcmeAccountProvider):
     return event_status
 
 
-def update_AcmeAccountKey__set_active(ctx, dbAcmeAccountKey):
-    if dbAcmeAccountKey.is_active:
-        raise errors.InvalidTransition("Already activated")
-    dbAcmeAccountKey.is_active = True
-    event_status = "AcmeAccountKey__mark__active"
+def update_AcmeAccount__set_active(ctx, dbAcmeAccount):
+    if dbAcmeAccount.is_active:
+        raise errors.InvalidTransition("Already activated.")
+    dbAcmeAccount.is_active = True
+    event_status = "AcmeAccount__mark__active"
     return event_status
 
 
-def update_AcmeAccountKey__unset_active(ctx, dbAcmeAccountKey):
-    if not dbAcmeAccountKey.is_active:
+def update_AcmeAccount__unset_active(ctx, dbAcmeAccount):
+    if not dbAcmeAccount.is_active:
         raise errors.InvalidTransition("Already deactivated.")
-    if dbAcmeAccountKey.is_global_default:
+    if dbAcmeAccount.is_global_default:
         raise errors.InvalidTransition(
-            "You can not deactivate the global default. Make another key as the global default first."
+            "You can not deactivate the global default. Make another AcmeAccount as the global default first."
         )
-    dbAcmeAccountKey.is_active = False
-    event_status = "AcmeAccountKey__mark__inactive"
+    dbAcmeAccount.is_active = False
+    event_status = "AcmeAccount__mark__inactive"
     return event_status
 
 
-def update_AcmeAccountKey__set_global_default(ctx, dbAcmeAccountKey):
-    if dbAcmeAccountKey.is_global_default:
+def update_AcmeAccount__set_global_default(ctx, dbAcmeAccount):
+    if dbAcmeAccount.is_global_default:
         # `formStash.fatal_form(` will raise a `FormInvalid()`
         raise errors.InvalidTransition("Already global default.")
 
-    if not dbAcmeAccountKey.acme_account_provider.is_default:
+    if not dbAcmeAccount.acme_account_provider.is_default:
         raise errors.InvalidTransition(
-            "This AccountKey is not from the default AcmeAccountProvider."
+            "This AcmeAccount is not from the default AcmeAccountProvider."
         )
 
     alt_info = {}
-    formerDefaultKey = get__AcmeAccountKey__GlobalDefault(ctx)
-    if formerDefaultKey:
-        formerDefaultKey.is_global_default = False
+    formerDefaultAccount = get__AcmeAccount__GlobalDefault(ctx)
+    if formerDefaultAccount:
+        formerDefaultAccount.is_global_default = False
         alt_info["event_payload_dict"] = {
-            "account_key_id.former_default": formerDefaultKey.id,
+            "acme_account_id.former_default": formerDefaultAccount.id,
         }
-        alt_info["event_alt"] = ("AcmeAccountKey__mark__notdefault", formerDefaultKey)
-    dbAcmeAccountKey.is_global_default = True
-    event_status = "AcmeAccountKey__mark__default"
+        alt_info["event_alt"] = ("AcmeAccount__mark__notdefault", formerDefaultAccount)
+    dbAcmeAccount.is_global_default = True
+    event_status = "AcmeAccount__mark__default"
     return event_status, alt_info
 
 
-def update_AcmeAccountKey__private_key_cycle(ctx, dbAcmeAccountKey, private_key_cycle):
-    if dbAcmeAccountKey.private_key_cycle == private_key_cycle:
+def update_AcmeAccount__private_key_cycle(ctx, dbAcmeAccount, private_key_cycle):
+    if dbAcmeAccount.private_key_cycle == private_key_cycle:
         raise errors.InvalidTransition("Already updated")
     try:
         private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
@@ -102,11 +102,11 @@ def update_AcmeAccountKey__private_key_cycle(ctx, dbAcmeAccountKey, private_key_
         raise errors.InvalidTransition("invalid option")
     if (
         private_key_cycle_id
-        not in model_utils.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle_id
+        not in model_utils.PrivateKeyCycle._options_AcmeAccount_private_key_cycle_id
     ):
         raise errors.InvalidTransition("invalid option")
-    dbAcmeAccountKey.private_key_cycle_id = private_key_cycle_id
-    event_status = "AcmeAccountKey__edit__primary_key_cycle"
+    dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
+    event_status = "AcmeAccount__edit__primary_key_cycle"
     return event_status
 
 
@@ -224,7 +224,7 @@ def update_Domain_enable(
 
 def update_PrivateKey__set_active(ctx, dbPrivateKey):
     if dbPrivateKey.is_active:
-        raise errors.InvalidTransition("Already activated")
+        raise errors.InvalidTransition("Already activated.")
     if dbPrivateKey.is_compromised:
         raise errors.InvalidTransition("Can not activate a compromised key")
     dbPrivateKey.is_active = True

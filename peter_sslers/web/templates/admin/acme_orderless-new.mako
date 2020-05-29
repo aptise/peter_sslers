@@ -45,8 +45,8 @@
                     <p class="help-block">enter domain_names above, separated by commas. <b>This should be EXACTLY what you typed in the LetsEncrypt Certbot client.</p>
                 </div>
 
-                <h3>AcmeAccountKey</h3>
-                ${admin_partials.formgroup__AcmeAccountKey_selector__advanced(allow_no_key=True)}
+                <h3>AcmeAccount</h3>
+                ${admin_partials.formgroup__AcmeAccount_selector__advanced(allow_no_key=True)}
                 <hr/>
 
 

@@ -38,21 +38,21 @@ class UnitTest_PrivateKeyCycling(AppTest):
     """
     uses `AppTest` so we have access to a `self.ctx`
 
-    These tests ensure that PrivateKey cycling for an AcmeAccountKey works
+    These tests ensure that PrivateKey cycling for an AcmeAccount works
 
-    It tests `getcreate__PrivateKey_for_AcmeAccountKey`, which is invoked during AcmeOrder processing
+    It tests `getcreate__PrivateKey_for_AcmeAccount`, which is invoked during AcmeOrder processing
 
     python -m unittest peter_sslers.tests.unit_tests.UnitTest_PrivateKeyCycling
     """
 
-    def _makeOne_AcmeAccountKey(self, private_key_cycle):
+    def _makeOne_AcmeAccount(self, private_key_cycle):
         """
-        create a new AcmeAccountKey with a given private_key_cycle
+        create a new AcmeAccount with a given private_key_cycle
         """
         contact = "%s@example.com" % private_key_cycle
         _key_filename = "AcmeAccountKey-cycle-%s.pem" % private_key_cycle
         key_pem = self._filedata_testfile(_key_filename)
-        (dbAcmeAccountKey, _is_created) = lib_db_getcreate.getcreate__AcmeAccountKey(
+        (dbAcmeAccount, _is_created) = lib_db_getcreate.getcreate__AcmeAccount(
             self.ctx,
             key_pem=key_pem,
             acme_account_provider_id=1,  # pebble
@@ -64,73 +64,73 @@ class UnitTest_PrivateKeyCycling(AppTest):
                 private_key_cycle
             ),
         )
-        return dbAcmeAccountKey
+        return dbAcmeAccount
 
     def test__single_certificate(self):
-        dbAcmeAccountKey = self._makeOne_AcmeAccountKey("single_certificate")
-        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbAcmeAccount = self._makeOne_AcmeAccount("single_certificate")
+        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
-        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id != dbPrivateKey_2.id
-        assert dbPrivateKey_1.acme_account_key_id__owner == dbAcmeAccountKey.id
+        assert dbPrivateKey_1.acme_account_id__owner == dbAcmeAccount.id
         assert dbPrivateKey_1.private_key_source == "generated"
         assert dbPrivateKey_1.private_key_type == "single_certificate"
 
-        assert dbPrivateKey_2.acme_account_key_id__owner == dbAcmeAccountKey.id
+        assert dbPrivateKey_2.acme_account_id__owner == dbAcmeAccount.id
         assert dbPrivateKey_2.private_key_source == "generated"
         assert dbPrivateKey_2.private_key_type == "single_certificate"
 
     def test__account_weekly(self):
-        dbAcmeAccountKey = self._makeOne_AcmeAccountKey("account_weekly")
-        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbAcmeAccount = self._makeOne_AcmeAccount("account_weekly")
+        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
-        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id == dbPrivateKey_2.id
-        assert dbPrivateKey_1.acme_account_key_id__owner == dbAcmeAccountKey.id
+        assert dbPrivateKey_1.acme_account_id__owner == dbAcmeAccount.id
         assert dbPrivateKey_1.private_key_source == "generated"
         assert dbPrivateKey_1.private_key_type == "account_weekly"
 
     def test__account_daily(self):
-        dbAcmeAccountKey = self._makeOne_AcmeAccountKey("account_daily")
-        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbAcmeAccount = self._makeOne_AcmeAccount("account_daily")
+        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
-        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id == dbPrivateKey_2.id
-        assert dbPrivateKey_1.acme_account_key_id__owner == dbAcmeAccountKey.id
+        assert dbPrivateKey_1.acme_account_id__owner == dbAcmeAccount.id
         assert dbPrivateKey_1.private_key_source == "generated"
         assert dbPrivateKey_1.private_key_type == "account_daily"
 
     def test__global_weekly(self):
-        dbAcmeAccountKey = self._makeOne_AcmeAccountKey("global_weekly")
-        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbAcmeAccount = self._makeOne_AcmeAccount("global_weekly")
+        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
-        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id == dbPrivateKey_2.id
-        assert dbPrivateKey_1.acme_account_key_id__owner is None
+        assert dbPrivateKey_1.acme_account_id__owner is None
         assert dbPrivateKey_1.private_key_source == "generated"
         assert dbPrivateKey_1.private_key_type == "global_weekly"
 
     def test__global_daily(self):
-        dbAcmeAccountKey = self._makeOne_AcmeAccountKey("global_daily")
-        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbAcmeAccount = self._makeOne_AcmeAccount("global_daily")
+        dbPrivateKey_1 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
-        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-            self.ctx, dbAcmeAccountKey=dbAcmeAccountKey,
+        dbPrivateKey_2 = lib_db_getcreate.getcreate__PrivateKey_for_AcmeAccount(
+            self.ctx, dbAcmeAccount=dbAcmeAccount,
         )
         assert dbPrivateKey_1.id == dbPrivateKey_2.id
-        assert dbPrivateKey_1.acme_account_key_id__owner is None
+        assert dbPrivateKey_1.acme_account_id__owner is None
         assert dbPrivateKey_1.private_key_source == "generated"
         assert dbPrivateKey_1.private_key_type == "global_daily"

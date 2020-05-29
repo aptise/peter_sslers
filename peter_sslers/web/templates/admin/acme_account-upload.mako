@@ -6,15 +6,15 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
+        <li><a href="${admin_prefix}/acme-accounts">AcmeAccounts</a></li>
         <li class="active">Upload</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeAccountKey | Upload</h2>
-    <p><em>${request.text_library.info_AcmeAccountKeys[1]}</em></p>
+    <h2>AcmeAccount | Upload</h2>
+    <p><em>${request.text_library.info_AcmeAccounts[1]}</em></p>
 </%block>
 
 
@@ -22,25 +22,25 @@
     <div class="row">
         <div class="col-sm-6">
             <form
-                action="${admin_prefix}/acme-account-key/upload"
+                action="${admin_prefix}/acme-account/upload"
                 method="POST"
                 enctype="multipart/form-data"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__AcmeAccountKey_file(show_contact=True)}
+                ${admin_partials.formgroup__AcmeAccount_file(show_contact=True)}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
             </form>
         </div>
         <div class="col-sm-6">
-            ${admin_partials.info_AcmeAccountKey()}
+            ${admin_partials.info_AcmeAccount()}
             <h3>This form is JSON capable</h3>
 
             <p>
-                <code>curl ${request.api_host}${admin_prefix}/acme-account-key/upload.json</code>
+                <code>curl ${request.api_host}${admin_prefix}/acme-account/upload.json</code>
             </p>
         </div>
     </div>

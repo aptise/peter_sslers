@@ -60,9 +60,9 @@
                 <table class="table table-striped table-condensed">
                     <tbody>
                         <tr>
-                            <th>AcmeAccountKey</th>
+                            <th>AcmeAccount</th>
                             <td>
-                                ${admin_partials.formgroup__AcmeAccountKey_selector__advanced()}
+                                ${admin_partials.formgroup__AcmeAccount_selector__advanced()}
                             </td>
                         </tr>
                         <tr>

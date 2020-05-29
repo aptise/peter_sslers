@@ -153,10 +153,10 @@ The "/tools" directory contains scripts useful for certificate operations. Curre
 ## Intuitive Hierarchy of Related Objects
 
 * With a migration to ACME-2, this project shifted the "core" object from a ServerCertificate to the AcmeOrder.
-* An ACME-Order's primary relations are an AcmeAccountKey (who owns the order?) and a UniqueFQDNSet (what domains are in the order?)
-* A PrivateKey is considered a secondary item. One can be specified for an AcmeOrder, but the AcmeAccountKey can specify it's own strategy
+* An ACME-Order's primary relations are an AcmeAccount (who owns the order?) and a UniqueFQDNSet (what domains are in the order?)
+* A PrivateKey is considered a secondary item. One can be specified for an AcmeOrder, but the AcmeAccount can specify it's own strategy
 * A PrivateKey can be re-used across new/renewed AcmeOrders if specified
-* An AcmeAccountKey can specify: use the same PrivateKey, always use a unique PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week
+* An AcmeAccount can specify: use the same PrivateKey, always use a unique PrivateKey, use a new PrivateKey every day, use a new PrivateKey every week
 
 Re-using PrivateKeys across orders is supported because this application's OpenResty plugin leverages a three-level cache (nginx-worker, nginx-master, redis) for dynamic certificate lookups.
 

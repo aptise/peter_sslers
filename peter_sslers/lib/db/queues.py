@@ -134,7 +134,7 @@ def queue_domains__add(ctx, domain_names):
 
 def queue_domains__process(
     ctx,
-    dbAcmeAccountKey=None,
+    dbAcmeAccount=None,
     dbPrivateKey=None,
     max_domains_per_certificate=50,
     processing_strategy=None,
@@ -147,7 +147,7 @@ def queue_domains__process(
     * if there are more than 100, should we process them, or return that info in json?
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param max_domains_per_certificate: (required) int The maximum number of domains to be put on each Certificate.
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
@@ -161,8 +161,8 @@ def queue_domains__process(
         if not ctx.request:
             raise ValueError("must be invoked within Pyramid")
 
-    if not all((dbAcmeAccountKey, dbPrivateKey)):
-        raise ValueError("must be invoked with dbAcmeAccountKey, dbPrivateKey")
+    if not all((dbAcmeAccount, dbPrivateKey)):
+        raise ValueError("must be invoked with dbAcmeAccount, dbPrivateKey")
 
     min_domains = ctx.request.registry.settings["app_settings"][
         "queue_domains_min_per_cert"
@@ -262,7 +262,7 @@ def queue_domains__process(
                     private_key_cycle__renewal=private_key_cycle__renewal,
                     private_key_strategy__requested=private_key_strategy__requested,
                     processing_strategy=processing_strategy,
-                    dbAcmeAccountKey=dbAcmeAccountKey,
+                    dbAcmeAccount=dbAcmeAccount,
                     dbPrivateKey=dbPrivateKey,
                 )
             except Exception as exc:
@@ -326,7 +326,7 @@ def queue_domains__process(
 
 
 def queue_certificates__via_fqdns(
-    ctx, dbAcmeAccountKey=None, dbPrivateKey=None, unique_fqdn_set_ids=None,
+    ctx, dbAcmeAccount=None, dbPrivateKey=None, unique_fqdn_set_ids=None,
 ):
     """
     Inserts a new :class:`model.objects.QueueCertificate` for each unique_fqdn_set_id
@@ -352,7 +352,7 @@ def queue_certificates__via_fqdns(
             raise ValueError("TODO")
             dbQueueCertificate = lib.db.create.create__QueueCertificate(
                 ctx,
-                dbAcmeAccountKey=None,
+                dbAcmeAccount=None,
                 dbPrivateKey=None,
                 dbUniqueFQDNSet=dbUniqueFQDNSet,
                 private_key_cycle_id__renewal=FOO,
@@ -429,7 +429,7 @@ def queue_certificates__update(ctx):
             # this will call `_log_object_event` as needed
             dbQueueCertificate = lib.db.create.create__QueueCertificate(
                 ctx,
-                dbAcmeAccountKey=dbAcmeOrder.acme_account_key,
+                dbAcmeAccount=dbAcmeOrder.acme_account,
                 dbPrivateKey=dbAcmeOrder.private_key,
                 dbAcmeOrder=dbAcmeOrder,
                 private_key_cycle_id__renewal=FOO,
@@ -482,19 +482,19 @@ def queue_certificates__process(ctx):
             ctx, unprocessed_only=True, limit=1, offset=0, eagerload_renewal=True
         )
 
-        dbAcmeAccountKey_GlobalDefault = None
-        _need_default_AccountKey = False
+        dbAcmeAccount_GlobalDefault = None
+        _need_default_AcmeAccount = False
         for dbQueueCertificate in items_paged:
-            if not dbQueueCertificate.acme_account_key.is_active:
-                _need_default_AccountKey = True
+            if not dbQueueCertificate.acme_account.is_active:
+                _need_default_AcmeAccount = True
                 break
 
-        if _need_default_AccountKey:
+        if _need_default_AcmeAccount:
             # raises an error if we fail
-            dbAcmeAccountKey_GlobalDefault = lib.db.get.get__AcmeAccountKey__GlobalDefault(
+            dbAcmeAccount_GlobalDefault = lib.db.get.get__AcmeAccount__GlobalDefault(
                 ctx, active_only=True
             )
-            if not dbAcmeAccountKey_GlobalDefault:
+            if not dbAcmeAccount_GlobalDefault:
                 raise ValueError("Could not load a default AccountKey.")
 
         for dbQueueCertificate in items_paged:
@@ -502,10 +502,10 @@ def queue_certificates__process(ctx):
             if dbQueueCertificate not in ctx.dbSession:
                 dbQueueCertificate = ctx.dbSession.merge(dbQueueCertificate)
 
-            if dbAcmeAccountKey_GlobalDefault:
-                if dbAcmeAccountKey_GlobalDefault not in ctx.dbSession:
-                    dbAcmeAccountKey_GlobalDefault = ctx.dbSession.merge(
-                        dbAcmeAccountKey_GlobalDefault
+            if dbAcmeAccount_GlobalDefault:
+                if dbAcmeAccount_GlobalDefault not in ctx.dbSession:
+                    dbAcmeAccount_GlobalDefault = ctx.dbSession.merge(
+                        dbAcmeAccount_GlobalDefault
                     )
             if ctx.dbOperationsEvent not in ctx.dbSession:
                 ctx.dbOperationsEvent = ctx.dbSession.merge(ctx.dbOperationsEvent)
@@ -513,8 +513,8 @@ def queue_certificates__process(ctx):
                 dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
 
             dbServerCertificate = None
-            _dbAcmeAccountKey = (
-                dbQueueCertificate.renewal_AccountKey or dbAcmeAccountKey_GlobalDefault
+            _dbAcmeAccount = (
+                dbQueueCertificate.renewal_AcmeAccount or dbAcmeAccount_GlobalDefault
             )
 
             raise ValueError("changed")
@@ -527,7 +527,7 @@ def queue_certificates__process(ctx):
                         ctx,
                         acme_order_type_id=model_utils.AcmeOrderType.QUEUE_RENEWAL,
                         domain_names=dbQueueCertificate.domains_as_list,
-                        dbAcmeAccountKey=_dbAcmeAccountKey,
+                        dbAcmeAccount=_dbAcmeAccount,
                         dbPrivateKey=_dbPrivateKey,
                         dbServerCertificate__renewal_of=dbQueueCertificate.server_certificate,
                         dbQueueCertificate__of=dbQueueCertificate,

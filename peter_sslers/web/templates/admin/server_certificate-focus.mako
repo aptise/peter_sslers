@@ -256,12 +256,12 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeAccountKey</th>
+                        <th>AcmeAccount</th>
                         <td>
-                            % if ServerCertificate.acme_order and ServerCertificate.acme_order.acme_account_key_id:
-                                <a class="label label-info" href="${admin_prefix}/acme-account-key/${ServerCertificate.acme_order.acme_account_key_id}">
+                            % if ServerCertificate.acme_order and ServerCertificate.acme_order.acme_account_id:
+                                <a class="label label-info" href="${admin_prefix}/acme-account/${ServerCertificate.acme_order.acme_account_id}">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeAccountKey-${ServerCertificate.acme_order.acme_account_key_id}</a>
+                                    AcmeAccount-${ServerCertificate.acme_order.acme_account_id}</a>
                                 <br/>
                                 <em>The ServerCertificate belongs to this AcmeAccount.</em>
                             % else:

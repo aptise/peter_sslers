@@ -215,7 +215,7 @@ class ViewAdminApi(Handler):
 
     @view_config(route_name="admin:api:domain:certificate-if-needed", renderer="json")
     def domain_certificate_if_needed(self):
-        self._load_AcmeAccountKey_GlobalDefault()
+        self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeAccountProviders()
         if self.request.method == "POST":
             return self._domain_certificate_if_needed__submit()
@@ -233,7 +233,7 @@ class ViewAdminApi(Handler):
             "form_fields": {
                 "domain_names": "required; a comma separated list of domain names to process",
                 "processing_strategy": "How should the order be processed?",
-                "account_key_option": "How is the AcmeAccountKey specified?",
+                "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
                 "account_key_existing": "pem_md5 of any key. Must/Only submit if `account_key_option==account_key_existing`",
                 "account_key_file_pem": "pem of the account key file. Must/Only submit if `account_key_option==account_key_file`",
@@ -262,8 +262,8 @@ class ViewAdminApi(Handler):
                 "account_key_option": model_utils.AcmeAccontKey_options_a,
                 "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE,
                 "private_key_option": model_utils.PrivateKey_options_a,
-                "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault.as_json
-                if self.dbAcmeAccountKey_GlobalDefault
+                "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault.as_json
+                if self.dbAcmeAccount_GlobalDefault
                 else None,
                 "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
             },
@@ -296,25 +296,22 @@ class ViewAdminApi(Handler):
                     message="This endpoint currently supports only 1 domain name",
                 )
 
-            accountKeySelection = form_utils.parse_AcmeAccountKeySelection(
+            acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
                 self.request,
                 formStash,
                 account_key_option=formStash.results["account_key_option"],
-                require_contact=False,
+                require_contact=None,
             )
-            if accountKeySelection.selection == "upload":
-                key_create_args = accountKeySelection.upload_parsed.getcreate_args
-                key_create_args["event_type"] = "AcmeAccountKey__insert"
+            if acmeAccountSelection.selection == "upload":
+                key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
+                key_create_args["event_type"] = "AcmeAccount__insert"
                 key_create_args[
                     "acme_account_key_source_id"
                 ] = model_utils.AcmeAccountKeySource.from_string("imported")
-                (
-                    dbAcmeAccountKey,
-                    _is_created,
-                ) = lib_db.getcreate.getcreate__AcmeAccountKey(
+                (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
                     self.request.api_context, **key_create_args
                 )
-                accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
+                acmeAccountSelection.AcmeAccount = dbAcmeAccount
 
             privateKeySelection = form_utils.parse_PrivateKeySelection(
                 self.request,
@@ -361,7 +358,7 @@ class ViewAdminApi(Handler):
                 private_key_cycle__renewal=private_key_cycle__renewal,
                 private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
                 processing_strategy=processing_strategy,
-                dbAcmeAccountKey=accountKeySelection.AcmeAccountKey,
+                dbAcmeAccount=acmeAccountSelection.AcmeAccount,
                 dbPrivateKey=privateKeySelection.PrivateKey,
             )
             return {"result": "success", "domain_results": api_results}

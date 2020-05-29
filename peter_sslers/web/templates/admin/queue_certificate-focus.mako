@@ -63,13 +63,13 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>AcmeAccountKey</th>
+                    <th>AcmeAccount</th>
                     <td>
                         <a class="label label-info"
-                            href="${admin_prefix}/acme-account-key/${QueueCertificate.acme_account_key_id}"
+                            href="${admin_prefix}/acme-account/${QueueCertificate.acme_account_id}"
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeAccountKey-${QueueCertificate.acme_account_key_id}</a>
+                            AcmeAccount-${QueueCertificate.acme_account_id}</a>
                         </hr/>
                     </td>
                 </tr>

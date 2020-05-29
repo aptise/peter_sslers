@@ -24,7 +24,7 @@ from .. import utils
 from .. import utils_certbot as utils_certbot
 from ...model import utils as model_utils
 from ...model import objects as model_objects
-from ..exceptions import AcmeAccountKeyNeedsPrivateKey
+from ..exceptions import AcmeAccountNeedsPrivateKey
 from ..exceptions import PrivateKeyOk
 from ..exceptions import ReassignedPrivateKey
 
@@ -38,15 +38,15 @@ from .update import update_AcmeAuthorization_from_payload
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def do__AcmeAccountKey_AcmeV2_register(
-    ctx, dbAcmeAccountKey, account_key_path=None,
+def do__AcmeAccount_AcmeV2_register(
+    ctx, dbAcmeAccount, account_key_path=None,
 ):
     """
-    Registers an AcmeAccountKey against the LetsEncrypt ACME Directory
+    Registers an AcmeAccount against the LetsEncrypt ACME Directory
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
-    :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccountKey`
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
+    :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccount`
 
     !!! WARNING !!!
 
@@ -54,31 +54,31 @@ def do__AcmeAccountKey_AcmeV2_register(
     """
     _tmpfile = None
     try:
-        if not dbAcmeAccountKey.contact:
+        if not dbAcmeAccount.contact:
             raise ValueError("no `contact`")
 
         if account_key_path is None:
-            _tmpfile = cert_utils.new_pem_tempfile(dbAcmeAccountKey.key_pem)
+            _tmpfile = cert_utils.new_pem_tempfile(
+                dbAcmeAccount.acme_account_key.key_pem
+            )
             account_key_path = _tmpfile.name
 
-        acmeLogger = AcmeLogger(ctx, dbAcmeAccountKey=dbAcmeAccountKey)
+        acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
         # create account, update contact details (if any), and set the global key identifier
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
         authenticatedUser = acme_v2.AuthenticatedUser(
             acmeLogger=acmeLogger,
-            acmeAccountKey=dbAcmeAccountKey,
+            acmeAccount=dbAcmeAccount,
             account_key_path=account_key_path,
             log__OperationsEvent=log__OperationsEvent,
         )
-        authenticatedUser.authenticate(ctx, contact=dbAcmeAccountKey.contact)
+        authenticatedUser.authenticate(ctx, contact=dbAcmeAccount.contact)
 
         # update based off the ACME service
-        dbAcmeAccountKey.account_url = authenticatedUser._api_account_headers[
-            "Location"
-        ]
-        dbAcmeAccountKey.terms_of_service = authenticatedUser.acme_directory["meta"][
+        dbAcmeAccount.account_url = authenticatedUser._api_account_headers["Location"]
+        dbAcmeAccount.terms_of_service = authenticatedUser.acme_directory["meta"][
             "termsOfService"
         ]
 
@@ -87,15 +87,15 @@ def do__AcmeAccountKey_AcmeV2_register(
         raise
 
 
-def do__AcmeAccountKey_AcmeV2_authenticate(
-    ctx, dbAcmeAccountKey, account_key_path=None,
+def do__AcmeAccount_AcmeV2_authenticate(
+    ctx, dbAcmeAccount, account_key_path=None,
 ):
     """
-    Authenticates an AcmeAccountKey against the LetsEncrypt ACME Directory
+    Authenticates an AcmeAccount against the LetsEncrypt ACME Directory
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
-    :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccountKey`
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
+    :param account_key_path: (optional) If there is a tempfile for the `dbAcmeAccount`
 
     !!! WARNING !!!
 
@@ -104,17 +104,19 @@ def do__AcmeAccountKey_AcmeV2_authenticate(
     _tmpfile = None
     try:
         if account_key_path is None:
-            _tmpfile = cert_utils.new_pem_tempfile(dbAcmeAccountKey.key_pem)
+            _tmpfile = cert_utils.new_pem_tempfile(
+                dbAcmeAccount.acme_account_key.key_pem
+            )
             account_key_path = _tmpfile.name
 
-        acmeLogger = AcmeLogger(ctx, dbAcmeAccountKey=dbAcmeAccountKey)
+        acmeLogger = AcmeLogger(ctx, dbAcmeAccount=dbAcmeAccount)
 
         # create account, update contact details (if any), and set the global key identifier
         # result is either: `new-account` or `existing-account`
         # failing will raise an exception
         authenticatedUser = acme_v2.AuthenticatedUser(
             acmeLogger=acmeLogger,
-            acmeAccountKey=dbAcmeAccountKey,
+            acmeAccount=dbAcmeAccount,
             account_key_path=account_key_path,
             log__OperationsEvent=log__OperationsEvent,
         )
@@ -127,23 +129,25 @@ def do__AcmeAccountKey_AcmeV2_authenticate(
             _tmpfile.close()
 
 
-def new_Authenticated_user(ctx, dbAcmeAccountKey):
+def new_Authenticated_user(ctx, dbAcmeAccount):
     """
-    helper function to create a new
+    helper function to authenticate the user
 
-    AcmeLogger
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     """
     tmpfile_account = None
     try:
-        account_key_pem = dbAcmeAccountKey.key_pem
+        account_key_pem = dbAcmeAccount.acme_account_key.key_pem
         tmpfile_account = cert_utils.new_pem_tempfile(account_key_pem)
         account_key_path = tmpfile_account.name
 
         # register the account / ensure that it is registered
         # the authenticatedUser will have a `logger.AcmeLogger` object as the `.acmeLogger` attribtue
         # the `acmeLogger` may need to have the `AcmeOrder` registered
-        authenticatedUser = do__AcmeAccountKey_AcmeV2_authenticate(
-            ctx, dbAcmeAccountKey, account_key_path=account_key_path,
+        authenticatedUser = do__AcmeAccount_AcmeV2_authenticate(
+            ctx, dbAcmeAccount, account_key_path=account_key_path,
         )
         return (authenticatedUser, tmpfile_account)
     except:
@@ -456,9 +460,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
 
         # we need to use tmpfiles on the disk
         if authenticatedUser is None:
-            dbAcmeAccountKey = dbAcmeAuthorization.acme_order_created.acme_account_key
+            dbAcmeAccount = dbAcmeAuthorization.acme_order_created.acme_account
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
@@ -515,9 +519,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
 
         if authenticatedUser is None:
-            dbAcmeAccountKey = dbAcmeAuthorization.acme_order_created.acme_account_key
+            dbAcmeAccount = dbAcmeAuthorization.acme_order_created.acme_account
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
@@ -576,7 +580,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_trigger(
     if not dbAcmeAuthorization.is_can_acme_server_trigger:
         # ensures we have 'pending' status and
         # http-01 challenge
-        # acme order, with acme_account_key
+        # acme order, with acme_account
         raise ValueError("Can not trigger this `AcmeAuthorization`")
 
     dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http01
@@ -597,7 +601,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         raise ValueError("Must submit `dbAcmeChallenge`")
     if not dbAcmeChallenge.is_can_acme_server_trigger:
         # ensures we have 'pending' status and
-        # acme order, with acme_account_key
+        # acme order, with acme_account
         raise ValueError("Can not trigger this `AcmeChallenge`")
 
     tmpfiles = []
@@ -624,10 +628,10 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
             )
 
         if authenticatedUser is None:
-            # the associated AcmeOrders should all have the same AcmeAccountKey
-            dbAcmeAccountKey = dbAcmeOrderCreated.acme_account_key
+            # the associated AcmeOrders should all have the same AcmeAccount
+            dbAcmeAccount = dbAcmeOrderCreated.acme_account
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
@@ -712,9 +716,9 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
         # the account-key will be the same across linked orders/auths
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
         if authenticatedUser is None:
-            dbAcmeAccountKey = dbAcmeOrderCreated.acme_account_key
+            dbAcmeAccount = dbAcmeOrderCreated.acme_account
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
@@ -766,9 +770,9 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
     tmpfiles = []
     try:
         if authenticatedUser is None:
-            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            dbAcmeAccount = dbAcmeOrder.acme_account
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
@@ -826,9 +830,9 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
     tmpfiles = []
     try:
         if authenticatedUser is None:
-            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            dbAcmeAccount = dbAcmeOrder.acme_account
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
@@ -902,28 +906,28 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
             tf.close()
 
 
-def do__AcmeV2_AcmeAccountKey__acme_server_deactivate_authorizations(
-    ctx, dbAcmeAccountKey=None, acme_authorization_ids=None, authenticatedUser=None,
+def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
+    ctx, dbAcmeAccount=None, acme_authorization_ids=None, authenticatedUser=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object that owns the authorization ids
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object that owns the authorization ids
     :param int acme_authorization_ids: (required) An iterable of AcmeAuthoriationIds to deactivate
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
     """
-    if not dbAcmeAccountKey:
-        raise ValueError("Must submit `dbAcmeAccountKey`")
+    if not dbAcmeAccount:
+        raise ValueError("Must submit `dbAcmeAccount`")
 
     tmpfiles = []
     try:
         if authenticatedUser is None:
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
         dbAcmeAuthorizations = lib.db.get.get__AcmeAuthorizations__by_ids(
-            ctx, acme_authorization_ids, acme_account_key_id=dbAcmeAccountKey.id
+            ctx, acme_authorization_ids, acme_account_id=dbAcmeAccount.id
         )
         results = {id_: False for id_ in acme_authorization_ids}
         for dbAcmeAuthorization in dbAcmeAuthorizations:
@@ -972,9 +976,9 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
     tmpfiles = []
     try:
         if authenticatedUser is None:
-            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            dbAcmeAccount = dbAcmeOrder.acme_account
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
@@ -1080,7 +1084,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         dbPrivateKeyNew = None
         # outer `try/except` catches `ReassignedPrivateKey`
         try:
-            # inner `try/except` catches `AcmeAccountKeyNeedsPrivateKey`
+            # inner `try/except` catches `AcmeAccountNeedsPrivateKey`
             try:
                 if dbAcmeOrder.private_key_id == 0:
                     # Multiple logic lines for `dbAcmeOrder.private_key_strategy__requested`
@@ -1093,7 +1097,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                         dbPrivateKeyNew = lib.db.create.create__PrivateKey(
                             ctx,
                             # bits=4096,
-                            acme_account_key_id__owner=dbAcmeOrder.acme_account_key.id,
+                            acme_account_id__owner=dbAcmeOrder.acme_account.id,
                             private_key_source_id=model_utils.PrivateKeySource.from_string(
                                 "generated"
                             ),
@@ -1109,11 +1113,11 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
                         # all these items should share the same final strategy
                         private_key_strategy__final = "deferred-associate"
-                        raise AcmeAccountKeyNeedsPrivateKey()
+                        raise AcmeAccountNeedsPrivateKey()
 
                     else:
                         raise ValueError(
-                            "Invalid `private_key_strategy__requested` for placeholder AcmeAccountKey"
+                            "Invalid `private_key_strategy__requested` for placeholder AcmeAccount"
                         )
 
                 else:
@@ -1127,15 +1131,15 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     else:
                         # all these items should share the same final strategy
                         private_key_strategy__final = "backup"
-                        raise AcmeAccountKeyNeedsPrivateKey()
+                        raise AcmeAccountNeedsPrivateKey()
 
                 # we MUST have encountered an Exception already
                 raise ValueError("Invalid Logic")
 
-            except AcmeAccountKeyNeedsPrivateKey as exc:
-                # look the `dbAcmeOrder.acme_account_key.private_key_cycle`
-                dbPrivateKey_new = lib.db.getcreate.getcreate__PrivateKey_for_AcmeAccountKey(
-                    ctx, dbAcmeAccountKey=dbAcmeOrder.acme_account_key,
+            except AcmeAccountNeedsPrivateKey as exc:
+                # look the `dbAcmeOrder.acme_account.private_key_cycle`
+                dbPrivateKey_new = lib.db.getcreate.getcreate__PrivateKey_for_AcmeAccount(
+                    ctx, dbAcmeAccount=dbAcmeOrder.acme_account,
                 )
                 raise ReassignedPrivateKey("new PrivateKey")
 
@@ -1277,7 +1281,7 @@ def _do__AcmeV2_AcmeOrder__core(
     private_key_cycle__renewal=None,
     private_key_strategy__requested=None,
     processing_strategy=None,
-    dbAcmeAccountKey=None,
+    dbAcmeAccount=None,
     dbAcmeOrder_renewal_of=None,
     dbAcmeOrder_retry_of=None,
     dbUniqueFQDNSet=None,
@@ -1293,7 +1297,7 @@ def _do__AcmeV2_AcmeOrder__core(
     :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param dbAcmeOrder_renewal_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
     :param dbUniqueFQDNSet: (optional) A :class:`model.objects.dbUniqueFQDNSet` object
@@ -1369,9 +1373,9 @@ def _do__AcmeV2_AcmeOrder__core(
     # switch this
     if dbAcmeOrder_retry_of:
         # kwargs validation
-        if dbAcmeAccountKey:
+        if dbAcmeAccount:
             raise ValueError(
-                "Must NOT submit `dbAcmeAccountKey` with `dbAcmeOrder_retry_of`"
+                "Must NOT submit `dbAcmeAccount` with `dbAcmeOrder_retry_of`"
             )
 
         # ensure we can transition
@@ -1385,7 +1389,7 @@ def _do__AcmeV2_AcmeOrder__core(
             )
 
         # re-use these related objects
-        dbAcmeAccountKey = dbAcmeOrder_retry_of.acme_account_key
+        dbAcmeAccount = dbAcmeOrder_retry_of.acme_account
         dbPrivateKey = dbAcmeOrder_retry_of.private_key
         dbUniqueFQDNSet = dbAcmeOrder_retry_of.unique_fqdn_set
         domain_names = dbAcmeOrder_retry_of.domains_as_list
@@ -1404,8 +1408,8 @@ def _do__AcmeV2_AcmeOrder__core(
             )
 
         # override or re-use these related objects
-        if not dbAcmeAccountKey:
-            dbAcmeAccountKey = dbAcmeOrder_renewal_of.acme_account_key
+        if not dbAcmeAccount:
+            dbAcmeAccount = dbAcmeOrder_renewal_of.acme_account
 
         if not dbPrivateKey:
             # raise ValueError("Must submit `dbPrivateKey`")
@@ -1440,9 +1444,9 @@ def _do__AcmeV2_AcmeOrder__core(
             dbServerCertificate__renewal_of.is_renewed = True
             ctx.dbSession.flush(objects=[dbServerCertificate__renewal_of])
 
-        if not dbAcmeAccountKey:
+        if not dbAcmeAccount:
             raise ValueError(
-                "Must submit `dbAcmeAccountKey` with `dbAcmeOrder_renewal_of`"
+                "Must submit `dbAcmeAccount` with `dbAcmeOrder_renewal_of`"
             )
         if not dbPrivateKey:
             raise ValueError("Must submit `dbPrivateKey`")
@@ -1453,8 +1457,8 @@ def _do__AcmeV2_AcmeOrder__core(
 
     elif dbUniqueFQDNSet:
         # kwargs validation
-        if not dbAcmeAccountKey:
-            raise ValueError("Must submit `dbAcmeAccountKey` with `dbUniqueFQDNSet`")
+        if not dbAcmeAccount:
+            raise ValueError("Must submit `dbAcmeAccount` with `dbUniqueFQDNSet`")
         if not dbPrivateKey:
             raise ValueError("Must submit `dbPrivateKey`")
 
@@ -1491,7 +1495,7 @@ def _do__AcmeV2_AcmeOrder__core(
     dbServerCertificate = None
     try:
         (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-            ctx, dbAcmeAccountKey
+            ctx, dbAcmeAccount
         )
         tmpfiles.append(tmpfile_account)
 
@@ -1522,7 +1526,7 @@ def _do__AcmeV2_AcmeOrder__core(
             private_key_cycle_id__renewal=private_key_cycle_id__renewal,
             private_key_strategy_id__requested=private_key_strategy_id__requested,
             order_url=order_url,
-            dbAcmeAccountKey=dbAcmeAccountKey,
+            dbAcmeAccount=dbAcmeAccount,
             dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
             dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
             dbPrivateKey=dbPrivateKey,
@@ -1605,9 +1609,9 @@ def do__AcmeV2_AcmeOrder__finalize(
     tmpfiles = []
     try:
         if authenticatedUser is None:
-            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            dbAcmeAccount = dbAcmeOrder.acme_account
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
@@ -1649,9 +1653,9 @@ def do__AcmeV2_AcmeOrder__process(
     tmpfiles = []
     try:
         if authenticatedUser is None:
-            dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+            dbAcmeAccount = dbAcmeOrder.acme_account
             (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-                ctx, dbAcmeAccountKey
+                ctx, dbAcmeAccount
             )
             tmpfiles.append(tmpfile_account)
 
@@ -1666,7 +1670,7 @@ def do__AcmeV2_AcmeOrder__process(
                 dbAcmeAuthorization = auths_pending.pop()
                 if not dbAcmeAuthorization.is_can_acme_server_process:
                     # ensures we have 'pending' status and http-01 challenge; or *discover* status
-                    # acme order, with acme_account_key
+                    # acme order, with acme_account
                     raise ValueError("Can not trigger the `AcmeAuthorization`")
 
                 handle_authorization_payload = _AcmeV2_factory_AuthHandlers(
@@ -1740,7 +1744,7 @@ def do__AcmeV2_AcmeOrder__new(
     processing_strategy=None,
     private_key_cycle__renewal=None,
     private_key_strategy__requested=None,
-    dbAcmeAccountKey=None,
+    dbAcmeAccount=None,
     dbPrivateKey=None,
     dbServerCertificate__renewal_of=None,
     dbQueueCertificate__of=None,
@@ -1754,7 +1758,7 @@ def do__AcmeV2_AcmeOrder__new(
     :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param dbQueueCertificate__of: (optional) A :class:`model.objects.QueueCertificate` object
     :param dbServerCertificate__renewal_of: (optional) A :class:`model.objects.ServerCertificate` object
@@ -1771,7 +1775,7 @@ def do__AcmeV2_AcmeOrder__new(
         private_key_cycle__renewal=private_key_cycle__renewal,
         private_key_strategy__requested=private_key_strategy__requested,
         processing_strategy=processing_strategy,
-        dbAcmeAccountKey=dbAcmeAccountKey,
+        dbAcmeAccount=dbAcmeAccount,
         dbPrivateKey=dbPrivateKey,
         dbQueueCertificate__of=dbQueueCertificate__of,
         dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
@@ -1799,9 +1803,9 @@ def do__AcmeV2_AcmeOrder__download_certificate(
     tmpfiles = []
     try:
         # we need to use tmpfiles on the disk
-        dbAcmeAccountKey = dbAcmeOrder.acme_account_key
+        dbAcmeAccount = dbAcmeOrder.acme_account
         (authenticatedUser, tmpfile_account) = new_Authenticated_user(
-            ctx, dbAcmeAccountKey
+            ctx, dbAcmeAccount
         )
         tmpfiles.append(tmpfile_account)
 
@@ -1901,7 +1905,7 @@ def do__AcmeV2_AcmeOrder__retry(
 def do__AcmeV2_AcmeOrder__renew_custom(
     ctx,
     dbAcmeOrder=None,
-    dbAcmeAccountKey=None,
+    dbAcmeAccount=None,
     dbPrivateKey=None,
     processing_strategy=None,
     private_key_cycle__renewal=None,
@@ -1916,8 +1920,8 @@ def do__AcmeV2_AcmeOrder__renew_custom(
     """
     if not dbAcmeOrder:
         raise ValueError("Must submit `dbAcmeOrder`")
-    if not dbAcmeAccountKey:
-        raise ValueError("Must submit `dbAcmeAccountKey`")
+    if not dbAcmeAccount:
+        raise ValueError("Must submit `dbAcmeAccount`")
     if not dbPrivateKey:
         raise ValueError("Must submit `dbPrivateKey`")
     dbOperationsEvent = log__OperationsEvent(
@@ -1931,7 +1935,7 @@ def do__AcmeV2_AcmeOrder__renew_custom(
         private_key_strategy__requested=dbAcmeOrder.private_key_strategy__requested,
         processing_strategy=processing_strategy,
         dbAcmeOrder_renewal_of=dbAcmeOrder,
-        dbAcmeAccountKey=dbAcmeAccountKey,
+        dbAcmeAccount=dbAcmeAccount,
         dbPrivateKey=dbPrivateKey,
     )
 

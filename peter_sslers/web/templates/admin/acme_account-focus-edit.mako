@@ -6,21 +6,21 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
-        <li><a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}">Focus [${AcmeAccountKey.id}]</a></li>
+        <li><a href="${admin_prefix}/acme-accounts">AcmeAccounts</a></li>
+        <li><a href="${admin_prefix}/acme-account/${AcmeAccount.id}">Focus [${AcmeAccount.id}]</a></li>
         <li class="active">Edit</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeAccountKeys - Focus - Edit</h2>
+    <h2>AcmeAccounts - Focus - Edit</h2>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/edit.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-account/${AcmeAccount.id}/edit.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
             .json
         </a>
@@ -47,14 +47,14 @@
                         <th>id</th>
                         <td>
                             <span class="label label-default">
-                                ${AcmeAccountKey.id}
+                                ${AcmeAccount.id}
                             </span>
                         </td>
                     </tr>
                     <tr>
                         <th>source</th>
                         <td>
-                            <span class="label label-default">${AcmeAccountKey.acme_account_key_source}</span>
+                            <span class="label label-default">${AcmeAccount.acme_account_key.acme_account_key_source}</span>
                         </td>
                     </tr>
                     <tr>
@@ -65,31 +65,31 @@
                                 href="${admin_prefix}/acme-account-providers"
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeAccountProvider-${AcmeAccountKey.acme_account_provider_id}
-                                [${AcmeAccountKey.acme_account_provider.name}]
-                                (${AcmeAccountKey.acme_account_provider.url})
+                                AcmeAccountProvider-${AcmeAccount.acme_account_provider_id}
+                                [${AcmeAccount.acme_account_provider.name}]
+                                (${AcmeAccount.acme_account_provider.url})
                             </a>
                         </td>
                     </tr>
                     <tr>
                         <th>contact</th>
-                        <td><code>${AcmeAccountKey.contact or ''}</code></td>
+                        <td><code>${AcmeAccount.contact or ''}</code></td>
                     </tr>
                     <tr>
                         <th>key_pem_md5</th>
-                        <td><code>${AcmeAccountKey.key_pem_md5}</code></td>
+                        <td><code>${AcmeAccount.acme_account_key.key_pem_md5}</code></td>
                     </tr>
                     <tr>
                         <th>PrivateKey cycle</th>
                         <td>
-                            <form action="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}/edit"
+                            <form action="${admin_prefix}/acme-account/${AcmeAccount.id}/edit"
                                   method="POST"
                                   >
                                 <%
-                                    _selected = AcmeAccountKey.private_key_cycle
+                                    _selected = AcmeAccount.private_key_cycle
                                 %>
-                                <select class="form-control" name="account_key__private_key_cycle">
-                                    % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle:
+                                <select class="form-control" name="account__private_key_cycle">
+                                    % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
                                         <%
                                             _selected = ' selected' if _option_text == _selected else ''
                                         %>

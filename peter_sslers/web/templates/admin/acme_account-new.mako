@@ -6,15 +6,15 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
+        <li><a href="${admin_prefix}/acme-accounts">AcmeAccounts</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeAccountKey | New</h2>
-    <p><em>${request.text_library.info_AcmeAccountKeys[1]}</em></p>
+    <h2>AcmeAccount | New</h2>
+    <p><em>${request.text_library.info_AcmeAccounts[1]}</em></p>
 </%block>
 
 
@@ -26,7 +26,7 @@
             ${admin_partials.handle_querystring_result()}
 
             <form
-                action="${admin_prefix}/acme-account-key/new"
+                action="${admin_prefix}/acme-account/new"
                 method="POST"
                 enctype="multipart/form-data"
             >
@@ -45,15 +45,15 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="account_key__contact">contact</label>
-                    <input class="form-control" type="text" name="account_key__contact" value=""/>
+                    <label for="account__contact">contact</label>
+                    <input class="form-control" type="text" name="account__contact" value=""/>
                 </div>
 
                 <div class="form-group">
                     <label for="private_key_cyle">PrivateKey Cycling</label>
-                    <select class="form-control" name="account_key__private_key_cycle">
-                        <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccountKey %>
-                        % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccountKey_private_key_cycle:
+                    <select class="form-control" name="account__private_key_cycle">
+                        <% _default = model_websafe.PrivateKeyCycle._DEFAULT_AcmeAccount %>
+                        % for _option_text in model_websafe.PrivateKeyCycle._options_AcmeAccount_private_key_cycle:
                             <option value="${_option_text}"${" selected" if (_option_text == _default) else ""}>${_option_text}</option>
                         % endfor
                     </select>
@@ -63,11 +63,11 @@
             </form>
         </div>
         <div class="col-sm-6">
-            ${admin_partials.info_AcmeAccountKey()}
+            ${admin_partials.info_AcmeAccount()}
             <h3>This form is JSON capable</h3>
 
             <p>
-                <code>curl ${request.api_host}${admin_prefix}/acme-account-key/new.json</code>
+                <code>curl ${request.api_host}${admin_prefix}/acme-account/new.json</code>
             </p>
         </div>
     </div>

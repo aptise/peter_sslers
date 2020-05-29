@@ -28,7 +28,7 @@ asap tasks
 
 new queue-certificates need to track private_key_id__requested
 
-`account_key__private_key_cycle` is required on all forms but often unused
+`account__private_key_cycle` is required on all forms but often unused
 	it should be conditional, based on the presences of uploading a new account-key
 
 

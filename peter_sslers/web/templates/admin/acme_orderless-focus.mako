@@ -75,16 +75,16 @@
     <div class="row">
         <div class="col-sm-12">
         
-            <h5>AcmeAccountKey</h5>
-            % if AcmeOrderless.acme_account_key_id:
+            <h5>AcmeAccount</h5>
+            % if AcmeOrderless.acme_account_id:
                 <p>This AcmeOrderless is connected to:
-                    <a class="label label-info" href="${admin_prefix}/acme-account-key/${AcmeOrderless.acme_account_key_id}">
+                    <a class="label label-info" href="${admin_prefix}/acme-account/${AcmeOrderless.acme_account_id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        AcmeAccountKey-${AcmeOrderless.acme_account_key_id}
+                        AcmeAccount-${AcmeOrderless.acme_account_id}
                     </a>
                  </p>
             % else:
-                <p>This AcmeOrderless is not connected to an AcmeAccountKey.</p>
+                <p>This AcmeOrderless is not connected to an AcmeAccount.</p>
             % endif
         
             <h5>Challenges in this Orderless Request</h5>
@@ -113,7 +113,7 @@
                             'updated',
                             ]
                             
-                    if AcmeOrderless.acme_account_key_id:
+                    if AcmeOrderless.acme_account_id:
                         # Note: challenge_url is not supported until this is integrated with an AcmeAccount
                         cols.append("challenge_url")
                 %>
@@ -216,7 +216,7 @@
                             <label for="keyauthorization">KeyAuthorization</label>
                             <input class="form-control" type="text" name="keyauthorization" value=""/>
                         </div>
-                        % if AcmeOrderless.acme_account_key_id:
+                        % if AcmeOrderless.acme_account_id:
                             <div class="form-group">
                                 <label for="challenge_url">ChallengeURL</label>
                                 <input class="form-control" type="text" name="challenge_url" value=""/>

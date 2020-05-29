@@ -73,7 +73,7 @@ class ViewAdminMain(Handler):
 
     def _search__submit(self, search_type):
         results = {
-            "AcmeAccountKey": {"count": 0, "items": [], "next": False},
+            "AcmeAccount": {"count": 0, "items": [], "next": False},
             "Domain": {"count": 0, "items": [], "next": False},
             "CACertificate": {"count": 0, "items": [], "next": False},
             "CertificateRequest": {"count": 0, "items": [], "next": False},
@@ -109,16 +109,24 @@ class ViewAdminMain(Handler):
             if not all((search_modulus, source_type, source_id)):
                 raise ValueError("invalid search")
 
-            # AcmeAccountKey
-            if show_only["AcmeAccountKey"]:
-                _base = self.request.api_context.dbSession.query(
-                    model_objects.AcmeAccountKey
-                ).filter(
-                    model_objects.AcmeAccountKey.key_pem_modulus_md5 == search_modulus
+            # AcmeAccount
+            if show_only["AcmeAccount"]:
+                _base = (
+                    self.request.api_context.dbSession.query(model_objects.AcmeAccount)
+                    .join(
+                        model_objects.AcmeAccountKey,
+                        model_objects.AcmeAccount.id
+                        == model_objects.AcmeAccountKey.acme_account_id,
+                    )
+                    .filter(
+                        model_objects.AcmeAccountKey.key_pem_modulus_md5
+                        == search_modulus
+                    )
+                    .options(sqlalchemy.orm.contains_eager("acme_account_key"))
                 )
-                results["AcmeAccountKey"]["count"] = _base.count()
-                if results["AcmeAccountKey"]["count"]:
-                    results["AcmeAccountKey"]["items"] = (
+                results["AcmeAccount"]["count"] = _base.count()
+                if results["AcmeAccount"]["count"]:
+                    results["AcmeAccount"]["items"] = (
                         _base.limit(item_limit).offset(offset).all()
                     )
 
@@ -253,11 +261,11 @@ class ViewAdminMain(Handler):
 
     @view_config(route_name="admin:settings", renderer="/admin/settings.mako")
     def settings(self):
-        self._load_AcmeAccountKey_GlobalDefault()
+        self._load_AcmeAccount_GlobalDefault()
         return {
             "project": "peter_sslers",
             "documentation_grid": configuration_options.documentation_grid,
-            "AcmeAccountKey_GlobalDefault": self.dbAcmeAccountKey_GlobalDefault,
+            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

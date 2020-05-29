@@ -25,6 +25,21 @@ class InvalidTransition(Exception):
     pass
 
 
+class ObjectExists(Exception):
+    """raised when an object already exists, no need to create"""
+
+    pass
+
+
+class ConflictingObject(Exception):
+    """
+    raised when an object already exists
+    args[0] = tuple(conflicting_object, error_message_string)
+    """
+
+    pass
+
+
 class OpenSslError(Exception):
     pass
 

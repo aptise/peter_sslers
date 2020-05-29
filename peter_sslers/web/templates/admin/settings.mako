@@ -25,17 +25,17 @@
         <div class="col-sm-12">
             <table class="table table-striped table-condensed">
                 <tr>
-                    <th>Global Default AcmeAccountKey</th>
+                    <th>Global Default AcmeAccount</th>
                     <td>
-                        % if not AcmeAccountKey_GlobalDefault:
+                        % if not AcmeAccount_GlobalDefault:
                             Not configured                        
                         % else:
-                            <a href="${admin_prefix}/acme-account-key/${AcmeAccountKey_GlobalDefault.id}" span class="label label-default">
-                                AcmeAccountKey-${AcmeAccountKey_GlobalDefault.id}
+                            <a href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}" span class="label label-default">
+                                AcmeAccount-${AcmeAccount_GlobalDefault.id}
                             </a>
-                            <code>${AcmeAccountKey_GlobalDefault.key_pem_sample}</code>
+                            <code>${AcmeAccount_GlobalDefault.key_pem_sample}</code>
                         % endif
-                        <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-account-keys">AcmeAccountKey</a>.</p>
+                        <p>This can be configured by selecting a new <a href="${admin_prefix}/acme-accounts">AcmeAccount</a>.</p>
                     </td>
                 </tr>
             </table>

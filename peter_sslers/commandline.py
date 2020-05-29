@@ -73,7 +73,7 @@ def upload_account(server_url_root, fset):
     """actually uploads an account fileset"""
     if server_url_root[-1] == "/":
         server_url_root = server_url_root[:-1]
-    url = "%s/acme-account-key/upload.json" % server_url_root
+    url = "%s/acme-account/upload.json" % server_url_root
 
     try:
         with psutil.Popen(
@@ -86,7 +86,7 @@ def upload_account(server_url_root, fset):
                 "--form",
                 "account_key_file_le_reg=@%s" % fset["regr.json"],
                 "--form",
-                "private_key_cycle=single_certificate",
+                "account__private_key_cycle=single_certificate",
                 url,
             ],
             stdin=subprocess.PIPE,

@@ -25,16 +25,16 @@ from .create import create__AcmeChallenge
 from .create import create__CertificateRequest
 from .create import create__PrivateKey
 from .create import create__ServerCertificate
-from .get import get__AcmeAccountProviders__paginated
+from .get import get__AcmeAccountProvider__by_server
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
 from .get import get__CACertificate__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
 from .get import get__DomainBlacklisted__by_name
-from .get import get__PrivateKey_CurrentDay_AcmeAccountKey
+from .get import get__PrivateKey_CurrentDay_AcmeAccount
 from .get import get__PrivateKey_CurrentDay_Global
-from .get import get__PrivateKey_CurrentWeek_AcmeAccountKey
+from .get import get__PrivateKey_CurrentWeek_AcmeAccount
 from .get import get__PrivateKey_CurrentWeek_Global
 from .logger import log__OperationsEvent
 from .logger import _log_object_event
@@ -46,7 +46,7 @@ from .validate import validate_domain_names
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__AcmeAccountKey(
+def getcreate__AcmeAccount(
     ctx,
     key_pem=None,
     le_meta_jsons=None,
@@ -55,11 +55,16 @@ def getcreate__AcmeAccountKey(
     acme_account_provider_id=None,
     acme_account_key_source_id=None,
     contact=None,
-    event_type="AcmeAccountKey__insert",
+    terms_of_service=None,
+    account_url=None,
+    event_type="AcmeAccount__insert",
     private_key_cycle_id=None,
 ):
     """
-    Gets or Creates AccountKeys for LetsEncrypts' ACME server
+    Gets or Creates AcmeAccount+AcmeAccountKey for LetsEncrypts' ACME server
+
+    returns:
+        tuple(`model.utils.AcmeAccount`, `is_created[Boolean]`)
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param key_pem: (optional) an account key in PEM format.
@@ -73,12 +78,13 @@ def getcreate__AcmeAccountKey(
         if not provided, `key_pem` must be supplied
     :param le_reg_jsons: (optional) data from certbot account key format
         if not provided, `key_pem` must be supplied
-    :param acme_account_provider_id: (optional) id corresponding to a :class:`model.objects.AcmeAccountProvider` server
+    :param acme_account_provider_id: (optional) id corresponding to a :class:`model.objects.AcmeAccountProvider` server. required if `key_pem``; do not submit if `le_*` kwargs are provided.
     :param acme_account_key_source_id: (required) id corresponding to a :class:`model.utils.AcmeAccountKeySource`
     :param contact: (optional) contact info from acme server
+    :param terms_of_service: (optional)
+    :param account_url: (optional)
     :param private_key_cycle_id: (required) id corresponding to a :class:`model.utils.PrivateKeyCycle`
     """
-    is_created = False
     if (key_pem) and any((le_meta_jsons, le_pkey_jsons, le_reg_jsons)):
         raise ValueError(
             "Must supply `key_pem` OR all of `le_meta_jsons, le_pkey_jsons, le_reg_jsons`."
@@ -87,80 +93,62 @@ def getcreate__AcmeAccountKey(
         raise ValueError(
             "Must supply `key_pem` OR all of `le_meta_jsons, le_pkey_jsons, le_reg_jsons`."
         )
-    if event_type not in ("AcmeAccountKey__create", "AcmeAccountKey__insert"):
-        raise ValueError("invalid event_type")
+    # how are we submitting this data?
+    _strategy = None
+
+    _event_type_key = None
+    if event_type == "AcmeAccount__create":
+        _event_type_key = "AcmeAccountKey__create"
+    elif event_type == "AcmeAccount__insert":
+        _event_type_key = "AcmeAccountKey__insert"
+    else:
+        raise ValueError("invalid `event_type`")
 
     if private_key_cycle_id is None:
         private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
-            model_utils.PrivateKeyCycle._DEFAULT_AcmeAccountKey
+            model_utils.PrivateKeyCycle._DEFAULT_AcmeAccount
         )
     if private_key_cycle_id not in model_utils.PrivateKeyCycle._mapping:
         raise ValueError("invalid `private_key_cycle_id`")
 
+    # scoping
+    _letsencrypt_data = None
+
+    # quickly audit args/derive info
     if key_pem:
+        _strategy = "key_pem"
+        if not contact:
+            raise ValueError("must supply `contact` when submitting `key_pem`")
+        if not acme_account_provider_id:
+            raise ValueError(
+                "no `acme_account_provider_id`; required if PEM key is submitted."
+            )
+
+        dbAcmeAccountProvider = ctx.dbSession.query(
+            model_objects.AcmeAccountProvider
+        ).get(acme_account_provider_id)
+        if not dbAcmeAccountProvider:
+            raise ValueError("invalid `acme_account_provider_id`.")
+
+        # cleanup these
         key_pem = cert_utils.cleanup_pem_text(key_pem)
         key_pem_md5 = utils.md5_text(key_pem)
-        dbAcmeAccountKey = (
-            ctx.dbSession.query(model_objects.AcmeAccountKey)
-            .filter(
-                model_objects.AcmeAccountKey.key_pem_md5 == key_pem_md5,
-                model_objects.AcmeAccountKey.key_pem == key_pem,
+
+    elif not key_pem:
+        _strategy = "LetsEncrypt payload"
+        if contact:
+            raise ValueError("do not submit `contact` with LetsEncrypt payload")
+        if acme_account_provider_id:
+            raise ValueError(
+                "do not submit `acme_account_provider_id` with LetsEncrypt payload"
             )
-            .first()
-        )
-        if not dbAcmeAccountKey:
-            if acme_account_provider_id is None:
-                raise ValueError(
-                    "no `acme_account_provider_id`. required if PEM key is uploaded."
-                )
-            try:
-                _tmpfile = cert_utils.new_pem_tempfile(key_pem)
-
-                # validate
-                cert_utils.validate_key__pem_filepath(_tmpfile.name)
-
-                # grab the modulus
-                key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(
-                    _tmpfile.name
-                )
-
-            finally:
-                _tmpfile.close()
-
-            event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = log__OperationsEvent(
-                ctx, model_utils.OperationsEventType.from_string(event_type),
+        if terms_of_service:
+            raise ValueError(
+                "do not submit `terms_of_service` with LetsEncrypt payload"
             )
+        if account_url:
+            raise ValueError("do not submit `account_url` with LetsEncrypt payload")
 
-            dbAcmeAccountKey = model_objects.AcmeAccountKey()
-            dbAcmeAccountKey.timestamp_created = ctx.timestamp
-            dbAcmeAccountKey.key_pem = key_pem
-            dbAcmeAccountKey.key_pem_md5 = key_pem_md5
-            dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
-            dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent.id
-            dbAcmeAccountKey.acme_account_provider_id = acme_account_provider_id
-            dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
-            dbAcmeAccountKey.private_key_cycle_id = private_key_cycle_id
-            dbAcmeAccountKey.contact = contact
-            ctx.dbSession.add(dbAcmeAccountKey)
-            ctx.dbSession.flush(objects=[dbAcmeAccountKey])
-            is_created = True
-
-            event_payload_dict["acme_account_key.id"] = dbAcmeAccountKey.id
-            dbOperationsEvent.set_event_payload(event_payload_dict)
-            ctx.dbSession.flush(objects=[dbOperationsEvent])
-
-            _log_object_event(
-                ctx,
-                dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    event_type
-                ),
-                dbAcmeAccountKey=dbAcmeAccountKey,
-            )
-    else:
-        le_meta_json = json.loads(le_meta_jsons)
-        le_reg_json = json.loads(le_reg_jsons)
         """
         There is some useful data in here...
             meta.json = creation_dt DATETIME; save as created
@@ -171,102 +159,155 @@ def getcreate__AcmeAccountKey(
             regr.json = uri, save for info
             regr.json = tos, save for info
         """
-        letsencrypt_data = {"meta.json": le_meta_json, "regr.json": le_reg_json}
-        letsencrypt_data = json.dumps(letsencrypt_data, sort_keys=True)
-
-        if contact is None:
-            try:
-                contact = le_reg_json["body"]["contact"][0]
-                if contact.startswith("mailto:"):
-                    contact = contact[7:]
-            except:
-                pass
+        le_meta_json = json.loads(le_meta_jsons)
+        le_reg_json = json.loads(le_reg_jsons)
+        _letsencrypt_data = {"meta.json": le_meta_json, "regr.json": le_reg_json}
+        _letsencrypt_data = json.dumps(_letsencrypt_data, sort_keys=True)
+        try:
+            contact = le_reg_json["body"]["contact"][0]
+            if contact.startswith("mailto:"):
+                contact = contact[7:]
+        except Exception as exc:
+            log.critical("Could not parse `contact` from LetsEncrypt payload")
+            contact = "invalid.contact.import@example.com"
 
         terms_of_service = le_reg_json.get("terms_of_service")
         account_url = le_reg_json.get("uri")
-        account_server = lib.utils.url_to_server(account_url)
+        _account_server = lib.utils.url_to_server(account_url)
+        if not _account_server:
+            raise ValueError(
+                "could not detect an AcmeAccountProvider server from LetsEncrypt payload"
+            )
 
         # derive the api server
-        acme_account_provider_id = None
-        dbAcmeAccountProviders = get__AcmeAccountProviders__paginated(ctx)
-        for _acmeAccountProvider in dbAcmeAccountProviders:
-            if account_server == _acmeAccountProvider.server:
-                acme_account_provider_id = _acmeAccountProvider.id
-        if acme_account_provider_id is None:
-            raise ValueError("could not derive an account")
+        dbAcmeAccountProvider = get__AcmeAccountProvider__by_server(
+            ctx, _account_server
+        )
+        if not dbAcmeAccountProvider:
+            raise ValueError(
+                "invalid AcmeAccountProvider detected from LetsEncrypt payload"
+            )
+        acme_account_provider_id = dbAcmeAccountProvider.id
 
         key_pem = cert_utils.convert_lejson(le_pkey_jsons)
         key_pem = cert_utils.cleanup_pem_text(key_pem)
         key_pem_md5 = utils.md5_text(key_pem)
-        dbAcmeAccountKey = (
-            ctx.dbSession.query(model_objects.AcmeAccountKey)
-            .filter(
-                model_objects.AcmeAccountKey.key_pem_md5 == key_pem_md5,
-                model_objects.AcmeAccountKey.key_pem == key_pem,
-            )
-            .first()
+
+    # now proceed with a single path of logic
+
+    # check for an AcmeAccount and AcmeAccountKey separately
+    # SCENARIOS:
+    # 1. No AcmeAccount or AcmeAccountKey - CREATE BOTH
+    # 2. Existing AcmeAccount, new AcmeAccountKey - CREATE NONE. ERROR.
+    # 3. Existing AcmeAccountKey, new AcmeAccount - CREATE NONE. ERROR.
+
+    dbAcmeAccount = (
+        ctx.dbSession.query(model_objects.AcmeAccount)
+        .filter(
+            sqlalchemy.func.lower(model_objects.AcmeAccount.contact) == contact.lower(),
+            model_objects.AcmeAccount.acme_account_provider_id
+            == acme_account_provider_id,
         )
+        .first()
+    )
+    dbAcmeAccountKey = (
+        ctx.dbSession.query(model_objects.AcmeAccountKey)
+        .filter(
+            model_objects.AcmeAccountKey.key_pem_md5 == key_pem_md5,
+            model_objects.AcmeAccountKey.key_pem == key_pem,
+        )
+        .first()
+    )
+    if dbAcmeAccount:
         if dbAcmeAccountKey:
-            dbAcmeAccountKey.terms_of_service = (
-                dbAcmeAccountKey.terms_of_service or terms_of_service
-            )
-            dbAcmeAccountKey.account_url = dbAcmeAccountKey.account_url or account_url
-            dbAcmeAccountKey.contact = dbAcmeAccountKey.contact or contact
-            ctx.dbSession.flush(objects=[dbAcmeAccountKey])
-
-        if not dbAcmeAccountKey:
-            try:
-                _tmpfile = cert_utils.new_pem_tempfile(key_pem)
-
-                # validate
-                cert_utils.validate_key__pem_filepath(_tmpfile.name)
-
-                # grab the modulus
-                key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(
-                    _tmpfile.name
+            return (dbAcmeAccount, False)
+        else:
+            raise errors.ConflictingObject(
+                (
+                    dbAcmeAccount,
+                    "The submitted AcmeAccountProvider and contact ino is already associated with another AcmeAccountKey.",
                 )
-            except Exception as exc:
-                raise
-            finally:
-                _tmpfile.close()
-
-            event_payload_dict = utils.new_event_payload_dict()
-            dbOperationsEvent = log__OperationsEvent(
-                ctx, model_utils.OperationsEventType.from_string(event_type),
             )
-
-            dbAcmeAccountKey = model_objects.AcmeAccountKey()
-            dbAcmeAccountKey.timestamp_created = ctx.timestamp
-            dbAcmeAccountKey.key_pem = key_pem
-            dbAcmeAccountKey.key_pem_md5 = key_pem_md5
-            dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
-            dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent.id
-            dbAcmeAccountKey.acme_account_provider_id = acme_account_provider_id
-            # dbAcmeAccountKey.letsencrypt_data = letsencrypt_data
-            dbAcmeAccountKey.contact = contact
-            dbAcmeAccountKey.terms_of_service = terms_of_service
-            dbAcmeAccountKey.account_url = account_url
-            dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
-            dbAcmeAccountKey.private_key_cycle_id = private_key_cycle_id
-
-            ctx.dbSession.add(dbAcmeAccountKey)
-            ctx.dbSession.flush(objects=[dbAcmeAccountKey])
-            is_created = True
-
-            event_payload_dict["acme_account_key.id"] = dbAcmeAccountKey.id
-            dbOperationsEvent.set_event_payload(event_payload_dict)
-            ctx.dbSession.flush(objects=[dbOperationsEvent])
-
-            _log_object_event(
-                ctx,
-                dbOperationsEvent=dbOperationsEvent,
-                event_status_id=model_utils.OperationsObjectEventStatus.from_string(
-                    event_type
-                ),
-                dbAcmeAccountKey=dbAcmeAccountKey,
+    elif dbAcmeAccountKey:
+        raise errors.ConflictingObject(
+            (
+                dbAcmeAccountKey,
+                "The submited AcmeAccountKey is already associated with another AcmeAccount.",
             )
+        )
 
-    return (dbAcmeAccountKey, is_created)
+    try:
+        _tmpfile = cert_utils.new_pem_tempfile(key_pem)
+
+        # validate
+        cert_utils.validate_key__pem_filepath(_tmpfile.name)
+
+        # grab the modulus
+        key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
+
+    finally:
+        _tmpfile.close()
+
+    dbOperationsEvent_AcmeAccount = log__OperationsEvent(
+        ctx, model_utils.OperationsEventType.from_string(event_type),
+    )
+    dbOperationsEvent_AcmeAccountKey = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string(_event_type_key),
+        dbOperationsEvent_child_of=dbOperationsEvent_AcmeAccount,
+    )
+
+    # first, create the AcmeAccount
+    dbAcmeAccount = model_objects.AcmeAccount()
+    dbAcmeAccount.timestamp_created = ctx.timestamp
+    dbAcmeAccount.contact = contact
+    dbAcmeAccount.terms_of_service = terms_of_service
+    dbAcmeAccount.account_url = account_url
+    dbAcmeAccount.acme_account_provider_id = acme_account_provider_id
+    dbAcmeAccount.private_key_cycle_id = private_key_cycle_id
+    dbAcmeAccount.operations_event_id__created = dbOperationsEvent_AcmeAccount.id
+    ctx.dbSession.add(dbAcmeAccount)
+    ctx.dbSession.flush(objects=[dbAcmeAccount])
+
+    # next, create the AcmeAccountKey
+    dbAcmeAccountKey = model_objects.AcmeAccountKey()
+    dbAcmeAccountKey.acme_account_id = dbAcmeAccount.id
+    dbAcmeAccountKey.timestamp_created = ctx.timestamp
+    dbAcmeAccountKey.key_pem = key_pem
+    dbAcmeAccountKey.key_pem_md5 = key_pem_md5
+    dbAcmeAccountKey.key_pem_modulus_md5 = key_pem_modulus_md5
+    dbAcmeAccountKey.acme_account_key_source_id = acme_account_key_source_id
+    dbAcmeAccountKey.operations_event_id__created = dbOperationsEvent_AcmeAccountKey.id
+    ctx.dbSession.add(dbAcmeAccountKey)
+    ctx.dbSession.flush(objects=[dbAcmeAccountKey])
+
+    # recordkeeping - AcmeAccount
+    _epd__AcmeAccount = utils.new_event_payload_dict()
+    _epd__AcmeAccount["acme_account.id"] = dbAcmeAccount.id
+    dbOperationsEvent_AcmeAccount.set_event_payload(_epd__AcmeAccount)
+    ctx.dbSession.flush(objects=[dbOperationsEvent_AcmeAccount])
+    _log_object_event(
+        ctx,
+        dbOperationsEvent=dbOperationsEvent_AcmeAccount,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(event_type),
+        dbAcmeAccount=dbAcmeAccount,
+    )
+
+    # recordkeeping - AcmeAccountKey
+    _epd__AcmeAccountKey = utils.new_event_payload_dict()
+    _epd__AcmeAccountKey["acme_account_key.id"] = dbAcmeAccountKey.id
+    dbOperationsEvent_AcmeAccountKey.set_event_payload(_epd__AcmeAccountKey)
+    ctx.dbSession.flush(objects=[dbOperationsEvent_AcmeAccountKey])
+    _log_object_event(
+        ctx,
+        dbOperationsEvent=dbOperationsEvent_AcmeAccountKey,
+        event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+            _event_type_key
+        ),
+        dbAcmeAccountKey=dbAcmeAccountKey,
+    )
+
+    return (dbAcmeAccount, True)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -651,7 +692,6 @@ def getcreate__CertificateRequest__by_pem_text(
     ctx,
     csr_pem,
     certificate_request_source_id=None,
-    dbAcmeAccountKey=None,
     dbPrivateKey=None,
     dbServerCertificate__issued=None,
     domain_names=None,
@@ -662,7 +702,6 @@ def getcreate__CertificateRequest__by_pem_text(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param csr_pem:
     :param certificate_request_source_id: Must match an option in :class:`model.utils.CertificateRequestSource`
-    :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` that owns the certificate
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
     :param dbServerCertificate__issued: (required) The :class:`model.objects.ServerCertificate` this issued as
     :param domain_names: (required) A list of fully qualified domain names
@@ -736,7 +775,7 @@ def getcreate__Domain__by_domainName(ctx, domain_name, is_from_queue_domain=None
 def getcreate__PrivateKey__by_pem_text(
     ctx,
     key_pem,
-    acme_account_key_id__owner=None,
+    acme_account_id__owner=None,
     private_key_source_id=None,
     private_key_type_id=None,
     private_key_id__replaces=None,
@@ -746,7 +785,7 @@ def getcreate__PrivateKey__by_pem_text(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param str key_pem:
-    :param int acme_account_key_id__owner: (optional) the id of a :class:`model.objects.AcmeAccountKey` which owns this :class:`model.objects.PrivateKey`
+    :param int acme_account_id__owner: (optional) the id of a :class:`model.objects.AcmeAccount` which owns this :class:`model.objects.PrivateKey`
     :param int private_key_source_id: (required) A string matching a source in A :class:`lib.utils.PrivateKeySource`
     :param int private_key_type_id: (required) Valid options are in :class:`model.utils.PrivateKeyType`
     :param int private_key_id__replaces: (required) if this key replaces a compromised key, note it.
@@ -794,7 +833,7 @@ def getcreate__PrivateKey__by_pem_text(
         dbPrivateKey.key_pem_md5 = key_pem_md5
         dbPrivateKey.key_pem_modulus_md5 = key_pem_modulus_md5
         dbPrivateKey.operations_event_id__created = dbOperationsEvent.id
-        dbPrivateKey.acme_account_key_id__owner = acme_account_key_id__owner
+        dbPrivateKey.acme_account_id__owner = acme_account_id__owner
         dbPrivateKey.private_key_source_id = private_key_source_id
         dbPrivateKey.private_key_type_id = private_key_type_id
         dbPrivateKey.private_key_id__replaces = private_key_id__replaces
@@ -821,24 +860,24 @@ def getcreate__PrivateKey__by_pem_text(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__PrivateKey_for_AcmeAccountKey(ctx, dbAcmeAccountKey=None):
+def getcreate__PrivateKey_for_AcmeAccount(ctx, dbAcmeAccount=None):
     """
     getcreate wrapping a RemoteIpAddress
 
-    returns: dbAcmeAccountKey
+    returns: The :class:`model.objects.PrivateKey`
     raises: ValueError
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAccountKey: (required) The :class:`model.objects.AcmeAccountKey` that owns the certificate
+    :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` that owns the certificate
     """
-    private_key_cycle = dbAcmeAccountKey.private_key_cycle
-    acme_account_key_id__owner = dbAcmeAccountKey.id
+    private_key_cycle = dbAcmeAccount.private_key_cycle
+    acme_account_id__owner = dbAcmeAccount.id
     if private_key_cycle == "single_certificate":
-        # NOTE: AcmeAccountKeyNeedsPrivateKey ; single_certificate
+        # NOTE: AcmeAccountNeedsPrivateKey ; single_certificate
         dbPrivateKey_new = create__PrivateKey(
             ctx,
             # bits=4096,
-            acme_account_key_id__owner=acme_account_key_id__owner,
+            acme_account_id__owner=acme_account_id__owner,
             private_key_source_id=model_utils.PrivateKeySource.from_string("generated"),
             private_key_type_id=model_utils.PrivateKeyType.from_string(
                 "single_certificate"
@@ -847,14 +886,14 @@ def getcreate__PrivateKey_for_AcmeAccountKey(ctx, dbAcmeAccountKey=None):
         return dbPrivateKey_new
 
     elif private_key_cycle == "account_daily":
-        # NOTE: AcmeAccountKeyNeedsPrivateKey ; account_daily
-        dbPrivateKey_new = get__PrivateKey_CurrentDay_AcmeAccountKey(
-            ctx, acme_account_key_id__owner
+        # NOTE: AcmeAccountNeedsPrivateKey ; account_daily
+        dbPrivateKey_new = get__PrivateKey_CurrentDay_AcmeAccount(
+            ctx, acme_account_id__owner
         )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                acme_account_key_id__owner=acme_account_key_id__owner,
+                acme_account_id__owner=acme_account_id__owner,
                 # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
@@ -866,7 +905,7 @@ def getcreate__PrivateKey_for_AcmeAccountKey(ctx, dbAcmeAccountKey=None):
         return dbPrivateKey_new
 
     elif private_key_cycle == "global_daily":
-        # NOTE: AcmeAccountKeyNeedsPrivateKey ; global_daily
+        # NOTE: AcmeAccountNeedsPrivateKey ; global_daily
         dbPrivateKey_new = get__PrivateKey_CurrentDay_Global(ctx)
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
@@ -882,14 +921,14 @@ def getcreate__PrivateKey_for_AcmeAccountKey(ctx, dbAcmeAccountKey=None):
         return dbPrivateKey_new
 
     elif private_key_cycle == "account_weekly":
-        # NOTE: AcmeAccountKeyNeedsPrivateKey ; account_weekly
-        dbPrivateKey_new = get__PrivateKey_CurrentWeek_AcmeAccountKey(
-            ctx, acme_account_key_id__owner
+        # NOTE: AcmeAccountNeedsPrivateKey ; account_weekly
+        dbPrivateKey_new = get__PrivateKey_CurrentWeek_AcmeAccount(
+            ctx, acme_account_id__owner
         )
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
                 ctx,
-                acme_account_key_id__owner=acme_account_key_id__owner,
+                acme_account_id__owner=acme_account_id__owner,
                 # bits=4096,
                 private_key_source_id=model_utils.PrivateKeySource.from_string(
                     "generated"
@@ -901,7 +940,7 @@ def getcreate__PrivateKey_for_AcmeAccountKey(ctx, dbAcmeAccountKey=None):
         return dbPrivateKey_new
 
     elif private_key_cycle == "global_weekly":
-        # NOTE: AcmeAccountKeyNeedsPrivateKey ; global_weekly
+        # NOTE: AcmeAccountNeedsPrivateKey ; global_weekly
         dbPrivateKey_new = get__PrivateKey_CurrentWeek_Global(ctx)
         if not dbPrivateKey_new:
             dbPrivateKey_new = create__PrivateKey(
@@ -917,11 +956,11 @@ def getcreate__PrivateKey_for_AcmeAccountKey(ctx, dbAcmeAccountKey=None):
         return dbPrivateKey_new
 
     elif private_key_cycle == "account_key_default":
-        # NOTE: AcmeAccountKeyNeedsPrivateKey ; account_key_default | INVALID
+        # NOTE: AcmeAccountNeedsPrivateKey ; account_key_default | INVALID
         raise ValueError("invalid option `account_key_default`")
 
     else:
-        # NOTE: AcmeAccountKeyNeedsPrivateKey | INVALID
+        # NOTE: AcmeAccountNeedsPrivateKey | INVALID
         raise ValueError("invalid option")
 
 
@@ -1109,7 +1148,7 @@ def getcreate__UniqueFQDNSet__by_domains(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: a list of domains names (strings)
     :param allow_blacklisted_domains: boolean, default `False`. If `True`, disables check against domains blacklist
-    
+
     :returns: A tuple consisting of (:class:`model.objects.UniqueFQDNSet`, :bool:`is_created`)
     :raises: `errors.AcmeBlacklistedDomains`
     """
@@ -1202,7 +1241,7 @@ def getcreate__UniqueFQDNSet__by_domainObjects(ctx, domainObjects):
 
 
 __all__ = (
-    "getcreate__AcmeAccountKey",
+    "getcreate__AcmeAccount",
     "getcreate__CACertificate__by_pem_text",
     "getcreate__CertificateRequest__by_pem_text",
     "getcreate__Domain__by_domainName",

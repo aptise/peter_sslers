@@ -77,11 +77,11 @@
 
             <h3>Recordkeeping - ACME & Objects</h3>
             <ul class="nav nav-pills nav-stacked">
-                <li><a href="${admin_prefix}/acme-account-keys"
-                       title="${request.text_library.info_AcmeAccountKeys[0]}"
+                <li><a href="${admin_prefix}/acme-accounts"
+                       title="${request.text_library.info_AcmeAccounts[0]}"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    acme-account-keys</a></li>
+                    acme-accounts</a></li>
                 <li><a href="${admin_prefix}/acme-authorizations"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
@@ -188,11 +188,11 @@
             <h3>Existing ServerCertificates</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li>
-                    <a  href="${admin_prefix}/acme-account-key/upload"
-                        title="${request.text_library.info_UploadAccountKey[0]}"
+                    <a  href="${admin_prefix}/acme-account/upload"
+                        title="If you need to upload a LetEncrypt AccountKey"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-                    Upload: AcmeAccountKey</a></li>
+                    Upload: AcmeAccount</a></li>
                 <li>
                     <a  href="${admin_prefix}/ca-certificate/upload"
                         title="${request.text_library.info_UploadCACertificate[0]}"

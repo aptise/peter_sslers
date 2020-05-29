@@ -193,12 +193,12 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>AcmeAccountKey Owner</th>
+                        <th>AcmeAccount Owner</th>
                         <td>
-                            % if PrivateKey.acme_account_key_id__owner:
-                                <a href="${admin_prefix}/acme-account-key/${PrivateKey.acme_account_key_id__owner}" class="label label-info">
+                            % if PrivateKey.acme_account_id__owner:
+                                <a href="${admin_prefix}/acme-account/${PrivateKey.acme_account_id__owner}" class="label label-info">
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeAccountKey-${PrivateKey.acme_account_key_id__owner}
+                                    AcmeAccount-${PrivateKey.acme_account_id__owner}
                                 </a>
                             % endif
                         </td>

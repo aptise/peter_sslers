@@ -22,9 +22,9 @@ def decode_args(getcreate_args):
     return getcreate_args
 
 
-class AcmeAccountKeyUploadParser(object):
+class AcmeAccountUploadParser(object):
     """
-    An AcmeAccountKey may be uploaded multiple ways:
+    An AcmeAccount may be uploaded multiple ways:
     * a single PEM file
     * an intra-associated three file triplet from a Certbot installation
 
@@ -49,7 +49,9 @@ class AcmeAccountKeyUploadParser(object):
 
     def require_new(self, require_contact=None):
         """
-        routine for creating a NEW AcmeAccountKey (peter_sslers generates the credentials)
+        routine for creating a NEW AcmeAccount (peter_sslers generates the credentials)
+        
+        :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
         """
         formStash = self.formStash
 
@@ -62,25 +64,22 @@ class AcmeAccountKeyUploadParser(object):
                 field="acme_account_provider_id", message="No provider submitted."
             )
 
-        private_key_cycle = formStash.results.get(
-            "account_key__private_key_cycle", None
-        )
+        private_key_cycle = formStash.results.get("account__private_key_cycle", None)
         if private_key_cycle is None:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="account_key__private_key_cycle",
+                field="account__private_key_cycle",
                 message="No PrivateKey cycle submitted.",
             )
         private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
             private_key_cycle
         )
 
-        contact = formStash.results.get("account_key__contact", None)
+        contact = formStash.results.get("account__contact", None)
         if not contact and require_contact:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="account_key__contact",
-                message="`account_key__contact` is required.",
+                field="account__contact", message="`account__contact` is required.",
             )
 
         getcreate_args = {}
@@ -95,7 +94,9 @@ class AcmeAccountKeyUploadParser(object):
 
     def require_upload(self, require_contact=None):
         """
-        routine for uploading an exiting AcmeAccountKey
+        routine for uploading an exiting AcmeAccount+AcmeAccountKey
+
+        :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
         """
         formStash = self.formStash
 
@@ -144,30 +145,30 @@ class AcmeAccountKeyUploadParser(object):
             "acme_account_provider_id", None
         )
 
-        private_key_cycle = formStash.results.get(
-            "account_key__private_key_cycle", None
-        )
+        private_key_cycle = formStash.results.get("account__private_key_cycle", None)
         if private_key_cycle is None:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
-                field="account_key__private_key_cycle",
+                field="account__private_key_cycle",
                 message="No PrivateKey cycle submitted.",
             )
         private_key_cycle_id = model_utils.PrivateKeyCycle.from_string(
             private_key_cycle
         )
 
-        getcreate_args = {}
-        _contact = formStash.results.get("account_key__contact")
-        if _contact:  # `None` or `""`
-            getcreate_args["contact"] = _contact
-        else:
-            if require_contact:
-                formStash.fatal_field(
-                    field="account_key__contact",
-                    message="Missing `account_key__contact`.",
-                )
+        # require `contact` when uploading a PEM file
+        if formStash.results["account_key_file_pem"] is not None:
+            require_contact = True
 
+        contact = formStash.results.get("account__contact")
+        if not contact and require_contact:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="account__contact", message="`account__contact` is required.",
+            )
+
+        getcreate_args = {}
+        self.contact = getcreate_args["contact"] = contact
         self.private_key_cycle_id = getcreate_args[
             "private_key_cycle_id"
         ] = private_key_cycle_id
@@ -202,7 +203,7 @@ class AcmeAccountKeyUploadParser(object):
 class _PrivateKeyUploadParser(object):
     """
     A PrivateKey is not a complex upload to parse itself
-    This code exists to mimic the AcmeAccountKey uploading.
+    This code exists to mimic the AcmeAccount uploading.
     """
 
     # overwritten in __init__
@@ -234,19 +235,19 @@ class _PrivateKeyUploadParser(object):
         self.getcreate_args = decode_args(getcreate_args)
 
 
-class _AcmeAccountKeySelection(object):
+class _AcmeAccountSelection(object):
     """
-    Class used to manage an uploaded AcmeAccountKey
+    Class used to manage an uploaded AcmeAccount
     """
 
     selection = None
-    upload_parsed = None  # instance of AcmeAccountKeyUploadParser or None
-    AcmeAccountKey = None
+    upload_parsed = None  # instance of AcmeAccountUploadParser or None
+    AcmeAccount = None
 
 
 class _PrivateKeySelection(object):
     selection = None
-    upload_parsed = None  # instance of AcmeAccountKeyUploadParser or None
+    upload_parsed = None  # instance of AcmeAccountUploadParser or None
     private_key_strategy__requested = None
     PrivateKey = None
 
@@ -257,50 +258,56 @@ class _PrivateKeySelection(object):
         )
 
 
-def parse_AcmeAccountKeySelection(
+def parse_AcmeAccountSelection(
     request, formStash, account_key_option=None, allow_none=None, require_contact=None,
 ):
+    """
+    :param formStash: an instance of `pyramid_formencode_classic.FormStash`
+    :param account_key_option:
+    :param allow_none:
+    :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
+    """
     account_key_pem = None
     account_key_pem_md5 = None
-    dbAcmeAccountKey = None
+    dbAcmeAccount = None
     is_global_default = None
 
     # handle the explicit-option
-    accountKeySelection = _AcmeAccountKeySelection()
+    acmeAccountSelection = _AcmeAccountSelection()
     if account_key_option == "account_key_file":
         # this will handle form validation and raise errors.
-        parser = AcmeAccountKeyUploadParser(formStash)
+        parser = AcmeAccountUploadParser(formStash)
 
         # this will have `contact` and `private_key_cycle`
         parser.require_upload(require_contact=require_contact)
 
         # update our object
-        accountKeySelection.selection = "upload"
-        accountKeySelection.upload_parsed = parser
+        acmeAccountSelection.selection = "upload"
+        acmeAccountSelection.upload_parsed = parser
 
-        return accountKeySelection
+        return acmeAccountSelection
     else:
         if account_key_option == "account_key_global_default":
-            accountKeySelection.selection = "global_default"
+            acmeAccountSelection.selection = "global_default"
             account_key_pem_md5 = formStash.results["account_key_global_default"]
             is_global_default = True
         elif account_key_option == "account_key_existing":
-            accountKeySelection.selection = "existing"
+            acmeAccountSelection.selection = "existing"
             account_key_pem_md5 = formStash.results["account_key_existing"]
         elif account_key_option == "account_key_reuse":
-            accountKeySelection.selection = "reuse"
+            acmeAccountSelection.selection = "reuse"
             account_key_pem_md5 = formStash.results["account_key_reuse"]
         elif account_key_option == "none":
             if not allow_none:
                 # `formStash.fatal_form()` will raise `FormInvalid()`
                 formStash.fatal_form(
-                    "This form does not support no AcmeAccountKey selection."
+                    "This form does not support no AcmeAccount selection."
                 )
             # note the lowercase "none"; this is an explicit "no item" selection
             # only certain routes allow this
-            accountKeySelection.selection = "none"
+            acmeAccountSelection.selection = "none"
             account_key_pem_md5 = None
-            return accountKeySelection
+            return acmeAccountSelection
         else:
             formStash.fatal_form(message="Invalid `account_key_option`",)
         if not account_key_pem_md5:
@@ -308,23 +315,23 @@ def parse_AcmeAccountKeySelection(
             formStash.fatal_field(
                 field=account_key_option, message="You did not provide a value"
             )
-        dbAcmeAccountKey = lib_db.get.get__AcmeAccountKey__by_pemMd5(
+        dbAcmeAccount = lib_db.get.get__AcmeAccount__by_pemMd5(
             request.api_context, account_key_pem_md5, is_active=True
         )
-        if not dbAcmeAccountKey:
+        if not dbAcmeAccount:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field=account_key_option,
-                message="The selected AcmeAccountKey is not enrolled in the system.",
+                message="The selected AcmeAccount is not enrolled in the system.",
             )
-        if is_global_default and not dbAcmeAccountKey.is_global_default:
+        if is_global_default and not dbAcmeAccount.is_global_default:
             # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
             formStash.fatal_field(
                 field=account_key_option,
-                message="The selected AcmeAccountKey is not the current default.",
+                message="The selected AcmeAccount is not the current default.",
             )
-        accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
-        return accountKeySelection
+        acmeAccountSelection.AcmeAccount = dbAcmeAccount
+        return acmeAccountSelection
     # `formStash.fatal_form()` will raise `FormInvalid()`
     formStash.fatal_form("There was an error validating your form.")
 
@@ -411,22 +418,26 @@ def parse_PrivateKeySelection(request, formStash, private_key_option=None):
 
 
 def form_key_selection(request, formStash, require_contact=None):
-    accountKeySelection = parse_AcmeAccountKeySelection(
+    """
+    :param formStash: an instance of `pyramid_formencode_classic.FormStash`
+    :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
+    """
+    acmeAccountSelection = parse_AcmeAccountSelection(
         request,
         formStash,
         account_key_option=formStash.results["account_key_option"],
         require_contact=require_contact,
     )
-    if accountKeySelection.selection == "upload":
-        key_create_args = accountKeySelection.upload_parsed.getcreate_args
-        key_create_args["event_type"] = "AcmeAccountKey__insert"
+    if acmeAccountSelection.selection == "upload":
+        key_create_args = acmeAccountSelection.upload_parsed.getcreate_args
+        key_create_args["event_type"] = "AcmeAccount__insert"
         key_create_args[
             "acme_account_key_source_id"
         ] = model_utils.AcmeAccountKeySource.from_string("imported")
-        (dbAcmeAccountKey, _is_created,) = lib_db.getcreate.getcreate__AcmeAccountKey(
+        (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
             request.api_context, **key_create_args
         )
-        accountKeySelection.AcmeAccountKey = dbAcmeAccountKey
+        acmeAccountSelection.AcmeAccount = dbAcmeAccount
 
     privateKeySelection = parse_PrivateKeySelection(
         request, formStash, private_key_option=formStash.results["private_key_option"],
@@ -458,4 +469,4 @@ def form_key_selection(request, formStash, require_contact=None):
             )
         privateKeySelection.PrivateKey = dbPrivateKey
 
-    return (accountKeySelection, privateKeySelection)
+    return (acmeAccountSelection, privateKeySelection)

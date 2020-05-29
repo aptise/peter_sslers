@@ -6,26 +6,26 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-account-keys">AcmeAccountKeys</a></li>
-        <li><a href="${admin_prefix}/acme-account-key/${AcmeAccountKey.id}">Focus [${AcmeAccountKey.id}]</a></li>
-        <li class="active">PrivateKeys</li>
+        <li><a href="${admin_prefix}/acme-accounts">AcmeAccounts</a></li>
+        <li><a href="${admin_prefix}/acme-account/${AcmeAccount.id}">Focus [${AcmeAccount.id}]</a></li>
+        <li class="active">QueueCertificates</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>AcmeAccountKey - Focus | PrivateKeys</h2>
+    <h2>AcmeAccount - Focus | QueueCertificates</h2>
 </%block>
 
 
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            % if PrivateKeys:
+            % if QueueCertificates:
                 ${admin_partials.nav_pagination(pager)}
-                ${admin_partials.table_PrivateKeys(PrivateKeys)}
+                ${admin_partials.table_QueueCertificates(QueueCertificates, perspective="AcmeAccount")}
             % else:
-                No known PrivateKeys.
+                No known QueueCertificates.
             % endif
         </div>
     </div>

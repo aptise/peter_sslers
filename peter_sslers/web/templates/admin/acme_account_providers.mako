@@ -34,7 +34,7 @@
                 If a provider is not enabled, it can not be used to Authenticate or Create new accounts.
             </p>
             <p>
-                Only the default provider can be used to set a default AcmeAccountKey. Changing the provider requires a restart.
+                Only the default provider can be used to set a default AcmeAccount. Changing the provider requires a restart.
             </p>
             
             <p>

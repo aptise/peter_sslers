@@ -373,10 +373,10 @@ def operations_update_recents(ctx):
     """
         # update the counts on Acme Account Keys
         _q_sub_req = ctx.dbSession.query(sqlalchemy.func.count(model_objects.CertificateRequest.id))\
-            .filter(model_objects.CertificateRequest.acme_account_key_id == model_objects.AcmeAccountKey.id,
+            .filter(model_objects.CertificateRequest.acme_account_id == model_objects.AcmeAccount.id,
                     )\
             .subquery().as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
-        ctx.dbSession.execute(model_objects.AcmeAccountKey.__table__
+        ctx.dbSession.execute(model_objects.AcmeAccount.__table__
                               .update()
                               .values(count_certificate_requests=_q_sub_req,
                                       # count_certificates_issued=_q_sub_iss,
@@ -402,13 +402,13 @@ def operations_update_recents(ctx):
 
     # should we do the timestamps?
     """
-    UPDATE acme_account_key SET timestamp_last_certificate_request = (
+    UPDATE acme_account SET timestamp_last_certificate_request = (
     SELECT MAX(timestamp_finished) FROM certificate_request
-    WHERE certificate_request.acme_account_key_id = acme_account_key.id);
+    WHERE certificate_request.acme_account_id = acme_account.id);
 
-    UPDATE acme_account_key SET timestamp_last_certificate_issue = (
+    UPDATE acme_account SET timestamp_last_certificate_issue = (
     SELECT MAX(timestamp_signed) FROM server_certificate
-    WHERE server_certificate.acme_account_key_id = acme_account_key.id);
+    WHERE server_certificate.acme_account_id = acme_account.id);
 
     UPDATE private_key SET timestamp_last_certificate_request = (
     SELECT MAX(timestamp_finished) FROM certificate_request
@@ -522,20 +522,23 @@ def api_domains__certificate_if_needed(
     processing_strategy=None,
     private_key_cycle__renewal=None,
     private_key_strategy__requested=None,
-    dbAcmeAccountKey=None,
+    dbAcmeAccount=None,
     dbPrivateKey=None,
 ):
     """
     Adds domains if needed
     2016.06.29
 
+
+    TODO: update the args below:
+
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: (required) An iteratble list of domain names
-    :param account_key_pem: (required) the acme-account-key used for new orders
+    :param account_key_pem: (required) the AcmeAccount key used for new orders
     :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
-    :param dbAcmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+    :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
 
     results will be a dict:
@@ -573,10 +576,10 @@ def api_domains__certificate_if_needed(
         event_payload_dict,
     )
 
-    if dbAcmeAccountKey is None:
-        raise errors.DisplayableError("missing AcmeAccountKey")
-    if not dbAcmeAccountKey.is_active:
-        raise errors.DisplayableError("AcmeAccountKey is not active")
+    if dbAcmeAccount is None:
+        raise errors.DisplayableError("missing AcmeAccount")
+    if not dbAcmeAccount.is_active:
+        raise errors.DisplayableError("AcmeAccount is not active")
 
     if not dbPrivateKey:
         raise errors.DisplayableError("missing PrivateKey")
@@ -679,7 +682,7 @@ def api_domains__certificate_if_needed(
                     private_key_cycle__renewal=private_key_cycle__renewal,
                     private_key_strategy__requested=private_key_strategy__requested,
                     processing_strategy=processing_strategy,
-                    dbAcmeAccountKey=dbAcmeAccountKey,
+                    dbAcmeAccount=dbAcmeAccount,
                     dbPrivateKey=dbPrivateKey,
                 )
 

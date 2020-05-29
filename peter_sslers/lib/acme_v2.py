@@ -157,14 +157,14 @@ def create_challenge_keyauthorization(token, accountkey_thumbprint):
 # ------------------------------------------------------------------------------
 
 
-def acme_directory_get(acmeAccountKey=None):
+def acme_directory_get(acmeAccount=None):
     """
     Get the ACME directory of urls
 
-    :param acmeAccountKey: (required) a :class:`model.objects.AcmeAccountKey` instance
+    :param acmeAccount: (required) a :class:`model.objects.AcmeAccount` instance
     """
     log.info("acme_v2.acme_directory_get(")
-    url_directory = acmeAccountKey.acme_account_provider.directory
+    url_directory = acmeAccount.acme_account_provider.directory
     if not url_directory:
         raise ValueError("no directory for the CERTIFICATE_AUTHORITY!")
     directory_payload, _status_code, _headers = url_request(
@@ -240,7 +240,7 @@ class AuthenticatedUser(object):
     # our API guarantees these items
     acmeLogger = None
     account_key_path = None
-    acmeAccountKey = None
+    acmeAccount = None
     acme_directory = None
     accountkey_jwk = None
     accountkey_thumbprint = None
@@ -253,26 +253,26 @@ class AuthenticatedUser(object):
     def __init__(
         self,
         acmeLogger=None,
-        acmeAccountKey=None,
+        acmeAccount=None,
         account_key_path=None,
         acme_directory=None,
         log__OperationsEvent=None,
     ):
         """
         :param acmeLogger: (required) A :class:`.logger.AcmeLogger` instance
-        :param acmeAccountKey: (required) A :class:`model.objects.AcmeAccountKey` object
+        :param acmeAccount: (required) A :class:`model.objects.AcmeAccount` object
         :param account_key_path: (optional) The filepath of a PEM encoded RSA key
         :param acme_directory: (optional) The ACME Directory's url for a "directory"
         :param log__OperationsEvent: (required) callable function to log the operations event
         """
-        if not all((acmeLogger, acmeAccountKey, account_key_path)):
+        if not all((acmeLogger, acmeAccount, account_key_path)):
             raise ValueError(
-                "all elements are required: (acmeLogger, acmeAccountKey, account_key_path)"
+                "all elements are required: (acmeLogger, acmeAccount, account_key_path)"
             )
 
         # do we need to load this?
         if acme_directory is None:
-            acme_directory = acme_directory_get(acmeAccountKey)
+            acme_directory = acme_directory_get(acmeAccount)
 
         # parse account key to get public key
         (accountkey_jwk, accountkey_thumbprint, alg) = account_key__parse(
@@ -282,7 +282,7 @@ class AuthenticatedUser(object):
         # configure the object!
         self.acmeLogger = acmeLogger
         self.account_key_path = account_key_path
-        self.acmeAccountKey = acmeAccountKey
+        self.acmeAccount = acmeAccount
         self.acme_directory = acme_directory
         self.accountkey_jwk = accountkey_jwk
         self.accountkey_thumbprint = accountkey_thumbprint
@@ -535,16 +535,16 @@ class AuthenticatedUser(object):
             )
 
             # this would raise if we couldn't authenticate
-            self.acmeAccountKey.timestamp_last_authenticated = ctx.timestamp
-            ctx.dbSession.flush(objects=[self.acmeAccountKey])
+            self.acmeAccount.timestamp_last_authenticated = ctx.timestamp
+            ctx.dbSession.flush(objects=[self.acmeAccount])
 
             # log this
             event_payload_dict = utils.new_event_payload_dict()
-            event_payload_dict["acme_account_key.id"] = self.acmeAccountKey.id
+            event_payload_dict["acme_account.id"] = self.acmeAccount.id
             dbOperationsEvent = self.log__OperationsEvent(
                 ctx,
                 model_utils.OperationsEventType.from_string(
-                    "AcmeAccountKey__authenticate"
+                    "AcmeAccount__authenticate"
                 ),
                 event_payload_dict,
             )

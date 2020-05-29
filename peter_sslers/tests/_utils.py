@@ -44,11 +44,12 @@ export SSL_RUN_NGINX_TESTS=1
 export SSL_RUN_REDIS_TESTS=1
 export SSL_RUN_API_TESTS__PEBBLE=1
 export SSL_PEBBLE_API_VALIDATES=1
-export SSL_TEST_DOMAINS=dev.cliqued.in  # can be a comma-separated string
-export SSL_TEST_PORT=7201
+export SSL_TEST_DOMAINS=dev.cliqued.in
 export SSL_TEST_PORT=7201
 export SSL_BIN_REDIS_SERVER=/path/to
 export SSL_CONF_REDIS_SERVER=/path/to
+
+NOTE: SSL_TEST_DOMAINS can be a comma-separated string
 
 if running letsencrypt tests, you need to specify a domain and make sure to proxy to this app so letsencrypt can access it
 
@@ -223,11 +224,11 @@ TEST_FILES = {
     "AcmeOrderless": {
         "new-1": {
             "domains": ["acme-orderless-1.example.com", "acme-orderless-2.example.com"],
-            "AcmeAccountKey": None,
+            "AcmeAccount": None,
         },
         "new-2": {
             "domains": ["acme-orderless-1.example.com", "acme-orderless-2.example.com"],
-            "AcmeAccountKey": {
+            "AcmeAccount": {
                 "type": "upload",
                 "private_key_cycling": "single_certificate",
                 "acme_account_provider_id": "1",
@@ -241,6 +242,7 @@ TEST_FILES = {
                 "account_key_option": "account_key_file",
                 "acme_account_provider_id": "1",
                 "account_key_file_pem": "AcmeAccountKey-1.pem",
+                "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
                 "domain_names": [
@@ -254,6 +256,7 @@ TEST_FILES = {
                 "account_key_option": "account_key_file",
                 "acme_account_provider_id": "1",
                 "account_key_file_pem": "AcmeAccountKey-1.pem",
+                "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
                 "domain_names": [
@@ -265,7 +268,7 @@ TEST_FILES = {
             },
         },
     },
-    "AcmeAccountKey": {
+    "AcmeAccount": {
         "1": {
             "key": "acme_account_1.key",
             "provider": "pebble",
@@ -497,37 +500,38 @@ class AppTest(AppTestCore):
 
                     AcmeEventLog
                 """
-                # note: pre-populate AcmeAccountKey
-                # this should create `/acme-account-key/1`
-                _dbAcmeAccountKey_1 = None
-                for _id in TEST_FILES["AcmeAccountKey"]:
-                    _key_filename = TEST_FILES["AcmeAccountKey"][_id]["key"]
-                    _private_key_cycle = TEST_FILES["AcmeAccountKey"][_id][
+                # note: pre-populate AcmeAccount
+                # this should create `/acme-account/1`
+                _dbAcmeAccount_1 = None
+                for _id in TEST_FILES["AcmeAccount"]:
+                    _key_filename = TEST_FILES["AcmeAccount"][_id]["key"]
+                    _private_key_cycle = TEST_FILES["AcmeAccount"][_id][
                         "private_key_cycle"
                     ]
                     key_pem = self._filedata_testfile(_key_filename)
                     (
-                        _dbAcmeAccountKey,
+                        _dbAcmeAccount,
                         _is_created,
-                    ) = db.getcreate.getcreate__AcmeAccountKey(
+                    ) = db.getcreate.getcreate__AcmeAccount(
                         self.ctx,
                         key_pem,
+                        contact=TEST_FILES["AcmeAccount"][_id]["contact"],
                         acme_account_provider_id=1,  # acme_account_provider_id(1) == pebble
                         acme_account_key_source_id=model_utils.AcmeAccountKeySource.from_string(
                             "imported"
                         ),
-                        event_type="AcmeAccountKey__insert",
+                        event_type="AcmeAccount__insert",
                         private_key_cycle_id=model_utils.PrivateKeyCycle.from_string(
                             _private_key_cycle
                         ),
                     )
-                    # print(_dbAcmeAccountKey_1, _is_created)
+                    # print(_dbAcmeAccount_1, _is_created)
                     # self.ctx.pyramid_transaction_commit()
                     if _id == "1":
-                        _dbAcmeAccountKey_1 = _dbAcmeAccountKey
-                        if not _dbAcmeAccountKey.is_global_default:
-                            db.update.update_AcmeAccountKey__set_global_default(
-                                self.ctx, _dbAcmeAccountKey
+                        _dbAcmeAccount_1 = _dbAcmeAccount
+                        if not _dbAcmeAccount.is_global_default:
+                            db.update.update_AcmeAccount__set_global_default(
+                                self.ctx, _dbAcmeAccount
                             )
                         self.ctx.pyramid_transaction_commit()
 
@@ -703,7 +707,7 @@ class AppTest(AppTestCore):
                 )
                 dbQueue = db.create.create__QueueCertificate(
                     self.ctx,
-                    dbAcmeAccountKey=_dbAcmeAccountKey_1,
+                    dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
                     dbServerCertificate=_dbServerCertificate_1,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
@@ -716,7 +720,7 @@ class AppTest(AppTestCore):
                 # we need at least 3 of these
                 _dbQueue2 = db.create.create__QueueCertificate(
                     self.ctx,
-                    dbAcmeAccountKey=_dbAcmeAccountKey_1,
+                    dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
                     dbServerCertificate=_dbServerCertificate_2,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
@@ -726,7 +730,7 @@ class AppTest(AppTestCore):
                 )
                 _dbQueue3 = db.create.create__QueueCertificate(
                     self.ctx,
-                    dbAcmeAccountKey=_dbAcmeAccountKey_1,
+                    dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
                     dbServerCertificate=_dbServerCertificate_3,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
@@ -742,8 +746,8 @@ class AppTest(AppTestCore):
                 # note: pre-populate AcmeOrder
 
                 # merge these items in
-                _dbAcmeAccountKey_1 = self.ctx.dbSession.merge(
-                    _dbAcmeAccountKey_1, load=False
+                _dbAcmeAccount_1 = self.ctx.dbSession.merge(
+                    _dbAcmeAccount_1, load=False
                 )
                 _dbPrivateKey_1 = self.ctx.dbSession.merge(_dbPrivateKey_1, load=False)
                 _dbUniqueFQDNSet_1 = self.ctx.dbSession.merge(
@@ -779,7 +783,7 @@ class AppTest(AppTestCore):
                 _dbAcmeEventLog = model_objects.AcmeEventLog()
                 _dbAcmeEventLog.acme_event_id = _acme_event_id
                 _dbAcmeEventLog.timestamp_event = datetime.datetime.utcnow()
-                _dbAcmeEventLog.acme_account_key_id = _dbAcmeAccountKey_1.id
+                _dbAcmeEventLog.acme_account_id = _dbAcmeAccount_1.id
                 _dbAcmeEventLog.unique_fqdn_set_id = _dbUniqueFQDNSet_1.id
                 self.ctx.dbSession.add(_dbAcmeEventLog)
                 self.ctx.dbSession.flush()
@@ -797,7 +801,7 @@ class AppTest(AppTestCore):
                     private_key_cycle_id__renewal=_private_key_cycle_id__renewal,
                     private_key_strategy_id__requested=_private_key_strategy_id__requested,
                     order_url="https://example.com/acme/order/acmeOrder-1",
-                    dbAcmeAccountKey=_dbAcmeAccountKey_1,
+                    dbAcmeAccount=_dbAcmeAccount_1,
                     dbEventLogged=_dbAcmeEventLog,
                     dbPrivateKey=_dbPrivateKey_1,
                     dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
@@ -859,7 +863,7 @@ class AppTest(AppTestCore):
                 dbAcmeOrderless = db.create.create__AcmeOrderless(
                     self.ctx,
                     domain_names=("acme-orderless.example.com",),
-                    dbAcmeAccountKey=None,
+                    dbAcmeAccount=None,
                 )
 
                 self.ctx.pyramid_transaction_commit()

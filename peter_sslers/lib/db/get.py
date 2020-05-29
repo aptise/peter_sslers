@@ -59,6 +59,13 @@ def get__AcmeAccountProvider__by_name(ctx, name):
     return query.first()
 
 
+def get__AcmeAccountProvider__by_server(ctx, server):
+    query = ctx.dbSession.query(model_objects.AcmeAccountProvider).filter(
+        model_objects.AcmeAccountProvider.server == server
+    )
+    return query.first()
+
+
 def get__AcmeAccountProviders__paginated(ctx, limit=None, offset=0, is_enabled=None):
     query = ctx.dbSession.query(model_objects.AcmeAccountProvider)
     if is_enabled is True:
@@ -71,6 +78,62 @@ def get__AcmeAccountProviders__paginated(ctx, limit=None, offset=0, is_enabled=N
         .offset(offset)
     )
     return query.all()
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmeAccount__count(ctx):
+    counted = ctx.dbSession.query(model_objects.AcmeAccount).count()
+    return counted
+
+
+def get__AcmeAccount__paginated(ctx, limit=None, offset=0, active_only=False):
+    query = ctx.dbSession.query(model_objects.AcmeAccount)
+    if active_only:
+        query = query.filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+    query = (
+        query.order_by(model_objects.AcmeAccount.id.desc()).limit(limit).offset(offset)
+    )
+    dbAcmeAccounts = query.all()
+    return dbAcmeAccounts
+
+
+def get__AcmeAccount__by_id(ctx, acme_account_id, eagerload_web=None):
+    # TODO: `eagerload_web` is deprecated
+    q = ctx.dbSession.query(model_objects.AcmeAccount).filter(
+        model_objects.AcmeAccount.id == acme_account_id
+    )
+    item = q.first()
+    return item
+
+
+def get__AcmeAccount__by_pemMd5(ctx, pem_md5, is_active=True):
+    q = (
+        ctx.dbSession.query(model_objects.AcmeAccount)
+        .join(
+            model_objects.AcmeAccountKey,
+            model_objects.AcmeAccount.id
+            == model_objects.AcmeAccountKey.acme_account_id,
+        )
+        .filter(model_objects.AcmeAccountKey.key_pem_md5 == pem_md5)
+        .options(sqlalchemy.orm.contains_eager("acme_account_key"))
+    )
+    if is_active:
+        q = q.filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+        q = q.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
+    item = q.first()
+    return item
+
+
+def get__AcmeAccount__GlobalDefault(ctx, active_only=None):
+    q = ctx.dbSession.query(model_objects.AcmeAccount).filter(
+        model_objects.AcmeAccount.is_global_default.op("IS")(True)
+    )
+    if active_only:
+        q = q.filter(model_objects.AcmeAccount.is_active.op("IS")(True))
+    item = q.first()
+    return item
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,16 +181,6 @@ def get__AcmeAccountKey__by_pemMd5(ctx, pem_md5, is_active=True):
         model_objects.AcmeAccountKey.key_pem_md5 == pem_md5
     )
     if is_active:
-        q = q.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
-    item = q.first()
-    return item
-
-
-def get__AcmeAccountKey__GlobalDefault(ctx, active_only=None):
-    q = ctx.dbSession.query(model_objects.AcmeAccountKey).filter(
-        model_objects.AcmeAccountKey.is_global_default.op("IS")(True)
-    )
-    if active_only:
         q = q.filter(model_objects.AcmeAccountKey.is_active.op("IS")(True))
     item = q.first()
     return item
@@ -185,16 +238,16 @@ def get__AcmeAuthorization__by_id(ctx, item_id, eagerload_web=False):
     return item
 
 
-def get__AcmeAuthorizations__by_ids(ctx, item_ids, acme_account_key_id=None):
+def get__AcmeAuthorizations__by_ids(ctx, item_ids, acme_account_id=None):
     q = ctx.dbSession.query(model_objects.AcmeAuthorization).filter(
         model_objects.AcmeAuthorization.id.in_(item_ids)
     )
-    if acme_account_key_id is not None:
+    if acme_account_id is not None:
         q = q.join(
             model_objects.AcmeOrder,
             model_objects.AcmeAuthorization.acme_order_id__created
             == model_objects.AcmeOrder.id,
-        ).filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
+        ).filter(model_objects.AcmeOrder.acme_account_id == acme_account_id)
     items = q.all()
     return items
 
@@ -210,8 +263,8 @@ def get__AcmeAuthorization__by_authorization_url(ctx, authorization_url):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
-    ctx, acme_account_key_id, active_only=False, expired_only=False
+def _get__AcmeAuthorization__by_AcmeAccountId__core(
+    ctx, acme_account_id, active_only=False, expired_only=False
 ):
     if expired_only:
         active_only = True
@@ -227,7 +280,7 @@ def _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
             model_objects.AcmeOrder2AcmeAuthorization.acme_order_id
             == model_objects.AcmeOrder.id,
         )
-        .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
+        .filter(model_objects.AcmeOrder.acme_account_id == acme_account_id)
     )
     if active_only:
         query = query.filter(
@@ -243,25 +296,20 @@ def _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
     return query
 
 
-def get__AcmeAuthorization__by_AcmeAccountKeyId__count(
-    ctx, acme_account_key_id, active_only=False, expired_only=False
+def get__AcmeAuthorization__by_AcmeAccountId__count(
+    ctx, acme_account_id, active_only=False, expired_only=False
 ):
-    query = _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
-        ctx, acme_account_key_id, active_only=active_only, expired_only=expired_only
+    query = _get__AcmeAuthorization__by_AcmeAccountId__core(
+        ctx, acme_account_id, active_only=active_only, expired_only=expired_only
     )
     return query.count()
 
 
-def get__AcmeAuthorization__by_AcmeAccountKeyId__paginated(
-    ctx,
-    acme_account_key_id,
-    active_only=False,
-    expired_only=False,
-    limit=None,
-    offset=0,
+def get__AcmeAuthorization__by_AcmeAccountId__paginated(
+    ctx, acme_account_id, active_only=False, expired_only=False, limit=None, offset=0,
 ):
-    query = _get__AcmeAuthorization__by_AcmeAccountKeyId__core(
-        ctx, acme_account_key_id, active_only=active_only, expired_only=expired_only
+    query = _get__AcmeAuthorization__by_AcmeAccountId__core(
+        ctx, acme_account_id, active_only=active_only, expired_only=expired_only
     )
     query = (
         query.order_by(model_objects.AcmeAuthorization.id.desc())
@@ -737,21 +785,21 @@ def get__AcmeOrder__by_AcmeAuthorizationId__paginated(
     return items_paged
 
 
-def get__AcmeOrder__by_AcmeAccountKeyId__count(ctx, acme_account_key_id):
+def get__AcmeOrder__by_AcmeAccountId__count(ctx, acme_account_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeOrder)
-        .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
+        .filter(model_objects.AcmeOrder.acme_account_id == acme_account_id)
         .count()
     )
     return counted
 
 
-def get__AcmeOrder__by_AcmeAccountKeyId__paginated(
-    ctx, acme_account_key_id, limit=None, offset=0
+def get__AcmeOrder__by_AcmeAccountId__paginated(
+    ctx, acme_account_id, limit=None, offset=0
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.AcmeOrder)
-        .filter(model_objects.AcmeOrder.acme_account_key_id == acme_account_key_id)
+        .filter(model_objects.AcmeOrder.acme_account_id == acme_account_id)
         .order_by(model_objects.AcmeOrder.id.desc())
         .limit(limit)
         .offset(offset)
@@ -1511,7 +1559,7 @@ def get__PrivateKey_CurrentDay_Global(ctx):
     return item
 
 
-def get__PrivateKey_CurrentWeek_AcmeAccountKey(ctx, acme_account_key_id):
+def get__PrivateKey_CurrentWeek_AcmeAccount(ctx, acme_account_id):
     q = ctx.dbSession.query(model_objects.PrivateKey).filter(
         model_objects.PrivateKey.private_key_type_id
         == model_utils.PrivateKeyType.from_string("account_weekly"),
@@ -1519,13 +1567,13 @@ def get__PrivateKey_CurrentWeek_AcmeAccountKey(ctx, acme_account_key_id):
         == model_utils.year_week(ctx.timestamp),
         model_objects.PrivateKey.is_compromised.op("IS NOT")(True),
         model_objects.PrivateKey.is_active.op("IS")(True),
-        model_objects.PrivateKey.acme_account_key_id__owner == acme_account_key_id,
+        model_objects.PrivateKey.acme_account_id__owner == acme_account_id,
     )
     item = q.first()
     return item
 
 
-def get__PrivateKey_CurrentDay_AcmeAccountKey(ctx, acme_account_key_id):
+def get__PrivateKey_CurrentDay_AcmeAccount(ctx, acme_account_id):
     q = ctx.dbSession.query(model_objects.PrivateKey).filter(
         model_objects.PrivateKey.private_key_type_id
         == model_utils.PrivateKeyType.from_string("account_daily"),
@@ -1533,7 +1581,7 @@ def get__PrivateKey_CurrentDay_AcmeAccountKey(ctx, acme_account_key_id):
         == model_utils.year_day(ctx.timestamp),
         model_objects.PrivateKey.is_compromised.op("IS NOT")(True),
         model_objects.PrivateKey.is_active.op("IS")(True),
-        model_objects.PrivateKey.acme_account_key_id__owner == acme_account_key_id,
+        model_objects.PrivateKey.acme_account_id__owner == acme_account_id,
     )
     item = q.first()
     return item
@@ -1552,21 +1600,21 @@ def get__PrivateKey__by_pemMd5(ctx, pem_md5, is_active=True):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__PrivateKey__by_AcmeAccountKeyIdOwner__count(ctx, account_key_id):
+def get__PrivateKey__by_AcmeAccountIdOwner__count(ctx, acme_account_id):
     counted = (
         ctx.dbSession.query(model_objects.PrivateKey)
-        .filter(model_objects.PrivateKey.acme_account_key_id__owner == account_key_id)
+        .filter(model_objects.PrivateKey.acme_account_id__owner == acme_account_id)
         .count()
     )
     return counted
 
 
-def get__PrivateKey__by_AcmeAccountKeyIdOwner__paginated(
-    ctx, account_key_id, limit=None, offset=0
+def get__PrivateKey__by_AcmeAccountIdOwner__paginated(
+    ctx, acme_account_id, limit=None, offset=0
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.PrivateKey)
-        .filter(model_objects.PrivateKey.acme_account_key_id__owner == account_key_id)
+        .filter(model_objects.PrivateKey.acme_account_id__owner == acme_account_id)
         .order_by(model_objects.PrivateKey.id.desc())
         .limit(limit)
         .offset(offset)
@@ -1743,7 +1791,8 @@ def get__QueueCertificate__paginated(
             sqlalchemy.orm.joinedload("acme_order__generated"),
             sqlalchemy.orm.joinedload("certificate_request__generated"),
             sqlalchemy.orm.joinedload("server_certificate__generated"),
-            sqlalchemy.orm.joinedload("acme_account_key"),
+            sqlalchemy.orm.joinedload("acme_account"),
+            sqlalchemy.orm.joinedload("acme_account.acme_account_key"),
             sqlalchemy.orm.joinedload("private_key"),
             sqlalchemy.orm.joinedload("unique_fqdn_set")
             .joinedload("to_domains")
@@ -1754,7 +1803,8 @@ def get__QueueCertificate__paginated(
             sqlalchemy.orm.joinedload("acme_order__source"),
             sqlalchemy.orm.joinedload("server_certificate__source"),
             sqlalchemy.orm.joinedload("unique_fqdn_set__source"),
-            sqlalchemy.orm.joinedload("acme_account_key"),
+            sqlalchemy.orm.joinedload("acme_account"),
+            sqlalchemy.orm.joinedload("acme_account.acme_account_key"),
             sqlalchemy.orm.joinedload("private_key"),
             sqlalchemy.orm.joinedload("unique_fqdn_set")
             .joinedload("to_domains")
@@ -1776,25 +1826,21 @@ def get__QueueCertificate__by_id(ctx, set_id, load_events=None):
     return item
 
 
-def get__QueueCertificate__by_AcmeAccountKeyId__count(ctx, acme_account_key_id):
+def get__QueueCertificate__by_AcmeAccountId__count(ctx, acme_account_id):
     counted = (
         ctx.dbSession.query(model_objects.QueueCertificate)
-        .filter(
-            model_objects.QueueCertificate.acme_account_key_id == acme_account_key_id
-        )
+        .filter(model_objects.QueueCertificate.acme_account_id == acme_account_id)
         .count()
     )
     return counted
 
 
-def get__QueueCertificate__by_AcmeAccountKeyId__paginated(
-    ctx, acme_account_key_id, limit=None, offset=0
+def get__QueueCertificate__by_AcmeAccountId__paginated(
+    ctx, acme_account_id, limit=None, offset=0
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.QueueCertificate)
-        .filter(
-            model_objects.QueueCertificate.acme_account_key_id == acme_account_key_id
-        )
+        .filter(model_objects.QueueCertificate.acme_account_id == acme_account_id)
         .order_by(model_objects.QueueCertificate.id.desc())
         .limit(limit)
         .offset(offset)
@@ -1961,7 +2007,7 @@ def get__ServerCertificate__by_id(ctx, cert_id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__ServerCertificate__by_AcmeAccountKeyId__count(ctx, key_id):
+def get__ServerCertificate__by_AcmeAccountId__count(ctx, acme_account_id):
     counted = (
         ctx.dbSession.query(model_objects.ServerCertificate)
         .join(
@@ -1969,14 +2015,14 @@ def get__ServerCertificate__by_AcmeAccountKeyId__count(ctx, key_id):
             model_objects.ServerCertificate.id
             == model_objects.AcmeOrder.server_certificate_id,
         )
-        .filter(model_objects.AcmeOrder.acme_account_key_id == key_id)
+        .filter(model_objects.AcmeOrder.acme_account_id == acme_account_id)
         .count()
     )
     return counted
 
 
-def get__ServerCertificate__by_AcmeAccountKeyId__paginated(
-    ctx, key_id, limit=None, offset=0
+def get__ServerCertificate__by_AcmeAccountId__paginated(
+    ctx, acme_account_id, limit=None, offset=0
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.ServerCertificate)
@@ -1985,7 +2031,7 @@ def get__ServerCertificate__by_AcmeAccountKeyId__paginated(
             model_objects.ServerCertificate.id
             == model_objects.AcmeOrder.server_certificate_id,
         )
-        .filter(model_objects.AcmeOrder.acme_account_key_id == key_id)
+        .filter(model_objects.AcmeOrder.acme_account_id == acme_account_id)
         .options(
             sqlalchemy.orm.joinedload("unique_fqdn_set")
             .joinedload("to_domains")

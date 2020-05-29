@@ -105,20 +105,20 @@
                             </td>
                         </tr>
                         <tr>
-                            <th>AcmeAccountKey</th>
+                            <th>AcmeAccount</th>
                             <td>
                                 % if AcmeOrder:
                                     <a
                                         class="label label-info"
-                                        href="${admin_prefix}/acme-account-key/${AcmeOrder.acme_account_key_id}"
+                                        href="${admin_prefix}/acme-account/${AcmeOrder.acme_account_id}"
                                     >
                                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        AcmeAccountKey-${AcmeOrder.acme_account_key_id}
+                                        AcmeAccount-${AcmeOrder.acme_account_id}
                                     </a>
                                 % endif
                             </td>
                             <td>
-                                ${admin_partials.formgroup__AcmeAccountKey_selector__advanced(dbAcmeAccountKeyReuse=AcmeAccountKey_reuse)}
+                                ${admin_partials.formgroup__AcmeAccount_selector__advanced(dbAcmeAccountReuse=AcmeAccount_reuse)}
                             </td>
                         </tr>
                         <tr>
@@ -162,7 +162,7 @@
         </div>
         <div class="col-sm-6">
             <p>This route supports JSON and is self-documenting on GET requests.</p>
-            ${admin_partials.info_AcmeAccountKey()}
+            ${admin_partials.info_AcmeAccount()}
             ${admin_partials.info_PrivateKey()}
         </div>
     </div>

@@ -12,9 +12,9 @@ info_AcmeOrders = [
     "A LetsEncrypt ACME Order",
     "An ACME order is essentially a Certificate Signing Request.",
 ]
-info_AcmeAccountKeys = [
+info_AcmeAccounts = [
     "Used to make Acme Orders",
-    "AcmeAccountKeys identify our account to LetsEncrypt's ACME server.",
+    "AcmeAccounts identify our account to LetsEncrypt's ACME server.",
 ]
 info_PrivateKeys = [
     "PrivateKeys sign CertificateRequests and ServerCertificates",
@@ -57,10 +57,6 @@ info_AcmeOrder_new_automated = [
     "ACME-Automated automates the entire certifcate request process.",
 ]
 
-info_UploadAccountKey = [
-    "If you need to upload a LetEncrypt Account key for issuance.",
-    "",
-]
 info_UploadPrivateKey = ["If you need to upload a PrivateKey for signing.", ""]
 info_UploadExistingCertificate = [
     "Upload for management. Requires: `cert.pem`, `chain.pem`, `privkey.pem`",

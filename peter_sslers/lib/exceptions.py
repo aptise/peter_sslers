@@ -1,4 +1,4 @@
-class AcmeAccountKeyNeedsPrivateKey(Exception):
+class AcmeAccountNeedsPrivateKey(Exception):
     """Raise when a new PrivateKey is needed"""
 
     pass
