@@ -693,7 +693,7 @@ class View_Focus_Manipulate(View_Focus):
 class View_Focus_AcmeDnsServers(View_Focus):
     @view_config(
         route_name="admin:domain:focus:acme_dns_servers",
-        renderer="/admin/domain-focus-acme_dns_servers.mako",
+        renderer="/admin/domain-focus-acme_dns_server_2_domains.mako",
     )
     @view_config(
         route_name="admin:domain:focus:acme_dns_servers|json", renderer="json",
@@ -703,14 +703,14 @@ class View_Focus_AcmeDnsServers(View_Focus):
         if self.request.wants_json:
             return {
                 "Domain": dbDomain.as_json,
-                "AcmeDnsServer2Domain": [
+                "AcmeDnsServer2Domains": [
                     ads2d.as_json for ads2d in dbDomain.acme_dns_server_2_domains
                 ],
             }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
-            "AcmeDnsServer2Domain": dbDomain.acme_dns_server_2_domains,
+            "AcmeDnsServer2Domains": dbDomain.acme_dns_server_2_domains,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -822,7 +822,7 @@ class View_Focus_AcmeDnsServers(View_Focus):
 
     @view_config(
         route_name="admin:domain:focus:acme_dns_server:focus",
-        renderer="/admin/domain-focus-acme_dns_server-focus.mako",
+        renderer="/admin/domain-focus-acme_dns_server_2_domain-focus.mako",
     )
     @view_config(
         route_name="admin:domain:focus:acme_dns_server:focus|json", renderer="json",
@@ -830,7 +830,7 @@ class View_Focus_AcmeDnsServers(View_Focus):
     def focus(self):
         self.dbDomain = dbDomain = self._focus()
         dbAcmeDnsServer2Domain = lib_db.get.get__AcmeDnsServer2Domain__by_ids(
-            self.request.api_context
+            self.request.api_context, self.request.matchdict["id"], self.dbDomain.id
         )
 
         if self.request.wants_json:

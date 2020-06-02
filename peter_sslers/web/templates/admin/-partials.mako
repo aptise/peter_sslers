@@ -318,6 +318,47 @@
 </%def>
 
 
+<%def name="table_AcmeDnsServer2Domains(AcmeDnsServer2Domains, perspective=None)">
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>Domain</th>
+                <th>AcmeDnsServer</th>
+                <th>Focus</th>
+                <th>active</th>
+            </tr>
+        </thead>
+        <tbody>
+            % for a2d in AcmeDnsServer2Domains:
+                <tr>
+                    <td>
+                        <a href="${admin_prefix}/acme-dns-server/${a2d.acme_dns_server_id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeDnsServer-${a2d.acme_dns_server_id} | ${a2d.acme_dns_server.root_url}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="${admin_prefix}/domain/${a2d.domain_id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            Domain-${a2d.domain_id} | ${a2d.domain.domain_name} 
+                        </a>
+                    </td>
+                    <td>
+                        <a href="${admin_prefix}/domain/${a2d.domain_id}/acme-dns-server/${a2d.acme_dns_server_id}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            FOCUS
+                        </a>
+                    </td>
+                    <td>
+                        <code>${a2d.is_active}</code>
+                    </td>
+                </tr>
+            % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_AcmeEventLogs(acme_event_logs, perspective=None)">
     <table class="table table-striped">
         <thead>

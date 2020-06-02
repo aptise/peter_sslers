@@ -1058,7 +1058,6 @@ class AcmeDnsServer2Domain(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self):
         return {
-            "id": self.id,
             "AcmeDnsServer": self.acme_dns_server.as_json,
             "Domain": self.domain.as_json,
             "timestamp_created": self.timestamp_created_isoformat,
