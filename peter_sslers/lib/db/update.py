@@ -15,6 +15,7 @@ from ...lib import errors
 from .. import utils
 from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeAccountProvider__default
+from .get import get__AcmeDnsServer__GlobalDefault
 from .get import get__Domain__by_name
 from .logger import _log_object_event
 
@@ -156,6 +157,71 @@ def update_AcmeAuthorization_from_payload(
     return False
 
 
+def update_AcmeDnsServer__set_active(ctx, dbAcmeDnsServer):
+    if dbAcmeDnsServer.is_active:
+        raise errors.InvalidTransition("Already activated.")
+    dbAcmeDnsServer.is_active = True
+    event_status = "AcmeDnsServer__mark__active"
+    return event_status
+
+
+def update_AcmeDnsServer__unset_active(ctx, dbAcmeDnsServer):
+    if not dbAcmeDnsServer.is_active:
+        raise errors.InvalidTransition("Already deactivated.")
+    if dbAcmeDnsServer.is_global_default:
+        raise errors.InvalidTransition(
+            "You can not deactivate the global default. Make another AcmeDnsServer as the global default first."
+        )
+    dbAcmeDnsServer.is_active = False
+    event_status = "AcmeDnsServer__mark__inactive"
+    return event_status
+
+
+def update_AcmeDnsServer__set_global_default(ctx, dbAcmeDnsServer):
+    if dbAcmeDnsServer.is_global_default:
+        # `formStash.fatal_form(` will raise a `FormInvalid()`
+        raise errors.InvalidTransition("Already global default.")
+
+    alt_info = {}
+    formerDefault = get__AcmeDnsServer__GlobalDefault(ctx)
+    if formerDefault:
+        formerDefault.is_global_default = False
+        alt_info["event_payload_dict"] = {
+            "acme_dns_server_id.former_default": formerDefault.id,
+        }
+        alt_info["event_alt"] = ("AcmeDnsServer__mark__notdefault", formerDefault)
+    dbAcmeDnsServer.is_global_default = True
+    event_status = "AcmeDnsServer__mark__default"
+    return event_status, alt_info
+
+
+def update_AcmeDnsServer__root_url(ctx, dbAcmeDnsServer, root_url):
+    if dbAcmeDnsServer.root_url == root_url:
+        raise errors.InvalidTransition("No change")
+    dbAcmeDnsServer.root_url = root_url
+    return True
+
+
+def update_CoverageAssuranceEvent__set_resolution(
+    ctx, dbCoverageAssuranceEvent, resolution
+):
+    resolution_id = model_utils.CoverageAssuranceResolution.from_string(resolution)
+    if resolution == "unresolved":
+        pass
+    elif resolution == "abandoned":
+        pass
+    elif resolution == "PrivateKey_replaced":
+        if dbCoverageAssuranceEvent.server_certificate_id:
+            raise errors.InvalidTransition("incompatible `resolution`")
+    elif resolution == "ServerCertificate_replaced":
+        if not dbCoverageAssuranceEvent.server_certificate_id:
+            raise errors.InvalidTransition("incompatible `resolution`")
+    if resolution_id == dbCoverageAssuranceEvent.coverage_assurance_resolution_id:
+        raise errors.InvalidTransition("No Change")
+    dbCoverageAssuranceEvent.coverage_assurance_resolution_id = resolution_id
+    return True
+
+
 def update_Domain_disable(
     ctx,
     dbDomain,
@@ -288,7 +354,9 @@ def update_QueuedDomain_dequeue(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def update_ServerCertificate__mark_compromised(ctx, dbServerCertificate):
+def update_ServerCertificate__mark_compromised(
+    ctx, dbServerCertificate, via_PrivateKey_compromised=None
+):
     # the PrivateKey has been compromised
     dbServerCertificate.is_compromised_private_key = True
     dbServerCertificate.is_revoked = (

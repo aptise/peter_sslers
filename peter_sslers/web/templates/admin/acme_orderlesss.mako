@@ -20,7 +20,7 @@
     <p class="pull-right">
         % if request.registry.settings["app_settings"]['enable_acme_flow']:
             <a  href="${admin_prefix}/acme-orderless/new"
-                title="${request.text_library.info_AcmeOrderless_new[0]}"
+                title="ACME Orderless"
                 class="btn btn-xs btn-primary"
             >
             <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>

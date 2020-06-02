@@ -12,6 +12,7 @@ requires = [
     "formencode",
     "cryptography",  # for pyopenssl; temporary until refactored out
     "pyopenssl",  # import OpenSSL; temporary until refactored out
+    "pyacmedns",  # not used by all, but it's small
     "pypages",
     "pyramid_debugtoolbar>=4.4",
     "pyramid_formencode_classic >=0.4.2, <0.5.0",

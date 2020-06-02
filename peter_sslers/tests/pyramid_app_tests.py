@@ -156,11 +156,11 @@ RE_AcmeOrderless = re.compile(
 )
 
 RE_QueueDomain_process_success = re.compile(
-    """^http://peter-sslers\.example\.com/\.well-known/admin/queue-domains\?result=success&operation=processed&acme-order-id=(\d+)"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/queue-domains\?result=success&operation=processed&acme-order-id=(\d+)"""
 )
 
 RE_QueueCertificate = re.compile(
-    """^http://peter-sslers\.example\.com/\.well-known/admin/queue-certificate/(\d+)$"""
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/queue-certificate/(\d+)$"""
 )
 
 RE_server_certificate_link = re.compile(
@@ -1703,6 +1703,35 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
             "/.well-known/admin/coverage-assurance-events/unresolved/1", status=200
         )
 
+    @tests_routes(
+        (
+            "admin:coverage_assurance_events:all|json",
+            "admin:coverage_assurance_events:all_paginated|json",
+            "admin:coverage_assurance_events:unresolved|json",
+            "admin:coverage_assurance_events:unresolved_paginated|json",
+        )
+    )
+    def test_list_json(self):
+        # roots
+        res = self.testapp.get(
+            "/.well-known/admin/coverage-assurance-events/all.json", status=200
+        )
+        assert "CoverageAssuranceEvents" in res.json
+        res = self.testapp.get(
+            "/.well-known/admin/coverage-assurance-events/unresolved.json", status=200
+        )
+        assert "CoverageAssuranceEvents" in res.json
+
+        # paginated
+        res = self.testapp.get(
+            "/.well-known/admin/coverage-assurance-events/all/1.json", status=200
+        )
+        assert "CoverageAssuranceEvents" in res.json
+        res = self.testapp.get(
+            "/.well-known/admin/coverage-assurance-events/unresolved/1.json", status=200
+        )
+        assert "CoverageAssuranceEvents" in res.json
+
     @tests_routes(("admin:coverage_assurance_event:focus",))
     def test_focus_html(self):
         focus_item = self._get_one()
@@ -1712,6 +1741,30 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/coverage-assurance-event/%s" % focus_id, status=200
         )
+        res = self.testapp.get(
+            "/.well-known/admin/coverage-assurance-event/%s/children" % focus_id,
+            status=200,
+        )
+
+    @tests_routes(("admin:coverage_assurance_event:focus|json",))
+    def test_focus_json(self):
+        focus_item = self._get_one()
+        assert focus_item is not None
+        focus_id = focus_item.id
+
+        res = self.testapp.get(
+            "/.well-known/admin/coverage-assurance-event/%s.json" % focus_id, status=200
+        )
+        assert "CoverageAssuranceEvents" in res.json
+
+        res = self.testapp.get(
+            "/.well-known/admin/coverage-assurance-event/%s/children.json" % focus_id,
+            status=200,
+        )
+        assert "CoverageAssuranceEvent" in res.json
+        assert "pagination" in res.json
+        assert "CoverageAssuranceEvents_Children" in res.json
+        assert "CoverageAssuranceEvents_Children_count" in res.json
 
 
 class FunctionalTests_Domain(AppTest):
@@ -5773,7 +5826,7 @@ class FunctionalTests_AcmeServer(AppTest):
     def test_QueueDomains_process_html__process_single(self):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueDomains_process_html__process_single
-        
+
         NOTE: it is not necessary to test `process_multi` as that just does "create_order" with processing done via the AcmeOrder endpoints
         """
         _domain_names = [

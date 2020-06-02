@@ -646,6 +646,66 @@
 </%def>
 
 
+<%def name="table_CoverageAssuranceEvents(CoverageAssuranceEvents)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>parent(?)</th>
+                <th>timestamp created</th>
+                <th>Event Type</th>
+                <th>Event Status</th>
+                <th>Resolution</th>
+                <th>Private Key</th>
+                <th>Server Certificate</th>
+            </tr>
+        </thead>
+        % for cae in CoverageAssuranceEvents:
+            <tr>
+                <td>
+                    <a  class="label label-info"
+                        href="${admin_prefix}/coverage-assurance-event/${cae.id}"
+                    >
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        CoverageAssuranceEvent-${cae.id}</a>
+                </td>
+                <td>
+                    % if cae.coverage_assurance_event_id__parent:
+                        <a  class="label label-info"
+                            href="${admin_prefix}/coverage-assurance-event/${cae.coverage_assurance_event_id__parent}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            CoverageAssuranceEvent-${cae.coverage_assurance_event_id__parent}</a>
+                    % endif
+                </td>
+                <td><timestamp>${cae.timestamp_created}</timestamp></td>
+                <td><code>${cae.coverage_assurance_event_type}</code></td>
+                <td><code>${cae.coverage_assurance_event_status}</code></td>
+                <td><code>${cae.coverage_assurance_resolution}</code></td>
+                <td>
+                    % if cae.private_key_id:
+                        <a  class="label label-info"
+                            href="${admin_prefix}/private-key/${cae.private_key_id}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            PrivateKey-${cae.private_key_id}</a>
+                    % endif
+                </td>
+                <td>
+                    % if cae.server_certificate_id:
+                        <a  class="label label-info"
+                            href="${admin_prefix}/server-certificate/${cae.server_certificate_id}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            ServerCertificate-${cae.server_certificate_id}</a>
+                    % endif
+                </td>
+            </tr>
+        % endfor
+    </table>
+</%def>
+
+
 <%def name="table_OperationsEvents(OperationsEvents, show_event=None, event_type_listable=None)">
     <%
         event_id = None
@@ -1678,27 +1738,6 @@
             <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
             Object Log</a></li>
     </ul>
-</%def>
-
-
-<%def name="standard_error_display(expect_message=None)">
-    <%
-        error = request.params.get('error', None)
-        message = request.params.get('message', None)
-    %>
-    % if error:
-        <div class="alert alert-danger">
-            ## result=error&error=Can%20not%20deactivate%20the%20default&operation=mark&action=deactivate
-            <b>Error</b>
-            <p>
-                % if message:
-                    ${message}
-                % else:
-                    ${error}
-                % endif
-            </p>
-        </div>
-    % endif
 </%def>
 
 

@@ -1,3 +1,10 @@
+import logging
+
+log = logging.getLogger(__name__)
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.INFO)
+
+
 # pyramid
 from pyramid.response import Response
 from pyramid.view import view_config
@@ -31,7 +38,7 @@ from ...model import objects as model_objects
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
     @view_config(
         route_name="admin:acme_orderlesss", renderer="/admin/acme_orderlesss.mako",
     )
@@ -71,7 +78,7 @@ class ViewAdmin_List(Handler):
         }
 
 
-class ViewAdmin_New(Handler):
+class View_New(Handler):
     @view_config(route_name="admin:acme_orderless:new")
     @view_config(route_name="admin:acme_orderless:new|json", renderer="json")
     def new_AcmeOrderless(self):
@@ -214,7 +221,7 @@ class ViewAdmin_New(Handler):
             )
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
 
     _dbAcmeOrderless = None
 
@@ -297,7 +304,7 @@ class ViewAdmin_Focus(Handler):
         return self._focus_print()
 
 
-class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
+class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_orderless:focus:update")
     @view_config(route_name="admin:acme_orderless:focus:update|json", renderer="json")
     def focus_update(self):
@@ -469,7 +476,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             return formhandling.form_reprint(self.request, self._focus_print)
 
 
-class ViewAdmin_Focus_Challenge(ViewAdmin_Focus):
+class View_Focus_Challenge(View_Focus):
     @view_config(
         route_name="admin:acme_orderless:focus:acme_challenge",
         renderer="/admin/acme_orderless-focus-acme_challenge.mako",

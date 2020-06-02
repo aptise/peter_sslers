@@ -13,7 +13,6 @@
 
 <%block name="page_header_col">
     <h2>CA Certificates</h2>
-    <p>${request.text_library.info_CACertificates[1]}</p>
     <p>
         CACertificates can be initialized and updated by probing the LetsEncrypt service;
         see <a class="btn btn-xs btn-warning" href="${admin_prefix}/api">Api Endpoints</a>.
@@ -25,7 +24,7 @@
 <%block name="page_header_nav">
     <p class="pull-right">
         <a  href="${admin_prefix}/ca-certificate/upload"
-            title="${request.text_library.info_UploadCACertificate[0]}"
+            title="CA Certificate - Upload"
             class="btn btn-xs btn-primary"
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

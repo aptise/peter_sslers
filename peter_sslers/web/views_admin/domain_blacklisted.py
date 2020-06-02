@@ -30,7 +30,7 @@ from ...model import objects as model_objects
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

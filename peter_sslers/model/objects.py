@@ -974,6 +974,105 @@ class AcmeChallengeUnknownPoll(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
+class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
+
+    __tablename__ = "acme_dns_server"
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_global_default = sa.Column(sa.Boolean, nullable=True, default=None)
+    root_url = sa.Column(sa.Unicode(255), nullable=False)
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_dns_server_2_domains = sa_orm_relationship(
+        "AcmeDnsServer2Domain",
+        primaryjoin="AcmeDnsServer.id==AcmeDnsServer2Domain.acme_dns_server_id",
+        uselist=True,
+        back_populates="acme_dns_server",
+    )
+    operations_event__created = sa_orm_relationship(
+        "OperationsEvent",
+        primaryjoin="AcmeDnsServer.operations_event_id__created==OperationsEvent.id",
+        uselist=False,
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "root_url": self.root_url,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "is_active": self.is_active,
+            "is_global_default": self.is_global_default,
+        }
+
+
+# ==============================================================================
+
+
+class AcmeDnsServer2Domain(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "acme_dns_server_2_domain"
+    acme_dns_server_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_dns_server.id"), primary_key=True
+    )
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    username = sa.Column(sa.Unicode(255), nullable=False)
+    password = sa.Column(sa.Unicode(255), nullable=False)
+    fulldomain = sa.Column(sa.Unicode(255), nullable=False)
+    subdomain = sa.Column(sa.Unicode(255), nullable=False)
+    allowfrom = sa.Column(sa.Unicode(255), nullable=True)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    operations_event_id__created = sa.Column(
+        sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_dns_server = sa_orm_relationship(
+        "AcmeDnsServer",
+        primaryjoin="AcmeDnsServer2Domain.acme_dns_server_id==AcmeDnsServer.id",
+        uselist=False,
+        back_populates="acme_dns_server_2_domains",
+    )
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="AcmeDnsServer2Domain.domain_id==Domain.id",
+        uselist=False,
+        back_populates="acme_dns_server_2_domains",
+    )
+    operations_event__created = sa_orm_relationship(
+        "OperationsEvent",
+        primaryjoin="AcmeDnsServer2Domain.operations_event_id__created==OperationsEvent.id",
+        uselist=False,
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        return {
+            "id": self.id,
+            "AcmeDnsServer": self.acme_dns_server.as_json,
+            "Domain": self.domain.as_json,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "username": self.username,
+            "password": self.password,
+            "fulldomain": self.fulldomain,
+            "subdomain": self.subdomain,
+            "allowfrom": json.loads(self.allowfrom),
+        }
+
+
+# ==============================================================================
+
+
 class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
     """
     log acme requests
@@ -1796,10 +1895,17 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     """
 
     __tablename__ = "coverage_assurance_event"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(private_key_id IS NOT NULL OR server_certificate_id IS NOT NULL)",
+            name="check_pkey_andor_cert",
+        ),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     private_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
     server_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=False
@@ -1813,9 +1919,22 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     coverage_assurance_resolution_id = sa.Column(
         sa.Integer, nullable=False
     )  # `model_utils.CoverageAssuranceResolution`
+    coverage_assurance_event_id__parent = sa.Column(
+        sa.Integer, sa.ForeignKey("coverage_assurance_event.id"), nullable=True
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    coverage_assurance_event__children = sa_orm_relationship(
+        "CoverageAssuranceEvent",
+        backref=sa.orm.backref("coverage_assurance_event__parent", remote_side=[id]),
+    )
+    operations_object_events = sa_orm_relationship(
+        "OperationsObjectEvent",
+        primaryjoin="CoverageAssuranceEvent.id==OperationsObjectEvent.coverage_assurance_event_id",
+        back_populates="coverage_assurance_event",
+        uselist=True,
+    )
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="CoverageAssuranceEvent.private_key_id==PrivateKey.id",
@@ -1833,21 +1952,37 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def coverage_assurance_event_type(self):
-        return model_utils.CoverageAssuranceEventType.from_string(
+        return model_utils.CoverageAssuranceEventType.as_string(
             self.coverage_assurance_event_type_id
         )
 
     @property
     def coverage_assurance_event_status(self):
-        return model_utils.CoverageAssuranceEventStatus.from_string(
+        return model_utils.CoverageAssuranceEventStatus.as_string(
             self.coverage_assurance_event_status_id
         )
 
     @property
-    def coverage_assurance_event_type(self):
-        return model_utils.CoverageAssuranceEventResolution.from_string(
+    def coverage_assurance_resolution(self):
+        return model_utils.CoverageAssuranceResolution.as_string(
             self.coverage_assurance_resolution_id
         )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        payload = {
+            "id": self.id,
+            "timestamp_created": self.timestamp_created_isoformat,
+            "private_key_id": self.private_key_id,
+            "server_certificate_id": self.private_key_id,
+            "coverage_assurance_event_type": self.coverage_assurance_event_type,
+            "coverage_assurance_event_status": self.coverage_assurance_event_status,
+            "coverage_assurance_resolution": self.coverage_assurance_resolution,
+            "coverage_assurance_event_id__parent": self.coverage_assurance_event_id__parent,
+        }
+        return payload
 
 
 # ==============================================================================
@@ -1893,15 +2028,21 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="domain",
     )
-    queue_domain = sa.orm.relationship(
-        "QueueDomain",
-        primaryjoin="Domain.id==QueueDomain.domain_id",
-        uselist=False,
+    acme_dns_server_2_domains = sa_orm_relationship(
+        "AcmeDnsServer2Domain",
+        primaryjoin="Domain.id==AcmeDnsServer2Domain.domain_id",
+        uselist=True,
         back_populates="domain",
     )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="Domain.id==OperationsObjectEvent.domain_id",
+        back_populates="domain",
+    )
+    queue_domain = sa.orm.relationship(
+        "QueueDomain",
+        primaryjoin="Domain.id==QueueDomain.domain_id",
+        uselist=False,
         back_populates="domain",
     )
     server_certificate__latest_single = sa_orm_relationship(
@@ -2030,25 +2171,30 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "operations_object_event"
     __table_args__ = (
         sa.CheckConstraint(
-            "(CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END"
-            " + "
-            " CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
-            " CASE WHEN domain_id IS NOT NULL THEN 1 ELSE 0 END "
-            " + "
+            " ( "
             " CASE WHEN acme_account_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN acme_account_key_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN acme_order_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN acme_dns_server IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END"
+            " + "
+            " CASE WHEN certificate_request_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN coverage_assurance_event_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN domain_id IS NOT NULL THEN 1 ELSE 0 END "
+            " + "
+            " CASE WHEN private_key_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN queue_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN queue_domain_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN acme_order_id IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN server_certificate_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN unique_fqdn_set_id IS NOT NULL THEN 1 ELSE 0 END "
             " ) = 1",
@@ -2064,28 +2210,34 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, nullable=False
     )  # references OperationsObjectEventStatus
 
-    ca_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
-    )
-    certificate_request_id = sa.Column(
-        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
-    )
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
     acme_account_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
     )
     acme_account_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_account_key.id"), nullable=True
     )
+    acme_dns_server_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_dns_server.id"), nullable=True
+    )
     acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
+    ca_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=True
+    )
+    certificate_request_id = sa.Column(
+        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+    )
+    coverage_assurance_event_id = sa.Column(
+        sa.Integer, sa.ForeignKey("coverage_assurance_event.id"), nullable=True
+    )
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
     private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
-    queue_domain_id = sa.Column(
-        sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
-    )
     queue_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("queue_certificate.id"), nullable=True
+    )
+    queue_domain_id = sa.Column(
+        sa.Integer, sa.ForeignKey("queue_domain.id"), nullable=True
     )
     server_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
@@ -2094,30 +2246,15 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("unique_fqdn_set.id"), nullable=True
     )
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     operations_event = sa_orm_relationship(
         "OperationsEvent",
         primaryjoin="OperationsObjectEvent.operations_event_id==OperationsEvent.id",
         uselist=False,
         back_populates="object_events",
     )
-    ca_certificate = sa_orm_relationship(
-        "CACertificate",
-        primaryjoin="OperationsObjectEvent.ca_certificate_id==CACertificate.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-    certificate_request = sa_orm_relationship(
-        "CertificateRequest",
-        primaryjoin="OperationsObjectEvent.certificate_request_id==CertificateRequest.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
-    domain = sa_orm_relationship(
-        "Domain",
-        primaryjoin="OperationsObjectEvent.domain_id==Domain.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
+
     acme_account = sa_orm_relationship(
         "AcmeAccount",
         primaryjoin="OperationsObjectEvent.acme_account_id==AcmeAccount.id",
@@ -2136,21 +2273,46 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="operations_object_events",
     )
+    ca_certificate = sa_orm_relationship(
+        "CACertificate",
+        primaryjoin="OperationsObjectEvent.ca_certificate_id==CACertificate.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+    certificate_request = sa_orm_relationship(
+        "CertificateRequest",
+        primaryjoin="OperationsObjectEvent.certificate_request_id==CertificateRequest.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+    coverage_assurance_event = sa_orm_relationship(
+        "CoverageAssuranceEvent",
+        primaryjoin="OperationsObjectEvent.coverage_assurance_event_id==CoverageAssuranceEvent.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="OperationsObjectEvent.domain_id==Domain.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+
     private_key = sa_orm_relationship(
         "PrivateKey",
         primaryjoin="OperationsObjectEvent.private_key_id==PrivateKey.id",
         uselist=False,
         back_populates="operations_object_events",
     )
-    queue_domain = sa_orm_relationship(
-        "QueueDomain",
-        primaryjoin="OperationsObjectEvent.queue_domain_id==QueueDomain.id",
-        uselist=False,
-        back_populates="operations_object_events",
-    )
     queue_certificate = sa_orm_relationship(
         "QueueCertificate",
         primaryjoin="OperationsObjectEvent.queue_certificate_id==QueueCertificate.id",
+        uselist=False,
+        back_populates="operations_object_events",
+    )
+    queue_domain = sa_orm_relationship(
+        "QueueDomain",
+        primaryjoin="OperationsObjectEvent.queue_domain_id==QueueDomain.id",
         uselist=False,
         back_populates="operations_object_events",
     )
@@ -2847,9 +3009,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         if self.acme_order:
             _private_key_cycle__renewal = self.acme_order.private_key_cycle__renewal
             if _private_key_cycle__renewal == "account_key_default":
-                
-            
-            
+                 ???
             return self.acme_order.private_key_cycle_id__renewal
         else:
             return model_utils.PrivateKeyCycle.from_string(
@@ -3050,7 +3210,7 @@ class UniqueFQDNSet2Domain(Base):
 
 # note: required `aliased` objects
 AcmeOrderAlt = sa.orm.aliased(AcmeOrder)
-
+CoverageAssuranceEventAlt = sa.orm.aliased(CoverageAssuranceEvent)
 
 # note: AcmeOrder.acme_order__retry_of
 AcmeOrder.acme_order__retry_of = sa_orm_relationship(
@@ -3443,6 +3603,33 @@ CertificateRequest.server_certificates__5 = sa_orm_relationship(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+# note: CoverageAssuranceEvent.children__5
+CoverageAssuranceEvent.children__5 = sa_orm_relationship(
+    CoverageAssuranceEventAlt,
+    primaryjoin=(
+        sa.and_(
+            CoverageAssuranceEvent.id
+            == CoverageAssuranceEventAlt.coverage_assurance_event_id__parent,
+            CoverageAssuranceEventAlt.id.in_(
+                sa.select([sa.func.max(CoverageAssuranceEventAlt.id)])
+                .where(
+                    CoverageAssuranceEvent.id
+                    == CoverageAssuranceEventAlt.coverage_assurance_event_id__parent
+                )
+                .order_by(CoverageAssuranceEvent.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    uselist=True,
+    viewonly=True,
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 # note: Domain.acme_authorizations__5
 Domain.acme_authorizations__5 = sa_orm_relationship(
     AcmeAuthorization,
@@ -3479,6 +3666,26 @@ Domain.acme_challenges__5 = sa_orm_relationship(
         )
     ),
     order_by=AcmeChallenge.id.desc(),
+    viewonly=True,
+)
+
+
+# note: Domain.acme_dns_server_2_domain__5
+Domain.acme_dns_server_2_domain__5 = sa_orm_relationship(
+    AcmeDnsServer2Domain,
+    primaryjoin=(
+        sa.and_(
+            Domain.id == AcmeDnsServer2Domain.domain_id,
+            AcmeDnsServer2Domain.timestamp_created.in_(
+                sa.select([AcmeDnsServer2Domain.timestamp_created])
+                .where(AcmeDnsServer2Domain.domain_id == Domain.id)
+                .order_by(AcmeDnsServer2Domain.timestamp_created.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=AcmeDnsServer2Domain.timestamp_created.desc(),
     viewonly=True,
 )
 

@@ -29,51 +29,7 @@
         <div class="col-sm-12">
             % if CoverageAssuranceEvents:
                 ${admin_partials.nav_pagination(pager)}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>id</th>
-                            <th>timestamp created</th>
-                            <th>Event Type</th>
-                            <th>Event Status</th>
-                            <th>Resolution</th>
-                            <th>Private Key</th>
-                            <th>Server Certificate</th>
-                        </tr>
-                    </thead>
-                    % for cae in CoverageAssuranceEvents:
-                        <tr>
-                            <td>
-                                <a  class="label label-info"
-                                    href="${admin_prefix}/coverage-assurance-event/${cae.id}"
-                                >
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    CoverageAssuranceEvent-${cae.id}</a>
-                            </td>
-                            <td><code>${cae.coverage_assurance_event_type}</code></td>
-                            <td><code>${cae.coverage_assurance_event_status}</code></td>
-                            <td><code>${cae.coverage_assurance_event_resolution}</code></td>
-                            <td>
-                                % if cae.private_key_id:
-                                    <a  class="label label-info"
-                                        href="${admin_prefix}/private-key/${cae.private_key_id}"
-                                    >
-                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        PrivateKey-${cae.private_key_id}</a>
-                                % endif
-                            </td>
-                            <td>
-                                % if cae.server_certificate_id:
-                                    <a  class="label label-info"
-                                        href="${admin_prefix}/server-certificate/${cae.server_certificate_id}"
-                                    >
-                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        ServerCertificate-${cae.server_certificate_id}</a>
-                                % endif
-                            </td>
-                        </tr>
-                    % endfor
-                </table>
+                ${admin_partials.table_CoverageAssuranceEvents(CoverageAssuranceEvents)}
             % else:
                 <em>
                     No CoverageAssuranceEvents

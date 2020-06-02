@@ -42,18 +42,32 @@
                         <th>timestamp_created</th>
                         <td><timestamp>${CoverageAssuranceEvent.timestamp_created}</timestamp></td>
                     </tr>
-
                     <tr>
                         <th>Event Type</th>
-                        <td><timestamp>${CoverageAssuranceEvent.coverage_assurance_event_type}</timestamp></td>
+                        <td><code>${CoverageAssuranceEvent.coverage_assurance_event_type}</code></td>
                     </tr>
                     <tr>
                         <th>Event Status</th>
-                        <td><timestamp>${CoverageAssuranceEvent.coverage_assurance_event_status}</timestamp></td>
+                        <td><code>${CoverageAssuranceEvent.coverage_assurance_event_status}</code></td>
                     </tr>
                     <tr>
                         <th>Event Resolution</th>
-                        <td><timestamp>${CoverageAssuranceEvent.coverage_assurance_event_resolution}</timestamp></td>
+                        <td>
+                            <code>${CoverageAssuranceEvent.coverage_assurance_resolution}</code>
+                            % for _option_text in model_websafe.CoverageAssuranceResolution.OPTIONS_ALL:
+                                % if _option_text != CoverageAssuranceEvent.coverage_assurance_resolution:
+                                    <form
+                                        method="POST"
+                                        action="${admin_prefix}/coverage-assurance-event/${CoverageAssuranceEvent.id}/mark"
+                                    >
+                                        <input type="hidden" name="action" value="resolution"/>
+                                        <button class="btn btn-xs btn-danger" type="submit" name="resolution" value="${_option_text}">
+                                            mark `${_option_text}`
+                                        </button>
+                                    </form>
+                                % endif
+                            % endfor
+                        </td>
                     </tr>
                     <tr>
                         <th>Private Key</th>
@@ -76,6 +90,15 @@
                                 >
                                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                     ServerCertificate-${CoverageAssuranceEvent.server_certificate_id}</a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Children</th>
+                        <td>
+                            % if CoverageAssuranceEvent.children__5:
+                                ${admin_partials.table_CoverageAssuranceEvents(CoverageAssuranceEvent.children__5)}
+                                ${admin_partials.nav_pager("%s/coverage-assurance-event/%s/children" % (admin_prefix, CoverageAssuranceEvent.id))}
                             % endif
                         </td>
                     </tr>

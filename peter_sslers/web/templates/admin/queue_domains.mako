@@ -17,7 +17,7 @@
 
 
 <%block name="page_header_nav">
-    ${admin_partials.standard_error_display()}
+    ${admin_partials.handle_querystring_result()}
     <div class="clearfix">
         <p class="pull-right">
             <a href="${admin_prefix}/queue-domains.json" class="btn btn-xs btn-info">

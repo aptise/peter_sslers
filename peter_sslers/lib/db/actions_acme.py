@@ -594,7 +594,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object to trigger against the server
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
-    
+
     :returns: a boolean result True/False
     """
     if not dbAcmeChallenge:
@@ -1598,7 +1598,7 @@ def do__AcmeV2_AcmeOrder__finalize(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object to finalize
     :param authenticatedUser: (optional) An authenticated instance of :class:`acme_v2.AuthenticatedUser`
-    
+
     :returns: The :class:`model.objects.AcmeOrder` object passed in as `dbAcmeOrder`
     """
     if not dbAcmeOrder:

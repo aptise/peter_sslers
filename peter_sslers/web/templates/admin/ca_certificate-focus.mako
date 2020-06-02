@@ -14,7 +14,6 @@
 
 <%block name="page_header_col">
     <h2>CA Certificate - Focus</h2>
-    <p>${request.text_library.info_CACertificates[1]}</p>
 </%block>
 
 

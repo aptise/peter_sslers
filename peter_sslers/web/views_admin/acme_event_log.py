@@ -20,7 +20,7 @@ from ...lib import db as lib_db
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
     @view_config(
         route_name="admin:acme_event_log", renderer="/admin/acme_event_log.mako"
     )
@@ -49,7 +49,7 @@ class ViewAdmin_List(Handler):
         return {"project": "peter_sslers", "AcmeEventLogs": items_paged}
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
     def _acme_event_log_focus(self):
         dbAcmeEventLog = lib_db.get.get__AcmeEventLog__by_id(
             self.request.api_context, self.request.matchdict["id"]

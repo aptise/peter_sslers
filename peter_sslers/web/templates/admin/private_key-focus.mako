@@ -14,7 +14,6 @@
 
 <%block name="page_header_col">
     <h2>Private Key - Focus</h2>
-    <p>${request.text_library.info_PrivateKeys[1]}</p>
 </%block>
 
 
@@ -29,7 +28,7 @@
 
 
 <%block name="content_main">
-    ${admin_partials.standard_error_display()}
+    ${admin_partials.handle_querystring_result()}
 
     <div class="row">
         <div class="col-sm-12">
@@ -62,32 +61,36 @@
                                     Compromised
                                 </span>
                             % endif
-                            % if not PrivateKey.is_active and not PrivateKey.is_compromised and not PrivateKey.is_placeholder:
-                                &nbsp;
-                                <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="active"/>
-                                    <button class="btn btn-xs btn-success" type="submit">
-                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                        activate
-                                    </button>
-                                </form>
-                            % elif PrivateKey.is_active and not PrivateKey.is_compromised and not PrivateKey.is_placeholder:
-                                &nbsp;
-                                <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="inactive"/>
-                                    <button class="btn btn-xs btn-danger" type="submit">
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        deactivate
-                                    </button>
-                                </form>
-                                &nbsp;
-                                <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="compromised"/>
-                                    <button class="btn btn-xs btn-danger" type="submit">
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                        mark compromised
-                                    </button>
-                                </form>
+                            % if not PrivateKey.is_placeholder:
+                                % if not PrivateKey.is_compromised:
+                                    &nbsp;
+                                    <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
+                                        <input type="hidden" name="action" value="compromised"/>
+                                        <button class="btn btn-xs btn-danger" type="submit">
+                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                            Mark Compromised
+                                        </button>
+                                    </form>
+                                    % if not PrivateKey.is_active:
+                                        &nbsp;
+                                        <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="active"/>
+                                            <button class="btn btn-xs btn-success" type="submit">
+                                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                                Activate
+                                            </button>
+                                        </form>
+                                    % else:
+                                        &nbsp;
+                                        <form action="${admin_prefix}/private-key/${PrivateKey.id}/mark" method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="inactive"/>
+                                            <button class="btn btn-xs btn-danger" type="submit">
+                                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                                Deactivate
+                                            </button>
+                                        </form>
+                                    % endif
+                                % endif
                             % endif
                         </td>
                     </tr>

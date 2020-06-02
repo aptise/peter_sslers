@@ -28,7 +28,7 @@ from ...model import objects as model_objects
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
     @view_config(
         route_name="admin:certificate_requests",
         renderer="/admin/certificate_requests.mako",
@@ -74,7 +74,7 @@ class ViewAdmin_List(Handler):
         }
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
     def _focus(self):
         dbCertificateRequest = lib_db.get.get__CertificateRequest__by_id(
             self.request.api_context, self.request.matchdict["id"]

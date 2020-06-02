@@ -258,6 +258,32 @@ def _admin_views(config):
         "/acme-challenge-unknown-polls/{@page}.json",
     )
 
+    # !!!: AcmeDnsServer
+    config.add_route_7("admin:acme_dns_servers", "/acme-dns-servers")
+    config.add_route_7("admin:acme_dns_servers_paginated", "/acme-dns-servers/{@page}")
+    config.add_route_7("admin:acme_dns_servers|json", "/acme-dns-servers.json")
+    config.add_route_7(
+        "admin:acme_dns_servers_paginated|json", "/acme-dns-servers/{@page}.json"
+    )
+    config.add_route_7("admin:acme_dns_server:focus", "/acme-dns-server/{@id}")
+    config.add_route_7(
+        "admin:acme_dns_server:focus|json", "/acme-dns-server/{@id}.json"
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:mark", "/acme-dns-server/{@id}/mark"
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:mark|json", "/acme-dns-server/{@id}/mark.json"
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:edit", "/acme-dns-server/{@id}/edit"
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:edit|json", "/acme-dns-server/{@id}/edit.json"
+    )
+    config.add_route_7("admin:acme_dns_server:new", "/acme-dns-server/new")
+    config.add_route_7("admin:acme_dns_server:new|json", "/acme-dns-server/new.json")
+
     # !!!: AcmeEventLog
     config.add_route_7("admin:acme_event_log", "/acme-event-logs")
     config.add_route_7("admin:acme_event_log_paginated", "/acme-event-logs/{@page}")
@@ -539,10 +565,46 @@ def _admin_views(config):
         "admin:coverage_assurance_events:unresolved_paginated",
         "/coverage-assurance-events/unresolved/{@page}",
     )
+    config.add_route_7(
+        "admin:coverage_assurance_events:all|json",
+        "/coverage-assurance-events/all|json",
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_events:all_paginated|json",
+        "/coverage-assurance-events/all/{@page}|json",
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_events:unresolved|json",
+        "/coverage-assurance-events/unresolved|json",
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_events:unresolved_paginated|json",
+        "/coverage-assurance-events/unresolved/{@page}|json",
+    )
 
     # !!!: CoverageAssuranceEvent - Focus
     config.add_route_7(
         "admin:coverage_assurance_event:focus", "/coverage-assurance-event/{@id}"
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_event:focus|json",
+        "/coverage-assurance-event/{@id}.json",
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_event:focus:children",
+        "/coverage-assurance-event/{@id}/children",
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_event:focus:children|json",
+        "/coverage-assurance-event/{@id}/children.json",
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_event:focus:mark",
+        "/coverage-assurance-event/{@id}/mark",
+    )
+    config.add_route_7(
+        "admin:coverage_assurance_event:focus:mark|json",
+        "/coverage-assurance-event/{@id}/mark.json",
     )
 
     # !!!: Domains
@@ -600,7 +662,6 @@ def _admin_views(config):
         "admin:domain:focus:acme_orders_paginated",
         "/domain/{domain_identifier}/acme-orders/{@page}",
     )
-
     config.add_route_7(
         "admin:domain:focus:acme_orderlesss",
         "/domain/{domain_identifier}/acme-orderlesss",
@@ -653,6 +714,30 @@ def _admin_views(config):
     config.add_route_7(
         "admin:domain:focus:nginx_cache_expire|json",
         "/domain/{domain_identifier}/nginx-cache-expire.json",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_dns_servers",
+        "/domain/{domain_identifier}/acme-dns-servers",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_dns_servers|json",
+        "/domain/{domain_identifier}/acme-dns-servers.json",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_dns_server:new",
+        "/domain/{domain_identifier}/acme-dns-server/new",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_dns_server:new|json",
+        "/domain/{domain_identifier}/acme-dns-server/new.json",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_dns_server:focus",
+        "/domain/{domain_identifier}/acme-dns-server/{@id}",
+    )
+    config.add_route_7(
+        "admin:domain:focus:acme_dns_server:focus|json",
+        "/domain/{domain_identifier}/acme-dns-server/{@id}.json",
     )
 
     # !!!: DomainBlacklist

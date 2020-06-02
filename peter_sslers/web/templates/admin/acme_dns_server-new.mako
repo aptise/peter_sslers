@@ -6,48 +6,48 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/private-keys">Private Keys</a></li>
+        <li><a href="${admin_prefix}/acme-dns-servers">acme-dns Servers</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Private Key | New</h2>
+    <h2>acme-dns Server: New</h2>
+</%block>
+
+
+<%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/acme-dns-server/new.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
 </%block>
 
 
 <%block name="content_main">
-
     <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-12">
 
             <form
-                action="${admin_prefix}/private-key/new"
+                action="${admin_prefix}/acme-dns-server/new"
                 method="POST"
                 enctype="multipart/form-data"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                <div class="radio">
-                    <label>
-                        <input type="radio" name="bits" id="private_key=bits" value="4096" checked="checked"/>
-                        4096 bits
-                    </label>
+                <div class="form-group">
+                    <label for="root_url">Root Url</label>
+                    <input type="text" name="root_url" value="http://" class="form-control"/>
                 </div>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>
 
             </form>
-        </div>
-        <div class="col-sm-6">
-            ${admin_partials.info_PrivateKey()}
 
-            <h3>This form is JSON capable</h3>
-            <p>
-                <code>curl ${request.api_host}${admin_prefix}/private-key/new.json</code>
-            </p>
 
         </div>
     </div>

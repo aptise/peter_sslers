@@ -33,7 +33,7 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
     @view_config(route_name="admin:acme_accounts", renderer="/admin/acme_accounts.mako")
     @view_config(
         route_name="admin:acme_accounts_paginated",
@@ -71,7 +71,7 @@ class ViewAdmin_List(Handler):
         }
 
 
-class ViewAdmin_New(Handler):
+class View_New(Handler):
     @view_config(route_name="admin:acme_account:upload")
     @view_config(route_name="admin:acme_account:upload|json", renderer="json")
     def upload(self):
@@ -287,7 +287,7 @@ class ViewAdmin_New(Handler):
             return formhandling.form_reprint(self.request, self._new__print)
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
     def _focus(self, eagerload_web=False):
         dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
             self.request.api_context,
@@ -563,7 +563,7 @@ class ViewAdmin_Focus(Handler):
         }
 
 
-class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
+class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_account:focus:edit")
     @view_config(route_name="admin:acme_account:focus:edit|json", renderer="json")
     def focus_edit(self):

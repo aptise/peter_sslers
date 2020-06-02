@@ -33,7 +33,7 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
     @view_config(route_name="admin:queue_domains", renderer="/admin/queue_domains.mako")
     @view_config(
         route_name="admin:queue_domains_paginated", renderer="/admin/queue_domains.mako"
@@ -118,7 +118,7 @@ class ViewAdmin_List(Handler):
         }
 
 
-class ViewAdmin_New(Handler):
+class View_New(Handler):
     @view_config(route_name="admin:queue_domains:add")
     @view_config(route_name="admin:queue_domains:add|json", renderer="json")
     def add(self):
@@ -170,7 +170,7 @@ class ViewAdmin_New(Handler):
             return formhandling.form_reprint(self.request, self._add__print)
 
 
-class ViewAdmin_Process(Handler):
+class View_Process(Handler):
     @view_config(route_name="admin:queue_domains:process", renderer=None)
     @view_config(route_name="admin:queue_domains:process|json", renderer="json")
     def process(self):
@@ -326,7 +326,7 @@ class ViewAdmin_Process(Handler):
             raise
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
     def _focus(self):
         dbQueueDomain = lib_db.get.get__QueueDomain__by_id(
             self.request.api_context, self.request.matchdict["id"], eagerload_log=True

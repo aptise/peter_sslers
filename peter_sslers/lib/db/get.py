@@ -610,6 +610,57 @@ def get__AcmeChallengeUnknownPoll__by_id(ctx, id):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def get__AcmeDnsServer__by_root_url(ctx, root_url):
+    q = ctx.dbSession.query(model_objects.AcmeDnsServer).filter(
+        model_objects.AcmeDnsServer.root_url == root_url
+    )
+    return q.first()
+
+
+def get__AcmeDnsServer__GlobalDefault(ctx):
+    q = ctx.dbSession.query(model_objects.AcmeDnsServer).filter(
+        model_objects.AcmeDnsServer.is_global_default is True
+    )
+    return q.first()
+
+
+def get__AcmeDnsServer__by_id(ctx, id):
+    item = ctx.dbSession.query(model_objects.AcmeDnsServer).get(id)
+    return item
+
+
+def get__AcmeDnsServer__count(ctx):
+    counted = ctx.dbSession.query(model_objects.AcmeDnsServer).count()
+    return counted
+
+
+def get__AcmeDnsServer__paginated(
+    ctx, limit=None, offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeDnsServer)
+        .order_by(model_objects.AcmeDnsServer.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return query.all()
+
+
+def get__AcmeDnsServer2Domain__by_ids(ctx, acme_dns_server_id, domain_id):
+    item = (
+        ctx.dbSession.query(model_objects.AcmeDnsServer2Domain)
+        .filter(
+            model_objects.AcmeDnsServer2Domain.acme_dns_server_id == acme_dns_server_id,
+            model_objects.AcmeDnsServer2Domain.domain_id == domain_id,
+        )
+        .first()
+    )
+    return item
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def get__AcmeEventLogs__by_AcmeOrderId__count(ctx, acme_order_id):
     counted = (
         ctx.dbSession.query(model_objects.AcmeEventLog)
@@ -1101,6 +1152,29 @@ def get__CoverageAssuranceEvent__by_id(ctx, event_id):
     )
     item = q.first()
     return item
+
+
+def get__CoverageAssuranceEvent__by_parentId__count(
+    ctx, parent_id, limit=None, offset=0
+):
+    q = ctx.dbSession.query(model_objects.CoverageAssuranceEvent).filter(
+        model_objects.CoverageAssuranceEvent.coverage_assurance_event_id__parent
+        == parent_id
+    )
+    return q.count()
+
+
+def get__CoverageAssuranceEvent__by_parentId__paginated(
+    ctx, parent_id, limit=None, offset=0
+):
+    q = ctx.dbSession.query(model_objects.CoverageAssuranceEvent).filter(
+        model_objects.CoverageAssuranceEvent.coverage_assurance_event_id__parent
+        == parent_id
+    )
+    q = q.order_by(model_objects.CoverageAssuranceEvent.id.desc())
+    q = q.limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

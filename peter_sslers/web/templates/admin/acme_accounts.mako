@@ -13,7 +13,6 @@
 
 <%block name="page_header_col">
     <h2>AcmeAccounts</h2>
-    <p>${request.text_library.info_AcmeAccounts[1]}</p>
 </%block>
 
 

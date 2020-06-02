@@ -45,7 +45,6 @@ class Handler(object):
         :param request: A :class:`Pyramid.request.Request` instance.
         """
         self.request = request
-        self.request.text_library = text
 
     def _paginate(
         self, collection_count, items_per_page=items_per_page, url_template=None

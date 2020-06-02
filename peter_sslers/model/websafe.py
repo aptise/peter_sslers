@@ -6,6 +6,7 @@ from .utils import AcmeChallengeFailType
 from .utils import AcmeEvent
 from .utils import AcmeOrderType
 from .utils import CertificateRequestSource
+from .utils import CoverageAssuranceResolution
 from .utils import PrivateKeyCycle
 from .utils import PrivateKeySource
 from .utils import PrivateKeyStrategy

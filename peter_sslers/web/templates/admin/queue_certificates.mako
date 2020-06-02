@@ -70,7 +70,6 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            ${admin_partials.standard_error_display()}
             ${admin_partials.handle_querystring_result()}
             <%
                 results = request.params.get('results')

@@ -30,7 +30,6 @@
 
 
 <%block name="content_main">
-    ${admin_partials.standard_error_display()}
     ${admin_partials.handle_querystring_result()}
     <div class="row">
         <div class="col-sm-12">

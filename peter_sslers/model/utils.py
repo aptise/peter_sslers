@@ -210,6 +210,14 @@ class _OperationsUnified(_mixin_mapping):
         662: "AcmeOrder__mark__renew_manual",
         1100: "AcmeAccountProvider__activate_default",
         1101: "AcmeAccountProvider__mark__is_enabled",
+        1300: "AcmeDnsServer__insert",
+        1301: "AcmeDnsServer__mark",
+        1302: "AcmeDnsServer__mark__active",
+        1303: "AcmeDnsServer__mark__inactive",
+        1304: "AcmeDnsServer__mark__default",
+        1305: "AcmeDnsServer__mark__notdefault",
+        1306: "AcmeDnsServer__edit",
+        1400: "AcmeDnsServer2Domain__insert",
         2001: "ApiDomains__enable",
         2002: "ApiDomains__disable",
         2010: "ApiDomains__certificate_if_needed",
@@ -226,6 +234,7 @@ class _OperationsUnified(_mixin_mapping):
         620: "CertificateRequest__new",
         621: "CertificateRequest__new__imported",
         630: "CertificateRequest__new__acme_order",
+        1200: "CoverageAssuranceEvent__mark_resolution",
         410: "Domain__insert",
         420: "Domain__mark",
         421: "Domain__mark__active",
@@ -656,14 +665,28 @@ class CertificateRequestSource(_mixin_mapping):
 
 class CoverageAssuranceEventType(_mixin_mapping):
     _mapping = {
-        # 1: "PrivateKey_compromised",
-        2: "PrivateKey_compromised",  # we mark it as compromised
-        3: "PrivateKey_compromised_acme",  # the ACME server is confirmed to have it as compromised
-        4: "ServerCertificate_revoked_mark",  # we mark it as revoked
-        5: "ServerCertificate_revoked_acme",  # ACME confirms it as revoked
-        6: "AccountKey_revoked_mark",  # we mark it as revoked
-        7: "AccountKey_revoked_acme",  # ACME confirms it as recoked
+        1: "PrivateKey_compromised_mark",  # we mark it as compromised
+        2: "PrivateKey_compromised_acme",  # the ACME server is confirmed to have it as compromised
+        3: "ServerCertificate_revoked_mark",  # we mark it as revoked
+        4: "ServerCertificate_revoked_acme",  # ACME confirms it as revoked
+        5: "AccountKey_revoked_mark",  # we mark it as revoked
+        6: "AccountKey_revoked_acme",  # ACME confirms it as recoked
     }
+
+
+class CoverageAssuranceEventStatus(_mixin_mapping):
+    _mapping = {
+        1: "reported",
+        2: "reported+deactivated",
+        3: "resolved-ignored",
+        4: "resolved-replaced",
+    }
+    OPTIONS_ALL = None
+
+
+CoverageAssuranceEventStatus.OPTIONS_ALL = list(
+    CoverageAssuranceEventStatus._mapping.values()
+)
 
 
 class CoverageAssuranceResolution(_mixin_mapping):
@@ -675,13 +698,9 @@ class CoverageAssuranceResolution(_mixin_mapping):
     }
 
 
-class CoverageAssuranceEventStatus(_mixin_mapping):
-    _mapping = {
-        1: "reported",
-        2: "reported+deactivated",
-        3: "resolved-ignored",
-        4: "resolved-replaced",
-    }
+CoverageAssuranceResolution.OPTIONS_ALL = list(
+    CoverageAssuranceResolution._mapping.values()
+)
 
 
 class PrivateKeyCycle(_mixin_mapping):

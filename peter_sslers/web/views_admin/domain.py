@@ -17,6 +17,7 @@ from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_search
+from ..lib.forms import Form_Domain_AcmeDnsServer_new
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db
@@ -30,7 +31,7 @@ from ...model import objects as model_objects
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -139,7 +140,7 @@ class ViewAdmin_List(Handler):
         }
 
 
-class ViewAdmin_Search(Handler):
+class View_Search(Handler):
     @view_config(
         route_name="admin:domains:search", renderer="/admin/domains-search.mako"
     )
@@ -220,7 +221,7 @@ class ViewAdmin_Search(Handler):
             return formhandling.form_reprint(self.request, self._search__print)
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
     def _focus(self, eagerload_web=False):
         domain_identifier = self.request.matchdict["domain_identifier"].strip()
         if domain_identifier.isdigit():
@@ -590,7 +591,7 @@ class ViewAdmin_Focus(Handler):
         }
 
 
-class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
+class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:domain:focus:mark", renderer=None)
     @view_config(route_name="admin:domain:focus:mark|json", renderer="json")
     def focus_mark(self):
@@ -687,3 +688,157 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                 action,
             )
             raise HTTPSeeOther(url_failure)
+
+
+class View_Focus_AcmeDnsServers(View_Focus):
+    @view_config(
+        route_name="admin:domain:focus:acme_dns_servers",
+        renderer="/admin/domain-focus-acme_dns_servers.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_dns_servers|json", renderer="json",
+    )
+    def list(self):
+        dbDomain = self._focus()
+        if self.request.wants_json:
+            return {
+                "Domain": dbDomain.as_json,
+                "AcmeDnsServer2Domain": [
+                    ads2d.as_json for ads2d in dbDomain.acme_dns_server_2_domains
+                ],
+            }
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "AcmeDnsServer2Domain": dbDomain.acme_dns_server_2_domains,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:domain:focus:acme_dns_server:new",
+        renderer="/admin/domain-focus-acme_dns_server-new.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_dns_server:new|json", renderer="json",
+    )
+    def new(self):
+        self.dbDomain = dbDomain = self._focus()
+        self.dbAcmeDnsServers = (
+            dbAcmeDnsServers
+        ) = lib_db.get.get__AcmeDnsServer__paginated(self.request.api_context)
+        if self.request.method == "POST":
+            return self._new_submit()
+        return self._new_print()
+
+    def _new_print(self):
+        if self.request.wants_json:
+            return {
+                "instructions": [],
+                "form_fields": {},
+                "valid_options": {
+                    "acme_dns_server_id": [i.id for i in self.dbAcmeDnsServers]
+                },
+            }
+        return render_to_response(
+            "/admin/domain-focus-acme_dns_server-new.mako",
+            {
+                "project": "peter_sslers",
+                "Domain": self.dbDomain,
+                "AcmeDnsServers": self.dbAcmeDnsServers,
+            },
+            self.request,
+        )
+
+    def _new_submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_Domain_AcmeDnsServer_new, validate_get=False
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # validate the AcmeDnsServer
+            dbAcmeDnsServer = lib_db.get.get__AcmeDnsServer__by_id(
+                self.request.api_context, formStash.results["acme_dns_server_id"]
+            )
+            if not dbAcmeDnsServer:
+                # `formStash.fatal_field()` will raise `FormInvalid()`
+                formStash.fatal_field(
+                    field="acme_dns_server_id", message="Invalid AcmeDnsServer."
+                )
+            if not dbAcmeDnsServer.is_active:
+                # `formStash.fatal_field()` will raise `FormInvalid()`
+                formStash.fatal_field(
+                    field="acme_dns_server_id", message="Inactive AcmeDnsServer."
+                )
+
+            dbAcmeDnsServer2Domain = lib_db.get.get__AcmeDnsServer2Domain__by_ids(
+                self.request.api_context, dbAcmeDnsServer.id, self.dbDomain.id
+            )
+            if dbAcmeDnsServer2Domain:
+                formStash.fatal_field(
+                    field="acme_dns_server_id",
+                    message="Existing record for this AcmeDnsServer.",
+                )
+
+            # wonderful! now we need to "register" against acme-dns
+
+            try:
+                import pyacmedns
+
+                client = pyacmedns.Client(dbAcmeDnsServer.root_url)
+                account = client.register_account(None)  # arg = whitelisted ips
+            except Exception as exc:
+                raise ValueError("error registering an account with AcmeDns")
+
+            dbAcmeDnsServer2Domain = lib_db.create.create__AcmeDnsServer2Domain(
+                self.request.api_context,
+                dbAcmeDnsServer=dbAcmeDnsServer,
+                dbDomain=self.dbDomain,
+                username=account["username"],
+                password=account["password"],
+                fulldomain=account["fulldomain"],
+                subdomain=account["subdomain"],
+                allowfrom=account["allowfrom"],
+            )
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "AcmeDnsServer2Domain": dbAcmeDnsServer2Domain.as_json,
+                }
+
+            url_success = "%s/acme-dns-server/%s?result=success&operation=new" % (
+                self._focus_url,
+                dbAcmeDnsServer2Domain.acme_dns_server_id,
+            )
+            return HTTPSeeOther(url_success)
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._new_print)
+
+    @view_config(
+        route_name="admin:domain:focus:acme_dns_server:focus",
+        renderer="/admin/domain-focus-acme_dns_server-focus.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:acme_dns_server:focus|json", renderer="json",
+    )
+    def focus(self):
+        self.dbDomain = dbDomain = self._focus()
+        dbAcmeDnsServer2Domain = lib_db.get.get__AcmeDnsServer2Domain__by_ids(
+            self.request.api_context
+        )
+
+        if self.request.wants_json:
+            return {
+                "Domain": dbDomain.as_json,
+                "AcmeDnsServer2Domain": dbAcmeDnsServer2Domain.as_json,
+            }
+        return {
+            "Domain": dbDomain,
+            "AcmeDnsServer2Domain": dbAcmeDnsServer2Domain,
+        }

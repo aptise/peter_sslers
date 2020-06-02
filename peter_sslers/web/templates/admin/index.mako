@@ -34,22 +34,22 @@
             <h3>Enrolled Records</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/domains"
-                       title="${request.text_library.info_Domains[0]}"
+                       title="Domains"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     domains</a></li>
                 <li><a href="${admin_prefix}/private-keys"
-                       title="${request.text_library.info_PrivateKeys[0]}"
+                       title="PrivateKeys"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     private-keys</a></li>
                 <li><a href="${admin_prefix}/server-certificates"
-                       title="${request.text_library.info_ServerCertificates[0]}"
+                       title="ServerCertificates"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     server-certificates</a></li>
                 <li><a href="${admin_prefix}/unique-fqdn-sets"
-                       title="${request.text_library.info_UniqueFQDNs[0]}"
+                       title="UniqueFQDNs"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     unique-fqdn-sets</a></li>
@@ -78,7 +78,7 @@
             <h3>Recordkeeping - ACME & Objects</h3>
             <ul class="nav nav-pills nav-stacked">
                 <li><a href="${admin_prefix}/acme-accounts"
-                       title="${request.text_library.info_AcmeAccounts[0]}"
+                       title="ACME Accounts"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-accounts</a></li>
@@ -91,7 +91,7 @@
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-challenges</a></li>
                 <li><a href="${admin_prefix}/acme-orders"
-                       title="${request.text_library.info_AcmeOrders[0]}"
+                       title="ACME Orders"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-orders</a></li>
@@ -101,7 +101,7 @@
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-orderless</a></li>
                 <li><a href="${admin_prefix}/certificate-requests"
-                       title="${request.text_library.info_CertificateRequests[0]}"
+                       title="CertificateRequests"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-requests
@@ -129,8 +129,13 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-account-providers</a></li>
+                <li><a href="${admin_prefix}/acme-dns-servers"
+                       title="acme-dns Servers"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-dns Servers</a></li>
                 <li><a href="${admin_prefix}/ca-certificates"
-                       title="${request.text_library.info_CACertificates[0]}"
+                       title="CACertificates"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     ca-certificates</a></li>
@@ -169,7 +174,7 @@
             <ul class="nav nav-pills nav-stacked">
                 <li>
                     <a  href="${admin_prefix}/acme-order/new/freeform"
-                        title="${request.text_library.info_AcmeOrder_new_automated[0]}"
+                        title="AcmeOrder NEW Freeform"
                         class="btn btn-primary"
                     >
                     <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
@@ -177,7 +182,7 @@
                 % if request.registry.settings["app_settings"]['enable_acme_flow']:
                     <li>
                         <a  href="${admin_prefix}/acme-orderless/new"
-                            title="${request.text_library.info_AcmeOrderless_new[0]}"
+                            title="ACME Orderless"
                             class="btn btn-primary"
                         >
                         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
@@ -195,19 +200,19 @@
                     Upload: AcmeAccount</a></li>
                 <li>
                     <a  href="${admin_prefix}/ca-certificate/upload"
-                        title="${request.text_library.info_UploadCACertificate[0]}"
+                        title="CA Certificate - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: CA Certificate</a></li>
                 <li>
                     <a  href="${admin_prefix}/server-certificate/upload"
-                        title="${request.text_library.info_UploadExistingCertificate[0]}"
+                        title="ServerCertificate - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: Certificate (Existing)</a></li>
                 <li>
                     <a  href="${admin_prefix}/private-key/upload"
-                        title="${request.text_library.info_UploadPrivateKey[0]}"
+                        title="Private Key - Upload"
                     >
                     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
                     Upload: Private Key</a></li>

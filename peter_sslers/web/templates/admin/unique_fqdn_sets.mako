@@ -13,7 +13,6 @@
 
 <%block name="page_header_col">
     <h2>Unique FQDN Sets</h2>
-    <p>${request.text_library.info_UniqueFQDNs[1]}</p>
 </%block>
 
 

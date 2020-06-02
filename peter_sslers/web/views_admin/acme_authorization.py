@@ -29,7 +29,7 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
     @view_config(
         route_name="admin:acme_authorizations",
         renderer="/admin/acme_authorizations.mako",
@@ -96,7 +96,7 @@ class ViewAdmin_List(Handler):
         }
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
     def _focus(self, eagerload_web=False):
         dbAcmeAuthorization = lib_db.get.get__AcmeAuthorization__by_id(
             self.request.api_context,
@@ -195,7 +195,7 @@ class ViewAdmin_Focus(Handler):
         }
 
 
-class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
+class View_Focus_Manipulate(View_Focus):
     @view_config(
         route_name="admin:acme_authorization:focus:acme_server:sync", renderer=None
     )

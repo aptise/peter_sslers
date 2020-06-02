@@ -17,7 +17,7 @@
 
 <%block name="page_header_col">
     <h2>ServerCertificate - Focus</h2>
-    ${admin_partials.standard_error_display()}
+    ${admin_partials.handle_querystring_result()}
 
     <%
         operation = request.params.get('operation', None)

@@ -26,7 +26,7 @@ from ...lib import utils
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
     @view_config(
         route_name="admin:unique_fqdn_sets", renderer="/admin/unique_fqdn_sets.mako"
     )
@@ -70,7 +70,7 @@ class ViewAdmin_List(Handler):
         }
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
     def _focus(self):
         dbItem = lib_db.get.get__UniqueFQDNSet__by_id(
             self.request.api_context, self.request.matchdict["id"]

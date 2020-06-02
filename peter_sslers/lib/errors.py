@@ -97,7 +97,7 @@ class AcmeOrderCreatedError(AcmeOrderError):
     """
     If an exception occurs AFTER an AcmeOrder is created, raise this.
     It should have two attributes:
-    
+
         args[0] - AcmeOrder
         args[1] - original exception
     """

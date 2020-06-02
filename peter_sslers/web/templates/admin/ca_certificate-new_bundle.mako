@@ -14,7 +14,6 @@
 
 <%block name="page_header_col">
     <h2>CA Certificates | New Bundle</h2>
-    <p><em>${request.text_library.info_CACertificates[1]}</em></p>
 </%block>
 
 

@@ -33,7 +33,7 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
     @view_config(route_name="admin:acme_orders", renderer="/admin/acme_orders.mako")
     @view_config(route_name="admin:acme_orders|json", renderer="json")
     @view_config(
@@ -96,7 +96,7 @@ class ViewAdmin_List(Handler):
 # ------------------------------------------------------------------------------
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
     def _focus(self, eagerload_web=False):
         dbAcmeOrder = lib_db.get.get__AcmeOrder__by_id(
             self.request.api_context,
@@ -199,7 +199,7 @@ class ViewAdmin_Focus(Handler):
         return {"project": "peter_sslers", "AcmeOrder": dbAcmeOrder}
 
 
-class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
+class View_Focus_Manipulate(View_Focus):
     @view_config(
         route_name="admin:acme_order:focus:acme_event_logs",
         renderer="/admin/acme_order-focus-acme_event_logs.mako",
@@ -651,7 +651,6 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
                     "private_key_existing": "pem_md5 of existing key",
                     "private_key_file_pem": "pem to upload",
                     "private_key_cycle__renewal": "how should the PrivateKey be cycled on renewals?",
-                    "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
                 },
                 "form_fields_related": [
                     ["account_key_file_pem", "acme_account_provider_id"],
@@ -850,7 +849,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
 # ------------------------------------------------------------------------------
 
 
-class ViewAdmin_New(Handler):
+class View_New(Handler):
     @view_config(route_name="admin:acme_order:new:freeform")
     @view_config(route_name="admin:acme_order:new:freeform|json", renderer="json")
     def new_freeform(self):

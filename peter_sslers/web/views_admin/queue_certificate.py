@@ -1,3 +1,10 @@
+import logging
+
+log = logging.getLogger(__name__)
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.INFO)
+
+
 # pyramid
 from pyramid.response import Response
 from pyramid.view import view_config
@@ -33,7 +40,7 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-class ViewList(Handler):
+class View_List(Handler):
 
     """
     note-
@@ -196,7 +203,7 @@ class ViewList(Handler):
         }
 
 
-class ViewNew(Handler):
+class View_New(Handler):
     def _parse_queue_source(self):
         """
         raises `errors.InvalidRequest` if there are queryarg concerns
@@ -303,7 +310,6 @@ class ViewNew(Handler):
                         "ServerCertificate",
                         "UniqueFQDNSet",
                     ),
-                    "private_key_cycle__renewal": None,
                     "acme_account_provider_id": {
                         i.id: "%s (%s)" % (i.name, i.url)
                         for i in self.dbAcmeAccountProviders
@@ -428,7 +434,6 @@ class ViewNew(Handler):
                 },
                 "form_fields_related": [],
                 "valid_options": {
-                    "private_key_cycle__renewal": None,
                     "acme_account_provider_id": {
                         i.id: "%s (%s)" % (i.name, i.url)
                         for i in self.dbAcmeAccountProviders
@@ -531,7 +536,7 @@ class ViewNew(Handler):
             return formhandling.form_reprint(self.request, self._new_freeform__print)
 
 
-class ViewFocus(Handler):
+class View_Focus(Handler):
     def _focus(self):
         dbQueueCertificate = lib_db.get.get__QueueCertificate__by_id(
             self.request.api_context, self.request.matchdict["id"], load_events=True

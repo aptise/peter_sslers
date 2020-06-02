@@ -20,38 +20,33 @@
 - consolidated domain blacklist checks to a new `validate` file
 - split AcmeAccountKey into AcmeAccount+AcmeAccountKey to support key cycling/rollover (in the future)
 	- "account_key__private_key_cycle" -> "account__private_key_cycle"
-
 	AcmeOrder: 
 		acme_account_key_id -> acme_account_id
 		acme_account_key -> acme_account
-
 	ServerCertificate: 
 		acme_account_key_id -> acme_account_id
 		acme_account_key -> acme_account
-
 	QueueCertificate: 
 		acme_account_key_id -> acme_account_id
 		acme_account_key -> acme_account
-
 	AcmeOrderless: 
 		acme_account_key_id -> acme_account_id
 		acme_account_key -> acme_account
-
 	OperationsObjectEvent
 		acme_account_key_id -> acme_account_id
 		acme_account_key -> acme_account
-
 	PrivateKey
 		acme_account_key_id__owner -> acme_account_id__owner
 		acme_account_key__owner -> acme_account__owner
-		
 	AcmeEventLog
 		acme_account_key_id -> acme_account_id
 		acme_account_key -> acme_account
-
-
 	AcmeAccountProvider
 		acme_account_keys -> acme_accounts
+- dropped the text_library
+- consolidate `standard_error_display` into `handle_querystring_result`
+- sketching out some acme-dns support
+
 
 
 0.4.0

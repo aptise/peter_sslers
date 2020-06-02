@@ -15,7 +15,7 @@
 
 <%block name="page_header_col">
     <h2>ACME Order - Focus - Renew Quick</h2>
-    <p>${request.text_library.info_AcmeOrders[1]}</p>
+    <p>An ACME order is essentially a "Certificate Signing Request".</p>
 </%block>
 
 
@@ -30,7 +30,6 @@
 
 
 <%block name="content_main">
-    ${admin_partials.standard_error_display()}
     ${admin_partials.handle_querystring_result()}
 
     <div class="row">

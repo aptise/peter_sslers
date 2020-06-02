@@ -463,15 +463,17 @@ def _log_object_event(
     event_status_id=None,
     dbAcmeAccount=None,
     dbAcmeAccountKey=None,
+    dbAcmeDnsServer=None,
     dbAcmeOrder=None,
     dbCACertificate=None,
+    dbCertificateRequest=None,
+    dbCoverageAssuranceEvent=None,
     dbDomain=None,
     dbPrivateKey=None,
-    dbServerCertificate=None,
-    dbUniqueFQDNSet=None,
-    dbCertificateRequest=None,
     dbQueueCertificate=None,
     dbQueueDomain=None,
+    dbServerCertificate=None,
+    dbUniqueFQDNSet=None,
 ):
     """additional logging for objects"""
     dbOperationsObjectEvent = model_objects.OperationsObjectEvent()
@@ -484,22 +486,28 @@ def _log_object_event(
         dbOperationsObjectEvent.acme_account_key_id = dbAcmeAccountKey.id
     elif dbAcmeOrder:
         dbOperationsObjectEvent.acme_order_id = dbAcmeOrder.id
+    elif dbAcmeDnsServer:
+        dbOperationsObjectEvent.acme_dns_server_id = dbAcmeDnsServer.id
     elif dbCACertificate:
         dbOperationsObjectEvent.ca_certificate_id = dbCACertificate.id
+    elif dbCertificateRequest:
+        dbOperationsObjectEvent.certificate_request_id = dbCertificateRequest.id
+    elif dbCoverageAssuranceEvent:
+        dbOperationsObjectEvent.coverage_assurance_event_id = (
+            dbCoverageAssuranceEvent.id
+        )
     elif dbDomain:
         dbOperationsObjectEvent.domain_id = dbDomain.id
     elif dbPrivateKey:
         dbOperationsObjectEvent.private_key_id = dbPrivateKey.id
-    elif dbServerCertificate:
-        dbOperationsObjectEvent.server_certificate_id = dbServerCertificate.id
-    elif dbUniqueFQDNSet:
-        dbOperationsObjectEvent.unique_fqdn_set_id = dbUniqueFQDNSet.id
-    elif dbCertificateRequest:
-        dbOperationsObjectEvent.certificate_request_id = dbCertificateRequest.id
     elif dbQueueCertificate:
         dbOperationsObjectEvent.queue_certificate_id = dbQueueCertificate.id
     elif dbQueueDomain:
         dbOperationsObjectEvent.queue_domain_id = dbQueueDomain.id
+    elif dbServerCertificate:
+        dbOperationsObjectEvent.server_certificate_id = dbServerCertificate.id
+    elif dbUniqueFQDNSet:
+        dbOperationsObjectEvent.unique_fqdn_set_id = dbUniqueFQDNSet.id
 
     ctx.dbSession.add(dbOperationsObjectEvent)
     ctx.dbSession.flush(objects=[dbOperationsObjectEvent])

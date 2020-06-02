@@ -25,7 +25,7 @@
     </ul>
     <p class="pull-right">
         <a  href="${admin_prefix}/server-certificate/upload"
-            title="${request.text_library.info_UploadExistingCertificate[0]}"
+            title="ServerCertificate - Upload"
             class="btn btn-xs btn-primary"
         >
         <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

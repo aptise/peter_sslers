@@ -13,7 +13,7 @@
 
 <%block name="page_header_col">
     <h2>ACME Orders</h2>
-    <p>${request.text_library.info_AcmeOrders[1]}</p>
+    <p>An ACME order is essentially a "Certificate Signing Request".</p>
 </%block>
 
 
@@ -29,7 +29,7 @@
 
     <p class="pull-right">
         <a  href="${admin_prefix}/acme-order/new/freeform"
-            title="${request.text_library.info_AcmeOrder_new_automated[0]}"
+            title="ACME Order - new freeform"
             class="btn btn-xs btn-primary"
         >
         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>

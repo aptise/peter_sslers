@@ -13,7 +13,6 @@
 
 <%block name="page_header_col">
     <h2>AcmeOrderless Flow | New</h2>
-    <p><em>${request.text_library.info_AcmeOrderless_new[1]}</em></p>
     <p>
         The AcmeOrderless Flow system was designed to manage challeneges for a LetsEncrypt certificate issuance initiated with other software.
         This subsystem allows you enter the challenge/response codes via HTML or a JSON API, and tracks when LetsEncrypt makes the validation.

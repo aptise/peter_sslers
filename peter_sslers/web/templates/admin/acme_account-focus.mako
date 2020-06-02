@@ -14,7 +14,6 @@
 
 <%block name="page_header_col">
     <h2>AcmeAccounts - Focus</h2>
-    <p>${request.text_library.info_AcmeAccounts[1]}</p>
 </%block>
 
 
@@ -29,7 +28,6 @@
 
 
 <%block name="content_main">
-    ${admin_partials.standard_error_display()}
     ${admin_partials.handle_querystring_result()}
 
     <div class="row">

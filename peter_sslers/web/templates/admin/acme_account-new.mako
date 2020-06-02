@@ -14,7 +14,6 @@
 
 <%block name="page_header_col">
     <h2>AcmeAccount | New</h2>
-    <p><em>${request.text_library.info_AcmeAccounts[1]}</em></p>
 </%block>
 
 
@@ -22,7 +21,6 @@
     <div class="row">
         <div class="col-sm-6">
 
-            ${admin_partials.standard_error_display()}
             ${admin_partials.handle_querystring_result()}
 
             <form

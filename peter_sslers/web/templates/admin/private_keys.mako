@@ -13,14 +13,13 @@
 
 <%block name="page_header_col">
     <h2>Private Keys</h2>
-    <p>${request.text_library.info_PrivateKeys[1]}</p>
 </%block>
 
 
 <%block name="page_header_nav">
     <p class="pull-right">
         <a  href="${admin_prefix}/private-key/upload"
-            title="${request.text_library.info_UploadPrivateKey[0]}"
+            title="Private Key - Upload"
             class="btn btn-xs btn-primary"
         >
             <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>

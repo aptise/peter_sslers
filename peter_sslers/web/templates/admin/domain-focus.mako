@@ -130,7 +130,6 @@
                                     </button>
                                 </form>
                             % endif
-
                         </td>
                     </tr>
                     <tr>
@@ -163,6 +162,24 @@
                             </td>
                         </tr>
                     % endif
+                    <tr>
+                        <th>AcmeDnsConfiguration</th>
+                        <td>
+                            % if Domain.acme_dns_server_2_domain__5:
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/domain/${Domain.id}/acme-dns-servers"
+                                >
+                                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                                    AcmeDnsServers - Existing</a>
+                            % else:
+                                <a  class="btn btn-xs btn-primary"
+                                    href="${admin_prefix}/domain/${Domain.id}/acme-dns-server/new"
+                                >
+                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                    AcmeDnsServers - New</a>
+                            % endif
+                        </td>
+                    </tr>
                 </tbody>
                 <thead>
                     <tr>

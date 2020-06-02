@@ -42,6 +42,10 @@ TESTS:
 			renew_auto
 			renew_manual
 			
+	AcmeAccount
+		submit a different key for an existing contact
+		
+			
 EDIT:
 	AcmeOrder:
 		change "PrivateKeyCycle - renewals"
@@ -78,6 +82,10 @@ These routes triggered an issue on the ENTIRE test suite, but not on individual 
 	Fix: test for a situation where the dbPrivateKey for a certificate is deactivated before 
 ---
 
+* CoverageAssuranceEvent
+	- on form display, show only eligible transitions(resolutions)
+
+* AcmeDns - finish support
 
 
 

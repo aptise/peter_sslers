@@ -226,6 +226,18 @@ class Form_AcmeAccount_deactivate_authorizations(_Form_Schema_Base):
     acme_authorization_id = ForEach(Int())
 
 
+class Form_AcmeDnsServer_new(_Form_Schema_Base):
+    root_url = UnicodeString(not_empty=True)
+
+
+class Form_AcmeDnsServer_mark(_Form_Schema_Base):
+    action = OneOf(("active", "inactive", "global_default",), not_empty=True)
+
+
+class Form_AcmeDnsServer_edit(_Form_Schema_Base):
+    root_url = UnicodeString(not_empty=True)
+
+
 class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
     domain_names = UnicodeString(not_empty=True)
     processing_strategy = OneOf(
@@ -318,12 +330,23 @@ class Form_ServerCertificate_mark(_Form_Schema_Base):
     )
 
 
+class Form_CoverageAssuranceEvent_mark(_Form_Schema_Base):
+    action = OneOf(("resolution"), not_empty=True,)
+    resolution = OneOf(
+        model_utils.CoverageAssuranceResolution.OPTIONS_ALL, not_empty=True
+    )
+
+
 class Form_Domain_mark(_Form_Schema_Base):
     action = OneOf(("active", "inactive"), not_empty=True)
 
 
 class Form_Domain_search(_Form_Schema_Base):
     domain = UnicodeString(not_empty=True)
+
+
+class Form_Domain_AcmeDnsServer_new(_Form_Schema_Base):
+    acme_dns_server_id = Int(not_empty=True)
 
 
 class Form_PrivateKey_new__autogenerate(_Form_Schema_Base):

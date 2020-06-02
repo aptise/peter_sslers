@@ -28,6 +28,7 @@ from .create import create__ServerCertificate
 from .get import get__AcmeAccountProvider__by_server
 from .get import get__AcmeAuthorization__by_authorization_url
 from .get import get__AcmeChallenge__by_challenge_url
+from .get import get__AcmeDnsServer__by_root_url
 from .get import get__CACertificate__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
@@ -579,6 +580,49 @@ def getcreate__AcmeChallengeHttp01_via_payload(
             ctx.dbSession.add(dbAcmeChallenge)
             ctx.dbSession.flush(objects=[dbAcmeChallenge])
     return dbAcmeChallenge, is_created_AcmeChallenge
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def getcreate__AcmeDnsServer(ctx, root_url):
+    """
+    getcreate wrapping an acms-dns Server (AcmeDnsServer)
+
+    return dbAcmeDnsServer, is_created
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param root_url:
+    """
+    is_created = False
+    dbAcmeDnsServer = get__AcmeDnsServer__by_root_url(ctx, root_url)
+    if not dbAcmeDnsServer:
+        event_payload_dict = utils.new_event_payload_dict()
+        dbOperationsEvent = log__OperationsEvent(
+            ctx, model_utils.OperationsEventType.from_string("AcmeDnsServer__insert")
+        )
+        dbAcmeDnsServer = model_objects.AcmeDnsServer()
+        dbAcmeDnsServer.root_url = root_url
+        dbAcmeDnsServer.timestamp_created = ctx.timestamp
+        dbAcmeDnsServer.operations_event_id__created = dbOperationsEvent.id
+        ctx.dbSession.add(dbAcmeDnsServer)
+        ctx.dbSession.flush(objects=[dbAcmeDnsServer])
+        is_created = True
+
+        event_payload_dict["domain.id"] = dbAcmeDnsServer.id
+        dbOperationsEvent.set_event_payload(event_payload_dict)
+        ctx.dbSession.flush(objects=[dbOperationsEvent])
+
+        _log_object_event(
+            ctx,
+            dbOperationsEvent=dbOperationsEvent,
+            event_status_id=model_utils.OperationsObjectEventStatus.from_string(
+                "AcmeDnsServer__insert"
+            ),
+            dbAcmeDnsServer=dbAcmeDnsServer,
+        )
+
+    return (dbAcmeDnsServer, is_created)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

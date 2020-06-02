@@ -13,7 +13,7 @@
 
 <%block name="page_header_col">
     <h2>ACME Challenge Unknown Polls</h2>
-    <p><em>${request.text_library.info_AcmeChallengeUnknownPolls[1]}</em></p>
+    <p><em>A challenge which has been polled, but not set up.</em></p>
 </%block>
 
 

@@ -50,7 +50,7 @@ class AcmeAccountUploadParser(object):
     def require_new(self, require_contact=None):
         """
         routine for creating a NEW AcmeAccount (peter_sslers generates the credentials)
-        
+
         :param require_contact: ``True`` if required; ``False`` if not; ``None`` for conditional logic
         """
         formStash = self.formStash

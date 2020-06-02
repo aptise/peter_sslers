@@ -6,6 +6,7 @@ log = logging.getLogger(__name__)
 # stdlib
 import datetime
 import pdb
+import json
 
 # pypi
 from dateutil import parser as dateutil_parser
@@ -405,6 +406,57 @@ def create__AcmeChallengeUnknownPoll(
     return dbAcmeChallengeUnknownPoll
 
 
+def create__AcmeDnsServer2Domain(
+    ctx,
+    dbAcmeDnsServer=None,
+    dbDomain=None,
+    username=None,
+    password=None,
+    fulldomain=None,
+    subdomain=None,
+    allowfrom=None,
+):
+    """
+    create wrapping an acms-dns Server and Domain (AcmeDnsServer2Domain)
+
+    return dbAcmeDnsServer2Domain,
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeDnsServer: (required)
+    :param dbDomain: (required)
+
+    :param username: (required)
+    :param password: (required)
+    :param fulldomain: (required)
+    :param subdomain: (required)
+    :param fulldomain: (required)
+    :param allowfrom: (required)
+    """
+    if not dbAcmeDnsServer.is_active:
+        raise ValueError("Inactive AcmeDnsServer")
+    event_type_id = model_utils.OperationsEventType.from_string(
+        "AcmeDnsServer2Domain__insert"
+    )
+    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict["acme_dns_server_id"] = dbAcmeDnsServer.id
+    event_payload_dict["domain_id"] = dbDomain.id
+    # bookkeeping
+    dbOperationsEvent = log__OperationsEvent(ctx, event_type_id, event_payload_dict)
+    dbAcmeDnsServer2Domain = model_objects.AcmeDnsServer2Domain()
+    dbAcmeDnsServer2Domain.acme_dns_server_id = dbAcmeDnsServer.id
+    dbAcmeDnsServer2Domain.domain_id = dbDomain.id
+    dbAcmeDnsServer2Domain.timestamp_created = ctx.timestamp
+    dbAcmeDnsServer2Domain.operations_event_id__created = dbOperationsEvent.id
+    dbAcmeDnsServer2Domain.username = username
+    dbAcmeDnsServer2Domain.password = password
+    dbAcmeDnsServer2Domain.fulldomain = fulldomain
+    dbAcmeDnsServer2Domain.subdomain = subdomain
+    dbAcmeDnsServer2Domain.allowfrom = json.dumps(allowfrom)
+    ctx.dbSession.add(dbAcmeDnsServer2Domain)
+    ctx.dbSession.flush(objects=[dbAcmeDnsServer2Domain])
+    return dbAcmeDnsServer2Domain
+
+
 def create__CertificateRequest(
     ctx,
     csr_pem=None,
@@ -569,6 +621,7 @@ def create__CoverageAssuranceEvent(
     coverage_assurance_resolution_id=None,
     dbPrivateKey=None,
     dbServerCertificate=None,
+    dbCoverageAssuranceEvent_parent=None,
 ):
     """
     Create a new Certificate Signing Request (CSR)
@@ -576,13 +629,15 @@ def create__CoverageAssuranceEvent(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param coverage_assurance_event_type_id: (required) :class:`model.utils.CoverageAssuranceEvent`
     :param coverage_assurance_event_status_id: (required) :class:`model.utils.CoverageAssuranceEventStatus`
+    :param coverage_assurance_resolution_id: (optional) :class:`model.utils.CoverageAssuranceResolution`; defaults to 'unresolved'
 
-    :param dbPrivateKey: a `model_objects.PrivateKey`
-    :param dbServerCertificate__issued: (optional) a `model_objects.ServerCertificate`
+    :param dbPrivateKey: (optional) a `model_objects.PrivateKey`
+    :param dbServerCertificate: (optional) a `model_objects.ServerCertificate`
+    :param dbCoverageAssuranceEvent_parent: (optional) a `model_objects.CoverageAssuranceEvent`
     """
     if (
         coverage_assurance_event_type_id
-        not in model_utils.CoverageAssuranceEvent._mapping
+        not in model_utils.CoverageAssuranceEventType._mapping
     ):
         raise ValueError(
             "Unsupported `coverage_assurance_event_type_id`: %s"
@@ -590,7 +645,7 @@ def create__CoverageAssuranceEvent(
         )
     if (
         coverage_assurance_event_status_id
-        not in model_utils.CoverageAssuranceStatus._mapping
+        not in model_utils.CoverageAssuranceEventStatus._mapping
     ):
         raise ValueError(
             "Unsupported `coverage_assurance_event_status_id`: %s"
@@ -629,7 +684,11 @@ def create__CoverageAssuranceEvent(
     if dbPrivateKey:
         dbCoverageAssuranceEvent.private_key_id = dbPrivateKey.id
     if dbServerCertificate:
-        dbCoverageAssuranceEvent.server_certificate = dbServerCertificate.id
+        dbCoverageAssuranceEvent.server_certificate_id = dbServerCertificate.id
+    if dbCoverageAssuranceEvent_parent:
+        dbCoverageAssuranceEvent.coverage_assurance_event_id__parent = (
+            dbCoverageAssuranceEvent_parent.id
+        )
 
     ctx.dbSession.add(dbCoverageAssuranceEvent)
     ctx.dbSession.flush(objects=[dbCoverageAssuranceEvent])

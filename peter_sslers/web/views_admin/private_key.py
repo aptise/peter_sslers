@@ -1,3 +1,10 @@
+import logging
+
+log = logging.getLogger(__name__)
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.INFO)
+
+
 # pyramid
 from pyramid.response import Response
 from pyramid.view import view_config
@@ -33,7 +40,7 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
-class ViewAdmin_List(Handler):
+class View_List(Handler):
     @view_config(route_name="admin:private_keys", renderer="/admin/private_keys.mako")
     @view_config(
         route_name="admin:private_keys_paginated", renderer="/admin/private_keys.mako"
@@ -71,7 +78,7 @@ class ViewAdmin_List(Handler):
         }
 
 
-class ViewAdmin_Focus(Handler):
+class View_Focus(Handler):
     def _focus(self, eagerload_web=False):
         dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
             self.request.api_context,
@@ -231,7 +238,7 @@ class ViewAdmin_Focus(Handler):
         }
 
 
-class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
+class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:private_key:focus:mark", renderer=None)
     @view_config(route_name="admin:private_key:focus:mark|json", renderer="json")
     def focus_mark(self):
@@ -346,7 +353,7 @@ class ViewAdmin_Focus_Manipulate(ViewAdmin_Focus):
             raise HTTPSeeOther(url_failure)
 
 
-class ViewAdmin_New(Handler):
+class View_New(Handler):
     @view_config(route_name="admin:private_key:new")
     @view_config(route_name="admin:private_key:new|json", renderer="json")
     def new(self):

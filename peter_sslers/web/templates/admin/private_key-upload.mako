@@ -14,7 +14,6 @@
 
 <%block name="page_header_col">
     <h2>Private Key | Upload</h2>
-    <p><em>${request.text_library.info_PrivateKeys[1]}</em></p>
 </%block>
 
 
