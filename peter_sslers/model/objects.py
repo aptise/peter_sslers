@@ -988,9 +988,9 @@ class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    acme_dns_server_2_domains = sa_orm_relationship(
-        "AcmeDnsServer2Domain",
-        primaryjoin="AcmeDnsServer.id==AcmeDnsServer2Domain.acme_dns_server_id",
+    acme_dns_server_accounts = sa_orm_relationship(
+        "AcmeDnsServerAccount",
+        primaryjoin="AcmeDnsServer.id==AcmeDnsServerAccount.acme_dns_server_id",
         uselist=True,
         back_populates="acme_dns_server",
     )
@@ -1016,19 +1016,29 @@ class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class AcmeDnsServer2Domain(Base, _Mixin_Timestamps_Pretty):
-    __tablename__ = "acme_dns_server_2_domain"
-    acme_dns_server_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_dns_server.id"), primary_key=True
+class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "acme_dns_server_id",
+            "domain_id",
+            "is_active",
+            name="domain_active_account",
+        ),
     )
-    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), primary_key=True)
+
+    __tablename__ = "acme_dns_server_account"
+    id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    acme_dns_server_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_dns_server.id"), nullable=False
+    )
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
+    is_active = sa.Column(sa.Boolean, nullable=True, default=True)  # allow NULL for constraint to work
     username = sa.Column(sa.Unicode(255), nullable=False)
     password = sa.Column(sa.Unicode(255), nullable=False)
     fulldomain = sa.Column(sa.Unicode(255), nullable=False)
     subdomain = sa.Column(sa.Unicode(255), nullable=False)
     allowfrom = sa.Column(sa.Unicode(255), nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
@@ -1037,19 +1047,19 @@ class AcmeDnsServer2Domain(Base, _Mixin_Timestamps_Pretty):
 
     acme_dns_server = sa_orm_relationship(
         "AcmeDnsServer",
-        primaryjoin="AcmeDnsServer2Domain.acme_dns_server_id==AcmeDnsServer.id",
+        primaryjoin="AcmeDnsServerAccount.acme_dns_server_id==AcmeDnsServer.id",
         uselist=False,
-        back_populates="acme_dns_server_2_domains",
+        back_populates="acme_dns_server_accounts",
     )
     domain = sa_orm_relationship(
         "Domain",
-        primaryjoin="AcmeDnsServer2Domain.domain_id==Domain.id",
+        primaryjoin="AcmeDnsServerAccount.domain_id==Domain.id",
         uselist=False,
-        back_populates="acme_dns_server_2_domains",
+        back_populates="acme_dns_server_accounts",
     )
     operations_event__created = sa_orm_relationship(
         "OperationsEvent",
-        primaryjoin="AcmeDnsServer2Domain.operations_event_id__created==OperationsEvent.id",
+        primaryjoin="AcmeDnsServerAccount.operations_event_id__created==OperationsEvent.id",
         uselist=False,
     )
 
@@ -2027,9 +2037,9 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="domain",
     )
-    acme_dns_server_2_domains = sa_orm_relationship(
-        "AcmeDnsServer2Domain",
-        primaryjoin="Domain.id==AcmeDnsServer2Domain.domain_id",
+    acme_dns_server_accounts = sa_orm_relationship(
+        "AcmeDnsServerAccount",
+        primaryjoin="Domain.id==AcmeDnsServerAccount.domain_id",
         uselist=True,
         back_populates="domain",
     )
@@ -3669,22 +3679,22 @@ Domain.acme_challenges__5 = sa_orm_relationship(
 )
 
 
-# note: Domain.acme_dns_server_2_domain__5
-Domain.acme_dns_server_2_domain__5 = sa_orm_relationship(
-    AcmeDnsServer2Domain,
+# note: Domain.acme_dns_server_accounts__5
+Domain.acme_dns_server_accounts__5 = sa_orm_relationship(
+    AcmeDnsServerAccount,
     primaryjoin=(
         sa.and_(
-            Domain.id == AcmeDnsServer2Domain.domain_id,
-            AcmeDnsServer2Domain.timestamp_created.in_(
-                sa.select([AcmeDnsServer2Domain.timestamp_created])
-                .where(AcmeDnsServer2Domain.domain_id == Domain.id)
-                .order_by(AcmeDnsServer2Domain.timestamp_created.desc())
+            Domain.id == AcmeDnsServerAccount.domain_id,
+            AcmeDnsServerAccount.timestamp_created.in_(
+                sa.select([AcmeDnsServerAccount.timestamp_created])
+                .where(AcmeDnsServerAccount.domain_id == Domain.id)
+                .order_by(AcmeDnsServerAccount.timestamp_created.desc())
                 .limit(5)
                 .correlate()
             ),
         )
     ),
-    order_by=AcmeDnsServer2Domain.timestamp_created.desc(),
+    order_by=AcmeDnsServerAccount.timestamp_created.desc(),
     viewonly=True,
 )
 

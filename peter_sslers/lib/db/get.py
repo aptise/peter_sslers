@@ -646,12 +646,12 @@ def get__AcmeDnsServer__paginated(
     return query.all()
 
 
-def get__AcmeDnsServer2Domain__by_ids(ctx, acme_dns_server_id, domain_id):
+def get__AcmeDnsServerAccount__by_ids(ctx, acme_dns_server_id, domain_id):
     item = (
-        ctx.dbSession.query(model_objects.AcmeDnsServer2Domain)
+        ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
         .filter(
-            model_objects.AcmeDnsServer2Domain.acme_dns_server_id == acme_dns_server_id,
-            model_objects.AcmeDnsServer2Domain.domain_id == domain_id,
+            model_objects.AcmeDnsServerAccount.acme_dns_server_id == acme_dns_server_id,
+            model_objects.AcmeDnsServerAccount.domain_id == domain_id,
         )
         .first()
     )

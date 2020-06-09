@@ -9,6 +9,7 @@ from pyramid.httpexceptions import HTTPNotFound
 import datetime
 
 # pypi
+import requests
 import sqlalchemy
 
 # localapp
@@ -132,6 +133,46 @@ class View_Focus(Handler):
                 "AcmeDnsServer": dbAcmeDnsServer.as_json,
             }
         return {"project": "peter_sslers", "AcmeDnsServer": dbAcmeDnsServer}
+
+    @view_config(route_name="admin:acme_dns_server:focus:check", renderer=None)
+    @view_config(route_name="admin:acme_dns_server:focus:check|json", renderer="json")
+    def focus_check(self):
+        dbAcmeDnsServer = self._focus()
+        if self.request.method == "POST":
+            return self._focus_check__submit(dbAcmeDnsServer)
+        return self._focus_check__print(dbAcmeDnsServer)
+
+    def _focus_check__print(self, dbAcmeDnsServer):
+        if self.request.wants_json:
+            return {
+                "instructions": [
+                    """curl --form 'action=active' %s/check.json""" % self._focus_url,
+                    """POST required.""",
+                ],
+            }
+        url_post_required = (
+            "%s?result=error&error=post+required&operation=mark" % self._focus_url
+        )
+        return HTTPSeeOther(url_post_required)
+
+    def _focus_check__submit(self, dbAcmeDnsServer):
+        try:
+            resp = requests.get("%s/health" % dbAcmeDnsServer.root_url)
+            if resp.status_code != 200:
+                raise ValueError("invalid status_code: %s" % resp.status_code)
+            if self.request.wants_json:
+                return {"result": "success", "health": True}
+            url_success = "%s?result=success&operation=check" % (
+                self._focus_url,
+            )
+            return HTTPSeeOther(url_success)
+        except Exception as exc:
+            if self.request.wants_json:
+                return {"result": "success", "health": False}
+            url_failure = "%s?result=error&operation=check" % (
+                self._focus_url,
+            )
+            return HTTPSeeOther(url_failure)
 
 
 class View_Focus_Manipulate(View_Focus):

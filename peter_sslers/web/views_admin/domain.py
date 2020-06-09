@@ -693,7 +693,7 @@ class View_Focus_Manipulate(View_Focus):
 class View_Focus_AcmeDnsServers(View_Focus):
     @view_config(
         route_name="admin:domain:focus:acme_dns_servers",
-        renderer="/admin/domain-focus-acme_dns_server_2_domains.mako",
+        renderer="/admin/domain-focus-acme_dns_server_accounts.mako",
     )
     @view_config(
         route_name="admin:domain:focus:acme_dns_servers|json", renderer="json",
@@ -704,13 +704,13 @@ class View_Focus_AcmeDnsServers(View_Focus):
             return {
                 "Domain": dbDomain.as_json,
                 "AcmeDnsServer2Domains": [
-                    ads2d.as_json for ads2d in dbDomain.acme_dns_server_2_domains
+                    ads2d.as_json for ads2d in dbDomain.acme_dns_server_accounts
                 ],
             }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
-            "AcmeDnsServer2Domains": dbDomain.acme_dns_server_2_domains,
+            "AcmeDnsServer2Domains": dbDomain.acme_dns_server_accounts,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -822,7 +822,7 @@ class View_Focus_AcmeDnsServers(View_Focus):
 
     @view_config(
         route_name="admin:domain:focus:acme_dns_server:focus",
-        renderer="/admin/domain-focus-acme_dns_server_2_domain-focus.mako",
+        renderer="/admin/domain-focus-acme_dns_server_account-focus.mako",
     )
     @view_config(
         route_name="admin:domain:focus:acme_dns_server:focus|json", renderer="json",

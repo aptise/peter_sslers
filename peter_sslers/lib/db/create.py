@@ -406,7 +406,7 @@ def create__AcmeChallengeUnknownPoll(
     return dbAcmeChallengeUnknownPoll
 
 
-def create__AcmeDnsServer2Domain(
+def create__AcmeDnsServerAccount(
     ctx,
     dbAcmeDnsServer=None,
     dbDomain=None,
@@ -417,9 +417,9 @@ def create__AcmeDnsServer2Domain(
     allowfrom=None,
 ):
     """
-    create wrapping an acms-dns Server and Domain (AcmeDnsServer2Domain)
+    create wrapping an acms-dns Server and Domain (AcmeDnsServerAccount)
 
-    return dbAcmeDnsServer2Domain,
+    return dbAcmeDnsServerAccount,
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeDnsServer: (required)
@@ -435,26 +435,26 @@ def create__AcmeDnsServer2Domain(
     if not dbAcmeDnsServer.is_active:
         raise ValueError("Inactive AcmeDnsServer")
     event_type_id = model_utils.OperationsEventType.from_string(
-        "AcmeDnsServer2Domain__insert"
+        "AcmeDnsServerAccount__insert"
     )
     event_payload_dict = utils.new_event_payload_dict()
     event_payload_dict["acme_dns_server_id"] = dbAcmeDnsServer.id
     event_payload_dict["domain_id"] = dbDomain.id
     # bookkeeping
     dbOperationsEvent = log__OperationsEvent(ctx, event_type_id, event_payload_dict)
-    dbAcmeDnsServer2Domain = model_objects.AcmeDnsServer2Domain()
-    dbAcmeDnsServer2Domain.acme_dns_server_id = dbAcmeDnsServer.id
-    dbAcmeDnsServer2Domain.domain_id = dbDomain.id
-    dbAcmeDnsServer2Domain.timestamp_created = ctx.timestamp
-    dbAcmeDnsServer2Domain.operations_event_id__created = dbOperationsEvent.id
-    dbAcmeDnsServer2Domain.username = username
-    dbAcmeDnsServer2Domain.password = password
-    dbAcmeDnsServer2Domain.fulldomain = fulldomain
-    dbAcmeDnsServer2Domain.subdomain = subdomain
-    dbAcmeDnsServer2Domain.allowfrom = json.dumps(allowfrom)
-    ctx.dbSession.add(dbAcmeDnsServer2Domain)
-    ctx.dbSession.flush(objects=[dbAcmeDnsServer2Domain])
-    return dbAcmeDnsServer2Domain
+    dbAcmeDnsServerAccount = model_objects.AcmeDnsServerAccount()
+    dbAcmeDnsServerAccount.timestamp_created = ctx.timestamp
+    dbAcmeDnsServerAccount.acme_dns_server_id = dbAcmeDnsServer.id
+    dbAcmeDnsServerAccount.domain_id = dbDomain.id
+    dbAcmeDnsServerAccount.operations_event_id__created = dbOperationsEvent.id
+    dbAcmeDnsServerAccount.username = username
+    dbAcmeDnsServerAccount.password = password
+    dbAcmeDnsServerAccount.fulldomain = fulldomain
+    dbAcmeDnsServerAccount.subdomain = subdomain
+    dbAcmeDnsServerAccount.allowfrom = json.dumps(allowfrom)
+    ctx.dbSession.add(dbAcmeDnsServerAccount)
+    ctx.dbSession.flush(objects=[dbAcmeDnsServerAccount])
+    return dbAcmeDnsServerAccount
 
 
 def create__CertificateRequest(

@@ -259,6 +259,8 @@ def _admin_views(config):
     )
 
     # !!!: AcmeDnsServer
+    config.add_route_7("admin:acme_dns_server:new", "/acme-dns-server/new")
+    config.add_route_7("admin:acme_dns_server:new|json", "/acme-dns-server/new.json")
     config.add_route_7("admin:acme_dns_servers", "/acme-dns-servers")
     config.add_route_7("admin:acme_dns_servers_paginated", "/acme-dns-servers/{@page}")
     config.add_route_7("admin:acme_dns_servers|json", "/acme-dns-servers.json")
@@ -276,13 +278,25 @@ def _admin_views(config):
         "admin:acme_dns_server:focus:mark|json", "/acme-dns-server/{@id}/mark.json"
     )
     config.add_route_7(
+        "admin:acme_dns_server:focus:check", "/acme-dns-server/{@id}/check"
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:check|json", "/acme-dns-server/{@id}/check.json"
+    )
+    config.add_route_7(
         "admin:acme_dns_server:focus:edit", "/acme-dns-server/{@id}/edit"
     )
     config.add_route_7(
         "admin:acme_dns_server:focus:edit|json", "/acme-dns-server/{@id}/edit.json"
     )
-    config.add_route_7("admin:acme_dns_server:new", "/acme-dns-server/new")
-    config.add_route_7("admin:acme_dns_server:new|json", "/acme-dns-server/new.json")
+    config.add_route_7("admin:acme_dns_server:focus:acme_dns_server_accounts", "/acme-dns-server/{@id}/accounts")
+    config.add_route_7(
+        "admin:acme_dns_server:focus:acme_dns_server_accounts|json", "/acme-dns-server/{@id}/accounts.json"
+    )
+    config.add_route_7("admin:acme_dns_server:focus:acme_dns_server_accounts_paginated", "/acme-dns-server/{@id}/accounts/{@page}")
+    config.add_route_7(
+        "admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json", "/acme-dns-server/{@id}/accounts/{@page}.json"
+    )
 
     # !!!: AcmeEventLog
     config.add_route_7("admin:acme_event_log", "/acme-event-logs")

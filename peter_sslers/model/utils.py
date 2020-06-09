@@ -217,7 +217,7 @@ class _OperationsUnified(_mixin_mapping):
         1304: "AcmeDnsServer__mark__default",
         1305: "AcmeDnsServer__mark__notdefault",
         1306: "AcmeDnsServer__edit",
-        1400: "AcmeDnsServer2Domain__insert",
+        1400: "AcmeDnsServerAccount__insert",
         2001: "ApiDomains__enable",
         2002: "ApiDomains__disable",
         2010: "ApiDomains__certificate_if_needed",

@@ -318,7 +318,7 @@
 </%def>
 
 
-<%def name="table_AcmeDnsServer2Domains(AcmeDnsServer2Domains, perspective=None)">
+<%def name="table_AcmeDnsServerAccounts(AcmeDnsServerAccounts, perspective=None)">
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
@@ -329,7 +329,7 @@
             </tr>
         </thead>
         <tbody>
-            % for a2d in AcmeDnsServer2Domains:
+            % for a2d in AcmeDnsServerAccounts:
                 <tr>
                     <td>
                         <a href="${admin_prefix}/acme-dns-server/${a2d.acme_dns_server_id}" class="label label-info">

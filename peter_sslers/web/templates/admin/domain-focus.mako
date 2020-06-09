@@ -165,7 +165,7 @@
                     <tr>
                         <th>AcmeDnsConfiguration</th>
                         <td>
-                            % if Domain.acme_dns_server_2_domain__5:
+                            % if Domain.acme_dns_server_accounts__5:
                                 <a  class="btn btn-xs btn-primary"
                                     href="${admin_prefix}/domain/${Domain.id}/acme-dns-servers"
                                 >

@@ -7,7 +7,8 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/acme-dns-servers">acme-dns Servers</a></li>
-        <li class="active">Focus ${AcmeDnsServer.id}</li>
+        <li><a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}">Focus ${AcmeDnsServer.id}</a></li>
+        <li class="active">AcmeDnsServer Accounts</li>
     </ol>
 </%block>
 
@@ -51,15 +52,6 @@
                     <th>root url</th>
                     <td>
                         <code>${AcmeDnsServer.root_url}</code>
-
-                        <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/check" method="POST" style="display:inline;">
-                            <input type="hidden" name="action" value="active"/>
-                            <button class="btn btn-xs btn-primary" type="submit">
-                                <span class="glyphicon glyphicon-target" aria-hidden="true"></span>
-                                Check
-                            </button>
-                        </form>
-
                     </td>
                 </tr>
                 <tr>
