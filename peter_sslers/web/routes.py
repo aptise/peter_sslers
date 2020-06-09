@@ -289,6 +289,7 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_dns_server:focus:edit|json", "/acme-dns-server/{@id}/edit.json"
     )
+
     config.add_route_7("admin:acme_dns_server:focus:acme_dns_server_accounts", "/acme-dns-server/{@id}/accounts")
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts|json", "/acme-dns-server/{@id}/accounts.json"
@@ -296,6 +297,23 @@ def _admin_views(config):
     config.add_route_7("admin:acme_dns_server:focus:acme_dns_server_accounts_paginated", "/acme-dns-server/{@id}/accounts/{@page}")
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json", "/acme-dns-server/{@id}/accounts/{@page}.json"
+    )
+
+
+    # !!!: AcmeDnsServer Accounts
+    config.add_route_7("admin:acme_dns_server_accounts", "/acme-dns-server-accounts")
+    config.add_route_7("admin:acme_dns_server_accounts_paginated", "/acme-dns-server-accounts/{@page}")
+    config.add_route_7("admin:acme_dns_server_accounts|json", "/acme-dns-server-accounts.json")
+    config.add_route_7(
+        "admin:acme_dns_server_accounts_paginated|json", "/acme-dns-server-accounts/{@page}.json"
+    )
+    config.add_route_7(
+        "admin:acme_dns_server_account:focus",
+        "/acme-dns-server-account/{@id}",
+    )
+    config.add_route_7(
+        "admin:acme_dns_server_account:focus|json",
+        "/acme-dns-server-account/{@id}.json",
     )
 
     # !!!: AcmeEventLog
@@ -730,12 +748,12 @@ def _admin_views(config):
         "/domain/{domain_identifier}/nginx-cache-expire.json",
     )
     config.add_route_7(
-        "admin:domain:focus:acme_dns_servers",
-        "/domain/{domain_identifier}/acme-dns-servers",
+        "admin:domain:focus:acme_dns_server_accounts",
+        "/domain/{domain_identifier}/acme-dns-server-accounts",
     )
     config.add_route_7(
-        "admin:domain:focus:acme_dns_servers|json",
-        "/domain/{domain_identifier}/acme-dns-servers.json",
+        "admin:domain:focus:acme_dns_server_accounts|json",
+        "/domain/{domain_identifier}/acme-dns-server-accounts.json",
     )
     config.add_route_7(
         "admin:domain:focus:acme_dns_server:new",
@@ -744,14 +762,6 @@ def _admin_views(config):
     config.add_route_7(
         "admin:domain:focus:acme_dns_server:new|json",
         "/domain/{domain_identifier}/acme-dns-server/new.json",
-    )
-    config.add_route_7(
-        "admin:domain:focus:acme_dns_server:focus",
-        "/domain/{domain_identifier}/acme-dns-server/{@id}",
-    )
-    config.add_route_7(
-        "admin:domain:focus:acme_dns_server:focus|json",
-        "/domain/{domain_identifier}/acme-dns-server/{@id}.json",
     )
 
     # !!!: DomainBlacklist

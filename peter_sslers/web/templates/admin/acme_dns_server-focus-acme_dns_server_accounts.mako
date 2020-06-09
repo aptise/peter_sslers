@@ -21,7 +21,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/accounts.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
@@ -32,74 +32,7 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-
-            <table class="table table-striped table-condensed">
-                <tr>
-                    <th>id</th>
-                    <td>
-                        <span class="label label-info">
-                            ${AcmeDnsServer.id}
-                        </span>
-                    </td>
-                </tr>
-                <tr>
-                    <th>timestamp_created</th>
-                    <td>
-                        <timestamp>${AcmeDnsServer.timestamp_created}</timestamp>
-                    </td>
-                </tr>
-                <tr>
-                    <th>root url</th>
-                    <td>
-                        <code>${AcmeDnsServer.root_url}</code>
-                    </td>
-                </tr>
-                <tr>
-                    <th>active?</th>
-                    <td>
-                        <code>${AcmeDnsServer.is_active}</code>
-                        % if not AcmeDnsServer.is_active:
-                            <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/mark" method="POST" style="display:inline;">
-                                <input type="hidden" name="action" value="active"/>
-                                <button class="btn btn-xs btn-success" type="submit">
-                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                    Activate
-                                </button>
-                            </form>
-                        % else:
-                            <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/mark" method="POST" style="display:inline;">
-                                <input type="hidden" name="action" value="inactive"/>
-                                <button class="btn btn-xs btn-danger" type="submit">
-                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                    Deactivate
-                                </button>
-                            </form>
-                        % endif
-                    </td>
-                </tr>
-                <tr>
-                    <th>global default?</th>
-                    <td>
-                        <code>${AcmeDnsServer.is_global_default}</code>
-                        % if not AcmeDnsServer.is_global_default:
-                            <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/mark" method="POST" style="display:inline;">
-                                <input type="hidden" name="action" value="global_default"/>
-                                <button class="btn btn-xs btn-success" type="submit">
-                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                    Activate
-                                </button>
-                            </form>
-                        % endif
-                    </td>
-                </tr>
-            </table>
-            
-            <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/edit"
-               class="btn btn-primary"
-            >
-                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
-                Edit
-            </a>
+            ${AcmeDnsServerAccounts}
         </div>
     </div>
 </%block>

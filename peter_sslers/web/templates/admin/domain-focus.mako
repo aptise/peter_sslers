@@ -167,10 +167,10 @@
                         <td>
                             % if Domain.acme_dns_server_accounts__5:
                                 <a  class="btn btn-xs btn-primary"
-                                    href="${admin_prefix}/domain/${Domain.id}/acme-dns-servers"
+                                    href="${admin_prefix}/domain/${Domain.id}/acme-dns-server-accounts"
                                 >
                                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                                    AcmeDnsServers - Existing</a>
+                                    AcmeDnsServerAccounts - Existing</a>
                             % else:
                                 <a  class="btn btn-xs btn-primary"
                                     href="${admin_prefix}/domain/${Domain.id}/acme-dns-server/new"

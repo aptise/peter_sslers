@@ -646,7 +646,33 @@ def get__AcmeDnsServer__paginated(
     return query.all()
 
 
-def get__AcmeDnsServerAccount__by_ids(ctx, acme_dns_server_id, domain_id):
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__AcmeDnsServerAccount__by_id(ctx, id):
+    item = ctx.dbSession.query(model_objects.AcmeDnsServerAccount).get(id)
+    return item
+
+
+def get__AcmeDnsServerAccount___count(ctx, acme_dns_server_id):
+    counted = ctx.dbSession.query(model_objects.AcmeDnsServerAccount)\
+        .count()
+    return counted
+
+
+def get__AcmeDnsServerAccount___paginated(
+    ctx, acme_dns_server_id, limit=None, offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
+        .order_by(model_objects.AcmeDnsServerAccount.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return query.all()
+
+
+def get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(ctx, acme_dns_server_id, domain_id):
     item = (
         ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
         .filter(
@@ -656,6 +682,27 @@ def get__AcmeDnsServerAccount__by_ids(ctx, acme_dns_server_id, domain_id):
         .first()
     )
     return item
+
+
+def get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(ctx, acme_dns_server_id):
+    counted = ctx.dbSession.query(model_objects.AcmeDnsServerAccount)\
+        .filter(model_objects.AcmeDnsServerAccount.acme_dns_server_id==acme_dns_server_id)\
+        .count()
+    return counted
+
+
+def get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
+    ctx, acme_dns_server_id, limit=None, offset=0,
+):
+    query = (
+        ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
+        .filter(model_objects.AcmeDnsServerAccount.acme_dns_server_id==acme_dns_server_id)\
+        .order_by(model_objects.AcmeDnsServerAccount.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return query.all()
+
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

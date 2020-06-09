@@ -690,27 +690,27 @@ class View_Focus_Manipulate(View_Focus):
             raise HTTPSeeOther(url_failure)
 
 
-class View_Focus_AcmeDnsServers(View_Focus):
+class View_Focus_AcmeDnsServerAccounts(View_Focus):
     @view_config(
-        route_name="admin:domain:focus:acme_dns_servers",
+        route_name="admin:domain:focus:acme_dns_server_accounts",
         renderer="/admin/domain-focus-acme_dns_server_accounts.mako",
     )
     @view_config(
-        route_name="admin:domain:focus:acme_dns_servers|json", renderer="json",
+        route_name="admin:domain:focus:acme_dns_server_accounts|json", renderer="json",
     )
     def list(self):
         dbDomain = self._focus()
         if self.request.wants_json:
             return {
                 "Domain": dbDomain.as_json,
-                "AcmeDnsServer2Domains": [
+                "AcmeDnsServerAccounts": [
                     ads2d.as_json for ads2d in dbDomain.acme_dns_server_accounts
                 ],
             }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
-            "AcmeDnsServer2Domains": dbDomain.acme_dns_server_accounts,
+            "AcmeDnsServerAccounts": dbDomain.acme_dns_server_accounts,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -773,10 +773,10 @@ class View_Focus_AcmeDnsServers(View_Focus):
                     field="acme_dns_server_id", message="Inactive AcmeDnsServer."
                 )
 
-            dbAcmeDnsServer2Domain = lib_db.get.get__AcmeDnsServer2Domain__by_ids(
+            dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
                 self.request.api_context, dbAcmeDnsServer.id, self.dbDomain.id
             )
-            if dbAcmeDnsServer2Domain:
+            if dbAcmeDnsServerAccount:
                 formStash.fatal_field(
                     field="acme_dns_server_id",
                     message="Existing record for this AcmeDnsServer.",
@@ -792,7 +792,7 @@ class View_Focus_AcmeDnsServers(View_Focus):
             except Exception as exc:
                 raise ValueError("error registering an account with AcmeDns")
 
-            dbAcmeDnsServer2Domain = lib_db.create.create__AcmeDnsServer2Domain(
+            dbAcmeDnsServerAccount = lib_db.create.create__AcmeDnsServerAccount(
                 self.request.api_context,
                 dbAcmeDnsServer=dbAcmeDnsServer,
                 dbDomain=self.dbDomain,
@@ -806,12 +806,12 @@ class View_Focus_AcmeDnsServers(View_Focus):
             if self.request.wants_json:
                 return {
                     "result": "success",
-                    "AcmeDnsServer2Domain": dbAcmeDnsServer2Domain.as_json,
+                    "AcmeDnsServerAccount": dbAcmeDnsServerAccount.as_json,
                 }
 
             url_success = "%s/acme-dns-server/%s?result=success&operation=new" % (
                 self._focus_url,
-                dbAcmeDnsServer2Domain.acme_dns_server_id,
+                dbAcmeDnsServerAccount.acme_dns_server_id,
             )
             return HTTPSeeOther(url_success)
 
@@ -819,26 +819,3 @@ class View_Focus_AcmeDnsServers(View_Focus):
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._new_print)
-
-    @view_config(
-        route_name="admin:domain:focus:acme_dns_server:focus",
-        renderer="/admin/domain-focus-acme_dns_server_account-focus.mako",
-    )
-    @view_config(
-        route_name="admin:domain:focus:acme_dns_server:focus|json", renderer="json",
-    )
-    def focus(self):
-        self.dbDomain = dbDomain = self._focus()
-        dbAcmeDnsServer2Domain = lib_db.get.get__AcmeDnsServer2Domain__by_ids(
-            self.request.api_context, self.request.matchdict["id"], self.dbDomain.id
-        )
-
-        if self.request.wants_json:
-            return {
-                "Domain": dbDomain.as_json,
-                "AcmeDnsServer2Domain": dbAcmeDnsServer2Domain.as_json,
-            }
-        return {
-            "Domain": dbDomain,
-            "AcmeDnsServer2Domain": dbAcmeDnsServer2Domain,
-        }

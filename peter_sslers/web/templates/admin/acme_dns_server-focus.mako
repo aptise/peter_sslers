@@ -100,6 +100,17 @@
                         % endif
                     </td>
                 </tr>
+
+                <tr>
+                    <th>AcmeDNS Server Accounts</th>
+                    <td>
+                        ${admin_partials.table_AcmeDnsServerAccounts(AcmeDnsServer.acme_dns_server_accounts__5, perspective="AcmeDnsServer")}
+                        % if AcmeDnsServer.acme_dns_server_accounts__5:
+                            ${admin_partials.nav_pager("%s/acme-dns-server/%s/accounts" % (admin_prefix, AcmeDnsServer.id))}
+                        % endif
+                    </td>
+                </tr>
+
             </table>
             
             <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/edit"

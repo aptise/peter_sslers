@@ -322,8 +322,10 @@
     <table class="table table-striped table-condensed">
         <thead>
             <tr>
+                % if perspective != "AcmeDnsServer":
+                    <th>AcmeDnsServer</th>
+                % endif
                 <th>Domain</th>
-                <th>AcmeDnsServer</th>
                 <th>Focus</th>
                 <th>active</th>
             </tr>
@@ -331,12 +333,14 @@
         <tbody>
             % for a2d in AcmeDnsServerAccounts:
                 <tr>
-                    <td>
-                        <a href="${admin_prefix}/acme-dns-server/${a2d.acme_dns_server_id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            AcmeDnsServer-${a2d.acme_dns_server_id} | ${a2d.acme_dns_server.root_url}
-                        </a>
-                    </td>
+                    % if perspective != "AcmeDnsServer":
+                        <td>
+                            <a href="${admin_prefix}/acme-dns-server/${a2d.acme_dns_server_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeDnsServer-${a2d.acme_dns_server_id} | ${a2d.acme_dns_server.root_url}
+                            </a>
+                        </td>
+                    % endif
                     <td>
                         <a href="${admin_prefix}/domain/${a2d.domain_id}" class="label label-info">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
@@ -344,7 +348,7 @@
                         </a>
                     </td>
                     <td>
-                        <a href="${admin_prefix}/domain/${a2d.domain_id}/acme-dns-server/${a2d.acme_dns_server_id}" class="label label-info">
+                        <a href="${admin_prefix}/acme-dns-server-account/${a2d.id}" class="label label-info">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             FOCUS
                         </a>
