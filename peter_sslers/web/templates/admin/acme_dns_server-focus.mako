@@ -55,7 +55,7 @@
                         <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/check" method="POST" style="display:inline;">
                             <input type="hidden" name="action" value="active"/>
                             <button class="btn btn-xs btn-primary" type="submit">
-                                <span class="glyphicon glyphicon-target" aria-hidden="true"></span>
+                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                                 Check
                             </button>
                         </form>
