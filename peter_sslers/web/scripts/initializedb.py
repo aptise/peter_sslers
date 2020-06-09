@@ -45,6 +45,6 @@ def main(argv=sys.argv):
 
         # this will setup the initial AcmeAccountProviders and the placeholder PrivateKey
         _setup.initialize_AcmeAccountProviders(dbSession)
-        _setup.initialize_DomainBlacklisted(dbSession)
+        _setup.initialize_DomainBlocklisted(dbSession)
 
     transaction.commit()

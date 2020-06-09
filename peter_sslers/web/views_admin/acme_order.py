@@ -953,9 +953,9 @@ class View_New(Handler):
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
             try:
 
-                # check for blacklists here
+                # check for blocklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                # this may raise errors.AcmeBlacklistedDomains
+                # this may raise errors.AcmeBlocklistedDomains
                 lib_db.validate.validate_domain_names(
                     self.request.api_context, domain_names
                 )
@@ -1011,7 +1011,7 @@ class View_New(Handler):
                     )
                 )
 
-            except errors.AcmeBlacklistedDomains as exc:
+            except errors.AcmeBlocklistedDomains as exc:
                 formStash.fatal_field(field="domain_names", message=str(exc))
 
             except errors.AcmeDuplicateChallenges as exc:

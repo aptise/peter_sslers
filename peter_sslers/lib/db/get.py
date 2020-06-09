@@ -1384,28 +1384,28 @@ def get__Domain__by_name(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__DomainBlacklisted__by_name(ctx, domain_name):
-    q = ctx.dbSession.query(model_objects.DomainBlacklisted).filter(
-        sqlalchemy.func.lower(model_objects.DomainBlacklisted.domain_name)
+def get__DomainBlocklisted__by_name(ctx, domain_name):
+    q = ctx.dbSession.query(model_objects.DomainBlocklisted).filter(
+        sqlalchemy.func.lower(model_objects.DomainBlocklisted.domain_name)
         == sqlalchemy.func.lower(domain_name)
     )
     item = q.first()
     return item
 
 
-def get__DomainBlacklisted__count(ctx):
-    q = ctx.dbSession.query(model_objects.DomainBlacklisted)
+def get__DomainBlocklisted__count(ctx):
+    q = ctx.dbSession.query(model_objects.DomainBlocklisted)
     counted = q.count()
     return counted
 
 
-def get__DomainBlacklisted__paginated(
+def get__DomainBlocklisted__paginated(
     ctx, limit=None, offset=0,
 ):
     q = (
-        ctx.dbSession.query(model_objects.DomainBlacklisted)
+        ctx.dbSession.query(model_objects.DomainBlocklisted)
         .order_by(
-            sqlalchemy.func.lower(model_objects.DomainBlacklisted.domain_name).asc()
+            sqlalchemy.func.lower(model_objects.DomainBlocklisted.domain_name).asc()
         )
         .limit(limit)
         .offset(offset)

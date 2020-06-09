@@ -254,7 +254,7 @@ class _OperationsUnified(_mixin_mapping):
         812: "QueueDomain__add__already_queued",
         813: "QueueDomain__add__already_exists",
         814: "QueueDomain__add__already_exists_activate",
-        815: "QueueDomain__add__domain_blacklisted",
+        815: "QueueDomain__add__domain_blocklisted",
         820: "QueueDomain__process",
         821: "QueueDomain__process__success",
         822: "QueueDomain__process__fail",

@@ -2099,12 +2099,12 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
 # ==============================================================================
 
 
-class DomainBlacklisted(Base, _Mixin_Timestamps_Pretty):
+class DomainBlocklisted(Base, _Mixin_Timestamps_Pretty):
     """
-    A Fully Qualified Domain that has been blacklisted from the system
+    A Fully Qualified Domain that has been blocklisted from the system
     """
 
-    __tablename__ = "domain_blacklisted"
+    __tablename__ = "domain_blocklisted"
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
 

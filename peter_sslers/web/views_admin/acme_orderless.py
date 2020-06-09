@@ -189,7 +189,7 @@ class View_New(Handler):
                     domain_names=domain_names,
                     dbAcmeAccount=dbAcmeAccount,
                 )
-            except errors.AcmeBlacklistedDomains as exc:
+            except errors.AcmeBlocklistedDomains as exc:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(field="domain_names", message=str(exc))
             except errors.AcmeDuplicateChallenges as exc:
@@ -420,13 +420,13 @@ class View_Focus_Manipulate(View_Focus):
                 )
             domain_name = domain_names[0]
 
-            _dbDomainBlacklisted = lib_db.get.get__DomainBlacklisted__by_name(
+            _dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
                 self.request.api_context, domain_name
             )
-            if _dbDomainBlacklisted:
-                # errors.AcmeBlacklistedDomains
+            if _dbDomainBlocklisted:
+                # errors.AcmeBlocklistedDomains
                 formStash.fatal_field(
-                    field="domain", message="This domain is blacklisted.",
+                    field="domain", message="This domain is blocklisted.",
                 )
 
             (

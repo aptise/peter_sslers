@@ -35,41 +35,41 @@ class View_List(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
-        route_name="admin:domains_blacklisted",
-        renderer="/admin/domains_blacklisted.mako",
+        route_name="admin:domains_blocklisted",
+        renderer="/admin/domains_blocklisted.mako",
     )
     @view_config(
-        route_name="admin:domains_blacklisted_paginated",
-        renderer="/admin/domains_blacklisted.mako",
+        route_name="admin:domains_blocklisted_paginated",
+        renderer="/admin/domains_blocklisted.mako",
     )
-    @view_config(route_name="admin:domains_blacklisted|json", renderer="json")
-    @view_config(route_name="admin:domains_blacklisted_paginated|json", renderer="json")
+    @view_config(route_name="admin:domains_blocklisted|json", renderer="json")
+    @view_config(route_name="admin:domains_blocklisted_paginated|json", renderer="json")
     def list(self):
         url_template = (
-            "%s/domains-blacklisted/{0}"
+            "%s/domains-blocklisted/{0}"
             % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         if self.request.wants_json:
             url_template = (
-                "%s/domains-blacklisted/{0}.json"
+                "%s/domains-blocklisted/{0}.json"
                 % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
-        items_count = lib_db.get.get__DomainBlacklisted__count(
+        items_count = lib_db.get.get__DomainBlocklisted__count(
             self.request.api_context,
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
-        items_paged = lib_db.get.get__DomainBlacklisted__paginated(
+        items_paged = lib_db.get.get__DomainBlocklisted__paginated(
             self.request.api_context, limit=items_per_page, offset=offset,
         )
 
         if self.request.wants_json:
             return {
-                "DomainsBlacklisted": [d.as_json for d in items_paged],
+                "DomainsBlocklisted": [d.as_json for d in items_paged],
                 "pagination": json_pagination(items_count, pager),
             }
         return {
             "project": "peter_sslers",
-            "DomainsBlacklisted_count": items_count,
-            "DomainsBlacklisted": items_paged,
+            "DomainsBlocklisted_count": items_count,
+            "DomainsBlocklisted": items_paged,
             "pager": pager,
         }

@@ -53,10 +53,10 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     unique-fqdn-sets</a></li>
-                <li><a href="${admin_prefix}/domains-blacklisted"
+                <li><a href="${admin_prefix}/domains-blocklisted"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                    domains-blacklisted</a></li>
+                    domains-blocklisted</a></li>
             </ul>
 
             <h3>Recordkeeping - ACME Logs</h3>

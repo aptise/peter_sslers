@@ -788,7 +788,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                 import pyacmedns
 
                 client = pyacmedns.Client(dbAcmeDnsServer.root_url)
-                account = client.register_account(None)  # arg = whitelisted ips
+                account = client.register_account(None)  # arg = allowlist ips
             except Exception as exc:
                 raise ValueError("error registering an account with AcmeDns")
 

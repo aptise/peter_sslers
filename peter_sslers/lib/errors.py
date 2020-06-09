@@ -125,9 +125,9 @@ class AcmeInvalidDomains(AcmeError):
         return "The following Domains are invalid: {0}".format(", ".join(self.args[0]))
 
 
-class AcmeBlacklistedDomains(AcmeInvalidDomains):
+class AcmeBlocklistedDomains(AcmeInvalidDomains):
     def __str__(self):
-        return "The following Domains are blacklisted: {0}".format(
+        return "The following Domains are blocklisted: {0}".format(
             ", ".join(self.args[0])
         )
 

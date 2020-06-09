@@ -2079,38 +2079,38 @@ class FunctionalTests_Domain(AppTest):
         assert res.json["result"] == "success"
 
 
-class FunctionalTests_DomainBlacklisted(AppTest):
+class FunctionalTests_DomainBlocklisted(AppTest):
     """
-    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_DomainBlacklisted
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_DomainBlocklisted
     """
 
-    @tests_routes(("admin:domains_blacklisted", "admin:domains_blacklisted_paginated",))
+    @tests_routes(("admin:domains_blocklisted", "admin:domains_blocklisted_paginated",))
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/domains-blacklisted", status=200)
+        res = self.testapp.get("/.well-known/admin/domains-blocklisted", status=200)
 
         # paginated
-        res = self.testapp.get("/.well-known/admin/domains-blacklisted/1", status=200)
+        res = self.testapp.get("/.well-known/admin/domains-blocklisted/1", status=200)
 
     @tests_routes(
-        ("admin:domains_blacklisted|json", "admin:domains_blacklisted_paginated|json",)
+        ("admin:domains_blocklisted|json", "admin:domains_blocklisted_paginated|json",)
     )
     def test_list_json(self):
         # json root
         res = self.testapp.get(
-            "/.well-known/admin/domains-blacklisted.json", status=200
+            "/.well-known/admin/domains-blocklisted.json", status=200
         )
-        assert "DomainsBlacklisted" in res.json
+        assert "DomainsBlocklisted" in res.json
 
         # json paginated
         res = self.testapp.get(
-            "/.well-known/admin/domains-blacklisted/1.json", status=200
+            "/.well-known/admin/domains-blocklisted/1.json", status=200
         )
-        assert "DomainsBlacklisted" in res.json
+        assert "DomainsBlocklisted" in res.json
 
     def test_AcmeOrder_new_fails(self):
         """
-        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_DomainBlacklisted.test_AcmeOrder_new_fails
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_DomainBlocklisted.test_AcmeOrder_new_fails
         """
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
 
@@ -2140,7 +2140,7 @@ class FunctionalTests_DomainBlacklisted(AppTest):
         assert res2.status_code == 200
         assert "There was an error with your form." in res2.text
         assert (
-            "The following Domains are blacklisted: always-fail.example.com"
+            "The following Domains are blocklisted: always-fail.example.com"
             in res2.text
         )
 
@@ -2154,7 +2154,7 @@ class FunctionalTests_DomainBlacklisted(AppTest):
         assert res2.status_code == 200
         assert "There was an error with your form." in res2.text
         assert (
-            "The following Domains are blacklisted: always-fail.example.com"
+            "The following Domains are blocklisted: always-fail.example.com"
             in res2.text
         )
 
@@ -2185,7 +2185,7 @@ class FunctionalTests_DomainBlacklisted(AppTest):
         assert res4.status_code == 200
         assert "There was an error with your form." in res4.text
         assert (
-            """<span class="help-inline">This domain is blacklisted.</span>"""
+            """<span class="help-inline">This domain is blocklisted.</span>"""
             in res4.text
         )
 
@@ -2201,7 +2201,7 @@ class FunctionalTests_DomainBlacklisted(AppTest):
         assert res2.status_code == 303
         assert (
             res2.location
-            == """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results=%7B%22always-fail.example.com%22%3A+%22blacklisted%22%2C+%22test-queuedomain-add-fails.example.com%22%3A+%22queued%22%7D"""
+            == """http://peter-sslers.example.com/.well-known/admin/queue-domains?result=success&operation=add&results=%7B%22always-fail.example.com%22%3A+%22blocklisted%22%2C+%22test-queuedomain-add-fails.example.com%22%3A+%22queued%22%7D"""
         )
 
 

@@ -81,7 +81,7 @@ def create__AcmeOrderless(
     if not domain_names:
         raise ValueError("Did not make a valid set of domain names")
 
-    # this may raise errors.AcmeBlacklistedDomains
+    # this may raise errors.AcmeBlocklistedDomains
     validate_domain_names(ctx, domain_names)
 
     domain_objects = {

@@ -119,13 +119,13 @@ def initialize_AcmeAccountProviders(dbSession):
     return True
 
 
-def initialize_DomainBlacklisted(dbSession):
+def initialize_DomainBlocklisted(dbSession):
 
-    dbDomainBlacklisted = model_objects.DomainBlacklisted()
-    dbDomainBlacklisted.domain_name = "always-fail.example.com"
-    dbSession.add(dbDomainBlacklisted)
+    dbDomainBlocklisted = model_objects.DomainBlocklisted()
+    dbDomainBlocklisted.domain_name = "always-fail.example.com"
+    dbSession.add(dbDomainBlocklisted)
     dbSession.flush(
-        objects=[dbDomainBlacklisted,]
+        objects=[dbDomainBlocklisted,]
     )
     return True
 

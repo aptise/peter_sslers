@@ -490,17 +490,17 @@ class View_New(Handler):
             )
             try:
 
-                # this may raise errors.AcmeBlacklistedDomains
+                # this may raise errors.AcmeBlocklistedDomains
                 (
                     dbUniqueFQDNSet,
                     is_created,
                 ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
                     self.request.api_context,
                     domain_names,
-                    allow_blacklisted_domains=False,
+                    allow_blocklisted_domains=False,
                 )
 
-            except errors.AcmeBlacklistedDomains as exc:
+            except errors.AcmeBlocklistedDomains as exc:
                 formStash.fatal_field(field="domain_names", message=str(exc))
 
             try:

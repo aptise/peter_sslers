@@ -764,14 +764,14 @@ def _admin_views(config):
         "/domain/{domain_identifier}/acme-dns-server/new.json",
     )
 
-    # !!!: DomainBlacklist
-    config.add_route_7("admin:domains_blacklisted", "/domains-blacklisted")
-    config.add_route_7("admin:domains_blacklisted|json", "/domains-blacklisted.json")
+    # !!!: DomainBlocklist
+    config.add_route_7("admin:domains_blocklisted", "/domains-blocklisted")
+    config.add_route_7("admin:domains_blocklisted|json", "/domains-blocklisted.json")
     config.add_route_7(
-        "admin:domains_blacklisted_paginated", "/domains-blacklisted/{@page}"
+        "admin:domains_blocklisted_paginated", "/domains-blocklisted/{@page}"
     )
     config.add_route_7(
-        "admin:domains_blacklisted_paginated|json", "/domains-blacklisted/{@page}.json"
+        "admin:domains_blocklisted_paginated|json", "/domains-blocklisted/{@page}.json"
     )
 
     # !!!: Operations & Sync Events

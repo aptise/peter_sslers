@@ -49,13 +49,13 @@ def queue_domains__add(ctx, domain_names):
         _result = None
         _logger_args = {"event_status_id": None}
 
-        # step 1 - is this blacklisted?
-        _dbDomainBlacklisted = lib.db.get.get__DomainBlacklisted__by_name(
+        # step 1 - is this blocklisted?
+        _dbDomainBlocklisted = lib.db.get.get__DomainBlocklisted__by_name(
             ctx, domain_name
         )
-        if _dbDomainBlacklisted:
+        if _dbDomainBlocklisted:
             # no need to update `_logger_args`, just exit out fast
-            results[domain_name] = "blacklisted"
+            results[domain_name] = "blocklisted"
             continue
 
         # step 2 - is this known?

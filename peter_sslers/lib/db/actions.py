@@ -599,12 +599,12 @@ def api_domains__certificate_if_needed(
         }
         _dbQueueDomain = None
 
-        # Step 1- is the domain_name blacklisted?
-        _dbDomainBlacklisted = lib.db.get.get__DomainBlacklisted__by_name(
+        # Step 1- is the domain_name blocklisted?
+        _dbDomainBlocklisted = lib.db.get.get__DomainBlocklisted__by_name(
             ctx, _domain_name
         )
-        if _dbDomainBlacklisted:
-            _result["domain.status"] = "blacklisted"
+        if _dbDomainBlocklisted:
+            _result["domain.status"] = "blocklisted"
             continue
 
         # Step 2- is the domain_name a Domain or QueueDomain?

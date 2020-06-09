@@ -34,10 +34,10 @@ class ViewPublic(Handler):
             challenge,
         )
 
-        dbDomainBlacklisted = lib_db.get.get__DomainBlacklisted__by_name(
+        dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
             self.request.api_context, self.request.active_domain_name
         )
-        if not dbDomainBlacklisted:
+        if not dbDomainBlocklisted:
             dbAcmeChallenge = lib_db.get.get__AcmeChallenge__challenged(
                 self.request.api_context, self.request.active_domain_name, challenge,
             )

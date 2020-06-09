@@ -453,7 +453,7 @@ class AppTestCore(unittest.TestCase):
             dbSession = self._session_factory()
             # this would have been invoked by `initialize_database`
             db._setup.initialize_AcmeAccountProviders(dbSession)
-            db._setup.initialize_DomainBlacklisted(dbSession)
+            db._setup.initialize_DomainBlocklisted(dbSession)
             dbSession.commit()
             dbSession.close()
 

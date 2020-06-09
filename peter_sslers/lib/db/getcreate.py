@@ -32,7 +32,7 @@ from .get import get__AcmeDnsServer__by_root_url
 from .get import get__CACertificate__by_pem_text
 from .get import get__CertificateRequest__by_pem_text
 from .get import get__Domain__by_name
-from .get import get__DomainBlacklisted__by_name
+from .get import get__DomainBlocklisted__by_name
 from .get import get__PrivateKey_CurrentDay_AcmeAccount
 from .get import get__PrivateKey_CurrentDay_Global
 from .get import get__PrivateKey_CurrentWeek_AcmeAccount
@@ -1184,17 +1184,17 @@ def getcreate__ServerCertificate(
 
 
 def getcreate__UniqueFQDNSet__by_domains(
-    ctx, domain_names, allow_blacklisted_domains=False
+    ctx, domain_names, allow_blocklisted_domains=False
 ):
     """
     getcreate wrapping unique fqdn
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: a list of domains names (strings)
-    :param allow_blacklisted_domains: boolean, default `False`. If `True`, disables check against domains blacklist
+    :param allow_blocklisted_domains: boolean, default `False`. If `True`, disables check against domains blocklist
 
     :returns: A tuple consisting of (:class:`model.objects.UniqueFQDNSet`, :bool:`is_created`)
-    :raises: `errors.AcmeBlacklistedDomains`
+    :raises: `errors.AcmeBlocklistedDomains`
     """
     # we should have cleaned this up before submitting, but just be safe!
     domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
@@ -1202,9 +1202,9 @@ def getcreate__UniqueFQDNSet__by_domains(
     if not domain_names:
         raise ValueError("no domain names!")
 
-    if not allow_blacklisted_domains:
-        # ensure they are not blacklisted:
-        # this may raise errors.AcmeBlacklistedDomains
+    if not allow_blocklisted_domains:
+        # ensure they are not blocklisted:
+        # this may raise errors.AcmeBlocklistedDomains
         validate_domain_names(ctx, domain_names)
 
     # ensure the domains are registered into our system
