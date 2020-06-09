@@ -14,7 +14,7 @@
 
 
 <%block name="page_header_col">
-    <h2>acme-dns Server: Focus</h2>
+    <h2>acme-dns Server: Accounts</h2>
     ${admin_partials.handle_querystring_result()}
 </%block>
 
@@ -32,7 +32,12 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
-            ${AcmeDnsServerAccounts}
+            % if AcmeDnsServerAccounts:
+                ${admin_partials.nav_pagination(pager)}
+                ${admin_partials.table_AcmeDnsServerAccounts(AcmeDnsServerAccounts, perspective='AcmeDnsServer')}
+            % else:
+                No known AcmeDnsServerAccounts
+            % endif
         </div>
     </div>
 </%block>

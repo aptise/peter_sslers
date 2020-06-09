@@ -29,17 +29,24 @@ from ...lib import errors
 
 class View_List(Handler):
     @view_config(
-        route_name="admin:acme_dns_server_accounts", renderer="/admin/acme_dns_server_accounts.mako",
+        route_name="admin:acme_dns_server_accounts",
+        renderer="/admin/acme_dns_server_accounts.mako",
     )
     @view_config(route_name="admin:acme_dns_server_accounts|json", renderer="json")
     @view_config(
         route_name="admin:acme_dns_server_accounts_paginated",
         renderer="/admin/acme_dns_server_accounts.mako",
     )
-    @view_config(route_name="admin:acme_dns_server_accounts_paginated|json", renderer="json")
+    @view_config(
+        route_name="admin:acme_dns_server_accounts_paginated|json", renderer="json"
+    )
     def list(self):
-        items_count = lib_db.get.get__AcmeDnsServerAccount__count(self.request.api_context)
-        items_paged = lib_db.get.get__AcmeDnsServerAccount__paginated(self.request.api_context)
+        items_count = lib_db.get.get__AcmeDnsServerAccount__count(
+            self.request.api_context
+        )
+        items_paged = lib_db.get.get__AcmeDnsServerAccount__paginated(
+            self.request.api_context
+        )
         if self.request.wants_json:
             return {
                 "AcmeDnsServerAccounts": [s.as_json for s in items_paged],
@@ -78,5 +85,7 @@ class View_Focus(Handler):
             return {
                 "AcmeDnsServerAccount": dbAcmeDnsServerAccount.as_json,
             }
-        return {"project": "peter_sslers", "AcmeDnsServerAccount": dbAcmeDnsServerAccount}
-
+        return {
+            "project": "peter_sslers",
+            "AcmeDnsServerAccount": dbAcmeDnsServerAccount,
+        }

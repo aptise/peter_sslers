@@ -1033,7 +1033,9 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
         sa.Integer, sa.ForeignKey("acme_dns_server.id"), nullable=False
     )
     domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=False)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)  # allow NULL for constraint to work
+    is_active = sa.Column(
+        sa.Boolean, nullable=True, default=True
+    )  # allow NULL for constraint to work
     username = sa.Column(sa.Unicode(255), nullable=False)
     password = sa.Column(sa.Unicode(255), nullable=False)
     fulldomain = sa.Column(sa.Unicode(255), nullable=False)

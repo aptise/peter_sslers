@@ -162,32 +162,38 @@ class View_Focus(Handler):
                 raise ValueError("invalid status_code: %s" % resp.status_code)
             if self.request.wants_json:
                 return {"result": "success", "health": True}
-            url_success = "%s?result=success&operation=check" % (
-                self._focus_url,
-            )
+            url_success = "%s?result=success&operation=check" % (self._focus_url,)
             return HTTPSeeOther(url_success)
         except Exception as exc:
             if self.request.wants_json:
                 return {"result": "success", "health": False}
-            url_failure = "%s?result=error&operation=check" % (
-                self._focus_url,
-            )
+            url_failure = "%s?result=error&operation=check" % (self._focus_url,)
             return HTTPSeeOther(url_failure)
 
-
     @view_config(
-        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts", renderer="/admin/acme_dns_server-focus-acme_dns_server_accounts.mako",
+        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts",
+        renderer="/admin/acme_dns_server-focus-acme_dns_server_accounts.mako",
     )
-    @view_config(route_name="admin:acme_dns_server:focus:acme_dns_server_accounts|json", renderer="json")
+    @view_config(
+        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts|json",
+        renderer="json",
+    )
     @view_config(
         route_name="admin:acme_dns_server:focus:acme_dns_server_accounts_paginated",
         renderer="/admin/acme_dns_server-focus-acme_dns_server_accounts.mako",
     )
-    @view_config(route_name="admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json", renderer="json")
+    @view_config(
+        route_name="admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json",
+        renderer="json",
+    )
     def list_accounts(self):
         dbAcmeDnsServer = self._focus(eagerload_web=True)
-        items_count = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(self.request.api_context, dbAcmeDnsServer.id)
-        items_paged = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(self.request.api_context, dbAcmeDnsServer.id)
+        items_count = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__count(
+            self.request.api_context, dbAcmeDnsServer.id
+        )
+        items_paged = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId__paginated(
+            self.request.api_context, dbAcmeDnsServer.id
+        )
         if self.request.wants_json:
             return {
                 "AcmeDnsServer": dbAcmeDnsServer.as_json,
@@ -196,11 +202,10 @@ class View_Focus(Handler):
             }
         return {
             "project": "peter_sslers",
-                "AcmeDnsServer": dbAcmeDnsServer,
-                "AcmeDnsServerAccounts": [s.as_json for s in items_paged],
-                "AcmeDnsServerAccounts_count": items_count,
+            "AcmeDnsServer": dbAcmeDnsServer,
+            "AcmeDnsServerAccounts": items_paged,
+            "AcmeDnsServerAccounts_count": items_count,
         }
-        
 
 
 class View_Focus_Manipulate(View_Focus):

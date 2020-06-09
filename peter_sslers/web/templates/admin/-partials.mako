@@ -325,7 +325,9 @@
                 % if perspective != "AcmeDnsServer":
                     <th>AcmeDnsServer</th>
                 % endif
-                <th>Domain</th>
+                % if perspective != "Domain":
+                    <th>Domain</th>
+                % endif
                 <th>Focus</th>
                 <th>active</th>
             </tr>
@@ -341,16 +343,18 @@
                             </a>
                         </td>
                     % endif
-                    <td>
-                        <a href="${admin_prefix}/domain/${a2d.domain_id}" class="label label-info">
-                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            Domain-${a2d.domain_id} | ${a2d.domain.domain_name} 
-                        </a>
-                    </td>
+                    % if perspective != "Domain":
+                        <td>
+                            <a href="${admin_prefix}/domain/${a2d.domain_id}" class="label label-info">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                Domain-${a2d.domain_id} | ${a2d.domain.domain_name} 
+                            </a>
+                        </td>
+                    % endif
                     <td>
                         <a href="${admin_prefix}/acme-dns-server-account/${a2d.id}" class="label label-info">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            FOCUS
+                            Focus
                         </a>
                     </td>
                     <td>
