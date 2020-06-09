@@ -809,7 +809,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                     "AcmeDnsServerAccount": dbAcmeDnsServerAccount.as_json,
                 }
 
-            url_success = "%s/acme-dns-server/%s?result=success&operation=new" % (
+            url_success = "%s/acme-dns-server-accounts?result=success&operation=new" % (
                 self._focus_url,
                 dbAcmeDnsServerAccount.acme_dns_server_id,
             )

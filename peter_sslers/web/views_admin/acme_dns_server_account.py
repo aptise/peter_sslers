@@ -38,8 +38,8 @@ class View_List(Handler):
     )
     @view_config(route_name="admin:acme_dns_server_accounts_paginated|json", renderer="json")
     def list(self):
-        items_count = lib_db.get.get__AcmeDnsServerAccounts__count(self.request.api_context)
-        items_paged = lib_db.get.get__AcmeDnsServerAccounts__paginated(self.request.api_context)
+        items_count = lib_db.get.get__AcmeDnsServerAccount__count(self.request.api_context)
+        items_paged = lib_db.get.get__AcmeDnsServerAccount__paginated(self.request.api_context)
         if self.request.wants_json:
             return {
                 "AcmeDnsServerAccounts": [s.as_json for s in items_paged],

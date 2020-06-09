@@ -654,14 +654,14 @@ def get__AcmeDnsServerAccount__by_id(ctx, id):
     return item
 
 
-def get__AcmeDnsServerAccount___count(ctx, acme_dns_server_id):
+def get__AcmeDnsServerAccount__count(ctx):
     counted = ctx.dbSession.query(model_objects.AcmeDnsServerAccount)\
         .count()
     return counted
 
 
-def get__AcmeDnsServerAccount___paginated(
-    ctx, acme_dns_server_id, limit=None, offset=0,
+def get__AcmeDnsServerAccount__paginated(
+    ctx, limit=None, offset=0,
 ):
     query = (
         ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
