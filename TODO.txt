@@ -22,6 +22,10 @@ certificate renewal
 	- object should show if we can renew with account key; or maybe not. just allow it to be renewed
 	- better programmatic work is needed when cycling a multi-process request
 
+Remove "Foo"	
+remove todo
+	
+	
 	
 asap tasks
 ---------------

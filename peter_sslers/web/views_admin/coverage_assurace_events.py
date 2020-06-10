@@ -59,10 +59,10 @@ class View_List(Handler):
         route_name="admin:coverage_assurance_events:unresolved_paginated",
         renderer="/admin/coverage_assurance_events.mako",
     )
-    @view_config(route_name="admin:coverage_assurance_events:all|json")
-    @view_config(route_name="admin:coverage_assurance_events:all_paginated|json")
-    @view_config(route_name="admin:coverage_assurance_events:unresolved|json")
-    @view_config(route_name="admin:coverage_assurance_events:unresolved_paginated|json")
+    @view_config(route_name="admin:coverage_assurance_events:all|json", renderer="json")
+    @view_config(route_name="admin:coverage_assurance_events:all_paginated|json", renderer="json")
+    @view_config(route_name="admin:coverage_assurance_events:unresolved|json", renderer="json")
+    @view_config(route_name="admin:coverage_assurance_events:unresolved_paginated|json", renderer="json")
     def list(self):
         sidenav_option = None
         unresolved_only = None
@@ -92,6 +92,12 @@ class View_List(Handler):
             limit=items_per_page,
             offset=offset,
         )
+        if self.request.wants_json:
+            return {
+                "CoverageAssuranceEvents": [i.as_json for i in items_paged],
+                "CoverageAssuranceEvents_count": items_count,
+                "pagination": json_pagination(items_count, pager),
+            }
         return {
             "project": "peter_sslers",
             "CoverageAssuranceEvents_count": items_count,

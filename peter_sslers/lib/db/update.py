@@ -16,6 +16,7 @@ from .. import utils
 from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeAccountProvider__default
 from .get import get__AcmeDnsServer__GlobalDefault
+from .get import get__AcmeDnsServer__by_root_url
 from .get import get__Domain__by_name
 from .logger import _log_object_event
 
@@ -161,6 +162,7 @@ def update_AcmeDnsServer__set_active(ctx, dbAcmeDnsServer):
     if dbAcmeDnsServer.is_active:
         raise errors.InvalidTransition("Already activated.")
     dbAcmeDnsServer.is_active = True
+    ctx.dbSession.flush(objects=[dbAcmeDnsServer])
     event_status = "AcmeDnsServer__mark__active"
     return event_status
 
@@ -173,6 +175,7 @@ def update_AcmeDnsServer__unset_active(ctx, dbAcmeDnsServer):
             "You can not deactivate the global default. Make another AcmeDnsServer as the global default first."
         )
     dbAcmeDnsServer.is_active = False
+    ctx.dbSession.flush(objects=[dbAcmeDnsServer])
     event_status = "AcmeDnsServer__mark__inactive"
     return event_status
 
@@ -182,6 +185,10 @@ def update_AcmeDnsServer__set_global_default(ctx, dbAcmeDnsServer):
         # `formStash.fatal_form(` will raise a `FormInvalid()`
         raise errors.InvalidTransition("Already global default.")
 
+    if not dbAcmeDnsServer.is_active:
+        # `formStash.fatal_form(` will raise a `FormInvalid()`
+        raise errors.InvalidTransition("This item must be active.")
+
     alt_info = {}
     formerDefault = get__AcmeDnsServer__GlobalDefault(ctx)
     if formerDefault:
@@ -190,7 +197,9 @@ def update_AcmeDnsServer__set_global_default(ctx, dbAcmeDnsServer):
             "acme_dns_server_id.former_default": formerDefault.id,
         }
         alt_info["event_alt"] = ("AcmeDnsServer__mark__notdefault", formerDefault)
+        ctx.dbSession.flush(objects=[formerDefault])
     dbAcmeDnsServer.is_global_default = True
+    ctx.dbSession.flush(objects=[dbAcmeDnsServer])
     event_status = "AcmeDnsServer__mark__default"
     return event_status, alt_info
 
@@ -198,7 +207,13 @@ def update_AcmeDnsServer__set_global_default(ctx, dbAcmeDnsServer):
 def update_AcmeDnsServer__root_url(ctx, dbAcmeDnsServer, root_url):
     if dbAcmeDnsServer.root_url == root_url:
         raise errors.InvalidTransition("No change")
+    dbAcmeDnsServerAlt = get__AcmeDnsServer__by_root_url(ctx, root_url)
+    if dbAcmeDnsServerAlt:
+        raise errors.InvalidTransition(
+            "Another acme-dns server is enrolled with this same root url."
+        )
     dbAcmeDnsServer.root_url = root_url
+    ctx.dbSession.flush(objects=[dbAcmeDnsServer])
     return True
 
 

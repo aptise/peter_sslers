@@ -91,6 +91,18 @@ PEBBLE_ENV_STRICT["PEBBLE_AUTHZREUSE"] = "0"
 PEBBLE_ENV_STRICT["PEBBLE_VA_NOSLEEP"] = "1"
 
 
+# run tests against ACME_DNS_API
+RUN_API_TESTS__ACME_DNS_API = bool(
+    int(os.environ.get("SSL_RUN_API_TESTS__ACME_DNS_API", 0))
+)
+ACME_DNS_API = os.environ.get("SSL_ACME_DNS_API", "http://127.0.0.1:8011")
+ACME_DNS_BINARY = os.environ.get("SSL_ACME_DNS_BINARY", "")
+ACME_DNS_CONFIG = os.environ.get("SSL_ACME_DNS_CONFIG", "")
+
+if RUN_API_TESTS__ACME_DNS_API:
+    if not any((ACME_DNS_BINARY, ACME_DNS_CONFIG)):
+        raise ValueError("Must invoke with env vars for acme-dns services")
+
 # ==============================================================================
 
 
@@ -220,7 +232,80 @@ def under_redis(_function):
 
 # !!!: TEST_FILES
 
+
+def under_acme_dns(_function):
+    """
+    decorator to spin up an external acme_dns
+
+    note some fun stuff:
+
+    1) analyze `proc.stderr`
+    2) this starts with sudo, so
+
+    """
+
+    @wraps(_function)
+    def _wrapper(*args, **kwargs):
+        log.info("++ spinning up `acme-dns`")
+        res = None  # scoping
+        with psutil.Popen(
+            [ACME_DNS_BINARY, "-c", ACME_DNS_CONFIG],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            # preexec_fn=os.setpgrp,  # testing with sudo
+        ) as proc:
+            # ensure the `pebble` server is running
+            ready_http = False
+            ready_dns = False
+            while not ready_http and not ready_dns:
+                log.info("waiting for `acme-dns` to be ready")
+                # notice this is `stderr`
+                for line in iter(proc.stdout.readline, b""):
+                    print("stdout", line)
+                for line in iter(proc.stderr.readline, b""):
+                    print("stderr", line)
+                    if b"Could not open database" in line:
+                        raise ValueError(line)
+                    if b"FATA[" in line:
+                        raise ValueError(line)
+                    if b"permission denied" in line:
+                        raise ValueError(line)
+                    if b"Listening HTTP" in line:
+                        ready_http = True
+                    if b"Listening DNS" in line:
+                        ready_dns = True
+                time.sleep(1)
+            try:
+                res = _function(*args, **kwargs)
+            finally:
+                # explicitly terminate, otherwise it won't exit
+                # in a `finally` to ensure we terminate on exceptions
+                log.info("xx terminating `acme-dns`")
+                proc.terminate()
+        return res
+
+    return _wrapper
+
+
 TEST_FILES = {
+    "AcmeDnsServer": {
+        "1": {"root_url": ACME_DNS_API,},
+        "2": {"root_url": "https://acme-dns.example.com",},
+        "3": {"root_url": "https://acme-dns-alt.example.com",},
+        "4": {"root_url": "https://acme-dns-alt-2.example.com",},
+    },
+    "AcmeDnsServerAccount": {
+        "1": {
+            "AcmeDnsServer": "2",
+            "domain": "example.com",
+            "username": "username",
+            "password": "password",
+            "fulldomain": "fulldomain",
+            "subdomain": "subdomain",
+            "allowfrom": "allowfrom",
+        },
+    },
     "AcmeOrderless": {
         "new-1": {
             "domains": ["acme-orderless-1.example.com", "acme-orderless-2.example.com"],
@@ -864,6 +949,29 @@ class AppTest(AppTestCore):
                     self.ctx,
                     domain_names=("acme-orderless.example.com",),
                     dbAcmeAccount=None,
+                )
+
+                # note: pre-populate AcmeDnsServer
+                (dbAcmeDnsServer, _x) = db.getcreate.getcreate__AcmeDnsServer(
+                    self.ctx, root_url=ACME_DNS_API, is_global_default=True,
+                )
+                (dbAcmeDnsServer_2, _x) = db.getcreate.getcreate__AcmeDnsServer(
+                    self.ctx, root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
+                )
+
+                (_dbAcmeDnsServerAccount_domain, _x) = db.getcreate.getcreate__Domain__by_domainName(
+                    self.ctx,
+                    domain_name=TEST_FILES["AcmeDnsServerAccount"]["1"]["domain"],
+                )
+                dbAcmeDnsServerAccount = db.create.create__AcmeDnsServerAccount(
+                    self.ctx,
+                    dbAcmeDnsServer=dbAcmeDnsServer_2,
+                    dbDomain=_dbAcmeDnsServerAccount_domain,
+                    username=TEST_FILES["AcmeDnsServerAccount"]["1"]["username"],
+                    password=TEST_FILES["AcmeDnsServerAccount"]["1"]["password"],
+                    fulldomain=TEST_FILES["AcmeDnsServerAccount"]["1"]["fulldomain"],
+                    subdomain=TEST_FILES["AcmeDnsServerAccount"]["1"]["subdomain"],
+                    allowfrom=TEST_FILES["AcmeDnsServerAccount"]["1"]["allowfrom"],
                 )
 
                 self.ctx.pyramid_transaction_commit()

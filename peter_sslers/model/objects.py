@@ -1008,8 +1008,8 @@ class AcmeDnsServer(Base, _Mixin_Timestamps_Pretty):
             "id": self.id,
             "root_url": self.root_url,
             "timestamp_created": self.timestamp_created_isoformat,
-            "is_active": self.is_active,
-            "is_global_default": self.is_global_default,
+            "is_active": True if self.is_active else False,
+            "is_global_default": True if self.is_global_default else False,
         }
 
 
@@ -1072,6 +1072,7 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
         return {
             "AcmeDnsServer": self.acme_dns_server.as_json,
             "Domain": self.domain.as_json,
+            "id": self.id,
             "timestamp_created": self.timestamp_created_isoformat,
             "username": self.username,
             "password": self.password,
@@ -1916,10 +1917,10 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     private_key_id = sa.Column(
-        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=True
     )
     server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=False
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
     )
     coverage_assurance_event_type_id = sa.Column(
         sa.Integer, nullable=False
@@ -2189,7 +2190,7 @@ class OperationsObjectEvent(Base, _Mixin_Timestamps_Pretty):
             " + "
             " CASE WHEN acme_order_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
-            " CASE WHEN acme_dns_server IS NOT NULL THEN 1 ELSE 0 END "
+            " CASE WHEN acme_dns_server_id IS NOT NULL THEN 1 ELSE 0 END "
             " + "
             " CASE WHEN ca_certificate_id IS NOT NULL THEN 1 ELSE 0 END"
             " + "

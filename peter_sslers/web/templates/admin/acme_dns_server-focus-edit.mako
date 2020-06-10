@@ -38,6 +38,7 @@
                 action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/edit"
                 method="POST"
                 enctype="multipart/form-data"
+                id="form-edit"
             >
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}

@@ -52,7 +52,7 @@
                     <td>
                         <code>${AcmeDnsServer.root_url}</code>
 
-                        <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/check" method="POST" style="display:inline;">
+                        <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/check" method="POST" style="display:inline;" id="form-check">
                             <input type="hidden" name="action" value="active"/>
                             <button class="btn btn-xs btn-primary" type="submit">
                                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
@@ -67,7 +67,7 @@
                     <td>
                         <code>${AcmeDnsServer.is_active}</code>
                         % if not AcmeDnsServer.is_active:
-                            <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/mark" method="POST" style="display:inline;">
+                            <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/mark" method="POST" style="display:inline;" id="form-mark-active">
                                 <input type="hidden" name="action" value="active"/>
                                 <button class="btn btn-xs btn-success" type="submit">
                                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -75,7 +75,7 @@
                                 </button>
                             </form>
                         % else:
-                            <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/mark" method="POST" style="display:inline;">
+                            <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/mark" method="POST" style="display:inline;" id="form-mark-inactive">
                                 <input type="hidden" name="action" value="inactive"/>
                                 <button class="btn btn-xs btn-danger" type="submit">
                                     <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -89,12 +89,12 @@
                     <th>global default?</th>
                     <td>
                         <code>${AcmeDnsServer.is_global_default}</code>
-                        % if not AcmeDnsServer.is_global_default:
-                            <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/mark" method="POST" style="display:inline;">
+                        % if not AcmeDnsServer.is_global_default and AcmeDnsServer.is_active:
+                            <form action="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/mark" method="POST" style="display:inline;" id="form-mark-global_default">
                                 <input type="hidden" name="action" value="global_default"/>
                                 <button class="btn btn-xs btn-success" type="submit">
                                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                    Activate
+                                    set Global Default
                                 </button>
                             </form>
                         % endif
@@ -106,7 +106,7 @@
                     <td>
                         ${admin_partials.table_AcmeDnsServerAccounts(AcmeDnsServer.acme_dns_server_accounts__5, perspective="AcmeDnsServer")}
                         % if AcmeDnsServer.acme_dns_server_accounts__5:
-                            ${admin_partials.nav_pager("%s/acme-dns-server/%s/accounts" % (admin_prefix, AcmeDnsServer.id))}
+                            ${admin_partials.nav_pager("%s/acme-dns-server/%s/acme-dns-server-accounts" % (admin_prefix, AcmeDnsServer.id))}
                         % endif
                     </td>
                 </tr>

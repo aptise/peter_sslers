@@ -292,19 +292,19 @@ def _admin_views(config):
 
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts",
-        "/acme-dns-server/{@id}/accounts",
+        "/acme-dns-server/{@id}/acme-dns-server-accounts",
     )
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts|json",
-        "/acme-dns-server/{@id}/accounts.json",
+        "/acme-dns-server/{@id}/acme-dns-server-accounts.json",
     )
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts_paginated",
-        "/acme-dns-server/{@id}/accounts/{@page}",
+        "/acme-dns-server/{@id}/acme-dns-server-accounts/{@page}",
     )
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts_paginated|json",
-        "/acme-dns-server/{@id}/accounts/{@page}.json",
+        "/acme-dns-server/{@id}/acme-dns-server-accounts/{@page}.json",
     )
 
     # !!!: AcmeDnsServer Accounts
@@ -610,19 +610,19 @@ def _admin_views(config):
     )
     config.add_route_7(
         "admin:coverage_assurance_events:all|json",
-        "/coverage-assurance-events/all|json",
+        "/coverage-assurance-events/all.json",
     )
     config.add_route_7(
         "admin:coverage_assurance_events:all_paginated|json",
-        "/coverage-assurance-events/all/{@page}|json",
+        "/coverage-assurance-events/all/{@page}.json",
     )
     config.add_route_7(
         "admin:coverage_assurance_events:unresolved|json",
-        "/coverage-assurance-events/unresolved|json",
+        "/coverage-assurance-events/unresolved.json",
     )
     config.add_route_7(
         "admin:coverage_assurance_events:unresolved_paginated|json",
-        "/coverage-assurance-events/unresolved/{@page}|json",
+        "/coverage-assurance-events/unresolved/{@page}.json",
     )
 
     # !!!: CoverageAssuranceEvent - Focus

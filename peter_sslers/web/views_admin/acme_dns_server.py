@@ -65,8 +65,8 @@ class View_New(Handler):
     def _new__print(self):
         if self.request.wants_json:
             return {
-                "instructions": [],
-                "form_fields": {},
+                "instructions": ["POST required"],
+                "form_fields": {"root_url": "The root url of the api"},
                 "notes": [],
                 "valid_options": {},
             }
@@ -211,13 +211,13 @@ class View_Focus(Handler):
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_dns_server:focus:mark", renderer=None)
     @view_config(route_name="admin:acme_dns_server:focus:mark|json", renderer="json")
-    def focus_mark(self):
+    def mark(self):
         dbAcmeDnsServer = self._focus()
         if self.request.method == "POST":
-            return self._focus_mark__submit(dbAcmeDnsServer)
-        return self._focus_mark__print(dbAcmeDnsServer)
+            return self._mark__submit(dbAcmeDnsServer)
+        return self._mark__print(dbAcmeDnsServer)
 
-    def _focus_mark__print(self, dbAcmeDnsServer):
+    def _mark__print(self, dbAcmeDnsServer):
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -231,7 +231,7 @@ class View_Focus_Manipulate(View_Focus):
         )
         return HTTPSeeOther(url_post_required)
 
-    def _focus_mark__submit(self, dbAcmeDnsServer):
+    def _mark__submit(self, dbAcmeDnsServer):
         action = self.request.params.get("action")
         try:
             (result, formStash) = formhandling.form_validate(
@@ -280,8 +280,6 @@ class View_Focus_Manipulate(View_Focus):
                 # `formStash.fatal_form(` will raise a `FormInvalid()`
                 formStash.fatal_form(message=exc.args[0])
 
-            self.request.api_context.dbSession.flush(objects=[dbAcmeDnsServer])
-
             # bookkeeping
             dbOperationsEvent = lib_db.logger.log__OperationsEvent(
                 self.request.api_context, event_type, event_payload_dict
@@ -323,13 +321,14 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_dns_server:focus:edit", renderer=None)
     @view_config(route_name="admin:acme_dns_server:focus:edit|json", renderer="json")
-    def focus_edit(self):
-        dbAcmeDnsServer = self._focus()
+    def edit(self):
+        dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
         if self.request.method == "POST":
-            return self._focus_edit__submit(dbAcmeDnsServer)
-        return self._focus_edit__print(dbAcmeDnsServer)
+            return self._edit__submit()
+        return self._edit__print()
 
-    def _focus_edit__print(self, dbAcmeDnsServer):
+    def _edit__print(self):
+        dbAcmeDnsServer = self.dbAcmeDnsServer
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -343,7 +342,8 @@ class View_Focus_Manipulate(View_Focus):
             self.request,
         )
 
-    def _focus_edit__submit(self, dbAcmeDnsServer):
+    def _edit__submit(self):
+        dbAcmeDnsServer = self.dbAcmeDnsServer
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_AcmeDnsServer_edit, validate_get=False
@@ -359,9 +359,15 @@ class View_Focus_Manipulate(View_Focus):
             event_payload_dict["old.root_url"] = dbAcmeDnsServer.root_url
             event_payload_dict["new.root_url"] = formStash.results["root_url"]
 
-            result = lib_db.update.update_AcmeDnsServer__root_url(
-                self.request.api_context, dbAcmeDnsServer, formStash.results["root_url"]
-            )
+            try:
+                result = lib_db.update.update_AcmeDnsServer__root_url(
+                    self.request.api_context,
+                    dbAcmeDnsServer,
+                    formStash.results["root_url"],
+                )
+            except errors.InvalidTransition as exc:
+                # `formStash.fatal_form(` will raise a `FormInvalid()`
+                formStash.fatal_form(exc.args[0])
 
             self.request.api_context.dbSession.flush(objects=[dbAcmeDnsServer])
 

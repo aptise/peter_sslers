@@ -41,6 +41,7 @@ from .logger import log__OperationsEvent
 from .logger import _log_object_event
 from .helpers import _certificate_parse_to_record
 from .update import update_AcmeAuthorization_from_payload
+from .update import update_AcmeDnsServer__set_global_default
 from .validate import validate_domain_names
 
 
@@ -585,7 +586,7 @@ def getcreate__AcmeChallengeHttp01_via_payload(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__AcmeDnsServer(ctx, root_url):
+def getcreate__AcmeDnsServer(ctx, root_url, is_global_default=None):
     """
     getcreate wrapping an acms-dns Server (AcmeDnsServer)
 
@@ -605,6 +606,7 @@ def getcreate__AcmeDnsServer(ctx, root_url):
         dbAcmeDnsServer.root_url = root_url
         dbAcmeDnsServer.timestamp_created = ctx.timestamp
         dbAcmeDnsServer.operations_event_id__created = dbOperationsEvent.id
+        dbAcmeDnsServer.is_active = True
         ctx.dbSession.add(dbAcmeDnsServer)
         ctx.dbSession.flush(objects=[dbAcmeDnsServer])
         is_created = True
@@ -621,6 +623,9 @@ def getcreate__AcmeDnsServer(ctx, root_url):
             ),
             dbAcmeDnsServer=dbAcmeDnsServer,
         )
+
+    if is_global_default:
+        _res = update_AcmeDnsServer__set_global_default(ctx, dbAcmeDnsServer)
 
     return (dbAcmeDnsServer, is_created)
 

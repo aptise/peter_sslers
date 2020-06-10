@@ -619,7 +619,7 @@ def get__AcmeDnsServer__by_root_url(ctx, root_url):
 
 def get__AcmeDnsServer__GlobalDefault(ctx):
     q = ctx.dbSession.query(model_objects.AcmeDnsServer).filter(
-        model_objects.AcmeDnsServer.is_global_default is True
+        model_objects.AcmeDnsServer.is_global_default.op("IS")(True)
     )
     return q.first()
 

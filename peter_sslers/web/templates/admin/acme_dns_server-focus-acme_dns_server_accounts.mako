@@ -21,7 +21,7 @@
 
 <%block name="page_header_nav">
     <p class="pull-right">
-        <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/accounts.json" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/acme-dns-server-accounts.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
