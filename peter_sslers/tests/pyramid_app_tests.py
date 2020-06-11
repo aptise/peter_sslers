@@ -29,6 +29,7 @@ from ..model import objects as model_objects
 from ..model import utils as model_utils
 
 # local, flags
+from .regex_library import *
 from ._utils import LETSENCRYPT_API_VALIDATES
 from ._utils import RUN_API_TESTS__PEBBLE
 from ._utils import RUN_API_TESTS__ACME_DNS_API
@@ -79,118 +80,6 @@ def tests_routes(*args):
 
 
 # =====
-
-RE_AcmeAccount_deactivate_pending_post_required = re.compile(
-    r"""http://peter-sslers\.example\.com/\.well-known/admin/acme-account/(\d+)/acme-authorizations\?status=active&result=error&error=post\+required&operation=acme-server--deactivate-pending-authorizations"""
-)
-RE_AcmeAccount_deactivate_pending_success = re.compile(
-    r"""http://peter-sslers\.example\.com/\.well-known/admin/acme-account/(\d+)/acme-authorizations\?status=active&result=success&operation=acme-server--deactivate-pending-authorizations"""
-)
-
-
-RE_AcmeAuthorization_sync_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-authorization/(\d+)/acme-server/sync"[\n\s\ ]+class="btn btn-xs btn-info "'''
-)
-RE_AcmeAuthorization_deactivate_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-authorization/(\d+)/acme-server/deactivate"[\n\s\ ]+class="btn btn-xs btn-info "'''
-)
-RE_AcmeAuthorization_trigger_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-authorization/(\d+)/acme-server/trigger"[\n\s\ ]+class="btn btn-xs btn-info "'''
-)
-
-RE_AcmeAuthorization_deactivated = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=success&operation=acme\+server\+deactivate"""
-)
-RE_AcmeAuthorization_deactivate_fail = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=error&error=ACME\+Server\+Sync\+is\+not\+allowed\+for\+this\+AcmeAuthorization&operation=acme\+server\+deactivate"""
-)
-
-RE_AcmeAuthorization_triggered = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=success&operation=acme\+server\+trigger"""
-)
-
-RE_AcmeAuthorization_synced = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=success&operation=acme\+server\+sync"""
-)
-
-
-RE_AcmeChallenge_sync_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-challenge/(\d+)/acme-server/sync"[\n\s\ ]+class="btn btn-xs btn-info"'''
-)
-RE_AcmeChallenge_trigger_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-challenge/(\d+)/acme-server/trigger"[\n\s\ ]+class="btn btn-xs btn-info "'''
-)
-RE_AcmeChallenge_triggered = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=success&operation=acme\+server\+trigger"""
-)
-RE_AcmeChallenge_synced = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=success&operation=acme\+server\+sync"""
-)
-RE_AcmeChallenge_trigger_fail = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=error&error=ACME\+Server\+Trigger\+is\+not\+allowed\+for\+this\+AcmeChallenge&operation=acme\+server\+trigger"""
-)
-
-
-RE_AcmeOrder = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)$"""
-)
-RE_AcmeOrder_retry = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=retry\+order$"""
-)
-RE_AcmeOrder_deactivated = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=mark&action=deactivate$"""
-)
-RE_AcmeOrder_invalidated = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=mark&action=invalid$"""
-)
-RE_AcmeOrder_processed = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+process$"""
-)
-RE_AcmeOrder_can_process = re.compile(
-    r'''href="/\.well-known/admin/acme-order/\d+/acme-process"[\n\s\ ]+class="btn btn-xs btn-info "'''
-)
-RE_AcmeOrder_downloaded_certificate = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+server\+download\+certificate$"""
-)
-RE_AcmeOrderless = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-orderless/(\d+)$"""
-)
-
-RE_Domain_new_AcmeDnsServerAccount = re.compile(r"""^http://peter-sslers\.example\.com/\.well-known/admin/domain/(\d+)/acme-dns-server-accounts\?result=success&operation=new$""")
-
-RE_Domain_new = re.compile(r"""^http://peter-sslers\.example\.com/\.well-known/admin/domain/(\d+)\?result=success&operation=new&is_created=1$""")
-
-RE_QueueDomain_process_success = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/queue-domains\?result=success&operation=processed&acme-order-id=(\d+)"""
-)
-
-RE_QueueCertificate = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/queue-certificate/(\d+)$"""
-)
-
-RE_server_certificate_link = re.compile(
-    r"""href="/\.well-known/admin/server-certificate/(\d+)"""
-)
-
-RE_AcmeDnsServer = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)$"""
-)
-RE_AcmeDnsServer_created = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)\?result=success&operation=new&is_created=1$"""
-)
-
-RE_AcmeDnsServer_marked_global_default = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)\?result=success&operation=mark&action=global_default$"""
-)
-RE_AcmeDnsServer_marked_active = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)\?result=success&operation=mark&action=active$"""
-)
-RE_AcmeDnsServer_marked_inactive = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)\?result=success&operation=mark&action=inactive$"""
-)
-RE_AcmeDnsServer_edited = re.compile(
-    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)\?result=success&operation=edit$"""
-)
 
 
 # =====
@@ -1928,10 +1817,7 @@ class FunctionalTests_CACertificate(AppTest):
         res2 = form.submit()
         assert res2.status_code == 303
 
-        re_expected = re.compile(
-            r"""^http://peter-sslers\.example\.com/\.well-known/admin/ca-certificate/(\d+)\?result=success&is_created=1$"""
-        )
-        matched = re_expected.match(res2.location)
+        matched = RE_CACertificate_uploaded.match(res2.location)
         assert matched
         obj_id = matched.groups()[0]
         res3 = self.testapp.get(res2.location, status=200)
@@ -2497,11 +2383,7 @@ class FunctionalTests_Domain(AppTest):
             "/.well-known/admin/domain/%s/calendar.json" % focus_id, status=200
         )
 
-    @tests_routes(
-        (
-            "admin:domain:focus:mark",
-        )
-    )
+    @tests_routes(("admin:domain:focus:mark",))
     def test_manipulate_html(self):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Domain.test_manipulate_html
@@ -2539,11 +2421,7 @@ class FunctionalTests_Domain(AppTest):
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=active")
 
-    @tests_routes(
-        (
-            "admin:domain:focus:mark|json",
-        )
-    )
+    @tests_routes(("admin:domain:focus:mark|json",))
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
 
@@ -2591,10 +2469,10 @@ class FunctionalTests_Domain(AppTest):
     @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
     @tests_routes(
         (
-         "admin:domain:new",
-         "admin:domain:focus:acme_dns_server:new",
-         "admin:domain:focus:acme_dns_server_accounts",
-         )
+            "admin:domain:new",
+            "admin:domain:focus:acme_dns_server:new",
+            "admin:domain:focus:acme_dns_server_accounts",
+        )
     )
     def test_acme_dns_server_new__html(self):
         """
@@ -2603,7 +2481,9 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get("/.well-known/admin/domain/new", status=200)
         assert "form-domain-new" in res.forms
         form = res.forms["form-domain-new"]
-        form["domain_name"] = TEST_FILES["AcmeDnsServerAccount"]["test-new-via-Domain"]["html"]["Domain"]
+        form["domain_name"] = TEST_FILES["AcmeDnsServerAccount"]["test-new-via-Domain"][
+            "html"
+        ]["Domain"]
         res2 = form.submit()
         assert res2.status_code == 303
         matched = RE_Domain_new.match(res2.location)
@@ -2613,49 +2493,66 @@ class FunctionalTests_Domain(AppTest):
         # get the record
         res = self.testapp.get("/.well-known/admin/domain/%s" % focus_id, status=200)
         assert """<th>AcmeDnsConfiguration</th>""" in res.body
-        assert ("""/.well-known/admin/domain/%s/acme-dns-server/new""" % focus_id) in res.body
+        assert (
+            """/.well-known/admin/domain/%s/acme-dns-server/new""" % focus_id
+        ) in res.body
 
-        res = self.testapp.get("/.well-known/admin/domain/%s/acme-dns-server/new" % focus_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-dns-server/new" % focus_id, status=200
+        )
         assert "form-acme_dns_server-new" in res.forms
         form = res.forms["form-acme_dns_server-new"]
         form.submit_fields()
-        _options = [int(opt[0]) for opt in form['acme_dns_server_id'].options]
+        _options = [int(opt[0]) for opt in form["acme_dns_server_id"].options]
         if 1 not in _options:
             raise ValueError("we should have a `1` in _options")
         form["acme_dns_server_id"] = "1"
         res2 = form.submit()
         assert res2.status_code == 303
         assert RE_Domain_new_AcmeDnsServerAccount.match(res2.location)
-        
+
         res = self.testapp.get("/.well-known/admin/domain/%s" % focus_id, status=200)
         assert """AcmeDnsServerAccounts - Existing""" in res.body
-        assert ("""href="/.well-known/admin/domain/%s/acme-dns-server-accounts""" % focus_id) in res.body
+        assert (
+            """href="/.well-known/admin/domain/%s/acme-dns-server-accounts""" % focus_id
+        ) in res.body
 
-        res = self.testapp.get("/.well-known/admin/domain/%s/acme-dns-server-accounts" % focus_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-dns-server-accounts" % focus_id,
+            status=200,
+        )
         assert "/.well-known/admin/acme-dns-server/" in res.body
         assert "/.well-known/admin/acme-dns-server-account/" in res.body
 
         # force a new AcmeDnsServerAccount, and it should fail
-        res = self.testapp.get("/.well-known/admin/domain/%s/acme-dns-server/new" % focus_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-dns-server/new" % focus_id, status=200
+        )
         assert "form-acme_dns_server-new" in res.forms
         form = res.forms["form-acme_dns_server-new"]
         form.submit_fields()
-        _options = [int(opt[0]) for opt in form['acme_dns_server_id'].options]
+        _options = [int(opt[0]) for opt in form["acme_dns_server_id"].options]
         if 1 not in _options:
             raise ValueError("we should have a `1` in _options")
         form["acme_dns_server_id"] = "1"
         res2 = form.submit()
         assert res2.status_code == 200
-        assert """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form.</span></div></div>""" in res2.body
-        assert """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">Existing record for this AcmeDnsServer.</span></div></div>""" in res2.body
-        
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form.</span></div></div>"""
+            in res2.body
+        )
+        assert (
+            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">Existing record for this AcmeDnsServer.</span></div></div>"""
+            in res2.body
+        )
+
     @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
     @tests_routes(
         (
-         "admin:domain:new|json",
-         "admin:domain:focus:acme_dns_server:new|json",
-         "admin:domain:focus:acme_dns_server_accounts|json",
-         )
+            "admin:domain:new|json",
+            "admin:domain:focus:acme_dns_server:new|json",
+            "admin:domain:focus:acme_dns_server_accounts|json",
+        )
     )
     def test_acme_dns_server_new__json(self):
         """
@@ -2669,40 +2566,64 @@ class FunctionalTests_Domain(AppTest):
         assert "form_errors" in res.json
         assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
-        _payload = {"domain_name": TEST_FILES["AcmeDnsServerAccount"]["test-new-via-Domain"]["json"]["Domain"], }
-        res = self.testapp.post("/.well-known/admin/domain/new.json", _payload, status=200)
+        _payload = {
+            "domain_name": TEST_FILES["AcmeDnsServerAccount"]["test-new-via-Domain"][
+                "json"
+            ]["Domain"],
+        }
+        res = self.testapp.post(
+            "/.well-known/admin/domain/new.json", _payload, status=200
+        )
         assert res.status_code == 200
         assert res.json["result"] == "success"
         assert "Domain" in res.json
         focus_id = res.json["Domain"]["id"]
 
         # get the record
-        res = self.testapp.get("/.well-known/admin/domain/%s.json" % focus_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s.json" % focus_id, status=200
+        )
         assert "Domain" in res.json
         assert res.json["Domain"]["id"] == focus_id
         # note: there is no signifier to add a new acme-dns server account
-        
-        res = self.testapp.get("/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id, status=200)
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            status=200,
+        )
         assert "instructions" in res.json
         assert "valid_options" in res.json
         assert "acme_dns_server_id" in res.json["valid_options"]
         assert 1 in res.json["valid_options"]["acme_dns_server_id"]
 
-        res = self.testapp.post("/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id, {}, status=200)
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            {},
+            status=200,
+        )
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
         assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
 
-        _payload = {"acme_dns_server_id": 1, }
-        
-        res = self.testapp.post("/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id, _payload, status=200)
+        _payload = {
+            "acme_dns_server_id": 1,
+        }
+
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            _payload,
+            status=200,
+        )
         assert res.status_code == 200
         assert res.json["result"] == "success"
         assert "AcmeDnsServer" in res.json["AcmeDnsServerAccount"]
         assert res.json["AcmeDnsServerAccount"]["AcmeDnsServer"]["id"] == 1
         acme_dns_server_account_id = res.json["AcmeDnsServerAccount"]["id"]
 
-        res = self.testapp.get("/.well-known/admin/domain/%s/acme-dns-server-accounts.json" % focus_id, status=200)
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-dns-server-accounts.json" % focus_id,
+            status=200,
+        )
         assert res.json["result"] == "success"
         assert "Domain" in res.json
         assert res.json["Domain"]["id"] == focus_id
@@ -2711,11 +2632,21 @@ class FunctionalTests_Domain(AppTest):
         assert acme_dns_server_account_id in account_ids
 
         # force a new AcmeDnsServerAccount, and it should fail
-        res = self.testapp.post("/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id, _payload, status=200)
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            _payload,
+            status=200,
+        )
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
-        assert res.json["form_errors"]["Error_Main"] == "There was an error with your form."
-        assert res.json["form_errors"]["acme_dns_server_id"] == "Existing record for this AcmeDnsServer."
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form."
+        )
+        assert (
+            res.json["form_errors"]["acme_dns_server_id"]
+            == "Existing record for this AcmeDnsServer."
+        )
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     @tests_routes(("admin:domain:focus:nginx_cache_expire",))
@@ -2726,11 +2657,7 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/domain/%s/nginx-cache-expire" % focus_id, status=303
         )
-        RE_success = re.compile(
-            r"^http://peter-sslers\.example\.com/\.well-known/admin/domain/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"
-            ""
-        )
-        assert RE_success.match(res.location)
+        assert RE_Domain_operation_nginx_expire.match(res.location)
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     @tests_routes(("admin:domain:focus:nginx_cache_expire|json",))
@@ -3644,11 +3571,7 @@ class FunctionalTests_ServerCertificate(AppTest):
             "/.well-known/admin/server-certificate/%s/nginx-cache-expire" % focus_id,
             status=303,
         )
-        RE_success = re.compile(
-            r"^http://peter-sslers\.example\.com/\.well-known/admin/server-certificate/\d+\?result=success&operation=nginx\+cache\+expire&event\.id=\d+$"
-            ""
-        )
-        assert RE_success.match(res.location)
+        assert RE_ServerCertificate_operation_nginx_expire.match(res.location)
 
     @unittest.skipUnless(RUN_NGINX_TESTS, "not running against nginx")
     @tests_routes(("admin:server_certificate:focus:nginx_cache_expire|json",))
@@ -4410,10 +4333,7 @@ class FunctionalTests_AcmeServer(AppTest):
         form["account__contact"].force_value("AcmeAccount.new.html@example.com")
         res2 = form.submit()
         assert res2.status_code == 303
-        re_expected = re.compile(
-            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-account/(\d+)\?result=success&operation=new&is_created=1$"""
-        )
-        matched = re_expected.match(res2.location)
+        matched = RE_AcmeAccount_new.match(res2.location)
         assert matched
         obj_id = matched.groups()[0]
 
@@ -4915,10 +4835,7 @@ class FunctionalTests_AcmeServer(AppTest):
         res2 = form.submit()
         assert res2.status_code == 303
 
-        re_expected = re.compile(
-            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=renew\+quick$"""
-        )
-        matched = re_expected.match(res2.location)
+        matched = RE_AcmeOrder_renew_quick.match(res2.location)
         assert matched
         obj_id__quick = matched.groups()[0]
 
@@ -4968,10 +4885,7 @@ class FunctionalTests_AcmeServer(AppTest):
         res2 = form.submit()
         assert res2.status_code == 303
 
-        re_expected = re.compile(
-            r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=renew\+custom$"""
-        )
-        matched = re_expected.match(res2.location)
+        matched = RE_AcmeOrder_renew_custom.match(res2.location)
         assert matched
         obj_id__custom = matched.groups()[0]
 
@@ -5043,15 +4957,10 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # grab the order
         # look for deactivate-authorizations
-        # note the space after `btn-info ` and no `disabled` class
         res = self.testapp.get(
             "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
         )
-        re_expected = re.compile(
-            r'''href="/\.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations"[\n\s\ ]+class="btn btn-xs btn-info "'''
-            % obj_id__2
-        )
-        assert re_expected.findall(res.text)
+        assert RE_AcmeOrder_btn_deactive_authorizations.findall(res.text)
 
         # "admin:acme_order:focus:acme_server:deactivate_authorizations",
         res = self.testapp.get(
@@ -5069,11 +4978,7 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/admin/acme-order/%s" % obj_id__2, status=200
         )
         # look for deactivate-authorizations
-        # note the `disabled` class
-        re_expected = re.compile(
-            r'''href="/\.well-known/admin/acme-order/\d+/acme-server/deactivate-authorizations"[\n\s\ ]+class="btn btn-xs btn-info disabled"'''
-        )
-        assert re_expected.findall(res.text)
+        assert RE_AcmeOrder_btn_deactive_authorizations__off.findall(res.text)
 
         # "admin:acme_order:focus:retry",
         assert "acme_order-retry" in res.forms
@@ -5909,7 +5814,7 @@ class FunctionalTests_AcmeServer(AppTest):
         # grab the order again!
         res3 = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
         assert "acme_order-download_certificate" not in res3.forms
-        server_certificate_ids = RE_server_certificate_link.findall(res3.text)
+        server_certificate_ids = RE_ServerCertificate_main.findall(res3.text)
         assert server_certificate_ids
         assert len(server_certificate_ids) >= 1
         server_certificate_id__downloaded = int(server_certificate_ids[0])

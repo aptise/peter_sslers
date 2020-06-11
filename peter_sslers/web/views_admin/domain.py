@@ -223,7 +223,6 @@ class View_Search(Handler):
 
 
 class View_New(Handler):
-
     @view_config(route_name="admin:domain:new")
     @view_config(route_name="admin:domain:new|json", renderer="json")
     def new(self):
@@ -238,18 +237,12 @@ class View_New(Handler):
                     """curl --form 'domain_name=example.com' %s/domain/new.json"""
                     % self.request.admin_url,
                 ],
-                "form_fields": {
-                    "domain_name": "domain name",
-                },
+                "form_fields": {"domain_name": "domain name",},
                 "notes": [],
                 "valid_options": {},
             }
         # quick setup, we need a bunch of options for dropdowns...
-        return render_to_response(
-            "/admin/domain-new.mako",
-            {},
-            self.request,
-        )
+        return render_to_response("/admin/domain-new.mako", {}, self.request,)
 
     def _new__submit(self):
         try:
@@ -276,7 +269,10 @@ class View_New(Handler):
             domain_name = domain_names[0]
 
             # todo - check the queue
-            (dbDomain, _is_created,) = lib_db.getcreate.getcreate__Domain__by_domainName(
+            (
+                dbDomain,
+                _is_created,
+            ) = lib_db.getcreate.getcreate__Domain__by_domainName(
                 self.request.api_context, domain_name=domain_name
             )
 
@@ -299,7 +295,6 @@ class View_New(Handler):
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._new__print)
-
 
 
 class View_Focus(Handler):

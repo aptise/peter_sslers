@@ -251,13 +251,14 @@ TEST_FILES = {
             "allowfrom": "allowfrom",
         },
         "test-new-via-Domain": {
-            "html": {"AcmeDnsServer.id": 1,
-                     "Domain": 'test-new-via-domain-html.example.com'
-                      },
-            "json": {"AcmeDnsServer.id": 1,
-                     "Domain": 'test-new-via-domain-json.example.com'
-                      },
-        
+            "html": {
+                "AcmeDnsServer.id": 1,
+                "Domain": "test-new-via-domain-html.example.com",
+            },
+            "json": {
+                "AcmeDnsServer.id": 1,
+                "Domain": "test-new-via-domain-json.example.com",
+            },
         },
     },
     "AcmeOrderless": {
@@ -913,7 +914,10 @@ class AppTest(AppTestCore):
                     self.ctx, root_url=TEST_FILES["AcmeDnsServer"]["2"]["root_url"],
                 )
 
-                (_dbAcmeDnsServerAccount_domain, _x) = db.getcreate.getcreate__Domain__by_domainName(
+                (
+                    _dbAcmeDnsServerAccount_domain,
+                    _x,
+                ) = db.getcreate.getcreate__Domain__by_domainName(
                     self.ctx,
                     domain_name=TEST_FILES["AcmeDnsServerAccount"]["1"]["domain"],
                 )

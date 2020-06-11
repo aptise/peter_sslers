@@ -60,9 +60,16 @@ class View_List(Handler):
         renderer="/admin/coverage_assurance_events.mako",
     )
     @view_config(route_name="admin:coverage_assurance_events:all|json", renderer="json")
-    @view_config(route_name="admin:coverage_assurance_events:all_paginated|json", renderer="json")
-    @view_config(route_name="admin:coverage_assurance_events:unresolved|json", renderer="json")
-    @view_config(route_name="admin:coverage_assurance_events:unresolved_paginated|json", renderer="json")
+    @view_config(
+        route_name="admin:coverage_assurance_events:all_paginated|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:coverage_assurance_events:unresolved|json", renderer="json"
+    )
+    @view_config(
+        route_name="admin:coverage_assurance_events:unresolved_paginated|json",
+        renderer="json",
+    )
     def list(self):
         sidenav_option = None
         unresolved_only = None
