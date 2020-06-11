@@ -613,6 +613,21 @@ class AppTest(AppTestCore):
                         ),
                     )
 
+                    if pkey_id == "5":
+                        # make a CoverageAssuranceEvent
+                        _event_type_id = model_utils.OperationsEventType.from_string(
+                            "PrivateKey__revoke"
+                        )
+                        _event_payload_dict = utils.new_event_payload_dict()
+                        _event_payload_dict["private_key.id"] = _dbPrivateKey_alt.id
+                        _event_payload_dict["action"] = "compromised"
+                        _dbOperationsEvent = db.logger.log__OperationsEvent(
+                            self.ctx, _event_type_id, _event_payload_dict
+                        )
+                        _event_status = db.update.update_PrivateKey__set_compromised(
+                            self.ctx, _dbPrivateKey_alt, _dbOperationsEvent
+                        )
+
                 # note: pre-populate ServerCertificate 1-5
                 # this should create `/server-certificate/1`
                 #

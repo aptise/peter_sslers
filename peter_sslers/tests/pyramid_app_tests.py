@@ -1163,11 +1163,35 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         _edit_url(alt_id, url_og)
 
     @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
-    @tests_routes(
-        ("admin:acme_dns_server:focus:check", "admin:acme_dns_server:focus:check|json",)
-    )
-    def test_against_acme_dns(self):
-        raise ValueError("TODO")
+    @tests_routes(("admin:acme_dns_server:focus:check",))
+    def test_against_acme_dns__html(self):
+        (focus_item, focus_id) = self._get_one()
+        res = self.testapp.get(
+            "/.well-known/admin/acme-dns-server/%s" % focus_id, status=200
+        )
+        assert "form-check" in res.forms
+        form = res.forms["form-check"]
+        res = form.submit()
+        assert res.status_code == 303
+        assert RE_AcmeDnsServer_checked.match(res.location)
+
+    @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
+    @tests_routes(("admin:acme_dns_server:focus:check|json",))
+    def test_against_acme_dns__json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-dns-server/%s/check.json" % focus_id, status=200
+        )
+        assert "instructions" in res.json
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-dns-server/%s/check.json" % focus_id,
+            {},
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["health"] == True
 
     @tests_routes(("admin:acme_dns_server:new",))
     def test_new_html(self):
@@ -2164,7 +2188,34 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/coverage-assurance-event/%s" % focus_id, status=200
         )
-        raise ValueError("TODO: mark")
+        _form_names = [i for i in res.forms.keys() if str(i).startswith("form-mark-")]
+        # 4 possible options, but 3 should appear
+        assert len(_form_names) == 3
+        _option_1 = None
+        form = None
+        if "form-mark-abandoned" in _form_names:
+            form = res.forms["form-mark-abandoned"]
+            _option_1 = "abandoned"
+        else:
+            form = res.forms["form-mark-unresolved"]
+            _option_1 = "unresolved"
+        res2 = form.submit("resolution")  # the value is on the button "resolution"
+        assert res2.status_code == 303
+        assert RE_CoverageAssuranceEvent_mark.match(res2.location)
+
+        # we should no longer have abandoned, and
+        res_alt = self.testapp.get(
+            "/.well-known/admin/coverage-assurance-event/%s" % focus_id, status=200
+        )
+        _form_names_alt = [
+            i for i in res.forms.keys() if str(i).startswith("form-mark-")
+        ]
+        assert len(_form_names_alt) == 3
+
+        # now submit the first form again
+        res2 = form.submit("resolution")  # the value is on the button "resolution"
+        assert res2.status_code == 303
+        assert RE_CoverageAssuranceEvent_mark_nochange.match(res2.location)
 
     @tests_routes(
         (
@@ -2181,7 +2232,60 @@ class FunctionalTests_CoverageAssuranceEvent(AppTest):
         assert "CoverageAssuranceEvent" in res.json
         assert res.json["CoverageAssuranceEvent"]["id"] == focus_id
 
-        raise ValueError("TODO: mark")
+        res2 = self.testapp.get(
+            "/.well-known/admin/coverage-assurance-event/%s/mark.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res2.json
+        assert "valid_options" in res2.json
+        assert "action" in res2.json["valid_options"]
+        assert "resolution" in res2.json["valid_options"]
+
+        # toggle between these 2
+        resolution = None
+        if (
+            res.json["CoverageAssuranceEvent"]["coverage_assurance_resolution"]
+            == "abandoned"
+        ):
+            resolution = "unresolved"
+        else:
+            resolution = "abandoned"
+
+        res3 = self.testapp.post(
+            "/.well-known/admin/coverage-assurance-event/%s/mark.json" % focus_id,
+            {},
+            status=200,
+        )
+        assert res3.json["result"] == "error"
+        assert "form_errors" in res3.json
+        assert res3.json["form_errors"]["Error_Main"] == "Nothing submitted."
+
+        _payload = {"action": "resolution", "resolution": resolution}
+        res4 = self.testapp.post(
+            "/.well-known/admin/coverage-assurance-event/%s/mark.json" % focus_id,
+            _payload,
+            status=200,
+        )
+        assert res4.json["result"] == "success"
+        assert "CoverageAssuranceEvent" in res4.json
+        assert res4.json["CoverageAssuranceEvent"]["id"] == focus_id
+        assert (
+            res4.json["CoverageAssuranceEvent"]["coverage_assurance_resolution"]
+            == resolution
+        )
+
+        # try it again
+        res5 = self.testapp.post(
+            "/.well-known/admin/coverage-assurance-event/%s/mark.json" % focus_id,
+            _payload,
+            status=200,
+        )
+        assert res5.json["result"] == "error"
+        assert "form_errors" in res5.json
+        assert (
+            res5.json["form_errors"]["Error_Main"]
+            == "There was an error with your form. No Change"
+        )
 
 
 class FunctionalTests_Domain(AppTest):
@@ -2624,7 +2728,6 @@ class FunctionalTests_Domain(AppTest):
             "/.well-known/admin/domain/%s/acme-dns-server-accounts.json" % focus_id,
             status=200,
         )
-        assert res.json["result"] == "success"
         assert "Domain" in res.json
         assert res.json["Domain"]["id"] == focus_id
         assert "AcmeDnsServerAccounts" in res.json

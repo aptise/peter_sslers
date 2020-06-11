@@ -12,6 +12,7 @@ from dateutil import parser as dateutil_parser
 # localapp
 from ...model import utils as model_utils
 from ...lib import errors
+from ... import lib
 from .. import utils
 from .get import get__AcmeAccount__GlobalDefault
 from .get import get__AcmeAccountProvider__default
@@ -321,11 +322,17 @@ def update_PrivateKey__unset_active(ctx, dbPrivateKey):
     return event_status
 
 
-def update_PrivateKey__set_compromised(ctx, dbPrivateKey):
+def update_PrivateKey__set_compromised(ctx, dbPrivateKey, dbOperationsEvent):
     if dbPrivateKey.is_compromised:
         raise errors.InvalidTransition("Already compromised")
     dbPrivateKey.is_active = False
     dbPrivateKey.is_compromised = True
+    ctx.dbSession.flush(objects=[dbPrivateKey])
+
+    lib.events.PrivateKey_compromised(
+        ctx, dbPrivateKey, dbOperationsEvent=dbOperationsEvent,
+    )
+
     event_status = "PrivateKey__mark__compromised"
     return event_status
 

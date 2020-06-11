@@ -132,9 +132,15 @@ class View_Focus(Handler):
         route_name="admin:coverage_assurance_event:focus",
         renderer="/admin/coverage_assurance_event-focus.mako",
     )
-    @view_config(route_name="admin:coverage_assurance_event:focus|json",)
+    @view_config(
+        route_name="admin:coverage_assurance_event:focus|json", renderer="json"
+    )
     def focus(self):
         dbCoverageAssuranceEvent = self._focus()
+        if self.request.wants_json:
+            return {
+                "CoverageAssuranceEvent": dbCoverageAssuranceEvent.as_json,
+            }
         return {
             "project": "peter_sslers",
             "CoverageAssuranceEvent": dbCoverageAssuranceEvent,
@@ -144,7 +150,9 @@ class View_Focus(Handler):
         route_name="admin:coverage_assurance_event:focus:children",
         renderer="/admin/coverage_assurance_event-focus-children.mako",
     )
-    @view_config(route_name="admin:coverage_assurance_event:focus:children|json",)
+    @view_config(
+        route_name="admin:coverage_assurance_event:focus:children|json", renderer="json"
+    )
     def children(self):
         dbCoverageAssuranceEvent = self._focus()
         items_count = lib_db.get.get__CoverageAssuranceEvent__by_parentId__count(
@@ -161,7 +169,7 @@ class View_Focus(Handler):
         )
         if self.request.wants_json:
             return {
-                "CoverageAssuranceEvent": dbCoverageAssuranceEvent,
+                "CoverageAssuranceEvent": dbCoverageAssuranceEvent.as_json,
                 "pagination": json_pagination(items_count, pager),
                 "CoverageAssuranceEvents_Children_count": items_count,
                 "CoverageAssuranceEvents_Children": items_paged,

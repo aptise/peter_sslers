@@ -87,6 +87,9 @@ RE_AcmeDnsServer_marked_inactive = re.compile(
 RE_AcmeDnsServer_edited = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)\?result=success&operation=edit$"""
 )
+RE_AcmeDnsServer_checked = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)\?result=success&operation=check$"""
+)
 
 
 # note: AcmeOrder
@@ -146,6 +149,13 @@ RE_CACertificate_uploaded = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/ca-certificate/(\d+)\?result=success&is_created=1$"""
 )
 
+RE_CoverageAssuranceEvent_mark = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/coverage-assurance-event/(\d+)\?result=success&operation=mark&action=resolution$"""
+)
+
+RE_CoverageAssuranceEvent_mark_nochange = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/coverage-assurance-event/(\d+)\?result=error&error=Error_Main--There\+was\+an\+error\+with\+your\+form\.\+No\+Change&operation=mark&action=resolution$"""
+)
 
 # note: Domain
 

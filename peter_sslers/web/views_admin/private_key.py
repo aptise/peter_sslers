@@ -32,7 +32,6 @@ from ... import lib as lib_core
 from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import errors
-from ...lib import events
 from ...lib import utils
 from ...model import utils as model_utils
 
@@ -277,14 +276,23 @@ class View_Focus_Manipulate(View_Focus):
                 )
 
             action = formStash.results["action"]
-            event_type = model_utils.OperationsEventType.from_string("PrivateKey__mark")
+            event_type_id = model_utils.OperationsEventType.from_string(
+                "PrivateKey__mark"
+            )
+            if action == "compromised":
+                event_type_id = model_utils.OperationsEventType.from_string(
+                    "PrivateKey__revoke"
+                )
             event_payload_dict = utils.new_event_payload_dict()
             event_payload_dict["private_key.id"] = dbPrivateKey.id
             event_payload_dict["action"] = formStash.results["action"]
 
-            marked_comprimised = False
-            event_status = None
+            # bookkeeping
+            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
+                self.request.api_context, event_type_id, event_payload_dict
+            )
 
+            event_status = None
             try:
 
                 if action == "active":
@@ -299,12 +307,8 @@ class View_Focus_Manipulate(View_Focus):
 
                 elif action == "compromised":
                     event_status = lib_db.update.update_PrivateKey__set_compromised(
-                        self.request.api_context, dbPrivateKey
+                        self.request.api_context, dbPrivateKey, dbOperationsEvent
                     )
-                    event_type = model_utils.OperationsEventType.from_string(
-                        "PrivateKey__revoke"
-                    )
-                    marked_comprimised = True
 
                 else:
                     raise errors.InvalidTransition("invalid option")
@@ -315,10 +319,6 @@ class View_Focus_Manipulate(View_Focus):
 
             self.request.api_context.dbSession.flush(objects=[dbPrivateKey])
 
-            # bookkeeping
-            dbOperationsEvent = lib_db.logger.log__OperationsEvent(
-                self.request.api_context, event_type, event_payload_dict
-            )
             lib_db.logger._log_object_event(
                 self.request.api_context,
                 dbOperationsEvent=dbOperationsEvent,
@@ -327,12 +327,6 @@ class View_Focus_Manipulate(View_Focus):
                 ),
                 dbPrivateKey=dbPrivateKey,
             )
-            if marked_comprimised:
-                events.PrivateKey_compromised(
-                    self.request.api_context,
-                    dbPrivateKey,
-                    dbOperationsEvent=dbOperationsEvent,
-                )
 
             if self.request.wants_json:
                 return {"result": "success", "PrivateKey": dbPrivateKey.as_json}

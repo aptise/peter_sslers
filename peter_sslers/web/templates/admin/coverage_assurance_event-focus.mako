@@ -20,6 +20,8 @@
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
+
+            ${admin_partials.handle_querystring_result()}
             
             <table class="table">
                 <thead>
@@ -59,6 +61,7 @@
                                     <form
                                         method="POST"
                                         action="${admin_prefix}/coverage-assurance-event/${CoverageAssuranceEvent.id}/mark"
+                                        id="form-mark-${_option_text}"
                                     >
                                         <input type="hidden" name="action" value="resolution"/>
                                         <button class="btn btn-xs btn-danger" type="submit" name="resolution" value="${_option_text}">
