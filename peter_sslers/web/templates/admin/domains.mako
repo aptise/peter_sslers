@@ -19,7 +19,15 @@
 
 <%block name="page_header_nav">
     ${admin_partials.domains_section_nav()}
+    <p class="pull-right">
+        <a  href="${admin_prefix}/domain/new"
+            class="btn btn-xs btn-primary"
+        >
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+        New</a>
+    </p>
 </%block>
+
 
 
 <%block name="content_main">

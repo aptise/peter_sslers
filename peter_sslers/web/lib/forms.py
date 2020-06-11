@@ -337,6 +337,10 @@ class Form_CoverageAssuranceEvent_mark(_Form_Schema_Base):
     )
 
 
+class Form_Domain_new(_Form_Schema_Base):
+    domain_name = UnicodeString(not_empty=True)
+
+
 class Form_Domain_mark(_Form_Schema_Base):
     action = OneOf(("active", "inactive"), not_empty=True)
 

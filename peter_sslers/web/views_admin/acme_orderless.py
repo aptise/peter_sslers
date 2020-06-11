@@ -153,6 +153,7 @@ class View_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            # this function checks the domain names match a simple regex
             domain_names = utils.domains_from_string(formStash.results["domain_names"])
             if not domain_names:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -413,6 +414,8 @@ class View_Focus_Manipulate(View_Focus):
             _post = self.request.POST
             if not formStash.results["domain"]:
                 formStash.fatal_field(field="domain", message="A Domain is required")
+
+            # this function checks the domain names match a simple regex
             domain_names = utils.domains_from_string(formStash.results["domain"])
             if len(domain_names) != 1:
                 formStash.fatal_field(

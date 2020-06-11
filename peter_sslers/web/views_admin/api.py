@@ -158,6 +158,7 @@ class ViewAdminApi(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            # this function checks the domain names match a simple regex
             domain_names = utils.domains_from_string(formStash.results["domain_names"])
             if not domain_names:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -196,6 +197,7 @@ class ViewAdminApi(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            # this function checks the domain names match a simple regex
             domain_names = utils.domains_from_string(formStash.results["domain_names"])
             if not domain_names:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -282,6 +284,7 @@ class ViewAdminApi(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
+            # this function checks the domain names match a simple regex
             domain_names = utils.domains_from_string(formStash.results["domain_names"])
             if not domain_names:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`

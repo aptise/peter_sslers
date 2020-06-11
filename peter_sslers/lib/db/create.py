@@ -531,6 +531,7 @@ def create__CertificateRequest(
         _csr_domain_names = cert_utils.parse_csr_domains(
             csr_path=_tmpfile.name, submitted_domain_names=domain_names
         )
+        # this function checks the domain names match a simple regex
         csr_domain_names = utils.domains_from_list(_csr_domain_names)
         if len(csr_domain_names) != len(_csr_domain_names):
             raise ValueError(

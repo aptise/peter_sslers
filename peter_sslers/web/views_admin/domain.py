@@ -16,6 +16,7 @@ from .. import lib
 from ..lib import formhandling
 from ..lib import text as lib_text
 from ..lib.forms import Form_Domain_mark
+from ..lib.forms import Form_Domain_new
 from ..lib.forms import Form_Domain_search
 from ..lib.forms import Form_Domain_AcmeDnsServer_new
 from ..lib.handler import Handler, items_per_page
@@ -219,6 +220,86 @@ class View_Search(Handler):
             if self.request.wants_json:
                 return {"result": "error", "form_errors": formStash.errors}
             return formhandling.form_reprint(self.request, self._search__print)
+
+
+class View_New(Handler):
+
+    @view_config(route_name="admin:domain:new")
+    @view_config(route_name="admin:domain:new|json", renderer="json")
+    def new(self):
+        if self.request.method == "POST":
+            return self._new__submit()
+        return self._new__print()
+
+    def _new__print(self):
+        if self.request.wants_json:
+            return {
+                "instructions": [
+                    """curl --form 'domain_name=example.com' %s/domain/new.json"""
+                    % self.request.admin_url,
+                ],
+                "form_fields": {
+                    "domain_name": "domain name",
+                },
+                "notes": [],
+                "valid_options": {},
+            }
+        # quick setup, we need a bunch of options for dropdowns...
+        return render_to_response(
+            "/admin/domain-new.mako",
+            {},
+            self.request,
+        )
+
+    def _new__submit(self):
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_Domain_new, validate_get=False
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            try:
+                # this function checks the domain names match a simple regex
+                domain_names = utils.domains_from_string(
+                    formStash.results["domain_name"]
+                )
+            except ValueError as exc:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names", message="invalid domain names detected"
+                )
+            if len(domain_names) != 1:
+                formStash.fatal_field(
+                    field="domain_names", message="detected more than one domain name"
+                )
+            domain_name = domain_names[0]
+
+            # todo - check the queue
+            (dbDomain, _is_created,) = lib_db.getcreate.getcreate__Domain__by_domainName(
+                self.request.api_context, domain_name=domain_name
+            )
+
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "Domain": dbDomain.as_json,
+                    "is_created": True if _is_created else False,
+                }
+            return HTTPSeeOther(
+                "%s/domain/%s?result=success&operation=new%s"
+                % (
+                    self.request.admin_url,
+                    dbDomain.id,
+                    ("&is_created=1" if _is_created else "&is_existing=1"),
+                )
+            )
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._new__print)
+
 
 
 class View_Focus(Handler):
@@ -783,7 +864,6 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                 )
 
             # wonderful! now we need to "register" against acme-dns
-
             try:
                 import pyacmedns
 
@@ -811,7 +891,6 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
 
             url_success = "%s/acme-dns-server-accounts?result=success&operation=new" % (
                 self._focus_url,
-                dbAcmeDnsServerAccount.acme_dns_server_id,
             )
             return HTTPSeeOther(url_success)
 

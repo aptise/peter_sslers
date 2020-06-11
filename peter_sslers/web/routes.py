@@ -671,6 +671,8 @@ def _admin_views(config):
     )
     config.add_route_7("admin:domains:search", "/domains/search")
     config.add_route_7("admin:domains:search|json", "/domains/search.json")
+    config.add_route_7("admin:domain:new", "/domain/new")
+    config.add_route_7("admin:domain:new|json", "/domain/new.json")
 
     # !!!: Domain Focus
     # json first otherwise we think it's the extension

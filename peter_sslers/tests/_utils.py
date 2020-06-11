@@ -233,61 +233,6 @@ def under_redis(_function):
 # !!!: TEST_FILES
 
 
-def under_acme_dns(_function):
-    """
-    decorator to spin up an external acme_dns
-
-    note some fun stuff:
-
-    1) analyze `proc.stderr`
-    2) this starts with sudo, so
-
-    """
-
-    @wraps(_function)
-    def _wrapper(*args, **kwargs):
-        log.info("++ spinning up `acme-dns`")
-        res = None  # scoping
-        with psutil.Popen(
-            [ACME_DNS_BINARY, "-c", ACME_DNS_CONFIG],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            # preexec_fn=os.setpgrp,  # testing with sudo
-        ) as proc:
-            # ensure the `pebble` server is running
-            ready_http = False
-            ready_dns = False
-            while not ready_http and not ready_dns:
-                log.info("waiting for `acme-dns` to be ready")
-                # notice this is `stderr`
-                for line in iter(proc.stdout.readline, b""):
-                    print("stdout", line)
-                for line in iter(proc.stderr.readline, b""):
-                    print("stderr", line)
-                    if b"Could not open database" in line:
-                        raise ValueError(line)
-                    if b"FATA[" in line:
-                        raise ValueError(line)
-                    if b"permission denied" in line:
-                        raise ValueError(line)
-                    if b"Listening HTTP" in line:
-                        ready_http = True
-                    if b"Listening DNS" in line:
-                        ready_dns = True
-                time.sleep(1)
-            try:
-                res = _function(*args, **kwargs)
-            finally:
-                # explicitly terminate, otherwise it won't exit
-                # in a `finally` to ensure we terminate on exceptions
-                log.info("xx terminating `acme-dns`")
-                proc.terminate()
-        return res
-
-    return _wrapper
-
-
 TEST_FILES = {
     "AcmeDnsServer": {
         "1": {"root_url": ACME_DNS_API,},
@@ -304,6 +249,15 @@ TEST_FILES = {
             "fulldomain": "fulldomain",
             "subdomain": "subdomain",
             "allowfrom": "allowfrom",
+        },
+        "test-new-via-Domain": {
+            "html": {"AcmeDnsServer.id": 1,
+                     "Domain": 'test-new-via-domain-html.example.com'
+                      },
+            "json": {"AcmeDnsServer.id": 1,
+                     "Domain": 'test-new-via-domain-json.example.com'
+                      },
+        
         },
     },
     "AcmeOrderless": {

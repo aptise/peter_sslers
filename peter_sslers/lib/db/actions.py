@@ -462,6 +462,7 @@ def api_domains__disable(ctx, domain_names):
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: (required) a list of domain names
     """
+    # this function checks the domain names match a simple regex
     domain_names = utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
 
@@ -584,6 +585,7 @@ def api_domains__certificate_if_needed(
     if not dbPrivateKey:
         raise errors.DisplayableError("missing PrivateKey")
 
+    # this function checks the domain names match a simple regex
     domain_names = utils.domains_from_list(domain_names)
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event

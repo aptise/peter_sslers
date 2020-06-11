@@ -40,6 +40,8 @@ def domains_from_list(domain_names):
     Turns a list of strings into a standardized list of domain names.
 
     Will raise Exceptions if non-conforming elements are encountered.
+    
+    This invokes `validate_domains`, which uses a simple regex to validate each domain in the list.
 
     :param domain_names: (required) An iterable list of strings
     """
@@ -54,6 +56,8 @@ def domains_from_list(domain_names):
 def domains_from_string(text):
     """
     :param text: (required) Turns a comma-separated-list of domain names into a list
+
+    This invokes `domains_from_list` which invokes `validate_domains`, which uses a simple regex to validate each domain in the list.
     """
     # generate list
     domain_names = text.split(",")

@@ -930,6 +930,7 @@ class View_New(Handler):
                 raise formhandling.FormInvalid()
 
             try:
+                # this function checks the domain names match a simple regex
                 domain_names = utils.domains_from_string(
                     formStash.results["domain_names"]
                 )
