@@ -2939,8 +2939,12 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         )
 
     @property
+    def cert_chain_pem(self):
+        return self.certificate_upchain.cert_pem
+
+    @property
     def cert_fullchain_pem(self):
-        return "\n".join((self.cert_pem, self.certificate_upchain.cert_pem))
+        return "\n".join((self.cert_pem, self.cert_chain_pem))
 
     @property
     def expiring_days(self):
@@ -2975,11 +2979,11 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             "certificate": {"id": str(self.id), "pem": self.cert_pem},
             "chain": {
                 "id": str(self.certificate_upchain.id),
-                "pem": self.certificate_upchain.cert_pem,
+                "pem": self.cert_chain_pem,
             },
             "fullchain": {
                 "id": "%s,%s" % (self.id, self.certificate_upchain.id),
-                "pem": "\n".join([self.cert_fullchain_pem]),
+                "pem": self.cert_fullchain_pem,
             },
         }
 

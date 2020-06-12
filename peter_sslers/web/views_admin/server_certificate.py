@@ -7,6 +7,9 @@ from pyramid.httpexceptions import HTTPNotFound
 
 # stdlib
 import datetime
+import tempfile
+import time
+import zipfile
 
 # pypi
 import six
@@ -374,12 +377,12 @@ class View_Focus(Handler):
         dbServerCertificate = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
-            return dbServerCertificate.certificate_upchain.cert_pem
+            return dbServerCertificate.cert_chain_pem
         elif self.request.matchdict["format"] == "pem.txt":
-            return dbServerCertificate.certificate_upchain.cert_pem
+            return dbServerCertificate.cert_chain_pem
         elif self.request.matchdict["format"] in ("cer", "crt", "der"):
             as_der = cert_utils.convert_pem_to_der(
-                pem_data=dbServerCertificate.certificate_upchain.cert_pem
+                pem_data=dbServerCertificate.cert_chain_pem
             )
             response = Response()
             if self.request.matchdict["format"] in ("crt", "der"):
@@ -460,6 +463,53 @@ class View_Focus(Handler):
         else:
             rval = dbServerCertificate.config_payload
         return rval
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:server_certificate:focus:config|zip")
+    def focus_config_zip(self):
+        """
+        generates a certbot style configuration
+        note: there is no renderer, because we generate a `Response`
+        """
+        dbServerCertificate = self._focus()
+        try:
+            now = time.localtime(time.time())[:6]
+            tmpfile = tempfile.SpooledTemporaryFile()
+            with zipfile.ZipFile(tmpfile, "w") as archive:
+                # `cert1.pem`
+                info = zipfile.ZipInfo("cert%s.pem" % dbServerCertificate.id)
+                info.date_time = now
+                info.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(info, dbServerCertificate.cert_pem)
+                # `chain1.pem`
+                info = zipfile.ZipInfo("chain%s.pem" % dbServerCertificate.id)
+                info.date_time = now
+                info.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(info, dbServerCertificate.cert_chain_pem)
+                # `fullchain1.pem`
+                info = zipfile.ZipInfo("fullchain%s.pem" % dbServerCertificate.id)
+                info.date_time = now
+                info.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(info, dbServerCertificate.cert_fullchain_pem)
+                # `privkey1.pem`
+                info = zipfile.ZipInfo("privkey%s.pem" % dbServerCertificate.id)
+                info.date_time = now
+                info.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(info, dbServerCertificate.private_key.key_pem)
+            tmpfile.seek(0)
+            response = Response(
+                content_type="application/zip", body_file=tmpfile, status=200
+            )
+            response.headers["Content-Disposition"] = (
+                "attachment; filename= cert%s.zip" % dbServerCertificate.id
+            )
+            return response
+
+        except Exception as exc:
+            return HTTPSeeOther(
+                "%s?result=error&error=could+not+generate+zipfile" % self._focus_url
+            )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

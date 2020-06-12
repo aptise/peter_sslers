@@ -1080,8 +1080,8 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
         private_key_strategy__final = None
         # if there is a new PrivateKeyNew,
-        # stash it into `dbPrivateKeyNew` and reassign in an `except` block
-        dbPrivateKeyNew = None
+        # stash it into `dbPrivateKey_new` and reassign in an `except` block
+        dbPrivateKey_new = None
         # outer `try/except` catches `ReassignedPrivateKey`
         try:
             # inner `try/except` catches `AcmeAccountNeedsPrivateKey`
@@ -1094,7 +1094,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                     ):
                         private_key_strategy__final = "deferred-generate"
                         # NOTE: deferred-generate ; single_certificate
-                        dbPrivateKeyNew = lib.db.create.create__PrivateKey(
+                        dbPrivateKey_new = lib.db.create.create__PrivateKey(
                             ctx,
                             # bits=4096,
                             acme_account_id__owner=dbAcmeOrder.acme_account.id,

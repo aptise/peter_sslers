@@ -424,6 +424,15 @@
                             <em>designed for downstream http config</em>
                         </td>
                     </tr>
+                    <tr>
+                        <th>zip payload</th>
+                        <td>
+                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/config.zip">
+                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                config.zip</a><br/>
+                            <em>designed for downstream http config</em>
+                        </td>
+                    </tr>
                     % if request.registry.settings["app_settings"]['enable_nginx']:
                         <tr>
                             <th>Nginx cache</th>

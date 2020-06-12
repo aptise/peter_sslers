@@ -24,6 +24,8 @@ certificate renewal
 
 Remove "Foo"	
 remove todo
+
+- track dns-01 challenges
 	
 	
 	

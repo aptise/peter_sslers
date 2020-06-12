@@ -441,7 +441,38 @@ TEST_FILES = {
                 "pkey": "selfsigned_5-server.key",
             },
         },
-        "LetsEncrypt": {},
+        "Pebble": {
+            "1": {
+                "domain": "a.example.com",
+                "cert": "cert1.pem",
+                "chain": "chain1.pem",
+                "pkey": "privkey1.pem",
+            },
+            "2": {
+                "domain": "b.example.com",
+                "cert": "cert2.pem",
+                "chain": "chain2.pem",
+                "pkey": "privkey2.pem",
+            },
+            "3": {
+                "domain": "c.example.com",
+                "cert": "cert3.pem",
+                "chain": "chain3.pem",
+                "pkey": "privkey3.pem",
+            },
+            "4": {
+                "domain": "d.example.com",
+                "cert": "cert4.pem",
+                "chain": "chain4.pem",
+                "pkey": "privkey4.pem",
+            },
+            "5": {
+                "domain": "e.example.com",
+                "cert": "cert5.pem",
+                "chain": "chain5.pem",
+                "pkey": "privkey5.pem",
+            },
+        },
     },
 }
 
@@ -711,6 +742,66 @@ class AppTest(AppTestCore):
                         _dbServerCertificate_2 = _dbServerCertificate
                     elif _id == "3":
                         _dbServerCertificate_3 = _dbServerCertificate
+
+                # note: pre-populate ServerCertificate 6-10
+                for _id in TEST_FILES["ServerCertificates"]["Pebble"].keys():
+                    # note: pre-populate PrivateKey
+                    # this should create `/private-key/1`
+                    _pkey_filename = (
+                        "pebble-certs/%s"
+                        % TEST_FILES["ServerCertificates"]["Pebble"][_id]["pkey"]
+                    )
+                    _pkey_pem = self._filedata_testfile(_pkey_filename)
+                    (
+                        _dbPrivateKey,
+                        _is_created,
+                    ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
+                        self.ctx,
+                        _pkey_pem,
+                        private_key_source_id=model_utils.PrivateKeySource.from_string(
+                            "imported"
+                        ),
+                        private_key_type_id=model_utils.PrivateKeyType.from_string(
+                            "standard"
+                        ),
+                    )
+                    _chain_filename = (
+                        "pebble-certs/%s"
+                        % TEST_FILES["ServerCertificates"]["Pebble"][_id]["chain"]
+                    )
+                    _chain_pem = self._filedata_testfile(_chain_filename)
+                    (
+                        _dbChain,
+                        _is_created,
+                    ) = db.getcreate.getcreate__CACertificate__by_pem_text(
+                        self.ctx, _chain_pem, ca_chain_name=_chain_filename
+                    )
+
+                    _cert_filename = (
+                        "pebble-certs/%s"
+                        % TEST_FILES["ServerCertificates"]["Pebble"][_id]["cert"]
+                    )
+                    _cert_domains_expected = [
+                        TEST_FILES["ServerCertificates"]["Pebble"][_id]["domain"],
+                    ]
+                    (
+                        _dbUniqueFQDNSet,
+                        _is_created,
+                    ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+                        self.ctx, _cert_domains_expected,
+                    )
+                    _cert_pem = self._filedata_testfile(_cert_filename)
+                    (
+                        _dbServerCertificate,
+                        _is_created,
+                    ) = db.getcreate.getcreate__ServerCertificate(
+                        self.ctx,
+                        _cert_pem,
+                        cert_domains_expected=_cert_domains_expected,
+                        dbCACertificate=_dbChain,
+                        dbUniqueFQDNSet=_dbUniqueFQDNSet,
+                        dbPrivateKey=_dbPrivateKey,
+                    )
 
                 # note: pre-populate Domain
                 # ensure we have domains?

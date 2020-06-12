@@ -166,7 +166,7 @@ class View_Focus(Handler):
             return HTTPSeeOther(url_success)
         except Exception as exc:
             if self.request.wants_json:
-                return {"result": "success", "health": False}
+                return {"result": "error", "health": None}
             url_failure = "%s?result=error&operation=check" % (self._focus_url,)
             return HTTPSeeOther(url_failure)
 

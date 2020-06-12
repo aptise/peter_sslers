@@ -1051,6 +1051,10 @@ def _admin_views(config):
         "/server-certificate/{@id}/config.json",
     )
     config.add_route_7(
+        "admin:server_certificate:focus:config|zip",
+        "/server-certificate/{@id}/config.zip",
+    )
+    config.add_route_7(
         "admin:server_certificate:focus:parse|json",
         "/server-certificate/{@id}/parse.json",
     )

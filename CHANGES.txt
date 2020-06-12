@@ -46,6 +46,7 @@
 - dropped the text_library
 - consolidate `standard_error_display` into `handle_querystring_result`
 - sketching out some acme-dns support
+- add a certbot compatibilty zipfile export for each certificate
 
 
 

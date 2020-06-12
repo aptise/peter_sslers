@@ -8,7 +8,15 @@ import pdb
 import pprint
 import re
 import unittest
+import zipfile
 from functools import wraps
+import sys
+
+if sys.version_info[0] < 3:  # pragma: no cover
+    from StringIO import StringIO
+else:
+    from io import StringIO
+
 
 # pypi
 from webtest import Upload
@@ -3392,9 +3400,13 @@ class FunctionalTests_ServerCertificate(AppTest):
             "admin:server_certificate:focus:fullchain:raw",
             "admin:server_certificate:focus:privatekey:raw",
             "admin:server_certificate:focus:cert:raw",
+            "admin:server_certificate:focus:config|zip",
         )
     )
     def test_focus_raw(self):
+        """
+        python -munittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_ServerCertificate.test_focus_raw
+        """
         try:
             (focus_item, focus_id) = self._get_one()
         except:
@@ -3454,6 +3466,30 @@ class FunctionalTests_ServerCertificate(AppTest):
             "/.well-known/admin/server-certificate/%s/cert.pem.txt" % focus_id,
             status=200,
         )
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/config.zip" % focus_id,
+            status=200,
+        )
+        assert res.headers["Content-Type"] == "application/zip"
+        assert (
+            res.headers["Content-Disposition"]
+            == "attachment; filename= cert%s.zip" % focus_id
+        )
+        z = zipfile.ZipFile(StringIO(res.body))
+        assert len(z.infolist()) == 4
+        expectations = [
+            file_template % focus_id
+            for file_template in (
+                "cert%s.pem",
+                "chain%s.pem",
+                "fullchain%s.pem",
+                "privkey%s.pem",
+            )
+        ]
+        found = [zipped.filename for zipped in z.infolist()]
+        expectations.sort()
+        found.sort()
+        assert found == expectations
 
     @tests_routes(
         (
