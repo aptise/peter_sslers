@@ -145,10 +145,10 @@
                     <tr>
                         <th>AcmeChallenge - http01</th>
                         <td>
-                            % if AcmeAuthorization.acme_challenge_http01:
-                                <a class="label label-info" href="${admin_prefix}/acme-challenge/${AcmeAuthorization.acme_challenge_http01.id}">
+                            % if AcmeAuthorization.acme_challenge_http_01:
+                                <a class="label label-info" href="${admin_prefix}/acme-challenge/${AcmeAuthorization.acme_challenge_http_01.id}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeChallenge-${AcmeAuthorization.acme_challenge_http01.id}</a>
+                                AcmeChallenge-${AcmeAuthorization.acme_challenge_http_01.id}</a>
                             % endif
                         </td>
                     </tr>
@@ -182,7 +182,7 @@
                         <th>AcmeChallenges(s)</th>
                         <td>
                             % if AcmeAuthorization.acme_challenges__5:
-                                ${admin_partials.table_AcmeChallenges(AcmeAuthorization.acme_challenges__5, perspective="AcmeChallenges")}
+                                ${admin_partials.table_AcmeChallenges(AcmeAuthorization.acme_challenges__5, perspective="AcmeAuthorization")}
                                 ${admin_partials.nav_pager("%s/acme-authorization/%s/acme-challenges" % (admin_prefix, AcmeAuthorization.id))}
                             % endif
                         </td>

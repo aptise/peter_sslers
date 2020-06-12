@@ -351,7 +351,7 @@ class ViewAdminApi(Handler):
                     message="Could not load the default private key",
                 )
 
-            # TODO - include an offset of the last domain added, so there isn't a race condition
+            # TODO: include an offset of the last domain added, so there isn't a race condition
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
 

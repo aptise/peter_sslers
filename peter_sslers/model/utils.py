@@ -60,7 +60,7 @@ class year_day(expression.FunctionElement):
 @compiles(year_day)
 def year_day__default(element, compiler, **kw):
     # return compiler.visit_function(element)
-    # TODO - lpad with 0s, as sqlite doesn't
+    # TODO: lpad with 0s, as sqlite doesn't
     """
     ## select extract(doy from timestamp_event) from table_a;
     ## 94
@@ -546,7 +546,14 @@ class AcmeChallengeType(_mixin_mapping):
     Used for Acme Logging
     """
 
-    _mapping = {1: "http-01", 2: "dns-01"}
+    http_01 = 1
+    dns_01 = 2
+    tls_alpn_01 = 3
+    _mapping = {
+        1: "http-01",
+        2: "dns-01",
+        3: "tls-alpn-01",
+    }
 
 
 class AcmeChallengeFailType(_mixin_mapping):

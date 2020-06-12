@@ -99,8 +99,7 @@ def get__AcmeAccount__paginated(ctx, limit=None, offset=0, active_only=False):
     return dbAcmeAccounts
 
 
-def get__AcmeAccount__by_id(ctx, acme_account_id, eagerload_web=None):
-    # TODO: `eagerload_web` is deprecated
+def get__AcmeAccount__by_id(ctx, acme_account_id):
     q = ctx.dbSession.query(model_objects.AcmeAccount).filter(
         model_objects.AcmeAccount.id == acme_account_id
     )
@@ -413,7 +412,7 @@ def get__AcmeChallenge__by_challenge_url(ctx, challenge_url):
 
 
 def get__AcmeChallenge__challenged(ctx, domain_name, challenge):
-    # todo - ensure the AcmeAuthorization or AcmeOrderless is active
+    # TODO - ensure the AcmeAuthorization or AcmeOrderless is active
     # see https://tools.ietf.org/html/rfc8555#section-8.3
     # GET : /path/to/{token}
     # the following two are IDENTICAL:
@@ -463,8 +462,14 @@ def get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
     return items_paged
 
 
-def get__AcmeChallenge__by_DomainId__active(ctx, domain_id):
+def get__AcmeChallenge__by_DomainId__active(
+    ctx, domain_id, acme_challenge_type_id=None
+):
     """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param domain_id: (required) An id for an instance of :class:`model.objects.Domain`
+    :param acme_challenge_type_id: (optional) A specific type of challenge, referencing :class:`model.utils.AcmeChallengeType`
+
     AcmeStatus Codes
           Challenge["pending" or "processing"]
         + Authorization ["pending"] + ["*discovered*"]
@@ -531,15 +536,27 @@ def get__AcmeChallenge__by_DomainId__active(ctx, domain_id):
             ),
         )
     )
-    return query.first()
+    if acme_challenge_type_id:
+        query = query.filter(
+            model_objects.AcmeChallenge.acme_challenge_type_id == acme_challenge_type_id
+        )
+    return query.all()
 
 
-def get__AcmeChallenge__by_DomainId__count(ctx, domain_id):
-    counted = (
-        ctx.dbSession.query(model_objects.AcmeChallenge)
-        .filter(model_objects.AcmeChallenge.domain_id == domain_id)
-        .count()
+def get__AcmeChallenge__by_DomainId__count(ctx, domain_id, acme_challenge_type_id=None):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param domain_id: (required) An id for an instance of :class:`model.objects.Domain`
+    :param acme_challenge_type_id: (optional) A specific type of challenge, referencing :class:`model.utils.AcmeChallengeType`
+    """
+    query = ctx.dbSession.query(model_objects.AcmeChallenge).filter(
+        model_objects.AcmeChallenge.domain_id == domain_id
     )
+    if acme_challenge_type_id:
+        query = query.filter(
+            model_objects.AcmeChallenge.acme_challenge_type_id == acme_challenge_type_id
+        )
+    counted = query.count()
     return counted
 
 

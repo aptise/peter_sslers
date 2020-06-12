@@ -425,12 +425,10 @@ def _AcmeV2_AcmeOrder__process_authorizations(
         elif _order_status == "processing":
             # The certificate is being issued.
             # Send a POST-as-GET request after the time given in the Retry-After header field of the response, if any.
-            # TODO: Post-as-GET this semi-completed order
-            raise ValueError("todo: download")
+            raise errors.AcmeOrderProcessing()
         elif _order_status == "valid":
             # The server has issued the certificate and provisioned its URL to the "certificate" field of the order
-            # TODO: download the url of this order
-            raise ValueError("todo: download")
+            raise errors.AcmeOrderValid()
         else:
             raise ValueError("unsure how to handle this status: `%s`" % _order_status)
     return _todo_finalize_order
@@ -482,7 +480,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
                 authorization_response["status"],
                 transaction_commit=True,
             )
-            # todo: update the other fields and challenges from this authorization
+            # TODO: update the other fields and challenges from this authorization
             return True
         except errors.AcmeServer404 as exc:
             update_AcmeAuthorization_status(
@@ -536,6 +534,10 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
                 ctx, dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
             )
 
+            # trigger this now, so we do not attempt to load the chalenges
+            if authorization_response["status"] == "*404*":
+                raise errors.AcmeServer404()
+
             # update the the Authorization object
             _updated = update_AcmeAuthorization_from_payload(
                 ctx, dbAcmeAuthorization, authorization_response
@@ -543,17 +545,15 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
 
             # maybe there are challenges in the payload?
             try:
-                (
-                    dbAcmeChallenge,
-                    is_created_AcmeChallenge,
-                ) = lib.db.getcreate.getcreate__AcmeChallengeHttp01_via_payload(
+                dbAcmeChallenges = lib.db.getcreate.getcreate__AcmeChallenges_via_payload(
                     ctx,
                     authenticatedUser=authenticatedUser,
                     dbAcmeAuthorization=dbAcmeAuthorization,
                     authorization_payload=authorization_response,
                 )
             except errors.AcmeMissingChallenges as exc:
-                pass
+                # note: perhaps better as `errors.InvalidRequest`
+                raise errors.AcmeCommunicationError("Missing required challenges")
 
             return True
         except errors.AcmeServer404 as exc:
@@ -583,7 +583,7 @@ def do__AcmeV2_AcmeAuthorization__acme_server_trigger(
         # acme order, with acme_account
         raise ValueError("Can not trigger this `AcmeAuthorization`")
 
-    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http01
+    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
     return do__AcmeV2_AcmeChallenge__acme_server_trigger(ctx, dbAcmeChallenge)
 
 
@@ -647,8 +647,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 transaction_commit=True,
             )
 
-            # todo: update the other fields from this challenge
-            # todo: log the payload and error
+            # TODO: update the other fields from this challenge
+            # TODO: log the payload and error
 
             # update the AcmeAuthorization if it's not the same on the database
             update_AcmeChallenge_status(
@@ -665,7 +665,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
             )
 
         except errors.AcmeAuthorizationFailure as exc:
-            # todo: log/inspect the payload and update more objects
+            # TODO: log/inspect the payload and update more objects
             update_AcmeAuthorization_status(
                 ctx, dbAcmeAuthorization, "invalid", transaction_commit=True
             )
@@ -737,8 +737,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
                 ctx, dbAcmeChallenge, "*404*", transaction_commit=True
             )
 
-        # todo: update the other fields from this challenge
-        # todo: log the payload and error
+        # TODO: update the other fields from this challenge
+        # TODO: log the payload and error
 
         # update the AcmeAuthorization if it's not the same on the database
         _server_status = challenge_response["status"]
@@ -1436,9 +1436,9 @@ def _do__AcmeV2_AcmeOrder__core(
         # after creating the order, update it with info
         #            dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
 
-        raise ValueError("todo")
+        raise ValueError("TODO")
 
-        # todo - transfer this onto the acme-order
+        # TODO - transfer this onto the acme-order
         if dbServerCertificate__renewal_of:
             dbServerCertificate__renewal_of.is_auto_renew = False
             dbServerCertificate__renewal_of.is_renewed = True
@@ -1482,11 +1482,11 @@ def _do__AcmeV2_AcmeOrder__core(
     # check each domain for an existing active challenge
     active_challenges = []
     for to_domain in dbUniqueFQDNSet.to_domains:
-        _active_challenge = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+        _active_challenges = lib.db.get.get__AcmeChallenge__by_DomainId__active(
             ctx, to_domain.domain_id
         )
-        if _active_challenge:
-            active_challenges.append(_active_challenge)
+        if _active_challenges:
+            active_challenges.extend(_active_challenges)
     if active_challenges:
         raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
@@ -1571,6 +1571,9 @@ def _do__AcmeV2_AcmeOrder__core(
             return dbAcmeOrder
 
         return dbAcmeOrder
+
+    except (errors.AcmeOrderProcessing, errors.AcmeOrderValid) as exc:
+        raise errors.AcmeOrderCreatedError(dbAcmeOrder, exc)
 
     except errors.AcmeOrderFatal as exc:
         raise errors.AcmeOrderCreatedError(dbAcmeOrder, exc)
@@ -1692,7 +1695,7 @@ def do__AcmeV2_AcmeOrder__process(
                         transaction_commit=True,
                     )
                 else:
-                    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http01
+                    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
                     if not dbAcmeChallenge:
                         raise ValueError("Can not trigger this `AcmeChallenge`")
 

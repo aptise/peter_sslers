@@ -114,6 +114,30 @@ class AcmeOrderCreatedError(AcmeOrderError):
         return self.args[1]
 
 
+class AcmeOrderProcessing(AcmeOrderCreatedError):
+    """
+    raise when the AcmeOrder is `processing` (RFC status)
+    this should generally indicate the user should retry their action
+    """
+
+    def __str__(self):
+        return "An AcmeOrder-{0} was created. The order is still processing.".format(
+            self.args[0]
+        )
+
+
+class AcmeOrderValid(AcmeOrderCreatedError):
+    """
+    raise when the AcmeOrder is `valid` (RFC status)
+    this should generally indicate the user should retry their action
+    """
+
+    def __str__(self):
+        return "An AcmeOrder-{0} was created. The order is valid and the ServerCertificate can be downloaded.".format(
+            self.args[0]
+        )
+
+
 class AcmeMissingChallenges(AcmeError):
     """There are no Acme Challenges"""
 

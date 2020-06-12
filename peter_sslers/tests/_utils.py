@@ -991,11 +991,11 @@ class AppTest(AppTestCore):
                 )
 
                 # ensure we created a challenge
-                assert _dbAcmeAuthorization_1.acme_challenge_http01 is not None
+                assert _dbAcmeAuthorization_1.acme_challenge_http_01 is not None
 
                 _db__AcmeChallengePoll = db.create.create__AcmeChallengePoll(
                     self.ctx,
-                    dbAcmeChallenge=_dbAcmeAuthorization_1.acme_challenge_http01,
+                    dbAcmeChallenge=_dbAcmeAuthorization_1.acme_challenge_http_01,
                     remote_ip_address="127.1.1.1",
                 )
                 _db__AcmeChallengeUnknownPoll = db.create.create__AcmeChallengeUnknownPoll(

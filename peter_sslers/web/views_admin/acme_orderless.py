@@ -380,10 +380,9 @@ class View_Focus_Manipulate(View_Focus):
                 % self._focus_url
             )
 
-        # todo: migrate to the `update` api
-        dbAcmeOrderless.is_processing = False
-        dbAcmeOrderless.timestamp_updated = self.request.api_context.timestamp
-        self.request.api_context.dbSession.flush(objects=[dbAcmeOrderless])
+        lib_db.update.update_AcmeOrderless_deactivate(
+            self.request.api_context, dbAcmeOrderless
+        )
 
         if self.request.wants_json:
             return {

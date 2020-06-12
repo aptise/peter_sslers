@@ -268,7 +268,7 @@ class View_New(Handler):
                 )
             domain_name = domain_names[0]
 
-            # todo - check the queue
+            # TODO: check the queue
             (
                 dbDomain,
                 _is_created,
@@ -329,20 +329,20 @@ class View_Focus(Handler):
     @view_config(route_name="admin:domain:focus|json", renderer="json")
     def focus(self):
         dbDomain = self._focus(eagerload_web=True)
-        dbAcmeChallenge = lib_db.get.get__AcmeChallenge__by_DomainId__active(
+        dbAcmeChallenges = lib_db.get.get__AcmeChallenge__by_DomainId__active(
             self.request.api_context, dbDomain.id,
         )
         if self.request.wants_json:
             return {
                 "Domain": dbDomain.as_json,
-                "AcmeChallenge_Active": dbAcmeChallenge.as_json
-                if dbAcmeChallenge
+                "AcmeChallenges_Active": [i.as_json for i in dbAcmeChallenges]
+                if dbAcmeChallenges
                 else None,
             }
         return {
             "project": "peter_sslers",
             "Domain": dbDomain,
-            "AcmeChallenge": dbAcmeChallenge,
+            "AcmeChallenges_Active": dbAcmeChallenges,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

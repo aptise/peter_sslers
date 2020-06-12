@@ -232,9 +232,8 @@ def queue_domains__process(
             qDomain.is_active = False
             ctx.dbSession.flush(objects=[qDomain])
 
-        # create a dbUniqueFQDNSet for this.
-        # TODO - should we delete this if we fail? or keep for the CSR record
-        #      - rationale is that on another pass, we would have a different fqdn set
+        # create a dbUniqueFQDNSet for this
+        # Note: we will not fail on deletion, so we can keep the CSR and FQDN set for error reporting
         (
             dbUniqueFQDNSet,
             _is_created,

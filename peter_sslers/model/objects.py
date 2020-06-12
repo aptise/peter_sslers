@@ -149,13 +149,11 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="and_(AcmeAccount.id==AcmeAccountKey.acme_account_id, AcmeAccountKey.is_active.is_(True))",
         uselist=False,
     )
-
     acme_account_keys_all = sa_orm_relationship(
         "AcmeAccountKey",
         primaryjoin="AcmeAccount.id==AcmeAccountKey.acme_account_id",
         uselist=True,
     )
-
     acme_account_provider = sa_orm_relationship(
         "AcmeAccountProvider",
         primaryjoin="AcmeAccount.acme_account_provider_id==AcmeAccountProvider.id",
@@ -166,6 +164,12 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         "AcmeOrder",
         primaryjoin="AcmeAccount.id==AcmeOrder.acme_account_id",
         order_by="AcmeOrder.id.desc()",
+        uselist=True,
+        back_populates="acme_account",
+    )
+    acme_orderlesss = sa_orm_relationship(
+        "AcmeOrderless",
+        primaryjoin="AcmeAccount.id==AcmeOrderless.acme_account_id",
         uselist=True,
         back_populates="acme_account",
     )
@@ -509,12 +513,30 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_authorizations",
     )
-    acme_challenge_http01 = sa_orm_relationship(
+    acme_challenges = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin="AcmeAuthorization.id==AcmeChallenge.acme_authorization_id",
+        uselist=True,
+        back_populates="acme_authorization",
+    )
+
+    acme_challenge_http_01 = sa_orm_relationship(
         "AcmeChallenge",
         primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
         % model_utils.AcmeChallengeType.from_string("http-01"),
         uselist=False,
-        back_populates="acme_authorization",
+    )
+    acme_challenge_dns_01 = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
+        % model_utils.AcmeChallengeType.from_string("dns-01"),
+        uselist=False,
+    )
+    acme_challenge_tls_alpn_01 = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin="and_(AcmeAuthorization.id==AcmeChallenge.acme_authorization_id, AcmeChallenge.acme_challenge_type_id==%s)"
+        % model_utils.AcmeChallengeType.from_string("tls-alpn-01"),
+        uselist=False,
     )
     acme_order_created = sa_orm_relationship(
         "AcmeOrder",
@@ -592,11 +614,11 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         ):
             return False
         #
-        # we only support `acme_challenge_http01`
+        # we only support `acme_challenge_http_01`
         #
-        if not self.acme_challenge_http01:
+        if not self.acme_challenge_http_01:
             return False
-        if not self.acme_challenge_http01.is_can_acme_server_trigger:
+        if not self.acme_challenge_http_01.is_can_acme_server_trigger:
             return False
         return True
 
@@ -614,8 +636,8 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "acme_status_authorization": self.acme_status_authorization,
-            "acme_challenge_http01_id": self.acme_challenge_http01.id
-            if self.acme_challenge_http01
+            "acme_challenge_http_01_id": self.acme_challenge_http_01.id
+            if self.acme_challenge_http_01
             else None,
             "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,}
             if self.domain_id
@@ -753,7 +775,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
 
     # in all situations, we need to track these:
     acme_challenge_type_id = sa.Column(
-        sa.Integer, nullable=True
+        sa.Integer, nullable=False
     )  # this library only does http-01, `model_utils.AcmeChallengeType`
     acme_status_challenge_id = sa.Column(
         sa.Integer, nullable=False
@@ -768,7 +790,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     token = sa.Column(
         sa.Unicode(255), nullable=True
     )  # only nullable if this is an orderless challenge
-    # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http01.token)
+    # token_clean = re.sub(r"[^A-Za-z0-9_\-]", "_", dbAcmeAuthorization.acme_challenge_http_01.token)
     # keyauthorization = "{0}.{1}".format(token_clean, accountkey_thumbprint)
     keyauthorization = sa.Column(sa.Unicode(255), nullable=True)
 
@@ -791,7 +813,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         "AcmeAuthorization",
         primaryjoin="AcmeChallenge.acme_authorization_id==AcmeAuthorization.id",
         uselist=False,
-        back_populates="acme_challenge_http01",
+        back_populates="acme_challenges",
     )
     acme_orderless = sa_orm_relationship(
         "AcmeOrderless",
@@ -1649,11 +1671,11 @@ class AcmeOrderless(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    # TODO: allow an AcmeAccount to control an orderless
     acme_account = sa_orm_relationship(
         "AcmeAccount",
         primaryjoin="AcmeOrderless.acme_account_id==AcmeAccount.id",
         uselist=False,
+        back_populates="acme_orderlesss",
     )
     acme_challenges = sa_orm_relationship(
         "AcmeChallenge",
@@ -3114,7 +3136,6 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    # todo: join this through certificate requests
     acme_orders = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="UniqueFQDNSet.id==AcmeOrder.unique_fqdn_set_id",

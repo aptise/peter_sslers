@@ -170,14 +170,14 @@ class View_Focus(Handler):
             auths_list = []
             for to_acme_authorization in dbAcmeOrder.to_acme_authorizations:
                 dbAcmeAuthorization = to_acme_authorization.acme_authorization
-                dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http01
+                dbAcmeChallenge_http01 = dbAcmeAuthorization.acme_challenge_http_01
                 auth_local = {
                     "AcmeAuthorization": {
                         "id": dbAcmeAuthorization.id,
                         "acme_status_authorization": dbAcmeAuthorization.acme_status_authorization,
                         "timestamp_updated": dbAcmeAuthorization.timestamp_updated_isoformat,
                     },
-                    "AcmeChallenge": None,
+                    "AcmeChallenges": {},
                     "Domain": None,
                 }
                 if dbAcmeAuthorization.domain_id:
@@ -185,12 +185,12 @@ class View_Focus(Handler):
                         "id": dbAcmeAuthorization.domain_id,
                         "domain_name": dbAcmeAuthorization.domain.domain_name,
                     }
-                if dbAcmeChallenge:
-                    auth_local["AcmeChallenge"] = {
-                        "id": dbAcmeChallenge.id,
-                        "acme_status_challenge": dbAcmeChallenge.acme_status_challenge,
-                        "timestamp_updated": dbAcmeChallenge.timestamp_updated_isoformat,
-                        "keyauthorization": dbAcmeChallenge.keyauthorization,
+                if dbAcmeChallenge_http01:
+                    auth_local["AcmeChallenges"]["http-01"] = {
+                        "id": dbAcmeChallenge_http01.id,
+                        "acme_status_challenge": dbAcmeChallenge_http01.acme_status_challenge,
+                        "timestamp_updated": dbAcmeChallenge_http01.timestamp_updated_isoformat,
+                        "keyauthorization": dbAcmeChallenge_http01.keyauthorization,
                     }
 
                 auths_list.append(auth_local)
@@ -498,37 +498,19 @@ class View_Focus_Manipulate(View_Focus):
                 )
 
             elif action == "deactivate":
-                """
-                `deactivate` should mark the order as:
-                    `is_processing = False`
-                """
-                if dbAcmeOrder.is_processing is not True:
-                    raise errors.InvalidRequest("This AcmeOrder is not processing.")
-
-                # todo: use the api
-                dbAcmeOrder.is_processing = False
-                dbAcmeOrder.timestamp_updated = self.request.api_context.timestamp
-                self.request.api_context.dbSession.flush(objects=[dbAcmeOrder])
+                lib_db.update.update_AcmeOrder_deactivate(
+                    self.request.api_context, dbAcmeOrder,
+                )
 
             elif action == "renew_auto":
-                if dbAcmeOrder.is_auto_renew:
-                    raise errors.InvalidRequest("Can not mark this order for renewal.")
-
-                # set the renewal
-                dbAcmeOrder.is_auto_renew = True
-                # cleanup options
-                event_status = "AcmeOrder__mark__renew_auto"
+                event_status = lib_db.update.update_AcmeOrder_set_renew_auto(
+                    self.request.api_context, dbAcmeOrder,
+                )
 
             elif action == "renew_manual":
-                if not dbAcmeOrder.is_auto_renew:
-                    raise errors.InvalidRequest(
-                        "Can not unmark this order for renewal."
-                    )
-
-                # unset the renewal
-                dbAcmeOrder.is_auto_renew = False
-                # cleanup options
-                event_status = "AcmeOrder__mark__renew_manual"
+                event_status = lib_db.update.update_AcmeOrder_set_renew_manual(
+                    self.request.api_context, dbAcmeOrder,
+                )
 
             else:
                 raise errors.InvalidRequest("invalid `action`")
@@ -544,7 +526,7 @@ class View_Focus_Manipulate(View_Focus):
                 "%s?result=success&operation=mark&action=%s" % (self._focus_url, action)
             )
 
-        except (errors.InvalidRequest,) as exc:
+        except (errors.InvalidRequest, errors.InvalidTransition) as exc:
             if self.request.wants_json:
                 return {
                     "result": "error",
@@ -567,7 +549,6 @@ class View_Focus_Manipulate(View_Focus):
         """
         Retry should create a new order
         """
-        # todo - lock behind a POST
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if self.request.method != "POST":

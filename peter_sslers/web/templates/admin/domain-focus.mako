@@ -67,15 +67,21 @@
         <div class="col-sm-12">
             ${admin_partials.handle_querystring_result()}
             
-            % if AcmeChallenge:
+            % if AcmeChallenges_Active:
                 <div class="alert alert-danger">
                     This Domain has an ACTIVE challenge. No new Orders/Challenges can be processed for this domain while the existing order is active.
-                    <a  class="label label-info"
-                        href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}"
-                    >
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        AcmeChallenge-${AcmeChallenge.id}
-                    </a>
+                    <ul class="list list-unstyled">
+                        % for AcmeChallenge in AcmeChallenges_Active:
+                            <li>
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeChallenge-${AcmeChallenge.id}
+                                </a>
+                            </li>
+                        % endfor
+                    </ul>
                 </div>
             % endif
 

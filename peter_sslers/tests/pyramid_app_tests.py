@@ -17,7 +17,6 @@ if sys.version_info[0] < 3:  # pragma: no cover
 else:
     from io import StringIO
 
-
 # pypi
 from webtest import Upload
 from webtest.http import StopableWSGIServer
@@ -44,6 +43,16 @@ from ._utils import RUN_API_TESTS__ACME_DNS_API
 from ._utils import RUN_NGINX_TESTS
 from ._utils import RUN_REDIS_TESTS
 from ._utils import SSL_TEST_PORT
+
+
+# ==============================================================================
+# disable logginf for tests?
+
+import logging
+
+log = logging.getLogger()
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.DEBUG)
 
 
 # ==============================================================================
@@ -4861,7 +4870,8 @@ class FunctionalTests_AcmeServer(AppTest):
             _test_data["acme-order/new/freeform#1"]["domain_names"]
         )
         _authorization_pairs = [
-            (i.id, i.acme_challenge_http01.id) for i in _dbAcmeOrder.acme_authorizations
+            (i.id, i.acme_challenge_http_01.id)
+            for i in _dbAcmeOrder.acme_authorizations
         ]
         self.ctx.dbSession.rollback()
 
@@ -5352,7 +5362,8 @@ class FunctionalTests_AcmeServer(AppTest):
             _test_data["acme-order/new/freeform#1"]["domain_names"]
         )
         _authorization_pairs = [
-            (i.id, i.acme_challenge_http01.id) for i in _dbAcmeOrder.acme_authorizations
+            (i.id, i.acme_challenge_http_01.id)
+            for i in _dbAcmeOrder.acme_authorizations
         ]
         self.ctx.dbSession.rollback()
         assert len(_authorization_pairs) == 2
@@ -6177,7 +6188,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 == "pending"
             )
             challenge_id = res_auth.json["AcmeAuthorization"][
-                "acme_challenge_http01_id"
+                "acme_challenge_http_01_id"
             ]
             assert challenge_id is not None
 
@@ -6313,7 +6324,7 @@ class FunctionalTests_AcmeServer(AppTest):
                 == "pending"
             )
             challenge_id = res_auth.json["AcmeAuthorization"][
-                "acme_challenge_http01_id"
+                "acme_challenge_http_01_id"
             ]
             assert challenge_id is not None
 

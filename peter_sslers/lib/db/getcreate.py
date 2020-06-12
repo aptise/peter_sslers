@@ -507,10 +507,7 @@ def process__AcmeAuthorization_payload(
 
     # parse the payload for our http01 challenge
     try:
-        (
-            dbAcmeChallenge,
-            is_created_AcmeChallenge,
-        ) = getcreate__AcmeChallengeHttp01_via_payload(
+        dbAcmeChallenges = getcreate__AcmeChallenges_via_payload(
             ctx,
             authenticatedUser=authenticatedUser,
             dbAcmeAuthorization=dbAcmeAuthorization,
@@ -529,7 +526,7 @@ def process__AcmeAuthorization_payload(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__AcmeChallengeHttp01_via_payload(
+def getcreate__AcmeChallenges_via_payload(
     ctx, authenticatedUser=None, dbAcmeAuthorization=None, authorization_payload=None,
 ):
     """
@@ -539,48 +536,54 @@ def getcreate__AcmeChallengeHttp01_via_payload(
     :param authorization_payload: (required) an RFC-8555 authorization payload
 
     returns:
-        dbAcmeChallenge, is_created_AcmeChallenge
+        dbAcmeChallenges: a list of tuples, each tuple being  (`model.objects.AcmeChallenge`, is_created)
     potentially raises:
         errors.AcmeMissingChallenges
     """
-    acme_challenge = lib.acme_v2.get_authorization_challenge(
-        authorization_payload, http01=True
+    dbAcmeChallenges = []
+    acme_challenges = lib.acme_v2.get_authorization_challenges(
+        authorization_payload, required_challenges=["http-01",],
     )
-    challenge_url = acme_challenge["url"]
-    challenge_status = acme_challenge["status"]
-    acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
-        challenge_status
-    )
-    dbAcmeChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
-    is_created_AcmeChallenge = False
-
-    if not dbAcmeChallenge:
-        challenge_token = acme_challenge["token"]
-        keyauthorization = (
-            lib.acme_v2.create_challenge_keyauthorization(
-                challenge_token, authenticatedUser.accountkey_thumbprint
+    for acme_challenge in acme_challenges.values():
+        challenge_url = acme_challenge["url"]
+        challenge_status = acme_challenge["status"]
+        acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
+            acme_challenge["type"]
+        )
+        acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
+            challenge_status
+        )
+        _dbAcmeChallenge = get__AcmeChallenge__by_challenge_url(ctx, challenge_url)
+        _is_created_AcmeChallenge = False
+        if not _dbAcmeChallenge:
+            challenge_token = acme_challenge["token"]
+            keyauthorization = (
+                lib.acme_v2.create_challenge_keyauthorization(
+                    challenge_token, authenticatedUser.accountkey_thumbprint
+                )
+                if authenticatedUser
+                else None
             )
-            if authenticatedUser
-            else None
-        )
-        dbAcmeChallenge = create__AcmeChallenge(
-            ctx,
-            dbAcmeAuthorization=dbAcmeAuthorization,
-            dbDomain=dbAcmeAuthorization.domain,
-            challenge_url=challenge_url,
-            token=challenge_token,
-            keyauthorization=keyauthorization,
-            acme_status_challenge_id=acme_status_challenge_id,
-            is_via_sync=True,
-        )
-        is_created_AcmeChallenge = True
-    else:
-        if dbAcmeChallenge.acme_status_challenge_id != acme_status_challenge_id:
-            dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
-            dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
-            ctx.dbSession.add(dbAcmeChallenge)
-            ctx.dbSession.flush(objects=[dbAcmeChallenge])
-    return dbAcmeChallenge, is_created_AcmeChallenge
+            _dbAcmeChallenge = create__AcmeChallenge(
+                ctx,
+                dbAcmeAuthorization=dbAcmeAuthorization,
+                dbDomain=dbAcmeAuthorization.domain,
+                challenge_url=challenge_url,
+                token=challenge_token,
+                keyauthorization=keyauthorization,
+                acme_challenge_type_id=acme_challenge_type_id,
+                acme_status_challenge_id=acme_status_challenge_id,
+                is_via_sync=True,
+            )
+            _is_created_AcmeChallenge = True
+        else:
+            if _dbAcmeChallenge.acme_status_challenge_id != acme_status_challenge_id:
+                _dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
+                _dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
+                ctx.dbSession.add(_dbAcmeChallenge)
+                ctx.dbSession.flush(objects=[_dbAcmeChallenge])
+        dbAcmeChallenges.append((_dbAcmeChallenge, _is_created_AcmeChallenge))
+    return dbAcmeChallenges
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

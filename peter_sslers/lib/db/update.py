@@ -218,6 +218,50 @@ def update_AcmeDnsServer__root_url(ctx, dbAcmeDnsServer, root_url):
     return True
 
 
+def update_AcmeOrder_deactivate(ctx, dbAcmeOrder):
+    """
+    `deactivate` should mark the order as:
+        `is_processing = False`
+    """
+    if dbAcmeOrder.is_processing is not True:
+        raise errors.InvalidTransition("This AcmeOrder is not processing.")
+    dbAcmeOrder.is_processing = False
+    dbAcmeOrder.timestamp_updated = ctx.timestamp
+    ctx.dbSession.flush(objects=[dbAcmeOrder])
+    return True
+
+
+def update_AcmeOrder_set_renew_auto(ctx, dbAcmeOrder):
+    if dbAcmeOrder.is_auto_renew:
+        raise errors.InvalidTransition("Can not mark this order for renewal.")
+    # set the renewal
+    dbAcmeOrder.is_auto_renew = True
+    # cleanup options
+    event_status = "AcmeOrder__mark__renew_auto"
+    return event_status
+
+
+def update_AcmeOrder_set_renew_manual(ctx, dbAcmeOrder):
+    if not dbAcmeOrder.is_auto_renew:
+        raise errors.InvalidTransition("Can not unmark this order for renewal.")
+    # unset the renewal
+    dbAcmeOrder.is_auto_renew = False
+    # cleanup options
+    event_status = "AcmeOrder__mark__renew_manual"
+    return event_status
+
+
+def update_AcmeOrderless_deactivate(ctx, dbAcmeOrderless):
+    """
+    `deactivate` should mark the order as:
+        `is_processing = False`
+    """
+    dbAcmeOrderless.is_processing = False
+    dbAcmeOrderless.timestamp_updated = ctx.timestamp
+    ctx.dbSession.flush(objects=[dbAcmeOrderless])
+    return True
+
+
 def update_CoverageAssuranceEvent__set_resolution(
     ctx, dbCoverageAssuranceEvent, resolution
 ):
@@ -381,9 +425,7 @@ def update_ServerCertificate__mark_compromised(
 ):
     # the PrivateKey has been compromised
     dbServerCertificate.is_compromised_private_key = True
-    dbServerCertificate.is_revoked = (
-        True  # TODO: this has nothing to do with the acme-server
-    )
+    dbServerCertificate.is_revoked = True  # TODO: this has nothing to do with the acme-server, it is just a local marking
     if dbServerCertificate.is_active:
         dbServerCertificate.is_active = False
     event_status = "ServerCertificate__mark__compromised"

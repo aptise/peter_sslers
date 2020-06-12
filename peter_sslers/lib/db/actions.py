@@ -527,18 +527,13 @@ def api_domains__certificate_if_needed(
     dbPrivateKey=None,
 ):
     """
-    Adds domains if needed
-    2016.06.29
-
-
-    TODO: update the args below:
+    Adds Domains if needed
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_names: (required) An iteratble list of domain names
-    :param account_key_pem: (required) the AcmeAccount key used for new orders
+    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
-    :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param dbAcmeAccount: (required) A :class:`model.objects.AcmeAccount` object
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
 

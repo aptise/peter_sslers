@@ -127,21 +127,31 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
 # ------------------------------------------------------------------------------
 
 
-def get_authorization_challenge(authorization_response, http01=None):
+def get_authorization_challenges(
+    authorization_response, required_challenges=None,
+):
     """
     :param dict authorization_response: (required) A Python dict representing a server's JSON payload of an Authorization Object.
-    :param bool http01: (required) You must declare this is a http01 request
+    :param list required_challenges: (optional) Pass in a list of required challenges
     """
-    if not http01:
-        raise ValueError("must invoke with `http01=True`")
-    # find the http-01 challenge and write the challenge file
-    try:
-        challenge = [
-            c for c in authorization_response["challenges"] if c["type"] == "http-01"
-        ][0]
-    except Exception as exc:
+
+    challenges = {
+        "http-01": None,
+        "dns-01": None,
+        "tls-alpn-01": None,
+    }
+    for _challenge in authorization_response["challenges"]:
+        if _challenge["type"] in challenges:
+            challenges[_challenge["type"]] = _challenge
+    if required_challenges:
+        for _type in required_challenges:
+            if (_type not in challenges) or (not challenges[_type]):
+                raise errors.AcmeMissingChallenges(
+                    "could not find a required challenge"
+                )
+    if not any(challenges.values()):
         raise errors.AcmeMissingChallenges("could not find a challenge")
-    return challenge
+    return challenges
 
 
 def create_challenge_keyauthorization(token, accountkey_thumbprint):
@@ -574,7 +584,7 @@ class AuthenticatedUser(object):
             log.debug(") acme_order_load | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServer404 as exc:
             log.info(") acme_order_load | ERROR AcmeServer404!")
-            # todo: not finished with this logic flow
+            # TODO: not finished with this logic flow, need to trigger somehow
             acme_order_object = new_response_404()
             raise
 
@@ -937,21 +947,21 @@ class AuthenticatedUser(object):
 
         # we could parse the challenge
         # however, the call to `process_discovered_auth` should have updated the challenge object already
-        acme_challenge_response = get_authorization_challenge(
-            authorization_response, http01=True
+        acme_challenge_response = get_authorization_challenges(
+            authorization_response, required_challenges=["http-01",],
         )
         if not acme_challenge_response:
             raise ValueError(
                 "`acme_challenge_response` not in `authorization_response`"
             )
-        dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http01
+        dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
         if acme_challenge_response["url"] != dbAcmeChallenge.challenge_url:
             raise ValueError(
                 "`acme_challenge_response` has a different challenge_url. this is unexpected."
             )
 
         _challenge_status_text = (
-            dbAcmeAuthorization.acme_challenge_http01.acme_status_challenge
+            dbAcmeAuthorization.acme_challenge_http_01.acme_status_challenge
         )
         if _challenge_status_text == "*discovered*":
             # internal marker, pre "pending"
@@ -1225,7 +1235,7 @@ class AuthenticatedUser(object):
                 "AcmeChallenge is not 'pending' or 'valid' on the ACME server"
             )
 
-        # todo - COULD an accepted challenge be here?
+        # TODO - COULD an accepted challenge be here?
         log.info(
             ") acme_challenge_trigger | checking domain {0}".format(
                 dbAcmeAuthorization.domain.domain_name
@@ -1295,8 +1305,8 @@ class AuthenticatedUser(object):
             )
 
             # update the challenge
-            acme_challenge_response_2 = get_authorization_challenge(
-                authorization_response, http01=True
+            acme_challenge_response_2 = get_authorization_challenges(
+                authorization_response, required_challenges=["http-01",],
             )
             if acme_challenge_response_2["url"] == dbAcmeChallenge.challenge_url:
                 update_AcmeChallenge_status(
@@ -1323,8 +1333,8 @@ class AuthenticatedUser(object):
             )
 
             # kill the challenge
-            acme_challenge_response_2 = get_authorization_challenge(
-                authorization_response, http01=True
+            acme_challenge_response_2 = get_authorization_challenges(
+                authorization_response, required_challenges=["http-01",],
             )
             if acme_challenge_response_2["url"] == dbAcmeChallenge.challenge_url:
                 update_AcmeChallenge_status(

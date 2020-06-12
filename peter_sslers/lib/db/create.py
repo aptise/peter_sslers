@@ -93,12 +93,12 @@ def create__AcmeOrderless(
 
     active_challenges = []
     for (domain_name, dbDomain) in domain_objects.items():
-        _active_challenge = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+        # error out on ANY acme_challenge_type_id
+        _active_challenges = lib.db.get.get__AcmeChallenge__by_DomainId__active(
             ctx, dbDomain.id
         )
-        if _active_challenge:
-            active_challenges.append(_active_challenge)
-
+        if _active_challenges:
+            active_challenges.append(_active_challenges)
     if active_challenges:
         raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
@@ -111,7 +111,10 @@ def create__AcmeOrderless(
 
     for (domain_name, dbDomain) in domain_objects.items():
         dbAcmeChallenge = create__AcmeChallenge(
-            ctx, dbAcmeOrderless=dbAcmeOrderless, dbDomain=dbDomain,
+            ctx,
+            dbAcmeOrderless=dbAcmeOrderless,
+            dbDomain=dbDomain,
+            acme_challenge_type_id=model_utils.AcmeChallengeType.from_string("http-01"),
         )
 
     return dbAcmeOrderless
@@ -292,6 +295,7 @@ def create__AcmeChallenge(
     challenge_url=None,
     token=None,
     keyauthorization=None,
+    acme_challenge_type_id=None,
     acme_status_challenge_id=model_utils.Acme_Status_Challenge.ID_DEFAULT,
     is_via_sync=None,
 ):
@@ -304,6 +308,7 @@ def create__AcmeChallenge(
     :param challenge_url: (optional) challenge_url token
     :param token: (optional) string token
     :param keyauthorization: (optional) string keyauthorization
+    :param acme_challenge_type_id: (required) An option from :class:`model_utils.AcmeChallengeType`.
     :param acme_status_challenge_id: (optional) An option from :class:`model_utils.Acme_Status_Challenge`.
     :param is_via_sync: (optional) boolean. if True will allow duplicate challenges as one is on the server
 
@@ -324,8 +329,13 @@ def create__AcmeChallenge(
                 "Domain `%s` already in this AcmeOrderless." % c.domain.domain_name
             )
 
+    if not acme_challenge_type_id:
+        raise ValueError("must be invoked with `acme_challenge_type_id`")
+    if acme_challenge_type_id not in model_utils.AcmeChallengeType._mapping:
+        raise ValueError("invalid `acme_challenge_type_id`")
+
     _active_challenge = lib.db.get.get__AcmeChallenge__by_DomainId__active(
-        ctx, dbDomain.id
+        ctx, dbDomain.id, acme_challenge_type_id=acme_challenge_type_id,
     )
     if _active_challenge:
         if not is_via_sync:
@@ -340,9 +350,7 @@ def create__AcmeChallenge(
         dbAcmeChallenge.acme_authorization_id = dbAcmeAuthorization.id
     dbAcmeChallenge.timestamp_created = ctx.timestamp
     dbAcmeChallenge.domain_id = dbDomain.id
-    dbAcmeChallenge.acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
-        "http-01"
-    )
+    dbAcmeChallenge.acme_challenge_type_id = acme_challenge_type_id
     dbAcmeChallenge.acme_status_challenge_id = acme_status_challenge_id
     dbAcmeChallenge.token = token
     dbAcmeChallenge.keyauthorization = keyauthorization

@@ -19,7 +19,6 @@ from .db import update as db_update
 
 # ==============================================================================
 
-# TODO - actual event subscribers
 
 # certificate should have a "latest fqdn"
 # issuing a cert should remove any similar fqdns from the queue

@@ -604,7 +604,7 @@ def verify_partial_chain__paths(pem_filepath_chain=None, pem_filepath_cert=None)
     note the '-' between "-CApath - example.com.cert.pem"
     openssl will hang without it
 
-    #TODO This may not be working correctly.  Needs more testing.
+    # TODO: This may not be working correctly.  Needs more testing.
     """
     raise NotImplementedError()
     with psutil.Popen(

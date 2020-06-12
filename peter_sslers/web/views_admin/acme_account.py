@@ -288,11 +288,9 @@ class View_New(Handler):
 
 
 class View_Focus(Handler):
-    def _focus(self, eagerload_web=False):
+    def _focus(self):
         dbAcmeAccount = lib_db.get.get__AcmeAccount__by_id(
-            self.request.api_context,
-            self.request.matchdict["id"],
-            eagerload_web=eagerload_web,
+            self.request.api_context, self.request.matchdict["id"],
         )
         if not dbAcmeAccount:
             raise HTTPNotFound("the key was not found")
@@ -311,7 +309,7 @@ class View_Focus(Handler):
     )
     @view_config(route_name="admin:acme_account:focus|json", renderer="json")
     def focus(self):
-        dbAcmeAccount = self._focus(eagerload_web=True)
+        dbAcmeAccount = self._focus()
         if self.request.wants_json:
             _prefix = "%s" % (self._focus_url)
             return {
@@ -357,7 +355,7 @@ class View_Focus(Handler):
 
     @view_config(route_name="admin:acme_account:focus:config|json", renderer="json")
     def focus_config_json(self):
-        dbAcmeAccount = self._focus(eagerload_web=True)
+        dbAcmeAccount = self._focus()
         return {
             "id": dbAcmeAccount.id,
             "is_active": dbAcmeAccount.is_active,
@@ -567,7 +565,7 @@ class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_account:focus:edit")
     @view_config(route_name="admin:acme_account:focus:edit|json", renderer="json")
     def focus_edit(self):
-        dbAcmeAccount = self._focus(eagerload_web=True)
+        dbAcmeAccount = self._focus()
         if self.request.method == "POST":
             return self._focus_edit__submit()
         return self._focus_edit__print()

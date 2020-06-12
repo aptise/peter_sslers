@@ -217,20 +217,20 @@
         <thead>
             <tr>
                 <th>AcmeAuthorization</th>
-                <th>AcmeChallenge</th>
+                <th>AcmeChallenge http-01</th>
                 <th>Domain</th>
                 <th>Authorization Status</th>
                 <th>Authorization Updated</th>
-                <th>Challenge Status</th>
-                <th>Challenge Updated</th>
-                <th>Challenge Keyauthorization</th>
+                <th>Challenge Status (http-01)</th>
+                <th>Challenge Updated (http-01)</th>
+                <th>Challenge Keyauthorization (http-01)</th>
             </tr>
         </thead>
         <tbody>
             % for to_acme_authorization in AcmeOrder.to_acme_authorizations:
                 <%
                     AcmeAuthorization = to_acme_authorization.acme_authorization
-                    AcmeChallenge = AcmeAuthorization.acme_challenge_http01
+                    AcmeChallenge_http01 = AcmeAuthorization.acme_challenge_http_01
                 %>
                 <tr>
                     <td>
@@ -241,9 +241,9 @@
                     </td>
                     <td>
                         % if AcmeChallenge:
-                            <a href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}" class="label label-info">
+                            <a href="${admin_prefix}/acme-challenge/${AcmeChallenge_http01.id}" class="label label-info">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeChallenge-${AcmeChallenge.id}
+                                AcmeChallenge-${AcmeChallenge_http01.id}
                             </a>
                         % endif
                     </td>
@@ -263,18 +263,18 @@
                         <timestamp>${AcmeAuthorization.timestamp_updated or ''}</timestamp>
                     </td>
                     <td>
-                        % if AcmeChallenge:
-                            <code>${AcmeChallenge.acme_status_challenge or ''}</code>
+                        % if AcmeChallenge_http01:
+                            <code>${AcmeChallenge_http01.acme_status_challenge or ''}</code>
                         % endif
                     </td>
                     <td>
-                        % if AcmeChallenge:
-                            <timestamp>${AcmeChallenge.timestamp_updated or ''}</timestamp>
+                        % if AcmeChallenge_http01:
+                            <timestamp>${AcmeChallenge_http01.timestamp_updated or ''}</timestamp>
                         % endif
                     </td>
                     <td>
-                        % if AcmeChallenge:
-                            <code>${AcmeChallenge.keyauthorization or ''}</code>
+                        % if AcmeChallenge_http01:
+                            <code>${AcmeChallenge_http01.keyauthorization or ''}</code>
                         % endif
                     </td>
                 </tr>
@@ -289,6 +289,9 @@
         <thead>
             <tr>
                 <th>id</th>
+                % if perspective != "AcmeAuthorization":
+                    <th>Acme Authorization</th>
+                % endif
                 <th>timestamp_created</th>
                 <th>acme_challenge_type</th>
                 <th>status</th>
@@ -303,6 +306,15 @@
                 <td><a class="label label-info" href="${admin_prefix}/acme-challenge/${item.id}">
                     <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                     AcmeChallenge-${item.id}</a></td>
+                % if perspective != "AcmeAuthorization":
+                    <td>
+                        % if item.acme_authorization_id:
+                            <a class="label label-info" href="${admin_prefix}/acme-authorization/${item.acme_authorization_id}">
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                AcmeAuthorization-${item.acme_authorization_id}</a>
+                        % endif
+                    </td>
+                % endif
                 <td><timestamp>${item.timestamp_created}</timestamp></td>
                 <td><span class="label label-default">${item.acme_challenge_type}</span></td>
                 <td><code>${item.acme_status_challenge}</code></td>
