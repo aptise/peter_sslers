@@ -1,0 +1,30 @@
+/usr/local/bin/openssl genrsa -out account.key 4096
+
+CHANGES TO acme-tiny
+
+import ssl
++++++++++
+import ssl
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+DEFAULT_CA = "https://127.0.0.1:14000"
+DEFAULT_DIRECTORY_URL = "https://127.0.0.1:14000/dir"
+
+
+replace the urlopen
++-+-+-+-
+
+            resp = urlopen(Request(url, data=data, headers={"Content-Type": "application/jose+json", "User-Agent": "acme-tiny"}, ), context=ssl_context)
+
+
+restrict out the filecheck
+------
+
+        # check that the file is in place
+        if False:
+
+restrict out the challenge submit, as it might not be pending to pebble
+------
+        if challenge["status"] == "pending":
+            # say the challenge is done
