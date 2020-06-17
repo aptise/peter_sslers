@@ -35,4 +35,5 @@ IMPORTANT
 ------------
 
 	see https://github.com/letsencrypt/pebble/issues/233
+	see https://github.com/letsencrypt/pebble/issues/304
 	

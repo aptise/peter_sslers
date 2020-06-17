@@ -21,6 +21,6 @@ ACME-v2 does not support this
 # ==============================================================================
 
 /usr/local/bin/openssl genrsa -out privkey.pem 1024
-/usr/local/bin/openssl req -new -sha256 -key privkey.pem -subj "/CN=a.example.com," -addext "subjectAltName = DNS:b.example.com, DNS:c.example.com, DNS:d.example.com" > csr.pem
+/usr/local/bin/openssl req -new -sha256 -key privkey.pem -subj "/CN=a.example.com" -addext "subjectAltName = DNS:b.example.com, DNS:c.example.com, DNS:d.example.com" > csr.pem
 
 acme-tiny --account-key ../_support/account.key --csr ./csr.pem --acme-dir ../_support/_challenges > ./cert.pem
