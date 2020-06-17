@@ -1,8 +1,16 @@
 pkey generated: openssl 1.1.1g
 csr generated: openssl 1.1.1g
-domains: example.com as a SAN, NO DOMAIN IN THE SUBJECT
+csr domains:
+	-subject: /
+	-san: a.example.com, b.example.com, c.example.com, d.example.com
+cert domains:
+	-all: a.example.com, b.example.com, c.example.com, d.example.com
+	-subject: a.example.com
+	-san: a.example.com, b.example.com, c.example.com, d.example.com
 
 # ==============================================================================
 
 /usr/local/bin/openssl genrsa -out privkey.pem 1024
 /usr/local/bin/openssl req -new -sha256 -key privkey.pem -subj "/" -addext "subjectAltName = DNS:a.example.com, DNS:b.example.com, DNS:c.example.com, DNS:d.example.com" > csr.pem
+
+acme-tiny --account-key ../_support/account.key --csr ./csr.pem --acme-dir ../_support/_challenges > ./cert.pem

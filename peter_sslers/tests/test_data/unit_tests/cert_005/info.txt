@@ -1,13 +1,12 @@
 pkey generated: openssl 1.1.1g
 csr generated: openssl 1.1.1g
 csr domains:
-	-subject: example.com
-	-san:
-
+	-subject: a.example.com
+	-san: b.example.com, c.example.com, d.example.com
 cert domains:
-	-all:
-	-subject:
-	-san:
+	-all: a.example.com, b.example.com, c.example.com, d.example.com
+	-subject: a.example.com
+	-san: a.example.com, b.example.com, c.example.com, d.example.com
 
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -19,14 +18,9 @@ ACME-v2 does not support this
 
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
 # ==============================================================================
 
-
 /usr/local/bin/openssl genrsa -out privkey.pem 1024
-/usr/local/bin/openssl req -new -sha256 -key privkey.pem -subj "/CN=example.com" > csr.pem
+/usr/local/bin/openssl req -new -sha256 -key privkey.pem -subj "/CN=a.example.com," -addext "subjectAltName = DNS:b.example.com, DNS:c.example.com, DNS:d.example.com" > csr.pem
 
 acme-tiny --account-key ../_support/account.key --csr ./csr.pem --acme-dir ../_support/_challenges > ./cert.pem
-
-
-

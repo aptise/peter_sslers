@@ -28,3 +28,11 @@ restrict out the challenge submit, as it might not be pending to pebble
 ------
         if challenge["status"] == "pending":
             # say the challenge is done
+
+
+------------
+IMPORTANT
+------------
+
+	see https://github.com/letsencrypt/pebble/issues/233
+	

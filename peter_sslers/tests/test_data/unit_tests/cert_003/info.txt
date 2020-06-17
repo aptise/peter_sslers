@@ -1,6 +1,14 @@
 pkey generated: openssl 1.1.1g
 csr generated: openssl 1.1.1g
-domains: example.com as a SAN, NO DOMAIN IN THE SUBJECT
+csr domains:
+	-all: example.com
+	-subject: /
+	-san: example.com
+
+cert domains:
+	-all: example.com
+	-subject: example.com
+	-san: example.com
 
 # ==============================================================================
 

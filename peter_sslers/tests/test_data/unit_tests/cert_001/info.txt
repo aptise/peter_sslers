@@ -1,3 +1,6 @@
 pkey generated: peter_sslers
 csr generated: peter_sslers
-domains: a.example.com, b.example.com, c.example.com, d.example.com
+cert domains:
+	-all: a.example.com, b.example.com, c.example.com, d.example.com
+	-subject: a.example.com
+	-san: a.example.com, b.example.com, c.example.com, d.example.com
