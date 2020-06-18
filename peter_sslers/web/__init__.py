@@ -31,6 +31,13 @@ from . import models
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def header_tween_factory(handler, registry):
+    def header_tween(request):
+        response = handler(request)
+        response.headers['X-Peter-SSLers'] = "production"
+        return response
+    return header_tween
+
 def add_renderer_globals(event):
     """sticks the admin_prefix into the renderer's topline namespace"""
     event["admin_prefix"] = event["request"].registry.settings["app_settings"][
@@ -81,6 +88,7 @@ def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
     config = Configurator(settings=settings)
+    config.add_tween('.header_tween_factory')
     config.include("pyramid_mako")
     config.include("pyramid_formencode_classic")
     # config.add_static_view('static', 'static', cache_max_age=3600)

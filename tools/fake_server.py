@@ -27,6 +27,14 @@ from pyramid.response import Response
 # ==============================================================================
 
 
+def header_tween_factory(handler, registry):
+    def header_tween(request):
+        response = handler(request)
+        response.headers['X-Peter-SSLers'] = "fakeserver"
+        return response
+    return header_tween
+    
+
 def hello_world(request):
     print("Incoming request")
     return Response("<body><h1>Hello World!</h1></body>")
@@ -54,6 +62,7 @@ def admin(request):
 if __name__ == "__main__":
     print("running test server...")
     config = Configurator()
+    config.add_tween('.header_tween_factory')
     config.add_route("hello", "/")
     config.add_route("public_challenge", "/.well-known/acme-challenge/{challenge}")
     config.add_route("public_whoami", "/.well-known/public/whoami")

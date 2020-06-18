@@ -33,6 +33,8 @@ requires = [
 
 tests_require = [
     "certbot",
+    "pycrypto",
+    "jwt",
 ]
 
 setup(

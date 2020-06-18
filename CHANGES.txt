@@ -47,6 +47,10 @@
 - consolidate `standard_error_display` into `handle_querystring_result`
 - sketching out some acme-dns support
 - add a certbot compatibilty zipfile export for each certificate
+- lots of unit tests
+- autodetect cryptography modules; fallback onto them instead of openssl if possible
+- generic support for non-http01 challenges. they are not triggered, but are tracked.
+- add "x-Peter-SSLers"
 
 
 

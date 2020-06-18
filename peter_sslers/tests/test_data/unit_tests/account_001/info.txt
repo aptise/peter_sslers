@@ -1,0 +1,4 @@
+mkdir ~/letsencrypt-alt
+sudo certbot register --config-dir=~/letsencrypt-alt --server=https://acme-staging-v02.api.letsencrypt.org/directory --register-unsafely-without-email
+
+acme-staging-v02.api.letsencrypt.org

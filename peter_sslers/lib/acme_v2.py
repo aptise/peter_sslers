@@ -212,6 +212,7 @@ def account_key__parse(account_key_path=None):
     :param account_key_path: (required) the filepath to a PEM encoded RSA account key file.
     """
     log.info("acme_v2.account_key__parse(")
+    # todo: leverage crypto
     with psutil.Popen(
         [cert_utils.openssl_path, "rsa", "-in", account_key_path, "-noout", "-text",],
         stdin=subprocess.PIPE,
@@ -343,6 +344,7 @@ class AuthenticatedUser(object):
         )
         protected64 = _b64(json.dumps(protected).encode("utf8"))
         protected_input = "{0}.{1}".format(protected64, payload64).encode("utf8")
+        # TODO: leverage crypto
         with psutil.Popen(
             [
                 cert_utils.openssl_path,
@@ -831,6 +833,7 @@ class AuthenticatedUser(object):
             )
 
         # convert the certificate to a DER
+        # todo: leverage crypto
         with psutil.Popen(
             [cert_utils.openssl_path, "req", "-in", csr_path, "-outform", "DER"],
             stdout=subprocess.PIPE,

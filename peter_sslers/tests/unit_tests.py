@@ -10,8 +10,12 @@ from io import open  # overwrite `open` in Python2
 
 # pypi
 from acme import crypto_util as acme_crypto_util
-from certbot import crypto_util
-from OpenSSL import crypto
+from certbot import crypto_util as certbot_crypto_util
+# from Crypto.Util import asn1 as crypto_util_asn1
+from OpenSSL import crypto as openssl_crypto
+from cryptography.hazmat.primitives import serialization as cryptography_serialization
+import jwt
+import cryptography
 
 # local
 from ._utils import AppTestCore
@@ -32,49 +36,107 @@ class UnitTest_CertUtils(unittest.TestCase):
     """python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils"""
 
     _data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data")
+    _account_sets = {
+        "001": {"letsencrypt": True, "pem": True,},
+    }
     _cert_sets = {
         "001": {
-                "csr.domains.all": ["a.example.com", "b.example.com", "c.example.com", "d.example.com",],
-                "csr.domains.subject": None,
-                "csr.domains.san": ["a.example.com", "b.example.com", "c.example.com", "d.example.com",],
-                "cert": True,
-                "cert.domains.all": ["a.example.com", "b.example.com", "c.example.com", "d.example.com",],
-                "cert.domains.subject": "a.example.com",
-                "cert.domains.san": ["a.example.com", "b.example.com", "c.example.com", "d.example.com",],
-                },
+            "csr.domains.all": [
+                "a.example.com",
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
+            "csr.domains.subject": None,
+            "csr.domains.san": [
+                "a.example.com",
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
+            "cert": True,
+            "cert.domains.all": [
+                "a.example.com",
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
+            "cert.domains.subject": "a.example.com",
+            "cert.domains.san": [
+                "a.example.com",
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
+            "pubkey_modulus_md5": "052dec9ebfb5036c7aa6dd61888765b6",
+            "cert.notAfter": "2025-06-16 20:19:30",  # "Jun 16 20:19:30 2025 GMT",
+            "cert.notBefore": "2020-06-16 20:19:30",
+        },
         "002": {
-                "csr.domains.all": ["example.com",],
-                "csr.domains.subject": "example.com",
-                "csr.domains.san": [],
-                "cert": False,
-                },
+            "csr.domains.all": ["example.com",],
+            "csr.domains.subject": "example.com",
+            "csr.domains.san": [],
+            "cert": False,
+            "pubkey_modulus_md5": "c25a298dc7de8f855453a6ed8be8bb5f",
+        },
         "003": {
-                "csr.domains.all": ["example.com",],
-                "csr.domains.subject": None,
-                "csr.domains.san": ["example.com"],
-                "cert": True,
-                "cert.domains.all": ["example.com",],
-                "cert.domains.subject": "example.com",
-                "cert.domains.san": ["example.com",],
-                },
+            "csr.domains.all": ["example.com",],
+            "csr.domains.subject": None,
+            "csr.domains.san": ["example.com"],
+            "cert": True,
+            "cert.domains.all": ["example.com",],
+            "cert.domains.subject": "example.com",
+            "cert.domains.san": ["example.com",],
+            "pubkey_modulus_md5": "f625ac6f399f90867cbf6a4e5dd8fc9e",
+            "cert.notAfter": "2025-06-16 22:06:46",  # "Jun 16 22:06:46 2025 GMT",
+            "cert.notBefore": "2020-06-16 22:06:46",
+        },
         "004": {
-                "csr.domains.all": ["a.example.com", "b.example.com", "c.example.com", "d.example.com",],
-                "csr.domains.subject": None,
-                "csr.domains.san": ["a.example.com", "b.example.com", "c.example.com", "d.example.com",],
-                "cert": True,
-                "cert.domains.all": ["a.example.com", "b.example.com", "c.example.com", "d.example.com",],
-                "cert.domains.subject": "a.example.com",
-                "cert.domains.san": ["a.example.com", "b.example.com", "c.example.com", "d.example.com",],
-                },
+            "csr.domains.all": [
+                "a.example.com",
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
+            "csr.domains.subject": None,
+            "csr.domains.san": [
+                "a.example.com",
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
+            "cert": True,
+            "cert.domains.all": [
+                "a.example.com",
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
+            "cert.domains.subject": "a.example.com",
+            "cert.domains.san": [
+                "a.example.com",
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
+            "pubkey_modulus_md5": "797ba616e62dedcb014a7a37bcde3fdf",
+            "cert.notAfter": "2025-06-16 22:07:02",  # "Jun 16 22:07:02 2025 GMT",
+            "cert.notBefore": "2020-06-16 22:07:02",
+        },
         "005": {
-                "csr.domains.all": ["a.example.com", "b.example.com", "c.example.com", "d.example.com",],
-                "csr.domains.subject": "a.example.com",
-                "csr.domains.san": ["b.example.com", "c.example.com", "d.example.com",],
-                "cert": False,
-                },
-    
+            "csr.domains.all": [
+                "a.example.com",
+                "b.example.com",
+                "c.example.com",
+                "d.example.com",
+            ],
+            "csr.domains.subject": "a.example.com",
+            "csr.domains.san": ["b.example.com", "c.example.com", "d.example.com",],
+            "cert": False,
+            "pubkey_modulus_md5": "f4614ec52f34066ce074798cdc494d74",
+        },
     }
-    
+
     def _filepath_testfile(self, filename):
         return os.path.join(self._data_root, filename)
 
@@ -87,34 +149,42 @@ class UnitTest_CertUtils(unittest.TestCase):
         """
         python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert_domains
         """
-        
-        for cert_set in self._cert_sets.keys():
+
+        for cert_set in sorted(self._cert_sets.keys()):
             if not self._cert_sets[cert_set]["cert"]:
                 continue
             cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
             cert_pem_filepath = self._filepath_testfile(cert_filename)
             cert_pem = self._filedata_testfile(cert_filename)
-            cert_domains = cert_utils.parse_cert_domains(cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath)
-            self.assertEqual(cert_domains, self._cert_sets[cert_set]["cert.domains.all"])
+            cert_domains = cert_utils.parse_cert_domains(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(
+                cert_domains, self._cert_sets[cert_set]["cert.domains.all"]
+            )
 
     def test__parse_csr_domains(self):
         """
         python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_csr_domains
         """
-        
+
         for cert_set in sorted(self._cert_sets.keys()):
             csr_filename = "unit_tests/cert_%s/csr.pem" % cert_set
             csr_pem_filepath = self._filepath_testfile(csr_filename)
             csr_pem = self._filedata_testfile(csr_filename)
-            csr_domains = cert_utils.parse_csr_domains(csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath, submitted_domain_names=self._cert_sets[cert_set]["csr.domains.all"])
+            csr_domains = cert_utils.parse_csr_domains(
+                csr_pem=csr_pem,
+                csr_pem_filepath=csr_pem_filepath,
+                submitted_domain_names=self._cert_sets[cert_set]["csr.domains.all"],
+            )
             self.assertEqual(csr_domains, self._cert_sets[cert_set]["csr.domains.all"])
 
     def test__validate_csr(self):
         """
         python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__validate_csr
         """
-        
-        for cert_set in self._cert_sets.keys():
+
+        for cert_set in sorted(self._cert_sets.keys()):
             csr_filename = "unit_tests/cert_%s/csr.pem" % cert_set
             csr_pem_filepath = self._filepath_testfile(csr_filename)
             csr_pem = self._filedata_testfile(csr_filename)
@@ -124,8 +194,8 @@ class UnitTest_CertUtils(unittest.TestCase):
         """
         python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__validate_key
         """
-        
-        for cert_set in self._cert_sets.keys():
+
+        for cert_set in sorted(self._cert_sets.keys()):
             key_filename = "unit_tests/cert_%s/privkey.pem" % cert_set
             key_pem_filepath = self._filepath_testfile(key_filename)
             key_pem = self._filedata_testfile(key_filename)
@@ -135,21 +205,23 @@ class UnitTest_CertUtils(unittest.TestCase):
         """
         python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__validate_cert
         """
-        
-        for cert_set in self._cert_sets.keys():
+
+        for cert_set in sorted(self._cert_sets.keys()):
             if not self._cert_sets[cert_set]["cert"]:
                 continue
             cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
             cert_pem_filepath = self._filepath_testfile(cert_filename)
             cert_pem = self._filedata_testfile(cert_filename)
-            cert_utils.validate_cert(cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath)
+            cert_utils.validate_cert(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
 
     def test__make_csr(self):
         """
         python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__make_csr
         """
-        
-        for cert_set in self._cert_sets.keys():
+
+        for cert_set in sorted(self._cert_sets.keys()):
             key_filename = "unit_tests/cert_%s/privkey.pem" % cert_set
             key_pem_filepath = self._filepath_testfile(key_filename)
             key_pem = self._filedata_testfile(key_filename)
@@ -159,20 +231,177 @@ class UnitTest_CertUtils(unittest.TestCase):
                 key_pem_filepath=key_pem_filepath,
             )
 
+    def test__modulus_md5_key(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__modulus_md5_key
+        """
+
+        for cert_set in sorted(self._cert_sets.keys()):
+            key_filename = "unit_tests/cert_%s/privkey.pem" % cert_set
+            key_pem_filepath = self._filepath_testfile(key_filename)
+            key_pem = self._filedata_testfile(key_filename)
+            modulus_md5 = cert_utils.modulus_md5_key(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            self.assertEqual(
+                modulus_md5, self._cert_sets[cert_set]["pubkey_modulus_md5"]
+            )
+
+    def test__modulus_md5_csr(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__modulus_md5_csr
+        """
+
+        for cert_set in sorted(self._cert_sets.keys()):
+            csr_filename = "unit_tests/cert_%s/csr.pem" % cert_set
+            csr_pem_filepath = self._filepath_testfile(csr_filename)
+            csr_pem = self._filedata_testfile(csr_filename)
+            modulus_md5 = cert_utils.modulus_md5_csr(
+                csr_pem=csr_pem, csr_pem_filepath=csr_pem_filepath
+            )
+            self.assertEqual(
+                modulus_md5, self._cert_sets[cert_set]["pubkey_modulus_md5"]
+            )
+
+    def test__modulus_md5_cert(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__modulus_md5_cert
+        """
+
+        for cert_set in sorted(self._cert_sets.keys()):
+            if not self._cert_sets[cert_set]["cert"]:
+                continue
+            cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
+            modulus_md5 = cert_utils.modulus_md5_cert(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(
+                modulus_md5, self._cert_sets[cert_set]["pubkey_modulus_md5"]
+            )
+
+    def test__parse_cert_enddate(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert_enddate
+        """
+
+        for cert_set in sorted(self._cert_sets.keys()):
+            if not self._cert_sets[cert_set]["cert"]:
+                continue
+            cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
+            cert_enddate = cert_utils.parse_cert_enddate(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(
+                str(cert_enddate), self._cert_sets[cert_set]["cert.notAfter"]
+            )
+
+    def test__parse_cert_startdate(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert_startdate
+        """
+
+        for cert_set in sorted(self._cert_sets.keys()):
+            if not self._cert_sets[cert_set]["cert"]:
+                continue
+            cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
+            cert_startdate = cert_utils.parse_cert_startdate(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+            self.assertEqual(
+                str(cert_startdate), self._cert_sets[cert_set]["cert.notBefore"]
+            )
+
+    def test__parse_key(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_key
+
+        This is a debugging display function. The output is not guaranteed across installations.
+        """
+
+        for cert_set in sorted(self._cert_sets.keys()):
+            key_filename = "unit_tests/cert_%s/privkey.pem" % cert_set
+            key_pem_filepath = self._filepath_testfile(key_filename)
+            key_pem = self._filedata_testfile(key_filename)
+            rval = cert_utils.parse_key(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+
+    def test__parse_cert(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert
+
+        This is a debugging display function. The output is not guaranteed across installations.
+        """
+
+        for cert_set in sorted(self._cert_sets.keys()):
+            if not self._cert_sets[cert_set]["cert"]:
+                continue
+            cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
+            rval = cert_utils.parse_cert(
+                cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
+            )
+
+    def test__convert_lejson_to_pem(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__convert_lejson_to_pem
+        """
+        for account_set in sorted(self._account_sets.keys()):
+            if not self._account_sets[account_set]["letsencrypt"]:
+                continue
+            if not self._account_sets[account_set]["pem"]:
+                raise ValueError("need pem")
+
+            # load the json
+            private_key_jsons_filename = (
+                "unit_tests/account_%s/private_key.json" % account_set
+            )
+            private_key_jsons_filepath = self._filepath_testfile(
+                private_key_jsons_filename
+            )
+            private_key_jsons = self._filedata_testfile(private_key_jsons_filepath)
+
+            # load the pem
+            private_key_pem_filename = (
+                "unit_tests/account_%s/private_key.pem" % account_set
+            )
+            private_key_pem_filepath = self._filepath_testfile(private_key_pem_filename)
+            private_key_pem = self._filedata_testfile(private_key_pem_filepath)
+
+            # convert
+            rval = cert_utils.convert_lejson_to_pem(private_key_jsons)
+
+            # compare
+            self.assertEqual(rval, private_key_pem)
+
 
 class UnitTest_CertUtils_fallback(UnitTest_CertUtils):
     """python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils_fallback"""
 
     def setUp(self):
         cert_utils.acme_crypto_util = None
-        cert_utils.crypto = None
-        cert_utils.crypto_util = None
+        cert_utils.openssl_crypto = None
+        cert_utils.certbot_crypto_util = None
+        # cert_utils.crypto_util_asn1 = None
+        cert_utils.jwt = None
+        cert_utils.cryptography_serialization = None
+        cryptography = None
 
     def tearDown(self):
         cert_utils.acme_crypto_util = acme_crypto_util
-        cert_utils.crypto = crypto
-        cert_utils.crypto_util = crypto_util
-
+        cert_utils.openssl_crypto = openssl_crypto
+        cert_utils.certbot_crypto_util = certbot_crypto_util
+        # cert_utils.crypto_util_asn1 = crypto_util_asn1
+        cert_utils.jwt = jwt
+        cert_utils.cryptography_serialization = cryptography_serialization
+        cert_utils.cryptography = cryptography
 
 
 class UnitTest_OpenSSL(AppTestCore):
@@ -180,14 +409,14 @@ class UnitTest_OpenSSL(AppTestCore):
 
     def test_modulus_PrivateKey(self):
         for pkey_set_id, set_data in TEST_FILES["PrivateKey"].items():
-            pem_filepath = self._filepath_testfile(set_data["file"])
+            key_pem_filepath = self._filepath_testfile(set_data["file"])
+            key_pem = self._filedata_testfile(key_pem_filepath)
             _computed_modulus_md5 = cert_utils.modulus_md5_key(
-                key_pem=dbPrivateKey.key_pem,
-                key_pem_filepath=pem_filepath,
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath,
             )
             _expected_modulus_md5 = set_data["key_pem_modulus_md5"]
             assert _computed_modulus_md5 == _expected_modulus_md5
-            _computed_md5 = utils.md5_text(self._filedata_testfile(pem_filepath))
+            _computed_md5 = utils.md5_text(self._filedata_testfile(key_pem_filepath))
             _expected_md5 = set_data["key_pem_md5"]
             assert _computed_md5 == _expected_md5
 

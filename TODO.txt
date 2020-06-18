@@ -7,30 +7,18 @@ Almost done:
 These sections still need to be redone:
 - queue certificates - proces
 - automatic renewal - update to create queues
-
 - creating queue-certificates/freeform (domains)
-
-
 order processing
 	- if a challenge fails, make the order invalid OR sync the order to invalid
-
 AcmeOrder:
     dbQueueCertificate__of:
     dbServerCertificate__renewal_of:
-
 certificate renewal
 	- object should show if we can renew with account key; or maybe not. just allow it to be renewed
 	- better programmatic work is needed when cycling a multi-process request
-
 Remove "Foo"	
 remove todo
-ensure csr has the subject in the Sans
-
-
-
-
-- track dns-01 challenges
-	
+ensure csr has the subject in the SAN
 	
 	
 asap tasks
@@ -113,7 +101,6 @@ AcmeAccountKey.letsencrypt_data - audit. refresh? log?
 * migrate cert_subject hash and tracking to SAN
 * log full actual results; if a queue fails log that data too
 	this happens to standard python logging
-* CSR should have domain[0] as subject if there are multiple domains | note: LetsEncrypt does this at the server level?
 * associate all objects to one another when imported; only some objects are currently associated
 * build authorization deactivate tool
 * limit pending request search to 7 days
@@ -132,8 +119,5 @@ deferred tasks
 
 Long Term Questions:
 ==================================
-* decouple from openssl and use pure-python methods
-	- using the openssl was initial decision to have fewest python requirements possible
-	- if that happens, should requests be used?
 * remove pyramidtm? migrate to autocommit?  
 

@@ -191,7 +191,7 @@ def getcreate__AcmeAccount(
             )
         acme_account_provider_id = dbAcmeAccountProvider.id
 
-        key_pem = cert_utils.convert_lejson(le_pkey_jsons)
+        key_pem = cert_utils.convert_lejson_to_pem(le_pkey_jsons)
         key_pem = cert_utils.cleanup_pem_text(key_pem)
         key_pem_md5 = utils.md5_text(key_pem)
 

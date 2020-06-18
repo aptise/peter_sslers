@@ -4,7 +4,7 @@ import logging
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 # stdlib
@@ -13,6 +13,7 @@ import base64
 import binascii
 import json
 import re
+import hashlib
 import subprocess
 import sys
 import tempfile
@@ -25,12 +26,24 @@ import six
 
 try:
     from acme import crypto_util as acme_crypto_util
-    from certbot import crypto_util
-    from OpenSSL import crypto
+    from certbot import crypto_util as certbot_crypto_util
+
+    # from Crypto.Util import crypto_util_asn1
+    from OpenSSL import crypto as openssl_crypto
+    from cryptography.hazmat.primitives import (
+        serialization as cryptography_serialization,
+    )
+    import jwt
+    import cryptography
+
 except ImportError as exc:
     acme_crypto_util = None
-    crypto_util = None
-    crypto = None
+    certbot_crypto_util = None
+    # crypto_util_asn1 = None
+    openssl_crypto = None
+    jwt = None
+    cryptography_serialization = None
+    cryptography = None
 
 # localapp
 from . import errors
@@ -109,11 +122,9 @@ def _write_pem_tempfile(tmpfile_pem, pem_data):
     tmpfile_pem.seek(0)
 
 
-def make_csr(
-    domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker=None
-):
+def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker=None):
     """
-    This routine will use certbot if available.
+    This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
     log.info("make_csr >")
@@ -128,7 +139,7 @@ def make_csr(
     if acme_crypto_util:
         try:
             csr_text = acme_crypto_util.make_csr(key_pem, domain_names)
-        except Exceptions as exc:
+        except Exception as exc:
             raise errors.OpenSslError_CsrGeneration(exc)
         return csr_text
 
@@ -271,12 +282,12 @@ def parse_cert_domains(cert_pem=None, cert_pem_filepath=None):
         * san (subjectAlternateName)
         * subject (commonName)
 
-    This routine will use certbot if available.
+    This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
     log.info("parse_cert_domains >")
-    if crypto_util:
-        all_domains = crypto_util.get_names_from_cert(cert_pem)
+    if certbot_crypto_util:
+        all_domains = certbot_crypto_util.get_names_from_cert(cert_pem)
         return all_domains
 
     log.debug(".parse_cert_domains > openssl fallback")
@@ -320,16 +331,16 @@ def parse_csr_domains(csr_pem=None, csr_pem_filepath=None, submitted_domain_name
     """
     checks found names against `submitted_domain_names`
 
-    This routine will use certbot if available.
+    This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
 
     `submitted_domain_names` should be all lowecase
     """
     log.info("parse_csr_domains >")
-    if crypto and crypto_util:
-        load_func = crypto.load_certificate_request
-        found_domains = crypto_util._get_names_from_cert_or_req(
-            csr_pem, load_func, typ=crypto.FILETYPE_PEM
+    if openssl_crypto and certbot_crypto_util:
+        load_func = openssl_crypto.load_certificate_request
+        found_domains = certbot_crypto_util._get_names_from_cert_or_req(
+            csr_pem, load_func, typ=openssl_crypto.FILETYPE_PEM
         )
     else:
         log.debug(".parse_csr_domains > openssl fallback")
@@ -387,12 +398,12 @@ def validate_key(key_pem=None, key_pem_filepath=None):
     """
     raises an error if invalid
 
-    This routine will use certbot if available.
+    This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
     log.info("validate_key >")
-    if crypto_util:
-        data = crypto_util.valid_privkey(key_pem)
+    if certbot_crypto_util:
+        data = certbot_crypto_util.valid_privkey(key_pem)
         if not data:
             raise errors.OpenSslError_InvalidKey()
         return True
@@ -416,12 +427,12 @@ def validate_csr(csr_pem=None, csr_pem_filepath=None):
     """
     raises an error if invalid
 
-    This routine will use certbot if available.
+    This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
     log.info("validate_csr >")
-    if crypto_util:
-        data = crypto_util.valid_csr(csr_pem)
+    if certbot_crypto_util:
+        data = certbot_crypto_util.valid_csr(csr_pem)
         if not data:
             raise errors.OpenSslError_InvalidCSR()
         return True
@@ -445,13 +456,15 @@ def validate_cert(cert_pem=None, cert_pem_filepath=None):
     """
     raises an error if invalid
 
-    This routine will use certbot if available.
+    This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
     log.info("validate_cert >")
-    if crypto:
+    if openssl_crypto:
         try:
-            data = crypto.load_certificate(crypto.FILETYPE_PEM, cert_pem)
+            data = openssl_crypto.load_certificate(
+                openssl_crypto.FILETYPE_PEM, cert_pem
+            )
         except Exception as exc:
             raise errors.OpenSslError_InvalidCertificate(exc)
         if not data:
@@ -482,7 +495,7 @@ def validate_cert(cert_pem=None, cert_pem_filepath=None):
     return True
 
 
-def _cleanup_md5(data):
+def _cleanup_openssl_md5(data):
     """
     some versions of openssl handle the md5 as:
         '1231231231'
@@ -502,64 +515,101 @@ def _cleanup_md5(data):
     return data
 
 
+def _cleanup_openssl_modulus(data):
+    data = data.strip()
+    if data[:8] == "Modulus=":
+        data = data[8:]
+    return data
+
+
 def modulus_md5_key(key_pem=None, key_pem_filepath=None):
-    # openssl rsa -noout -modulus -in {KEY} | openssl md5
-    # TODO - leverage crypto
-    with psutil.Popen(
-        [openssl_path, "rsa", "-noout", "-modulus", "-in", key_pem_filepath],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc_modulus:
+    """
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("modulus_md5_key >")
+    if openssl_crypto:
+        privkey = openssl_crypto.load_privatekey(openssl_crypto.FILETYPE_PEM, key_pem)
+        modn = privkey.to_cryptography_key().public_key().public_numbers().n
+        data = "{:X}".format(modn)
+    else:
+        log.debug(".modulus_md5_key > openssl fallback")
+        # original code was:
+        # openssl rsa -noout -modulus -in {KEY} | openssl md5
+        # BUT
+        # that pipes into md5: "Modulus={MOD}\n"
         with psutil.Popen(
-            [openssl_path, "md5"],
-            stdin=proc_modulus.stdout,
+            [openssl_path, "rsa", "-noout", "-modulus", "-in", key_pem_filepath],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as proc_md5:
-            data, err = proc_md5.communicate()
-
-    return _cleanup_md5(data)
+        ) as proc_modulus:
+            data, err = proc_modulus.communicate()
+            data = _cleanup_openssl_modulus(data)
+    data = hashlib.md5(data).hexdigest()
+    return data
 
 
 def modulus_md5_csr(csr_pem=None, csr_pem_filepath=None):
-    # openssl req -noout -modulus -in {CSR} | openssl md5
-    # TODO - leverage crypto
-    with psutil.Popen(
-        [openssl_path, "req", "-noout", "-modulus", "-in", csr_pem_filepath],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc_modulus:
+    """
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("modulus_md5_csr >")
+    if openssl_crypto:
+        csr = openssl_crypto.load_certificate_request(
+            openssl_crypto.FILETYPE_PEM, csr_pem
+        )
+        modn = csr.get_pubkey().to_cryptography_key().public_numbers().n
+        data = "{:X}".format(modn)
+    else:
+        log.debug(".modulus_md5_csr > openssl fallback")
+        # original code was:
+        # openssl req -noout -modulus -in {CSR} | openssl md5
+        # BUT
+        # that pipes into md5: "Modulus={MOD}\n"
         with psutil.Popen(
-            [openssl_path, "md5"],
-            stdin=proc_modulus.stdout,
+            [openssl_path, "req", "-noout", "-modulus", "-in", csr_pem_filepath],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as proc_md5:
-            data, err = proc_md5.communicate()
-
-    return _cleanup_md5(data)
+        ) as proc_modulus:
+            data, err = proc_modulus.communicate()
+            data = _cleanup_openssl_modulus(data)
+    data = hashlib.md5(data).hexdigest()
+    return data
 
 
 def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
-    # TODO - leverage crypto
-    # openssl x509 -noout -modulus -in {CERT} | openssl md5
-    with psutil.Popen(
-        [openssl_path, "x509", "-noout", "-modulus", "-in", cert_pem_filepath],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc_modulus:
+    """
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("modulus_md5_cert >")
+    if openssl_crypto:
+        cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
+        modn = cert.get_pubkey().to_cryptography_key().public_numbers().n
+        data = "{:X}".format(modn)
+    else:
+        log.debug(".modulus_md5_cert > openssl fallback")
+        # original code was:
+        # openssl x509 -noout -modulus -in {CERT} | openssl md5
+        # BUT
+        # that pipes into md5: "Modulus={MOD}\n"
         with psutil.Popen(
-            [openssl_path, "md5"],
-            stdin=proc_modulus.stdout,
+            [openssl_path, "x509", "-noout", "-modulus", "-in", cert_pem_filepath],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-        ) as proc_md5:
-            data, err = proc_md5.communicate()
-    return _cleanup_md5(data)
+        ) as proc_modulus:
+            data, err = proc_modulus.communicate()
+            data = _cleanup_openssl_modulus(data)
+    data = hashlib.md5(data).hexdigest()
+    return data
 
 
 def cert_single_op__pem_filepath(pem_filepath, single_op):
     """handles a single pem operation to `openssl x509`
+
+        openssl x509 -noout -issuer -in cert.pem
+        openssl x509 -noout -issuer_hash -in cert.pem
 
         openssl x509 -noout -issuer_hash -in {CERT}
         returns the data found in
@@ -573,10 +623,6 @@ def cert_single_op__pem_filepath(pem_filepath, single_op):
                X509v3 Subject Key Identifier:
                    {VALUE}
     """
-    # todo
-    # this needs to be redone
-    # leverage crypto
-
     if single_op not in (
         "-issuer_hash",
         "-issuer",
@@ -600,17 +646,36 @@ def cert_single_op__pem_filepath(pem_filepath, single_op):
     return data
 
 
+def cert_ext__pem_filepath(pem_filepath, ext):
+    """handles a single pem operation to `openssl x509`
+        /usr/local/bin/openssl x509  -noout -ext subjectAltName -in cert.pem
+    """
+    if ext not in ("subjectAltName",):
+        raise ValueError("invalid `ext`")
+    with psutil.Popen(
+        [openssl_path, "x509", "-noout", "-ext", ext, "-in", pem_filepath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as proc:
+        data, err = proc.communicate()
+        if not data:
+            raise errors.OpenSslError_InvalidCertificate(err)
+        if six.PY3:
+            data = data.decode("utf8")
+        data = data.strip()
+    return data
+
+
 def key_single_op__pem_filepath(pem_filepath, single_op):
-    """handles a single pem operation to `openssl rsa`
+    """
+    handles a single pem operation to `openssl rsa`
 
         openssl rsa -noout -check -in {KEY}
         openssl rsa -noout -modulus -in {KEY}
         openssl rsa -noout -text -in {KEY}
 
+    THIS SHOULD NOT BE USED BY INTERNAL CODE
     """
-    # todo
-    # this needs to be redone
-    # leverage crypto
     if single_op not in ("-check", "-modulus", "-text"):
         raise ValueError("invalid `single_op`")
     with psutil.Popen(
@@ -628,44 +693,63 @@ def key_single_op__pem_filepath(pem_filepath, single_op):
 
 
 def parse_cert_enddate(cert_pem=None, cert_pem_filepath=None):
-    # todo: leverage crypto
-    # openssl x509 -enddate -noout -in {CERT}
-    with psutil.Popen(
-        [openssl_path, "x509", "-enddate", "-noout", "-in", cert_pem_filepath],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc:
-        data, err = proc.communicate()
-        if not data:
-            raise errors.OpenSslError_InvalidCertificate(err)
-        if six.PY3:
-            data = data.decode("utf8")
-        if data[:9] != "notAfter=":
-            raise errors.OpenSslError_InvalidCertificate("unexpected format")
-        data_date = data[9:]
-        date = dateutil_parser.parse(data_date)
-        date = date.replace(tzinfo=None)
+    """
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("parse_cert_enddate >")
+    if openssl_crypto:
+        cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
+        date = cert.to_cryptography().not_valid_after
+    else:
+        log.debug(".parse_cert_enddate > openssl fallback")
+
+        # openssl x509 -enddate -noout -in {CERT}
+        with psutil.Popen(
+            [openssl_path, "x509", "-enddate", "-noout", "-in", cert_pem_filepath],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if not data:
+                raise errors.OpenSslError_InvalidCertificate(err)
+            if six.PY3:
+                data = data.decode("utf8")
+            if data[:9] != "notAfter=":
+                raise errors.OpenSslError_InvalidCertificate("unexpected format")
+            data_date = data[9:]
+            date = dateutil_parser.parse(data_date)
+            date = date.replace(tzinfo=None)
     return date
 
 
 def parse_cert_startdate(cert_pem=None, cert_pem_filepath=None):
-    # todo: leverage crypto
-    # openssl x509 -startdate -noout -in {CERT}
-    with psutil.Popen(
-        [openssl_path, "x509", "-startdate", "-noout", "-in", cert_pem_filepath],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc:
-        data, err = proc.communicate()
-        if not data:
-            raise errors.OpenSslError_InvalidCertificate(err)
-        if six.PY3:
-            data = data.decode("utf8")
-        if data[:10] != "notBefore=":
-            raise errors.OpenSslError_InvalidCertificate("unexpected format")
-        data_date = data[10:]
-        date = dateutil_parser.parse(data_date)
-        date = date.replace(tzinfo=None)
+    """
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("parse_cert_startdate >")
+    if openssl_crypto:
+        cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
+        date = cert.to_cryptography().not_valid_before
+    else:
+        log.debug(".parse_cert_enddate > openssl fallback")
+        # openssl x509 -startdate -noout -in {CERT}
+        with psutil.Popen(
+            [openssl_path, "x509", "-startdate", "-noout", "-in", cert_pem_filepath],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if not data:
+                raise errors.OpenSslError_InvalidCertificate(err)
+            if six.PY3:
+                data = data.decode("utf8")
+            if data[:10] != "notBefore=":
+                raise errors.OpenSslError_InvalidCertificate("unexpected format")
+            data_date = data[10:]
+            date = dateutil_parser.parse(data_date)
+            date = date.replace(tzinfo=None)
     return date
 
 
@@ -724,20 +808,45 @@ def convert_pem_to_der(pem_data=None):
     return result
 
 
-def parse_key(key_pem=None, pem_filepath=None):
-    if not any((key_pem, pem_filepath)) or all((key_pem, pem_filepath)):
-        raise ValueError("only submit `key_pem` OR `pem_filepath`")
+def parse_key(key_pem=None, key_pem_filepath=None):
+    """
+    !!!: This is a debugging display function. The output is not guaranteed across installations.
 
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("parse_key >")
+    rval = {
+        "check": None,
+        "text": None,
+        "modulus": None,
+    }
+    if openssl_crypto and certbot_crypto_util:
+        try:
+            rval["check"] = validate_key(key_pem=key_pem)
+        except Exception as exc:
+            rval["check"] = str(exc)
+        # TODO: crypto version of `--text`
+        try:
+            _crypto_privkey = openssl_crypto.load_privatekey(
+                openssl_crypto.FILETYPE_PEM, key_pem
+            )
+            modn = _crypto_privkey.to_cryptography_key().public_key().public_numbers().n
+            modn = "{:X}".format(modn)
+            rval["modulus"] = hashlib.md5(modn).hexdigest()
+        except Exception as exc:
+            rval["modulus"] = str(exc)
+        return rval
+
+    log.debug(".parse_key > openssl fallback")
     tmpfile_pem = None
     try:
-        if not pem_filepath:
+        if not key_pem_filepath:
             tmpfile_pem = new_pem_tempfile(key_pem)
-            pem_filepath = tmpfile_pem.name
-
-        rval = {}
-        rval["modulus"] = key_single_op__pem_filepath(pem_filepath, "-modulus")
-        rval["check"] = key_single_op__pem_filepath(pem_filepath, "-check")
-        rval["text"] = key_single_op__pem_filepath(pem_filepath, "-text")
+            key_pem_filepath = tmpfile_pem.name
+        rval["check"] = key_single_op__pem_filepath(key_pem_filepath, "-check")
+        rval["text"] = key_single_op__pem_filepath(key_pem_filepath, "-text")
+        rval["modulus"] = key_single_op__pem_filepath(key_pem_filepath, "-modulus")
         return rval
     except Exception as exc:
         raise
@@ -746,59 +855,90 @@ def parse_key(key_pem=None, pem_filepath=None):
             tmpfile_pem.close()
 
 
-def parse_cert(cert_pem=None, pem_filepath=None):
-    if not any((cert_pem, pem_filepath)) or all((cert_pem, pem_filepath)):
-        raise ValueError("only submit `cert_pem` OR `pem_filepath`")
+def parse_cert(cert_pem=None, cert_pem_filepath=None):
+    """
+    !!!: This is a debugging display function. The output is not guaranteed across installations.
 
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("parse_cert >")
+    rval = {
+        "issuer": None,
+        "issuer_hash": None,
+        "subject": None,
+        "subject_hash": None,
+        "enddate": None,
+        "startdate": None,
+    }
+    if openssl_crypto:
+        cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
+
+        rval["issuer"] = "%s" % cert.get_issuer()
+        rval["subject"] = "%s" % cert.get_subject()
+        rval["enddate"] = cert.to_cryptography().not_valid_after
+        rval["startdate"] = cert.to_cryptography().not_valid_before
+        ext = cert.to_cryptography().extensions.get_extension_for_oid(
+            cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+        )
+        rval["SubjectAlternativeName"] = ext.value.get_values_for_type(
+            cryptography.x509.DNSName
+        )
+        return rval
+
+    log.debug(".parse_cert > openssl fallback")
+    global openssl_version
+    global _openssl_behavior
     tmpfile_pem = None
     try:
-        if not pem_filepath:
+        if not cert_pem_filepath:
             tmpfile_pem = new_pem_tempfile(cert_pem)
-            pem_filepath = tmpfile_pem.name
-
-        rval = {}
-        rval["issuer_hash"] = cert_single_op__pem_filepath(pem_filepath, "-issuer_hash")
-        rval["issuer"] = cert_single_op__pem_filepath(pem_filepath, "-issuer")
+            cert_pem_filepath = tmpfile_pem.name
+        rval["issuer"] = cert_single_op__pem_filepath(cert_pem_filepath, "-issuer")
+        rval["subject"] = cert_single_op__pem_filepath(cert_pem_filepath, "-subject")
+        rval["startdate"] = cert_single_op__pem_filepath(
+            cert_pem_filepath, "-startdate"
+        )
+        rval["enddate"] = cert_single_op__pem_filepath(cert_pem_filepath, "-enddate")
+        rval["issuer_hash"] = cert_single_op__pem_filepath(
+            cert_pem_filepath, "-issuer_hash"
+        )
         rval["subject_hash"] = cert_single_op__pem_filepath(
-            pem_filepath, "-subject_hash"
+            cert_pem_filepath, "-subject_hash"
         )
-        rval["subject"] = cert_single_op__pem_filepath(pem_filepath, "-subject")
-        rval["startdate"] = cert_single_op__pem_filepath(pem_filepath, "-startdate")
-        rval["enddate"] = cert_single_op__pem_filepath(pem_filepath, "-enddate")
-        rval["parse_cert_enddate"] = str(
-            parse_cert_enddate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
-        )
-        rval["parse_cert_startdate"] = str(
-            parse_cert_startdate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
-        )
+        if openssl_version is None:
+            check_openssl_version()
+        if _openssl_behavior == "b":
+            rval["SubjectAlternativeName"] = cert_ext__pem_filepath(
+                cert_pem_filepath, "subjectAltName"
+            )
+        else:
+            with psutil.Popen(
+                [openssl_path, "x509", "-text", "-noout", "-in", cert_pem_filepath],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as proc_text:
+                with psutil.Popen(
+                    ["grep", "DNS"],
+                    stdin=proc_text.stdout,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                ) as proc_grep:
+                    data, err = proc_text.communicate()
+                    rval["SubjectAlternativeName"] = data
 
+        # rval["parse_cert_enddate"] = str(
+        #    parse_cert_enddate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
+        # )
+        # rval["parse_cert_startdate"] = str(
+        #    parse_cert_startdate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
+        # )
         return rval
     except Exception as exc:
         raise
     finally:
         if tmpfile_pem:
             tmpfile_pem.close()
-
-
-def parse_cert__dates(cert_pem=None, pem_filepath=None):
-    if not any((cert_pem, pem_filepath)) or all((cert_pem, pem_filepath)):
-        raise ValueError("only submit `cert_pem` OR `pem_filepath`")
-    tmpfile_pem = None
-    try:
-        if not pem_filepath:
-            tmpfile_pem = new_pem_tempfile(cert_pem)
-            pem_filepath = tmpfile_pem.name
-
-        rval = {}
-        rval["startdate"] = cert_single_op__pem_filepath(pem_filepath, "-startdate")
-        rval["enddate"] = cert_single_op__pem_filepath(pem_filepath, "-enddate")
-        return rval
-    except Exception as exc:
-        raise
-    finally:
-        if tmpfile_pem:
-            tmpfile_pem.close()
-
 
 def new_account_key(bits=2048):
     return new_rsa_key(bits=bits)
@@ -810,13 +950,13 @@ def new_private_key(bits=4096):
 
 def new_rsa_key(bits=4096):
     """
-    This routine will use certbot if available.
+    This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
     log.info("new_rsa_key >")
     log.debug(".new_rsa_key > bits = %s", bits)
-    if crypto_util:
-        key_pem = crypto_util.make_key(bits)
+    if certbot_crypto_util:
+        key_pem = certbot_crypto_util.make_key(bits)
         key_pem = cleanup_pem_text(key_pem)
     else:
         log.debug(".new_rsa_key > openssl fallback")
@@ -873,7 +1013,7 @@ def convert_jwk_to_ans1(pkey_jsons):
     return converted
 
 
-def convert_lejson(pkey_jsons, to="pem"):
+def convert_lejson_to_pem(pkey_jsons):
     """
     input is a json string
     much work from https://gist.github.com/JonLundy/f25c99ee0770e19dc595
@@ -882,13 +1022,27 @@ def convert_lejson(pkey_jsons, to="pem"):
     openssl rsa -in private_key.der -inform der > private_key.pem
     openssl rsa -in private_key.pem
     """
-    # TODO: leverage crypto
-    ans1 = convert_jwk_to_ans1(pkey_jsons)
-    as_pem = None
+    log.info("convert_lejson_to_pem >")
 
+    if jwt and cryptography_serialization:
+        pkey = jwt.algorithms.RSAAlgorithm.from_jwk(pkey_jsons)
+        as_pem = pkey.private_bytes(
+            encoding=cryptography_serialization.Encoding.PEM,
+            format=cryptography_serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=cryptography_serialization.NoEncryption(),
+        )
+        as_pem = cleanup_pem_text(as_pem)
+
+        # note: we don't need to provide key_pem_filepath before we won't rely on openssl
+        validate_key(key_pem=as_pem)
+        return as_pem
+
+    log.debug(".convert_lejson_to_pem > openssl fallback")
+    pkey_ans1 = convert_jwk_to_ans1(pkey_jsons)
+    as_pem = None
     tmpfiles = []
     try:
-        tmpfile_ans1 = new_pem_tempfile(ans1)
+        tmpfile_ans1 = new_pem_tempfile(pkey_ans1)
         tmpfiles.append(tmpfile_ans1)
 
         tmpfile_der = new_pem_tempfile("")
@@ -910,8 +1064,15 @@ def convert_lejson(pkey_jsons, to="pem"):
             generated, err = proc.communicate()
             if err:
                 raise ValueError(err)
+        # convert to pem
         as_pem = convert_der_to_pem__rsakey(tmpfile_der.read())
-        validate_key(key_pem=as_pem)
+        
+        # we need a tmpfile to validate it
+        tmpfile_pem = new_pem_tempfile(as_pem)
+        tmpfiles.append(tmpfile_pem)
+
+        # validate it
+        validate_key(key_pem=as_pem, key_pem_filepath=tmpfile_pem.name)
         return as_pem
 
     except Exception as exc:
@@ -919,5 +1080,3 @@ def convert_lejson(pkey_jsons, to="pem"):
     finally:
         for t in tmpfiles:
             t.close()
-
-    return as_pem
