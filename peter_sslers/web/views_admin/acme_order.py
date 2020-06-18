@@ -959,24 +959,23 @@ class View_New(Handler):
                     if isinstance(exc, errors.AcmeOrderCreatedError):
                         dbAcmeOrder = exc.acme_order
                         exc = exc.original_exception
-
-                    if isinstance(exc, errors.AcmeError):
-                        if self.request.wants_json:
-                            return {
-                                "result": "error",
-                                "error": str(exc),
-                                "AcmeOrder": dbAcmeOrder.as_json,
-                            }
-                        return HTTPSeeOther(
-                            "%s/acme-order/%s?result=error&error=%s&operation=new+freeform"
-                            % (
-                                self.request.registry.settings["app_settings"][
-                                    "admin_prefix"
-                                ],
-                                dbAcmeOrder.id,
-                                exc.as_querystring,
+                        if isinstance(exc, errors.AcmeError):
+                            if self.request.wants_json:
+                                return {
+                                    "result": "error",
+                                    "error": str(exc),
+                                    "AcmeOrder": dbAcmeOrder.as_json,
+                                }
+                            return HTTPSeeOther(
+                                "%s/acme-order/%s?result=error&error=%s&operation=new+freeform"
+                                % (
+                                    self.request.registry.settings["app_settings"][
+                                        "admin_prefix"
+                                    ],
+                                    dbAcmeOrder.id,
+                                    exc.as_querystring,
+                                )
                             )
-                        )
                     raise
 
                 if self.request.wants_json:

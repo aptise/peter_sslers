@@ -13,7 +13,6 @@ import base64
 import binascii
 import json
 import re
-import six
 import subprocess
 import sys
 import tempfile
@@ -22,6 +21,16 @@ import textwrap
 # pypi
 from dateutil import parser as dateutil_parser
 import psutil
+import six
+
+try:
+    from acme import crypto_util as acme_crypto_util
+    from certbot import crypto_util
+    from OpenSSL import crypto
+except ImportError as exc:
+    acme_crypto_util = None
+    crypto_util = None
+    crypto = None
 
 # localapp
 from . import errors
@@ -35,6 +44,11 @@ from .. import (
 
 openssl_path = "openssl"
 openssl_path_conf = "/etc/ssl/openssl.cnf"
+
+# TODO - is this better?
+openssl_path = "/usr/local/bin/openssl"
+openssl_path_conf = "/usr/local/ssl/openssl.cnf"
+
 
 ACME_VERSION = "v2"
 openssl_version = None
@@ -95,18 +109,33 @@ def _write_pem_tempfile(tmpfile_pem, pem_data):
     tmpfile_pem.seek(0)
 
 
-def new_csr_for_domain_names(
-    domain_names, private_key_path=None, tmpfiles_tracker=None
+def make_csr(
+    domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker=None
 ):
-    if openssl_version is None:
-        check_openssl_version()
-
+    """
+    This routine will use certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("make_csr >")
     max_domains_certificate = lib.letsencrypt_info.LIMITS["names/certificate"]["limit"]
     if len(domain_names) > max_domains_certificate:
         raise errors.OpenSslError_CsrGeneration(
             "LetsEncrypt can only allow `%s` domains per certificate"
             % max_domains_certificate
         )
+
+    # first try with python
+    if acme_crypto_util:
+        try:
+            csr_text = acme_crypto_util.make_csr(key_pem, domain_names)
+        except Exceptions as exc:
+            raise errors.OpenSslError_CsrGeneration(exc)
+        return csr_text
+
+    log.debug(".make_csr > openssl fallback")
+
+    if openssl_version is None:
+        check_openssl_version()
 
     _acme_generator_strategy = None
     if ACME_VERSION == "v1":
@@ -120,7 +149,7 @@ def new_csr_for_domain_names(
     if _acme_generator_strategy == 1:
         """
         This is the ACME-V1 method for single domain certificates
-        * the certificate's subject is `/CN=yourdomain`
+        * the certificate's subject (commonName) is `/CN=yourdomain`
         """
         _csr_subject = "/CN=%s" % domain_names[0]
         with psutil.Popen(
@@ -130,7 +159,7 @@ def new_csr_for_domain_names(
                 "-new",
                 "-sha256",
                 "-key",
-                private_key_path,
+                key_pem_filepath,
                 "-subj",
                 _csr_subject,
             ],
@@ -146,8 +175,15 @@ def new_csr_for_domain_names(
     elif _acme_generator_strategy == 2:
         """
         This is the ACME-V2 method for single domain certificates. It works on ACME-V1.
-        * the certificate's subject is `/`
-        * all domains appear in subjectAltName
+        * the certificate's subject (commonName) is `/`
+        * ALL domains appear in subjectAltName
+
+        The ACME Spec allows for the domain to be provided in:
+            * commonName
+            * SAN
+            * both
+
+        LetsEncrypt interpreted the relevant passage as not requiring the server to accept each of these.
         """
 
         # getting subprocess to work right is a pain, because we need to chain a bunch of commands
@@ -188,7 +224,7 @@ def new_csr_for_domain_names(
                 # note that we use /bin/cat (!)
                 _command = (
                     """%s req -new -sha256 -key %s -subj "/" -reqexts SAN -config < /bin/cat %s"""
-                    % (openssl_path, private_key_path, tmpfile_csr_san.name)
+                    % (openssl_path, key_pem_filepath, tmpfile_csr_san.name)
                 )
                 with psutil.Popen(
                     _command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -209,11 +245,9 @@ def new_csr_for_domain_names(
             _csr_san = "subjectAltName = " + ", ".join(
                 ["DNS:%s" % d for d in domain_names]
             )
-
-            # note that we use /bin/cat (!)
-            _command = """%s req -new -sha256 -key %s -subj "/" -addext %s""" % (
+            _command = '''%s req -new -sha256 -key %s -subj "/" -addext "%s"''' % (
                 openssl_path,
-                private_key_path,
+                key_pem_filepath,
                 _csr_san,
             )
             with psutil.Popen(
@@ -231,31 +265,39 @@ def new_csr_for_domain_names(
     return csr_text
 
 
-def parse_cert_domains(cert_path=None,):
-    subject_domain, san_domains = parse_cert_domains__segmented(cert_path=cert_path)
-    if subject_domain is not None and subject_domain not in san_domains:
-        san_domains.insert(0, subject_domain)
-    return san_domains
+def parse_cert_domains(cert_pem=None, cert_pem_filepath=None):
+    """
+    gets ALL domains from a certificate
+        * san (subjectAlternateName)
+        * subject (commonName)
 
+    This routine will use certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("parse_cert_domains >")
+    if crypto_util:
+        all_domains = crypto_util.get_names_from_cert(cert_pem)
+        return all_domains
 
-def parse_cert_domains__segmented(cert_path=None,):
-    log.info("Parsing CERT... | parse_cert_domains__segmented")
-    # openssl x509 -in MYCERT -noout -text
+    log.debug(".parse_cert_domains > openssl fallback")
+    # fallback onto OpenSSL
+    # `openssl x509 -in MYCERT -noout -text`
     with psutil.Popen(
-        [openssl_path, "x509", "-in", cert_path, "-noout", "-text"],
+        [openssl_path, "x509", "-in", cert_pem_filepath, "-noout", "-text"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc:
         out, err = proc.communicate()
         if proc.returncode != 0:
-            raise IOError("Error loading {0}: {1}".format(cert_path, err))
+            raise IOError("Error loading {0}: {1}".format(cert_pem_filepath, err))
         if six.PY3:
             out = out.decode("utf8")
     # init
     subject_domain = None
-    san_domains = set([])  # convert to list on return
-
-    _common_name = re.search(r"Subject:.*? CN=([^\s,;/]+)", out)
+    san_domains = set([])
+    # regex!
+    # note the conditional whitespace before/after CN
+    _common_name = re.search(r"Subject:.*? CN ?= ?([^\s,;/]+)", out)
     if _common_name is not None:
         subject_domain = _common_name.group(1).lower()
     _subject_alt_names = re.search(
@@ -267,58 +309,68 @@ def parse_cert_domains__segmented(cert_path=None,):
         for _san in _subject_alt_names.group(1).split(", "):
             if _san.startswith("DNS:"):
                 san_domains.add(_san[4:].lower())
-    return subject_domain, list(san_domains)
+    san_domains = list(san_domains)
+    if subject_domain is not None and subject_domain not in san_domains:
+        san_domains.insert(0, subject_domain)
+    san_domains.sort()
+    return san_domains
 
 
-def parse_csr_domains(csr_path=None, submitted_domain_names=None, is_der=None):
-    """checks found names against `submitted_domain_names`
+def parse_csr_domains(csr_pem=None, csr_pem_filepath=None, submitted_domain_names=None):
     """
-    log.info("Parsing CSR... | parse_csr_domains")
-    if is_der:
-        with psutil.Popen(
-            [openssl_path, "req", "-in", csr_path, "-inform", "DER", "-noout", "-text"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc:
-            out, err = proc.communicate()
-            if proc.returncode != 0:
-                raise IOError("Error loading {0}: {1}".format(csr_path, err))
+    checks found names against `submitted_domain_names`
+
+    This routine will use certbot if available.
+    If not, openssl is used via subprocesses
+
+    `submitted_domain_names` should be all lowecase
+    """
+    log.info("parse_csr_domains >")
+    if crypto and crypto_util:
+        load_func = crypto.load_certificate_request
+        found_domains = crypto_util._get_names_from_cert_or_req(
+            csr_pem, load_func, typ=crypto.FILETYPE_PEM
+        )
     else:
+        log.debug(".parse_csr_domains > openssl fallback")
+        # fallback onto OpenSSL
         # openssl req -in MYCSR -noout -text
         with psutil.Popen(
-            [openssl_path, "req", "-in", csr_path, "-noout", "-text"],
+            [openssl_path, "req", "-in", csr_pem_filepath, "-noout", "-text"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         ) as proc:
             out, err = proc.communicate()
             if proc.returncode != 0:
-                raise IOError("Error loading {0}: {1}".format(csr_path, err))
-    if six.PY3:
-        out = out.decode("utf8")
-    found_domains = set([])
-    common_name = re.search(r"Subject:.*? CN=([^\s,;/]+)", out)
-    if common_name is not None:
-        found_domains.add(common_name.group(1))
-    subject_alt_names = re.search(
-        r"X509v3 Subject Alternative Name: \n +([^\n]+)\n",
-        out,
-        re.MULTILINE | re.DOTALL,
-    )
-    if subject_alt_names is not None:
-        for san in subject_alt_names.group(1).split(", "):
-            if san.startswith("DNS:"):
-                found_domains.add(san[4:])
+                raise IOError("Error loading {0}: {1}".format(csr_pem_filepath, err))
+        if six.PY3:
+            out = out.decode("utf8")
+        found_domains = set([])
+        # note the conditional whitespace before/after CN
+        common_name = re.search(r"Subject:.*? CN ?= ?([^\s,;/]+)", out)
+        if common_name is not None:
+            found_domains.add(common_name.group(1))
+        subject_alt_names = re.search(
+            r"X509v3 Subject Alternative Name: \n +([^\n]+)\n",
+            out,
+            re.MULTILINE | re.DOTALL,
+        )
+        if subject_alt_names is not None:
+            for san in subject_alt_names.group(1).split(", "):
+                if san.startswith("DNS:"):
+                    found_domains.add(san[4:])
+        found_domains = list(found_domains)
 
     # ensure our CERT matches our submitted_domain_names
     if submitted_domain_names is not None:
         for domain in found_domains:
             if domain not in submitted_domain_names:
-                raise ValueError("domain not in submitted_domain_names")
+                raise ValueError("domain %s not in submitted_domain_names" % domain)
         for domain in submitted_domain_names:
             if domain not in found_domains:
-                raise ValueError("domain not in found_domains")
+                raise ValueError("domain %s not in found_domains" % domain)
 
-    return found_domains
+    return sorted(found_domains)
 
 
 def cleanup_pem_text(pem_text):
@@ -331,23 +383,24 @@ def cleanup_pem_text(pem_text):
     return pem_text
 
 
-def validate_key__pem(key_pem):
-    tmpfile_pem = None
-    try:
-        tmpfile_pem = new_pem_tempfile(key_pem)
-        pem_filepath = tmpfile_pem.name
-        return validate_key__pem_filepath(pem_filepath)
-    except Exception as exc:
-        raise
-    finally:
-        if tmpfile_pem:
-            tmpfile_pem.close()
+def validate_key(key_pem=None, key_pem_filepath=None):
+    """
+    raises an error if invalid
 
+    This routine will use certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("validate_key >")
+    if crypto_util:
+        data = crypto_util.valid_privkey(key_pem)
+        if not data:
+            raise errors.OpenSslError_InvalidKey()
+        return True
 
-def validate_key__pem_filepath(pem_filepath):
+    log.debug(".validate_key > openssl fallback")
     # openssl rsa -in {KEY} -check
     with psutil.Popen(
-        [openssl_path, "rsa", "-in", pem_filepath],
+        [openssl_path, "rsa", "-in", key_pem_filepath],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc:
@@ -359,10 +412,24 @@ def validate_key__pem_filepath(pem_filepath):
     return True
 
 
-def validate_csr__pem_filepath(pem_filepath):
+def validate_csr(csr_pem=None, csr_pem_filepath=None):
+    """
+    raises an error if invalid
+
+    This routine will use certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("validate_csr >")
+    if crypto_util:
+        data = crypto_util.valid_csr(csr_pem)
+        if not data:
+            raise errors.OpenSslError_InvalidCSR()
+        return True
+
+    log.debug(".validate_csr > openssl fallback")
     # openssl req -text -noout -verify -in {CSR}
     with psutil.Popen(
-        [openssl_path, "req", "-text", "-noout", "-verify", "-in", pem_filepath],
+        [openssl_path, "req", "-text", "-noout", "-verify", "-in", csr_pem_filepath],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc:
@@ -374,40 +441,33 @@ def validate_csr__pem_filepath(pem_filepath):
     return True
 
 
-def validate_cert__pem_filepath(pem_filepath):
+def validate_cert(cert_pem=None, cert_pem_filepath=None):
+    """
+    raises an error if invalid
+
+    This routine will use certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("validate_cert >")
+    if crypto:
+        try:
+            data = crypto.load_certificate(crypto.FILETYPE_PEM, cert_pem)
+        except Exception as exc:
+            raise errors.OpenSslError_InvalidCertificate(exc)
+        if not data:
+            raise errors.OpenSslError_InvalidCertificate()
+        return True
+
+    log.debug(".validate_cert > openssl fallback")
     # openssl x509 -in {CERTIFICATE} -inform pem -noout -text
     with psutil.Popen(
         [
             openssl_path,
             "x509",
             "-in",
-            pem_filepath,
+            cert_pem_filepath,
             "-inform",
             "pem",
-            "-noout",
-            "-text",
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc:
-        data, err = proc.communicate()
-        if not data:
-            raise errors.OpenSslError_InvalidCertificate(err)
-        if six.PY3:
-            data = data.decode("utf8")
-    return True
-
-
-def validate_cert__der_filepath(der_filepath):
-    # openssl x509 -in {CERTIFICATE} -inform der -noout -text
-    with psutil.Popen(
-        [
-            openssl_path,
-            "x509",
-            "-in",
-            der_filepath,
-            "-inform",
-            "der",
             "-noout",
             "-text",
         ],
@@ -442,11 +502,11 @@ def _cleanup_md5(data):
     return data
 
 
-def modulus_md5_key__pem_filepath(pem_filepath):
+def modulus_md5_key(key_pem=None, key_pem_filepath=None):
     # openssl rsa -noout -modulus -in {KEY} | openssl md5
-
+    # TODO - leverage crypto
     with psutil.Popen(
-        [openssl_path, "rsa", "-noout", "-modulus", "-in", pem_filepath],
+        [openssl_path, "rsa", "-noout", "-modulus", "-in", key_pem_filepath],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc_modulus:
@@ -461,10 +521,11 @@ def modulus_md5_key__pem_filepath(pem_filepath):
     return _cleanup_md5(data)
 
 
-def modulus_md5_csr__pem_filepath(pem_filepath):
+def modulus_md5_csr(csr_pem=None, csr_pem_filepath=None):
     # openssl req -noout -modulus -in {CSR} | openssl md5
+    # TODO - leverage crypto
     with psutil.Popen(
-        [openssl_path, "req", "-noout", "-modulus", "-in", pem_filepath],
+        [openssl_path, "req", "-noout", "-modulus", "-in", csr_pem_filepath],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc_modulus:
@@ -479,10 +540,11 @@ def modulus_md5_csr__pem_filepath(pem_filepath):
     return _cleanup_md5(data)
 
 
-def modulus_md5_cert__pem_filepath(pem_filepath):
+def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
+    # TODO - leverage crypto
     # openssl x509 -noout -modulus -in {CERT} | openssl md5
     with psutil.Popen(
-        [openssl_path, "x509", "-noout", "-modulus", "-in", pem_filepath],
+        [openssl_path, "x509", "-noout", "-modulus", "-in", cert_pem_filepath],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc_modulus:
@@ -511,6 +573,10 @@ def cert_single_op__pem_filepath(pem_filepath, single_op):
                X509v3 Subject Key Identifier:
                    {VALUE}
     """
+    # todo
+    # this needs to be redone
+    # leverage crypto
+
     if single_op not in (
         "-issuer_hash",
         "-issuer",
@@ -542,6 +608,9 @@ def key_single_op__pem_filepath(pem_filepath, single_op):
         openssl rsa -noout -text -in {KEY}
 
     """
+    # todo
+    # this needs to be redone
+    # leverage crypto
     if single_op not in ("-check", "-modulus", "-text"):
         raise ValueError("invalid `single_op`")
     with psutil.Popen(
@@ -558,10 +627,11 @@ def key_single_op__pem_filepath(pem_filepath, single_op):
     return data
 
 
-def parse_enddate_cert__pem_filepath(pem_filepath):
+def parse_cert_enddate(cert_pem=None, cert_pem_filepath=None):
+    # todo: leverage crypto
     # openssl x509 -enddate -noout -in {CERT}
     with psutil.Popen(
-        [openssl_path, "x509", "-enddate", "-noout", "-in", pem_filepath],
+        [openssl_path, "x509", "-enddate", "-noout", "-in", cert_pem_filepath],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc:
@@ -578,10 +648,11 @@ def parse_enddate_cert__pem_filepath(pem_filepath):
     return date
 
 
-def parse_startdate_cert__pem_filepath(pem_filepath):
+def parse_cert_startdate(cert_pem=None, cert_pem_filepath=None):
+    # todo: leverage crypto
     # openssl x509 -startdate -noout -in {CERT}
     with psutil.Popen(
-        [openssl_path, "x509", "-startdate", "-noout", "-in", pem_filepath],
+        [openssl_path, "x509", "-startdate", "-noout", "-in", cert_pem_filepath],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc:
@@ -596,35 +667,6 @@ def parse_startdate_cert__pem_filepath(pem_filepath):
         date = dateutil_parser.parse(data_date)
         date = date.replace(tzinfo=None)
     return date
-
-
-def verify_partial_chain__paths(pem_filepath_chain=None, pem_filepath_cert=None):
-    """
-    openssl verify -partial_chain -CAfile example.com.chain.pem -CApath - example.com.cert.pem
-    note the '-' between "-CApath - example.com.cert.pem"
-    openssl will hang without it
-
-    # TODO: This may not be working correctly.  Needs more testing.
-    """
-    raise NotImplementedError()
-    with psutil.Popen(
-        [
-            openssl_path,
-            "verify",
-            "-partial_chain",
-            "-CAfile",
-            pem_filepath_chain,
-            "-CApath",
-            "-",
-            pem_filepath_cert,
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc:
-        data, err = proc.communicate()
-        if not data:
-            return False
-        return True
 
 
 def convert_der_to_pem(der_data=None):
@@ -682,18 +724,6 @@ def convert_pem_to_der(pem_data=None):
     return result
 
 
-def probe_cert__format(filepath):
-    """returns "der" or "pem" (lowercase)"""
-    try:
-        validate_cert__pem_filepath(filepath)
-        return "pem"
-    except errors.OpenSslError_InvalidCertificate as exc:
-        validate_cert__der_filepath(filepath)
-        return "der"
-    except errors.OpenSslError_InvalidCertificate as exc:
-        raise errors.OpenSslError_InvalidCertificate("not PEM or DER")
-
-
 def parse_key(key_pem=None, pem_filepath=None):
     if not any((key_pem, pem_filepath)) or all((key_pem, pem_filepath)):
         raise ValueError("only submit `key_pem` OR `pem_filepath`")
@@ -735,11 +765,11 @@ def parse_cert(cert_pem=None, pem_filepath=None):
         rval["subject"] = cert_single_op__pem_filepath(pem_filepath, "-subject")
         rval["startdate"] = cert_single_op__pem_filepath(pem_filepath, "-startdate")
         rval["enddate"] = cert_single_op__pem_filepath(pem_filepath, "-enddate")
-        rval["parse_enddate_cert__pem_filepath"] = str(
-            parse_enddate_cert__pem_filepath(pem_filepath)
+        rval["parse_cert_enddate"] = str(
+            parse_cert_enddate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
         )
-        rval["parse_startdate_cert__pem_filepath"] = str(
-            parse_startdate_cert__pem_filepath(pem_filepath)
+        rval["parse_cert_startdate"] = str(
+            parse_cert_startdate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
         )
 
         return rval
@@ -779,20 +809,33 @@ def new_private_key(bits=4096):
 
 
 def new_rsa_key(bits=4096):
-    # openssl genrsa 4096 > domain.key
-    bits = str(bits)
-    with psutil.Popen(
-        [openssl_path, "genrsa", bits], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    ) as proc:
-        data, err = proc.communicate()
-        if not data:
-            raise errors.OpenSslError_InvalidKey(err)
-        if six.PY3:
-            data = data.decode("utf8")
-        key_pem = data
+    """
+    This routine will use certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("new_rsa_key >")
+    log.debug(".new_rsa_key > bits = %s", bits)
+    if crypto_util:
+        key_pem = crypto_util.make_key(bits)
         key_pem = cleanup_pem_text(key_pem)
-        # this will raise an error
-        validate_key__pem(key_pem)
+    else:
+        log.debug(".new_rsa_key > openssl fallback")
+        # openssl genrsa 4096 > domain.key
+        bits = str(bits)
+        with psutil.Popen(
+            [openssl_path, "genrsa", bits],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if not data:
+                raise errors.OpenSslError_InvalidKey(err)
+            if six.PY3:
+                data = data.decode("utf8")
+            key_pem = data
+            key_pem = cleanup_pem_text(key_pem)
+            # this will raise an error
+            validate_key(key_pem=key_pem)
     return key_pem
 
 
@@ -839,6 +882,7 @@ def convert_lejson(pkey_jsons, to="pem"):
     openssl rsa -in private_key.der -inform der > private_key.pem
     openssl rsa -in private_key.pem
     """
+    # TODO: leverage crypto
     ans1 = convert_jwk_to_ans1(pkey_jsons)
     as_pem = None
 
@@ -867,7 +911,7 @@ def convert_lejson(pkey_jsons, to="pem"):
             if err:
                 raise ValueError(err)
         as_pem = convert_der_to_pem__rsakey(tmpfile_der.read())
-        validate_key__pem(as_pem)
+        validate_key(key_pem=as_pem)
         return as_pem
 
     except Exception as exc:

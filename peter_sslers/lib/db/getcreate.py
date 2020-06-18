@@ -242,10 +242,13 @@ def getcreate__AcmeAccount(
         _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
         # validate
-        cert_utils.validate_key__pem_filepath(_tmpfile.name)
+        cert_utils.validate_key(key_pem=key_pem, key_pem_filepath=_tmpfile.name)
 
         # grab the modulus
-        key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
+        key_pem_modulus_md5 = cert_utils.modulus_md5_key(
+            key_pem=key_pem,
+            key_pem_filepath=_tmpfile.name,
+        )
 
     finally:
         _tmpfile.close()
@@ -545,6 +548,8 @@ def getcreate__AcmeChallenges_via_payload(
         authorization_payload, required_challenges=["http-01",],
     )
     for acme_challenge in acme_challenges.values():
+        if acme_challenge is None:
+            continue
         challenge_url = acme_challenge["url"]
         challenge_status = acme_challenge["status"]
         acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
@@ -663,11 +668,12 @@ def getcreate__CACertificate__by_pem_text(
             _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
 
             # validate
-            cert_utils.validate_cert__pem_filepath(_tmpfile.name)
+            cert_utils.validate_cert(cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name)
 
             # grab the modulus
-            _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(
-                _tmpfile.name
+            _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
+                cert_pem=cert_pem,
+                cert_pem_filepath=_tmpfile.name,
             )
 
             # bookkeeping
@@ -692,11 +698,13 @@ def getcreate__CACertificate__by_pem_text(
             dbCACertificate.cert_pem_md5 = cert_pem_md5
             dbCACertificate.cert_pem_modulus_md5 = _cert_pem_modulus_md5
 
-            dbCACertificate.timestamp_signed = cert_utils.parse_startdate_cert__pem_filepath(
-                _tmpfile.name
+            dbCACertificate.timestamp_signed = cert_utils.parse_cert_startdate(
+                cert_pem=cert_pem,
+                cert_pem_filepath=_tmpfile.name,
             )
-            dbCACertificate.timestamp_expires = cert_utils.parse_enddate_cert__pem_filepath(
-                _tmpfile.name
+            dbCACertificate.timestamp_expires = cert_utils.parse_cert_enddate(
+                cert_pem=cert_pem,
+                cert_pem_filepath=_tmpfile.name,
             )
             dbCACertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(
                 _tmpfile.name, "-subject"
@@ -858,11 +866,12 @@ def getcreate__PrivateKey__by_pem_text(
             _tmpfile = cert_utils.new_pem_tempfile(key_pem)
 
             # validate
-            cert_utils.validate_key__pem_filepath(_tmpfile.name)
+            cert_utils.validate_key(key_pem=key_pem, key_pem_filepath=_tmpfile.name)
 
             # grab the modulus
-            key_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(
-                _tmpfile.name
+            key_pem_modulus_md5 = cert_utils.modulus_md5_key(
+                key_pem=key_pem,
+                key_pem_filepath=_tmpfile.name,
             )
         except Exception as exc:
             raise
@@ -1117,13 +1126,19 @@ def getcreate__ServerCertificate(
     try:
         _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
         # grab the modulus
-        _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(_tmpfile.name)
+        _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
+            cert_pem=cert_pem,
+            cert_pem_filepath=_tmpfile.name
+        )
     finally:
         _tmpfile.close()
     try:
         _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
         # grab the modulus
-        _pkey_pem_modulus_md5 = cert_utils.modulus_md5_key__pem_filepath(_tmpfile.name)
+        _pkey_pem_modulus_md5 = cert_utils.modulus_md5_key(
+            key_pem=dbPrivateKey.key_pem,
+            key_pem_filepath=_tmpfile.name
+        )
     finally:
         _tmpfile.close()
 
@@ -1134,10 +1149,12 @@ def getcreate__ServerCertificate(
 
     if dbCertificateRequest:
         try:
-            _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
+            _tmpfile = cert_utils.new_pem_tempfile(dbCertificateRequest.csr_pem)
             # grab the modulus
-            _csr_pem_modulus_md5 = cert_utils.modulus_md5_csr__pem_filepath(
-                _tmpfile.name
+            # TODO - shouldn't this be cached on the object already?!?
+            _csr_pem_modulus_md5 = cert_utils.modulus_md5_csr(
+                csr_pem=dbCertificateRequest.csr_pem,
+                csr_pem_filepath=_tmpfile.name
             )
         finally:
             _tmpfile.close()

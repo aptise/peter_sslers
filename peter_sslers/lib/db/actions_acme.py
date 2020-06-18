@@ -1181,8 +1181,10 @@ def _do__AcmeV2_AcmeOrder__finalize(
             tmpfiles.append(tmpfile_csr)
         else:
             # make the CSR
-            csr_pem = cert_utils.new_csr_for_domain_names(
-                domain_names, private_key_path=tmpfile_pkey.name
+            csr_pem = cert_utils.make_csr(
+                domain_names,
+                key_pem=private_key_pem,
+                key_pem_filepath=tmpfile_pkey.name
             )
             tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
             tmpfiles.append(tmpfile_csr)
@@ -1202,7 +1204,9 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
         # pull domains from csr
         csr_domains = cert_utils.parse_csr_domains(
-            csr_path=tmpfile_csr.name, submitted_domain_names=domain_names
+            csr_pem=csr_pem,
+            csr_pem_filepath=tmpfile_csr.name,
+            submitted_domain_names=domain_names
         )
         if set(csr_domains) != set(domain_names):
             raise ValueError(
@@ -1687,6 +1691,9 @@ def do__AcmeV2_AcmeOrder__process(
                     _result = authenticatedUser.acme_authorization_process_url(
                         ctx,
                         dbAcmeAuthorization.authorization_url,
+                        acme_challenge_type_id__preferred=model_utils.AcmeChallengeType.from_string(
+                            "http-01"
+                        ),
                         handle_authorization_payload=handle_authorization_payload,
                         update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                         update_AcmeChallenge_status=update_AcmeChallenge_status,

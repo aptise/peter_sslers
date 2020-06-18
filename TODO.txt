@@ -24,6 +24,10 @@ certificate renewal
 
 Remove "Foo"	
 remove todo
+ensure csr has the subject in the Sans
+
+
+
 
 - track dns-01 challenges
 	

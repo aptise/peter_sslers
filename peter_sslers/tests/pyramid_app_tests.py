@@ -11,6 +11,7 @@ import unittest
 import zipfile
 from functools import wraps
 import sys
+from io import open  # overwrite `open` in Python2
 
 if sys.version_info[0] < 3:  # pragma: no cover
     from StringIO import StringIO
@@ -46,13 +47,14 @@ from ._utils import SSL_TEST_PORT
 
 
 # ==============================================================================
-# disable logginf for tests?
-
+#
+# essentially disable logging for tests
+#
 import logging
 
 log = logging.getLogger()
 log.addHandler(logging.StreamHandler())
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.CRITICAL)
 
 
 # ==============================================================================
@@ -7141,7 +7143,9 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             )
             # no need to subtract one for the failed auth, because it's part of the `count-AcmeChallenge`
             # _expected = _expected - 1
-
+            pprint.pprint(_expected)
+            pprint.pprint(stats_b)
+            pdb.set_trace()
             assert stats_b["count-AcmeAuthorization-pending"] == _expected
 
         finally:

@@ -31,6 +31,10 @@ requires = [
     "zope.sqlalchemy",
 ]
 
+tests_require = [
+    "certbot",
+]
+
 setup(
     name="peter_sslers",
     version="0.4.0",
@@ -52,6 +56,7 @@ setup(
     zip_safe=False,
     test_suite="peter_sslers.tests",
     install_requires=requires,
+    tests_require=tests_require,
     entry_points="""\
       [paste.app_factory]
       main = peter_sslers.web:main

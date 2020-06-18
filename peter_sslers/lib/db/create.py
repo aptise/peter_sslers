@@ -534,10 +534,12 @@ def create__CertificateRequest(
         _tmpfile = cert_utils.new_pem_tempfile(csr_pem)
 
         # validate
-        cert_utils.validate_csr__pem_filepath(_tmpfile.name)
+        cert_utils.validate_csr(csr_pem=csr_pem, csr_pem_filepath=_tmpfile.name)
 
         _csr_domain_names = cert_utils.parse_csr_domains(
-            csr_path=_tmpfile.name, submitted_domain_names=domain_names
+            csr_pem=csr_pem,
+            csr_pem_filepath=_tmpfile.name,
+            submitted_domain_names=domain_names,
         )
         # this function checks the domain names match a simple regex
         csr_domain_names = utils.domains_from_list(_csr_domain_names)
@@ -558,7 +560,10 @@ def create__CertificateRequest(
         # calculate the md5
         csr_pem_md5 = utils.md5_text(csr_pem)
         # grab the modulus
-        csr_pem_modulus_md5 = cert_utils.modulus_md5_csr__pem_filepath(_tmpfile.name)
+        csr_pem_modulus_md5 = cert_utils.modulus_md5_csr(
+            csr_pem=csr_pem,
+            csr_pem_filepath=_tmpfile.name,
+        )
     finally:
         _tmpfile.close()
 
@@ -949,14 +954,14 @@ def create__ServerCertificate(
         _tmpfileCert = cert_utils.new_pem_tempfile(cert_pem)
 
         # validate
-        cert_utils.validate_cert__pem_filepath(_tmpfileCert.name)
+        cert_utils.validate_cert(cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name)
 
         # validate the domains!
         # let's make sure have the right domains in the cert!!
         # this only happens on development during tests when we use a single cert
         # for all requests...
         # so we don't need to handle this or save it
-        cert_domains = cert_utils.parse_cert_domains(_tmpfileCert.name)
+        cert_domains = cert_utils.parse_cert_domains(cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name)
         if set(cert_domains_expected) != set(cert_domains):
             log.error("set(cert_domains_expected) != set(cert_domains)")
             log.error(cert_domains_expected)

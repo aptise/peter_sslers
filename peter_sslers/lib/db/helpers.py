@@ -47,14 +47,19 @@ def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
     dbServerCertificate.timestamp_expires = datetime_expires
     """
     # grab the modulus
-    cert_pem_modulus_md5 = cert_utils.modulus_md5_cert__pem_filepath(_tmpfileCert.name)
+    cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
+        cert_pem=dbServerCertificate.cert_pem,
+        cert_pem_filepath=_tmpfileCert.name,
+    )
     dbServerCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
     # the rest...
-    dbServerCertificate.timestamp_signed = cert_utils.parse_startdate_cert__pem_filepath(
-        _tmpfileCert.name
+    dbServerCertificate.timestamp_signed = cert_utils.parse_cert_startdate(
+        cert_pem=cert_pem,
+        cert_pem_filepath=_tmpfile.name,
     )
-    dbServerCertificate.timestamp_expires = cert_utils.parse_enddate_cert__pem_filepath(
-        _tmpfileCert.name
+    dbServerCertificate.timestamp_expires = cert_utils.parse_cert_enddate(
+        cert_pem=cert_pem,
+        cert_pem_filepath=_tmpfile.name,
     )
     dbServerCertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(
         _tmpfileCert.name, "-subject"

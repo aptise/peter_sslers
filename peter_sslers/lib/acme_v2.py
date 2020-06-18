@@ -133,6 +133,9 @@ def get_authorization_challenges(
     """
     :param dict authorization_response: (required) A Python dict representing a server's JSON payload of an Authorization Object.
     :param list required_challenges: (optional) Pass in a list of required challenges
+    
+    returns:
+        `dict` in which keys are the challenge type and values are the challenge payload.
     """
 
     challenges = {
@@ -152,6 +155,21 @@ def get_authorization_challenges(
     if not any(challenges.values()):
         raise errors.AcmeMissingChallenges("could not find a challenge")
     return challenges
+
+
+def filter_specific_challenge(
+    acme_challenges_payload,
+    acme_challenge_type=None,
+):
+    """
+    :param dict acme_challenges_payload: (required) A payload of acme-challenges
+    :param str acme_challenge_type: (required) The selected type of acme-challenge
+    """
+    if (acme_challenge_type not in acme_challenges_payload) or not acme_challenges_payload[
+        acme_challenge_type
+    ]:
+        raise ValueError("selected challenege not provided by ACME server")
+    return acme_challenges_payload[acme_challenge_type]
 
 
 def create_challenge_keyauthorization(token, accountkey_thumbprint):
@@ -647,6 +665,63 @@ class AuthenticatedUser(object):
 
         return (acmeOrderRfcObject, dbEventLogged)
 
+    def _prepare_acme_challenge__http01(
+        self,
+        ctx,
+        dbAcmeAuthorization=None,
+        dbAcmeChallenge=None,
+    ):
+        """
+        prepares an AcmeChallenge by registering - and perhaps testing, the url
+        """
+        # acme_challenge_response
+        keyauthorization = create_challenge_keyauthorization(
+            dbAcmeChallenge.token, self.accountkey_thumbprint,
+        )
+        if dbAcmeChallenge.keyauthorization != keyauthorization:
+            raise ValueError("This should never happen!")
+
+        # update the db; this should be integrated with the above
+        wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
+            dbAcmeAuthorization.domain.domain_name, dbAcmeChallenge.token,
+        )
+
+        # check that the file is in place
+        try:
+            if TESTING_ENVIRONMENT:
+                log.debug("TESTING_ENVIRONMENT, not ensuring the challenge is readable")
+            else:
+                try:
+                    resp = urlopen(wellknown_url)
+                    resp_data = resp.read().decode("utf8").strip()
+                    assert resp_data == keyauthorization
+                except (IOError, AssertionError):
+                    self.acmeLogger.log_challenge_error(
+                        "v2", dbAcmeChallenge, "pretest-1", transaction_commit=True,
+                    )
+                    raise errors.DomainVerificationError(
+                        "Wrote keyauth challenge, but couldn't download {0}".format(
+                            wellknown_url
+                        )
+                    )
+                except ssl.CertificateError as exc:
+                    self.acmeLogger.log_challenge_error(
+                        "v2", dbAcmeChallenge, "pretest-2", transaction_commit=True,
+                    )
+                    if str(exc).startswith("hostname") and (
+                        "doesn't match" in str(exc)
+                    ):
+                        raise errors.DomainVerificationError(
+                            "Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(
+                                wellknown_url, str(exc)
+                            )
+                        )
+                    raise
+        except (AssertionError, ValueError) as exc:
+            raise errors.DomainVerificationError(
+                "couldn't download {0}: {1}".format(wellknown_url, exc)
+            )
+
     def acme_order_process_authorizations(
         self,
         ctx,
@@ -707,6 +782,9 @@ class AuthenticatedUser(object):
             auth_result = self.acme_authorization_process_url(
                 ctx,
                 authorization_url,
+                acme_challenge_type_id__preferred=model_utils.AcmeChallengeType.from_string(
+                    "http-01"
+                ),
                 handle_authorization_payload=handle_authorization_payload,
                 update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
@@ -833,6 +911,7 @@ class AuthenticatedUser(object):
         self,
         ctx,
         authorization_url,
+        acme_challenge_type_id__preferred=None,
         handle_authorization_payload=None,
         update_AcmeAuthorization_status=None,
         update_AcmeChallenge_status=None,
@@ -848,6 +927,7 @@ class AuthenticatedUser(object):
 
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param authorization_url: (required) The url of the authorization
+        :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallengeType` challenge
 
         :param handle_authorization_payload: (required) Callable function. expects (authorization_url, authorization_response, dbAcmeAuthorization=?, transaction_commit=?)
 
@@ -868,7 +948,14 @@ class AuthenticatedUser(object):
         log.info("acme_v2.AuthenticatedUser.acme_authorization_process_url(")
         # scoping, our todo list
         # _todo_complete_challenges = None
-        _todo_complete_challenge_http01 = None
+
+        if (
+            acme_challenge_type_id__preferred
+            not in model_utils.AcmeChallengeType._mapping
+        ):
+            raise ValueError("invalid `acme_challenge_type_id__preferred`")
+
+        _todo__complete_challenge = None
 
         # in v1, we know the domain before the authorization request
         # in v2, we hit an order's authorization url to get the domain
@@ -886,6 +973,7 @@ class AuthenticatedUser(object):
             % _authorization_headers
         )
         log.info(") .acme_authorization_process_url | handle_authorization_payload(")
+
         dbAcmeAuthorization = handle_authorization_payload(
             authorization_url,
             authorization_response,
@@ -947,91 +1035,62 @@ class AuthenticatedUser(object):
 
         # we could parse the challenge
         # however, the call to `process_discovered_auth` should have updated the challenge object already
-        acme_challenge_response = get_authorization_challenges(
-            authorization_response, required_challenges=["http-01",],
+        acme_challenges = get_authorization_challenges(
+            authorization_response, required_challenges=["http-01",]
         )
-        if not acme_challenge_response:
+        _acme_challenge_type = model_utils.AcmeChallengeType._mapping[
+            acme_challenge_type_id__preferred
+        ]
+        _acme_challenge_selected = filter_specific_challenge(
+            acme_challenges, _acme_challenge_type
+        )
+
+        dbAcmeChallenge = None
+        if _acme_challenge_type == "http-01":
+            dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
+        elif _acme_challenge_type == "dns-01":
+            dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_dns_01
+        elif _acme_challenge_type == "tls-alpn-01":
+            dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_tls_alpn_01
+        if not dbAcmeChallenge:
+            raise ValueError("error loading AcmeChallenge. this is unexpected.")
+
+        if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
             raise ValueError(
-                "`acme_challenge_response` not in `authorization_response`"
-            )
-        dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
-        if acme_challenge_response["url"] != dbAcmeChallenge.challenge_url:
-            raise ValueError(
-                "`acme_challenge_response` has a different challenge_url. this is unexpected."
+                "`acme_challenges` has a different challenge_url. this is unexpected."
             )
 
-        _challenge_status_text = (
-            dbAcmeAuthorization.acme_challenge_http_01.acme_status_challenge
-        )
+        _challenge_status_text = dbAcmeChallenge.acme_status_challenge
         if _challenge_status_text == "*discovered*":
             # internal marker, pre "pending"
-            _todo_complete_challenge_http01 = True
+            _todo__complete_challenge = True
         elif _challenge_status_text == "pending":
-            _todo_complete_challenge_http01 = True
+            _todo__complete_challenge = True
         elif _challenge_status_text == "processing":
             # we may need to trigger again?
-            _todo_complete_challenge_http01 = True
+            _todo__complete_challenge = True
         elif _challenge_status_text == "valid":
             # already completed
-            _todo_complete_challenge_http01 = False
+            _todo__complete_challenge = False
         elif _challenge_status_text == "invalid":
             # we may need to trigger again?
-            _todo_complete_challenge_http01 = True
+            _todo__complete_challenge = True
         else:
             raise ValueError(
                 "unexpected challenge status: `%s`" % _challenge_status_text
             )
 
-        if _todo_complete_challenge_http01:
-            # acme_challenge_response
-            keyauthorization = create_challenge_keyauthorization(
-                dbAcmeChallenge.token, self.accountkey_thumbprint,
-            )
-            if dbAcmeChallenge.keyauthorization != keyauthorization:
-                raise ValueError("This should never happen!")
-
-            # update the db; this should be integrated with the above
-            wellknown_url = "http://{0}/.well-known/acme-challenge/{1}".format(
-                dbAcmeAuthorization.domain.domain_name, dbAcmeChallenge.token,
-            )
-
-            # check that the file is in place
-            try:
-                if TESTING_ENVIRONMENT:
-                    log.debug(
-                        "TESTING_ENVIRONMENT, not ensuring the challenge is readable"
-                    )
-                else:
-                    try:
-                        resp = urlopen(wellknown_url)
-                        resp_data = resp.read().decode("utf8").strip()
-                        assert resp_data == keyauthorization
-                    except (IOError, AssertionError):
-                        self.acmeLogger.log_challenge_error(
-                            "v2", dbAcmeChallenge, "pretest-1", transaction_commit=True,
-                        )
-                        raise errors.DomainVerificationError(
-                            "Wrote keyauth challenge, but couldn't download {0}".format(
-                                wellknown_url
-                            )
-                        )
-                    except ssl.CertificateError as exc:
-                        self.acmeLogger.log_challenge_error(
-                            "v2", dbAcmeChallenge, "pretest-2", transaction_commit=True,
-                        )
-                        if str(exc).startswith("hostname") and (
-                            "doesn't match" in str(exc)
-                        ):
-                            raise errors.DomainVerificationError(
-                                "Wrote keyauth challenge, but ssl can't view {0}. `%s`".format(
-                                    wellknown_url, str(exc)
-                                )
-                            )
-                        raise
-            except (AssertionError, ValueError) as exc:
-                raise errors.DomainVerificationError(
-                    "couldn't download {0}: {1}".format(wellknown_url, exc)
+        if _todo__complete_challenge:
+            if _acme_challenge_type == "http-01":
+                self._prepare_acme_challenge__http01(
+                    ctx, dbAcmeAuthorization=dbAcmeAuthorization, dbAcmeChallenge=dbAcmeChallenge,
                 )
+            elif _acme_challenge_type == "dns-01":
+                # TODO: dns-01 with acme
+                raise NotImplementedError()
+            elif _acme_challenge_type == "tls-alpn-01":
+                # TODO: tls-alpn-01
+                raise NotImplementedError()
 
             self.acme_challenge_trigger(
                 ctx,
@@ -1186,12 +1245,14 @@ class AuthenticatedUser(object):
     ):
         """
         This triggers the challenge object
+
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param dbAcmeChallenge: (required) a :class:`model.objects.AcmeChallenge` instance
         :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
-
         :param update_AcmeAuthorization_status: callable. expects (ctx, dbAcmeAuthorization, status_text, transaction_commit)
         :param update_AcmeChallenge_status: callable. expects (ctx, dbAcmeChallenge, status_text, transaction_commit)
+        
+        returns `challenge_response` the ACME paylaod for the specific challenge
         """
         log.info("acme_v2.AuthenticatedUser.acme_challenge_trigger(")
         if transaction_commit is not True:
@@ -1305,18 +1366,23 @@ class AuthenticatedUser(object):
             )
 
             # update the challenge
-            acme_challenge_response_2 = get_authorization_challenges(
-                authorization_response, required_challenges=["http-01",],
+            acme_challenges = get_authorization_challenges(
+                authorization_response, required_challenges=["http-01",]
             )
-            if acme_challenge_response_2["url"] == dbAcmeChallenge.challenge_url:
-                update_AcmeChallenge_status(
-                    ctx,
-                    dbAcmeChallenge,
-                    acme_challenge_response_2["status"],
-                    transaction_commit=True,
+            _acme_challenge_selected = filter_specific_challenge(
+                acme_challenges, dbAcmeChallenge.acme_challenge_type
+            )
+            if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
+                raise ValueError(
+                    "IntegryError on challenge payload; this should never happen."
                 )
-
-            return acme_challenge_response_2
+            update_AcmeChallenge_status(
+                ctx,
+                dbAcmeChallenge,
+                _acme_challenge_selected["status"],
+                transaction_commit=True,
+            )
+            return _acme_challenge_selected
 
         elif authorization_response["status"] != "valid":
 
@@ -1333,14 +1399,20 @@ class AuthenticatedUser(object):
             )
 
             # kill the challenge
-            acme_challenge_response_2 = get_authorization_challenges(
+            acme_challenges = get_authorization_challenges(
                 authorization_response, required_challenges=["http-01",],
             )
-            if acme_challenge_response_2["url"] == dbAcmeChallenge.challenge_url:
+            _acme_challenge_selected = filter_specific_challenge(
+                acme_challenges, dbAcmeChallenge.acme_challenge_type
+            )
+            if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
+                raise ValueError(
+                    "IntegryError on challenge payload; this should never happen."
+                )
                 update_AcmeChallenge_status(
                     ctx,
                     dbAcmeChallenge,
-                    acme_challenge_response_2["status"],
+                    _acme_challenge_selected["status"],
                     transaction_commit=True,
                 )
 
