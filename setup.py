@@ -1,4 +1,5 @@
 import os
+import sys
 
 from setuptools import setup, find_packages
 
@@ -34,8 +35,17 @@ requires = [
 tests_require = [
     "certbot",
     "pycrypto",
-    "jwt",
 ]
+
+
+if sys.version_info.major == 2:
+    # tests_require.append("jwt==0.3.2")
+    # this is pegged to `cryptography==1.7.2`
+    # pip install jwt==0.3.2  --no-dependencies
+    pass
+else:
+    tests_require.append("jwt")
+
 
 setup(
     name="peter_sslers",

@@ -2,9 +2,12 @@ from __future__ import print_function
 
 import logging
 
-log = logging.getLogger(__name__)
-log.addHandler(logging.StreamHandler())
-log.setLevel(logging.DEBUG)
+
+if False:
+    # use when debugging
+    log = logging.getLogger(__name__)
+    log.addHandler(logging.StreamHandler())
+    log.setLevel(logging.DEBUG)
 
 
 # stdlib
@@ -940,6 +943,7 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         if tmpfile_pem:
             tmpfile_pem.close()
 
+
 def new_account_key(bits=2048):
     return new_rsa_key(bits=bits)
 
@@ -1066,7 +1070,7 @@ def convert_lejson_to_pem(pkey_jsons):
                 raise ValueError(err)
         # convert to pem
         as_pem = convert_der_to_pem__rsakey(tmpfile_der.read())
-        
+
         # we need a tmpfile to validate it
         tmpfile_pem = new_pem_tempfile(as_pem)
         tmpfiles.append(tmpfile_pem)

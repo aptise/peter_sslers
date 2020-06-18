@@ -133,7 +133,7 @@ def get_authorization_challenges(
     """
     :param dict authorization_response: (required) A Python dict representing a server's JSON payload of an Authorization Object.
     :param list required_challenges: (optional) Pass in a list of required challenges
-    
+
     returns:
         `dict` in which keys are the challenge type and values are the challenge payload.
     """
@@ -1254,7 +1254,7 @@ class AuthenticatedUser(object):
         :param dbAcmeAuthorization: (required) a :class:`model.objects.AcmeAuthorization` instance
         :param update_AcmeAuthorization_status: callable. expects (ctx, dbAcmeAuthorization, status_text, transaction_commit)
         :param update_AcmeChallenge_status: callable. expects (ctx, dbAcmeChallenge, status_text, transaction_commit)
-        
+
         returns `challenge_response` the ACME paylaod for the specific challenge
         """
         log.info("acme_v2.AuthenticatedUser.acme_challenge_trigger(")
