@@ -384,27 +384,27 @@ TEST_FILES = {
         "1": {
             "file": "private_1.key",
             "key_pem_md5": "462dc10731254d7f5fa7f0e99cbece73",
-            "key_pem_modulus_md5": "5d0f596ace3ea1a9ce40dc9b087759a1",
+            "key_pem_modulus_md5": "fc1a6c569cba199eb5341c0c423fb768",
         },
         "2": {
             "file": "private_2.key",
             "key_pem_md5": "cdde9325bdbfe03018e4119549c3a7eb",
-            "key_pem_modulus_md5": "db45c5dce9fffbe21fc82a5e26b0bf8e",
+            "key_pem_modulus_md5": "397282f3cd67d33b2b018b61fdd3f4aa",
         },
         "3": {
             "file": "private_3.key",
             "key_pem_md5": "399236401eb91c168762da425669ad06",
-            "key_pem_modulus_md5": "c2b3abfb8fa471977b6df77aafd30bee",
+            "key_pem_modulus_md5": "112d2db5daba540f8ff26fcaaa052707",
         },
         "4": {
             "file": "private_4.key",
             "key_pem_md5": "6867998790e09f18432a702251bb0e11",
-            "key_pem_modulus_md5": "e33389025a223c8a36958dc56de08840",
+            "key_pem_modulus_md5": "687f3a3659cd423c48c50ed78a75eba0",
         },
         "5": {
             "file": "private_5.key",
             "key_pem_md5": "1b13814854d8cee8c64732a2e2f7e73e",
-            "key_pem_modulus_md5": "a2ea95b3aa5f5b337ac981c2024bcb3a",
+            "key_pem_modulus_md5": "1eee27c04e912ff24614911abd2f0f8b",
         },
     },
     # the certificates are a tuple of: (CommonName, crt, csr, key)

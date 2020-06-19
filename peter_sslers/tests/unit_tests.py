@@ -408,7 +408,7 @@ class UnitTest_OpenSSL(AppTestCore):
     """python -m unittest peter_sslers.tests.unit_tests.UnitTest_OpenSSL"""
 
     def test_modulus_PrivateKey(self):
-        for pkey_set_id, set_data in TEST_FILES["PrivateKey"].items():
+        for pkey_set_id, set_data in sorted(TEST_FILES["PrivateKey"].items()):
             key_pem_filepath = self._filepath_testfile(set_data["file"])
             key_pem = self._filedata_testfile(key_pem_filepath)
             _computed_modulus_md5 = cert_utils.modulus_md5_key(
