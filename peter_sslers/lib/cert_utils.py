@@ -6,7 +6,7 @@ import logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())
 # use when debugging
-if True:
+if False:
     log.setLevel(logging.DEBUG)
 
 

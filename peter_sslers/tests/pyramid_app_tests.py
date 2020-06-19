@@ -7082,6 +7082,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_AcmeOrder_nocleanup
 
         this test is not focused on routes, but cleaning up an order
+        
+        must use pebble_strict so there are no reused auths
         """
         try:
             # Functional Tests: self.testapp.app.registry.settings
@@ -7142,18 +7144,13 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 == stats_og["count-AcmeAuthorization"] + 20
             )
             # this one is hard to figure out
+            # because we could have failed on any of the 20 authorizations
             # start with 20 auths
-            _expected = stats_og["count-AcmeAuthorization-pending"] + 20
-            # then figure out the difference in challenges
-            _expected = _expected - (
-                stats_b["count-AcmeChallenge"] - stats_og["count-AcmeChallenge"]
-            )
-            # no need to subtract one for the failed auth, because it's part of the `count-AcmeChallenge`
-            # _expected = _expected - 1
-            pprint.pprint(_expected)
-            pprint.pprint(stats_b)
-            pdb.set_trace()
-            assert stats_b["count-AcmeAuthorization-pending"] == _expected
+            _expected_max = stats_og["count-AcmeAuthorization-pending"] + 20
+            # no need to assume one for the failed auth
+            _expected_min = stats_og["count-AcmeAuthorization-pending"] + 1
+            assert stats_b["count-AcmeAuthorization-pending"] < _expected_max
+            assert stats_b["count-AcmeAuthorization-pending"] > _expected_min
 
         finally:
             # reset

@@ -542,7 +542,6 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
                 ctx, dbAcmeAuthorization, authorization_response
             )
 
-            # maybe there are challenges in the payload?
             try:
                 dbAcmeChallenges = lib.db.getcreate.getcreate__AcmeChallenges_via_payload(
                     ctx,
@@ -551,8 +550,13 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
                     authorization_payload=authorization_response,
                 )
             except errors.AcmeMissingChallenges as exc:
-                # note: perhaps better as `errors.InvalidRequest`
-                raise errors.AcmeCommunicationError("Missing required challenges")
+                # maybe there are challenges in the payload?
+                if (
+                    authorization_response["status"]
+                    in model_utils.Acme_Status_Authorization.OPTIONS_POSSIBLY_PENDING
+                ):
+                    # note: perhaps better as `errors.InvalidRequest`
+                    raise errors.AcmeCommunicationError("Missing required challenges")
 
             return True
         except errors.AcmeServer404 as exc:

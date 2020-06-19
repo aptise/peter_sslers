@@ -131,12 +131,16 @@ def under_pebble(_function):
         ) as proc:
             # ensure the `pebble` server is running
             ready = False
+            _waits = 0
             while not ready:
                 log.info("waiting for `pebble` to be ready")
                 for line in iter(proc.stdout.readline, b""):
                     if b"Listening on: 0.0.0.0:14000" in line:
                         ready = True
                         break
+                _waits += 1
+                if _waits >= 5:
+                    raise ValueError("error spinning up pebble")
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
@@ -169,12 +173,16 @@ def under_pebble_strict(_function):
         ) as proc:
             # ensure the `pebble` server is running
             ready = False
+            _waits = 0
             while not ready:
                 log.info("waiting for `pebble` to be ready")
                 for line in iter(proc.stdout.readline, b""):
                     if b"Listening on: 0.0.0.0:14000" in line:
                         ready = True
                         break
+                _waits += 1
+                if _waits >= 5:
+                    raise ValueError("error spinning up pebble")
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
@@ -206,6 +214,7 @@ def under_redis(_function):
         ) as proc:
             # ensure the `pebble` server is running
             ready = False
+            _waits = 0
             while not ready:
                 log.info("waiting for `redis` to be ready")
                 for line in iter(proc.stdout.readline, b""):
@@ -214,6 +223,9 @@ def under_redis(_function):
                     if b"The server is now ready to accept connections on port" in line:
                         ready = True
                         break
+                _waits += 1
+                if _waits >= 5:
+                    raise ValueError("error spinning up redis")
                 time.sleep(1)
             try:
                 res = _function(*args, **kwargs)
