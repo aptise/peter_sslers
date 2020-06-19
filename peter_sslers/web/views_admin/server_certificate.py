@@ -363,10 +363,10 @@ class View_Focus(Handler):
     def focus_parse_json(self):
         dbServerCertificate = self._focus()
         return {
-            "%s"
-            % dbServerCertificate.id: cert_utils.parse_cert(
-                cert_pem=dbServerCertificate.cert_pem
-            )
+            "ServerCertificate": {
+                "id": dbServerCertificate.id,
+                "parsed": cert_utils.parse_cert(cert_pem=dbServerCertificate.cert_pem),
+            }
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

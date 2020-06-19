@@ -1589,9 +1589,11 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert "keyauthorization" in add_fields
         assert "domain" in add_fields
         assert "token" in add_fields
+        assert "acme_challenge_type" in add_fields
         form["keyauthorization"] = "keyauthorization_add"
         form["domain"] = "domain_add.example.com"
         form["token"] = "token_add"
+        form["acme_challenge_type"] = "http-01"
 
         res6 = form.submit()
         assert res6.status_code == 303
@@ -1723,9 +1725,11 @@ class FunctionalTests_AcmeOrderless(AppTest):
         assert "keyauthorization" in add_fields
         assert "domain" in add_fields
         assert "token" in add_fields
+        assert "acme_challenge_type" in add_fields
         add_fields["keyauthorization"] = "keyauthorization_add"
         add_fields["domain"] = "domain_add.example.com"
         add_fields["token"] = "token_add"
+        add_fields["acme_challenge_type"] = "http-01"
 
         res6 = self.testapp.post(
             "/.well-known/admin/acme-orderless/%s/add.json" % obj_id, add_fields
@@ -1844,6 +1848,9 @@ class FunctionalTests_CACertificate(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/ca-certificate/1/parse.json", status=200
         )
+        assert "CACertificate" in res.json
+        assert "id" in res.json["CACertificate"]
+        assert "parsed" in res.json["CACertificate"]
 
     @tests_routes(
         ("admin:ca_certificate:upload", "admin:ca_certificate:upload_bundle",)

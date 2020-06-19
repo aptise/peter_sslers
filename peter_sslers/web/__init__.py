@@ -6,6 +6,7 @@ import datetime
 from pyramid.config import Configurator
 from pyramid.tweens import EXCVIEW
 from pyramid.events import BeforeRender
+from pyramid.renderers import JSON
 
 # pypi
 import transaction
@@ -92,6 +93,13 @@ def main(global_config, **settings):
     config.include("pyramid_mako")
     config.include("pyramid_formencode_classic")
     # config.add_static_view('static', 'static', cache_max_age=3600)
+
+    # custom datetime rendering
+    json_renderer = JSON()
+    def datetime_adapter(obj, request):
+        return obj.isoformat()
+    json_renderer.add_adapter(datetime.datetime, datetime_adapter)
+    config.add_renderer('json', json_renderer)
 
     # Parse settings
     app_settings = ApplicationSettings()

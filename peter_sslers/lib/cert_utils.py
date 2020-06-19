@@ -3,10 +3,10 @@ from __future__ import print_function
 import logging
 
 
+log = logging.getLogger(__name__)
+log.addHandler(logging.StreamHandler())
+# use when debugging
 if False:
-    # use when debugging
-    log = logging.getLogger(__name__)
-    log.addHandler(logging.StreamHandler())
     log.setLevel(logging.DEBUG)
 
 
@@ -873,6 +873,7 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         "subject_hash": None,
         "enddate": None,
         "startdate": None,
+        "SubjectAlternativeName": None,
     }
     if openssl_crypto:
         cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
@@ -881,12 +882,15 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         rval["subject"] = "%s" % cert.get_subject()
         rval["enddate"] = cert.to_cryptography().not_valid_after
         rval["startdate"] = cert.to_cryptography().not_valid_before
-        ext = cert.to_cryptography().extensions.get_extension_for_oid(
-            cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
-        )
-        rval["SubjectAlternativeName"] = ext.value.get_values_for_type(
-            cryptography.x509.DNSName
-        )
+        try:
+            ext = cert.to_cryptography().extensions.get_extension_for_oid(
+                cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+            )
+            rval["SubjectAlternativeName"] = ext.value.get_values_for_type(
+                cryptography.x509.DNSName
+            )
+        except:
+            pass
         return rval
 
     log.debug(".parse_cert > openssl fallback")
@@ -912,9 +916,12 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         if openssl_version is None:
             check_openssl_version()
         if _openssl_behavior == "b":
-            rval["SubjectAlternativeName"] = cert_ext__pem_filepath(
-                cert_pem_filepath, "subjectAltName"
-            )
+            try:
+                rval["SubjectAlternativeName"] = cert_ext__pem_filepath(
+                    cert_pem_filepath, "subjectAltName"
+                )
+            except:
+                pass
         else:
             with psutil.Popen(
                 [openssl_path, "x509", "-text", "-noout", "-in", cert_pem_filepath],

@@ -205,6 +205,12 @@
                         id="acmeorderless-add_challenge"
                     >
                         <div class="form-group">
+                            <label for="acme_challenge_type">ChallengeType</label>
+                            <select name="acme_challenge_type" class="form-control">
+                                <option value="http-01" selected>http-01</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label for="domain">Domain</label>
                             <input class="form-control" type="text" name="domain" value=""/>
                         </div>

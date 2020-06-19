@@ -277,6 +277,7 @@ class View_Focus(Handler):
                 )
                 resp["forms"]["acmeorderless-add_challenge"] = {
                     "_url": "%s/add.json" % self._focus_url,
+                    "acme_challenge_type": "",
                     "keyauthorization": "",
                     "domain": "",
                     "token": "",
@@ -308,7 +309,7 @@ class View_Focus(Handler):
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:acme_orderless:focus:update")
     @view_config(route_name="admin:acme_orderless:focus:update|json", renderer="json")
-    def focus_update(self):
+    def update(self):
         dbAcmeOrderless = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
@@ -361,7 +362,7 @@ class View_Focus_Manipulate(View_Focus):
     @view_config(
         route_name="admin:acme_orderless:focus:deactivate|json", renderer="json",
     )
-    def focus_deactivate(self):
+    def deactivate(self):
         dbAcmeOrderless = self._focus()
         if self.request.method != "POST":
             if self.request.wants_json:
@@ -395,7 +396,7 @@ class View_Focus_Manipulate(View_Focus):
 
     @view_config(route_name="admin:acme_orderless:focus:add")
     @view_config(route_name="admin:acme_orderless:focus:add|json", renderer="json")
-    def focus_add(self):
+    def add_challenge(self):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request,
@@ -450,11 +451,13 @@ class View_Focus_Manipulate(View_Focus):
                     message="This domain is already configured for this AcmeOrderless.",
                 )
 
+            acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(formStash.results["acme_challenge_type"])
             create_kwargs = {
                 "dbAcmeOrderless": dbAcmeOrderless,
                 "dbDomain": dbDomain,
                 "token": formStash.results["token"],
                 "keyauthorization": formStash.results["keyauthorization"],
+                "acme_challenge_type_id": acme_challenge_type_id,
             }
             if dbAcmeOrderless.acme_account_id:
                 create_kwargs["challenge_url"] = formStash.results["challenge_url"]

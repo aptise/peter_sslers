@@ -135,12 +135,11 @@ class View_Focus(Handler):
     @view_config(route_name="admin:ca_certificate:focus:parse|json", renderer="json")
     def focus_parse_json(self):
         dbCACertificate = self._focus()
-        return {
-            "%s"
-            % dbCACertificate.id: cert_utils.parse_cert(
-                cert_pem=dbCACertificate.cert_pem
-            )
-        }
+        return {"CACertificate": {
+                    "id": dbCACertificate.id,
+                    "parsed": cert_utils.parse_cert(cert_pem=dbCACertificate.cert_pem),
+                    }
+                }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
