@@ -6,7 +6,7 @@ import logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())
 # use when debugging
-if False:
+if True:
     log.setLevel(logging.DEBUG)
 
 
@@ -63,7 +63,7 @@ from .. import (
 openssl_path = "openssl"
 openssl_path_conf = "/etc/ssl/openssl.cnf"
 
-# TODO - is this better?
+# TODO - toggle this via env vars
 openssl_path = "/usr/local/bin/openssl"
 openssl_path_conf = "/usr/local/ssl/openssl.cnf"
 
@@ -273,6 +273,24 @@ def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker
     return csr_text
 
 
+# note the conditional whitespace before/after `CN`
+# this is because of differing openssl versions
+RE_openssl_x509_subject = re.compile(r"Subject:.*? CN ?= ?([^\s,;/]+)")
+RE_openssl_x509_san = re.compile(
+    r"X509v3 Subject Alternative Name: \n +([^\n]+)\n?", re.MULTILINE | re.DOTALL
+)
+
+
+def san_domains_from_text(input):
+    san_domains = set([])
+    _subject_alt_names = RE_openssl_x509_san.search(input)
+    if _subject_alt_names is not None:
+        for _san in _subject_alt_names.group(1).split(", "):
+            if _san.startswith("DNS:"):
+                san_domains.add(_san[4:].lower())
+    return list(san_domains)
+
+
 def parse_cert_domains(cert_pem=None, cert_pem_filepath=None):
     """
     gets ALL domains from a certificate
@@ -302,22 +320,12 @@ def parse_cert_domains(cert_pem=None, cert_pem_filepath=None):
             out = out.decode("utf8")
     # init
     subject_domain = None
-    san_domains = set([])
+    san_domains = []
     # regex!
-    # note the conditional whitespace before/after CN
-    _common_name = re.search(r"Subject:.*? CN ?= ?([^\s,;/]+)", out)
+    _common_name = RE_openssl_x509_subject.search(out)
     if _common_name is not None:
         subject_domain = _common_name.group(1).lower()
-    _subject_alt_names = re.search(
-        r"X509v3 Subject Alternative Name: \n +([^\n]+)\n",
-        out,
-        re.MULTILINE | re.DOTALL,
-    )
-    if _subject_alt_names is not None:
-        for _san in _subject_alt_names.group(1).split(", "):
-            if _san.startswith("DNS:"):
-                san_domains.add(_san[4:].lower())
-    san_domains = list(san_domains)
+    san_domains = san_domains_from_text(out)
     if subject_domain is not None and subject_domain not in san_domains:
         san_domains.insert(0, subject_domain)
     san_domains.sort()
@@ -340,6 +348,7 @@ def parse_csr_domains(csr_pem=None, csr_pem_filepath=None, submitted_domain_name
             csr_pem, load_func, typ=openssl_crypto.FILETYPE_PEM
         )
     else:
+        # TODO: create a tempfile so we can avoid making one
         log.debug(".parse_csr_domains > openssl fallback")
         # fallback onto OpenSSL
         # openssl req -in MYCSR -noout -text
@@ -353,21 +362,14 @@ def parse_csr_domains(csr_pem=None, csr_pem_filepath=None, submitted_domain_name
                 raise IOError("Error loading {0}: {1}".format(csr_pem_filepath, err))
         if six.PY3:
             out = out.decode("utf8")
-        found_domains = set([])
+
+        # parse the sans first, then add the commonname
+        found_domains = san_domains_from_text(out)
+
         # note the conditional whitespace before/after CN
-        common_name = re.search(r"Subject:.*? CN ?= ?([^\s,;/]+)", out)
+        common_name = RE_openssl_x509_subject.search(out)
         if common_name is not None:
-            found_domains.add(common_name.group(1))
-        subject_alt_names = re.search(
-            r"X509v3 Subject Alternative Name: \n +([^\n]+)\n",
-            out,
-            re.MULTILINE | re.DOTALL,
-        )
-        if subject_alt_names is not None:
-            for san in subject_alt_names.group(1).split(", "):
-                if san.startswith("DNS:"):
-                    found_domains.add(san[4:])
-        found_domains = list(found_domains)
+            found_domains.insert(0, common_name.group(1))
 
     # ensure our CERT matches our submitted_domain_names
     if submitted_domain_names is not None:
@@ -621,9 +623,10 @@ def cert_single_op__pem(cert_pem, single_op):
         _tmpfile_pem.close()
 
 
-def cert_normalize__pem(cert_pem):
+def _cert_normalize__pem(cert_pem):
     """
     normalize a cert using openssl
+    NOTE: this is an openssl fallback routine
     """
     _tmpfile_pem = new_pem_tempfile(cert_pem)
     try:
@@ -744,23 +747,13 @@ def parse_cert_enddate(cert_pem=None, cert_pem_filepath=None):
         date = cert.to_cryptography().not_valid_after
     else:
         log.debug(".parse_cert_enddate > openssl fallback")
-
         # openssl x509 -enddate -noout -in {CERT}
-        with psutil.Popen(
-            [openssl_path, "x509", "-enddate", "-noout", "-in", cert_pem_filepath],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc:
-            data, err = proc.communicate()
-            if not data:
-                raise errors.OpenSslError_InvalidCertificate(err)
-            if six.PY3:
-                data = data.decode("utf8")
-            if data[:9] != "notAfter=":
-                raise errors.OpenSslError_InvalidCertificate("unexpected format")
-            data_date = data[9:]
-            date = dateutil_parser.parse(data_date)
-            date = date.replace(tzinfo=None)
+        data = cert_single_op__pem_filepath(cert_pem_filepath, "-enddate")
+        if data[:9] != "notAfter=":
+            raise errors.OpenSslError_InvalidCertificate("unexpected format")
+        data_date = data[9:]
+        date = dateutil_parser.parse(data_date)
+        date = date.replace(tzinfo=None)
     return date
 
 
@@ -776,21 +769,12 @@ def parse_cert_startdate(cert_pem=None, cert_pem_filepath=None):
     else:
         log.debug(".parse_cert_enddate > openssl fallback")
         # openssl x509 -startdate -noout -in {CERT}
-        with psutil.Popen(
-            [openssl_path, "x509", "-startdate", "-noout", "-in", cert_pem_filepath],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc:
-            data, err = proc.communicate()
-            if not data:
-                raise errors.OpenSslError_InvalidCertificate(err)
-            if six.PY3:
-                data = data.decode("utf8")
-            if data[:10] != "notBefore=":
-                raise errors.OpenSslError_InvalidCertificate("unexpected format")
-            data_date = data[10:]
-            date = dateutil_parser.parse(data_date)
-            date = date.replace(tzinfo=None)
+        data = cert_single_op__pem_filepath(cert_pem_filepath, "-startdate")
+        if data[:10] != "notBefore=":
+            raise errors.OpenSslError_InvalidCertificate("unexpected format")
+        data_date = data[10:]
+        date = dateutil_parser.parse(data_date)
+        date = date.replace(tzinfo=None)
     return date
 
 
@@ -827,6 +811,14 @@ def convert_der_to_pem__rsakey(der_data=None):
 
 
 def convert_pem_to_der(pem_data=None):
+    """
+        with psutil.Popen(
+            [cert_utils.openssl_path, "req", "-in", csr_path, "-outform", "DER"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            csr_der, err = proc.communicate()
+    """
     # PEM is just a b64 encoded DER certificate with the header/footer (FOR REAL!)
     lines = [l.strip() for l in pem_data.strip().split("\n")]
     # remove the BEGIN CERT
@@ -898,35 +890,42 @@ def parse_key(key_pem=None, key_pem_filepath=None):
 
 def parse_cert(cert_pem=None, cert_pem_filepath=None):
     """
-    !!!: This is a debugging display function. The output is not guaranteed across installations.
-
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
     log.info("parse_cert >")
     rval = {
         "issuer": None,
-        "issuer_hash": None,
         "subject": None,
-        "subject_hash": None,
         "enddate": None,
         "startdate": None,
         "SubjectAlternativeName": None,
     }
     if openssl_crypto:
         cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
+        cert_cryptography = cert.to_cryptography()
 
-        rval["issuer"] = "%s" % cert.get_issuer()
-        rval["subject"] = "%s" % cert.get_subject()
-        rval["enddate"] = cert.to_cryptography().not_valid_after
-        rval["startdate"] = cert.to_cryptography().not_valid_before
+        # ??? normalize this to have a leading '/' ?
+        _issuer = " = ".join(cert.get_issuer().get_components()[0])
+        if _issuer[0] == "/":
+            _issuer = _issuer[1:]
+        rval["issuer"] = _issuer
+
+        # ??? normalize this to have a leading '/' ?
+        _subject = " = ".join(cert.get_subject().get_components()[0])
+        if _subject == "/":
+            _subject = _subject[1:]
+        rval["subject"] = _subject
+        rval["enddate"] = cert_cryptography.not_valid_after
+        rval["startdate"] = cert_cryptography.not_valid_before
+
         try:
-            ext = cert.to_cryptography().extensions.get_extension_for_oid(
+            ext = cert_cryptography.extensions.get_extension_for_oid(
                 cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
             )
-            rval["SubjectAlternativeName"] = ext.value.get_values_for_type(
-                cryptography.x509.DNSName
-            )
+            if ext:
+                _names = ext.value.get_values_for_type(cryptography.x509.DNSName)
+                rval["SubjectAlternativeName"] = sorted(_names)
         except:
             pass
         return rval
@@ -939,25 +938,38 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         if not cert_pem_filepath:
             tmpfile_pem = new_pem_tempfile(cert_pem)
             cert_pem_filepath = tmpfile_pem.name
-        rval["issuer"] = cert_single_op__pem_filepath(cert_pem_filepath, "-issuer")
-        rval["subject"] = cert_single_op__pem_filepath(cert_pem_filepath, "-subject")
-        rval["startdate"] = cert_single_op__pem_filepath(
-            cert_pem_filepath, "-startdate"
+
+        # different openssl versions give different responses. FUN.
+        _issuer = cert_single_op__pem_filepath(cert_pem_filepath, "-issuer")
+        if _issuer.startswith("issuer= /"):
+            _issuer = _issuer[9:]
+        elif _issuer.startswith("issuer="):
+            _issuer = _issuer[7:]
+        _issuer = " = ".join([i.strip() for i in _issuer.split("=")])
+        rval["issuer"] = _issuer
+
+        _subject = cert_single_op__pem_filepath(cert_pem_filepath, "-subject")
+        if _subject.startswith("subject= /"):
+            _subject = _subject[10:]
+        elif _issuer.startswith("subject="):
+            _subject = _subject[8:]
+        _subject = " = ".join([i.strip() for i in _issuer.split("=")])
+        rval["subject"] = _subject
+
+        rval["startdate"] = parse_cert_startdate(
+            cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
         )
-        rval["enddate"] = cert_single_op__pem_filepath(cert_pem_filepath, "-enddate")
-        rval["issuer_hash"] = cert_single_op__pem_filepath(
-            cert_pem_filepath, "-issuer_hash"
+        rval["enddate"] = parse_cert_enddate(
+            cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
         )
-        rval["subject_hash"] = cert_single_op__pem_filepath(
-            cert_pem_filepath, "-subject_hash"
-        )
+
         if openssl_version is None:
             check_openssl_version()
         if _openssl_behavior == "b":
             try:
-                rval["SubjectAlternativeName"] = cert_ext__pem_filepath(
-                    cert_pem_filepath, "subjectAltName"
-                )
+                _text = cert_ext__pem_filepath(cert_pem_filepath, "subjectAltName")
+                found_domains = san_domains_from_text(out)
+                rval["SubjectAlternativeName"] = found_domains
             except:
                 pass
         else:
@@ -966,14 +978,9 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             ) as proc_text:
-                with psutil.Popen(
-                    ["grep", "DNS"],
-                    stdin=proc_text.stdout,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                ) as proc_grep:
-                    data, err = proc_text.communicate()
-                    rval["SubjectAlternativeName"] = data
+                data, err = proc_text.communicate()
+                found_domains = san_domains_from_text(data)
+                rval["SubjectAlternativeName"] = found_domains
 
         # rval["parse_cert_enddate"] = str(
         #    parse_cert_enddate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
@@ -1134,7 +1141,6 @@ def convert_lejson_to_pem(pkey_jsons):
             t.close()
 
 
-
 #
 # https://github.com/certbot/certbot/blob/master/certbot/certbot/crypto_util.py#L482
 #
@@ -1145,8 +1151,10 @@ CERT_PEM_REGEX = re.compile(
 .+?\r?
 -----END CERTIFICATE-----\r?
 """,
-    re.DOTALL # DOTALL (/s) because the base64text may include newlines
+    re.DOTALL,  # DOTALL (/s) because the base64text may include newlines
 )
+
+
 def cert_and_chain_from_fullchain(fullchain_pem):
     """
     Split `fullchain_pem` into `cert_pem` and `chain_pem`
@@ -1176,15 +1184,105 @@ def cert_and_chain_from_fullchain(fullchain_pem):
     # which is prohibited by RFC8555.
     certs = CERT_PEM_REGEX.findall(fullchain_pem.encode())
     if len(certs) < 2:
-        raise errors.OpenSslError("failed to parse fullchain into cert and chain: " +
-                                  "less than 2 certificates in chain")
+        raise errors.OpenSslError(
+            "failed to parse fullchain into cert and chain: "
+            + "less than 2 certificates in chain"
+        )
     # Second pass: for each certificate found, parse it using OpenSSL and re-encode it,
     # with the effect of normalizing any encoding variations (e.g. CRLF, whitespace).
     certs_normalized = []
     for _cert_pem in certs:
-        _cert_pem = cert_normalize__pem(_cert_pem)
+        _cert_pem = _cert_normalize__pem(_cert_pem)
         _cert_pem = cleanup_pem_text(_cert_pem)
         certs_normalized.append(_cert_pem)
-    
+
     # Since each normalized cert has a newline suffix, no extra newlines are required.
     return (certs_normalized[0], "".join(certs_normalized[1:]))
+
+
+# ------------------------------------------------------------------------------
+
+
+def _b64(b):
+    # helper function base64 encode for jose spec
+    return base64.urlsafe_b64encode(b).decode("utf8").replace("=", "")
+
+
+def account_key__parse(key_pem=None, key_pem_filepath=None):
+    """
+    :param key_pem_filepath: (required) the filepath to a PEM encoded RSA account key file.
+
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+
+    This includes code from acme-tiny [https://github.com/diafygi/acme-tiny]
+    acme-tiny is released under the MIT license and Copyright (c) 2015 Daniel Roesler
+    """
+    log.info("account_key__parse >")
+    alg = "RS256"
+    if josepy:
+        if not key_pem:
+            raise ValueError("submit key_pem!!!")
+            key_pem = open(key_pem_filepath).read()
+        _jwk = josepy.JWKRSA.load(key_pem.encode("utf8"))
+        jwk = _jwk.public_key().fields_to_partial_json()
+        jwk["kty"] = "RSA"
+        thumbprint = _b64(_jwk.thumbprint())
+    else:
+        log.debug(".account_key__parse > openssl fallback")
+        with psutil.Popen(
+            [openssl_path, "rsa", "-in", key_pem_filepath, "-noout", "-text",],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            out, err = proc.communicate()
+            if six.PY3:
+                out = out.decode("utf8")
+        pub_pattern = r"modulus:[\s]+?00:([a-f0-9\:\s]+?)\npublicExponent: ([0-9]+)"
+        pub_hex, pub_exp = re.search(
+            pub_pattern, out, re.MULTILINE | re.DOTALL
+        ).groups()
+        pub_exp = "{0:x}".format(int(pub_exp))
+        pub_exp = "0{0}".format(pub_exp) if len(pub_exp) % 2 else pub_exp
+        jwk = {
+            "e": _b64(binascii.unhexlify(pub_exp.encode("utf-8"))),
+            "kty": "RSA",
+            "n": _b64(
+                binascii.unhexlify(re.sub(r"(\s|:)", "", pub_hex).encode("utf-8"))
+            ),
+        }
+        _accountkey_json = json.dumps(jwk, sort_keys=True, separators=(",", ":"))
+        thumbprint = _b64(hashlib.sha256(_accountkey_json.encode("utf8")).digest())
+    return jwk, thumbprint, alg
+
+
+def account_key__sign(data, key_pem=None, key_pem_filepath=None):
+    """
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+    """
+    log.info("account_key__sign >")
+    if openssl_crypto:
+        pkey = openssl_crypto.load_privatekey(openssl_crypto.FILETYPE_PEM, key_pem)
+        signature = pkey.to_cryptography_key().sign(
+            data,
+            cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15(),
+            cryptography.hazmat.primitives.hashes.SHA256(),
+        )
+        return signature
+
+    log.debug(".account_key__sign > openssl fallback")
+    with psutil.Popen(
+        [openssl_path, "dgst", "-sha256", "-sign", key_pem_filepath],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as proc:
+        signature, err = proc.communicate(data)
+        if proc.returncode != 0:
+            raise IOError("account_key__sign\n{1}".format(err))
+        return signature
+
+
+# ------------------------------------------------------------------------------

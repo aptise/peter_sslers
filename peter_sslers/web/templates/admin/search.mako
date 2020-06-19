@@ -114,8 +114,6 @@
                                     <th>active?</th>
                                     <th>timestamp signed</th>
                                     <th>timestamp expires</th>
-                                    <th>subject hash</th>
-                                    <th>issuer hash</th>
                                 </tr>
                             </thead>
                             <body>
@@ -132,8 +130,6 @@
                                     <td><span class="label label-${'success' if cert.is_active else 'danger'}">${'Y' if cert.is_active else ''}</label></td>
                                     <td><timestamp>${cert.timestamp_signed}</timestamp></td>
                                     <td><timestamp>${cert.timestamp_expires}</timestamp></td>
-                                    <td><code>${cert.cert_subject_hash}</code></td>
-                                    <td><code>${cert.cert_issuer_hash}</code></td>
                                 </tr>
                             % endfor
                             </body>
@@ -157,8 +153,6 @@
                                     <th>cert_pem_modulus_md5</th>
                                     <th>timestamp signed</th>
                                     <th>timestamp expires</th>
-                                    <th>subject hash</th>
-                                    <th>issuer hash</th>
                                 </tr>
                             </thead>
                             <body>
@@ -174,8 +168,6 @@
                                     <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                     <td><timestamp>${cert.timestamp_signed}</timestamp></td>
                                     <td><timestamp>${cert.timestamp_expires}</timestamp></td>
-                                    <td><code>${cert.cert_subject_hash}</code></td>
-                                    <td><code>${cert.cert_issuer_hash}</code></td>
                                 </tr>
                             % endfor
                             </body>

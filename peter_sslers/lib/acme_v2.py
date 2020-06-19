@@ -11,7 +11,6 @@ log.setLevel(logging.INFO)
 import base64
 import binascii
 import datetime
-import hashlib
 import json
 import pdb
 import pprint
@@ -27,9 +26,6 @@ try:
 except ImportError:
     from urllib2 import urlopen, Request  # Python 2
     from urllib2 import URLError
-
-# pupi
-import psutil
 
 # localapp
 from . import cert_utils
@@ -49,11 +45,6 @@ TESTING_ENVIRONMENT = False
 
 def new_response_404():
     return {"status": "*404*"}
-
-
-# helper function base64 encode for jose spec
-def _b64(b):
-    return base64.urlsafe_b64encode(b).decode("utf8").replace("=", "")
 
 
 def url_request(url, post_data=None, err_msg="Error", depth=0):
@@ -206,39 +197,6 @@ def acme_directory_get(acmeAccount=None):
 # ------------------------------------------------------------------------------
 
 
-def account_key__parse(account_key_path=None):
-    """
-    :param account_key_path: (required) the filepath to a PEM encoded RSA account key file.
-    """
-    log.info("acme_v2.account_key__parse(")
-    # todo: leverage crypto
-    with psutil.Popen(
-        [cert_utils.openssl_path, "rsa", "-in", account_key_path, "-noout", "-text",],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc:
-        out, err = proc.communicate()
-        if six.PY3:
-            out = out.decode("utf8")
-    pub_pattern = r"modulus:[\s]+?00:([a-f0-9\:\s]+?)\npublicExponent: ([0-9]+)"
-    pub_hex, pub_exp = re.search(pub_pattern, out, re.MULTILINE | re.DOTALL).groups()
-    pub_exp = "{0:x}".format(int(pub_exp))
-    pub_exp = "0{0}".format(pub_exp) if len(pub_exp) % 2 else pub_exp
-    alg = "RS256"
-    jwk = {
-        "e": _b64(binascii.unhexlify(pub_exp.encode("utf-8"))),
-        "kty": "RSA",
-        "n": _b64(binascii.unhexlify(re.sub(r"(\s|:)", "", pub_hex).encode("utf-8"))),
-    }
-    _accountkey_json = json.dumps(jwk, sort_keys=True, separators=(",", ":"))
-    thumbprint = _b64(hashlib.sha256(_accountkey_json.encode("utf8")).digest())
-    return jwk, thumbprint, alg
-
-
-# ------------------------------------------------------------------------------
-
-
 class AcmeOrderRFC(object):
     """
     An object wrapping up an ACME server order
@@ -270,6 +228,7 @@ class AuthenticatedUser(object):
     account_key_path = None
     acmeAccount = None
     acme_directory = None
+    accountkey_pem = None
     accountkey_jwk = None
     accountkey_thumbprint = None
     alg = None
@@ -303,8 +262,9 @@ class AuthenticatedUser(object):
             acme_directory = acme_directory_get(acmeAccount)
 
         # parse account key to get public key
-        (accountkey_jwk, accountkey_thumbprint, alg) = account_key__parse(
-            account_key_path=account_key_path
+        (accountkey_jwk, accountkey_thumbprint, alg) = cert_utils.account_key__parse(
+            key_pem=acmeAccount.acme_account_key.key_pem,
+            key_pem_filepath=account_key_path,
         )
 
         # configure the object!
@@ -312,6 +272,7 @@ class AuthenticatedUser(object):
         self.account_key_path = account_key_path
         self.acmeAccount = acmeAccount
         self.acme_directory = acme_directory
+        self.accountkey_pem = acmeAccount.acme_account_key.key_pem
         self.accountkey_jwk = accountkey_jwk
         self.accountkey_thumbprint = accountkey_thumbprint
         self.alg = alg
@@ -328,7 +289,11 @@ class AuthenticatedUser(object):
         This proxies `url_request` with a signed payload
         returns (resp_data, status_code, headers)
         """
-        payload64 = "" if payload is None else _b64(json.dumps(payload).encode("utf8"))
+        payload64 = (
+            ""
+            if payload is None
+            else cert_utils._b64(json.dumps(payload).encode("utf8"))
+        )
         if self._next_nonce:
             nonce = self._next_nonce
         else:
@@ -341,32 +306,29 @@ class AuthenticatedUser(object):
             if self._api_account_headers is None
             else {"kid": self._api_account_headers["Location"]}
         )
-        protected64 = _b64(json.dumps(protected).encode("utf8"))
+        protected64 = cert_utils._b64(json.dumps(protected).encode("utf8"))
         protected_input = "{0}.{1}".format(protected64, payload64).encode("utf8")
-        # TODO: leverage crypto
-        with psutil.Popen(
-            [
-                cert_utils.openssl_path,
-                "dgst",
-                "-sha256",
-                "-sign",
-                self.account_key_path,
-            ],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc:
-            out, err = proc.communicate(protected_input)
-            if proc.returncode != 0:
-                self._next_nonce = None
-                raise IOError("_send_signed_request\n{1}".format(err))
-        data = json.dumps(
-            {"protected": protected64, "payload": payload64, "signature": _b64(out)}
+
+        try:
+            signature = cert_utils.account_key__sign(
+                protected_input,
+                key_pem=self.accountkey_pem,
+                key_pem_filepath=self.account_key_path,
+            )
+        except IOError as exc:
+            self._next_nonce = None
+            raise
+        signature = json.dumps(
+            {
+                "protected": protected64,
+                "payload": payload64,
+                "signature": cert_utils._b64(signature),
+            }
         )
         try:
             result = url_request(
                 url,
-                post_data=data.encode("utf8"),
+                post_data=signature.encode("utf8"),
                 err_msg="_send_signed_request",
                 depth=depth,
             )
@@ -806,7 +768,7 @@ class AuthenticatedUser(object):
         update_order_status=None,
         transaction_commit=None,
         # function specific
-        csr_path=None,
+        csr_pem=None,
     ):
         """
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -814,7 +776,7 @@ class AuthenticatedUser(object):
         :param update_order_status: (required) Callable function. expects (ctx, dbAcmeOrder, acme_rfc_object, transaction_commit)
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
 
-        :param csr_path: (required)
+        :param csr_pem: (required) The CertitificateSigningRequest as PEM
         """
         # get the new certificate
         log.info("acme_v2.AuthenticatedUser.acme_order_finalize(")
@@ -830,18 +792,13 @@ class AuthenticatedUser(object):
 
         # convert the certificate to a DER
         # todo: leverage crypto
-        with psutil.Popen(
-            [cert_utils.openssl_path, "req", "-in", csr_path, "-outform", "DER"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ) as proc:
-            csr_der, err = proc.communicate()
+        csr_der = cert_utils.convert_pem_to_der(csr_pem)
 
         acmeLoggedEvent = self.acmeLogger.log_order_finalize(
             "v2", transaction_commit=True
         )  # log this to the db
 
-        payload_finalize = {"csr": _b64(csr_der)}
+        payload_finalize = {"csr": cert_utils._b64(csr_der)}
         try:
             (
                 finalize_response,

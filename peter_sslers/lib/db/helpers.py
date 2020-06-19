@@ -22,9 +22,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
         :attr:`model.utils.ServerCertificate.timestamp_signed`
         :attr:`model.utils.ServerCertificate.timestamp_expires`
         :attr:`model.utils.ServerCertificate.cert_subject`
-        :attr:`model.utils.ServerCertificate.cert_subject_hash`
         :attr:`model.utils.ServerCertificate.cert_issuer`
-        :attr:`model.utils.ServerCertificate.cert_issuer_hash`
 
     # --------------------------------------------------------------------------
     cert_dates = cert_utils.parse_cert__dates(pem_filepath=_tmpfileCert.name)
@@ -54,25 +52,13 @@ def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
     )
     dbServerCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
     # the rest...
-    dbServerCertificate.timestamp_signed = cert_utils.parse_cert_startdate(
+    _cert_data = cert_utils.parse_cert(
         cert_pem=dbServerCertificate.cert_pem, cert_pem_filepath=_tmpfileCert.name,
     )
-    dbServerCertificate.timestamp_expires = cert_utils.parse_cert_enddate(
-        cert_pem=dbServerCertificate.cert_pem, cert_pem_filepath=_tmpfileCert.name,
-    )
-    dbServerCertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(
-        _tmpfileCert.name, "-subject"
-    )
-    dbServerCertificate.cert_subject_hash = cert_utils.cert_single_op__pem_filepath(
-        _tmpfileCert.name, "-subject_hash"
-    )
-    dbServerCertificate.cert_issuer = cert_utils.cert_single_op__pem_filepath(
-        _tmpfileCert.name, "-issuer"
-    )
-    dbServerCertificate.cert_issuer_hash = cert_utils.cert_single_op__pem_filepath(
-        _tmpfileCert.name, "-issuer_hash"
-    )
-
+    dbServerCertificate.timestamp_signed = _cert_data["startdate"]
+    dbServerCertificate.timestamp_expires = _cert_data["enddate"]
+    dbServerCertificate.cert_subject = _cert_data["subject"]
+    dbServerCertificate.cert_issuer = _cert_data["issuer"]
     return dbServerCertificate
 
 

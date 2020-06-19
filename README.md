@@ -90,7 +90,7 @@ Peter offers several commandline tools -- so spinning up a tool "webserver" mode
 
 SqlAlchemy is the backing database library, so virtually any database can be used (SQLite, PostgreSQL, MySQL, Oracle, mssql, etc). `SQLite` is the default, but the package has been tested against PostgreSQL. SQLite is actually kind of great, because a single `.sqlite` file can be sftp'd on-to and off-of different machines for distribution and local viewings.
 
-Peter tries to leverage the system's OpenSSL instead of using Python's modules whenever possible. The reason is to minimize the amount of downloads/packages.  A future version will allow switching between the two.
+Peter will use installed Python cryptography modules whenever possible.  If the required packages are not available, Peter will leverage the system's installed OpenSSL binaries using subprocesses. The reason is to minimize the amount of installations/downloads/packages.
 
 Although Python2 is no longer supported by Python itself, Python2 and Python3 are targeted platforms for this library because we all have to deal legacy systems.
 
@@ -180,16 +180,16 @@ Using `prequest`, long-running processes can be easily triggered off the command
 
 ## Cryptography: Python vs OpenSSL
 
-When this package was initially written, a decision was made to avoid using Python cryptography libraries and wrap OpenSSL:
+When this package was initially written, a decision was made to avoid using Python cryptography libraries and wrap OpenSSL via subprocesses:
 
-* The Python crypto libraries required large downloads and/or builds
+* The Python crypto libraries required large downloads and/or builds, which hindered jumping into a server to fix something fast.
 * OpenSSL was on every target machine
 
 As time progressed, it has become much easier to deploy Python cryptography libraries onto target servers.
 
-The current library almost always uses OpenSSL, and offloads some tasks to Python.
+The current library prioritizes doing the work in Python, and will fallback to OpenSSL if the requisite libraries are not available.  *installing the EFF's LetsEncrypt client `certbot` should install all the Python libraries*
 
-A future release is planned to support doing everything in Python if the libraries are installed.
+An extended test suite ensures the primary and fallback systems work.
 
 
 ## Certificates and Certificate Requests
@@ -436,7 +436,7 @@ These are documented at-length on the in-app settings page.
 
 If you have a custom openssl install, you probably want these settings
 
-	openssl_path = /opt/openssl/bin/openssl
+	openssl_path = /usr/local/bin/openssl
 	openssl_path_conf = /usr/local/ssl/openssl.cnf
 
 These options are used by the server AND by the test suite.
@@ -713,15 +713,15 @@ When querying for a domain's Certificate, the system will currently send the mos
 Account keys from the LetsEncrypt client are reformatted into PEM-encoded RSA keys. The data from the various json files are archived into the database for use later.  The account data is searched for the actual environment it is registered with, and that becomes part of the account record.
 
 
-## Why use OpenSsl directly? / does this work on windows?
+## Why use OpenSSL directly? / does this work on windows?
 
 When this package was first developed, installing the necessary python packages for cryptography required a lot of work and downloading.  OpenSSL should already be running on any machine PeterSslers needs to work on, so it was chosen for easy in quick deployment.
 
-It was also much easier to peg this to `openssl` in a linux environment for now; which rules out windows.
+It was also much easier to peg this to `openssl` in a linux environment for now; which ruled out windows.
 
-In the future this could all be done with Python's crypto library. However openssl is fast and this was primarily designed for dealing with linux environments. sorry.
+The current version only uses `openssl` if the requisite Python modules are not installed. That should work on windows.
 
-If someone wants to make a PR to make this fully Python based now that a lot of dependencies are worked out... ok!
+If someone wants to make a PR to support windows as a fallback, it will be reviewed!
 
 
 ## Where does the various data come from?
@@ -835,15 +835,6 @@ If running tests against the LetsEncrypt test API, there are some extra configur
 * `SSL_TEST_DOMAINS` should reflect one or more domains that point to the IP address the server runs on.  this will be used for verification challenges
 * `SSL_TEST_PORT` lets you specify which port the test server should bind to
 * `/tools/nginx_conf/testing.conf` is an `Nginx` configuration file that can be used for testing.  it includes a flag check so you can just touch/remove a file to alter how `Nginx` proxies.
-
-
-Gotchas
--------
-
-1. This requires a relatively new version of openssl to handle multiple-domain Certificates.
-2. When using SQLite, two databases/database files are required. one is dedicated to handling the logging.  This is because of how SQLite locks the database file during certain operations.  A future version of this library will not use the pyramid_tm transaction manager and avoid this scenario.
-
-
 
 
 ToDo

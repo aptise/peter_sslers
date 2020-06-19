@@ -51,6 +51,9 @@
 - autodetect cryptography modules; fallback onto them instead of openssl if possible
 - generic support for non-http01 challenges. they are not triggered, but are tracked.
 - add "x-Peter-SSLers"
+- removed cert_subject_hash, cert_issuer_hash
+-- they were neat, but not very useful and the openssl/bindings showed different info
+
 
 
 

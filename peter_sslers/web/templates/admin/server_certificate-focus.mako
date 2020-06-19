@@ -533,10 +533,9 @@
                     <tr>
                         <th>cert_subject</th>
                         <td>
-                            <code>${ServerCertificate.cert_subject_hash}</code>
                             <a
                                 class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${ServerCertificate.cert_subject_hash_search}"
+                                href="${admin_prefix}/search?${ServerCertificate.cert_subject_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                             </a>
@@ -547,10 +546,9 @@
                     <tr>
                         <th>cert_issuer</th>
                         <td>
-                            <code>${ServerCertificate.cert_issuer_hash}</code>
                             <a
                                 class="btn btn-xs btn-info"
-                                href="${admin_prefix}/search?${ServerCertificate.cert_issuer_hash_search}"
+                                href="${admin_prefix}/search?${ServerCertificate.cert_issuer_search}"
                             >
                                 <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                             </a>

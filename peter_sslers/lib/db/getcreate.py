@@ -696,24 +696,13 @@ def getcreate__CACertificate__by_pem_text(
             dbCACertificate.cert_pem_md5 = cert_pem_md5
             dbCACertificate.cert_pem_modulus_md5 = _cert_pem_modulus_md5
 
-            dbCACertificate.timestamp_signed = cert_utils.parse_cert_startdate(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name,
+            _cert_data = cert_utils.parse_cert(
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
             )
-            dbCACertificate.timestamp_expires = cert_utils.parse_cert_enddate(
-                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name,
-            )
-            dbCACertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(
-                _tmpfile.name, "-subject"
-            )
-            dbCACertificate.cert_subject_hash = cert_utils.cert_single_op__pem_filepath(
-                _tmpfile.name, "-subject_hash"
-            )
-            dbCACertificate.cert_issuer = cert_utils.cert_single_op__pem_filepath(
-                _tmpfile.name, "-issuer"
-            )
-            dbCACertificate.cert_issuer_hash = cert_utils.cert_single_op__pem_filepath(
-                _tmpfile.name, "-issuer_hash"
-            )
+            dbCACertificate.timestamp_signed = _cert_data["startdate"]
+            dbCACertificate.timestamp_expires = _cert_data["enddate"]
+            dbCACertificate.cert_subject = _cert_data["subject"]
+            dbCACertificate.cert_issuer = _cert_data["issuer"]
             dbCACertificate.operations_event_id__created = dbOperationsEvent.id
 
             ctx.dbSession.add(dbCACertificate)
@@ -754,6 +743,12 @@ def getcreate__CertificateRequest__by_pem_text(
 ):
     """
     getcreate for a CSR
+    
+    This is only used for inserting test records.
+    If uploading CSR is enabled, ensure it conforms to LetsEncrypt practices:
+        * CN=/
+        * all domains in SubjectAlternateNames
+    LetsEncrypt will not process a CSR if the domain in CN is not duplicated as a SAN
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param csr_pem:

@@ -475,6 +475,8 @@ def create__CertificateRequest(
 ):
     """
     Create a new Certificate Signing Request (CSR)
+    
+    If uploading, use the getcreate function, which also has docs regarding the formatting.
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param csr_pem: (required) A Certificate Signing Request with PEM formatting
@@ -990,9 +992,7 @@ def create__ServerCertificate(
             :attr:`model.utils.ServerCertificate.timestamp_signed`
             :attr:`model.utils.ServerCertificate.timestamp_expires`
             :attr:`model.utils.ServerCertificate.cert_subject`
-            :attr:`model.utils.ServerCertificate.cert_subject_hash`
             :attr:`model.utils.ServerCertificate.cert_issuer`
-            :attr:`model.utils.ServerCertificate.cert_issuer_hash`
         """
         _certificate_parse_to_record(_tmpfileCert, dbServerCertificate)
         if dbCertificateRequest:

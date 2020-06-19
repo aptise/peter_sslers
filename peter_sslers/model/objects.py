@@ -1739,8 +1739,6 @@ class CACertificate(Base, _Mixin_Timestamps_Pretty):
     timestamp_expires = sa.Column(sa.DateTime, nullable=False)
     cert_subject = sa.Column(sa.Text, nullable=True)
     cert_issuer = sa.Column(sa.Text, nullable=True)
-    cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
-    cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
@@ -1769,17 +1767,17 @@ class CACertificate(Base, _Mixin_Timestamps_Pretty):
         )
 
     @reify
-    def cert_subject_hash_search(self):
+    def cert_subject_search(self):
         return (
-            "type=cert_subject_hash&cert_subject_hash=%s&source=ca_certificate&ca_certificate.id=%s"
-            % (self.cert_subject_hash, self.id)
+            "type=cert_subject&cert_subject=%s&source=ca_certificate&ca_certificate.id=%s"
+            % (self.cert_subject, self.id)
         )
 
     @reify
-    def cert_issuer_hash_search(self):
+    def cert_issuer_search(self):
         return (
-            "type=cert_issuer_hash&cert_issuer_hash=%s&source=ca_certificate&ca_certificate.id=%s"
-            % (self.cert_issuer_hash, self.id)
+            "type=cert_issuer&cert_issuer=%s&source=ca_certificate&ca_certificate.id=%s"
+            % (self.cert_issuer, self.id)
         )
 
     @property
@@ -2825,8 +2823,6 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=False)
     cert_subject = sa.Column(sa.Text, nullable=True)
     cert_issuer = sa.Column(sa.Text, nullable=True)
-    cert_subject_hash = sa.Column(sa.Unicode(8), nullable=True)
-    cert_issuer_hash = sa.Column(sa.Unicode(8), nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_deactivated = sa.Column(
         sa.Boolean, nullable=True, default=None
@@ -2947,17 +2943,17 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         )
 
     @property
-    def cert_subject_hash_search(self):
+    def cert_subject_search(self):
         return (
-            "type=cert_subject_hash&cert_subject_hash=%s&source=certificate&certificate.id=%s"
-            % (self.cert_subject_hash, self.id)
+            "type=cert_subject&cert_subject=%s&source=certificate&certificate.id=%s"
+            % (self.cert_subject, self.id)
         )
 
     @property
-    def cert_issuer_hash_search(self):
+    def cert_issuer_search(self):
         return (
-            "type=cert_issuer_hash&cert_issuer_hash=%s&source=certificate&certificate.id=%s"
-            % (self.cert_issuer_hash, self.id)
+            "type=cert_issuer&cert_issuer=%s&source=certificate&certificate.id=%s"
+            % (self.cert_issuer, self.id)
         )
 
     @property

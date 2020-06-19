@@ -10,6 +10,7 @@ These sections still need to be redone:
 - creating queue-certificates/freeform (domains)
 order processing
 	- if a challenge fails, make the order invalid OR sync the order to invalid
+	- - rfc states a failed challenge invalidates an auth; and an invalid auth invalidates an order
 AcmeOrder:
     dbQueueCertificate__of:
     dbServerCertificate__renewal_of:
@@ -18,17 +19,11 @@ certificate renewal
 	- better programmatic work is needed when cycling a multi-process request
 Remove "Foo"	
 remove todo
-ensure csr has the subject in the SAN
-	
 	
 asap tasks
 ---------------
 
 new queue-certificates need to track private_key_id__requested
-
-`account__private_key_cycle` is required on all forms but often unused
-	it should be conditional, based on the presences of uploading a new account-key
-
 
 TESTS:
 	AcmeOrder
@@ -39,60 +34,29 @@ TESTS:
 		mark
 			renew_auto
 			renew_manual
-			
 	AcmeAccount
 		submit a different key for an existing contact
-		
-			
+
 EDIT:
 	AcmeOrder:
 		change "PrivateKeyCycle - renewals"
 		add "is_via_emergency"
 
-add renewals_managed_by to server_certificate
-account_key_default
+* add renewals_managed_by to server_certificate
+* account_key_default ? audit?
 
 ====		
 
-
-
-Queue Processing
+* Queue Processing
 - include an offset of the last domain added, so there isn't a race condition
 
----
-These routes triggered an issue on the ENTIRE test suite, but not on individual or class tests
-
-	ERROR: test_manipulate_html (peter_sslers.tests.pyramid_app_tests.FunctionalTests_ServerCertificate.test_manipulate_html
-	ERROR: test_manipulate_json (peter_sslers.tests.pyramid_app_tests.FunctionalTests_ServerCertificate.test_manipulate_json
-
-		  File "peter_sslers/web/views_admin/server_certificate.py", line 499, in mark
-			return self._mark__submit(dbServerCertificate)
-		  File "peter_sslers/web/views_admin/server_certificate.py", line 613, in _mark__submit
-			self.request.api_context, dbServerCertificate
-		  File "peter_sslers/lib/events.py", line 99, in Certificate_unactivated
-			_handle_Certificate_unactivated(ctx, serverCertificate)
-		  File "peter_sslers/lib/events.py", line 45, in _handle_Certificate_unactivated
-			dbServerCertificate=serverCertificate,
-		  File "peter_sslers/lib/db/create.py", line 641, in create__QueueCertificate
-			raise ValueError("must supply active `dbPrivateKey`")
-		ValueError: must supply active `dbPrivateKey`
-
-	Fix: test for a situation where the dbPrivateKey for a certificate is deactivated before 
----
-
+* ServerCertificate
+- test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
+- test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal
 * CoverageAssuranceEvent
 	- on form display, show only eligible transitions(resolutions)
-
 * AcmeDns - finish support
-
-
-
-AcmeAccountKey.letsencrypt_data - audit. refresh? log?
-
-
-* ensure correct usage of `requests`
-	- currently using `.content`, which is raw bytes
-	- usually one uses `.text`, which is `.content` that is decoded
+* AcmeAccountKey.letsencrypt_data - audit. refresh? log?
 * ensure self-documenting endpoints POST on mako
     @view_config(route_name='admin:queue_domains:process', renderer=None)
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
@@ -114,6 +78,8 @@ deferred tasks
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
 * migrate testing away from `setup.py`
+* `account__private_key_cycle` is required on all forms but often unused
+	it should be conditional, based on the presences of uploading a new account-key
 
 
 Long Term Questions:

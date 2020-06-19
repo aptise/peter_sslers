@@ -129,6 +129,11 @@ def probe_letsencrypt_certificates():
     """
     probes the known LetsEncrypt certificates
     THIS DOES NOT APPLY `cleanup_pem_text`
+
+    * correct usage of `requests`
+    - currently using `.content`, which is raw bytes
+    - usually one uses `.text`, which is `.content` that is decoded
+    - there was some concern that triggered this utf8 decode at some point...
     """
     certs = copy.deepcopy(CA_CERTS_DATA)
     for c in certs:

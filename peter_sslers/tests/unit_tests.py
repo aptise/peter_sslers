@@ -38,7 +38,12 @@ class UnitTest_CertUtils(unittest.TestCase):
 
     _data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data")
     _account_sets = {
-        "001": {"letsencrypt": True, "pem": True,},
+        "001": {
+            "letsencrypt": True,
+            "pem": True,
+            "signature.input": "example.sample",
+            "signature.output": "hN3bre1YpxSGbvKmx8zK9_o0yaxtDblDfS3Q3CsjAas9wUVIHk7NqxXH0HeEeZG_7T0AHH6HTfxMbucXK_dLog_g9AxQYFsRBc8587C8Z5rWF2YDCoo0W7JB7VOoLEHGfe7JRXeqgA9QSnci0wMFlKXC_6MbKxql8QtswOdvtFM85qcJsMCOSu2Xf6HLIAYFhdBJH-DvQGzE4ctOKAYCmDyXs42DBUU4CU0cNXj8TsN0cFRXvInvSqDsiPNSjyV32WC4clPHX69KEbs5Wr0WV2diHR-Q6w0QUljWZEDpcl8mb86LZwBqoUTHX2xstQI77sLcg7YhDfaIPrCjYJcNZw",
+        },
     }
     _cert_sets = {
         "001": {
@@ -336,8 +341,6 @@ class UnitTest_CertUtils(unittest.TestCase):
     def test__parse_cert(self):
         """
         python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert
-
-        This is a debugging display function. The output is not guaranteed across installations.
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -349,38 +352,6 @@ class UnitTest_CertUtils(unittest.TestCase):
             rval = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
-
-    def test__convert_lejson_to_pem(self):
-        """
-        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__convert_lejson_to_pem
-        """
-        for account_set in sorted(self._account_sets.keys()):
-            if not self._account_sets[account_set]["letsencrypt"]:
-                continue
-            if not self._account_sets[account_set]["pem"]:
-                raise ValueError("need pem")
-
-            # load the json
-            private_key_jsons_filename = (
-                "unit_tests/account_%s/private_key.json" % account_set
-            )
-            private_key_jsons_filepath = self._filepath_testfile(
-                private_key_jsons_filename
-            )
-            private_key_jsons = self._filedata_testfile(private_key_jsons_filepath)
-
-            # load the pem
-            private_key_pem_filename = (
-                "unit_tests/account_%s/private_key.pem" % account_set
-            )
-            private_key_pem_filepath = self._filepath_testfile(private_key_pem_filename)
-            private_key_pem = self._filedata_testfile(private_key_pem_filepath)
-
-            # convert
-            rval = cert_utils.convert_lejson_to_pem(private_key_jsons)
-
-            # compare
-            self.assertEqual(rval, private_key_pem)
 
     def test__cert_and_chain_from_fullchain(self):
         """
@@ -399,6 +370,71 @@ class UnitTest_CertUtils(unittest.TestCase):
 
             (_cert, _chain) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
             self.assertEqual(_cert, cert_pem)
+
+    def test__convert_lejson_to_pem(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__convert_lejson_to_pem
+        """
+        for account_set in sorted(self._account_sets.keys()):
+            if not self._account_sets[account_set]["letsencrypt"]:
+                continue
+            if not self._account_sets[account_set]["pem"]:
+                raise ValueError("need pem")
+
+            # load the json
+            key_jsons_filename = "unit_tests/account_%s/private_key.json" % account_set
+            key_jsons_filepath = self._filepath_testfile(key_jsons_filename)
+            key_jsons = self._filedata_testfile(key_jsons_filepath)
+
+            # load the pem
+            key_pem_filename = "unit_tests/account_%s/private_key.pem" % account_set
+            key_pem_filepath = self._filepath_testfile(key_pem_filename)
+            key_pem = self._filedata_testfile(key_pem_filepath)
+
+            # convert
+            rval = cert_utils.convert_lejson_to_pem(key_jsons)
+
+            # compare
+            self.assertEqual(rval, key_pem)
+
+    def test__account_key__parse(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__account_key__parse
+        """
+        for account_set in sorted(self._account_sets.keys()):
+            if not self._account_sets[account_set]["pem"]:
+                raise ValueError("need pem")
+
+            # load the pem
+            key_pem_filename = "unit_tests/account_%s/private_key.pem" % account_set
+            key_pem_filepath = self._filepath_testfile(key_pem_filename)
+            key_pem = self._filedata_testfile(key_pem_filepath)
+
+            rval = cert_utils.account_key__parse(
+                key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+
+    def test__account_key__sign(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__account_key__sign
+        """
+        for account_set in sorted(self._account_sets.keys()):
+            if not self._account_sets[account_set]["pem"]:
+                raise ValueError("need pem")
+
+            # load the pem
+            key_pem_filename = "unit_tests/account_%s/private_key.pem" % account_set
+            key_pem_filepath = self._filepath_testfile(key_pem_filename)
+            key_pem = self._filedata_testfile(key_pem_filepath)
+
+            input = self._account_sets[account_set]["signature.input"]
+            expected = self._account_sets[account_set]["signature.output"]
+
+            signature = cert_utils.account_key__sign(
+                input, key_pem=key_pem, key_pem_filepath=key_pem_filepath
+            )
+            signature = cert_utils._b64(signature)
+            self.assertEqual(signature, expected)
 
 
 class UnitTest_OpenSSL(AppTestCore):

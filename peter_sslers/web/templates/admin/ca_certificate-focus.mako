@@ -132,14 +132,12 @@
                     </tr>
                     <tr>
                         <th>cert_subject</th>
-                        <td><code>${CACertificate.cert_subject_hash}</code><br/>
-                            <samp>${CACertificate.cert_subject}</samp>
+                        <td><samp>${CACertificate.cert_subject}</samp>
                             </td>
                     </tr>
                     <tr>
                         <th>cert_issuer</th>
-                        <td><code>${CACertificate.cert_issuer_hash}</code><br/>
-                            <samp>${CACertificate.cert_issuer}</samp>
+                        <td><samp>${CACertificate.cert_issuer}</samp>
                             </td>
                     </tr>
                     ${admin_partials.table_tr_OperationsEventCreated(CACertificate)}

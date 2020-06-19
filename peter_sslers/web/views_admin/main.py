@@ -56,9 +56,7 @@ class ViewAdminMain(Handler):
     def search(self):
         search_type = self.request.params.get("type")
         search_type_valid = (
-            True
-            if search_type in ("modulus", "cert_subject_hash", "cert_issuer_hash")
-            else False
+            True if search_type in ("modulus", "cert_subject", "cert_issuer") else False
         )
         if search_type_valid:
             return self._search__submit(search_type)
@@ -182,24 +180,22 @@ class ViewAdminMain(Handler):
                         _base.limit(item_limit).offset(offset).all()
                     )
 
-        elif search_type in ("cert_subject_hash", "cert_issuer_hash"):
-            cert_subject_hash = self.request.params.get("cert_subject_hash", None)
-            cert_issuer_hash = self.request.params.get("cert_issuer_hash", None)
+        elif search_type in ("cert_subject", "cert_issuer"):
+            cert_subject = self.request.params.get("cert_subject", None)
+            cert_issuer = self.request.params.get("cert_issuer", None)
 
             if not any((source_type, source_id)):
                 raise ValueError("invalid search")
 
-            if not any((cert_subject_hash, cert_issuer_hash)) or all(
-                (cert_subject_hash, cert_issuer_hash)
-            ):
+            if not any((cert_subject, cert_issuer)) or all((cert_subject, cert_issuer)):
                 raise ValueError("invalid search")
 
-            if cert_subject_hash:
-                q_query_args["cert_subject_hash"] = cert_subject_hash
-            if cert_issuer_hash:
-                q_query_args["cert_issuer_hash"] = cert_issuer_hash
+            if cert_subject:
+                q_query_args["cert_subject"] = cert_subject
+            if cert_issuer:
+                q_query_args["cert_issuer"] = cert_issuer
 
-            search_hash = cert_subject_hash or cert_issuer_hash
+            search_text = cert_subject or cert_issuer
 
             # CACertificate
             if show_only["CACertificate"]:
@@ -207,8 +203,8 @@ class ViewAdminMain(Handler):
                     model_objects.CACertificate
                 ).filter(
                     sqlalchemy.or_(
-                        model_objects.CACertificate.cert_subject_hash == search_hash,
-                        model_objects.CACertificate.cert_issuer_hash == search_hash,
+                        model_objects.CACertificate.cert_subject == search_text,
+                        model_objects.CACertificate.cert_issuer == search_text,
                     )
                 )
                 results["CACertificate"]["count"] = _base.count()
@@ -223,9 +219,8 @@ class ViewAdminMain(Handler):
                     model_objects.ServerCertificate
                 ).filter(
                     sqlalchemy.or_(
-                        model_objects.ServerCertificate.cert_subject_hash
-                        == search_hash,
-                        model_objects.ServerCertificate.cert_issuer_hash == search_hash,
+                        model_objects.ServerCertificate.cert_subject == search_text,
+                        model_objects.ServerCertificate.cert_issuer == search_text,
                     )
                 )
                 results["ServerCertificate"]["count"] = _base.count()

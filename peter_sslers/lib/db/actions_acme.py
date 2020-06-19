@@ -1218,7 +1218,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
                 ctx,
                 dbAcmeOrder=dbAcmeOrder,
                 update_order_status=updated_AcmeOrder_status,
-                csr_path=tmpfile_csr.name,
+                csr_pem=csr_pem,
                 transaction_commit=True,
             )
         except errors.AcmeServer404 as exc:
