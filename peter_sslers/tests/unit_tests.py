@@ -393,10 +393,12 @@ class UnitTest_CertUtils(unittest.TestCase):
             fullchain_pem_filepath = self._filepath_testfile(fullchain_filename)
             fullchain_pem = self._filedata_testfile(fullchain_filename)
 
-            rval = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
             cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
             cert_pem_filepath = self._filepath_testfile(cert_filename)
             cert_pem = self._filedata_testfile(cert_filename)
+
+            (_cert, _chain) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
+            self.assertEqual(_cert, cert_pem)
 
 
 class UnitTest_OpenSSL(AppTestCore):

@@ -139,3 +139,25 @@ def _write_pem_tempfile(tmpfile_pem, pem_data):
             pem_data = pem_data.encode()
     tmpfile_pem.write(pem_data)
     tmpfile_pem.seek(0)
+
+
+"""
+    fullchain_pem = cleanup_pem_text(fullchain_pem)
+    lines = fullchain_pem.split("\n")
+    certs = []
+    _cert = []
+    for _line in lines:
+        _cert.append(_line)
+        if _line == "-----END CERTIFICATE-----":
+            _cert = cleanup_pem_text("\n".join(_cert))
+            certs.append(_cert)
+            _cert = []
+    cert_pem = certs[0]
+    chain_pem = "".join(certs[1:])  # a chain could be more than 1 certificate
+
+    # validate it
+    validate_cert(cert_pem)
+    if chain_pem:
+        validate_cert(chain_pem)
+    return (cert_pem, chain_pem)
+"""

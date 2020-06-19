@@ -56,6 +56,7 @@ from .. import (
     lib,
 )  # only here to access `lib.letsencrypt_info` without a circular import
 
+
 # ==============================================================================
 
 
@@ -610,14 +611,39 @@ def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
 
 
 def cert_single_op__pem(cert_pem, single_op):
-    tmpfile_pem = new_pem_tempfile(cert_pem)
+    _tmpfile_pem = new_pem_tempfile(cert_pem)
     try:
-        cert_pem_filepath = tmpfile_pem.name
+        cert_pem_filepath = _tmpfile_pem.name
         return cert_single_op__pem_filepath(cert_pem_filepath, single_op)
     except Exception as exc:
         raise
     finally:
-        tmpfile_pem.close()
+        _tmpfile_pem.close()
+
+
+def cert_normalize__pem(cert_pem):
+    """
+    normalize a cert using openssl
+    """
+    _tmpfile_pem = new_pem_tempfile(cert_pem)
+    try:
+        cert_pem_filepath = _tmpfile_pem.name
+        with psutil.Popen(
+            [openssl_path, "x509", "-in", cert_pem_filepath],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if not data:
+                raise errors.OpenSslError_InvalidCertificate(err)
+            if six.PY3:
+                data = data.decode("utf8")
+            data = data.strip()
+        return data
+    except Exception as exc:
+        raise
+    finally:
+        _tmpfile_pem.close()
 
 
 def cert_single_op__pem_filepath(pem_filepath, single_op):
@@ -1108,6 +1134,19 @@ def convert_lejson_to_pem(pkey_jsons):
             t.close()
 
 
+
+#
+# https://github.com/certbot/certbot/blob/master/certbot/certbot/crypto_util.py#L482
+#
+# Finds one CERTIFICATE stricttextualmsg according to rfc7468#section-3.
+# Does not validate the base64text - use crypto.load_certificate.
+CERT_PEM_REGEX = re.compile(
+    b"""-----BEGIN CERTIFICATE-----\r?
+.+?\r?
+-----END CERTIFICATE-----\r?
+""",
+    re.DOTALL # DOTALL (/s) because the base64text may include newlines
+)
 def cert_and_chain_from_fullchain(fullchain_pem):
     """
     Split `fullchain_pem` into `cert_pem` and `chain_pem`
@@ -1119,37 +1158,33 @@ def cert_and_chain_from_fullchain(fullchain_pem):
 
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
-
+    
+    Portions of this are a reimplentation of certbot's code
+    Certbot's code is Apache2 licensed
+    https://raw.githubusercontent.com/certbot/certbot/master/LICENSE.txt
     """
     log.info("cert_and_chain_from_fullchain >")
-
-    if openssl_crypto:
-        # from certbot/certbot/crypto_util
-        # https://github.com/certbot/certbot/blob/e048da1e389ede7a52bd518ab4ebf9a0b18bfafc/certbot/certbot/crypto_util.py
-        cert = openssl_crypto.dump_certificate(
-            openssl_crypto.FILETYPE_PEM,
-            openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, fullchain_pem),
-        ).decode("utf8")
-        chain = fullchain_pem[len(cert) :].lstrip()
-        return (cert, chain)
+    if certbot_crypto_util:
+        try:
+            return certbot_crypto_util.cert_and_chain_from_fullchain(fullchain_pem)
+        except Exception as exc:
+            raise errors.OpenSslError(exc)
 
     log.debug(".cert_and_chain_from_fullchain > openssl fallback")
-
-    fullchain_pem = cleanup_pem_text(fullchain_pem)
-    lines = fullchain_pem.split("\n")
-    certs = []
-    _cert = []
-    for _line in lines:
-        _cert.append(_line)
-        if _line == "-----END CERTIFICATE-----":
-            _cert = cleanup_pem_text("\n".join(_cert))
-            certs.append(_cert)
-            _cert = []
-    cert_pem = certs[0]
-    chain_pem = "".join(certs[1:])  # a chain could be more than 1 certificate
-
-    # validate it
-    validate_cert(cert_pem)
-    if chain_pem:
-        validate_cert(chain_pem)
-    return (cert_pem, chain_pem)
+    # First pass: find the boundary of each certificate in the chain.
+    # TODO: This will silently skip over any "explanatory text" in between boundaries,
+    # which is prohibited by RFC8555.
+    certs = CERT_PEM_REGEX.findall(fullchain_pem.encode())
+    if len(certs) < 2:
+        raise errors.OpenSslError("failed to parse fullchain into cert and chain: " +
+                                  "less than 2 certificates in chain")
+    # Second pass: for each certificate found, parse it using OpenSSL and re-encode it,
+    # with the effect of normalizing any encoding variations (e.g. CRLF, whitespace).
+    certs_normalized = []
+    for _cert_pem in certs:
+        _cert_pem = cert_normalize__pem(_cert_pem)
+        _cert_pem = cleanup_pem_text(_cert_pem)
+        certs_normalized.append(_cert_pem)
+    
+    # Since each normalized cert has a newline suffix, no extra newlines are required.
+    return (certs_normalized[0], "".join(certs_normalized[1:]))

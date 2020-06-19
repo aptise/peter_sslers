@@ -114,7 +114,6 @@ deferred tasks
 * there should be a queue for multi-domain certificates too.  ie, request a cert for A+B+C, which could remove items from the domain queue
 * add "operations" and "endpoints" to `.json` endpoints of core records. this should make commandline operations via curl easier.
 * migrate testing away from `setup.py`
-* Acme2 -  remove PyOpenSSL - used to split fullchain 
 
 
 Long Term Questions:
