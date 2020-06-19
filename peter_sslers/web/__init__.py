@@ -35,9 +35,11 @@ from . import models
 def header_tween_factory(handler, registry):
     def header_tween(request):
         response = handler(request)
-        response.headers['X-Peter-SSLers'] = "production"
+        response.headers["X-Peter-SSLers"] = "production"
         return response
+
     return header_tween
+
 
 def add_renderer_globals(event):
     """sticks the admin_prefix into the renderer's topline namespace"""
@@ -89,17 +91,19 @@ def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
     config = Configurator(settings=settings)
-    config.add_tween('.header_tween_factory')
+    config.add_tween(".header_tween_factory")
     config.include("pyramid_mako")
     config.include("pyramid_formencode_classic")
     # config.add_static_view('static', 'static', cache_max_age=3600)
 
     # custom datetime rendering
     json_renderer = JSON()
+
     def datetime_adapter(obj, request):
         return obj.isoformat()
+
     json_renderer.add_adapter(datetime.datetime, datetime_adapter)
-    config.add_renderer('json', json_renderer)
+    config.add_renderer("json", json_renderer)
 
     # Parse settings
     app_settings = ApplicationSettings()

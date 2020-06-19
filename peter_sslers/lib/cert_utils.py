@@ -17,6 +17,7 @@ import binascii
 import json
 import re
 import hashlib
+import pdb
 import subprocess
 import sys
 import tempfile
@@ -36,7 +37,7 @@ try:
     from cryptography.hazmat.primitives import (
         serialization as cryptography_serialization,
     )
-    import jwt
+    import josepy
     import cryptography
 
 except ImportError as exc:
@@ -44,7 +45,7 @@ except ImportError as exc:
     certbot_crypto_util = None
     # crypto_util_asn1 = None
     openssl_crypto = None
-    jwt = None
+    josepy = None
     cryptography_serialization = None
     cryptography = None
 
@@ -115,14 +116,6 @@ def new_pem_tempfile(pem_data):
     tmpfile_pem.write(pem_data)
     tmpfile_pem.seek(0)
     return tmpfile_pem
-
-
-def _write_pem_tempfile(tmpfile_pem, pem_data):
-    if six.PY3:
-        if isinstance(pem_data, str):
-            pem_data = pem_data.encode()
-    tmpfile_pem.write(pem_data)
-    tmpfile_pem.seek(0)
 
 
 def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker=None):
@@ -475,26 +468,34 @@ def validate_cert(cert_pem=None, cert_pem_filepath=None):
         return True
 
     log.debug(".validate_cert > openssl fallback")
-    # openssl x509 -in {CERTIFICATE} -inform pem -noout -text
-    with psutil.Popen(
-        [
-            openssl_path,
-            "x509",
-            "-in",
-            cert_pem_filepath,
-            "-inform",
-            "pem",
-            "-noout",
-            "-text",
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as proc:
-        data, err = proc.communicate()
-        if not data:
-            raise errors.OpenSslError_InvalidCertificate(err)
-        if six.PY3:
-            data = data.decode("utf8")
+    _tmpfile_cert = None
+    if not cert_pem_filepath:
+        _tmpfile_cert = new_pem_tempfile(cert_pem)
+        cert_pem_filepath = _tmpfile_cert.name
+    try:
+        # openssl x509 -in {CERTIFICATE} -inform pem -noout -text
+        with psutil.Popen(
+            [
+                openssl_path,
+                "x509",
+                "-in",
+                cert_pem_filepath,
+                "-inform",
+                "pem",
+                "-noout",
+                "-text",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as proc:
+            data, err = proc.communicate()
+            if not data:
+                raise errors.OpenSslError_InvalidCertificate(err)
+            if six.PY3:
+                data = data.decode("utf8")
+    finally:
+        if _tmpfile_cert:
+            _tmpfile_cert.close()
     return True
 
 
@@ -606,6 +607,17 @@ def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
             data = _cleanup_openssl_modulus(data)
     data = hashlib.md5(data).hexdigest()
     return data
+
+
+def cert_single_op__pem(cert_pem, single_op):
+    tmpfile_pem = new_pem_tempfile(cert_pem)
+    try:
+        cert_pem_filepath = tmpfile_pem.name
+        return cert_single_op__pem_filepath(cert_pem_filepath, single_op)
+    except Exception as exc:
+        raise
+    finally:
+        tmpfile_pem.close()
 
 
 def cert_single_op__pem_filepath(pem_filepath, single_op):
@@ -1026,6 +1038,9 @@ def convert_jwk_to_ans1(pkey_jsons):
 
 def convert_lejson_to_pem(pkey_jsons):
     """
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+
     input is a json string
     much work from https://gist.github.com/JonLundy/f25c99ee0770e19dc595
 
@@ -1035,9 +1050,9 @@ def convert_lejson_to_pem(pkey_jsons):
     """
     log.info("convert_lejson_to_pem >")
 
-    if jwt and cryptography_serialization:
-        pkey = jwt.algorithms.RSAAlgorithm.from_jwk(pkey_jsons)
-        as_pem = pkey.private_bytes(
+    if cryptography_serialization:
+        pkey = josepy.JWKRSA.json_loads(pkey_jsons)
+        as_pem = pkey.key.private_bytes(
             encoding=cryptography_serialization.Encoding.PEM,
             format=cryptography_serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=cryptography_serialization.NoEncryption(),
@@ -1091,3 +1106,50 @@ def convert_lejson_to_pem(pkey_jsons):
     finally:
         for t in tmpfiles:
             t.close()
+
+
+def cert_and_chain_from_fullchain(fullchain_pem):
+    """
+    Split `fullchain_pem` into `cert_pem` and `chain_pem`
+
+    :param str fullchain_pem: concatenated cert + chain
+
+    :returns: tuple of string cert_pem and chain_pem
+    :rtype: tuple
+
+    This routine will use crypto/certbot if available.
+    If not, openssl is used via subprocesses
+
+    """
+    log.info("cert_and_chain_from_fullchain >")
+
+    if openssl_crypto:
+        # from certbot/certbot/crypto_util
+        # https://github.com/certbot/certbot/blob/e048da1e389ede7a52bd518ab4ebf9a0b18bfafc/certbot/certbot/crypto_util.py
+        cert = openssl_crypto.dump_certificate(
+            openssl_crypto.FILETYPE_PEM,
+            openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, fullchain_pem),
+        ).decode("utf8")
+        chain = fullchain_pem[len(cert) :].lstrip()
+        return (cert, chain)
+
+    log.debug(".cert_and_chain_from_fullchain > openssl fallback")
+
+    fullchain_pem = cleanup_pem_text(fullchain_pem)
+    lines = fullchain_pem.split("\n")
+    certs = []
+    _cert = []
+    for _line in lines:
+        _cert.append(_line)
+        if _line == "-----END CERTIFICATE-----":
+            _cert = cleanup_pem_text("\n".join(_cert))
+            certs.append(_cert)
+            _cert = []
+    cert_pem = certs[0]
+    chain_pem = "".join(certs[1:])  # a chain could be more than 1 certificate
+
+    # validate it
+    validate_cert(cert_pem)
+    if chain_pem:
+        validate_cert(chain_pem)
+    return (cert_pem, chain_pem)

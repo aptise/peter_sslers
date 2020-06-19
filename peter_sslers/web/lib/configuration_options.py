@@ -75,13 +75,13 @@ documentation_grid = {
             "show_on_settings": True,
         },
         "openssl_path": {
-            "docstring": "The path to the OpenSSL binary. PeterSSLers uses the system OpenSSL.",
+            "docstring": "The path to the OpenSSL binary. PeterSSLers uses the system OpenSSL as backup.",
             "default": "`openssl`",
             "default-notes": "The default is set in `lib.cert_utils`.",
             "show_on_settings": True,
         },
         "openssl_path_conf": {
-            "docstring": "The path to the OpenSSL configruation. PeterSSLers uses the system OpenSSL.",
+            "docstring": "The path to the OpenSSL configruation. PeterSSLers uses the system OpenSSL as backup.",
             "default": "`/etc/ssl/openssl.cnf`",
             "default-notes": "The default is set in `lib.cert_utils`.",
             "show_on_settings": True,

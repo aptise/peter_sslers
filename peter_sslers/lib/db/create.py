@@ -561,8 +561,7 @@ def create__CertificateRequest(
         csr_pem_md5 = utils.md5_text(csr_pem)
         # grab the modulus
         csr_pem_modulus_md5 = cert_utils.modulus_md5_csr(
-            csr_pem=csr_pem,
-            csr_pem_filepath=_tmpfile.name,
+            csr_pem=csr_pem, csr_pem_filepath=_tmpfile.name,
         )
     finally:
         _tmpfile.close()
@@ -961,7 +960,9 @@ def create__ServerCertificate(
         # this only happens on development during tests when we use a single cert
         # for all requests...
         # so we don't need to handle this or save it
-        cert_domains = cert_utils.parse_cert_domains(cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name)
+        cert_domains = cert_utils.parse_cert_domains(
+            cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name
+        )
         if set(cert_domains_expected) != set(cert_domains):
             log.error("set(cert_domains_expected) != set(cert_domains)")
             log.error(cert_domains_expected)

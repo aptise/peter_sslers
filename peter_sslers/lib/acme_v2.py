@@ -158,16 +158,15 @@ def get_authorization_challenges(
 
 
 def filter_specific_challenge(
-    acme_challenges_payload,
-    acme_challenge_type=None,
+    acme_challenges_payload, acme_challenge_type=None,
 ):
     """
     :param dict acme_challenges_payload: (required) A payload of acme-challenges
     :param str acme_challenge_type: (required) The selected type of acme-challenge
     """
-    if (acme_challenge_type not in acme_challenges_payload) or not acme_challenges_payload[
-        acme_challenge_type
-    ]:
+    if (
+        acme_challenge_type not in acme_challenges_payload
+    ) or not acme_challenges_payload[acme_challenge_type]:
         raise ValueError("selected challenege not provided by ACME server")
     return acme_challenges_payload[acme_challenge_type]
 
@@ -668,10 +667,7 @@ class AuthenticatedUser(object):
         return (acmeOrderRfcObject, dbEventLogged)
 
     def _prepare_acme_challenge__http01(
-        self,
-        ctx,
-        dbAcmeAuthorization=None,
-        dbAcmeChallenge=None,
+        self, ctx, dbAcmeAuthorization=None, dbAcmeChallenge=None,
     ):
         """
         prepares an AcmeChallenge by registering - and perhaps testing, the url
@@ -1086,7 +1082,9 @@ class AuthenticatedUser(object):
         if _todo__complete_challenge:
             if _acme_challenge_type == "http-01":
                 self._prepare_acme_challenge__http01(
-                    ctx, dbAcmeAuthorization=dbAcmeAuthorization, dbAcmeChallenge=dbAcmeChallenge,
+                    ctx,
+                    dbAcmeAuthorization=dbAcmeAuthorization,
+                    dbAcmeChallenge=dbAcmeChallenge,
                 )
             elif _acme_challenge_type == "dns-01":
                 # TODO: dns-01 with acme

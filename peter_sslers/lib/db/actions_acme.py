@@ -21,7 +21,6 @@ from .. import letsencrypt_info
 from .. import events
 from .. import errors
 from .. import utils
-from .. import utils_certbot as utils_certbot
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 from ..exceptions import AcmeAccountNeedsPrivateKey
@@ -1184,7 +1183,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             csr_pem = cert_utils.make_csr(
                 domain_names,
                 key_pem=private_key_pem,
-                key_pem_filepath=tmpfile_pkey.name
+                key_pem_filepath=tmpfile_pkey.name,
             )
             tmpfile_csr = cert_utils.new_pem_tempfile(csr_pem)
             tmpfiles.append(tmpfile_csr)
@@ -1206,7 +1205,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
         csr_domains = cert_utils.parse_csr_domains(
             csr_pem=csr_pem,
             csr_pem_filepath=tmpfile_csr.name,
-            submitted_domain_names=domain_names
+            submitted_domain_names=domain_names,
         )
         if set(csr_domains) != set(domain_names):
             raise ValueError(
@@ -1228,7 +1227,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             )
             raise
 
-        (certificate_pem, ca_chain_pem) = utils_certbot.cert_and_chain_from_fullchain(
+        (certificate_pem, ca_chain_pem) = cert_utils.cert_and_chain_from_fullchain(
             fullchain_pem
         )
 
@@ -1825,7 +1824,7 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         fullchain_pem = authenticatedUser.download_certificate(
             dbAcmeOrder.certificate_url
         )
-        (certificate_pem, ca_chain_pem) = utils_certbot.cert_and_chain_from_fullchain(
+        (certificate_pem, ca_chain_pem) = cert_utils.cert_and_chain_from_fullchain(
             fullchain_pem
         )
         (

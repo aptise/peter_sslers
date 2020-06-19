@@ -246,8 +246,7 @@ def getcreate__AcmeAccount(
 
         # grab the modulus
         key_pem_modulus_md5 = cert_utils.modulus_md5_key(
-            key_pem=key_pem,
-            key_pem_filepath=_tmpfile.name,
+            key_pem=key_pem, key_pem_filepath=_tmpfile.name,
         )
 
     finally:
@@ -672,8 +671,7 @@ def getcreate__CACertificate__by_pem_text(
 
             # grab the modulus
             _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
-                cert_pem=cert_pem,
-                cert_pem_filepath=_tmpfile.name,
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name,
             )
 
             # bookkeeping
@@ -699,12 +697,10 @@ def getcreate__CACertificate__by_pem_text(
             dbCACertificate.cert_pem_modulus_md5 = _cert_pem_modulus_md5
 
             dbCACertificate.timestamp_signed = cert_utils.parse_cert_startdate(
-                cert_pem=cert_pem,
-                cert_pem_filepath=_tmpfile.name,
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name,
             )
             dbCACertificate.timestamp_expires = cert_utils.parse_cert_enddate(
-                cert_pem=cert_pem,
-                cert_pem_filepath=_tmpfile.name,
+                cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name,
             )
             dbCACertificate.cert_subject = cert_utils.cert_single_op__pem_filepath(
                 _tmpfile.name, "-subject"
@@ -870,8 +866,7 @@ def getcreate__PrivateKey__by_pem_text(
 
             # grab the modulus
             key_pem_modulus_md5 = cert_utils.modulus_md5_key(
-                key_pem=key_pem,
-                key_pem_filepath=_tmpfile.name,
+                key_pem=key_pem, key_pem_filepath=_tmpfile.name,
             )
         except Exception as exc:
             raise
@@ -1127,8 +1122,7 @@ def getcreate__ServerCertificate(
         _tmpfile = cert_utils.new_pem_tempfile(cert_pem)
         # grab the modulus
         _cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
-            cert_pem=cert_pem,
-            cert_pem_filepath=_tmpfile.name
+            cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
         )
     finally:
         _tmpfile.close()
@@ -1136,8 +1130,7 @@ def getcreate__ServerCertificate(
         _tmpfile = cert_utils.new_pem_tempfile(dbPrivateKey.key_pem)
         # grab the modulus
         _pkey_pem_modulus_md5 = cert_utils.modulus_md5_key(
-            key_pem=dbPrivateKey.key_pem,
-            key_pem_filepath=_tmpfile.name
+            key_pem=dbPrivateKey.key_pem, key_pem_filepath=_tmpfile.name
         )
     finally:
         _tmpfile.close()
@@ -1153,8 +1146,7 @@ def getcreate__ServerCertificate(
             # grab the modulus
             # TODO - shouldn't this be cached on the object already?!?
             _csr_pem_modulus_md5 = cert_utils.modulus_md5_csr(
-                csr_pem=dbCertificateRequest.csr_pem,
-                csr_pem_filepath=_tmpfile.name
+                csr_pem=dbCertificateRequest.csr_pem, csr_pem_filepath=_tmpfile.name
             )
         finally:
             _tmpfile.close()

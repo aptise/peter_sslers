@@ -22,7 +22,6 @@ from .. import letsencrypt_info
 from .. import events
 from .. import errors
 from .. import utils
-from .. import utils_certbot as utils_certbot
 from . import actions_acme
 from . import update
 

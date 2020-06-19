@@ -288,7 +288,10 @@ class Form_AcmeOrderless_manage_domain(_Form_Schema_Base):
 
 
 class Form_AcmeOrderless_AcmeChallenge_add(_Form_Schema_Base):
-    acme_challenge_type = OneOf(model_utils.AcmeChallengeType._OPTIONS_AcmeOrderless_AddChallenge, not_empty=True,)
+    acme_challenge_type = OneOf(
+        model_utils.AcmeChallengeType._OPTIONS_AcmeOrderless_AddChallenge,
+        not_empty=True,
+    )
     domain = UnicodeString(not_empty=True)
     token = UnicodeString(not_empty=False, if_missing=None)
     keyauthorization = UnicodeString(not_empty=False, if_missing=None)

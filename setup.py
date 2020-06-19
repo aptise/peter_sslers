@@ -11,8 +11,7 @@ with open(os.path.join(here, "CHANGES.txt")) as f:
 
 requires = [
     "formencode",
-    "cryptography",  # for pyopenssl; temporary until refactored out
-    "pyopenssl",  # import OpenSSL; temporary until refactored out
+    "pyopenssl",  # import OpenSSL; temporary until refactored out. see `cert_and_chain_from_fullchain`
     "pyacmedns",  # not used by all, but it's small
     "pypages",
     "pyramid_debugtoolbar>=4.4",
@@ -34,17 +33,10 @@ requires = [
 
 tests_require = [
     "certbot",
+    "cryptography",  # for pyopenssl; temporary until refactored out
     "pycrypto",
+    "josepy",
 ]
-
-
-if sys.version_info.major == 2:
-    # tests_require.append("jwt==0.3.2")
-    # this is pegged to `cryptography==1.7.2`
-    # pip install jwt==0.3.2  --no-dependencies
-    pass
-else:
-    tests_require.append("jwt")
 
 
 setup(

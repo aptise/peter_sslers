@@ -11,10 +11,11 @@ from io import open  # overwrite `open` in Python2
 # pypi
 from acme import crypto_util as acme_crypto_util
 from certbot import crypto_util as certbot_crypto_util
+
 # from Crypto.Util import asn1 as crypto_util_asn1
 from OpenSSL import crypto as openssl_crypto
 from cryptography.hazmat.primitives import serialization as cryptography_serialization
-import jwt
+import josepy
 import cryptography
 
 # local
@@ -381,27 +382,21 @@ class UnitTest_CertUtils(unittest.TestCase):
             # compare
             self.assertEqual(rval, private_key_pem)
 
+    def test__cert_and_chain_from_fullchain(self):
+        """
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__cert_and_chain_from_fullchain
+        """
+        for cert_set in sorted(self._cert_sets.keys()):
+            if not self._cert_sets[cert_set]["cert"]:
+                continue
+            fullchain_filename = "unit_tests/cert_%s/fullchain.pem" % cert_set
+            fullchain_pem_filepath = self._filepath_testfile(fullchain_filename)
+            fullchain_pem = self._filedata_testfile(fullchain_filename)
 
-class UnitTest_CertUtils_fallback(UnitTest_CertUtils):
-    """python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils_fallback"""
-
-    def setUp(self):
-        cert_utils.acme_crypto_util = None
-        cert_utils.openssl_crypto = None
-        cert_utils.certbot_crypto_util = None
-        # cert_utils.crypto_util_asn1 = None
-        cert_utils.jwt = None
-        cert_utils.cryptography_serialization = None
-        cryptography = None
-
-    def tearDown(self):
-        cert_utils.acme_crypto_util = acme_crypto_util
-        cert_utils.openssl_crypto = openssl_crypto
-        cert_utils.certbot_crypto_util = certbot_crypto_util
-        # cert_utils.crypto_util_asn1 = crypto_util_asn1
-        cert_utils.jwt = jwt
-        cert_utils.cryptography_serialization = cryptography_serialization
-        cert_utils.cryptography = cryptography
+            rval = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
+            cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
+            cert_pem_filepath = self._filepath_testfile(cert_filename)
+            cert_pem = self._filedata_testfile(cert_filename)
 
 
 class UnitTest_OpenSSL(AppTestCore):
@@ -419,6 +414,40 @@ class UnitTest_OpenSSL(AppTestCore):
             _computed_md5 = utils.md5_text(self._filedata_testfile(key_pem_filepath))
             _expected_md5 = set_data["key_pem_md5"]
             assert _computed_md5 == _expected_md5
+
+
+class _MixinNoCrypto(object):
+    def setUp(self):
+        # print("_MixinNoCrypto.setUp")
+        cert_utils.acme_crypto_util = None
+        cert_utils.openssl_crypto = None
+        cert_utils.certbot_crypto_util = None
+        # cert_utils.crypto_util_asn1 = None
+        cert_utils.josepy = None
+        cert_utils.cryptography_serialization = None
+        cryptography = None
+
+    def tearDown(self):
+        # print("_MixinNoCrypto.tearDown")
+        cert_utils.acme_crypto_util = acme_crypto_util
+        cert_utils.openssl_crypto = openssl_crypto
+        cert_utils.certbot_crypto_util = certbot_crypto_util
+        # cert_utils.crypto_util_asn1 = crypto_util_asn1
+        cert_utils.josepy = josepy
+        cert_utils.cryptography_serialization = cryptography_serialization
+        cert_utils.cryptography = cryptography
+
+
+class UnitTest_CertUtils_fallback(_MixinNoCrypto, UnitTest_CertUtils):
+    """python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils_fallback"""
+
+    pass
+
+
+class UnitTest_OpenSSL_fallback(_MixinNoCrypto, UnitTest_CertUtils):
+    """python -m unittest peter_sslers.tests.unit_tests.UnitTest_OpenSSL_fallback"""
+
+    pass
 
 
 class UnitTest_PrivateKeyCycling(AppTest):

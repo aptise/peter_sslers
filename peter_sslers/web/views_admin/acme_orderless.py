@@ -451,7 +451,9 @@ class View_Focus_Manipulate(View_Focus):
                     message="This domain is already configured for this AcmeOrderless.",
                 )
 
-            acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(formStash.results["acme_challenge_type"])
+            acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(
+                formStash.results["acme_challenge_type"]
+            )
             create_kwargs = {
                 "dbAcmeOrderless": dbAcmeOrderless,
                 "dbDomain": dbDomain,

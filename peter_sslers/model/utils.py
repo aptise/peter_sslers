@@ -554,8 +554,8 @@ class AcmeChallengeType(_mixin_mapping):
         2: "dns-01",
         3: "tls-alpn-01",
     }
-    
-    _OPTIONS_AcmeOrderless_AddChallenge = ("http-01", )
+
+    _OPTIONS_AcmeOrderless_AddChallenge = ("http-01",)
 
 
 class AcmeChallengeFailType(_mixin_mapping):

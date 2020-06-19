@@ -13,6 +13,7 @@ from . import errors
 
 # ==============================================================================
 
+
 def parse_cert__dates(cert_pem=None, pem_filepath=None):
     if not any((cert_pem, pem_filepath)) or all((cert_pem, pem_filepath)):
         raise ValueError("only submit `cert_pem` OR `pem_filepath`")
@@ -130,3 +131,11 @@ def probe_cert__format(filepath):
         return "der"
     except errors.OpenSslError_InvalidCertificate as exc:
         raise errors.OpenSslError_InvalidCertificate("not PEM or DER")
+
+
+def _write_pem_tempfile(tmpfile_pem, pem_data):
+    if six.PY3:
+        if isinstance(pem_data, str):
+            pem_data = pem_data.encode()
+    tmpfile_pem.write(pem_data)
+    tmpfile_pem.seek(0)
