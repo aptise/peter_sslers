@@ -22,7 +22,7 @@ Peter SSLers *or how i stopped worrying and learned to LOVE the SSL Certificate*
 What's in the "box" ?
 
 * `OpenResty` Lua module to enable Dynamic SSL Certificate Handling on the `Nginx` webserver
-* A robust SSL Certificate Manager
+* A robust SSL Certificate Manager with Admin Dashboard and a full API
 * An integrated ACME V2 Client for LetsEncrypt Certificate Authority
 
 THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SERVER OR MULTI-DOMAIN SETUP!!!
@@ -33,7 +33,7 @@ This package is *not* aimed at casual users or people concerned with a handful o
 
 Peter, as we fondly call this package, offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.  PostgreSQL is recommended; Sqlite is supported and the primary testing environment.  A good-faith effort is made to get this to work on MySQL, but, well, sigh.
 
-Peter combines an ACME V2 Client designed to operate against the LetsEncrypt service, alongside tools designed to manage & deploy Signed SSL Certificates.
+Peter combines an ACME V2 Client designed to operate against the LetsEncrypt service, alongside tools designed to manage, deploy and troubleshoot SSL Certificates.
 
 The client supported ACME v1 until version `0.4.0`. 
 
@@ -97,7 +97,9 @@ Although Python2 is no longer supported by Python itself, Python2 and Python3 ar
 
 ## Why?
 
-Most of us hate having to spend time on DevOps tasks. Personally, I would rather spend time working on the core product or consumer products. This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting. This also allow for programmatic control of many ACME operations that can be difficult to accomplish with Certbot or other popular clients.
+Most of us hate having to spend time on DevOps tasks. Personally, I would rather spend time working on the core product or consumer products. This tool was designed as a swiss-army-knife to streamline some tasks and troubleshoot a handful of issues with https hosting. This also allows for programmatic control of most ACME operations that can be difficult to accomplish with Certbot and other popular clients.
+
+Most importantly, Peter SSLers allows you to 
 
 This is a pre-release but deployable for many situations; it is actively being worked on as it fixes new issues on production system. PRs are absolutely welcome, even if just fixes or additions to the test-suite.
 
@@ -133,13 +135,28 @@ The following features are being reworked:
 
 By default, the "SSL Minnow" is a SQLite database `ssl_minnow.sqlite`. It is the backing datastore for SSL Certificates and the operations log. Your data is ONLY saved to the SSL Minnow - not to the filesystem like other LE clients - so you should be careful with it. If the Minnow would be lost, it can not be recovered. Be a good skipper, or your three hour tour could end up taking many years and might involve the Harlem Globetrotters, who are great to watch but do you want to be stuck on a remote desert island with them?!?! No.
 
-## The `OpenResty` package
+## "SSLX" - The `OpenResty` package
+
+OpenResty is a fork of the nginx webserver which offers a lot of programmatic hooks (similar to Apache's mod_perl). One of the many hooks allows for programmatic determination and loading of SSL Certificates based on the hostname.
+
+A tiered waterfall approach is used to aggressively cache certificates:
+
+* initial attempt: `nginx` worker memory
+* failover 1:  `nginx` shared memory
+* failover 2: centralized `redis` server
+* failover 3: querying the `Peter SSLers` `Pyramid` application
+
+The `Pyramid` application can be used to prime and clear each cache level.
+
+SSLX, I'm your only friend. SSLX, Your love will sing for you.
 
 Available via the opm package manager:
 
 	opm get peter_sslers-lua-resty
 
-The source and docs are available on github https://github.com/aptise/peter_sslers-lua-resty
+The source and docs are available on a separate github repository https://github.com/aptise/peter_sslers-lua-resty
+
+
 
 ## "Tools"
 
