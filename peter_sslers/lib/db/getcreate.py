@@ -699,8 +699,8 @@ def getcreate__CACertificate__by_pem_text(
             _cert_data = cert_utils.parse_cert(
                 cert_pem=cert_pem, cert_pem_filepath=_tmpfile.name
             )
-            dbCACertificate.timestamp_signed = _cert_data["startdate"]
-            dbCACertificate.timestamp_expires = _cert_data["enddate"]
+            dbCACertificate.timestamp_not_before = _cert_data["startdate"]
+            dbCACertificate.timestamp_not_after = _cert_data["enddate"]
             dbCACertificate.cert_subject = _cert_data["subject"]
             dbCACertificate.cert_issuer = _cert_data["issuer"]
             dbCACertificate.operations_event_id__created = dbOperationsEvent.id
@@ -1169,10 +1169,10 @@ def getcreate__ServerCertificate(
                 dbPrivateKey.count_certificates_issued += 1
                 if not dbPrivateKey.timestamp_last_certificate_issue or (
                     dbPrivateKey.timestamp_last_certificate_issue
-                    < dbServerCertificate.timestamp_signed
+                    < dbServerCertificate.timestamp_not_before
                 ):
                     dbPrivateKey.timestamp_last_certificate_issue = (
-                        dbServerCertificate.timestamp_signed
+                        dbServerCertificate.timestamp_not_before
                     )
                 ctx.dbSession.flush(objects=[dbServerCertificate, dbPrivateKey])
     elif not dbServerCertificate:

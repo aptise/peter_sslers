@@ -128,8 +128,8 @@
                                     </td>
                                     <td><code>${cert.cert_pem_modulus_md5}</code></td>
                                     <td><span class="label label-${'success' if cert.is_active else 'danger'}">${'Y' if cert.is_active else ''}</label></td>
-                                    <td><timestamp>${cert.timestamp_signed}</timestamp></td>
-                                    <td><timestamp>${cert.timestamp_expires}</timestamp></td>
+                                    <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
+                                    <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
                                 </tr>
                             % endfor
                             </body>
@@ -166,8 +166,8 @@
                                             CACertificate-${cert.id}</a>
                                     </td>
                                     <td><code>${cert.cert_pem_modulus_md5}</code></td>
-                                    <td><timestamp>${cert.timestamp_signed}</timestamp></td>
-                                    <td><timestamp>${cert.timestamp_expires}</timestamp></td>
+                                    <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
+                                    <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
                                 </tr>
                             % endfor
                             </body>

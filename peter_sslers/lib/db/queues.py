@@ -372,7 +372,7 @@ def queue_certificates__update(ctx):
                 model_objects.AcmeOrder.server_certificate_id.op("IS NOT")(None),
                 model_objects.AcmeOrder.is_auto_renew.op("IS")(True),
                 model_objects.AcmeOrder.is_renewed.op("IS NOT")(True),
-                model_objects.ServerCertificate.timestamp_expires <= _until,
+                model_objects.ServerCertificate.timestamp_not_after <= _until,
             )
         )
         results = _core_query.all()

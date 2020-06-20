@@ -123,7 +123,7 @@ def operations_deactivate_expired(ctx):
         ctx.dbSession.query(model_objects.ServerCertificate)
         .filter(
             model_objects.ServerCertificate.is_active.is_(True),
-            model_objects.ServerCertificate.timestamp_expires < ctx.timestamp,
+            model_objects.ServerCertificate.timestamp_not_after < ctx.timestamp,
         )
         .all()
     )
@@ -227,7 +227,7 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
                     model_objects.ServerCertificate.id.notin_(_q_ids__latest_single),
                     model_objects.ServerCertificate.id.notin_(_q_ids__latest_multi),
                 )
-                .order_by(model_objects.ServerCertificate.timestamp_expires.desc())
+                .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
                 .all()
             )
             if len(domain_certs) > 1:
@@ -269,7 +269,7 @@ def operations_update_recents(ctx):
             model_objects.ServerCertificate.is_single_domain_cert.is_(True),
             model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
         )
-        .order_by(model_objects.ServerCertificate.timestamp_expires.desc())
+        .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
         .limit(1)
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
@@ -295,7 +295,7 @@ def operations_update_recents(ctx):
             model_objects.ServerCertificate.is_single_domain_cert.is_(False),
             model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
         )
-        .order_by(model_objects.ServerCertificate.timestamp_expires.desc())
+        .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
         .limit(1)
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
@@ -406,7 +406,7 @@ def operations_update_recents(ctx):
     WHERE certificate_request.acme_account_id = acme_account.id);
 
     UPDATE acme_account SET timestamp_last_certificate_issue = (
-    SELECT MAX(timestamp_signed) FROM server_certificate
+    SELECT MAX(timestamp_not_before) FROM server_certificate
     WHERE server_certificate.acme_account_id = acme_account.id);
 
     UPDATE private_key SET timestamp_last_certificate_request = (
@@ -414,7 +414,7 @@ def operations_update_recents(ctx):
     WHERE certificate_request.private_key_id = private_key.id);
 
     UPDATE private_key SET timestamp_last_certificate_issue = (
-    SELECT MAX(timestamp_signed) FROM server_certificate
+    SELECT MAX(timestamp_not_before) FROM server_certificate
     WHERE server_certificate.private_key_id = private_key.id);
     """
 

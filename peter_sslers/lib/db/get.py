@@ -1270,11 +1270,11 @@ def _Domain_inject_exipring_days(ctx, q, expiring_days, order=False):
             sqlalchemy.or_(
                 sqlalchemy.and_(
                     ServerCertificateMulti.is_active.is_(True),
-                    ServerCertificateMulti.timestamp_expires <= _until,
+                    ServerCertificateMulti.timestamp_not_after <= _until,
                 ),
                 sqlalchemy.and_(
                     ServerCertificateSingle.is_active.is_(True),
-                    ServerCertificateSingle.timestamp_expires <= _until,
+                    ServerCertificateSingle.timestamp_not_after <= _until,
                 ),
             )
         )
@@ -1282,8 +1282,8 @@ def _Domain_inject_exipring_days(ctx, q, expiring_days, order=False):
     if order:
         q = q.order_by(
             model_utils.min_date(
-                ServerCertificateMulti.timestamp_expires,
-                ServerCertificateSingle.timestamp_expires,
+                ServerCertificateMulti.timestamp_not_after,
+                ServerCertificateSingle.timestamp_not_after,
             ).asc()
         )
     return q
@@ -2098,7 +2098,7 @@ def get__ServerCertificate__count(ctx, expiring_days=None, is_active=None):
             _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
             q = q.filter(
                 model_objects.ServerCertificate.is_active.is_(True),
-                model_objects.ServerCertificate.timestamp_expires <= _until,
+                model_objects.ServerCertificate.timestamp_not_after <= _until,
             )
     counted = q.count()
     return counted
@@ -2119,14 +2119,14 @@ def get__ServerCertificate__paginated(
             q = q.filter(model_objects.ServerCertificate.is_active.is_(True))
         elif is_active is False:
             q = q.filter(model_objects.ServerCertificate.is_active.is_(False))
-        q = q.order_by(model_objects.ServerCertificate.timestamp_expires.asc())
+        q = q.order_by(model_objects.ServerCertificate.timestamp_not_after.asc())
     else:
         if expiring_days:
             _until = ctx.timestamp + datetime.timedelta(days=expiring_days)
             q = q.filter(
                 model_objects.ServerCertificate.is_active.is_(True),
-                model_objects.ServerCertificate.timestamp_expires <= _until,
-            ).order_by(model_objects.ServerCertificate.timestamp_expires.asc())
+                model_objects.ServerCertificate.timestamp_not_after <= _until,
+            ).order_by(model_objects.ServerCertificate.timestamp_not_after.asc())
         else:
             q = q.order_by(model_objects.ServerCertificate.id.desc())
     q = q.limit(limit).offset(offset)
@@ -2344,7 +2344,7 @@ def get__ServerCertificate__by_UniqueFQDNSetId__latest_active(ctx, unique_fqdn_s
             model_objects.ServerCertificate.unique_fqdn_set_id == unique_fqdn_set_id
         )
         .filter(model_objects.ServerCertificate.is_active.op("IS")(True))
-        .order_by(model_objects.ServerCertificate.timestamp_expires.desc())
+        .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
         .first()
     )
     return item

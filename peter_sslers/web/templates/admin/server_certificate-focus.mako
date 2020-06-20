@@ -223,12 +223,12 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>timestamp_signed</th>
-                        <td><timestamp>${ServerCertificate.timestamp_signed}</timestamp></td>
+                        <th>timestamp_not_before</th>
+                        <td><timestamp>${ServerCertificate.timestamp_not_before}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>timestamp_expires</th>
-                        <td><timestamp>${ServerCertificate.timestamp_expires}</timestamp></td>
+                        <th>timestamp_not_after</th>
+                        <td><timestamp>${ServerCertificate.timestamp_not_after}</timestamp></td>
                     </tr>
                     <tr>
                         <th>expires in days</th>

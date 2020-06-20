@@ -19,8 +19,8 @@ def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
 
     sets the following object attributes:
         :attr:`model.utils.ServerCertificate.cert_pem_modulus_md5`
-        :attr:`model.utils.ServerCertificate.timestamp_signed`
-        :attr:`model.utils.ServerCertificate.timestamp_expires`
+        :attr:`model.utils.ServerCertificate.timestamp_not_before`
+        :attr:`model.utils.ServerCertificate.timestamp_not_after`
         :attr:`model.utils.ServerCertificate.cert_subject`
         :attr:`model.utils.ServerCertificate.cert_issuer`
 
@@ -33,7 +33,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
     datetime_signed = datetime_signed[10:]
     datetime_signed = dateutil_parser.parse(datetime_signed)
     datetime_signed = datetime_signed.replace(tzinfo=None)
-    dbServerCertificate.timestamp_signed = datetime_signed
+    dbServerCertificate.timestamp_not_before = datetime_signed
 
     datetime_expires = cert_dates["enddate"]
     if not datetime_expires.startswith("notAfter="):
@@ -41,7 +41,7 @@ def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
     datetime_expires = datetime_expires[9:]
     datetime_expires = dateutil_parser.parse(datetime_expires)
     datetime_expires = datetime_expires.replace(tzinfo=None)
-    dbServerCertificate.timestamp_expires = datetime_expires
+    dbServerCertificate.timestamp_not_after = datetime_expires
     """
     # TODO: this should be one parsing
     # TODO: leverage crypto
@@ -55,8 +55,8 @@ def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
     _cert_data = cert_utils.parse_cert(
         cert_pem=dbServerCertificate.cert_pem, cert_pem_filepath=_tmpfileCert.name,
     )
-    dbServerCertificate.timestamp_signed = _cert_data["startdate"]
-    dbServerCertificate.timestamp_expires = _cert_data["enddate"]
+    dbServerCertificate.timestamp_not_before = _cert_data["startdate"]
+    dbServerCertificate.timestamp_not_after = _cert_data["enddate"]
     dbServerCertificate.cert_subject = _cert_data["subject"]
     dbServerCertificate.cert_issuer = _cert_data["issuer"]
     return dbServerCertificate

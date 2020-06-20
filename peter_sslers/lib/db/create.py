@@ -989,8 +989,8 @@ def create__ServerCertificate(
         """
         The following are set by `_certificate_parse_to_record`
             :attr:`model.utils.ServerCertificate.cert_pem_modulus_md5`
-            :attr:`model.utils.ServerCertificate.timestamp_signed`
-            :attr:`model.utils.ServerCertificate.timestamp_expires`
+            :attr:`model.utils.ServerCertificate.timestamp_not_before`
+            :attr:`model.utils.ServerCertificate.timestamp_not_after`
             :attr:`model.utils.ServerCertificate.cert_subject`
             :attr:`model.utils.ServerCertificate.cert_issuer`
         """
@@ -1006,19 +1006,19 @@ def create__ServerCertificate(
         dbPrivateKey.count_certificates_issued += 1
         if not dbPrivateKey.timestamp_last_certificate_issue or (
             dbPrivateKey.timestamp_last_certificate_issue
-            < dbServerCertificate.timestamp_signed
+            < dbServerCertificate.timestamp_not_before
         ):
             dbPrivateKey.timestamp_last_certificate_issue = (
-                dbServerCertificate.timestamp_signed
+                dbServerCertificate.timestamp_not_before
             )
         if dbAcmeAccount:
             dbAcmeAccount.count_certificates_issued += 1
             if not dbAcmeAccount.timestamp_last_certificate_issue or (
                 dbAcmeAccount.timestamp_last_certificate_issue
-                < dbServerCertificate.timestamp_signed
+                < dbServerCertificate.timestamp_not_before
             ):
                 dbAcmeAccount.timestamp_last_certificate_issue = (
-                    dbServerCertificate.timestamp_signed
+                    dbServerCertificate.timestamp_not_before
                 )
 
         event_payload_dict["server_certificate.id"] = dbServerCertificate.id

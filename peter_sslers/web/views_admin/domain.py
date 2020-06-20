@@ -410,7 +410,7 @@ class View_Focus(Handler):
         weekly_certs = (
             self.request.api_context.dbSession.query(
                 model_utils.year_week(
-                    model_objects.ServerCertificate.timestamp_signed
+                    model_objects.ServerCertificate.timestamp_not_before
                 ).label("week_num"),
                 sqlalchemy.func.count(model_objects.ServerCertificate.id),
             )

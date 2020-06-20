@@ -83,12 +83,12 @@
                         <td>${CACertificate.id_cross_signed_of or ''}</td>
                     </tr>
                     <tr>
-                        <th>timestamp_signed</th>
-                        <td><timestamp>${CACertificate.timestamp_signed or ''}</timestamp></td>
+                        <th>timestamp_not_before</th>
+                        <td><timestamp>${CACertificate.timestamp_not_before or ''}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>timestamp_expires</th>
-                        <td><timestamp>${CACertificate.timestamp_expires or ''}</timestamp></td>
+                        <th>timestamp_not_after</th>
+                        <td><timestamp>${CACertificate.timestamp_not_after or ''}</timestamp></td>
                     </tr>
                     <tr>
                         <th>timestamp_created</th>

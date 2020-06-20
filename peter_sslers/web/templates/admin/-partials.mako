@@ -998,8 +998,8 @@
                 <th>active?</th>
                 <th>auto-renew?</th>
                 <th>is renewed?</th>
-                <th>timestamp_signed</th>
-                <th>timestamp_expires</th>
+                <th>timestamp_not_before</th>
+                <th>timestamp_not_after</th>
                 % if show_expiring_days:
                     <th>expiring days</th>
                 % endif
@@ -1041,8 +1041,8 @@
                         ${'Renewed' if (cert.acme_order and cert.acme_order.is_renewed) else 'not-renewed-yet'}
                     </div>
                 </td>
-                <td><timestamp>${cert.timestamp_signed}</timestamp></td>
-                <td><timestamp>${cert.timestamp_expires or ''}</timestamp></td>
+                <td><timestamp>${cert.timestamp_not_before}</timestamp></td>
+                <td><timestamp>${cert.timestamp_not_after}</timestamp></td>
                 % if show_expiring_days:
                     <td>
                         <span class="label label-${cert.expiring_days_label}">

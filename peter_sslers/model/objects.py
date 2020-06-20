@@ -93,9 +93,15 @@ class _Mixin_Timestamps_Pretty(object):
         return None
 
     @property
-    def timestamp_signed_isoformat(self):
-        if self.timestamp_signed:
-            return self.timestamp_signed.isoformat()
+    def timestamp_not_after_isoformat(self):
+        if self.timestamp_not_after:
+            return self.timestamp_not_after.isoformat()
+        return None
+
+    @property
+    def timestamp_not_before_isoformat(self):
+        if self.timestamp_not_before:
+            return self.timestamp_not_before.isoformat()
         return None
 
 
@@ -194,7 +200,9 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_usable(self):
+        """check the AcmeAccount and AcmeAccountKey are both active"""
         if self.is_active:
+            # `.acme_account_key` is joined on `is_active`
             if self.acme_account_key:
                 return True
         return False
@@ -1742,8 +1750,8 @@ class CACertificate(Base, _Mixin_Timestamps_Pretty):
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=True)
     cert_pem_modulus_md5 = sa.Column(sa.Unicode(32), nullable=True)
-    timestamp_signed = sa.Column(sa.DateTime, nullable=False)
-    timestamp_expires = sa.Column(sa.DateTime, nullable=False)
+    timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
+    timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
     cert_subject = sa.Column(sa.Text, nullable=True)
     cert_issuer = sa.Column(sa.Text, nullable=True)
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
@@ -2114,13 +2122,13 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         if self.server_certificate_id__latest_multi:
             payload["certificate__latest_multi"] = {
                 "id": self.server_certificate_id__latest_multi,
-                "timestamp_expires": self.server_certificate__latest_multi.timestamp_expires_isoformat,
+                "timestamp_not_after": self.server_certificate__latest_multi.timestamp_not_after_isoformat,
                 "expiring_days": self.server_certificate__latest_multi.expiring_days,
             }
         if self.server_certificate_id__latest_single:
             payload["certificate__latest_single"] = {
                 "id": self.server_certificate_id__latest_single,
-                "timestamp_expires": self.server_certificate__latest_single.timestamp_expires_isoformat,
+                "timestamp_not_after": self.server_certificate__latest_single.timestamp_not_after_isoformat,
                 "expiring_days": self.server_certificate__latest_single.expiring_days,
             }
         return payload
@@ -2822,8 +2830,8 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "server_certificate"
     id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_signed = sa.Column(sa.DateTime, nullable=False)
-    timestamp_expires = sa.Column(sa.DateTime, nullable=False)
+    timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
+    timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
     is_single_domain_cert = sa.Column(sa.Boolean, nullable=True, default=None)
     cert_pem = sa.Column(sa.Text, nullable=False)
     cert_pem_md5 = sa.Column(sa.Unicode(32), nullable=False)
@@ -2975,7 +2983,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
     def expiring_days(self):
         if self._expiring_days is None:
             self._expiring_days = (
-                self.timestamp_expires - datetime.datetime.utcnow()
+                self.timestamp_not_after - datetime.datetime.utcnow()
             ).days
         return self._expiring_days
 
@@ -3095,8 +3103,8 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             "is_compromised_private_key": True
             if self.is_compromised_private_key
             else False,
-            "timestamp_expires": self.timestamp_expires_isoformat,
-            "timestamp_signed": self.timestamp_signed_isoformat,
+            "timestamp_not_after": self.timestamp_not_after_isoformat,
+            "timestamp_not_before": self.timestamp_not_before_isoformat,
             "timestamp_revoked_upstream": self.timestamp_revoked_upstream_isoformat,
             "cert_pem": self.cert_pem,
             "cert_pem_md5": self.cert_pem_md5,

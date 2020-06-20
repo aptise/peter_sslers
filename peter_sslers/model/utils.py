@@ -16,7 +16,7 @@ def year_week__default(element, compiler, **kw):
     # return compiler.visit_function(element)
     """
     ## select extract(week from timestamp_event) from table_a;
-    week_num = sqlalchemy.sql.expression.extract('WEEK', ServerCertificate.timestamp_signed)
+    week_num = sqlalchemy.sql.expression.extract('WEEK', ServerCertificate.timestamp_not_before)
     """
     args = list(element.clauses)
     return "concat(extract(year from %s), '.', extract(week from %s)) " % (
@@ -29,7 +29,7 @@ def year_week__default(element, compiler, **kw):
 def year_week__postgresql(element, compiler, **kw):
     """
     # select to_char(timestamp_event, 'YYYY.WW')  from table_a;
-    week_num = sqlalchemy.func.to_char(ServerCertificate.timestamp_signed, 'YYYY.WW')
+    week_num = sqlalchemy.func.to_char(ServerCertificate.timestamp_not_before, 'YYYY.WW')
     """
     args = list(element.clauses)
     return "to_char(%s, 'YYYY.WW')" % (compiler.process(args[0]),)
@@ -38,7 +38,7 @@ def year_week__postgresql(element, compiler, **kw):
 @compiles(year_week, "sqlite")
 def year_week__sqlite(element, compiler, **kw):
     """
-    # strftime('%Y.%W', cast(ServerCertificate.timestamp_signed) as text)
+    # strftime('%Y.%W', cast(ServerCertificate.timestamp_not_before) as text)
     week_num = sqlalchemy.func.strftime('%Y.%W',
                                         sqlalchemy.cast(TABLE.COLUMN,
                                                         sqlalchemy.Unicode
@@ -64,7 +64,7 @@ def year_day__default(element, compiler, **kw):
     """
     ## select extract(doy from timestamp_event) from table_a;
     ## 94
-    week_num = sqlalchemy.sql.expression.extract('WEEK', ServerCertificate.timestamp_signed)
+    week_num = sqlalchemy.sql.expression.extract('WEEK', ServerCertificate.timestamp_not_before)
     ## select concat(extract(year from current_timestamp), '.', extract(doy from current_timestamp))
     """
     args = list(element.clauses)
@@ -78,7 +78,7 @@ def year_day__default(element, compiler, **kw):
 def year_day__postgresql(element, compiler, **kw):
     """
     # select to_char(timestamp_event, 'YYYY.DDD')  from table_a;
-    week_num = sqlalchemy.func.to_char(ServerCertificate.timestamp_signed, 'YYYY.WW')
+    week_num = sqlalchemy.func.to_char(ServerCertificate.timestamp_not_before, 'YYYY.WW')
     # select to_char(current_timestamp, 'YYYY.DDD');
     # 2020.094
     """
@@ -89,7 +89,7 @@ def year_day__postgresql(element, compiler, **kw):
 @compiles(year_day, "sqlite")
 def year_day__sqlite(element, compiler, **kw):
     """
-    # strftime('%Y.%j', cast(ServerCertificate.timestamp_signed) as text)
+    # strftime('%Y.%j', cast(ServerCertificate.timestamp_not_before) as text)
     # 2020.094
     year_day = sqlalchemy.func.strftime('%Y.%j',
                                         sqlalchemy.cast(TABLE.COLUMN,
