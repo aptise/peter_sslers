@@ -193,6 +193,13 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def is_usable(self):
+        if self.is_active:
+            if self.acme_account_key:
+                return True
+        return False
+
+    @property
     def is_can_authenticate(self):
         if self.acme_account_provider.protocol == "acme-v2":
             return True

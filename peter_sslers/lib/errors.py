@@ -44,6 +44,10 @@ class OpenSslError(Exception):
     pass
 
 
+class QueueProcessingError(Exception):
+    pass
+
+
 class OpenSslError_CsrGeneration(OpenSslError):
     pass
 

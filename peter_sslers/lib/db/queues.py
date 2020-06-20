@@ -325,54 +325,6 @@ def queue_domains__process(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def queue_certificates__via_fqdns(
-    ctx, dbAcmeAccount=None, dbPrivateKey=None, unique_fqdn_set_ids=None,
-):
-    """
-    Inserts a new :class:`model.objects.QueueCertificate` for each unique_fqdn_set_id
-
-    invoked when a :class:`model.objects.PrivateKey` is marked as compromised.
-
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param unique_fqdn_set_ids: only insert records for these items
-    """
-    try:
-        renewals = []
-        event_type = model_utils.OperationsEventType.from_string(
-            "QueueCertificate__batch"
-        )
-        event_payload_dict = utils.new_event_payload_dict()
-        dbOperationsEvent = log__OperationsEvent(ctx, event_type, event_payload_dict)
-        unique_fqdn_set_ids__bad = []
-        for fqdns_id in unique_fqdn_set_ids:
-            dbUniqueFQDNSet = lib.db.get.get__UniqueFQDNSet__by_id(ctx, fqdns_id)
-            if not dbUniqueFQDNSet:
-                unique_fqdn_set_ids__bad.append(fqdns_id)
-                continue
-            raise ValueError("TODO")
-            dbQueueCertificate = lib.db.create.create__QueueCertificate(
-                ctx,
-                dbAcmeAccount=None,
-                dbPrivateKey=None,
-                dbUniqueFQDNSet=dbUniqueFQDNSet,
-                private_key_cycle_id__renewal=FOO,
-                private_key_strategy_id__requested=FOO,
-            )
-            renewals.append(dbQueueCertificate)
-        event_payload_dict["unique_fqdn_set-queued.ids"] = [
-            str(sid) for sid in unique_fqdn_set_ids
-        ]
-        event_payload_dict["unique_fqdn_set-bad.ids"] = unique_fqdn_set_ids__bad
-        event_payload_dict["queue_certificates.ids"] = [str(c.id) for c in renewals]
-        dbOperationsEvent.set_event_payload(event_payload_dict)
-        ctx.dbSession.flush(objects=[dbOperationsEvent])
-
-        return True
-
-    except Exception as exc:
-        raise
-
-
 def queue_certificates__update(ctx):
     """
     Inspects the database for expiring :class:`model.objects.AcmeOrders`
@@ -455,6 +407,9 @@ def queue_certificates__update(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+_ENABLE_MERGE = False
+
+
 def queue_certificates__process(ctx):
     """
     process the queue
@@ -462,7 +417,6 @@ def queue_certificates__process(ctx):
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
-    raise ValueError("under development")
     rval = {
         "count_total": None,
         "count_success": 0,
@@ -483,56 +437,73 @@ def queue_certificates__process(ctx):
             ctx, unprocessed_only=True, limit=1, offset=0, eagerload_renewal=True
         )
 
+        # first step is to see if we need the global AcmeAccountKey
+        # and cache it for later.
+        # if we do and it is missing...
+        # just error on the Queue item, not globally
         dbAcmeAccount_GlobalDefault = None
-        _need_default_AcmeAccount = False
+        _need_default_AcmeAccount = None
         for dbQueueCertificate in items_paged:
-            if not dbQueueCertificate.acme_account.is_active:
+            # check the Account and AccountKey are both active
+            if not dbQueueCertificate.acme_account.is_usable:
                 _need_default_AcmeAccount = True
                 break
-
         if _need_default_AcmeAccount:
-            # raises an error if we fail
             dbAcmeAccount_GlobalDefault = lib.db.get.get__AcmeAccount__GlobalDefault(
                 ctx, active_only=True
             )
-            if not dbAcmeAccount_GlobalDefault:
-                raise ValueError("Could not load a default AccountKey.")
+            # if we don't have an Active Account, create a CoverageAssuranceEvent for the certs that need it
 
         for dbQueueCertificate in items_paged:
 
-            if dbQueueCertificate not in ctx.dbSession:
-                dbQueueCertificate = ctx.dbSession.merge(dbQueueCertificate)
+            if _ENABLE_MERGE:
+                if dbQueueCertificate not in ctx.dbSession:
+                    dbQueueCertificate = ctx.dbSession.merge(dbQueueCertificate)
+                if dbAcmeAccount_GlobalDefault:
+                    if dbAcmeAccount_GlobalDefault not in ctx.dbSession:
+                        dbAcmeAccount_GlobalDefault = ctx.dbSession.merge(
+                            dbAcmeAccount_GlobalDefault
+                        )
+                if ctx.dbOperationsEvent not in ctx.dbSession:
+                    ctx.dbOperationsEvent = ctx.dbSession.merge(ctx.dbOperationsEvent)
+                if dbOperationsEvent not in ctx.dbSession:
+                    dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
 
-            if dbAcmeAccount_GlobalDefault:
-                if dbAcmeAccount_GlobalDefault not in ctx.dbSession:
-                    dbAcmeAccount_GlobalDefault = ctx.dbSession.merge(
-                        dbAcmeAccount_GlobalDefault
-                    )
-            if ctx.dbOperationsEvent not in ctx.dbSession:
-                ctx.dbOperationsEvent = ctx.dbSession.merge(ctx.dbOperationsEvent)
-            if dbOperationsEvent not in ctx.dbSession:
-                dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
-
-            dbServerCertificate = None
-            _dbAcmeAccount = (
-                dbQueueCertificate.renewal_AcmeAccount or dbAcmeAccount_GlobalDefault
-            )
-
-            raise ValueError("changed")
-            _dbPrivateKey = dbQueueCertificate.renewal_PrivateKey or None
             try:
+                dbServerCertificate = None
+                _dbAcmeAccount = dbQueueCertificate.acme_account if dbQueueCertificate.acme_account.is_usable else dbAcmeAccount_GlobalDefault
+                if not dbAcmeAccount_GlobalDefault:
+                    raise errors.QueueProcessingError("QueueCertificate_no_account_key")
+                _dbPrivateKey = dbQueueCertificate.private_key  # this can auto-heal
                 timestamp_attempt = datetime.datetime.utcnow()
-                raise ValueError("this changed a lot")
+
+            except errors.QueueProcessingError as exc:
+                # create a CoverageAssuranceEvent
+                # 7: "QueueCertificate_no_account_key",  # the Queue item has no key, and the fallback global is unavailable
+                pass
+
+            try:
                 try:
                     dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__new(
                         ctx,
-                        acme_order_type_id=model_utils.AcmeOrderType.QUEUE_RENEWAL,
+                        acme_order_type_id=model_utils.AcmeOrderType.QUEUE_CERTIFICATE_RENEWAL,
                         domain_names=dbQueueCertificate.domains_as_list,
+
                         dbAcmeAccount=_dbAcmeAccount,
                         dbPrivateKey=_dbPrivateKey,
                         dbServerCertificate__renewal_of=dbQueueCertificate.server_certificate,
                         dbQueueCertificate__of=dbQueueCertificate,
                     )
+                    """
+                        domain_names=None,
+                        processing_strategy=None,
+                        private_key_cycle__renewal=None,
+                        private_key_strategy__requested=None,
+                        dbAcmeAccount=None,
+                        dbPrivateKey=None,
+                        dbServerCertificate__renewal_of=None,
+                        dbQueueCertificate__of=None,
+                    """
                 except Exception as exc:
                     # unpack a `errors.AcmeOrderCreatedError` to local vars
                     if isinstance(exc, errors.AcmeOrderCreatedError):
@@ -567,10 +538,11 @@ def queue_certificates__process(ctx):
 
                 # except (errors.AcmeOrderFatal, errors.DomainVerificationError) as exc:
 
-                if dbOperationsEvent not in ctx.dbSession:
-                    dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
-                if dbQueueCertificate not in ctx.dbSession:
-                    dbQueueCertificate = ctx.dbSession.merge(dbQueueCertificate)
+                if _ENABLE_MERGE:
+                    if dbOperationsEvent not in ctx.dbSession:
+                        dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
+                    if dbQueueCertificate not in ctx.dbSession:
+                        dbQueueCertificate = ctx.dbSession.merge(dbQueueCertificate)
                 dbQueueCertificate.process_result = False
                 dbQueueCertificate.timestamp_process_attempt = timestamp_attempt
                 ctx.dbSession.flush(objects=[dbQueueCertificate])
@@ -591,8 +563,9 @@ def queue_certificates__process(ctx):
                 else:
                     raise
         event_payload_dict["rval"] = rval
-        if dbOperationsEvent not in ctx.dbSession:
-            dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
+        if _ENABLE_MERGE:
+            if dbOperationsEvent not in ctx.dbSession:
+                dbOperationsEvent = ctx.dbSession.merge(dbOperationsEvent)
         dbOperationsEvent.set_event_payload(event_payload_dict)
         ctx.dbSession.flush(objects=[dbOperationsEvent])
     return rval

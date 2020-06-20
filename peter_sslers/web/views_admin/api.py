@@ -618,9 +618,9 @@ class ViewAdminApi(Handler):
             )
         except Exception as exc:
             self.request.api_context.pyramid_transaction_rollback()
+            raise
             if self.request.wants_json:
                 return {"result": "error", "error": exc.as_querystring}
-            raise
             return HTTPSeeOther(
                 "%s/queue-certificates?result=error&error=%s&operation=update"
                 % (
@@ -658,9 +658,9 @@ class ViewAdminApi(Handler):
             )
         except Exception as exc:
             self.request.api_context.pyramid_transaction_rollback()
+            raise
             if self.request.wants_json:
                 return {"result": "error", "error": exc.as_querystring}
-            raise
             return HTTPSeeOther(
                 "%s/queue-certificates?result=error&error=%s&operation=process"
                 % (

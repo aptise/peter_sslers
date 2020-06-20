@@ -643,7 +643,7 @@ class AcmeOrderType(_mixin_mapping):
     ACME_AUTOMATED_RENEW_QUICK = 3
     ACME_AUTOMATED_RENEW_CUSTOM = 4
     ACME_AUTOMATED_NEW__CIN = 5  # CIN=Certificate-If-Needed
-    QUEUE_RENEWAL = 11
+    QUEUE_CERTIFICATE_RENEWAL = 11
     QUEUE_DOMAINS = 12
     _mapping = {
         1: "ACME Automated (New)",
@@ -651,7 +651,7 @@ class AcmeOrderType(_mixin_mapping):
         3: "ACME Automated (Renew Quick)",
         4: "ACME Automated (Renew Custom)",
         5: "ACME Automated (New - Certificate if Needed)",
-        11: "Queue - Renewals",
+        11: "Queue - Certificate Renewal",
         12: "Queue - Domains",
     }
 
@@ -679,7 +679,8 @@ class CoverageAssuranceEventType(_mixin_mapping):
         3: "ServerCertificate_revoked_mark",  # we mark it as revoked
         4: "ServerCertificate_revoked_acme",  # ACME confirms it as revoked
         5: "AccountKey_revoked_mark",  # we mark it as revoked
-        6: "AccountKey_revoked_acme",  # ACME confirms it as recoked
+        6: "AccountKey_revoked_acme",  # ACME confirms it as revoked
+        7: "QueueCertificate_no_account_key",  # the Queue item has no key, and the fallback global is unavailable
     }
 
 

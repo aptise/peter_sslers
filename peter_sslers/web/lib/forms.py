@@ -298,6 +298,27 @@ class Form_AcmeOrderless_AcmeChallenge_add(_Form_Schema_Base):
     challenge_url = UnicodeString(not_empty=False, if_missing=None)
 
 
+class Form_API_Domain_enable(_Form_Schema_Base):
+    domain_names = UnicodeString(not_empty=True)
+
+
+class Form_API_Domain_disable(_Form_Schema_Base):
+    domain_names = UnicodeString(not_empty=True)
+
+
+class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
+    domain_names = UnicodeString(not_empty=True)
+    processing_strategy = OneOf(
+        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE, not_empty=True,
+    )
+
+    # this is the `private_key_cycle` of the AcmeOrder renewals
+    private_key_cycle__renewal = OneOf(
+        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+        not_empty=True,
+    )
+    
+
 class Form_CACertificate_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
     chain_file_name = UnicodeString(not_empty=False, if_missing=None)
@@ -325,13 +346,6 @@ class Form_Certificate_Upload__file(_Form_Schema_Base):
     private_key_file_pem = FieldStorageUploadConverter(not_empty=True)
     certificate_file = FieldStorageUploadConverter(not_empty=True)
     chain_file = FieldStorageUploadConverter(not_empty=True)
-
-
-class Form_ServerCertificate_mark(_Form_Schema_Base):
-    action = OneOf(
-        ("active", "inactive", "revoked", "renew_manual", "renew_auto", "unrevoke"),
-        not_empty=True,
-    )
 
 
 class Form_CoverageAssuranceEvent_mark(_Form_Schema_Base):
@@ -435,22 +449,15 @@ class Form_QueueDomains_process(_form_AcmeAccount_PrivateKey_core):
     )
 
 
-class Form_API_Domain_enable(_Form_Schema_Base):
-    domain_names = UnicodeString(not_empty=True)
-
-
-class Form_API_Domain_disable(_Form_Schema_Base):
-    domain_names = UnicodeString(not_empty=True)
-
-
-class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
-    domain_names = UnicodeString(not_empty=True)
-    processing_strategy = OneOf(
-        model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE, not_empty=True,
-    )
-
-    # this is the `private_key_cycle` of the AcmeOrder renewals
-    private_key_cycle__renewal = OneOf(
-        model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
+class Form_ServerCertificate_mark(_Form_Schema_Base):
+    action = OneOf(
+        ("active",
+         "inactive",
+         "revoked",
+         # "renew_manual",
+         # "renew_auto",
+         "unrevoke"
+         ),
         not_empty=True,
     )
+

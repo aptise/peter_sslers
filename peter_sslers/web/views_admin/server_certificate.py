@@ -599,8 +599,8 @@ class View_Focus_Manipulate(View_Focus):
                         "active",
                         "inactive",
                         "revoked",
-                        "renew_manual",
-                        "renew_auto",
+                        # "renew_manual",
+                        # "renew_auto",
                         "unrevoke",
                     ]
                 },
@@ -656,15 +656,15 @@ class View_Focus_Manipulate(View_Focus):
                     unactivated = True
                     event_type = "ServerCertificate__revoke"
 
-                elif action == "renew_manual":
-                    event_status = lib_db.update.update_ServerCertificate__set_renew_manual(
-                        self.request.api_context, dbServerCertificate
-                    )
+                # elif action == "renew_manual":
+                #    event_status = lib_db.update.update_ServerCertificate__set_renew_manual(
+                #        self.request.api_context, dbServerCertificate
+                #    )
 
-                elif action == "renew_auto":
-                    event_status = lib_db.update.update_ServerCertificate__set_renew_auto(
-                        self.request.api_context, dbServerCertificate
-                    )
+                # elif action == "renew_auto":
+                #    event_status = lib_db.update.update_ServerCertificate__set_renew_auto(
+                #        self.request.api_context, dbServerCertificate
+                #    )
 
                 elif action == "unrevoke":
                     raise errors.InvalidTransition("invalid option, unrevoke")

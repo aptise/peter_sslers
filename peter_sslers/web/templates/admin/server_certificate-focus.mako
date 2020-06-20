@@ -141,9 +141,18 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>Renewals Managed by</th>
+                        <td>
+                            % if ServerCertificate.renewals_managed_by == "AcmeOrder":
+                                <code>AcmeOrder</code>
+                            % elif ServerCertificate.renewals_managed_by == "ServerCertificate":
+                                <code>ServerCertificate</code>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>Renewal Strategy</th>
                         <td>
-                            <code>${ServerCertificate.renewals_managed_by}</code>
                             % if ServerCertificate.renewals_managed_by == "AcmeOrder":
                                 % if ServerCertificate.acme_order.is_auto_renew:
                                     <span class="label label-success">auto-renew enabled</span>
@@ -155,30 +164,30 @@
                                     AcmeOrder-${ServerCertificate.acme_order.id}
                                 </a>
                             % elif ServerCertificate.renewals_managed_by == "ServerCertificate":
-                                % if ServerCertificate.is_auto_renew:
-                                    <span class="label label-success">auto-renew enabled</span>
-                                    <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;" id="server_certificate-mark-autorenew-off">
-                                        <input type="hidden" name="action" value="renew_manual"/>
-                                        <button class="btn btn-xs btn-danger" type="submit" name="submit" value="submit">
-                                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                            deactivate auto-renew
-                                        </button>
-                                    </form>
-                                % else:
-                                    <span class="label label-danger">auto-renew disabled</span>
-                                    <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;" id="server_certificate-mark-autorenew-on">
-                                        <input type="hidden" name="action" value="renew_auto"/>
-                                        <button class="btn btn-xs btn-success" type="submit" name="submit" value="submit">
-                                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                            activate auto-renew
-                                        </button>
-                                    </form>
-                                % endif
+                                <p>Imported ServerCertificates do not support auto-renew. Create an AcmeOrder queue item.</p>
+                                <%doc>
+                                    % if ServerCertificate.is_auto_renew:
+                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;" id="server_certificate-mark-autorenew-off">
+                                            <input type="hidden" name="action" value="renew_manual"/>
+                                            <button class="btn btn-xs btn-danger" type="submit" name="submit" value="submit">
+                                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                                deactivate auto-renew
+                                            </button>
+                                        </form>
+                                    % else:
+                                        <span class="label label-danger">auto-renew disabled</span>
+                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;" id="server_certificate-mark-autorenew-on">
+                                            <input type="hidden" name="action" value="renew_auto"/>
+                                            <button class="btn btn-xs btn-success" type="submit" name="submit" value="submit">
+                                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                                activate auto-renew
+                                            </button>
+                                        </form>
+                                    % endif
+                                </%doc>
                             % endif
                         </td>
                     </tr>
-
-
                     <tr>
                         <th>is_compromised_private_key</th>
                         <td>

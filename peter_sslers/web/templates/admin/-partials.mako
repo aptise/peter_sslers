@@ -22,7 +22,6 @@
         <thead>
             <tr>
                 <th>id</th>
-                <th>acme_account_provider_id</th>
                 <th><!-- active --></th>
                 <th><!-- global_default --></th>
                 <th>provider</th>
@@ -35,9 +34,6 @@
         <tbody>
             % for account in data:
                 <tr>
-                    <td><a class="label label-info" href="${admin_prefix}/acme-account-key/${account.id}">
-                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                        AcmeAccount-${account.id}</a></td>
                     <td><a class="label label-info" href="${admin_prefix}/acme-account/${account.id}">
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         AcmeAccount-${account.id}</a></td>
@@ -51,7 +47,13 @@
                             <span class="label label-success">global default</span>
                         % endif
                     </td>
-                    <td><span class="label label-info">${account.acme_account_provider.name}</span></td>
+                    <td>
+                        <span class="label label-info">${account.acme_account_provider.name}</span>
+                        <a class="label label-info" href="${admin_prefix}/acme-account-providers">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeAccountProvider-${account.acme_account_provider_id}</a>
+                            ## <code>${account.acme_account_provider.url}</code>
+                    </td>
                     <td><timestamp>${account.timestamp_created}</timestamp></td>
                     <td><code>${account.acme_account_key.key_pem_md5}</code></td>
                     <td><span class="badge">${account.count_certificate_requests or ''}</span></td>
@@ -1027,6 +1029,11 @@
                 <td>
                     <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
                         ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
+                        % if cert.renewals_managed_by == "AcmeOrder":
+                            via AcmeOrder
+                        % elif cert.renewals_managed_by == "ServerCertificate":
+                            via ServerCertificate
+                        % endif
                     </div>
                 </td>
                 <td>
