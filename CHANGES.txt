@@ -56,7 +56,7 @@
 - Server/CA Certificate fieldname changes to reflect certificate terminology:
 	- timestamp_signed > timestamp_not_before
 	- timestamp_expires > timestamp_not_after
-
+- ServerCertificate: track private-key requested
 
 
 0.4.0

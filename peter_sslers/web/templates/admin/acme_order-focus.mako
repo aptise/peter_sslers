@@ -388,6 +388,22 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>PrivateKey (Requested)</th>
+                        <td>
+                            % if AcmeOrder.private_key_id__requested == 0:
+                                <span class="label label-default">placeholder key</span>
+                            % else:
+                                <a
+                                    class="label label-info"
+                                    href="${admin_prefix}/private-key/${AcmeOrder.private_key_id__requested}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    PrivateKey-${AcmeOrder.private_key_id__requested}
+                                </a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>PrivateKeyCycle - renewals</th>
                         <td><code>${AcmeOrder.private_key_cycle__renewal}</code></td>
                     </tr>

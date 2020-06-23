@@ -22,17 +22,6 @@ remove todo
 asap tasks
 ---------------
 
-new queue-certificates need to track private_key_id__requested
-
-
-
-
-
-
-
-
-
-
 route: "admin:api:domain:autocert", "/api/domain/autocert"
 	just accept a single domain,
 	run the entire process using the global account key, and a new private key, in a single request

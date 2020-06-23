@@ -1306,13 +1306,13 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
     private_key_cycle_id__renewal = sa.Column(
         sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyCycle
+    )  # see .utils.PrivateKeyCycle; if the order is renewed, what is the default cycle strategy?
     private_key_strategy_id__requested = sa.Column(
         sa.Integer, nullable=False
-    )  # see .utils.PrivateKeyStrategy
+    )  # see .utils.PrivateKeyStrategy; how are we specifying the private key? NOW or deferred?
     private_key_strategy_id__final = sa.Column(
         sa.Integer, nullable=True
-    )  # see .utils.PrivateKeyStrategy
+    )  # see .utils.PrivateKeyStrategy; how did we end up choosing a private key?
     acme_event_log_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_event_log.id"), nullable=False
     )  # When was this created?  AcmeEvent['v2|newOrder']
@@ -1323,6 +1323,9 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )
     certificate_request_id = sa.Column(
         sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+    )
+    private_key_id__requested = sa.Column(
+        sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
     )
     private_key_id = sa.Column(
         sa.Integer, sa.ForeignKey("private_key.id"), nullable=False
@@ -1363,6 +1366,11 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         "OperationsObjectEvent",
         primaryjoin="AcmeOrder.id==OperationsObjectEvent.acme_order_id",
         back_populates="acme_order",
+    )
+    private_key__requested = sa_orm_relationship(
+        "PrivateKey",
+        primaryjoin="AcmeOrder.private_key_id__requested==PrivateKey.id",
+        uselist=False,
     )
     private_key = sa_orm_relationship(
         "PrivateKey",
@@ -2832,6 +2840,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "server_certificate"
     id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
     timestamp_not_before = sa.Column(sa.DateTime, nullable=False)
     timestamp_not_after = sa.Column(sa.DateTime, nullable=False)
     is_single_domain_cert = sa.Column(sa.Boolean, nullable=True, default=None)

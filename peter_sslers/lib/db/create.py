@@ -249,6 +249,7 @@ def create__AcmeOrder(
         dbCertificateRequest.id if dbCertificateRequest else None
     )
     dbAcmeOrder.private_key_id = dbPrivateKey.id
+    dbAcmeOrder.private_key_id__requested = dbPrivateKey.id
     dbAcmeOrder.unique_fqdn_set_id = dbUniqueFQDNSet.id
     dbAcmeOrder.finalize_url = finalize_url
     dbAcmeOrder.certificate_url = certificate_url
@@ -975,6 +976,7 @@ def create__ServerCertificate(
 
         # ok, now pull the dates off the cert
         dbServerCertificate = model_objects.ServerCertificate()
+        dbServerCertificate.timestamp_created = ctx.timestamp
         dbServerCertificate.cert_pem = cert_pem
         dbServerCertificate.cert_pem_md5 = utils.md5_text(cert_pem)
         dbServerCertificate.is_active = is_active
