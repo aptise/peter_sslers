@@ -151,9 +151,9 @@ class UnitTest_CertUtils(unittest.TestCase):
             data = f.read()
         return data
 
-    def test__parse_cert_domains(self):
+    def test__parse_cert__domains(self):
         """
-        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert_domains
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert__domains
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -162,7 +162,7 @@ class UnitTest_CertUtils(unittest.TestCase):
             cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
             cert_pem_filepath = self._filepath_testfile(cert_filename)
             cert_pem = self._filedata_testfile(cert_filename)
-            cert_domains = cert_utils.parse_cert_domains(
+            cert_domains = cert_utils.parse_cert__domains(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
             self.assertEqual(
@@ -287,9 +287,9 @@ class UnitTest_CertUtils(unittest.TestCase):
                 modulus_md5, self._cert_sets[cert_set]["pubkey_modulus_md5"]
             )
 
-    def test__parse_cert_enddate(self):
+    def test__parse_cert__enddate(self):
         """
-        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert_enddate
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert__enddate
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -298,16 +298,16 @@ class UnitTest_CertUtils(unittest.TestCase):
             cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
             cert_pem_filepath = self._filepath_testfile(cert_filename)
             cert_pem = self._filedata_testfile(cert_filename)
-            cert_enddate = cert_utils.parse_cert_enddate(
+            cert_enddate = cert_utils.parse_cert__enddate(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
             self.assertEqual(
                 str(cert_enddate), self._cert_sets[cert_set]["cert.notAfter"]
             )
 
-    def test__parse_cert_startdate(self):
+    def test__parse_cert__startdate(self):
         """
-        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert_startdate
+        python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils.test__parse_cert__startdate
         """
 
         for cert_set in sorted(self._cert_sets.keys()):
@@ -316,7 +316,7 @@ class UnitTest_CertUtils(unittest.TestCase):
             cert_filename = "unit_tests/cert_%s/cert.pem" % cert_set
             cert_pem_filepath = self._filepath_testfile(cert_filename)
             cert_pem = self._filedata_testfile(cert_filename)
-            cert_startdate = cert_utils.parse_cert_startdate(
+            cert_startdate = cert_utils.parse_cert__startdate(
                 cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
             )
             self.assertEqual(

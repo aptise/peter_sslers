@@ -896,9 +896,6 @@ class AppTest(AppTestCore):
                         "specified"
                     ),
                 )
-
-                # TODO: the dbSessions don't seem to be the same
-                #       to get around this, commit now
                 self.ctx.pyramid_transaction_commit()
 
                 # note: pre-populate AcmeOrder

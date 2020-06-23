@@ -1136,16 +1136,7 @@ def getcreate__ServerCertificate(
         raise ValueError("The PrivateKey did not sign the ServerCertificate")
 
     if dbCertificateRequest:
-        try:
-            _tmpfile = cert_utils.new_pem_tempfile(dbCertificateRequest.csr_pem)
-            # grab the modulus
-            # TODO - shouldn't this be cached on the object already?!?
-            _csr_pem_modulus_md5 = cert_utils.modulus_md5_csr(
-                csr_pem=dbCertificateRequest.csr_pem, csr_pem_filepath=_tmpfile.name
-            )
-        finally:
-            _tmpfile.close()
-        if _cert_pem_modulus_md5 != _csr_pem_modulus_md5:
+        if _cert_pem_modulus_md5 != dbCertificateRequest.csr_pem_modulus_md5:
             raise ValueError("The PrivateKey did not sign the CertificateRequest")
 
     dbServerCertificate = (

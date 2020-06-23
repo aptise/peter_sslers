@@ -291,7 +291,7 @@ def san_domains_from_text(input):
     return list(san_domains)
 
 
-def parse_cert_domains(cert_pem=None, cert_pem_filepath=None):
+def parse_cert__domains(cert_pem=None, cert_pem_filepath=None):
     """
     gets ALL domains from a certificate
         * san (subjectAlternateName)
@@ -300,12 +300,12 @@ def parse_cert_domains(cert_pem=None, cert_pem_filepath=None):
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
-    log.info("parse_cert_domains >")
+    log.info("parse_cert__domains >")
     if certbot_crypto_util:
         all_domains = certbot_crypto_util.get_names_from_cert(cert_pem)
         return all_domains
 
-    log.debug(".parse_cert_domains > openssl fallback")
+    log.debug(".parse_cert__domains > openssl fallback")
     # fallback onto OpenSSL
     # `openssl x509 -in MYCERT -noout -text`
     with psutil.Popen(
@@ -348,7 +348,6 @@ def parse_csr_domains(csr_pem=None, csr_pem_filepath=None, submitted_domain_name
             csr_pem, load_func, typ=openssl_crypto.FILETYPE_PEM
         )
     else:
-        # TODO: create a tempfile so we can avoid making one
         log.debug(".parse_csr_domains > openssl fallback")
         # fallback onto OpenSSL
         # openssl req -in MYCSR -noout -text
@@ -736,17 +735,17 @@ def key_single_op__pem_filepath(pem_filepath, single_op):
     return data
 
 
-def parse_cert_enddate(cert_pem=None, cert_pem_filepath=None):
+def parse_cert__enddate(cert_pem=None, cert_pem_filepath=None):
     """
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
-    log.info("parse_cert_enddate >")
+    log.info("parse_cert__enddate >")
     if openssl_crypto:
         cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
         date = cert.to_cryptography().not_valid_after
     else:
-        log.debug(".parse_cert_enddate > openssl fallback")
+        log.debug(".parse_cert__enddate > openssl fallback")
         # openssl x509 -enddate -noout -in {CERT}
         data = cert_single_op__pem_filepath(cert_pem_filepath, "-enddate")
         if data[:9] != "notAfter=":
@@ -757,17 +756,17 @@ def parse_cert_enddate(cert_pem=None, cert_pem_filepath=None):
     return date
 
 
-def parse_cert_startdate(cert_pem=None, cert_pem_filepath=None):
+def parse_cert__startdate(cert_pem=None, cert_pem_filepath=None):
     """
     This routine will use crypto/certbot if available.
     If not, openssl is used via subprocesses
     """
-    log.info("parse_cert_startdate >")
+    log.info("parse_cert__startdate >")
     if openssl_crypto:
         cert = openssl_crypto.load_certificate(openssl_crypto.FILETYPE_PEM, cert_pem)
         date = cert.to_cryptography().not_valid_before
     else:
-        log.debug(".parse_cert_enddate > openssl fallback")
+        log.debug(".parse_cert__enddate > openssl fallback")
         # openssl x509 -startdate -noout -in {CERT}
         data = cert_single_op__pem_filepath(cert_pem_filepath, "-startdate")
         if data[:10] != "notBefore=":
@@ -956,10 +955,10 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         _subject = " = ".join([i.strip() for i in _issuer.split("=")])
         rval["subject"] = _subject
 
-        rval["startdate"] = parse_cert_startdate(
+        rval["startdate"] = parse_cert__startdate(
             cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
         )
-        rval["enddate"] = parse_cert_enddate(
+        rval["enddate"] = parse_cert__enddate(
             cert_pem=cert_pem, cert_pem_filepath=cert_pem_filepath
         )
 
@@ -982,11 +981,11 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
                 found_domains = san_domains_from_text(data)
                 rval["SubjectAlternativeName"] = found_domains
 
-        # rval["parse_cert_enddate"] = str(
-        #    parse_cert_enddate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
+        # rval["parse_cert__enddate"] = str(
+        #    parse_cert__enddate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
         # )
-        # rval["parse_cert_startdate"] = str(
-        #    parse_cert_startdate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
+        # rval["parse_cert__startdate"] = str(
+        #    parse_cert__startdate(cert_pem=cert_pem, cert_pem_filepath=pem_filepath)
         # )
         return rval
     except Exception as exc:

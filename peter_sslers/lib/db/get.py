@@ -412,7 +412,7 @@ def get__AcmeChallenge__by_challenge_url(ctx, challenge_url):
 
 
 def get__AcmeChallenge__challenged(ctx, domain_name, challenge):
-    # TODO - ensure the AcmeAuthorization or AcmeOrderless is active
+    # ???: Should we ensure the associated AcmeAuthorization/AcmeOrderless is active?
     # see https://tools.ietf.org/html/rfc8555#section-8.3
     # GET : /path/to/{token}
     # the following two are IDENTICAL:

@@ -425,7 +425,7 @@ def update_ServerCertificate__mark_compromised(
 ):
     # the PrivateKey has been compromised
     dbServerCertificate.is_compromised_private_key = True
-    dbServerCertificate.is_revoked = True  # TODO: this has nothing to do with the acme-server, it is just a local marking
+    dbServerCertificate.is_revoked = True  # NOTE: this has nothing to do with the acme-server, it is just a local marking
     if dbServerCertificate.is_active:
         dbServerCertificate.is_active = False
     event_status = "ServerCertificate__mark__compromised"

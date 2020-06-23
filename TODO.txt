@@ -68,6 +68,11 @@ EDIT:
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
     def queue_domain_process(self):
 
+* cert_utils
+	figure out how to emulate openssl's `--text` with crypto in `parse_key`
+	
+
+
 * search expiring soon | note: isn't this the `/server-certificates/expiring` view?
 * log full actual results; if a queue fails log that data too
 	this happens to standard python logging

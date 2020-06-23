@@ -584,7 +584,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_acme_server_deactivate(self):
-        # TODO: is there another way to test this?
+        # ???: is there a better way to test this?
         if not self.authorization_url:
             return False
         if not self.acme_order_id__created:
@@ -639,7 +639,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def is_can_acme_server_sync(self):
-        # TODO: is there another way to test this?
+        # ???: is there a better way to test this?
         if not self.authorization_url:
             return False
         if not self.acme_order_id__created:

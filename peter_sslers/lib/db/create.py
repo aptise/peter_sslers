@@ -963,7 +963,7 @@ def create__ServerCertificate(
         # this only happens on development during tests when we use a single cert
         # for all requests...
         # so we don't need to handle this or save it
-        cert_domains = cert_utils.parse_cert_domains(
+        cert_domains = cert_utils.parse_cert__domains(
             cert_pem=cert_pem, cert_pem_filepath=_tmpfileCert.name
         )
         if set(cert_domains_expected) != set(cert_domains):

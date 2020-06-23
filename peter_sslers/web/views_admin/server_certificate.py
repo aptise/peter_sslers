@@ -278,7 +278,7 @@ class View_New(Handler):
             _tmpfileCert = None
             try:
                 _tmpfileCert = cert_utils.new_pem_tempfile(certificate_pem)
-                _certificate_domain_names = cert_utils.parse_cert_domains(
+                _certificate_domain_names = cert_utils.parse_cert__domains(
                     cert_pem=certificate_pem, cert_pem_filepath=_tmpfileCert.name,
                 )
                 if not _certificate_domain_names:

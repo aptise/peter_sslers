@@ -791,7 +791,6 @@ class AuthenticatedUser(object):
             )
 
         # convert the certificate to a DER
-        # todo: leverage crypto
         csr_der = cert_utils.convert_pem_to_der(csr_pem)
 
         acmeLoggedEvent = self.acmeLogger.log_order_finalize(

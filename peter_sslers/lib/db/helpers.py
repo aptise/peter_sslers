@@ -43,14 +43,10 @@ def _certificate_parse_to_record(_tmpfileCert, dbServerCertificate):
     datetime_expires = datetime_expires.replace(tzinfo=None)
     dbServerCertificate.timestamp_not_after = datetime_expires
     """
-    # TODO: this should be one parsing
-    # TODO: leverage crypto
-
     # grab the modulus
-    cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
+    dbServerCertificate.cert_pem_modulus_md5 = cert_utils.modulus_md5_cert(
         cert_pem=dbServerCertificate.cert_pem, cert_pem_filepath=_tmpfileCert.name,
     )
-    dbServerCertificate.cert_pem_modulus_md5 = cert_pem_modulus_md5
     # the rest...
     _cert_data = cert_utils.parse_cert(
         cert_pem=dbServerCertificate.cert_pem, cert_pem_filepath=_tmpfileCert.name,
