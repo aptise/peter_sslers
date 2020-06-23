@@ -1447,6 +1447,7 @@ def _do__AcmeV2_AcmeOrder__core(
 
         # TODO - transfer this onto the acme-order
         if dbServerCertificate__renewal_of:
+            raise ValueError("eeep")
             dbServerCertificate__renewal_of.is_auto_renew = False
             dbServerCertificate__renewal_of.is_renewed = True
             ctx.dbSession.flush(objects=[dbServerCertificate__renewal_of])

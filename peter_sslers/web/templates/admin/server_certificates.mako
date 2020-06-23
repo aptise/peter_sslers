@@ -18,7 +18,7 @@
 
 <%block name="page_header_nav">
     <ul class="nav nav-pills nav-stacked">
-      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/server-certificates">All Certificates</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/server-certificates/all">All Certificates</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'active' else ''}"><a href="${admin_prefix}/server-certificates/active">Active Certificates</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'inactive' else ''}"><a href="${admin_prefix}/server-certificates/inactive">Inactive Certificates</a></li>
       <li role="presentation" class="${'active' if sidenav_option == 'expiring' else ''}"><a href="${admin_prefix}/server-certificates/expiring">Expiring Certificates</a></li>
@@ -46,7 +46,7 @@
                 .json
             </a>
         % else:
-            <a href="${admin_prefix}/server-certificates.json" class="btn btn-xs btn-info">
+            <a href="${admin_prefix}/server-certificates/all.json" class="btn btn-xs btn-info">
                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>

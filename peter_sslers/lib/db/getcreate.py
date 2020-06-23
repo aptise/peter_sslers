@@ -1166,14 +1166,12 @@ def getcreate__ServerCertificate(
                 raise ValueError("Integrity Error. Competing PrivateKey (!?)")
             elif dbServerCertificate.private_key_id is None:
                 dbServerCertificate.private_key_id = dbPrivateKey.id
-                dbPrivateKey.count_certificates_issued += 1
+                dbPrivateKey.count_server_certificates += 1
                 if not dbPrivateKey.timestamp_last_certificate_issue or (
                     dbPrivateKey.timestamp_last_certificate_issue
-                    < dbServerCertificate.timestamp_not_before
+                    < ctx.timestamp
                 ):
-                    dbPrivateKey.timestamp_last_certificate_issue = (
-                        dbServerCertificate.timestamp_not_before
-                    )
+                    dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
                 ctx.dbSession.flush(objects=[dbServerCertificate, dbPrivateKey])
     elif not dbServerCertificate:
         dbServerCertificate = create__ServerCertificate(

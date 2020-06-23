@@ -226,14 +226,14 @@ class ViewAdminApi(Handler):
     def _domain_certificate_if_needed__print(self):
         return {
             "instructions": [
-                """POST domain_names for certificates.  curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/api/domain/certificate-if-needed.json"""
+                """POST domain_name for certificates.  curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/api/domain/certificate-if-needed.json"""
                 % self.request.admin_url
             ],
             "requirements": [
                 "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
             ],
             "form_fields": {
-                "domain_names": "required; a comma separated list of domain names to process",
+                "domain_name": "required; a single domain name to process",
                 "processing_strategy": "How should the order be processed?",
                 "account_key_option": "How is the AcmeAccount specified?",
                 "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
@@ -285,17 +285,16 @@ class ViewAdminApi(Handler):
                 raise formhandling.FormInvalid()
 
             # this function checks the domain names match a simple regex
-            domain_names = utils.domains_from_string(formStash.results["domain_names"])
+            domain_names = utils.domains_from_string(formStash.results["domain_name"])
             if not domain_names:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
-                    field="domain_names", message="Found no domain names"
+                    field="domain_name", message="Found no domain names"
                 )
-
             if len(domain_names) != 1:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(
-                    field="domain_names",
+                    field="domain_name",
                     message="This endpoint currently supports only 1 domain name",
                 )
 

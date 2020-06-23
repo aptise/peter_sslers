@@ -17,7 +17,6 @@ AcmeOrder:
 certificate renewal
 	- object should show if we can renew with account key; or maybe not. just allow it to be renewed
 	- better programmatic work is needed when cycling a multi-process request
-Remove "Foo"	
 remove todo
 	
 asap tasks
@@ -25,12 +24,21 @@ asap tasks
 
 new queue-certificates need to track private_key_id__requested
 
+
+
+
+
+
+
+
+
+
+route: "admin:api:domain:autocert", "/api/domain/autocert"
+	just accept a single domain,
+	run the entire process using the global account key, and a new private key, in a single request
+
 TESTS:
 	AcmeOrder
-		mark
-			renew_auto
-			renew_manual
-	ServerCertificate
 		mark
 			renew_auto
 			renew_manual
@@ -40,10 +48,14 @@ TESTS:
 EDIT:
 	AcmeOrder:
 		change "PrivateKeyCycle - renewals"
-		add "is_via_emergency"
+		??xx?? add "is_via_emergency"
 
-* add renewals_managed_by to server_certificate
 * account_key_default ? audit?
+
+* CA Certificates / AcmeOrders
+** if the fullchain has more than one certificate, track it as an intermediary
+** should CA Certificates just be normal certificates with a flag?
+
 
 ====		
 
@@ -53,20 +65,24 @@ EDIT:
 * ServerCertificate
 - test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
 - test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal
+
 * CoverageAssuranceEvent
 	- on form display, show only eligible transitions(resolutions)
+
 * AcmeDns - finish support
+	- an AcmeOrder should be able to select domain names for DNS-01 challenges
+	
 * AcmeAccountKey.letsencrypt_data - audit. refresh? log?
+
 * ensure self-documenting endpoints POST on mako
     @view_config(route_name='admin:queue_domains:process', renderer=None)
     @view_config(route_name='admin:queue_domains:process|json', renderer='json')
     def queue_domain_process(self):
+
 * search expiring soon | note: isn't this the `/server-certificates/expiring` view?
-* migrate cert_subject hash and tracking to SAN
 * log full actual results; if a queue fails log that data too
 	this happens to standard python logging
 * associate all objects to one another when imported; only some objects are currently associated
-* build authorization deactivate tool
 * limit pending request search to 7 days
 
 deferred tasks

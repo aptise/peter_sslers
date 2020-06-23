@@ -307,7 +307,7 @@ class Form_API_Domain_disable(_Form_Schema_Base):
 
 
 class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
-    domain_names = UnicodeString(not_empty=True)
+    domain_name = UnicodeString(not_empty=True)
     processing_strategy = OneOf(
         model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_IMMEDIATE, not_empty=True,
     )
@@ -326,7 +326,6 @@ class Form_CACertificate_Upload__file(_Form_Schema_Base):
 
 class Form_CACertificate_UploadBundle__file(_Form_Schema_Base):
     isrgrootx1_file = FieldStorageUploadConverter(not_empty=False, if_missing=None)
-    foo = UnicodeString(not_empty=False, if_missing=None)
 
 
 for xi in letsencrypt_info.CA_CROSS_SIGNED_X:

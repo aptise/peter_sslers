@@ -162,12 +162,12 @@
                         <td><timestamp>${AcmeAccount.timestamp_last_certificate_issue or ''}</timestamp></td>
                     </tr>
                     <tr>
-                        <th>count_certificate_requests</th>
-                        <td><span class="badge">${AcmeAccount.count_certificate_requests or ''}</span></td>
+                        <th>count_acme_orders</th>
+                        <td><span class="badge">${AcmeAccount.count_acme_orders or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>count_certificates_issued</th>
-                        <td><span class="badge">${AcmeAccount.count_certificates_issued or ''}</span></td>
+                        <th>count_server_certificates</th>
+                        <td><span class="badge">${AcmeAccount.count_server_certificates or ''}</span></td>
                     </tr>
                     <tr>
                         <th>AcmeAccountKey</th>

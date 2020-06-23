@@ -79,6 +79,8 @@ The `/tools/lazy.conf` configuration file has a catch-all route to proxy everyth
 
 If you set up some domains pointing to localhost (such as `dev.aptise.com` which has a public dns record to `127.0.0.1` you don't need to do any fancy iptables stuff.
 
+The testing environment will wrap certain tests with spinning up a dedicated instance of Redis and/or Pebble for each test. This strategy is necessary to ensure there is no stale data in these platforms.
+
 
 ## ACME v1 Testing
 

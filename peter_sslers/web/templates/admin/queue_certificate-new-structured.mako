@@ -30,7 +30,7 @@
 <%block name="content_main">
     ${admin_partials.handle_querystring_result()}
     <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-9">
 
             <h4>Queue a Renewal?</h4>
             
@@ -146,23 +146,21 @@
                         </tr>
                         <tr>
                             <th></th>
-                            <td>
+                            <td colspan="2">
                                 <button class="btn btn-xs btn-primary" type="submit">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Queue the Server Certificate!
                                 </button>
-                            </td>
-                            <td>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </form>
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-3">
             <p>This route supports JSON and is self-documenting on GET requests.</p>
-            ${admin_partials.info_AcmeAccount()}
-            ${admin_partials.info_PrivateKey()}
+            ## ${admin_partials.info_AcmeAccount()}
+            ## ${admin_partials.info_PrivateKey()}
         </div>
     </div>
 </%block>

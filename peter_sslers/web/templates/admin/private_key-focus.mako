@@ -157,12 +157,12 @@
                         <td><span class="badge">${PrivateKey.count_active_certificates or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>count_certificate_requests</th>
-                        <td><span class="badge">${PrivateKey.count_certificate_requests or ''}</span></td>
+                        <th>count_acme_orders</th>
+                        <td><span class="badge">${PrivateKey.count_acme_orders or ''}</span></td>
                     </tr>
                     <tr>
-                        <th>count_certificates_issued</th>
-                        <td><span class="badge">${PrivateKey.count_certificates_issued or ''}</span></td>
+                        <th>count_server_certificates</th>
+                        <td><span class="badge">${PrivateKey.count_server_certificates or ''}</span></td>
                     </tr>
                     <tr>
                         <th>key_pem_md5</th>

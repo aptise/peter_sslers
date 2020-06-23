@@ -56,8 +56,8 @@
                     </td>
                     <td><timestamp>${account.timestamp_created}</timestamp></td>
                     <td><code>${account.acme_account_key.key_pem_md5}</code></td>
-                    <td><span class="badge">${account.count_certificate_requests or ''}</span></td>
-                    <td><span class="badge">${account.count_certificates_issued or ''}</span></td>
+                    <td><span class="badge">${account.count_acme_orders or ''}</span></td>
+                    <td><span class="badge">${account.count_server_certificates or ''}</span></td>
                 </tr>
             % endfor
         </tbody>
@@ -916,8 +916,8 @@
                 <td><timestamp>${key.timestamp_created}</timestamp></td>
                 <td><code>${key.key_pem_md5}</code></td>
                 <td><span class="badge">${key.count_active_certificates or ''}</span></td>
-                <td><span class="badge">${key.count_certificate_requests or ''}</span></td>
-                <td><span class="badge">${key.count_certificates_issued or ''}</span></td>
+                <td><span class="badge">${key.count_acme_orders or ''}</span></td>
+                <td><span class="badge">${key.count_server_certificates or ''}</span></td>
             </tr>
         % endfor
     </table>
@@ -1027,14 +1027,17 @@
                     % endif
                 </td>
                 <td>
-                    <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
-                        ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
-                        % if cert.renewals_managed_by == "AcmeOrder":
+                    % if cert.renewals_managed_by == "AcmeOrder":
+                        <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'warning'}">
+                            ${'AutoRenew' if (cert.acme_order and cert.acme_order.is_auto_renew) else 'manual'}
                             via AcmeOrder
-                        % elif cert.renewals_managed_by == "ServerCertificate":
-                            via ServerCertificate
-                        % endif
-                    </div>
+                        </div>
+                    % elif cert.renewals_managed_by == "ServerCertificate":
+                        <div class="label label-warning">
+                            unavailable
+                            ## via ServerCertificate
+                        </div>
+                    % endif
                 </td>
                 <td>
                     <div class="label label-${'success' if (cert.acme_order and cert.acme_order.is_renewed) else 'default'}">

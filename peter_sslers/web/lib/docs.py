@@ -40,10 +40,10 @@ api_endpoints = {
     },
     "/api/domain/certificate-if-needed": {
         "endpoint": "/api/domain/certificate-if-needed",
-        "about": """Initiates a CSR if needed""",
+        "about": """Initiates a new certificate if needed. full control of acme-order properties""",
         "POST": True,
         "GET": False,
-        "args": {"domain_names": "A comma (,) separated list of domain names",},
+        "args": {"domain_name": "A single",},
     },
     "/api/redis/prime.json": {
         "endpoint": "/api/redis/prime.json",

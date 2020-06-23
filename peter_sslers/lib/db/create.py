@@ -151,7 +151,7 @@ def create__AcmeOrder(
     :param acme_order_processing_strategy_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
-    :param is_auto_renew: (optional) should this be auto-renewed?
+    :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on? 
     :param order_url: (required) the url of the object
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` associated with the order
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
@@ -616,7 +616,7 @@ def create__CertificateRequest(
     #
     # increment private key counts
     #
-    dbPrivateKey.count_certificate_requests += 1
+    dbPrivateKey.count_acme_orders += 1
     if not dbPrivateKey.timestamp_last_certificate_request or (
         dbPrivateKey.timestamp_last_certificate_request < ctx.timestamp
     ):
@@ -1003,23 +1003,19 @@ def create__ServerCertificate(
         ctx.dbSession.flush(objects=[dbServerCertificate])
 
         # increment account/private key counts
-        dbPrivateKey.count_certificates_issued += 1
+        dbPrivateKey.count_server_certificates += 1
         if not dbPrivateKey.timestamp_last_certificate_issue or (
             dbPrivateKey.timestamp_last_certificate_issue
-            < dbServerCertificate.timestamp_not_before
+            < ctx.timestamp
         ):
-            dbPrivateKey.timestamp_last_certificate_issue = (
-                dbServerCertificate.timestamp_not_before
-            )
+            dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
         if dbAcmeAccount:
-            dbAcmeAccount.count_certificates_issued += 1
+            dbAcmeAccount.count_server_certificates += 1
             if not dbAcmeAccount.timestamp_last_certificate_issue or (
                 dbAcmeAccount.timestamp_last_certificate_issue
-                < dbServerCertificate.timestamp_not_before
+                < ctx.timestamp
             ):
-                dbAcmeAccount.timestamp_last_certificate_issue = (
-                    dbServerCertificate.timestamp_not_before
-                )
+                dbAcmeAccount.timestamp_last_certificate_issue = ctx.timestamp
 
         event_payload_dict["server_certificate.id"] = dbServerCertificate.id
         dbOperationsEvent.set_event_payload(event_payload_dict)

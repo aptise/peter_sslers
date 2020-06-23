@@ -3313,7 +3313,8 @@ class FunctionalTests_ServerCertificate(AppTest):
     @tests_routes(
         (
             "admin:server_certificates",
-            "admin:server_certificates_paginated",
+            "admin:server_certificates:all",
+            "admin:server_certificates:all_paginated",
             "admin:server_certificates:active",
             "admin:server_certificates:active_paginated",
             "admin:server_certificates:expiring",
@@ -3324,12 +3325,11 @@ class FunctionalTests_ServerCertificate(AppTest):
     )
     def test_list_html(self):
         # root
-        res = self.testapp.get("/.well-known/admin/server-certificates", status=200)
-
-        # paginated
-        res = self.testapp.get("/.well-known/admin/server-certificates/1", status=200)
+        res = self.testapp.get("/.well-known/admin/server-certificates", status=303)
+        assert res.location == """http://peter-sslers.example.com/.well-known/admin/server-certificates/active"""
 
         for _type in (
+            "all",
             "active",
             "expiring",
             "inactive",
@@ -3344,7 +3344,8 @@ class FunctionalTests_ServerCertificate(AppTest):
     @tests_routes(
         (
             "admin:server_certificates|json",
-            "admin:server_certificates_paginated|json",
+            "admin:server_certificates:all|json",
+            "admin:server_certificates:all_paginated|json",
             "admin:server_certificates:active|json",
             "admin:server_certificates:active_paginated|json",
             "admin:server_certificates:expiring|json",
@@ -3356,17 +3357,12 @@ class FunctionalTests_ServerCertificate(AppTest):
     def test_list_json(self):
         # root
         res = self.testapp.get(
-            "/.well-known/admin/server-certificates.json", status=200
+            "/.well-known/admin/server-certificates.json", status=303
         )
-        assert "ServerCertificates" in res.json
-
-        # paginated
-        res = self.testapp.get(
-            "/.well-known/admin/server-certificates/1.json", status=200
-        )
-        assert "ServerCertificates" in res.json
+        assert res.location == """http://peter-sslers.example.com/.well-known/admin/server-certificates/active.json"""
 
         for _type in (
+            "all",
             "active",
             "expiring",
             "inactive",
@@ -7191,7 +7187,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         # Pass 1 - Generate a single domain
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
-        form["domain_names"] = _domain_name
+        form["domain_name"] = _domain_name
         res3 = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
         )
@@ -7215,20 +7211,20 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
             "test-domain-certificate-if-needed-1.example.com",
             "test-domain-certificate-if-needed-2.example.com",
         )
-        form["domain_names"] = ",".join(_domain_names)
+        form["domain_name"] = ",".join(_domain_names)
         res4 = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
         )
         assert res4.status_code == 200
         assert res4.json["result"] == "error"
         assert (
-            res4.json["form_errors"]["domain_names"]
+            res4.json["form_errors"]["domain_name"]
             == "This endpoint currently supports only 1 domain name"
         )
 
         # Pass 3 - Try a failure domain
         _domain_name = "fail-a-1.example.com"
-        form["domain_names"] = _domain_name
+        form["domain_name"] = _domain_name
         res5 = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
         )
@@ -7247,7 +7243,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
 
         # Pass 4 - redo the first domain, again
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
-        form["domain_names"] = _domain_name
+        form["domain_name"] = _domain_name
         res6 = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
         )
@@ -7275,7 +7271,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         assert res_disable.json["result"] == "success"
 
         _domain_name = "test-domain-certificate-if-needed-1.example.com"
-        form["domain_names"] = _domain_name
+        form["domain_name"] = _domain_name
         res7 = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
         )
@@ -7324,7 +7320,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         form["processing_strategy"] = "process_single"
         # Pass 1 - Generate a single domain
         _domain_name = "test-redis-1.example.com"
-        form["domain_names"] = _domain_name
+        form["domain_name"] = _domain_name
         res = self.testapp.post(
             "/.well-known/admin/api/domain/certificate-if-needed", form
         )

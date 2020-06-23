@@ -44,8 +44,23 @@ class View_List(Handler):
         route_name="admin:server_certificates",
         renderer="/admin/server_certificates.mako",
     )
+    @view_config(route_name="admin:server_certificates|json", renderer="json")
+    def list_redirect(self):
+        url_redirect = (
+            "%s/server-certificates/active"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
+        if self.request.wants_json:
+            url_redirect = "%s.json" % url_redirect
+        return HTTPSeeOther(url_redirect)
+
+    
     @view_config(
-        route_name="admin:server_certificates_paginated",
+        route_name="admin:server_certificates:all",
+        renderer="/admin/server_certificates.mako",
+    )
+    @view_config(
+        route_name="admin:server_certificates:all_paginated",
         renderer="/admin/server_certificates.mako",
     )
     @view_config(
@@ -72,8 +87,10 @@ class View_List(Handler):
         route_name="admin:server_certificates:inactive_paginated",
         renderer="/admin/server_certificates.mako",
     )
-    @view_config(route_name="admin:server_certificates|json", renderer="json")
-    @view_config(route_name="admin:server_certificates_paginated|json", renderer="json")
+    @view_config(route_name="admin:server_certificates:all|json", renderer="json")
+    @view_config(
+        route_name="admin:server_certificates:all_paginated|json", renderer="json"
+    )
     @view_config(route_name="admin:server_certificates:active|json", renderer="json")
     @view_config(
         route_name="admin:server_certificates:active_paginated|json", renderer="json"
@@ -160,7 +177,7 @@ class View_List(Handler):
         else:
             sidenav_option = "all"
             url_template = (
-                "%s/server-certificates/{0}"
+                "%s/server-certificates/all/{0}"
                 % self.request.registry.settings["app_settings"]["admin_prefix"]
             )
             if self.request.wants_json:

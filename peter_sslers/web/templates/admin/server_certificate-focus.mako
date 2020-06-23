@@ -164,27 +164,7 @@
                                     AcmeOrder-${ServerCertificate.acme_order.id}
                                 </a>
                             % elif ServerCertificate.renewals_managed_by == "ServerCertificate":
-                                <p>Imported ServerCertificates do not support auto-renew. Create an AcmeOrder queue item.</p>
-                                <%doc>
-                                    % if ServerCertificate.is_auto_renew:
-                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;" id="server_certificate-mark-autorenew-off">
-                                            <input type="hidden" name="action" value="renew_manual"/>
-                                            <button class="btn btn-xs btn-danger" type="submit" name="submit" value="submit">
-                                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                                deactivate auto-renew
-                                            </button>
-                                        </form>
-                                    % else:
-                                        <span class="label label-danger">auto-renew disabled</span>
-                                        <form action="${admin_prefix}/server-certificate/${ServerCertificate.id}/mark" method="POST" style="display:inline;" id="server_certificate-mark-autorenew-on">
-                                            <input type="hidden" name="action" value="renew_auto"/>
-                                            <button class="btn btn-xs btn-success" type="submit" name="submit" value="submit">
-                                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                                activate auto-renew
-                                            </button>
-                                        </form>
-                                    % endif
-                                </%doc>
+                                <p>Imported ServerCertificates do not support auto-renew. Queue a renewal AcmeOrder below.</p>
                             % endif
                         </td>
                     </tr>

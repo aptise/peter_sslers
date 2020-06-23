@@ -125,8 +125,8 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
     terms_of_service = sa.Column(sa.Unicode(255), nullable=True)
     account_url = sa.Column(sa.Unicode(255), nullable=True)
 
-    count_certificate_requests = sa.Column(sa.Integer, nullable=True, default=0)
-    count_certificates_issued = sa.Column(sa.Integer, nullable=True, default=0)
+    count_acme_orders = sa.Column(sa.Integer, nullable=True, default=0)
+    count_server_certificates = sa.Column(sa.Integer, nullable=True, default=0)
 
     timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True)
     timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True)
@@ -2404,8 +2404,8 @@ class PrivateKey(Base, _Mixin_Timestamps_Pretty):
     count_active_certificates = sa.Column(sa.Integer, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=False, default=True)
     is_compromised = sa.Column(sa.Boolean, nullable=True, default=None)
-    count_certificate_requests = sa.Column(sa.Integer, nullable=True, default=0)
-    count_certificates_issued = sa.Column(sa.Integer, nullable=True, default=0)
+    count_acme_orders = sa.Column(sa.Integer, nullable=True, default=0)
+    count_server_certificates = sa.Column(sa.Integer, nullable=True, default=0)
     timestamp_last_certificate_request = sa.Column(sa.DateTime, nullable=True)
     timestamp_last_certificate_issue = sa.Column(sa.DateTime, nullable=True)
     operations_event_id__created = sa.Column(
@@ -2661,11 +2661,13 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     server_certificate__generated = sa.orm.relationship(
         "ServerCertificate",
         primaryjoin="QueueCertificate.server_certificate_id__generated==ServerCertificate.id",
+        back_populates="queue_certificate__parent",
         uselist=False,
     )
     server_certificate__source = sa.orm.relationship(
         "ServerCertificate",
         primaryjoin="QueueCertificate.server_certificate_id__source==ServerCertificate.id",
+        back_populates="queue_certificate__renewal",
         uselist=False,
     )
     unique_fqdn_set = sa.orm.relationship(
@@ -2855,8 +2857,8 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         sa.DateTime, nullable=True
     )  # if set, the cert was reported revoked upstream and this is FINAL
 
-    # preferably use the acme-order's auto-renew
-    is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=None)
+    # as of .40, ServerCertificates do not auto-renew. Instead, AcmeOrders do.
+    # is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=None)
 
     # acme_order_id__generated_by = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True,)
 
@@ -2945,6 +2947,18 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         "AcmeOrder",
         primaryjoin="ServerCertificate.id==AcmeOrder.server_certificate_id__renewal_of",
         back_populates="server_certificate__renewal_of",
+        uselist=True,
+    )
+    queue_certificate__parent = sa_orm_relationship(
+        "QueueCertificate",
+        primaryjoin="ServerCertificate.id==QueueCertificate.server_certificate_id__generated",
+        back_populates="server_certificate__generated",
+        uselist=True,
+    )
+    queue_certificate__renewal = sa_orm_relationship(
+        "QueueCertificate",
+        primaryjoin="ServerCertificate.id==QueueCertificate.server_certificate_id__source",
+        back_populates="server_certificate__source",
         uselist=True,
     )
 
@@ -3114,11 +3128,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             # "acme_account_id": self.acme_account_id,
             "domains_as_list": self.domains_as_list,
             "renewals_managed_by": self.renewals_managed_by,
-            "is_auto_renew": bool(
-                self.is_auto_renew
-                if (self.renewals_managed_by == "ServerCertificate")
-                else self.acme_order.is_auto_renew
-            ),
+            "is_auto_renew": self.acme_order.is_auto_renew if self.acme_order else None,
         }
 
 

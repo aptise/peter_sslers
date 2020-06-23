@@ -34,7 +34,6 @@ from ...model import utils as model_utils
 class View_List(Handler):
     @view_config(
         route_name="admin:coverage_assurance_events",
-        renderer="/admin/coverage_assurance_events.mako",
     )
     def list_redirect(self):
         url_all = (
