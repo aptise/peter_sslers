@@ -816,15 +816,19 @@ def get__AcmeOrderless__by_DomainId__paginated(ctx, domain_id, limit=None, offse
 
 def get__AcmeOrder__count(ctx, active_only=None):
     query = ctx.dbSession.query(model_objects.AcmeOrder)
-    if active_only:
-        query = query.filter(model_objects.AcmeOrder.is_processing.op("IS")(True))
+    if active_only is not None:
+        query = query.filter(
+            model_objects.AcmeOrder.is_processing.op("IS")(active_only)
+        )
     return query.count()
 
 
 def get__AcmeOrder__paginated(ctx, active_only=None, limit=None, offset=0):
     query = ctx.dbSession.query(model_objects.AcmeOrder)
-    if active_only:
-        query = query.filter(model_objects.AcmeOrder.is_processing.op("IS")(True))
+    if active_only is not None:
+        query = query.filter(
+            model_objects.AcmeOrder.is_processing.op("IS")(active_only)
+        )
     query = (
         query.order_by(model_objects.AcmeOrder.id.desc()).limit(limit).offset(offset)
     )

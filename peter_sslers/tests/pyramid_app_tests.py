@@ -1393,20 +1393,75 @@ class FunctionalTests_AcmeOrder(AppTest):
         assert focus_item is not None
         return focus_item, focus_item.id
 
-    @tests_routes(("admin:acme_orders", "admin:acme_orders_paginated",))
+    @tests_routes(
+        (
+            "admin:acme_orders",
+            "admin:acme_orders:all",
+            "admin:acme_orders:all_paginated",
+            "admin:acme_orders:active",
+            "admin:acme_orders:active_paginated",
+            "admin:acme_orders:finished",
+            "admin:acme_orders:finished_paginated",
+        )
+    )
     def test_list_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeOrder.test_list_html
+        """
         # root
-        res = self.testapp.get("/.well-known/admin/acme-orders", status=200)
-        res = self.testapp.get("/.well-known/admin/acme-orders/1", status=200)
+        res = self.testapp.get("/.well-known/admin/acme-orders", status=303)
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/acme-orders/active"""
+        )
 
-    @tests_routes(("admin:acme_orders|json", "admin:acme_orders_paginated|json",))
+        for _type in (
+            "all",
+            "active",
+            "finished",
+        ):
+            res = self.testapp.get(
+                "/.well-known/admin/acme-orders/%s" % _type, status=200
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/acme-orders/%s/1" % _type, status=200
+            )
+
+    @tests_routes(
+        (
+            "admin:acme_orders|json",
+            "admin:acme_orders:all|json",
+            "admin:acme_orders:all_paginated|json",
+            "admin:acme_orders:active|json",
+            "admin:acme_orders:active_paginated|json",
+            "admin:acme_orders:finished|json",
+            "admin:acme_orders:finished_paginated|json",
+        )
+    )
     def test_list_json(self):
         # json root
-        res = self.testapp.get("/.well-known/admin/acme-orders.json", status=200)
-        assert "AcmeOrders" in res.json
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeOrder.test_list_json
+        """
+        res = self.testapp.get("/.well-known/admin/acme-orders.json", status=303)
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/acme-orders/active.json"""
+        )
 
-        res = self.testapp.get("/.well-known/admin/acme-orders/1.json", status=200)
-        assert "AcmeOrders" in res.json
+        for _type in (
+            "all",
+            "active",
+            "finished",
+        ):
+            res = self.testapp.get(
+                "/.well-known/admin/acme-orders/%s.json" % _type, status=200
+            )
+            assert "AcmeOrders" in res.json
+            res = self.testapp.get(
+                "/.well-known/admin/acme-orders/%s/1.json" % _type, status=200
+            )
+            assert "AcmeOrders" in res.json
 
     @tests_routes(
         (

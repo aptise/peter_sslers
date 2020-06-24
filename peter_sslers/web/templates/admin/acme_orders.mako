@@ -18,13 +18,10 @@
 
 
 <%block name="page_header_nav">
-    <%
-        active_only = True if request.params.get("status") == 'active' else False
-        sidenav_option = 'active' if active_only else 'all'
-    %>
     <ul class="nav nav-pills nav-stacked">
-      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/acme-orders">All AcmeOrders</a></li>
-      <li role="presentation" class="${'active' if sidenav_option == 'active' else ''}"><a href="${admin_prefix}/acme-orders?status=active">Active AcmeOrders</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'all' else ''}"><a href="${admin_prefix}/acme-orders/all">All AcmeOrders</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'active' else ''}"><a href="${admin_prefix}/acme-orders/active">Active AcmeOrders</a></li>
+      <li role="presentation" class="${'active' if sidenav_option == 'finished' else ''}"><a href="${admin_prefix}/acme-orders/finished">Finished AcmeOrders</a></li>
     </ul>
 
     <p class="pull-right">
@@ -35,7 +32,7 @@
         <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
         New ACME Order: Automated</a>
 
-        <a href="${admin_prefix}/acme-orders.json${'?status=active' if sidenav_option == 'pending' else ''}" class="btn btn-xs btn-info">
+        <a href="${admin_prefix}/acme-orders/${sidenav_option}.json" class="btn btn-xs btn-info">
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>

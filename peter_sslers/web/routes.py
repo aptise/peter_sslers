@@ -342,8 +342,29 @@ def _admin_views(config):
     # !!!: AcmeOrder
     config.add_route_7("admin:acme_orders", "/acme-orders")
     config.add_route_7("admin:acme_orders|json", "/acme-orders.json")
-    config.add_route_7("admin:acme_orders_paginated", "/acme-orders/{@page}")
-    config.add_route_7("admin:acme_orders_paginated|json", "/acme-orders/{@page}.json")
+    config.add_route_7("admin:acme_orders:all", "/acme-orders/all")
+    config.add_route_7("admin:acme_orders:all|json", "/acme-orders/all.json")
+    config.add_route_7("admin:acme_orders:all_paginated", "/acme-orders/all/{@page}")
+    config.add_route_7(
+        "admin:acme_orders:all_paginated|json", "/acme-orders/all/{@page}.json"
+    )
+    config.add_route_7("admin:acme_orders:active", "/acme-orders/active")
+    config.add_route_7("admin:acme_orders:active|json", "/acme-orders/active.json")
+    config.add_route_7(
+        "admin:acme_orders:active_paginated", "/acme-orders/active/{@page}"
+    )
+    config.add_route_7(
+        "admin:acme_orders:active_paginated|json", "/acme-orders/active/{@page}.json"
+    )
+    config.add_route_7("admin:acme_orders:finished", "/acme-orders/finished")
+    config.add_route_7("admin:acme_orders:finished|json", "/acme-orders/finished.json")
+    config.add_route_7(
+        "admin:acme_orders:finished_paginated", "/acme-orders/finished/{@page}"
+    )
+    config.add_route_7(
+        "admin:acme_orders:finished_paginated|json",
+        "/acme-orders/finished/{@page}.json",
+    )
     config.add_route_7("admin:acme_order:focus|json", "/acme-order/{@id}.json")
     config.add_route_7("admin:acme_order:focus", "/acme-order/{@id}")
     config.add_route_7(

@@ -34,40 +34,77 @@ from ...model import utils as model_utils
 
 
 class View_List(Handler):
-    @view_config(route_name="admin:acme_orders", renderer="/admin/acme_orders.mako")
-    @view_config(route_name="admin:acme_orders|json", renderer="json")
+    @view_config(route_name="admin:acme_orders",)
+    @view_config(route_name="admin:acme_orders|json",)
+    def list_redirect(self):
+        url_all = (
+            "%s/acme-orders/active"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
+        if self.request.wants_json:
+            url_all = "%s.json" % url_all
+        return HTTPSeeOther(url_all)
+
+    @view_config(route_name="admin:acme_orders:all", renderer="/admin/acme_orders.mako")
     @view_config(
-        route_name="admin:acme_orders_paginated", renderer="/admin/acme_orders.mako"
+        route_name="admin:acme_orders:active", renderer="/admin/acme_orders.mako"
     )
-    @view_config(route_name="admin:acme_orders_paginated|json", renderer="json")
+    @view_config(
+        route_name="admin:acme_orders:finished", renderer="/admin/acme_orders.mako"
+    )
+    @view_config(
+        route_name="admin:acme_orders:all_paginated", renderer="/admin/acme_orders.mako"
+    )
+    @view_config(
+        route_name="admin:acme_orders:active_paginated",
+        renderer="/admin/acme_orders.mako",
+    )
+    @view_config(
+        route_name="admin:acme_orders:finished_paginated",
+        renderer="/admin/acme_orders.mako",
+    )
+    @view_config(route_name="admin:acme_orders:all|json", renderer="json")
+    @view_config(route_name="admin:acme_orders:active|json", renderer="json")
+    @view_config(route_name="admin:acme_orders:finished|json", renderer="json")
+    @view_config(route_name="admin:acme_orders:all_paginated|json", renderer="json")
+    @view_config(route_name="admin:acme_orders:active_paginated|json", renderer="json")
+    @view_config(
+        route_name="admin:acme_orders:finished_paginated|json", renderer="json"
+    )
     def list(self):
-        wants_active = True if self.request.params.get("status") == "active" else False
-        if wants_active:
+        sidenav_option = None
+        active_only = None
+        if self.request.matched_route.name in (
+            "admin:acme_orders:all",
+            "admin:acme_orders:all_paginated",
+            "admin:acme_orders:all|json",
+            "admin:acme_orders:all_paginated|json",
+        ):
+            sidenav_option = "all"
+            active_only = None
+        elif self.request.matched_route.name in (
+            "admin:acme_orders:active",
+            "admin:acme_orders:active_paginated",
+            "admin:acme_orders:active|json",
+            "admin:acme_orders:active_paginated|json",
+        ):
             sidenav_option = "active"
             active_only = True
-            if self.request.wants_json:
-                url_template = (
-                    "%s/acme-orders/{0}.json?status=active"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/acme-orders/{0}?status=active"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-        else:
-            sidenav_option = "all"
+        elif self.request.matched_route.name in (
+            "admin:acme_orders:finished",
+            "admin:acme_orders:finished_paginated",
+            "admin:acme_orders:finished|json",
+            "admin:acme_orders:finished_paginated|json",
+        ):
+            sidenav_option = "finished"
             active_only = False
-            if self.request.wants_json:
-                url_template = (
-                    "%s/acme-orders/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/acme-orders/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
+
+        url_template = "%s/acme-orders/%s/{0}" % (
+            self.request.registry.settings["app_settings"]["admin_prefix"],
+            "sidenav_option",
+        )
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
 
         items_count = lib_db.get.get__AcmeOrder__count(
             self.request.api_context, active_only=active_only
@@ -90,6 +127,7 @@ class View_List(Handler):
             "AcmeOrders_count": items_count,
             "AcmeOrders": items_paged,
             "pager": pager,
+            "sidenav_option": sidenav_option,
         }
 
 
