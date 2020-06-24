@@ -21,7 +21,7 @@
 <%block name="page_header_nav">
     <p class="pull-right">
         <a href="${admin_prefix}/acme-order/${AcmeOrder.id}.json" class="btn btn-xs btn-info">
-            <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
     </p>
@@ -441,6 +441,20 @@
                             </a>
                             <br/>
                             <code>${', '.join(AcmeOrder.domains_as_list)}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>QueueCertificate (generator)</th>
+                        <td>
+                            % if AcmeOrder.queue_certificate__generator:
+                                <a
+                                    class="label label-info"
+                                    href="${admin_prefix}/queue-certificate/${AcmeOrder.queue_certificate__generator.id}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    QueueCertificate-${AcmeOrder.queue_certificate__generator.id}
+                                </a>
+                            % endif
                         </td>
                     </tr>
 

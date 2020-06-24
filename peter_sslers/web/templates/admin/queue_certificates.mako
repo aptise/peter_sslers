@@ -36,7 +36,7 @@
     <div class="clearfix">
         <p class="pull-right">
             <a href="${admin_prefix}/queue-certificates/${sidenav_option}.json" class="btn btn-xs btn-info">
-                <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 .json
             </a>
         </p>

@@ -57,7 +57,7 @@ class View_List(Handler):
     @view_config(route_name="admin:queue_certificates|json")
     def list_redirect(self):
         url_redirect = (
-            "%s/queue-certificates/all"
+            "%s/queue-certificates/unprocessed"
             % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         if self.request.wants_json:
@@ -606,16 +606,13 @@ class View_Focus(Handler):
 
             event_status = False
             if action == "cancel":
-                if not dbQueueCertificate.is_active:
+                try:
+                    event_status = db_update.update_QueueCertificate__cancel(
+                        self.request.api_context, dbQueueCertificate
+                    )
+                except errors.InvalidTransition as exc:
                     # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(field="action", message="Already cancelled")
-
-                dbQueueCertificate.is_active = False
-                dbQueueCertificate.timestamp_processed = (
-                    self.request.api_context.timestamp
-                )
-                event_status = "QueueCertificate__mark__cancelled"
-                self.request.api_context.dbSession.flush(objects=[dbQueueCertificate])
+                    formStash.fatal_field(field="action", message=exc.args[0])
             else:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_field(field="action", message="invalid action")

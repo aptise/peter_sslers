@@ -1780,7 +1780,7 @@ def _do__AcmeV2_AcmeOrder__core(
             dbQueueCertificate__of.timestamp_process_attempt = ctx.timestamp
             dbQueueCertificate__of.timestamp_processed = ctx.timestamp
             dbQueueCertificate__of.process_result = True if dbAcmeOrder else None
-            dbQueueCertificate__of.is_active = False
+            dbQueueCertificate__of.is_active = False  # mark this as processed
 
             if dbAcmeOrder:
                 dbQueueCertificate__of.acme_order_id__generated = dbAcmeOrder.id

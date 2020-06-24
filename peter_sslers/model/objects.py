@@ -1372,6 +1372,12 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         back_populates="acme_orders",
         uselist=False,
     )
+    queue_certificate__generator = sa.orm.relationship(
+        "QueueCertificate",
+        primaryjoin="AcmeOrder.id==QueueCertificate.acme_order_id__generated",
+        back_populates="acme_order__generated",
+        uselist=False,
+    )
     server_certificate = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="AcmeOrder.server_certificate_id==ServerCertificate.id",
@@ -2561,6 +2567,13 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     """
     An item to be renewed.
     If something is expired, it will be placed here for renewal
+
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    `QueueCertificate.is_active` - a boolean triplet with the following meaning:
+        True  :  The QueueCertificate is active and should be part of the next processing batch.
+        False :  The QueueCertificate has processed, it may be successful or a failure.
+        None  :  The QueueCertificate has been cancelled by the user.
     """
 
     __tablename__ = "queue_certificate"
@@ -2588,7 +2601,9 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )
-    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    is_active = sa.Column(
+        sa.Boolean, nullable=False, default=True
+    )  # see docstring above for QueueCertificate.is_active
     private_key_strategy_id__requested = sa.Column(
         sa.Integer, nullable=False
     )  # see .utils.PrivateKeyStrategy
@@ -2642,6 +2657,7 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     acme_order__generated = sa.orm.relationship(
         "AcmeOrder",
         primaryjoin="QueueCertificate.acme_order_id__generated==AcmeOrder.id",
+        back_populates="queue_certificate__generator",
         uselist=False,
     )
     acme_order__source = sa.orm.relationship(
@@ -2720,25 +2736,35 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def as_json(self):
-        return {
+        rval = {
             "id": self.id,
             "process_result": self.process_result,
             "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_processed": self.timestamp_processed_isoformat,
             "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
-            "is_active": True if self.is_active else False,
+            "is_active": self.is_active,
             "acme_account_id": self.acme_account_id,
             "private_key_strategy__requested": self.private_key_strategy__requested,
             "private_key_cycle__renewal": self.private_key_cycle__renewal,
             "private_key_id": self.private_key_id,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
-            "acme_order_id__source": self.acme_order_id__source,
-            "acme_order_id__generated": self.acme_order_id__generated,
-            "certificate_request_id__generated": self.certificate_request_id__generated,
-            "server_certificate_id__source": self.server_certificate_id__source,
-            "server_certificate_id__generated": self.server_certificate_id__generated,
-            "unique_fqdn_set_id__source": self.unique_fqdn_set_id__source,
+            "generated": {
+                "acme_order_id__generated": self.acme_order_id__generated,
+                "certificate_request_id__generated": self.certificate_request_id__generated,
+                "server_certificate_id__generated": self.server_certificate_id__generated,
+            },
+            "source": {
+                "acme_order_id__source": self.acme_order_id__source,
+                "server_certificate_id__source": self.server_certificate_id__source,
+                "unique_fqdn_set_id__source": self.unique_fqdn_set_id__source,
+            },
         }
+        if self.acme_order_id__generated:
+            rval["generated"]["AcmeOrder"] = {
+                "id": self.acme_order_id__generated,
+                "status": self.acme_order__generated.acme_status_order,
+            }
+        return rval
 
 
 # ==============================================================================
@@ -2765,7 +2791,9 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     timestamp_processed = sa.Column(sa.DateTime, nullable=True)
     domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
+    is_active = sa.Column(
+        sa.Boolean, nullable=True, default=True
+    )  # see docstring above for QueueDomain.is_active
     operations_event_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("operations_event.id"), nullable=False
     )

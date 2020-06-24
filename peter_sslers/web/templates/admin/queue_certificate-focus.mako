@@ -17,6 +17,16 @@
 </%block>
 
 
+<%block name="page_header_nav">
+    <p class="pull-right">
+        <a href="${admin_prefix}/queue-certificate/${QueueCertificate.id}.json" class="btn btn-xs btn-info">
+            <span class="glyphicon glyphicon-download" aria-hidden="true"></span>
+            .json
+        </a>
+    </p>
+</%block>
+
+
 <%block name="content_main">
     <div class="row">
         <div class="col-sm-12">
@@ -34,7 +44,7 @@
                     <th>is_active</th>
                     <td>
                         <span class="label label-${'success' if QueueCertificate.is_active else 'warning'}">
-                            ${'Active' if QueueCertificate.is_active else 'inactive'}
+                            ${'Active' if QueueCertificate.is_active else 'Inactive'}
                         </span>
                         % if QueueCertificate.is_active:
                             &nbsp;
@@ -45,8 +55,10 @@
                                     cancel
                                 </button>
                             </form>
-                        % else:
+                        % elif QueueCertificate.is_active is None:
                             <span class="label label-default">cancelled</span>
+                        % elif QueueCertificate.is_active is False:
+                            <span class="label label-default">processed</span>
                         % endif
                     </td>
                 </tr>
@@ -146,6 +158,9 @@
                             >
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeOrder-${QueueCertificate.acme_order_id__generated}</a>
+                                
+                                <p>The AcmeOrder status is: <code>${QueueCertificate.acme_order__generated.acme_status_order}</code>
+                                
                         % endif
                         % if QueueCertificate.server_certificate_id__generated:
                             <a class="label label-info"

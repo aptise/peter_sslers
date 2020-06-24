@@ -3949,7 +3949,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         res = self.testapp.get("/.well-known/admin/queue-certificates", status=303)
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/all"
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/unprocessed"
         )
 
         # root
@@ -3996,7 +3996,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         res = self.testapp.get("/.well-known/admin/queue-certificates.json", status=303)
         assert (
             res.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/all.json"
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificates/unprocessed.json"
         )
 
         # root
