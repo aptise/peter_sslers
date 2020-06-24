@@ -637,6 +637,7 @@ def create__CoverageAssuranceEvent(
     coverage_assurance_resolution_id=None,
     dbPrivateKey=None,
     dbServerCertificate=None,
+    dbQueueCertificate=None,
     dbCoverageAssuranceEvent_parent=None,
 ):
     """
@@ -649,6 +650,7 @@ def create__CoverageAssuranceEvent(
 
     :param dbPrivateKey: (optional) a `model_objects.PrivateKey`
     :param dbServerCertificate: (optional) a `model_objects.ServerCertificate`
+    :param dbQueueCertificate: (optional) a `model_objects.QueueCertificate`
     :param dbCoverageAssuranceEvent_parent: (optional) a `model_objects.CoverageAssuranceEvent`
     """
     if (
@@ -681,9 +683,9 @@ def create__CoverageAssuranceEvent(
                 % coverage_assurance_resolution_id
             )
 
-    if not any((dbPrivateKey, dbServerCertificate)):
+    if not any((dbPrivateKey, dbServerCertificate, dbQueueCertificate)):
         raise ValueError(
-            "must submit at least one of (dbPrivateKey, dbServerCertificate)"
+            "must submit at least one of (dbPrivateKey, dbServerCertificate, dbQueueCertificate)"
         )
 
     dbCoverageAssuranceEvent = model_objects.CoverageAssuranceEvent()
@@ -701,6 +703,8 @@ def create__CoverageAssuranceEvent(
         dbCoverageAssuranceEvent.private_key_id = dbPrivateKey.id
     if dbServerCertificate:
         dbCoverageAssuranceEvent.server_certificate_id = dbServerCertificate.id
+    if dbQueueCertificate:
+        dbCoverageAssuranceEvent.queue_certificate_id = dbQueueCertificate.id
     if dbCoverageAssuranceEvent_parent:
         dbCoverageAssuranceEvent.coverage_assurance_event_id__parent = (
             dbCoverageAssuranceEvent_parent.id
@@ -821,7 +825,7 @@ def create__QueueCertificate(
     )
 
     dbQueueCertificate = model_objects.QueueCertificate()
-    dbQueueCertificate.timestamp_entered = ctx.timestamp
+    dbQueueCertificate.timestamp_created = ctx.timestamp
     dbQueueCertificate.timestamp_processed = None
     dbQueueCertificate.operations_event_id__created = dbOperationsEvent.id
     dbQueueCertificate.private_key_cycle_id__renewal = private_key_cycle_id__renewal

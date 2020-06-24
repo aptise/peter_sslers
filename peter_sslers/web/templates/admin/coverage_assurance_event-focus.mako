@@ -97,6 +97,18 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>QueueCertificate</th>
+                        <td>
+                            % if CoverageAssuranceEvent.queue_certificate_id:
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/queue-certificate/${CoverageAssuranceEvent.queue_certificate_id}"
+                                >
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    QueueCertificate-${CoverageAssuranceEvent.queue_certificate_id}</a>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
                         <th>Children</th>
                         <td>
                             % if CoverageAssuranceEvent.children__5:

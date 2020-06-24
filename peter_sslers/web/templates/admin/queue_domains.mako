@@ -91,7 +91,7 @@
                         <tr>
                             <th>id</th>
                             <th>domain_name</th>
-                            <th>timestamp_entered</th>
+                            <th>timestamp_created</th>
                             <th>timestamp_processed</th>
                             <th>active?</th>
                             <th>domain</th>
@@ -103,7 +103,7 @@
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 ${q.id}</a></td>
                             <td><code>${q.domain_name}</code></td>
-                            <td><timestamp>${q.timestamp_entered}</timestamp></td>
+                            <td><timestamp>${q.timestamp_created}</timestamp></td>
                             <td><timestamp>${q.timestamp_processed or ''}</timestamp></td>
                             <td>
                                 % if q.is_active:

@@ -571,18 +571,12 @@ class AuthenticatedUser(object):
             log.debug(") acme_order_load | acme_order_headers: %s" % acme_order_headers)
         except errors.AcmeServer404 as exc:
             log.info(") acme_order_load | ERROR AcmeServer404!")
-            # TODO: not finished with this logic flow, need to trigger somehow
-            if TESTING_ENVIRONMENT:
-                raise ValueError(
-                    "not finished with this logic flow, need to trigger somehow"
-                )
-            acme_order_object = new_response_404()
             raise
-
-        # log the event to the db
-        dbEventLogged = self.acmeLogger.log_order_load(
-            "v2", dbAcmeOrder, transaction_commit=True
-        )
+        finally:
+            # log the event to the db
+            dbEventLogged = self.acmeLogger.log_order_load(
+                "v2", dbAcmeOrder, transaction_commit=True
+            )
 
         # this is just a convenience wrapper for our order object
         acmeOrderRfcObject = AcmeOrderRFC(

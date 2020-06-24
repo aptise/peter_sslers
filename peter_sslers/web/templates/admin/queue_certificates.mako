@@ -13,7 +13,7 @@
 
 <%block name="page_header_col">
     <h2>Queue: Certificates</h2>
-    <p>Most QueueCertificates can be created from a link on an exisiting object's "Focus" page to the <code>/new/structured</code> form.
+    <p>Most QueueCertificates can be created from a link on an exisiting object&apos;s "Focus" page to the <code>/new/structured</code> form.
         <ul>
             <li>AcmeOrder</li>
             <li>ServerCertificate</li>
@@ -90,74 +90,7 @@
 
             % if QueueCertificates:
                 ${admin_partials.nav_pagination(pager)}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>id</th>
-                            <th>is_active</th>
-                            <th>Covering</th>
-                            <th>AcmeOrder<br/>source</th>
-                            <th>ServerCertificate<br/>source</th>
-                            <th>UniqueFqdnSource<br/>source</th>
-                            <th>timestamp_entered</th>
-                            <th>timestamp_process_attempt</th>
-                            <th>timestamp_processed</th>
-                            <th>process_result</th>
-                        </tr>
-                    </thead>
-                    % for q in QueueCertificates:
-                        <tr>
-                            <td><a class="label label-info" href="${admin_prefix}/queue-certificate/${q.id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                ${q.id}</a>
-                            </td>
-                            <td>
-                                % if q.is_active:
-                                    <div class="label label-success"><span class="glyphicon glyphicon-check" aria-hidden="true"></span></div>
-                                % else:
-                                    <div class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></div>
-                                % endif
-                            </td>
-                            <td><a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.unique_fqdn_set_id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                UniqueFQDNSet-${q.unique_fqdn_set_id}</a>
-                                <br/>
-                                <code>${q.unique_fqdn_set.domains_as_string}</code>
-                            </td>
-                            <td>
-                                % if q.acme_order_id__source:
-                                    <a class="label label-info" href="${admin_prefix}/acme-order/${q.acme_order_id__source}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    AcmeOrder-${q.acme_order_id__source}</a>
-                                % endif
-                            </td>
-                            <td>
-                                % if q.server_certificate_id__source:
-                                    <a class="label label-info" href="${admin_prefix}/server-certificate/${q.server_certificate_id__source}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    ServerCertificate-${q.server_certificate_id__source}</a>
-                                % endif
-                            </td>
-                            <td>
-                                % if q.unique_fqdn_set_id__source:
-                                    <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${q.unique_fqdn_set_id__source}">
-                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                    UniqueFQDNSet-${q.unique_fqdn_set_id__source}</a>
-                                % endif
-                            </td>
-                            <td><timestamp>${q.timestamp_entered}</timestamp></td>
-                            <td><timestamp>${q.timestamp_process_attempt or ''}</timestamp></td>
-                            <td><timestamp>${q.timestamp_processed or ''}</timestamp></td>
-                            <td>
-                                % if q.process_result is True:
-                                    <span class="label label-success"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></span>
-                                % elif q.process_result is False:
-                                    <span class="label label-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></span>
-                                % endif
-                            </td>
-                        </tr>
-                    % endfor
-                </table>
+                ${admin_partials.table_QueueCertificates(QueueCertificates)}
             % else:
                 <em>
                     No Queue Items

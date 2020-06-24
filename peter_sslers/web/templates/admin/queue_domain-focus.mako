@@ -61,9 +61,9 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>timestamp_entered</th>
+                    <th>timestamp_created</th>
                     <td>
-                        <timestamp>${QueueDomainItem.timestamp_entered or ''}</timestamp>
+                        <timestamp>${QueueDomainItem.timestamp_created or ''}</timestamp>
                     </td>
                 </tr>
                 <tr>

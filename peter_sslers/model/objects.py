@@ -39,12 +39,6 @@ class _Mixin_Timestamps_Pretty(object):
         return None
 
     @property
-    def timestamp_entered_isoformat(self):
-        if self.timestamp_entered:
-            return self.timestamp_entered.isoformat()
-        return None
-
-    @property
     def timestamp_event_isoformat(self):
         if self.timestamp_event:
             return self.timestamp_event.isoformat()
@@ -1952,8 +1946,8 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "coverage_assurance_event"
     __table_args__ = (
         sa.CheckConstraint(
-            "(private_key_id IS NOT NULL OR server_certificate_id IS NOT NULL)",
-            name="check_pkey_andor_cert",
+            "(private_key_id IS NOT NULL OR server_certificate_id IS NOT NULL OR queue_certificate_id IS NOT NULL)",
+            name="check_pkey_andor_certs",
         ),
     )
 
@@ -1964,6 +1958,9 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     )
     server_certificate_id = sa.Column(
         sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+    )
+    queue_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("queue_certificate.id"), nullable=True
     )
     coverage_assurance_event_type_id = sa.Column(
         sa.Integer, nullable=False
@@ -1999,6 +1996,12 @@ class CoverageAssuranceEvent(Base, _Mixin_Timestamps_Pretty):
     server_certificate = sa_orm_relationship(
         "ServerCertificate",
         primaryjoin="CoverageAssuranceEvent.server_certificate_id==ServerCertificate.id",
+        back_populates="coverage_assurance_events",
+        uselist=False,
+    )
+    queue_certificate = sa_orm_relationship(
+        "QueueCertificate",
+        primaryjoin="CoverageAssuranceEvent.queue_certificate_id==QueueCertificate.id",
         back_populates="coverage_assurance_events",
         uselist=False,
     )
@@ -2574,7 +2577,7 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
     )
 
     id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_entered = sa.Column(sa.DateTime, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
     timestamp_processed = sa.Column(sa.DateTime, nullable=True)
     timestamp_process_attempt = sa.Column(
         sa.DateTime, nullable=True
@@ -2651,6 +2654,12 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="QueueCertificate.certificate_request_id__generated==CertificateRequest.id",
         uselist=False,
     )
+    coverage_assurance_events = sa_orm_relationship(
+        "CoverageAssuranceEvent",
+        primaryjoin="QueueCertificate.id==CoverageAssuranceEvent.queue_certificate_id",
+        back_populates="queue_certificate",
+        uselist=True,
+    )
     operations_event__created = sa.orm.relationship(
         "OperationsEvent",
         primaryjoin="QueueCertificate.operations_event_id__created==OperationsEvent.id",
@@ -2714,7 +2723,7 @@ class QueueCertificate(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "process_result": self.process_result,
-            "timestamp_entered": self.timestamp_entered_isoformat,
+            "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_processed": self.timestamp_processed_isoformat,
             "timestamp_process_attempt": self.timestamp_process_attempt_isoformat,
             "is_active": True if self.is_active else False,
@@ -2753,7 +2762,7 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
     __tablename__ = "queue_domain"
     id = sa.Column(sa.Integer, primary_key=True)
     domain_name = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_entered = sa.Column(sa.DateTime, nullable=False)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
     timestamp_processed = sa.Column(sa.DateTime, nullable=True)
     domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=True, default=True)
@@ -2789,7 +2798,7 @@ class QueueDomain(Base, _Mixin_Timestamps_Pretty):
         return {
             "id": self.id,
             "domain_name": self.domain_name,
-            "timestamp_entered": self.timestamp_entered_isoformat,
+            "timestamp_created": self.timestamp_created_isoformat,
             "timestamp_processed": self.timestamp_processed_isoformat,
             "domain_id": self.domain_id,
             "is_active": True if self.is_active else False,

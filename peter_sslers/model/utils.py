@@ -658,7 +658,7 @@ class AcmeOrderType(_mixin_mapping):
     ACME_AUTOMATED_RENEW_QUICK = 3
     ACME_AUTOMATED_RENEW_CUSTOM = 4
     ACME_AUTOMATED_NEW__CIN = 5  # CIN=Certificate-If-Needed
-    QUEUE_CERTIFICATE_RENEWAL = 11
+    QUEUE_CERTIFICATE = 11
     QUEUE_DOMAINS = 12
     _mapping = {
         1: "ACME Automated (New)",

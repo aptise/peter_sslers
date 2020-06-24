@@ -721,6 +721,7 @@
                 <th>Resolution</th>
                 <th>Private Key</th>
                 <th>Server Certificate</th>
+                <th>Queue Certificate</th>
             </tr>
         </thead>
         % for cae in CoverageAssuranceEvents:
@@ -761,6 +762,15 @@
                         >
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             ServerCertificate-${cae.server_certificate_id}</a>
+                    % endif
+                </td>
+                <td>
+                    % if cae.queue_certificate_id:
+                        <a  class="label label-info"
+                            href="${admin_prefix}/queue-certificate/${cae.queue_certificate_id}"
+                        >
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            QueueCertificate-${cae.queue_certificate_id}</a>
                     % endif
                 </td>
             </tr>
@@ -937,8 +947,10 @@
                 % if show_unique_fqdn_set:
                     <th>UniqueFQDNSet</th>
                 % endif
+                <th>Source</th>
+                <th>Acme Order (Generated)</th>
                 <th>Server Certificate (Generated)</th>
-                <th>timestamp_entered</th>
+                <th>timestamp_created</th>
                 <th>operations_event_id__created</th>
                 <th>timestamp_processed</th>
                 <th>timestamp_process_attempt</th>
@@ -973,13 +985,37 @@
                     </td>
                 % endif
                 <td>
+                    % if queue_certificate.acme_order_id__source:
+                        <a class="label label-info" href="${admin_prefix}/acme-order/${queue_certificate.acme_order_id__source}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        AcmeOrder-${queue_certificate.acme_order_id__source}</a>
+                    % endif
+                    % if queue_certificate.server_certificate_id__source:
+                        <a class="label label-info" href="${admin_prefix}/server-certificate/${queue_certificate.server_certificate_id__source}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        ServerCertificate-${queue_certificate.server_certificate_id__source}</a>
+                    % endif
+                    % if queue_certificate.unique_fqdn_set_id__source:
+                        <a class="label label-info" href="${admin_prefix}/unique-fqdn-set/${queue_certificate.unique_fqdn_set_id__source}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        UniqueFQDNSet-${queue_certificate.unique_fqdn_set_id__source}</a>
+                    % endif
+                </td>
+                <td>
+                    % if queue_certificate.acme_order_id__generated:
+                        <a href="${admin_prefix}/acme-order/${queue_certificate.acme_order_id__generated}" class="label label-info">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeOrder-${queue_certificate.acme_order_id__generated}</a>
+                    % endif
+                </td>
+                <td>
                     % if queue_certificate.server_certificate_id__generated:
                         <a href="${admin_prefix}/server-certificate/${queue_certificate.server_certificate_id__generated}" class="label label-info">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                             ServerCertificate-${queue_certificate.server_certificate_id__generated}</a>
                     % endif
                 </td>
-                <td><timestamp>${queue_certificate.timestamp_entered or ''}</timestamp></td>
+                <td><timestamp>${queue_certificate.timestamp_created or ''}</timestamp></td>
                 <td><span class="label label-info">${queue_certificate.operations_event_id__created}</span></td>
                 <td><timestamp>${queue_certificate.timestamp_processed or ''}</timestamp></td>
                 <td><timestamp>${queue_certificate.timestamp_process_attempt or ''}</timestamp></td>
