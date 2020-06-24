@@ -16,6 +16,10 @@ purpose:
 This is intended as a lightweight tool that can be used to setup your integration, without exposing peter_sselers
 
 You may need to edit this to change your proxy ports location
+
+The server will respond to requests with the following header to identify it:
+
+    X-Peter-SSLers: fakeserver
 """
 
 

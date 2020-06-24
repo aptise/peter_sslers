@@ -128,7 +128,7 @@ def create__AcmeOrder(
     acme_order_processing_strategy_id=None,
     private_key_cycle_id__renewal=None,
     private_key_strategy_id__requested=None,
-    is_auto_renew=None,
+    is_auto_renew=True,
     order_url=None,
     dbAcmeAccount=None,
     dbAcmeOrder_renewal_of=None,
@@ -151,7 +151,7 @@ def create__AcmeOrder(
     :param acme_order_processing_strategy_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
-    :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on? 
+    :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on?  Default: `True`
     :param order_url: (required) the url of the object
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` associated with the order
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object

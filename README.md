@@ -244,7 +244,7 @@ This handles several types of certificate requests
 
 # Installation
 
-This is pretty much ready to go for development use.  Python should install everything for you.  If it doesn't, someone screwed up.
+This is pretty much ready to go for development use.  Python should install everything for you.  If it doesn't, someone messed up. That someone was me. Sorry.
 
 You should create a virtualenv for this project. In this example, we will create the following directory structure:
 
@@ -315,6 +315,11 @@ The webserver exposes the following routes/directories:
 * `/.well-known/acme-challenge` - directory
 * `/.well-known/public/whoami` - URL prints host
 * `/.well-known/admin` - admin tool IMPORTANT - THIS EXPOSES PRIVATE KEYS ON PURPOSE
+
+The server will respond to requests with the following header to identify it:
+
+    X-Peter-SSLers: production
+
 
 
 # Just a friendly reminder:

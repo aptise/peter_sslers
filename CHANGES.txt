@@ -50,7 +50,7 @@
 - lots of unit tests
 - autodetect cryptography modules; fallback onto them instead of openssl if possible
 - generic support for non-http01 challenges. they are not triggered, but are tracked.
-- add "x-Peter-SSLers"
+- add "x-Peter-SSLers" header
 - removed cert_subject_hash, cert_issuer_hash
 -- they were neat, but not very useful and the openssl/bindings showed different info
 - Server/CA Certificate fieldname changes to reflect certificate terminology:
@@ -61,6 +61,12 @@
 - Deactivating an AcmeAuthorization will update the AcmeChallenges (most likely to "*410*")
 - Deactivating an AcmeAuthorization will update the AcmeOrder to "invalid"
 - support for LetsEncrypt bugs where an order is "deactivated" not "invalid"
+- added test for "x-Peter-SSLers" custom header 
+- added test for AcmeOrder
+	- mark renew_auto
+	- mark renew_manual
+
+
 
 0.4.0
 unreleased (2020-01-23)

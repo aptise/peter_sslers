@@ -1284,7 +1284,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     is_processing = sa.Column(
         sa.Boolean, nullable=True, default=True
     )  # see notes above
-    is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=True)
     is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     acme_order_type_id = sa.Column(
@@ -3137,7 +3137,9 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             # "acme_account_id": self.acme_account_id,
             "domains_as_list": self.domains_as_list,
             "renewals_managed_by": self.renewals_managed_by,
-            "is_auto_renew": self.acme_order.is_auto_renew if self.acme_order else None,
+            "acme_order.is_auto_renew": self.acme_order.is_auto_renew
+            if self.acme_order
+            else None,
         }
 
 

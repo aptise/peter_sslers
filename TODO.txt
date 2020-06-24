@@ -27,10 +27,6 @@ route: "admin:api:domain:autocert", "/api/domain/autocert"
 	run the entire process using the global account key, and a new private key, in a single request
 
 TESTS:
-	AcmeOrder
-		mark
-			renew_auto
-			renew_manual
 	AcmeAccount
 		submit a different key for an existing contact
 

@@ -120,6 +120,11 @@ class FunctionalTests_Main(AppTest):
     """
 
     @tests_routes("admin")
+    def test_custom_headers(self):
+        res = self.testapp.get("/.well-known/admin", status=200)
+        assert res.headers["X-Peter-SSLers"] == "production"
+
+    @tests_routes("admin")
     def test_root(self):
         res = self.testapp.get("/.well-known/admin", status=200)
 
@@ -5161,6 +5166,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
     )
     def test_AcmeOrder_mark_html(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeOrder_mark_html
+        """
         (obj_id, obj_url) = self._prep_AcmeOrder_html()
 
         # grab the order
@@ -5204,6 +5212,36 @@ class FunctionalTests_AcmeServer(AppTest):
         matched = RE_AcmeOrder_retry.match(res.location)
         assert matched
         obj_id__4 = matched.groups()[0]
+
+        # grab the NEW order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__4, status=200
+        )
+
+        # new orders should default to auto-renew on
+        assert "acme_order-mark-renew_manual" in res.forms
+        form = res.forms["acme_order-mark-renew_manual"]
+        res = form.submit()
+        assert res.status_code == 303
+        assert (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=mark&action=renew_manual"
+            % obj_id__4
+        )
+
+        # grab the order again...
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__4, status=200
+        )
+
+        # and toggle it the other way
+        assert "acme_order-mark-renew_auto" in res.forms
+        form = res.forms["acme_order-mark-renew_auto"]
+        res = form.submit()
+        assert res.status_code == 303
+        assert (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=mark&action=renew_auto"
+            % obj_id__4
+        )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @under_pebble
@@ -5745,6 +5783,50 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["result"] == "success"
         assert "AcmeOrder" in res.json
         obj_id__4 = res.json["AcmeOrder"]["id"]
+
+        pdb.set_trace()
+
+        # grab the NEW order
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s.json" % obj_id__4, status=200
+        )
+        assert "AcmeOrder" in res.json
+
+        # new orders should default to auto-renew on
+        assert res.json["AcmeOrder"]["is_auto_renew"] is True
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s" % obj_id__4, status=200
+        )
+
+        # "mark" manual
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/mark.json?action=renew_manual" % obj_id,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "mark"
+        assert res.json["action"] == "renew_manual"
+        assert res.json["AcmeOrder"]["is_auto_renew"] is False
+
+        # and toggle it the other way
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/mark.json?action=renew_auto" % obj_id,
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert res.json["operation"] == "mark"
+        assert res.json["action"] == "renew_auto"
+        assert res.json["AcmeOrder"]["is_auto_renew"] is True
+
+        # lets make sure we can't do it again!
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/mark.json?action=renew_auto" % obj_id,
+            status=200,
+        )
+        assert res.json["result"] == "error"
+        assert res.json["operation"] == "mark"
+        assert res.json["error"] == "Can not mark this order for renewal."
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @under_pebble
