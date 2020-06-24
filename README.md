@@ -3,13 +3,13 @@ ACME-v2 RELEASE
 
 Hi!
 
-ACME-V2 support involved a large rewrite of the Client and the Certificate Manager's design.
+ACME-V2 support involved a large rewrite of the Client and the Certificate Manager's design. The central object changed from a `ServerCertificate` to the `AcmeOrder`.
 
-It is still undergoing active development, and the design is not entirely finalized yet.
+This project is still undergoing active development, and the design is not entirely finalized yet... but
 
-Most of the functionality is working and covered by tests.
+Most of the functionality is working (in production!) and everything is covered by extensive tests.
 
-WE ARE ALMOST THERE.
+WE ARE ALMOST THERE!!!
 
 
 peter_sslers README
@@ -29,7 +29,11 @@ THIS CONTAINS EVERYTHING YOU NEED TO SSL-ERATE AN INIFINITELY SCALEABLE MULTI-SE
 
 Amazing, right?
 
-This package is *not* aimed at casual users or people concerned with a handful of websites or servers.
+This project is *not* aimed at casual users or people concerned with a handful of websites or servers.
+
+This project is designed for people who have lots of domains and servers, which all need to be coordinated.
+
+If you can use Certbot or another consumer client, YOU ABSOLUTELY WANT TO USE THAT CLIENT. 
 
 Peter, as we fondly call this package, offers lightweight tools to centrally manage SSL Certificate data in a SQL database of your choice.  PostgreSQL is recommended; Sqlite is supported and the primary testing environment.  A good-faith effort is made to get this to work on MySQL, but, well, sigh.
 
@@ -102,6 +106,10 @@ Most of us hate having to spend time on DevOps tasks. Personally, I would rather
 Most importantly, Peter SSLers allows you to 
 
 This is a pre-release but deployable for many situations; it is actively being worked on as it fixes new issues on production system. PRs are absolutely welcome, even if just fixes or additions to the test-suite.
+
+Peter sits in between your machines and LetsEncrypt. It is designed to let your applications programmatically interact with ACME servers, allowing you to provision new certificates and autoload them into webservers.
+
+Peter was originally designed for systems that offer whitelabel services in the cloud.
 
 
 ## Status
