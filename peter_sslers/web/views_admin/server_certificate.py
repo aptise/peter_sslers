@@ -54,7 +54,6 @@ class View_List(Handler):
             url_redirect = "%s.json" % url_redirect
         return HTTPSeeOther(url_redirect)
 
-    
     @view_config(
         route_name="admin:server_certificates:all",
         renderer="/admin/server_certificates.mako",

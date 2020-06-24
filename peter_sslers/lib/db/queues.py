@@ -471,7 +471,11 @@ def queue_certificates__process(ctx):
 
             try:
                 dbServerCertificate = None
-                _dbAcmeAccount = dbQueueCertificate.acme_account if dbQueueCertificate.acme_account.is_usable else dbAcmeAccount_GlobalDefault
+                _dbAcmeAccount = (
+                    dbQueueCertificate.acme_account
+                    if dbQueueCertificate.acme_account.is_usable
+                    else dbAcmeAccount_GlobalDefault
+                )
                 if not dbAcmeAccount_GlobalDefault:
                     raise errors.QueueProcessingError("QueueCertificate_no_account_key")
                 _dbPrivateKey = dbQueueCertificate.private_key  # this can auto-heal
@@ -488,7 +492,6 @@ def queue_certificates__process(ctx):
                         ctx,
                         acme_order_type_id=model_utils.AcmeOrderType.QUEUE_CERTIFICATE_RENEWAL,
                         domain_names=dbQueueCertificate.domains_as_list,
-
                         dbAcmeAccount=_dbAcmeAccount,
                         dbPrivateKey=_dbPrivateKey,
                         dbServerCertificate__renewal_of=dbQueueCertificate.server_certificate,

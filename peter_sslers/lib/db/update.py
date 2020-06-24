@@ -471,6 +471,7 @@ def update_ServerCertificate__unset_active(ctx, dbServerCertificate):
     event_status = "ServerCertificate__mark__inactive"
     return event_status
 
+
 """
 as of .40, ServerCertificates do not auto-renew. Instead, AcmeOrders do.
 

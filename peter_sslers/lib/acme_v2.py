@@ -47,6 +47,10 @@ def new_response_404():
     return {"status": "*404*"}
 
 
+def new_response_invalid():
+    return {"status": "invalid"}
+
+
 def url_request(url, post_data=None, err_msg="Error", depth=0):
     """
     Originally from acme-tiny
@@ -87,6 +91,8 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
         # that is caught below
     except Exception as exc:
         # TODO: log this error to the database
+        if TESTING_ENVIRONMENT:
+            raise ValueError("LOG THIS EXCEPTION?")
         raise errors.AcmeCommunicationError(str(exc))
     try:
         resp_data = json.loads(resp_data)  # try to parse json results
@@ -566,6 +572,10 @@ class AuthenticatedUser(object):
         except errors.AcmeServer404 as exc:
             log.info(") acme_order_load | ERROR AcmeServer404!")
             # TODO: not finished with this logic flow, need to trigger somehow
+            if TESTING_ENVIRONMENT:
+                raise ValueError(
+                    "not finished with this logic flow, need to trigger somehow"
+                )
             acme_order_object = new_response_404()
             raise
 
@@ -901,15 +911,13 @@ class AuthenticatedUser(object):
         If the challenge fails, we raise a `errors.DomainVerificationError`.
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_process_url(")
-        # scoping, our todo list
-        # _todo_complete_challenges = None
-
         if (
             acme_challenge_type_id__preferred
             not in model_utils.AcmeChallengeType._mapping
         ):
             raise ValueError("invalid `acme_challenge_type_id__preferred`")
 
+        # scoping, our todo list
         _todo__complete_challenge = None
 
         # in v1, we know the domain before the authorization request
@@ -1372,6 +1380,9 @@ class AuthenticatedUser(object):
                     _acme_challenge_selected["status"],
                     transaction_commit=True,
                 )
+
+            # a future version may want to log this failure somewhere
+            # why? the timestamp on our AuthorizationObject may get replaced during a server-sync
 
             raise errors.AcmeAuthorizationFailure(
                 "{0} challenge did not pass: {1}".format(

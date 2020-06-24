@@ -37,6 +37,12 @@ from .update import update_AcmeAuthorization_from_payload
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+TESTING_ENVIRONMENT = True
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def do__AcmeAccount_AcmeV2_register(
     ctx, dbAcmeAccount, account_key_path=None,
 ):
@@ -156,23 +162,26 @@ def new_Authenticated_user(ctx, dbAcmeAccount):
 
 
 def update_AcmeAuthorization_status(
-    ctx, dbAcmeAuthorization, status_text, transaction_commit=None
+    ctx, dbAcmeAuthorization, status_text, timestamp=None, transaction_commit=None
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object
     :param status_text: (required) The status_text for the order
+    :param timestamp: (required) `datetime.datetime`.
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
     """
     if transaction_commit is not True:
-        raise ValueError("we must invoke this knowing it will commit")
+        raise ValueError("must invoke this knowing it will commit")
     _edited = False
     status_text = status_text.lower()
     if dbAcmeAuthorization.acme_status_authorization != status_text:
+        if not timestamp:
+            timestamp = datetime.datetime.utcnow()
         dbAcmeAuthorization.acme_status_authorization_id = model_utils.Acme_Status_Authorization.from_string(
             status_text
         )
-        dbAcmeAuthorization.timestamp_updated = datetime.datetime.utcnow()
+        dbAcmeAuthorization.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
         return True
@@ -180,23 +189,26 @@ def update_AcmeAuthorization_status(
 
 
 def update_AcmeChallenge_status(
-    ctx, dbAcmeChallenge, status_text, transaction_commit=None
+    ctx, dbAcmeChallenge, status_text, timestamp=None, transaction_commit=None
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object
     :param status_text: (required) The status_text for the order
+    :param timestamp: (required) `datetime.datetime`.
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
     """
     if transaction_commit is not True:
-        raise ValueError("we must invoke this knowing it will commit")
+        raise ValueError("must invoke this knowing it will commit")
     _edited = False
     status_text = status_text.lower()
     if dbAcmeChallenge.acme_status_challenge != status_text:
+        if not timestamp:
+            timestamp = datetime.datetime.utcnow()
         dbAcmeChallenge.acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
             status_text
         )
-        dbAcmeChallenge.timestamp_updated = datetime.datetime.utcnow()
+        dbAcmeChallenge.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
         return True
@@ -209,6 +221,7 @@ def updated_AcmeOrder_status(
     acme_order_object,
     acme_order_processing_status_id=None,
     is_processing_False=None,
+    timestamp=None,
     transaction_commit=None,
 ):
     """
@@ -217,10 +230,11 @@ def updated_AcmeOrder_status(
     :param acme_order_object: (required) An RFC compliant dict; must at least have `status`
     :param acme_order_processing_status_id: (optional) If provided, update the `acme_order_processing_status_id` of the order
     :param is_processing_False: (optional) if True, set `is_processing` to false.,
+    :param timestamp: (required) `datetime.datetime`.
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
     """
     if transaction_commit is not True:
-        raise ValueError("we must invoke this knowing it will commit")
+        raise ValueError("must invoke this knowing it will commit")
     _edited = False
     status_text = acme_order_object.get("status", "").lower()
     if dbAcmeOrder.acme_status_order != status_text:
@@ -257,7 +271,9 @@ def updated_AcmeOrder_status(
         _edited = True
 
     if _edited:
-        dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
+        if not timestamp:
+            timestamp = datetime.datetime.utcnow()
+        dbAcmeOrder.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
         return True
@@ -265,23 +281,101 @@ def updated_AcmeOrder_status(
 
 
 def updated_AcmeOrder_ProcessingStatus(
-    ctx, dbAcmeOrder, acme_order_processing_status_id=None, transaction_commit=None
+    ctx,
+    dbAcmeOrder,
+    acme_order_processing_status_id=None,
+    timestamp=None,
+    transaction_commit=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
     :param acme_order_processing_status_id: (required) If provided, update the `acme_order_processing_status_id` of the order
+    :param timestamp: (required) `datetime.datetime`.
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
     """
     if transaction_commit is not True:
-        raise ValueError("we must invoke this knowing it will commit")
+        raise ValueError("must invoke this knowing it will commit")
     if dbAcmeOrder.acme_order_processing_status_id != acme_order_processing_status_id:
+        if not timestamp:
+            timestamp = datetime.datetime.utcnow()
         dbAcmeOrder.acme_order_processing_status_id = acme_order_processing_status_id
-        dbAcmeOrder.timestamp_updated = datetime.datetime.utcnow()
+        dbAcmeOrder.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
         return True
     return False
+
+
+def _audit_AcmeChallenge_against_server_response(
+    ctx, dbAcmeChallenge, challenge_response
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeChallenge: (required) A :class:`model.objects.AcmeChallenge` object
+    :param challenge_response: (required) The payload from the acme server
+    """
+    # the AcmeChallenge payload has the following info:
+    # - url
+    # - type
+    # - token
+    # - status
+
+    # pretty much everything should match up
+    # audit all fields EXCEPT status
+    _mismatch = {}  # key = field; value=(expected, received)
+    if dbAcmeChallenge.challenge_url != challenge_response["url"]:
+        _mismatch["url"] = (dbAcmeChallenge.challenge_url, challenge_response["url"])
+    if dbAcmeChallenge.token != challenge_response["token"]:
+        _mismatch["token"] = (
+            dbAcmeChallenge.challenge_url,
+            challenge_response["token"],
+        )
+    if dbAcmeChallenge.acme_challenge_type != challenge_response["type"]:
+        _mismatch["type"] = (
+            dbAcmeChallenge.acme_challenge_type,
+            challenge_response["type"],
+        )
+    if _mismatch:
+        log.critical("Mismatch in AcmeChallenge(%s) sync:", dbAcmeChallenge.id)
+        for (k, v) in _mismatch.items():
+            log.critical("  . %s : %s | %s", (k, v[0], v[1]))
+    return True
+
+
+def disable_missing_AcmeAuthorization_AcmeChallenges(
+    ctx,
+    dbAcmeAuthorization,
+    authorization_response,
+    timestamp=None,
+    transaction_commit=None,
+):
+    """
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object
+    :param authorization_response: (required) A dict that is the response from the AcmeServer
+    :param timestamp: (required) `datetime.datetime`.
+    :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
+    """
+    if transaction_commit is not True:
+        raise ValueError("must invoke this knowing it will commit")
+    _challenges_expected = {
+        _chall.challenge_url: _chall for _chall in dbAcmeAuthorization.acme_challenges
+    }
+    if _challenges_expected:
+        if not timestamp:
+            timestamp = datetime.datetime.utcnow()
+        _challenges_edited = False
+        _status_410 = model_utils.Acme_Status_Challenge.from_string("*410*")
+        for _chall_url in _challenges_expected.keys():
+            if _chall_url not in authorization_response["challenges"]:
+                _chall = _challenges_expected[_chall_url]
+                _chall.acme_status_challenge_id = _status_410
+                _chall.timestamp_updated = timestamp
+                _challenges_edited = True
+        if _challenges_edited:
+            ctx.pyramid_transaction_commit()
+    return True
 
 
 def _AcmeV2_factory_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
@@ -314,7 +408,7 @@ def _AcmeV2_factory_AuthHandlers(ctx, authenticatedUser, dbAcmeOrder):
             authorization_url,
         )
         if transaction_commit is not True:
-            raise ValueError("we must invoke this knowing it will commit")
+            raise ValueError("must invoke this knowing it will commit")
 
         if dbAcmeAuthorization is not None:
             if authorization_url != dbAcmeAuthorization.authorization_url:
@@ -387,7 +481,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                 raise ValueError("Order Authorizations failed")
             _todo_finalize_order = True
         except errors.AcmeAuthorizationFailure as exc:
-            # this order is essentially failed
+            # if an Authorization fails, the entire order fails
             (
                 acmeOrderRfcObject,
                 dbAcmeOrderEventLogged,
@@ -399,6 +493,7 @@ def _AcmeV2_AcmeOrder__process_authorizations(
                 dbAcmeOrder,
                 acmeOrderRfcObject.rfc_object,
                 acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
+                timestamp=ctx.timestamp,
                 transaction_commit=True,
             )
             if ctx.request.registry.settings["app_settings"][
@@ -473,17 +568,43 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
             ) = authenticatedUser.acme_authorization_deactivate(
                 ctx, dbAcmeAuthorization=dbAcmeAuthorization, transaction_commit=True,
             )
+            _server_status = authorization_response["status"]
+            if _server_status != "deactivated":
+                raise ValueError(
+                    "Authorization status should be `deactivated`; instead it is `%s`",
+                    _server_status,
+                )
             _result = update_AcmeAuthorization_status(
                 ctx,
                 dbAcmeAuthorization,
-                authorization_response["status"],
+                _server_status,
+                timestamp=ctx.timestamp,
                 transaction_commit=True,
             )
-            # TODO: update the other fields and challenges from this authorization
+
+            # fields in the authorization_response:
+            # - status
+            # - challenges
+            # - identifier
+            # - expires
+            # there is no point in updating those.
+            # but...
+            # figure out all the challenges we have and set them to *410* if they are no longer there
+            #
+            disable_missing_AcmeAuthorization_AcmeChallenges(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response,
+                transaction_commit=True,
+            )
             return True
         except errors.AcmeServer404 as exc:
             update_AcmeAuthorization_status(
-                ctx, dbAcmeAuthorization, "*404*", transaction_commit=True
+                ctx,
+                dbAcmeAuthorization,
+                "*404*",
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
             )
             return False
 
@@ -542,6 +663,15 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
                 ctx, dbAcmeAuthorization, authorization_response
             )
 
+            # it's possible we are missing older challenges
+            disable_missing_AcmeAuthorization_AcmeChallenges(
+                ctx,
+                dbAcmeAuthorization,
+                authorization_response,
+                transaction_commit=True,
+            )
+
+            # and it's possible we have new challenges
             try:
                 dbAcmeChallenges = lib.db.getcreate.getcreate__AcmeChallenges_via_payload(
                     ctx,
@@ -561,7 +691,11 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
             return True
         except errors.AcmeServer404 as exc:
             update_AcmeAuthorization_status(
-                ctx, dbAcmeAuthorization, "*404*", transaction_commit=True
+                ctx,
+                dbAcmeAuthorization,
+                "*404*",
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
             )
             return False
 
@@ -650,27 +784,39 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 transaction_commit=True,
             )
 
-            # TODO: update the other fields from this challenge
-            # TODO: log the payload and error
+            # this only logs
+            _audit_AcmeChallenge_against_server_response(
+                ctx, dbAcmeChallenge, challenge_response
+            )
 
-            # update the AcmeAuthorization if it's not the same on the database
+            # update the AcmeChallenge.status if it's not the same on the database
             update_AcmeChallenge_status(
                 ctx,
                 dbAcmeChallenge,
                 challenge_response["status"],
+                timestamp=ctx.timestamp,
                 transaction_commit=True,
             )
+
             return True
 
         except errors.AcmeServer404 as exc:
             update_AcmeChallenge_status(
-                ctx, dbAcmeChallenge, "*404*", transaction_commit=True
+                ctx,
+                dbAcmeChallenge,
+                "*404*",
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
             )
 
         except errors.AcmeAuthorizationFailure as exc:
-            # TODO: log/inspect the payload and update more objects
+            # the Authorization has failed
             update_AcmeAuthorization_status(
-                ctx, dbAcmeAuthorization, "invalid", transaction_commit=True
+                ctx,
+                dbAcmeAuthorization,
+                "invalid",
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
             )
 
         finally:
@@ -683,6 +829,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                         ctx,
                         _to_acme_order.acme_order,
                         acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_started,
+                        timestamp=ctx.timestamp,
                         transaction_commit=True,
                     )
     finally:
@@ -735,19 +882,31 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
             ) = authenticatedUser.acme_challenge_load(
                 ctx, dbAcmeChallenge=dbAcmeChallenge, transaction_commit=True,
             )
-        except errors.AcmeServer404 as exc:
-            update_AcmeChallenge_status(
-                ctx, dbAcmeChallenge, "*404*", transaction_commit=True
+
+            # this only logs
+            _audit_AcmeChallenge_against_server_response(
+                ctx, dbAcmeChallenge, challenge_response
             )
 
-        # TODO: update the other fields from this challenge
-        # TODO: log the payload and error
+            # update the AcmeChallenge.status if it's not the same on the database
+            _server_status = challenge_response["status"]
+            update_AcmeChallenge_status(
+                ctx,
+                dbAcmeChallenge,
+                _server_status,
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
+            )
 
-        # update the AcmeAuthorization if it's not the same on the database
-        _server_status = challenge_response["status"]
-        update_AcmeChallenge_status(
-            ctx, dbAcmeChallenge, _server_status, transaction_commit=True
-        )
+        except errors.AcmeServer404 as exc:
+            update_AcmeChallenge_status(
+                ctx,
+                dbAcmeChallenge,
+                "*404*",
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
+            )
+
         return True
 
     finally:
@@ -795,21 +954,27 @@ def do__AcmeV2_AcmeOrder__acme_server_sync(
             # update the AcmeOrder if it's not the same on the database
             # always invoke this, as it handles it's own cleanup of the model
             result = updated_AcmeOrder_status(
-                ctx, dbAcmeOrder, acmeOrderRfcObject.rfc_object, transaction_commit=True
+                ctx,
+                dbAcmeOrder,
+                acmeOrderRfcObject.rfc_object,
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
             )
             return dbAcmeOrder
 
         except errors.AcmeServer404 as exc:
             is_order_404 = True
             updated_AcmeOrder_status(
-                ctx, dbAcmeOrder, acme_v2.new_response_404(), transaction_commit=True
+                ctx,
+                dbAcmeOrder,
+                acme_v2.new_response_404(),
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
             )
             return dbAcmeOrder
 
-        # if is_order_404:
-        #    # TODO: raise an exception if we don't have an acmeOrder
-        #    # TODO: update the authorizations/challenges from the order
-        #    pass
+        # ???: if the AcmeOrder is a 404...
+        # ???: update the AcmeAuthorizations / AcmeChallenges?
 
     finally:
         # cleanup tmpfiles
@@ -861,13 +1026,18 @@ def do__AcmeV2_AcmeOrder__acme_server_sync_authorizations(
                 ctx,
                 dbAcmeOrder,
                 acmeOrderRfcObject.rfc_object,
+                timestamp=ctx.timestamp,
                 transaction_commit=True,
             )
 
         except errors.AcmeServer404 as exc:
             is_order_404 = True
             updated_AcmeOrder_status(
-                ctx, dbAcmeOrder, acme_v2.new_response_404(), transaction_commit=True
+                ctx,
+                dbAcmeOrder,
+                acme_v2.new_response_404(),
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
             )
             # just continue, as the internal orders are what we care about
 
@@ -954,10 +1124,33 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
                 ctx,
                 dbAcmeAuthorization,
                 authorization_response["status"],
+                timestamp=ctx.timestamp,
                 transaction_commit=True,
             )
-            # TODO: transition AcmeOrder
-            # TODO: transition AcmeChallenge
+
+            if authorization_response["status"] == "deactivated":
+                # disable the missing `AcmeChallenges` (should be all!)
+                disable_missing_AcmeAuthorization_AcmeChallenges(
+                    ctx,
+                    dbAcmeAuthorization,
+                    authorization_response,
+                    transaction_commit=True,
+                )
+
+                # this will transition the AcmeOrder to invalid
+                """
+                The order also moves to the "invalid"
+                state if it expires or one of its authorizations enters a final state
+                other than "valid" ("expired", "revoked", or "deactivated").
+                """
+                if dbAcmeAuthorization.acme_order_created:
+                    updated_AcmeOrder_status(
+                        ctx,
+                        dbAcmeAuthorization.acme_order_created,
+                        acme_v2.new_response_invalid(),
+                        timestamp=ctx.timestamp,
+                        transaction_commit=True,
+                    )
         return results
     finally:
         # cleanup tmpfiles
@@ -1006,12 +1199,11 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                 dbAcmeOrder,
                 acme_v2.new_response_404(),
                 is_processing_False=True,
+                timestamp=ctx.timestamp,
                 transaction_commit=True,
             )
 
-        is_auth_404 = None
         for dbAcmeAuthorization in dbAcmeOrder.authorizations_can_deactivate:
-            is_auth_404 = None
             try:
                 (
                     authorization_response,
@@ -1021,22 +1213,30 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                     dbAcmeAuthorization=dbAcmeAuthorization,
                     transaction_commit=True,
                 )
-                is_auth_404 = False
+                update_AcmeAuthorization_status(
+                    ctx,
+                    dbAcmeAuthorization,
+                    authorization_response["status"],
+                    timestamp=ctx.timestamp,
+                    transaction_commit=True,
+                )
+                disable_missing_AcmeAuthorization_AcmeChallenges(
+                    ctx,
+                    dbAcmeAuthorization,
+                    authorization_response,
+                    transaction_commit=True,
+                )
             except errors.AcmeServer404 as exc:
-                is_auth_404 = True
                 authorization_response = acme_v2.new_response_404()
-            update_AcmeAuthorization_status(
-                ctx,
-                dbAcmeAuthorization,
-                authorization_response["status"],
-                transaction_commit=True,
-            )
+                update_AcmeAuthorization_status(
+                    ctx,
+                    dbAcmeAuthorization,
+                    authorization_response["status"],
+                    timestamp=ctx.timestamp,
+                    transaction_commit=True,
+                )
 
-        # TODO: raise an exception if we don't have an acmeOrderRfcObject
-        # TODO: update the authorizations/challenges from the order
-        #       is this allowed though? the challenge doesn't have a revoked state
-
-        # update the AcmeOrder if it's not the same on the database
+        # update the AcmeOrder if it's not the same in the database
         if not is_order_404:
             try:
                 (
@@ -1052,6 +1252,7 @@ def do__AcmeV2_AcmeOrder__acme_server_deactivate_authorizations(
                     acmeOrderRfcObject.rfc_object,
                     acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_deactivated,
                     is_processing_False=True,
+                    timestamp=ctx.timestamp,
                     transaction_commit=True,
                 )
             except Exception as exc:
@@ -1227,7 +1428,11 @@ def _do__AcmeV2_AcmeOrder__finalize(
             )
         except errors.AcmeServer404 as exc:
             updated_AcmeOrder_status(
-                ctx, dbAcmeOrder, acme_v2.new_response_404(), transaction_commit=True
+                ctx,
+                dbAcmeOrder,
+                acme_v2.new_response_404(),
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
             )
             raise
 
@@ -1443,9 +1648,8 @@ def _do__AcmeV2_AcmeOrder__core(
         # after creating the order, update it with info
         #            dbServerCertificate__renewal_of=dbServerCertificate__renewal_of,
 
-        raise ValueError("TODO")
+        raise ValueError("# TODO - transfer this onto the acme-order")
 
-        # TODO - transfer this onto the acme-order
         if dbServerCertificate__renewal_of:
             raise ValueError("eeep")
             dbServerCertificate__renewal_of.is_auto_renew = False

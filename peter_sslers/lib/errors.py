@@ -81,6 +81,8 @@ class AcmeCommunicationError(AcmeError):
 
 
 class AcmeAuthorizationFailure(AcmeError):
+    """raised when an Authorization fails"""
+
     pass
 
 

@@ -351,23 +351,22 @@ def operations_update_recents(ctx):
         ctx.dbSession.query(
             sqlalchemy.func.count(model_objects.AcmeOrder.private_key_id),
         )
-        .filter(model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,
-                )
+        .filter(model_objects.AcmeOrder.private_key_id == model_objects.PrivateKey.id,)
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
-        model_objects.PrivateKey.__table__.update().values(
-            count_acme_orders=_q_sub
-        )
+        model_objects.PrivateKey.__table__.update().values(count_acme_orders=_q_sub)
     )
     # 4.b - PrivateKey.count_server_certificates
     _q_sub = (
         ctx.dbSession.query(
             sqlalchemy.func.count(model_objects.ServerCertificate.private_key_id),
         )
-        .filter(model_objects.ServerCertificate.private_key_id == model_objects.PrivateKey.id,
-                )
+        .filter(
+            model_objects.ServerCertificate.private_key_id
+            == model_objects.PrivateKey.id,
+        )
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
@@ -377,7 +376,6 @@ def operations_update_recents(ctx):
         )
     )
 
-
     #
     # Step5:
     # update the counts for each AcmeAccount
@@ -386,24 +384,24 @@ def operations_update_recents(ctx):
         ctx.dbSession.query(
             sqlalchemy.func.count(model_objects.AcmeOrder.acme_account_id),
         )
-        .filter(model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-                )
+        .filter(
+            model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
+        )
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
-        model_objects.AcmeAccount.__table__.update().values(
-            count_acme_orders=_q_sub
-        )
+        model_objects.AcmeAccount.__table__.update().values(count_acme_orders=_q_sub)
     )
     # 5.b - AcmeAccount.count_server_certificates
     _q_sub = (
         ctx.dbSession.query(
             sqlalchemy.func.count(model_objects.AcmeOrder.server_certificate_id),
         )
-        .filter(model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
-                model_objects.AcmeOrder.server_certificate_id.op("IS NOT")(None),
-                )
+        .filter(
+            model_objects.AcmeOrder.acme_account_id == model_objects.AcmeAccount.id,
+            model_objects.AcmeOrder.server_certificate_id.op("IS NOT")(None),
+        )
         .subquery()
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )

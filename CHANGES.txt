@@ -57,7 +57,10 @@
 	- timestamp_signed > timestamp_not_before
 	- timestamp_expires > timestamp_not_after
 - ServerCertificate: track private-key requested
-
+- Challenges removed from an AcmeAuthorization will now show a status of "*410*" (gone)
+- Deactivating an AcmeAuthorization will update the AcmeChallenges (most likely to "*410*")
+- Deactivating an AcmeAuthorization will update the AcmeOrder to "invalid"
+- support for LetsEncrypt bugs where an order is "deactivated" not "invalid"
 
 0.4.0
 unreleased (2020-01-23)

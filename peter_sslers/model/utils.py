@@ -411,7 +411,7 @@ class Acme_Status_Challenge(_Acme_Status_All):
     )
     OPTIONS_PROCESSING = ("processing",)
     IDS_POSSIBLY_ACTIVE = None  # define after declaring the class
-    OPTIONS_INACTIVE = ("valid", "invalid", "*404*")
+    OPTIONS_INACTIVE = ("valid", "invalid", "*404*", "*410*")
     IDS_INACTIVE = None  # define after declaring the class
     OPTIONS_TRIGGER = ("pending",)
     _mapping = {
@@ -422,6 +422,7 @@ class Acme_Status_Challenge(_Acme_Status_All):
         7: "processing",
         404: "*404*",  # "Not Found"; resource is not on the server
         406: "*406*",  # "Not Acceptable"; the server returned a status we don't track
+        410: "*410*",  # "Gone"; use when the Authorization Payload no longer tracks this challenge
     }
 
 
@@ -521,6 +522,20 @@ class Acme_Status_Order(_Acme_Status_All):
         406: "*406*",  # "Not Acceptable"; the server returned a status we don't track
     }
 
+
+if True:
+    # pebble/boulder have a bug
+    # orders are 'deactivated' when they should be 'invalid'
+    # see https://github.com/letsencrypt/pebble/issues/300
+    # see https://github.com/letsencrypt/boulder/issues/4887
+    Acme_Status_Order._mapping[999] = "deactivated"
+    Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE = Acme_Status_Order.OPTIONS_RETRY + (
+        "deactivated",
+    )
+    Acme_Status_Order.OPTIONS_RETRY = Acme_Status_Order.OPTIONS_RETRY + ("deactivated",)
+    Acme_Status_Order.OPTIONS_X_MARK_INVALID = (
+        Acme_Status_Order.OPTIONS_X_MARK_INVALID + ("deactivated",)
+    )
 
 Acme_Status_Order.IDS_BLOCKING = [
     Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_BLOCKING

@@ -1007,15 +1007,13 @@ def create__ServerCertificate(
         # increment account/private key counts
         dbPrivateKey.count_server_certificates += 1
         if not dbPrivateKey.timestamp_last_certificate_issue or (
-            dbPrivateKey.timestamp_last_certificate_issue
-            < ctx.timestamp
+            dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
         ):
             dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
         if dbAcmeAccount:
             dbAcmeAccount.count_server_certificates += 1
             if not dbAcmeAccount.timestamp_last_certificate_issue or (
-                dbAcmeAccount.timestamp_last_certificate_issue
-                < ctx.timestamp
+                dbAcmeAccount.timestamp_last_certificate_issue < ctx.timestamp
             ):
                 dbAcmeAccount.timestamp_last_certificate_issue = ctx.timestamp
 

@@ -317,7 +317,7 @@ class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
         not_empty=True,
     )
-    
+
 
 class Form_CACertificate_Upload__file(_Form_Schema_Base):
     chain_file = FieldStorageUploadConverter(not_empty=True)
@@ -450,13 +450,13 @@ class Form_QueueDomains_process(_form_AcmeAccount_PrivateKey_core):
 
 class Form_ServerCertificate_mark(_Form_Schema_Base):
     action = OneOf(
-        ("active",
-         "inactive",
-         "revoked",
-         # "renew_manual",
-         # "renew_auto",
-         "unrevoke"
-         ),
+        (
+            "active",
+            "inactive",
+            "revoked",
+            # "renew_manual",
+            # "renew_auto",
+            "unrevoke",
+        ),
         not_empty=True,
     )
-

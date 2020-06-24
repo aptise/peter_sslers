@@ -487,9 +487,7 @@ def _admin_views(config):
     config.add_route_7(
         "admin:api:domain:certificate-if-needed", "/api/domain/certificate-if-needed"
     )
-    config.add_route_7(
-        "admin:api:domain:autocert", "/api/domain/autocert"
-    )
+    config.add_route_7("admin:api:domain:autocert", "/api/domain/autocert")
     # -
     config.add_route_7("admin:api:deactivate_expired", "/api/deactivate-expired")
     config.add_route_7(
@@ -995,13 +993,9 @@ def _admin_views(config):
     # !!!: ServerCertificates
     config.add_route_7("admin:server_certificates", "/server-certificates")
 
-
+    config.add_route_7("admin:server_certificates:all", "/server-certificates/all")
     config.add_route_7(
-        "admin:server_certificates:all", "/server-certificates/all"
-    )
-    config.add_route_7(
-        "admin:server_certificates:all_paginated",
-        "/server-certificates/all/{@page}",
+        "admin:server_certificates:all_paginated", "/server-certificates/all/{@page}",
     )
     config.add_route_7(
         "admin:server_certificates:active", "/server-certificates/active"

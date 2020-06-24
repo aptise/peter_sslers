@@ -3326,7 +3326,10 @@ class FunctionalTests_ServerCertificate(AppTest):
     def test_list_html(self):
         # root
         res = self.testapp.get("/.well-known/admin/server-certificates", status=303)
-        assert res.location == """http://peter-sslers.example.com/.well-known/admin/server-certificates/active"""
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/server-certificates/active"""
+        )
 
         for _type in (
             "all",
@@ -3359,7 +3362,10 @@ class FunctionalTests_ServerCertificate(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/server-certificates.json", status=303
         )
-        assert res.location == """http://peter-sslers.example.com/.well-known/admin/server-certificates/active.json"""
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/server-certificates/active.json"""
+        )
 
         for _type in (
             "all",

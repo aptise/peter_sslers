@@ -96,3 +96,24 @@ Long Term Questions:
 ==================================
 * remove pyramidtm? migrate to autocommit?  
 
+
+Test Cases to Write
+===================
+
+Case A:
+	create order
+		sync order authorizations
+	visit account:
+		deactivate account authorizations
+	visit order authorizations:
+		check order authorization:
+			- it should be invalid
+			- challenges should be 410
+	visit order:
+		check order:
+			- it should be invalid/deactivated
+
+Case B:
+	create order
+	sync order authorizations
+	deactivate account authorizations

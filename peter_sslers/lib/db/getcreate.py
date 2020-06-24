@@ -1159,8 +1159,7 @@ def getcreate__ServerCertificate(
                 dbServerCertificate.private_key_id = dbPrivateKey.id
                 dbPrivateKey.count_server_certificates += 1
                 if not dbPrivateKey.timestamp_last_certificate_issue or (
-                    dbPrivateKey.timestamp_last_certificate_issue
-                    < ctx.timestamp
+                    dbPrivateKey.timestamp_last_certificate_issue < ctx.timestamp
                 ):
                     dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
                 ctx.dbSession.flush(objects=[dbServerCertificate, dbPrivateKey])

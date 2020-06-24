@@ -32,9 +32,7 @@ from ...model import utils as model_utils
 
 
 class View_List(Handler):
-    @view_config(
-        route_name="admin:coverage_assurance_events",
-    )
+    @view_config(route_name="admin:coverage_assurance_events",)
     def list_redirect(self):
         url_all = (
             "%s/coverage-assurance-events/all"
