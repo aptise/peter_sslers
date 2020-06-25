@@ -94,7 +94,10 @@
                                     % endif
                                 % endif
                                 % if ep.get('GET-button'):
-                                    <a href="${request.admin_url}${ep['endpoint']}"
+                                    <%
+                                        endpoint = ep['endpoint'] if ep['GET-button'] is True else ep['GET-button']
+                                    %>
+                                    <a href="${request.admin_url}${endpoint}"
                                        target="_blank"
                                        class="btn btn-xs btn-info"
                                     >

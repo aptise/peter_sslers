@@ -45,6 +45,15 @@ api_endpoints = {
         "GET": False,
         "args": {"domain_name": "A single",},
     },
+    "/api/domain/autocert.json": {
+        "endpoint": "/api/domain/autocert.json",
+        "about": """Initiates a new certificate if needed. only accepts a domain name, uses system defaults""",
+        "POST": True,
+        "GET": False,
+        "GET-SELF-DOCUMENTING": True,
+        "GET-button": "/api/domain/autocert",  # set to html, not json
+        "args": {"domain_name": "A single",},
+    },
     "/api/redis/prime.json": {
         "endpoint": "/api/redis/prime.json",
         "about": """Primes the Redis cache""",

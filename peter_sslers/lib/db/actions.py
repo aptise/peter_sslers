@@ -248,6 +248,68 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
+def operations_update_recents_domain(ctx, dbDomain=None):
+    """
+    updates A SINGLE dbDomain record with recent values
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbDomain: (required) A :class:`model.objects.Domain` instance
+    """
+    #
+    # Step1:
+    # Update the cached `server_certificate_id__latest_single` data for each Domain
+    _q_sub = (
+        ctx.dbSession.query(model_objects.ServerCertificate.id)
+        .join(
+            model_objects.UniqueFQDNSet2Domain,
+            model_objects.ServerCertificate.unique_fqdn_set_id
+            == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(
+            model_objects.ServerCertificate.is_active.is_(True),
+            model_objects.ServerCertificate.is_single_domain_cert.is_(True),
+            model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
+            model_objects.Domain.id == dbDomain.id,
+        )
+        .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
+        .limit(1)
+        .subquery()
+        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+    )
+    ctx.dbSession.execute(
+        model_objects.Domain.__table__.update().values(
+            server_certificate_id__latest_single=_q_sub
+        )
+    )
+
+    #
+    # Step2:
+    # Update the cached `server_certificate_id__latest_multi` data for each Domain
+    _q_sub = (
+        ctx.dbSession.query(model_objects.ServerCertificate.id)
+        .join(
+            model_objects.UniqueFQDNSet2Domain,
+            model_objects.ServerCertificate.unique_fqdn_set_id
+            == model_objects.UniqueFQDNSet2Domain.unique_fqdn_set_id,
+        )
+        .filter(
+            model_objects.ServerCertificate.is_active.is_(True),
+            model_objects.ServerCertificate.is_single_domain_cert.is_(False),
+            model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
+            model_objects.Domain.id == dbDomain.id,
+        )
+        .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
+        .limit(1)
+        .subquery()
+        .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
+    )
+    ctx.dbSession.execute(
+        model_objects.Domain.__table__.update().values(
+            server_certificate_id__latest_multi=_q_sub
+        )
+    )
+
+
 def operations_update_recents(ctx):
     """
     updates all the objects to their most-recent relations

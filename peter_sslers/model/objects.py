@@ -2128,6 +2128,17 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def has_active_certificates(self):
+        return (
+            True
+            if (
+                self.server_certificate_id__latest_single
+                or self.server_certificate_id__latest_multi
+            )
+            else False
+        )
+
+    @property
     def as_json(self):
         payload = {
             "id": self.id,
@@ -2149,6 +2160,43 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                 "expiring_days": self.server_certificate__latest_single.expiring_days,
             }
         return payload
+
+    def as_json_config(self, id_only=False, active_only=None):
+        """
+        this is slightly different
+        * everything is lowercase
+        * id is a string
+        """
+        rval = {
+            "domain": {
+                "id": str(self.id),
+                "domain_name": self.domain_name,
+                "is_active": self.is_active,
+            },
+            "server_certificate__latest_single": None,
+            "server_certificate__latest_multi": None,
+        }
+        if active_only and not self.is_active:
+            return rval
+        if self.server_certificate_id__latest_single:
+            if id_only:
+                rval[
+                    "server_certificate__latest_single"
+                ] = self.server_certificate__latest_single.config_payload_idonly
+            else:
+                rval[
+                    "server_certificate__latest_single"
+                ] = self.server_certificate__latest_single.config_payload
+        if self.server_certificate_id__latest_multi:
+            if id_only:
+                rval[
+                    "server_certificate__latest_multi"
+                ] = self.server_certificate__latest_multi.config_payload_idonly
+            else:
+                rval[
+                    "server_certificate__latest_multi"
+                ] = self.server_certificate__latest_multi.config_payload
+        return rval
 
 
 # ==============================================================================

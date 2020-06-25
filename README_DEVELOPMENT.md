@@ -184,6 +184,12 @@ The testing suites require the following domains to point to localhost:
 	127.0.0.1 test_domain_certificate_if_needed-1.example.com
 	127.0.0.1 test_domain_certificate_if_needed-2.example.com
 
+	127.0.0.1 test-domain-autocert-1.example.com
+	127.0.0.1 test-domain-autocert-2.example.com
+	127.0.0.1 test-domain-autocert-3.example.com
+	127.0.0.1 test-domain-autocert-4.example.com
+	127.0.0.1 test-domain-autocert-5.example.com
+
 	127.0.0.1 test_redis-1.example.com
 
 

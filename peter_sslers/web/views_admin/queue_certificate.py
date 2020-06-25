@@ -607,7 +607,7 @@ class View_Focus(Handler):
             event_status = False
             if action == "cancel":
                 try:
-                    event_status = db_update.update_QueueCertificate__cancel(
+                    event_status = lib_db.update.update_QueueCertificate__cancel(
                         self.request.api_context, dbQueueCertificate
                     )
                 except errors.InvalidTransition as exc:

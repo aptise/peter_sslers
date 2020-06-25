@@ -14,10 +14,6 @@ Audit/Remove "todo" markers
 asap tasks
 ---------------
 
-route: "admin:api:domain:autocert", "/api/domain/autocert"
-	just accept a single domain,
-	run the entire process using the global account key, and a new private key, in a single request
-
 TESTS:
 	AcmeAccount
 		submit a different key for an existing contact
@@ -38,19 +34,23 @@ EDIT:
 - include an offset of the last domain added, so there isn't a race condition
 
 * ServerCertificate
-- test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
-- test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal
+	* TESTS
+	- test for a situation where the dbPrivateKey for a certificate is deactivated before deactivating a certificate
+	- test for a situation where the dbPrivateKey for a certificate is deactivated before queuring a renewal
 
 * CoverageAssuranceEvent
 	- on form display, show only eligible transitions(resolutions)
 
-* AcmeDns - finish support
+* AcmeDns
+	- finish support
 	- an AcmeOrder should be able to select domain names for DNS-01 challenges
 	
-* AcmeAccountKey.letsencrypt_data - audit. refresh? log?
+* AcmeAccountKey
+	- letsencrypt_data - audit. refresh? log?
 
 * AcmeOrder
-	- create an endpoint to sync all pending orders
+	- create an endpoint to sync all pending orders against ACME server
+	- this is needed on testing and large installs
 
 * ensure self-documenting endpoints POST on mako
     @view_config(route_name='admin:queue_domains:process', renderer=None)
@@ -59,8 +59,6 @@ EDIT:
 
 * cert_utils
 	figure out how to emulate openssl's `--text` with crypto in `parse_key`
-	
-
 
 * search expiring soon | note: isn't this the `/server-certificates/expiring` view?
 * log full actual results; if a queue fails log that data too

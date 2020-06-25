@@ -65,8 +65,15 @@
 - added test for AcmeOrder
 	- mark renew_auto
 	- mark renew_manual
-
-
+- added routes:
+	"admin:api:domain:autocert", "/api/domain/autocert"
+		html docs/info
+	"admin:api:domain:autocert|json", "/api/domain/autocert.json"
+		get: self documenting
+		post: process
+		- just accepts a single domain,
+		- run the entire ACME process using the global account key in a single request
+		- returns an openresty config payload
 
 0.4.0
 unreleased (2020-01-23)

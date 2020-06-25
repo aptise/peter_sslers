@@ -370,35 +370,11 @@ class View_Focus(Handler):
     @view_config(route_name="admin:domain:focus:config|json", renderer="json")
     def focus_config_json(self):
         dbDomain = self._focus()
-        rval = {
-            "domain": {
-                "id": str(dbDomain.id),
-                "domain_name": dbDomain.domain_name,
-                "is_active": dbDomain.is_active,
-            },
-            "server_certificate__latest_single": None,
-            "server_certificate__latest_multi": None,
-        }
-        if dbDomain.server_certificate_id__latest_single:
-            if self.request.params.get("idonly", None):
-                rval[
-                    "server_certificate__latest_single"
-                ] = dbDomain.server_certificate__latest_single.config_payload_idonly
-            else:
-                rval[
-                    "server_certificate__latest_single"
-                ] = dbDomain.server_certificate__latest_single.config_payload
-        if dbDomain.server_certificate_id__latest_multi:
-            if self.request.params.get("idonly", None):
-                rval[
-                    "server_certificate__latest_multi"
-                ] = dbDomain.server_certificate__latest_multi.config_payload_idonly
-            else:
-                rval[
-                    "server_certificate__latest_multi"
-                ] = dbDomain.server_certificate__latest_multi.config_payload
+        rval = dbDomain.as_json_config(
+            id_only=self.request.params.get("id_only", None), active_only=True
+        )
         if self.request.params.get("openresty", None):
-            lib.utils.prime_redis_domain(self.request, dbDomain)
+            lib.utils_redis.prime_redis_domain(self.request, dbDomain)
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -343,6 +343,10 @@ class FunctionalTests_AcmeAccount(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/config.json" % focus_id, status=200
         )
+        assert "domain" in res.json
+        assert "server_certificate__latest_single" in res.json
+        assert "server_certificate__latest_multi" in res.json
+
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/parse.json" % focus_id, status=200
         )
@@ -4107,7 +4111,7 @@ class FunctionalTests_QueueCertificate(AppTest):
         )
         assert (
             res3.location
-            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?result=error&error=action--Already+cancelledError_Main--There+was+an+error+with+your+form.&operation=mark&action=cancel"
+            == "http://peter-sslers.example.com/.well-known/admin/queue-certificate/%s?result=error&error=action--Already+processedError_Main--There+was+an+error+with+your+form.&operation=mark&action=cancel"
             % focus_id
         )
 
@@ -4138,7 +4142,7 @@ class FunctionalTests_QueueCertificate(AppTest):
             status=200,
         )
         assert res3.json["result"] == "error"
-        assert res3.json["form_errors"]["action"] == "Already cancelled"
+        assert res3.json["form_errors"]["action"] == "Already processed"
 
     def _get_queueable_AcmeOrder(self):
         # see `AcmeOrder.is_renewable_queue`
@@ -5839,8 +5843,6 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "AcmeOrder" in res.json
         obj_id__4 = res.json["AcmeOrder"]["id"]
 
-        pdb.set_trace()
-
         # grab the NEW order
         res = self.testapp.get(
             "/.well-known/admin/acme-order/%s.json" % obj_id__4, status=200
@@ -6879,9 +6881,11 @@ class FunctionalTests_AcmeServer(AppTest):
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueCertificates_api_process_html
         """
         res = self.testapp.get(
-            "/.well-known/admin/api/queue-certificates/process.json", status=200
+            "/.well-known/admin/api/queue-certificates/process", status=303
         )
-        # pdb.set_trace()
+        assert res.location.startswith(
+            """http://peter-sslers.example.com/.well-known/admin/queue-certificates?result=success&operation=process&results="""
+        )
 
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @under_pebble
@@ -6891,9 +6895,134 @@ class FunctionalTests_AcmeServer(AppTest):
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueCertificates_api_process_json
         """
         res = self.testapp.get(
-            "/.well-known/admin/api/queue-certificates/process", status=200
+            "/.well-known/admin/api/queue-certificates/process.json", status=200
         )
-        # pdb.set_trace()
+        assert "instructions" in res.json
+        assert res.json["instructions"] == "POST required"
+
+        res = self.testapp.post(
+            "/.well-known/admin/api/queue-certificates/process.json", status=200
+        )
+        assert res.json["result"] == "success"
+        assert "queue_results" in res.json
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:api:domain:autocert|json",))
+    def test_Api_Domain_autocert_json(self):
+        """
+        python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_Api_Domain_autocert_json
+        """
+        res = self.testapp.get(
+            "/.well-known/admin/api/domain/autocert.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "POST required" in res.json["instructions"]
+
+        res = self.testapp.post(
+            "/.well-known/admin/api/domain/autocert.json", {}, status=200
+        )
+        assert "result" in res.json
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
+        assert res.json["domain"] == None
+        assert res.json["server_certificate__latest_single"] == None
+        assert res.json["server_certificate__latest_multi"] == None
+
+        # Test 1 -- autocert a domain we don't know, but want to pass
+        res = self.testapp.post(
+            "/.well-known/admin/api/domain/autocert.json",
+            {"domain_name": "test-domain-autocert-1.example.com"},
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert "domain" in res.json
+        assert "server_certificate__latest_multi" in res.json
+        assert "server_certificate__latest_single" in res.json
+        assert res.json["server_certificate__latest_single"] is not None
+        assert "AcmeOrder" in res.json
+
+        # Test 2 -- autocert that same domain
+        res = self.testapp.post(
+            "/.well-known/admin/api/domain/autocert.json",
+            {"domain_name": "test-domain-autocert-1.example.com"},
+            status=200,
+        )
+        assert res.json["result"] == "success"
+        assert "domain" in res.json
+        assert "server_certificate__latest_multi" in res.json
+        assert "server_certificate__latest_single" in res.json
+        assert res.json["server_certificate__latest_single"] is not None
+        assert "AcmeOrder" not in res.json
+
+        # Test 3 -- blocklist a domain, then try to autocert
+        dbDomainBlocklisted = model_objects.DomainBlocklisted()
+        dbDomainBlocklisted.domain_name = "test-domain-autocert-2.example.com"
+        self.ctx.dbSession.add(dbDomainBlocklisted)
+        self.ctx.dbSession.flush(
+            objects=[dbDomainBlocklisted,]
+        )
+        self.ctx.dbSession.commit()
+        res = self.testapp.post(
+            "/.well-known/admin/api/domain/autocert.json",
+            {"domain_name": "test-domain-autocert-2.example.com"},
+            status=200,
+        )
+        assert "result" in res.json
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form."
+        )
+        assert (
+            res.json["form_errors"]["domain_name"]
+            == "This domain_name has been blocklisted"
+        )
+        assert res.json["domain"] == None
+        assert res.json["server_certificate__latest_single"] == None
+        assert res.json["server_certificate__latest_multi"] == None
+
+        # Test 4 -- autocert an inactive domain
+        # 4.1 add the domain
+        res = self.testapp.get("/.well-known/admin/domain/new", status=200)
+        assert "form-domain-new" in res.forms
+        form = res.forms["form-domain-new"]
+        form["domain_name"] = "test-domain-autocert-3.example.com"
+        res2 = form.submit()
+        assert res2.status_code == 303
+        matched = RE_Domain_new.match(res2.location)
+        assert matched
+        focus_id = matched.groups()[0]
+
+        # 4.2 mark the domain inactve
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/mark" % focus_id, {"action": "inactive"},
+        )
+        assert res.status_code == 303
+        assert res.location.endswith("?result=success&operation=mark&action=inactive")
+
+        # 4.3 autocert
+        res = self.testapp.post(
+            "/.well-known/admin/api/domain/autocert.json",
+            {"domain_name": "test-domain-autocert-3.example.com"},
+            status=200,
+        )
+        assert "result" in res.json
+        assert res.json["result"] == "error"
+        assert "form_errors" in res.json
+        assert (
+            res.json["form_errors"]["Error_Main"]
+            == "There was an error with your form."
+        )
+        assert (
+            res.json["form_errors"]["domain_name"]
+            == "This domain_name has been disabled"
+        )
+        assert res.json["domain"] == None
+        assert res.json["server_certificate__latest_single"] == None
+        assert res.json["server_certificate__latest_multi"] == None
 
 
 class FunctionalTests_API(AppTest):
@@ -6901,9 +7030,10 @@ class FunctionalTests_API(AppTest):
     python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_API
     """
 
-    @tests_routes(("admin:api",))
+    @tests_routes(("admin:api", "admin:api:domain:autocert"))
     def test_passive(self):
         res = self.testapp.get("/.well-known/admin/api", status=200)
+        res = self.testapp.get("/.well-known/admin/api/domain/autocert", status=200)
 
     @tests_routes(("admin:api:domain:enable", "admin:api:domain:disable",))
     def test_domains(self):

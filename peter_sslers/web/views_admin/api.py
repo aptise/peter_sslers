@@ -20,6 +20,7 @@ from ..lib import formhandling
 from ..lib.forms import Form_API_Domain_enable
 from ..lib.forms import Form_API_Domain_disable
 from ..lib.forms import Form_API_Domain_certificate_if_needed
+from ..lib.forms import Form_API_Domain_autocert
 from ..lib import form_utils as form_utils
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
@@ -132,17 +133,15 @@ class ViewAdminApi(Handler):
             )
         )
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
+class ViewAdminApi_Domain(Handler):
     @view_config(route_name="admin:api:domain:enable", renderer="json")
-    def domain_enable(self):
+    def enable(self):
         if self.request.method == "POST":
-            return self._domain_enable__submit()
-        return self._domain_enable__print()
+            return self._enable__submit()
+        return self._enable__print()
 
-    def _domain_enable__print(self):
+    def _enable__print(self):
         return {
             "instructions": """Submit `domain_names` via `POST`""",
             "form_fields": {
@@ -150,7 +149,7 @@ class ViewAdminApi(Handler):
             },
         }
 
-    def _domain_enable__submit(self):
+    def _enable__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_API_Domain_enable, validate_get=False
@@ -176,12 +175,12 @@ class ViewAdminApi(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:domain:disable", renderer="json")
-    def domain_disable(self):
+    def disable(self):
         if self.request.method == "POST":
-            return self._domain_disable__submit()
-        return self._domain_disable__print()
+            return self._disable__submit()
+        return self._disable__print()
 
-    def _domain_disable__print(self):
+    def _disable__print(self):
         return {
             "instructions": """Submit `domain_names` via `POST`""",
             "form_fields": {
@@ -189,7 +188,7 @@ class ViewAdminApi(Handler):
             },
         }
 
-    def _domain_disable__submit(self):
+    def _disable__submit(self):
         try:
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_API_Domain_disable, validate_get=False
@@ -216,18 +215,19 @@ class ViewAdminApi(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:domain:certificate-if-needed", renderer="json")
-    def domain_certificate_if_needed(self):
+    def certificate_if_needed(self):
         self._load_AcmeAccount_GlobalDefault()
         self._load_AcmeAccountProviders()
         if self.request.method == "POST":
-            return self._domain_certificate_if_needed__submit()
-        return self._domain_certificate_if_needed__print()
+            return self._certificate_if_needed__submit()
+        return self._certificate_if_needed__print()
 
-    def _domain_certificate_if_needed__print(self):
+    def _certificate_if_needed__print(self):
         return {
             "instructions": [
-                """POST domain_name for certificates.  curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/api/domain/certificate-if-needed.json"""
-                % self.request.admin_url
+                """POST domain_name for certificates.""",
+                """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/api/domain/certificate-if-needed.json"""
+                % self.request.admin_url,
             ],
             "requirements": [
                 "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
@@ -271,7 +271,7 @@ class ViewAdminApi(Handler):
             },
         }
 
-    def _domain_certificate_if_needed__submit(self):
+    def _certificate_if_needed__submit(self):
         """
         much of this logic is shared with /acme-order/new/freeform
         """
@@ -350,7 +350,6 @@ class ViewAdminApi(Handler):
                     message="Could not load the default private key",
                 )
 
-            # TODO: include an offset of the last domain added, so there isn't a race condition
             processing_strategy = formStash.results["processing_strategy"]
             private_key_cycle__renewal = formStash.results["private_key_cycle__renewal"]
 
@@ -371,10 +370,184 @@ class ViewAdminApi(Handler):
                 message += " " + str(exc)
             return {"result": "error", "form_errors": formStash.errors}
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    @view_config(
+        route_name="admin:api:domain:autocert",
+        renderer="/admin/api-domain-autocert.mako",
+    )
+    def autocert_html(self):
+        self._load_AcmeAccount_GlobalDefault()
+        return {
+            "project": "peter_sslers",
+            "AcmeAccount_GlobalDefault": self.dbAcmeAccount_GlobalDefault,
+        }
+
+    @view_config(route_name="admin:api:domain:autocert|json", renderer="json")
+    def autocert(self):
+        self._load_AcmeAccount_GlobalDefault()
+        if self.request.method == "POST":
+            return self._autocert__submit()
+        return self._autocert__print()
+
+    def _autocert__print(self):
+        return {
+            "instructions": [
+                "POST required",
+                "POST `domain_name` to automatically attempt a certificate provisioning",
+                """curl --form 'domain_name=example.com' %s/api/domain/autocert.json"""
+                % self.request.admin_url,
+                """IMPORTANT: No global AcmeAccount is configured yet."""
+                if not self.dbAcmeAccount_GlobalDefault
+                else """The global AcmeAccount is configured""",
+            ],
+            "form_fields": {
+                "domain_name": "required; a single domain name to process",
+            },
+        }
+
+    def _autocert__submit(self):
+        """
+        much of this logic is shared with /acme-order/new/freeform
+        """
+        try:
+            (result, formStash) = formhandling.form_validate(
+                self.request, schema=Form_API_Domain_autocert, validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            # this function checks the domain names match a simple regex
+            domain_names = utils.domains_from_string(formStash.results["domain_name"])
+            if not domain_names:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_name", message="Found no domain names"
+                )
+            if len(domain_names) != 1:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_name",
+                    message="This endpoint currently supports only 1 domain name",
+                )
+
+            if not self.dbAcmeAccount_GlobalDefault:
+                formStash.fatal_field(
+                    field="AcmeAccount",
+                    message="You must configure a global AcmeAccount.",
+                )
+
+            dbAcmeAccount = self.dbAcmeAccount_GlobalDefault
+            dbPrivateKey = lib_db.get.get__PrivateKey__by_id(
+                self.request.api_context, 0
+            )
+            if not dbPrivateKey:
+                formStash.fatal_field(
+                    field="PrivateKey",
+                    message="Could not load the placeholder PrivateKey.",
+                )
+
+            # Step 1- is the domain_name blocklisted?
+            dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
+                self.request.api_context, domain_names[0],
+            )
+            if dbDomainBlocklisted:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_name",
+                    message="This domain_name has been blocklisted",
+                )
+
+            # does the domain exist?
+            # we should check to see if it does and has certs
+            dbDomain = lib_db.get.get__Domain__by_name(
+                self.request.api_context, domain_names[0],
+            )
+            if dbDomain:
+                if not dbDomain.is_active:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="domain_name",
+                        message="This domain_name has been disabled",
+                    )
+                if dbDomain.has_active_certificates:
+                    # exit early
+                    rval = dbDomain.as_json_config(id_only=False, active_only=True)
+                    rval["result"] = "success"
+                    return rval
+
+            try:
+                dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
+                    self.request.api_context,
+                    acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
+                    domain_names=domain_names,
+                    private_key_cycle__renewal="account_key_default",
+                    private_key_strategy__requested="deferred-associate",
+                    processing_strategy="process_single",
+                    dbAcmeAccount=dbAcmeAccount,
+                    dbPrivateKey=dbPrivateKey,
+                )
+                if dbAcmeOrder.acme_status_order == "valid":
+                    dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]
+                    operations_event = lib_db.actions.operations_update_recents_domain(
+                        self.request.api_context, dbDomain=dbDomain
+                    )
+                    # commit this so the domain will reload
+                    self.request.api_context.pyramid_transaction_commit()
+                    rval = dbDomain.as_json_config(id_only=False, active_only=True)
+                    rval["result"] = "success"
+                    rval["AcmeOrder"] = {
+                        "id": dbAcmeOrder.id,
+                    }
+
+                    # this could be done in a finished-callback?
+                    utils_redis.prime_redis_domain(self.request, dbDomain)
+
+                    return rval
+                rval = {
+                    "result": "error",
+                }
+                rval["domain"] = None
+                rval["server_certificate__latest_single"] = None
+                rval["server_certificate__latest_multi"] = None
+                rval["AcmeOrder"] = {
+                    "id": dbAcmeOrder.id,
+                }
+
+            except Exception as exc:
+
+                # unpack a `errors.AcmeOrderCreatedError` to local vars
+                if isinstance(exc, errors.AcmeOrderCreatedError):
+                    rval = {
+                        "result": "error",
+                    }
+                    dbAcmeOrder = exc.acme_order
+                    rval["AcmeOrder"] = {
+                        "id": dbAcmeOrder.id,
+                    }
+                    exc = exc.original_exception
+                    if isinstance(exc, errors.AcmeError):
+                        rval["error"] = str(exc)
+                    return rval
+
+                # ???: should we raise something better?
+                raise
+
+        except (formhandling.FormInvalid, errors.DisplayableError) as exc:
+            message = "There was an error with your form."
+            if isinstance(exc, errors.DisplayableError):
+                message += " " + str(exc)
+            return {
+                "result": "error",
+                "form_errors": formStash.errors,
+                "domain": None,
+                "server_certificate__latest_single": None,
+                "server_certificate__latest_multi": None,
+            }
+
+
+class ViewAdminApi_Redis(Handler):
     @view_config(route_name="admin:api:redis:prime", renderer=None)
     @view_config(route_name="admin:api:redis:prime|json", renderer="json")
-    def redis_prime(self):
+    def prime(self):
         if self.request.wants_json:
             if self.request.method != "POST":
                 return docs.json_docs_post_only
@@ -555,12 +728,11 @@ class ViewAdminApi(Handler):
             )
         )
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+class ViewAdminApi_Nginx(Handler):
     @view_config(route_name="admin:api:nginx:cache_flush", renderer=None)
     @view_config(route_name="admin:api:nginx:cache_flush|json", renderer="json")
-    def admin_nginx_cache_flush(self):
+    def cache_flush(self):
         # ???: This endpoint will allow JSON GET ?
         self._ensure_nginx()
         success, dbEvent, servers_status = utils_nginx.nginx_flush_cache(
@@ -584,7 +756,7 @@ class ViewAdminApi(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:api:nginx:status|json", renderer="json")
-    def admin_nginx_status(self):
+    def status(self):
         # ???: This endpoint will allow JSON GET ?
         self._ensure_nginx()
         servers_status = utils_nginx.nginx_status(
@@ -592,11 +764,11 @@ class ViewAdminApi(Handler):
         )
         return {"result": "success", "servers_status": servers_status}
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+class ViewAdminApi_QueueCertificate(Handler):
     @view_config(route_name="admin:api:queue_certificates:update", renderer=None)
     @view_config(route_name="admin:api:queue_certificates:update|json", renderer="json")
-    def queue_certificate_update(self):
+    def update(self):
         try:
             if self.request.wants_json:
                 if self.request.method != "POST":
@@ -634,7 +806,7 @@ class ViewAdminApi(Handler):
     @view_config(
         route_name="admin:api:queue_certificates:process|json", renderer="json"
     )
-    def queue_certificate_process(self):
+    def process(self):
         try:
             if self.request.wants_json:
                 if self.request.method != "POST":

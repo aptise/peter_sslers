@@ -30,7 +30,7 @@
                         % if not AcmeAccount_GlobalDefault:
                             Not configured                        
                         % else:
-                            <a href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}" span class="label label-default">
+                            <a href="${admin_prefix}/acme-account/${AcmeAccount_GlobalDefault.id}" span class="label label-info">
                                 AcmeAccount-${AcmeAccount_GlobalDefault.id}
                             </a>
                             <code>${AcmeAccount_GlobalDefault.key_pem_sample}</code>

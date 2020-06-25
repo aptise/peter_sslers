@@ -306,6 +306,10 @@ class Form_API_Domain_disable(_Form_Schema_Base):
     domain_names = UnicodeString(not_empty=True)
 
 
+class Form_API_Domain_autocert(_Form_Schema_Base):
+    domain_name = UnicodeString(not_empty=True)
+
+
 class Form_API_Domain_certificate_if_needed(_form_AcmeAccount_PrivateKey_core):
     domain_name = UnicodeString(not_empty=True)
     processing_strategy = OneOf(

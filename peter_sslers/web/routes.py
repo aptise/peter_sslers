@@ -509,6 +509,8 @@ def _admin_views(config):
         "admin:api:domain:certificate-if-needed", "/api/domain/certificate-if-needed"
     )
     config.add_route_7("admin:api:domain:autocert", "/api/domain/autocert")
+    config.add_route_7("admin:api:domain:autocert|json", "/api/domain/autocert.json")
+
     # -
     config.add_route_7("admin:api:deactivate_expired", "/api/deactivate-expired")
     config.add_route_7(
