@@ -25,6 +25,7 @@ from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
 from ...lib import utils_nginx
+from ...lib import utils_redis
 from ...model import utils as model_utils
 from ...model import objects as model_objects
 
@@ -374,7 +375,7 @@ class View_Focus(Handler):
             id_only=self.request.params.get("id_only", None), active_only=True
         )
         if self.request.params.get("openresty", None):
-            lib.utils_redis.prime_redis_domain(self.request, dbDomain)
+            utils_redis.prime_redis_domain(self.request, dbDomain)
         return rval
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

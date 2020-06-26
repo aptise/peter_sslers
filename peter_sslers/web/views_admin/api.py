@@ -1,3 +1,9 @@
+# logging
+import logging
+
+log = logging.getLogger(__name__)
+
+
 # pyramid
 from pyramid.response import Response
 from pyramid.view import view_config
@@ -409,6 +415,7 @@ class ViewAdminApi_Domain(Handler):
         much of this logic is shared with /acme-order/new/freeform
         """
         try:
+            log.debug("attempting an autocert")
             (result, formStash) = formhandling.form_validate(
                 self.request, schema=Form_API_Domain_autocert, validate_get=False,
             )
@@ -429,6 +436,38 @@ class ViewAdminApi_Domain(Handler):
                     message="This endpoint currently supports only 1 domain name",
                 )
 
+            # does the domain exist?
+            # we should check to see if it does and has certs
+            dbDomain = lib_db.get.get__Domain__by_name(
+                self.request.api_context, domain_names[0],
+            )
+            if dbDomain:
+                log.debug("autocert - domain known")
+                if not dbDomain.is_active:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="domain_name",
+                        message="This domain_name has been disabled",
+                    )
+                if dbDomain.has_active_certificates:
+                    # exit early
+                    rval = dbDomain.as_json_config(id_only=False, active_only=True)
+                    rval["result"] = "success"
+                    log.debug("autocert - domain known - active certs")
+                    return rval
+                log.debug("autocert - domain known - attempt autocert")
+
+            # Step 1- is the domain_name blocklisted?
+            dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
+                self.request.api_context, domain_names[0],
+            )
+            if dbDomainBlocklisted:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_name",
+                    message="This domain_name has been blocklisted",
+                )
+
             if not self.dbAcmeAccount_GlobalDefault:
                 formStash.fatal_field(
                     field="AcmeAccount",
@@ -444,35 +483,6 @@ class ViewAdminApi_Domain(Handler):
                     field="PrivateKey",
                     message="Could not load the placeholder PrivateKey.",
                 )
-
-            # Step 1- is the domain_name blocklisted?
-            dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
-                self.request.api_context, domain_names[0],
-            )
-            if dbDomainBlocklisted:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_name",
-                    message="This domain_name has been blocklisted",
-                )
-
-            # does the domain exist?
-            # we should check to see if it does and has certs
-            dbDomain = lib_db.get.get__Domain__by_name(
-                self.request.api_context, domain_names[0],
-            )
-            if dbDomain:
-                if not dbDomain.is_active:
-                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                    formStash.fatal_field(
-                        field="domain_name",
-                        message="This domain_name has been disabled",
-                    )
-                if dbDomain.has_active_certificates:
-                    # exit early
-                    rval = dbDomain.as_json_config(id_only=False, active_only=True)
-                    rval["result"] = "success"
-                    return rval
 
             try:
                 dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
@@ -501,6 +511,7 @@ class ViewAdminApi_Domain(Handler):
                     # this could be done in a finished-callback?
                     utils_redis.prime_redis_domain(self.request, dbDomain)
 
+                    log.debug("autocert - order valid")
                     return rval
                 rval = {
                     "result": "error",
@@ -511,7 +522,8 @@ class ViewAdminApi_Domain(Handler):
                 rval["AcmeOrder"] = {
                     "id": dbAcmeOrder.id,
                 }
-
+                log.debug("autocert - order invalid")
+                return rval
             except Exception as exc:
 
                 # unpack a `errors.AcmeOrderCreatedError` to local vars
@@ -529,6 +541,7 @@ class ViewAdminApi_Domain(Handler):
                     return rval
 
                 # ???: should we raise something better?
+                log.debug("autocert - order exception")
                 raise
 
         except (formhandling.FormInvalid, errors.DisplayableError) as exc:

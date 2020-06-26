@@ -33,9 +33,10 @@ requires = [
 
 tests_require = [
     "certbot",
-    "cryptography",  # for pyopenssl; temporary until refactored out
+    "cryptography",
     "pycrypto",
     "josepy",
+    "pyramid-debugtoolbar-ajax",
 ]
 
 
