@@ -109,6 +109,12 @@
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     certificate-requests
                     </a></li>
+                <li><a href="${admin_prefix}/domain-autocerts"
+                       title="DomainAutocerts"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    domain-autocerts
+                    </a></li>
             </ul>
 
 

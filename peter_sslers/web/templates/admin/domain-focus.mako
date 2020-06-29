@@ -295,6 +295,15 @@
                             % endif
                         </td>
                     </tr>
+                    <tr>
+                        <th>DomainAutocerts</th>
+                        <td>
+                            ${admin_partials.table_DomainAutocerts(Domain.domain_autocerts__5, perspective="Domain")}
+                            % if Domain.domain_autocerts__5:
+                                ${admin_partials.nav_pager("%s/domain/%s/domain-autocerts" % (admin_prefix, Domain.id))}
+                            % endif
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>

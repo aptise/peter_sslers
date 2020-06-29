@@ -525,6 +525,35 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(
+        route_name="admin:domain:focus:domain_autocerts",
+        renderer="/admin/domain-focus-domain_autocert.mako",
+    )
+    @view_config(
+        route_name="admin:domain:focus:domain_autocerts_paginated",
+        renderer="/admin/domain-focus-domain_autocert.mako",
+    )
+    def related__DomainAutocerts(self):
+        dbDomain = self._focus()
+        items_count = lib_db.get.get__DomainAutocert__by_DomainId__count(
+            self.request.api_context, dbDomain.id
+        )
+        (pager, offset) = self._paginate(
+            items_count, url_template="%s/domain-autocerts/{0}" % self._focus_url
+        )
+        items_paged = lib_db.get.get__DomainAutocert__by_DomainId__paginated(
+            self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
+        )
+        return {
+            "project": "peter_sslers",
+            "Domain": dbDomain,
+            "DomainAutocerts_count": items_count,
+            "DomainAutocerts": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
         route_name="admin:domain:focus:certificate_requests",
         renderer="/admin/domain-focus-certificate_requests.mako",
     )

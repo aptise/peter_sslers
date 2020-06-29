@@ -2519,6 +2519,13 @@ class FunctionalTests_Domain(AppTest):
         )
 
         res = self.testapp.get(
+            "/.well-known/admin/domain/%s/domain-autocerts" % focus_id, status=200
+        )
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/domain-autocerts/1" % focus_id, status=200
+        )
+
+        res = self.testapp.get(
             "/.well-known/admin/domain/%s/certificate-requests" % focus_id, status=200
         )
         res = self.testapp.get(
@@ -2531,6 +2538,7 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/domain/%s/server-certificates/1" % focus_id, status=200
         )
+
         res = self.testapp.get(
             "/.well-known/admin/domain/%s/queue-certificates" % focus_id, status=200
         )
@@ -2863,6 +2871,32 @@ class FunctionalTests_Domain(AppTest):
             status=200,
         )
         assert res.json["result"] == "success"
+
+
+class FunctionalTests_DomainAutocert(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_DomainAutocert
+    """
+
+    @tests_routes(("admin:domain_autocerts", "admin:domain_autocerts_paginated",))
+    def test_list_html(self):
+        # root
+        res = self.testapp.get("/.well-known/admin/domain-autocerts", status=200)
+
+        # paginated
+        res = self.testapp.get("/.well-known/admin/domain-autocerts/1", status=200)
+
+    @tests_routes(
+        ("admin:domain_autocerts|json", "admin:domain_autocerts_paginated|json",)
+    )
+    def test_list_json(self):
+        # json root
+        res = self.testapp.get("/.well-known/admin/domain-autocerts.json", status=200)
+        assert "DomainAutocerts" in res.json
+
+        # json paginated
+        res = self.testapp.get("/.well-known/admin/domain-autocerts/1.json", status=200)
+        assert "DomainAutocerts" in res.json
 
 
 class FunctionalTests_DomainBlocklisted(AppTest):
@@ -7351,7 +7385,7 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
         python -m unittest peter_sslers.tests.pyramid_app_tests.IntegratedTests_AcmeServer.test_AcmeOrder_nocleanup
 
         this test is not focused on routes, but cleaning up an order
-        
+
         must use pebble_strict so there are no reused auths
         """
         try:

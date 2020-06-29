@@ -108,6 +108,18 @@ If there is an error, tests and code should be constructed with the following qu
 please note the order:
 
 	result, error, operation, action
+	
+
+## check nginx routes
+
+sudo curl https://peter:sslers@localhost/.peter_sslers/nginx/shared_cache/status -k 
+sudo curl https://peter:sslers@localhost/.peter_sslers/nginx/shared_cache/expire -k 
+
+the payloads should contain:
+
+	"server": "peter_sslers:openresty"
+
+
 
 ### sample domains - testing suites
 

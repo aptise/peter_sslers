@@ -348,6 +348,34 @@ def update_Domain_enable(
     return True
 
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def update_DomainAutocert_without_AcmeOrder(
+    ctx, dbDomainAutocert,
+):
+    dbDomainAutocert.timestamp_finished = datetime.datetime.utcnow()
+    dbDomainAutocert.is_successful = False
+    ctx.dbSession.flush(objects=[dbDomainAutocert])
+
+
+def update_DomainAutocert_with_AcmeOrder(
+    ctx, dbDomainAutocert, dbAcmeOrder=None,
+):
+    if not dbAcmeOrder:
+        raise errors.InvalidTransition("missing AcmeOrder")
+    dbDomainAutocert.acme_order_id = dbAcmeOrder.id
+    dbDomainAutocert.timestamp_finished = datetime.datetime.utcnow()
+    if dbAcmeOrder.acme_status_order == "valid":
+        dbDomainAutocert.is_successful = True
+    else:
+        dbDomainAutocert.is_successful = False
+    ctx.dbSession.flush(objects=[dbDomainAutocert])
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
 def update_PrivateKey__set_active(ctx, dbPrivateKey):
     if dbPrivateKey.is_active:
         raise errors.InvalidTransition("Already activated.")

@@ -779,6 +779,54 @@
 </%def>
 
 
+<%def name="table_DomainAutocerts(domain_autocerts, perspective=None)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>domain</th>
+                <th>timestamp_created</th>
+                <th>timestamp_finished</th>
+                <th>is_successful</th>
+                <th>acme order</th>
+            </tr>
+        </thead>
+        <tbody>
+        % for item in domain_autocerts:
+            <tr>
+                <td>
+                    <a class="label label-info" href="${admin_prefix}/domain-autocert/${item.id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        DomainAutocert-${item.id}</a>
+                </td>
+                <td>
+                    <a class="label label-info" href="${admin_prefix}/domain/${item.domain_id}">
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        ${item.domain.domain_name}</a>
+                </td>
+                <td><timestamp>${item.timestamp_created}</timestamp></td>
+                <td><timestamp>${item.timestamp_finished}</timestamp></td>
+                <td>
+                    % if item.is_successful is True:
+                        <span class="label label-success">Success</span>
+                    % elif item.is_successful is False:
+                        <span class="label label-warning">Failure</span>
+                    % endif
+                </td>
+                <td>
+                    % if item.acme_order_id:
+                        <a class="label label-info" href="${admin_prefix}/acme-order/${item.acme_order_id}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            ${item.domain.domain_name}</a>
+                    % endif
+                </td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
+</%def>
+
+
 <%def name="table_OperationsEvents(OperationsEvents, show_event=None, event_type_listable=None)">
     <%
         event_id = None

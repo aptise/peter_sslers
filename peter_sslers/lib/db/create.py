@@ -87,7 +87,9 @@ def create__AcmeOrderless(
     domain_objects = {
         _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
             ctx, _domain_name
-        )[0]
+        )[
+            0
+        ]  # (dbDomain, _is_created)
         for _domain_name in domain_names
     }
 
@@ -573,7 +575,9 @@ def create__CertificateRequest(
     domain_objects = {
         _domain_name: lib.db.getcreate.getcreate__Domain__by_domainName(
             ctx, _domain_name
-        )[0]
+        )[
+            0
+        ]  # (dbDomain, _is_created)
         for _domain_name in domain_names
     }
     # we'll use this tuple in a bit...
@@ -714,6 +718,26 @@ def create__CoverageAssuranceEvent(
     ctx.dbSession.flush(objects=[dbCoverageAssuranceEvent])
 
     return dbCoverageAssuranceEvent
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def create__DomainAutocert(
+    ctx, dbDomain=None,
+):
+    """
+    Generates a new :class:`model.objects.DomainAutocert` for the datastore
+
+    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
+    :param dbDomain: (required) an instance of :class:`model.objects.Domain`
+    """
+    dbDomainAutocert = model_objects.DomainAutocert()
+    dbDomainAutocert.domain_id = dbDomain.id
+    dbDomainAutocert.timestamp_created = datetime.datetime.utcnow()
+    ctx.dbSession.add(dbDomainAutocert)
+    ctx.dbSession.flush(objects=[dbDomainAutocert])
+    return dbDomainAutocert
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

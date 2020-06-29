@@ -2098,6 +2098,12 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         uselist=True,
         back_populates="domain",
     )
+    domain_autocerts = sa_orm_relationship(
+        "DomainAutocert",
+        primaryjoin="Domain.id==DomainAutocert.domain_id",
+        uselist=True,
+        back_populates="domain",
+    )
     operations_object_events = sa_orm_relationship(
         "OperationsObjectEvent",
         primaryjoin="Domain.id==OperationsObjectEvent.domain_id",
@@ -2197,6 +2203,51 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
                     "server_certificate__latest_multi"
                 ] = self.server_certificate__latest_multi.config_payload
         return rval
+
+
+# ==============================================================================
+
+
+class DomainAutocert(Base, _Mixin_Timestamps_Pretty):
+    """
+    Track autocerts of a domain specifically, because the process should 'block'
+    """
+
+    __tablename__ = "domain_autocert"
+    id = sa.Column(sa.Integer, primary_key=True)
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    timestamp_finished = sa.Column(sa.DateTime, nullable=True)
+    is_successful = sa.Column(sa.Boolean, nullable=True, default=None)
+    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_order = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="DomainAutocert.acme_order_id==AcmeOrder.id",
+        uselist=False,
+        # no back_populates
+    )
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="DomainAutocert.domain_id==Domain.id",
+        uselist=False,
+        back_populates="domain_autocerts",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        payload = {
+            "id": self.id,
+            "Domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,},
+            "timestamp_created": self.timestamp_created_isoformat,
+            "timestamp_finished": self.timestamp_finished_isoformat,
+            "is_successful": self.is_successful,
+            "AcmeOrder": {"id": self.acme_order_id} if self.acme_order_id else None,
+        }
 
 
 # ==============================================================================
@@ -3867,6 +3918,25 @@ Domain.acme_orderlesss__5 = sa_orm_relationship(
     viewonly=True,
 )
 
+
+# note: Domain.domain_autocerts__5
+Domain.domain_autocerts__5 = sa_orm_relationship(
+    DomainAutocert,
+    primaryjoin=(
+        sa.and_(
+            Domain.id == DomainAutocert.domain_id,
+            DomainAutocert.id.in_(
+                sa.select([DomainAutocert.id])
+                .where(DomainAutocert.domain_id == Domain.id)
+                .order_by(DomainAutocert.id.desc())
+                .limit(5)
+                .correlate()
+            ),
+        )
+    ),
+    order_by=DomainAutocert.id.desc(),
+    viewonly=True,
+)
 
 # note: Domain.certificate_requests__5
 # returns an object with a `certificate` on it

@@ -74,6 +74,7 @@
 		- just accepts a single domain,
 		- run the entire ACME process using the global account key in a single request
 		- returns an openresty config payload
+- autocert support
 
 0.4.0
 unreleased (2020-01-23)

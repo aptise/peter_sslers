@@ -739,7 +739,14 @@ def _admin_views(config):
         "admin:domain:focus:acme_orderlesss_paginated",
         "/domain/{domain_identifier}/acme-orderlesss/{@page}",
     )
-
+    config.add_route_7(
+        "admin:domain:focus:domain_autocerts",
+        "/domain/{domain_identifier}/domain-autocerts",
+    )
+    config.add_route_7(
+        "admin:domain:focus:domain_autocerts_paginated",
+        "/domain/{domain_identifier}/domain-autocerts/{@page}",
+    )
     config.add_route_7(
         "admin:domain:focus:server_certificates",
         "/domain/{domain_identifier}/server-certificates",
@@ -799,6 +806,14 @@ def _admin_views(config):
     config.add_route_7(
         "admin:domain:focus:acme_dns_server:new|json",
         "/domain/{domain_identifier}/acme-dns-server/new.json",
+    )
+
+    # !!!: DomainBlocklist
+    config.add_route_7("admin:domain_autocerts", "/domain-autocerts")
+    config.add_route_7("admin:domain_autocerts|json", "/domain-autocerts.json")
+    config.add_route_7("admin:domain_autocerts_paginated", "/domain-autocerts/{@page}")
+    config.add_route_7(
+        "admin:domain_autocerts_paginated|json", "/domain-autocerts/{@page}.json"
     )
 
     # !!!: DomainBlocklist

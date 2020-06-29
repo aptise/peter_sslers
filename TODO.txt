@@ -14,12 +14,14 @@ Audit/Remove "todo" markers
 asap tasks
 ---------------
 
-autocert-
-	need to integrate a dogpile lock
-
 TESTS:
 	AcmeAccount
 		submit a different key for an existing contact
+	
+	api/domain/autocert
+		test against different strategies
+		- dogpile defense
+		- repeat request, correct data
 
 EDIT:
 	AcmeOrder:

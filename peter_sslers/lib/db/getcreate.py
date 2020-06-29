@@ -1209,7 +1209,9 @@ def getcreate__UniqueFQDNSet__by_domains(
 
     # ensure the domains are registered into our system
     domain_objects = {
-        _domain_name: getcreate__Domain__by_domainName(ctx, _domain_name)[0]
+        _domain_name: getcreate__Domain__by_domainName(ctx, _domain_name)[
+            0
+        ]  # (dbDomain, _is_created)
         for _domain_name in domain_names
     }
     # we'll use this tuple in a bit...

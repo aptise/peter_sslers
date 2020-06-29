@@ -414,6 +414,9 @@ class ViewAdminApi_Domain(Handler):
         """
         much of this logic is shared with /acme-order/new/freeform
         """
+        # scoping
+        dbDomainAutocert = None
+        dbAcmeOrder = None
         try:
             log.debug("attempting an autocert")
             (result, formStash) = formhandling.form_validate(
@@ -455,6 +458,21 @@ class ViewAdminApi_Domain(Handler):
                     rval["result"] = "success"
                     log.debug("autocert - domain known - active certs")
                     return rval
+                else:
+                    # sync the database, just be sure
+                    operations_event = lib_db.actions.operations_update_recents_domain(
+                        self.request.api_context, dbDomain=dbDomain
+                    )
+                    # commit so we expire the traits
+                    self.request.api_context.pyramid_transaction_commit()
+                    # and check again...
+                    if dbDomain.has_active_certificates:
+                        # exit early
+                        rval = dbDomain.as_json_config(id_only=False, active_only=True)
+                        rval["result"] = "success"
+                        log.debug("autocert - domain known - active certs")
+                        return rval
+
                 log.debug("autocert - domain known - attempt autocert")
 
             # Step 1- is the domain_name blocklisted?
@@ -467,6 +485,17 @@ class ViewAdminApi_Domain(Handler):
                     field="domain_name",
                     message="This domain_name has been blocklisted",
                 )
+
+            if dbDomain:
+                dbDomainAutocert = lib_db.get.get__DomainAutocert__by_blockingDomainId(
+                    self.request.api_context, dbDomain.id,
+                )
+                if dbDomainAutocert:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="domain_name",
+                        message="There is an active or recent autocert attempt for this domain",
+                    )
 
             if not self.dbAcmeAccount_GlobalDefault:
                 formStash.fatal_field(
@@ -485,6 +514,19 @@ class ViewAdminApi_Domain(Handler):
                 )
 
             try:
+                if not dbDomain:
+                    # we need to start with a domain name in order to create the Autocert block
+                    dbDomain = lib_db.getcreate.getcreate__Domain__by_domainName(
+                        self.request.api_context, domain_names[0]
+                    )[
+                        0
+                    ]  # (dbDomain, _is_created)
+                    self.request.api_context.pyramid_transaction_commit()
+
+                dbDomainAutocert = lib_db.create.create__DomainAutocert(
+                    self.request.api_context, dbDomain=dbDomain,
+                )
+
                 dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
@@ -500,6 +542,7 @@ class ViewAdminApi_Domain(Handler):
                     operations_event = lib_db.actions.operations_update_recents_domain(
                         self.request.api_context, dbDomain=dbDomain
                     )
+
                     # commit this so the domain will reload
                     self.request.api_context.pyramid_transaction_commit()
                     rval = dbDomain.as_json_config(id_only=False, active_only=True)
@@ -538,6 +581,7 @@ class ViewAdminApi_Domain(Handler):
                     exc = exc.original_exception
                     if isinstance(exc, errors.AcmeError):
                         rval["error"] = str(exc)
+
                     return rval
 
                 # ???: should we raise something better?
@@ -555,6 +599,21 @@ class ViewAdminApi_Domain(Handler):
                 "server_certificate__latest_single": None,
                 "server_certificate__latest_multi": None,
             }
+
+        finally:
+            if dbDomainAutocert:
+                if dbAcmeOrder:
+                    # could be success or fail
+                    lib_db.update.update_DomainAutocert_with_AcmeOrder(
+                        self.request.api_context,
+                        dbDomainAutocert,
+                        dbAcmeOrder=dbAcmeOrder,
+                    )
+                else:
+                    # this is a fail
+                    lib_db.update.update_DomainAutocert_without_AcmeOrder(
+                        self.request.api_context, dbDomainAutocert,
+                    )
 
 
 class ViewAdminApi_Redis(Handler):

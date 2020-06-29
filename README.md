@@ -217,6 +217,15 @@ The current library prioritizes doing the work in Python, and will fallback to O
 An extended test suite ensures the primary and fallback systems work.
 
 
+## "autocert" functionality
+
+The system has two endpoints that can quickly provide single domain certificates
+
+* `/api/domain/certificate-if-needed` will instantiate a certificate request if needed, or serve existing data. this is designed for programmatic access and offers full control.
+
+* `/api/domain/autocert` will instantiate a certificate request if needed, or serve existing data. this is designed for automatically handling the certificate process from nginx, has some throttle protections, and relies on system default values
+
+
 ## Certificates and Certificate Requests
 
 This handles several types of certificate requests
