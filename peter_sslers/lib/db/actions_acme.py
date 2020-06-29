@@ -1671,16 +1671,17 @@ def _do__AcmeV2_AcmeOrder__core(
         ) = lib.db.getcreate.getcreate__UniqueFQDNSet__by_domains(ctx, domain_names)
         ctx.pyramid_transaction_commit()
 
-    # check each domain for an existing active challenge
-    active_challenges = []
-    for to_domain in dbUniqueFQDNSet.to_domains:
-        _active_challenges = lib.db.get.get__AcmeChallenge__by_DomainId__active(
-            ctx, to_domain.domain_id
-        )
-        if _active_challenges:
-            active_challenges.extend(_active_challenges)
-    if active_challenges:
-        raise errors.AcmeDuplicateChallengesExisting(active_challenges)
+    if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
+        # check each domain for an existing active challenge
+        active_challenges = []
+        for to_domain in dbUniqueFQDNSet.to_domains:
+            _active_challenges = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+                ctx, to_domain.domain_id
+            )
+            if _active_challenges:
+                active_challenges.extend(_active_challenges)
+        if active_challenges:
+            raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
     tmpfiles = []
     dbAcmeOrder = None

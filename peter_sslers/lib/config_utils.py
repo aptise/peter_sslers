@@ -12,6 +12,7 @@ class ApplicationSettings(dict):
         for _opt in (
             "admin_prefix",
             "api_host",
+            "block_competing_challenges",
             "certificate_authorities_enable",
             "certificate_authority_directory",
             "certificate_authority_protocol",
@@ -77,6 +78,9 @@ class ApplicationSettings(dict):
 
         # enable/disable the acme-flow system
         self["enable_acme_flow"] = set_bool_setting(settings, "enable_acme_flow")
+
+        # should challenges block?
+        self["block_competing_challenges"] = set_bool_setting(settings, "block_competing_challenges", default=True)
 
         # Queue Domains Config
         self["queue_domains_max_per_cert"] = set_int_setting(

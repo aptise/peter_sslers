@@ -93,16 +93,17 @@ def create__AcmeOrderless(
         for _domain_name in domain_names
     }
 
-    active_challenges = []
-    for (domain_name, dbDomain) in domain_objects.items():
-        # error out on ANY acme_challenge_type_id
-        _active_challenges = lib.db.get.get__AcmeChallenge__by_DomainId__active(
-            ctx, dbDomain.id
-        )
-        if _active_challenges:
-            active_challenges.append(_active_challenges)
-    if active_challenges:
-        raise errors.AcmeDuplicateChallengesExisting(active_challenges)
+    if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
+        active_challenges = []
+        for (domain_name, dbDomain) in domain_objects.items():
+            # error out on ANY acme_challenge_type_id
+            _active_challenges = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+                ctx, dbDomain.id
+            )
+            if _active_challenges:
+                active_challenges.append(_active_challenges)
+        if active_challenges:
+            raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
     dbAcmeOrderless = model_objects.AcmeOrderless()
     dbAcmeOrderless.is_processing = True
@@ -337,14 +338,16 @@ def create__AcmeChallenge(
     if acme_challenge_type_id not in model_utils.AcmeChallengeType._mapping:
         raise ValueError("invalid `acme_challenge_type_id`")
 
-    _active_challenge = lib.db.get.get__AcmeChallenge__by_DomainId__active(
-        ctx, dbDomain.id, acme_challenge_type_id=acme_challenge_type_id,
-    )
-    if _active_challenge:
-        if not is_via_sync:
-            raise errors.AcmeDuplicateChallenge(_active_challenge)
-        else:
-            print("need to handle this")
+    if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
+        _active_challenge = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+            ctx, dbDomain.id, acme_challenge_type_id=acme_challenge_type_id,
+        )
+        if _active_challenge:
+            if not is_via_sync:
+                raise errors.AcmeDuplicateChallenge(_active_challenge)
+            else:
+                # TODO: edge case
+                raise ValueError("need to handle edge case")
 
     dbAcmeChallenge = model_objects.AcmeChallenge()
     if dbAcmeOrderless:

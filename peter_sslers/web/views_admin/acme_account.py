@@ -345,10 +345,15 @@ class View_Focus(Handler):
     def focus_parse_json(self):
         dbAcmeAccount = self._focus()
         return {
-            "%s"
-            % dbAcmeAccount.id: cert_utils.parse_key(
-                key_pem=dbAcmeAccount.acme_account_key.key_pem
-            )
+            "AcmeAccount": {
+                "id": dbAcmeAccount.id,
+                "AcmeAccountKey": {
+                    "id": dbAcmeAccount.acme_account_key.id if dbAcmeAccount.acme_account_key else None,
+                    "parsed": cert_utils.parse_key(
+                        key_pem=dbAcmeAccount.acme_account_key.key_pem
+                    ) if dbAcmeAccount.acme_account_key else None,
+                }
+            }
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -357,10 +362,12 @@ class View_Focus(Handler):
     def focus_config_json(self):
         dbAcmeAccount = self._focus()
         return {
-            "id": dbAcmeAccount.id,
-            "is_active": dbAcmeAccount.is_active,
-            "is_global_default": dbAcmeAccount.is_global_default,
-            "private_key_cycle": dbAcmeAccount.private_key_cycle,
+            "AcmeAccount": {
+                "id": dbAcmeAccount.id,
+                "is_active": dbAcmeAccount.is_active,
+                "is_global_default": dbAcmeAccount.is_global_default,
+                "private_key_cycle": dbAcmeAccount.private_key_cycle,
+            },
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

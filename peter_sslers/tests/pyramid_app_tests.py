@@ -343,22 +343,35 @@ class FunctionalTests_AcmeAccount(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/config.json" % focus_id, status=200
         )
-        assert "domain" in res.json
-        assert "server_certificate__latest_single" in res.json
-        assert "server_certificate__latest_multi" in res.json
+        assert "AcmeAccount" in res.json
+        assert res.json["AcmeAccount"]["id"] == focus_id
+        assert 'is_active' in res.json["AcmeAccount"]
+        assert 'private_key_cycle' in res.json["AcmeAccount"]
+        assert 'id' in res.json["AcmeAccount"]
+        assert 'is_global_default' in res.json["AcmeAccount"]
 
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/parse.json" % focus_id, status=200
         )
+        assert "AcmeAccount" in res.json
+        assert res.json["AcmeAccount"]["id"] == focus_id
+        assert "AcmeAccountKey" in res.json["AcmeAccount"]
+        assert "id" in res.json["AcmeAccount"]["AcmeAccountKey"]
+        assert "parsed" in res.json["AcmeAccount"]["AcmeAccountKey"]
 
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/acme-authorizations.json" % focus_id,
             status=200,
         )
+        assert "AcmeAuthorizations" in res.json
+        assert "pagination" in res.json
+
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/acme-authorizations/1.json" % focus_id,
             status=200,
         )
+        assert "AcmeAuthorizations" in res.json
+        assert "pagination" in res.json
 
     @tests_routes("admin:acme_account:focus:raw")
     def test_focus_raw(self):
@@ -2475,6 +2488,8 @@ class FunctionalTests_Domain(AppTest):
             "admin:domain:focus:acme_orderlesss_paginated",
             "admin:domain:focus:certificate_requests",
             "admin:domain:focus:certificate_requests_paginated",
+            'admin:domain:focus:domain_autocerts',
+            'admin:domain:focus:domain_autocerts_paginated',
             "admin:domain:focus:server_certificates",
             "admin:domain:focus:server_certificates_paginated",
             "admin:domain:focus:queue_certificates",

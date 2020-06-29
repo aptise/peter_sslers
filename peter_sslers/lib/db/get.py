@@ -1411,98 +1411,6 @@ def get__Domain__by_name(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__DomainBlocklisted__by_name(ctx, domain_name):
-    q = ctx.dbSession.query(model_objects.DomainBlocklisted).filter(
-        sqlalchemy.func.lower(model_objects.DomainBlocklisted.domain_name)
-        == sqlalchemy.func.lower(domain_name)
-    )
-    item = q.first()
-    return item
-
-
-def get__DomainBlocklisted__count(ctx):
-    q = ctx.dbSession.query(model_objects.DomainBlocklisted)
-    counted = q.count()
-    return counted
-
-
-def get__DomainBlocklisted__paginated(
-    ctx, limit=None, offset=0,
-):
-    q = (
-        ctx.dbSession.query(model_objects.DomainBlocklisted)
-        .order_by(
-            sqlalchemy.func.lower(model_objects.DomainBlocklisted.domain_name).asc()
-        )
-        .limit(limit)
-        .offset(offset)
-    )
-    items_paged = q.all()
-    return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-def get__DomainAutocert__by_blockingDomainId(ctx, domain_id):
-    # block autocerts on a domain if active or within the past 10 minutes
-    q = ctx.dbSession.query(model_objects.DomainAutocert).filter(
-        model_objects.DomainAutocert.id == domain_id,
-        sqlalchemy.or_(
-            model_objects.DomainAutocert.is_successful.op("IS")(None),
-            sqlalchemy.and_(
-                model_objects.DomainAutocert.is_successful.op("IS NOT")(None),
-                model_objects.DomainAutocert.timestamp_created
-                <= (ctx.timestamp - datetime.timedelta(minutes=10)),
-            ),
-        ),
-    )
-    return q.first()
-
-
-def get__DomainAutocert__count(ctx):
-    q = ctx.dbSession.query(model_objects.DomainAutocert)
-    counted = q.count()
-    return counted
-
-
-def get__DomainAutocert__paginated(
-    ctx, limit=None, offset=0,
-):
-    q = (
-        ctx.dbSession.query(model_objects.DomainAutocert)
-        .order_by(model_objects.DomainAutocert.id.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    items_paged = q.all()
-    return items_paged
-
-
-def get__DomainAutocert__by_DomainId__count(ctx, domain_id):
-    counted = (
-        ctx.dbSession.query(model_objects.DomainAutocert)
-        .filter(model_objects.DomainAutocert.domain_id == domain_id)
-        .count()
-    )
-    return counted
-
-
-def get__DomainAutocert__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
-    items_paged = (
-        ctx.dbSession.query(model_objects.DomainAutocert)
-        .filter(model_objects.DomainAutocert.domain_id == domain_id)
-        .order_by(model_objects.DomainAutocert.id.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
-    )
-    return items_paged
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
 def _get__Domains_challenged__core(ctx):
     """
     AcmeStatus Codes
@@ -1589,6 +1497,98 @@ def get__Domains_challenged__paginated(
     q = _get__Domains_challenged__core(ctx)
     q = q.order_by(sqlalchemy.func.lower(model_objects.Domain.domain_name).asc())
     q = q.limit(limit).offset(offset)
+    items_paged = q.all()
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__DomainAutocert__by_blockingDomainId(ctx, domain_id):
+    # block autocerts on a domain if active or within the past 10 minutes
+    q = ctx.dbSession.query(model_objects.DomainAutocert).filter(
+        model_objects.DomainAutocert.id == domain_id,
+        sqlalchemy.or_(
+            model_objects.DomainAutocert.is_successful.op("IS")(None),
+            sqlalchemy.and_(
+                model_objects.DomainAutocert.is_successful.op("IS NOT")(None),
+                model_objects.DomainAutocert.timestamp_created
+                <= (ctx.timestamp - datetime.timedelta(minutes=10)),
+            ),
+        ),
+    )
+    return q.first()
+
+
+def get__DomainAutocert__count(ctx):
+    q = ctx.dbSession.query(model_objects.DomainAutocert)
+    counted = q.count()
+    return counted
+
+
+def get__DomainAutocert__paginated(
+    ctx, limit=None, offset=0,
+):
+    q = (
+        ctx.dbSession.query(model_objects.DomainAutocert)
+        .order_by(model_objects.DomainAutocert.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items_paged = q.all()
+    return items_paged
+
+
+def get__DomainAutocert__by_DomainId__count(ctx, domain_id):
+    counted = (
+        ctx.dbSession.query(model_objects.DomainAutocert)
+        .filter(model_objects.DomainAutocert.domain_id == domain_id)
+        .count()
+    )
+    return counted
+
+
+def get__DomainAutocert__by_DomainId__paginated(ctx, domain_id, limit=None, offset=0):
+    items_paged = (
+        ctx.dbSession.query(model_objects.DomainAutocert)
+        .filter(model_objects.DomainAutocert.domain_id == domain_id)
+        .order_by(model_objects.DomainAutocert.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+def get__DomainBlocklisted__by_name(ctx, domain_name):
+    q = ctx.dbSession.query(model_objects.DomainBlocklisted).filter(
+        sqlalchemy.func.lower(model_objects.DomainBlocklisted.domain_name)
+        == sqlalchemy.func.lower(domain_name)
+    )
+    item = q.first()
+    return item
+
+
+def get__DomainBlocklisted__count(ctx):
+    q = ctx.dbSession.query(model_objects.DomainBlocklisted)
+    counted = q.count()
+    return counted
+
+
+def get__DomainBlocklisted__paginated(
+    ctx, limit=None, offset=0,
+):
+    q = (
+        ctx.dbSession.query(model_objects.DomainBlocklisted)
+        .order_by(
+            sqlalchemy.func.lower(model_objects.DomainBlocklisted.domain_name).asc()
+        )
+        .limit(limit)
+        .offset(offset)
+    )
     items_paged = q.all()
     return items_paged
 

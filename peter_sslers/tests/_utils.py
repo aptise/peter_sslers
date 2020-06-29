@@ -1080,6 +1080,8 @@ class AppTest(AppTestCore):
                 dbSession=dbSession_factory(),
                 timestamp=datetime.datetime.utcnow(),
             )
+            # merge in the settings
+            self._ctx.request.registry.settings = self.testapp.app.registry.settings
         return self._ctx
 
 
