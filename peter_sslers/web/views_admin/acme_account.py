@@ -14,7 +14,6 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
-from ..lib import text as lib_text
 from ..lib.forms import Form_AcmeAccount_new__auth
 from ..lib.forms import Form_AcmeAccount_new__file
 from ..lib.forms import Form_AcmeAccount_mark
@@ -348,11 +347,15 @@ class View_Focus(Handler):
             "AcmeAccount": {
                 "id": dbAcmeAccount.id,
                 "AcmeAccountKey": {
-                    "id": dbAcmeAccount.acme_account_key.id if dbAcmeAccount.acme_account_key else None,
+                    "id": dbAcmeAccount.acme_account_key.id
+                    if dbAcmeAccount.acme_account_key
+                    else None,
                     "parsed": cert_utils.parse_key(
                         key_pem=dbAcmeAccount.acme_account_key.key_pem
-                    ) if dbAcmeAccount.acme_account_key else None,
-                }
+                    )
+                    if dbAcmeAccount.acme_account_key
+                    else None,
+                },
             }
         }
 

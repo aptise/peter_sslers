@@ -14,7 +14,6 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
-from ..lib import text as lib_text
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import cert_utils

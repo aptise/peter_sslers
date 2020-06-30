@@ -5,7 +5,6 @@ from pyramid.httpexceptions import HTTPFound
 import pypages
 
 # localapp
-from . import text
 from ...lib import db
 
 

@@ -14,7 +14,6 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
-from ..lib import text as lib_text
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_new
 from ..lib.forms import Form_Domain_search

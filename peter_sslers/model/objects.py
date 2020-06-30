@@ -51,6 +51,30 @@ class _Mixin_Timestamps_Pretty(object):
         return None
 
     @property
+    def timestamp_finalized_isoformat(self):
+        if self.timestamp_finalized:
+            return self.timestamp_finalized.isoformat()
+        return None
+
+    @property
+    def timestamp_finished_isoformat(self):
+        if self.timestamp_finished:
+            return self.timestamp_finished.isoformat()
+        return None
+
+    @property
+    def timestamp_not_after_isoformat(self):
+        if self.timestamp_not_after:
+            return self.timestamp_not_after.isoformat()
+        return None
+
+    @property
+    def timestamp_not_before_isoformat(self):
+        if self.timestamp_not_before:
+            return self.timestamp_not_before.isoformat()
+        return None
+
+    @property
     def timestamp_polled_isoformat(self):
         if self.timestamp_polled:
             return self.timestamp_polled.isoformat()
@@ -69,33 +93,15 @@ class _Mixin_Timestamps_Pretty(object):
         return None
 
     @property
-    def timestamp_finalized_isoformat(self):
-        if self.timestamp_finalized:
-            return self.timestamp_finalized.isoformat()
-        return None
-
-    @property
-    def timestamp_updated_isoformat(self):
-        if self.timestamp_updated:
-            return self.timestamp_updated.isoformat()
-        return None
-
-    @property
     def timestamp_revoked_upstream_isoformat(self):
         if self.timestamp_revoked_upstream:
             return self.timestamp_revoked_upstream.isoformat()
         return None
 
     @property
-    def timestamp_not_after_isoformat(self):
-        if self.timestamp_not_after:
-            return self.timestamp_not_after.isoformat()
-        return None
-
-    @property
-    def timestamp_not_before_isoformat(self):
-        if self.timestamp_not_before:
-            return self.timestamp_not_before.isoformat()
+    def timestamp_updated_isoformat(self):
+        if self.timestamp_updated:
+            return self.timestamp_updated.isoformat()
         return None
 
 
@@ -511,7 +517,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
 
     # testing
     acme_order_id__created = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=False
+        sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=False,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -772,11 +778,11 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     # our challenge will either be from:
     # 1) an `AcmeOrder`->`AcmeAuthorization`
     acme_authorization_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True
+        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True,
     )
     # 2) an `AcmeOrderless`
     acme_orderless_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_orderless.id"), nullable=True
+        sa.Integer, sa.ForeignKey("acme_orderless.id"), nullable=True,
     )
 
     # `AcmeOrderless` requires a domain; duplicating this for `AcmeOrder` is fine
@@ -1126,20 +1132,28 @@ class AcmeEventLog(Base, _Mixin_Timestamps_Pretty):
     timestamp_event = sa.Column(sa.DateTime, nullable=False)
     acme_event_id = sa.Column(sa.Integer, nullable=False)  # AcmeEvent
     acme_account_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_account.id"), nullable=True
+        sa.Integer, sa.ForeignKey("acme_account.id", use_alter=True), nullable=True
     )
     acme_authorization_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_authorization.id"), nullable=True
+        sa.Integer,
+        sa.ForeignKey("acme_authorization.id", use_alter=True),
+        nullable=True,
     )
     acme_challenge_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=True
+        sa.Integer, sa.ForeignKey("acme_challenge.id", use_alter=True), nullable=True
     )
-    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
+    acme_order_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=True
+    )
     certificate_request_id = sa.Column(
-        sa.Integer, sa.ForeignKey("certificate_request.id"), nullable=True
+        sa.Integer,
+        sa.ForeignKey("certificate_request.id", use_alter=True),
+        nullable=True,
     )
     server_certificate_id = sa.Column(
-        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=True
+        sa.Integer,
+        sa.ForeignKey("server_certificate.id", use_alter=True),
+        nullable=True,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

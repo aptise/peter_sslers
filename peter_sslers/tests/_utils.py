@@ -677,6 +677,8 @@ class AppTest(AppTestCore):
                 _dbServerCertificate_1 = None
                 _dbServerCertificate_2 = None
                 _dbServerCertificate_3 = None
+                _dbServerCertificate_4 = None
+                _dbServerCertificate_5 = None
                 _dbPrivateKey_1 = None
                 _dbUniqueFQDNSet_1 = None
                 for _id in TEST_FILES["ServerCertificates"]["SelfSigned"].keys():
@@ -754,6 +756,10 @@ class AppTest(AppTestCore):
                         _dbServerCertificate_2 = _dbServerCertificate
                     elif _id == "3":
                         _dbServerCertificate_3 = _dbServerCertificate
+                    elif _id == "4":
+                        _dbServerCertificate_4 = _dbServerCertificate
+                    elif _id == "5":
+                        _dbServerCertificate_5 = _dbServerCertificate
 
                 # note: pre-populate ServerCertificate 6-10
                 for _id in TEST_FILES["ServerCertificates"]["Pebble"].keys():
@@ -875,7 +881,7 @@ class AppTest(AppTestCore):
                 )
                 # self.ctx.pyramid_transaction_commit()
 
-                # we need at least 3 of these
+                # we need at least 4 of these
                 _dbQueue2 = db.create.create__QueueCertificate(
                     self.ctx,
                     dbAcmeAccount=_dbAcmeAccount_1,
@@ -891,6 +897,16 @@ class AppTest(AppTestCore):
                     dbAcmeAccount=_dbAcmeAccount_1,
                     dbPrivateKey=_dbPrivateKey_1,
                     dbServerCertificate=_dbServerCertificate_3,
+                    private_key_cycle_id__renewal=1,  # "single_certificate"
+                    private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
+                        "specified"
+                    ),
+                )
+                _dbQueue4 = db.create.create__QueueCertificate(
+                    self.ctx,
+                    dbAcmeAccount=_dbAcmeAccount_1,
+                    dbPrivateKey=_dbPrivateKey_1,
+                    dbServerCertificate=_dbServerCertificate_4,
                     private_key_cycle_id__renewal=1,  # "single_certificate"
                     private_key_strategy_id__requested=model_utils.PrivateKeyStrategy.from_string(
                         "specified"

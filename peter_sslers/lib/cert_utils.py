@@ -263,6 +263,7 @@ def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker
             ) as proc:
                 csr_text, err = proc.communicate()
                 if err:
+                    pdb.set_trace()
                     raise errors.OpenSslError_CsrGeneration("could not create a CSR")
                 if six.PY3:
                     csr_text = csr_text.decode("utf8")
@@ -359,8 +360,8 @@ def parse_csr_domains(csr_pem=None, csr_pem_filepath=None, submitted_domain_name
             out, err = proc.communicate()
             if proc.returncode != 0:
                 raise IOError("Error loading {0}: {1}".format(csr_pem_filepath, err))
-        if six.PY3:
-            out = out.decode("utf8")
+            if six.PY3:
+                out = out.decode("utf8")
 
         # parse the sans first, then add the commonname
         found_domains = san_domains_from_text(out)
@@ -550,7 +551,11 @@ def modulus_md5_key(key_pem=None, key_pem_filepath=None):
             stderr=subprocess.PIPE,
         ) as proc_modulus:
             data, err = proc_modulus.communicate()
+            if six.PY3:
+                data = data.decode("utf8")
             data = _cleanup_openssl_modulus(data)
+    if six.PY3:
+        data = data.encode()
     data = hashlib.md5(data).hexdigest()
     return data
 
@@ -579,7 +584,11 @@ def modulus_md5_csr(csr_pem=None, csr_pem_filepath=None):
             stderr=subprocess.PIPE,
         ) as proc_modulus:
             data, err = proc_modulus.communicate()
+            if six.PY3:
+                data = data.decode("utf8")
             data = _cleanup_openssl_modulus(data)
+    if six.PY3:
+        data = data.encode()
     data = hashlib.md5(data).hexdigest()
     return data
 
@@ -606,7 +615,11 @@ def modulus_md5_cert(cert_pem=None, cert_pem_filepath=None):
             stderr=subprocess.PIPE,
         ) as proc_modulus:
             data, err = proc_modulus.communicate()
+            if six.PY3:
+                data = data.decode("utf8")
             data = _cleanup_openssl_modulus(data)
+    if six.PY3:
+        data = data.encode()
     data = hashlib.md5(data).hexdigest()
     return data
 
@@ -905,13 +918,17 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
         cert_cryptography = cert.to_cryptography()
 
         # ??? normalize this to have a leading '/' ?
-        _issuer = " = ".join(cert.get_issuer().get_components()[0])
+        _issuer = cert.get_issuer().get_components()[0]
+        _issuer = _issuer if not six.PY3 else [i.decode() for i in _issuer]
+        _issuer = " = ".join(_issuer)
         if _issuer[0] == "/":
             _issuer = _issuer[1:]
         rval["issuer"] = _issuer
 
         # ??? normalize this to have a leading '/' ?
-        _subject = " = ".join(cert.get_subject().get_components()[0])
+        _subject = cert.get_subject().get_components()[0]
+        _subject = _subject if not six.PY3 else [i.decode() for i in _subject]
+        _subject = " = ".join(_subject)
         if _subject == "/":
             _subject = _subject[1:]
         rval["subject"] = _subject
@@ -978,6 +995,8 @@ def parse_cert(cert_pem=None, cert_pem_filepath=None):
                 stderr=subprocess.PIPE,
             ) as proc_text:
                 data, err = proc_text.communicate()
+                if six.PY3:
+                    data = data.decode("utf8")
                 found_domains = san_domains_from_text(data)
                 rval["SubjectAlternativeName"] = found_domains
 
@@ -1012,6 +1031,8 @@ def new_rsa_key(bits=4096):
     log.debug(".new_rsa_key > bits = %s", bits)
     if certbot_crypto_util:
         key_pem = certbot_crypto_util.make_key(bits)
+        if six.PY3:
+            key_pem = key_pem.decode("utf8")
         key_pem = cleanup_pem_text(key_pem)
     else:
         log.debug(".new_rsa_key > openssl fallback")
@@ -1045,7 +1066,10 @@ def convert_jwk_to_ans1(pkey_jsons):
         missing_padding = 4 - len(data) % 4
         if missing_padding:
             data += b"=" * missing_padding
-        return "0x" + binascii.hexlify(base64.b64decode(data, b"-_")).upper()
+        data = binascii.hexlify(base64.b64decode(data, b"-_")).upper()
+        if six.PY3:
+            data = data.decode()
+        return "0x" + data
 
     for k, v in list(pkey.items()):
         if k == "kty":
@@ -1089,6 +1113,8 @@ def convert_lejson_to_pem(pkey_jsons):
             format=cryptography_serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=cryptography_serialization.NoEncryption(),
         )
+        if six.PY3:
+            as_pem = as_pem.decode()
         as_pem = cleanup_pem_text(as_pem)
 
         # note: we don't need to provide key_pem_filepath before we won't rely on openssl
@@ -1264,6 +1290,8 @@ def account_key__sign(data, key_pem=None, key_pem_filepath=None):
     log.info("account_key__sign >")
     if openssl_crypto:
         pkey = openssl_crypto.load_privatekey(openssl_crypto.FILETYPE_PEM, key_pem)
+        if six.PY3:
+            data = data.encode()
         signature = pkey.to_cryptography_key().sign(
             data,
             cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15(),
@@ -1278,6 +1306,8 @@ def account_key__sign(data, key_pem=None, key_pem_filepath=None):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ) as proc:
+        if six.PY3:
+            data = data.encode()
         signature, err = proc.communicate(data)
         if proc.returncode != 0:
             raise IOError("account_key__sign\n{1}".format(err))

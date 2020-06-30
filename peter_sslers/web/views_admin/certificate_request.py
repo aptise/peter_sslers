@@ -15,7 +15,6 @@ import sqlalchemy
 from .. import lib
 from ..lib import form_utils as form_utils
 from ..lib import formhandling
-from ..lib import text as lib_text
 from ..lib.handler import Handler, items_per_page
 from ..lib.handler import json_pagination
 from ...lib import db as lib_db

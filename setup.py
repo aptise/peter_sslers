@@ -11,10 +11,8 @@ with open(os.path.join(here, "CHANGES.txt")) as f:
 
 requires = [
     "formencode",
-    "pyopenssl",  # import OpenSSL; temporary until refactored out. see `cert_and_chain_from_fullchain`
     "pyacmedns",  # not used by all, but it's small
     "pypages",
-    "pyramid_debugtoolbar>=4.4",
     "pyramid_formencode_classic >=0.4.2, <0.5.0",
     "pyramid_mako",
     "pyramid_route_7>=0.0.3",
@@ -22,7 +20,7 @@ requires = [
     "pyramid",
     "python-dateutil",
     "psutil>=4.4.0",  # for Python2/3 compat
-    "redis",
+    "six ",
     "requests",
     "six",
     "SQLAlchemy<1.4.0",  # scalar_subquery API change
@@ -37,6 +35,7 @@ tests_require = [
     "pycrypto",
     "josepy",
     "pyramid-debugtoolbar-ajax",
+    "pyramid_debugtoolbar>=4.4",
 ]
 
 

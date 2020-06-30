@@ -22,7 +22,6 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
-from ..lib import text as lib_text
 from ..lib.forms import Form_PrivateKey_mark
 from ..lib.forms import Form_PrivateKey_new__file
 from ..lib.forms import Form_PrivateKey_new__autogenerate

@@ -16,7 +16,6 @@ import sqlalchemy
 from .. import lib
 from ..lib import formhandling
 from ..lib import form_utils as form_utils
-from ..lib import text as lib_text
 from ..lib.forms import Form_AcmeOrder_new_freeform
 from ..lib.forms import Form_AcmeOrder_renew_custom
 from ..lib.forms import Form_AcmeOrder_renew_quick

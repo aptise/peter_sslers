@@ -19,7 +19,6 @@ import sqlalchemy
 from .. import lib
 from ..lib import form_utils as form_utils
 from ..lib import formhandling
-from ..lib import text as lib_text
 from ..lib.forms import Form_ServerCertificate_mark
 from ..lib.forms import Form_Certificate_Upload__file
 from ..lib.handler import Handler, items_per_page

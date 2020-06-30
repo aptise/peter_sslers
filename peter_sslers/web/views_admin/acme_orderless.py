@@ -22,7 +22,6 @@ import sqlalchemy
 from .. import lib
 from ..lib import form_utils as form_utils
 from ..lib import formhandling
-from ..lib import text as lib_text
 from ..lib.forms import Form_AcmeOrderless_manage_domain
 from ..lib.forms import Form_AcmeOrderless_AcmeChallenge_add
 from ..lib.forms import Form_AcmeOrderless_new

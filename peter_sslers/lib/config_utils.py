@@ -58,12 +58,17 @@ class ApplicationSettings(dict):
             self["admin_prefix"] = "/.well-known/admin"
 
         # update the module data based on settings
+        _changed_openssl = False
         if "openssl_path" in settings:
             cert_utils.openssl_path = self["openssl_path"] = settings["openssl_path"]
+            _changed_openssl = True
         if "openssl_path_conf" in settings:
             cert_utils.openssl_path_conf = self["openssl_path_conf"] = settings[
                 "openssl_path_conf"
             ]
+            _changed_openssl = True
+        if _changed_openssl:
+            cert_utils.check_openssl_version(replace=True)
 
         # should we cleanup challenges
         self["cleanup_pending_authorizations"] = set_bool_setting(
@@ -80,7 +85,9 @@ class ApplicationSettings(dict):
         self["enable_acme_flow"] = set_bool_setting(settings, "enable_acme_flow")
 
         # should challenges block?
-        self["block_competing_challenges"] = set_bool_setting(settings, "block_competing_challenges", default=True)
+        self["block_competing_challenges"] = set_bool_setting(
+            settings, "block_competing_challenges", default=True
+        )
 
         # Queue Domains Config
         self["queue_domains_max_per_cert"] = set_int_setting(

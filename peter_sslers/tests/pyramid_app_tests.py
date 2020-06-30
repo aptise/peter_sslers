@@ -12,11 +12,13 @@ import zipfile
 from functools import wraps
 import sys
 from io import open  # overwrite `open` in Python2
+import six
 
-if sys.version_info[0] < 3:  # pragma: no cover
-    from StringIO import StringIO
-else:
+if six.PY3:
     from io import StringIO
+    from io import BytesIO
+else:
+    from StringIO import StringIO
 
 # pypi
 from webtest import Upload
@@ -345,10 +347,10 @@ class FunctionalTests_AcmeAccount(AppTest):
         )
         assert "AcmeAccount" in res.json
         assert res.json["AcmeAccount"]["id"] == focus_id
-        assert 'is_active' in res.json["AcmeAccount"]
-        assert 'private_key_cycle' in res.json["AcmeAccount"]
-        assert 'id' in res.json["AcmeAccount"]
-        assert 'is_global_default' in res.json["AcmeAccount"]
+        assert "is_active" in res.json["AcmeAccount"]
+        assert "private_key_cycle" in res.json["AcmeAccount"]
+        assert "id" in res.json["AcmeAccount"]
+        assert "is_global_default" in res.json["AcmeAccount"]
 
         res = self.testapp.get(
             "/.well-known/admin/acme-account/%s/parse.json" % focus_id, status=200
@@ -931,7 +933,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             res = self.testapp.get(
                 "/.well-known/admin/acme-dns-server/%s" % _item_id, status=200
             )
-            assert "set Global Default" in res.body
+            assert "set Global Default" in res.text
             assert "form-mark-global_default" in res.forms
             form = res.forms["form-mark-global_default"]
             res2 = form.submit()
@@ -942,7 +944,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             res = self.testapp.get(
                 "/.well-known/admin/acme-dns-server/%s" % _item_id, status=200
             )
-            assert "Deactivate" in res.body
+            assert "Deactivate" in res.text
             assert "form-mark-inactive" in res.forms
             form = res.forms["form-mark-inactive"]
             res2 = form.submit()
@@ -953,8 +955,8 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             res = self.testapp.get(
                 "/.well-known/admin/acme-dns-server/%s" % _item_id, status=200
             )
-            assert "set Global Default" not in res.body
-            assert "Activate" in res.body
+            assert "set Global Default" not in res.text
+            assert "Activate" in res.text
             assert "form-mark-active" in res.forms
             form = res.forms["form-mark-active"]
             res2 = form.submit()
@@ -965,7 +967,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
             res = self.testapp.get(
                 "/.well-known/admin/acme-dns-server/%s" % _item_id, status=200
             )
-            assert ("/acme-dns-server/%s/edit" % _item_id) in res.body
+            assert ("/acme-dns-server/%s/edit" % _item_id) in res.text
             res = self.testapp.get(
                 "/.well-known/admin/acme-dns-server/%s/edit" % _item_id, status=200
             )
@@ -976,7 +978,7 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
             if expect_failure_nochange:
                 assert res2.status_code == 200
-                assert "There was an error with your form. No change" in res2.body
+                assert "There was an error with your form. No change" in res2.text
             else:
                 assert res2.status_code == 303
                 assert RE_AcmeDnsServer_edited.match(res2.location)
@@ -2488,8 +2490,8 @@ class FunctionalTests_Domain(AppTest):
             "admin:domain:focus:acme_orderlesss_paginated",
             "admin:domain:focus:certificate_requests",
             "admin:domain:focus:certificate_requests_paginated",
-            'admin:domain:focus:domain_autocerts',
-            'admin:domain:focus:domain_autocerts_paginated',
+            "admin:domain:focus:domain_autocerts",
+            "admin:domain:focus:domain_autocerts_paginated",
             "admin:domain:focus:server_certificates",
             "admin:domain:focus:server_certificates_paginated",
             "admin:domain:focus:queue_certificates",
@@ -2709,10 +2711,10 @@ class FunctionalTests_Domain(AppTest):
 
         # get the record
         res = self.testapp.get("/.well-known/admin/domain/%s" % focus_id, status=200)
-        assert """<th>AcmeDnsConfiguration</th>""" in res.body
+        assert """<th>AcmeDnsConfiguration</th>""" in res.text
         assert (
             """/.well-known/admin/domain/%s/acme-dns-server/new""" % focus_id
-        ) in res.body
+        ) in res.text
 
         res = self.testapp.get(
             "/.well-known/admin/domain/%s/acme-dns-server/new" % focus_id, status=200
@@ -2729,17 +2731,17 @@ class FunctionalTests_Domain(AppTest):
         assert RE_Domain_new_AcmeDnsServerAccount.match(res2.location)
 
         res = self.testapp.get("/.well-known/admin/domain/%s" % focus_id, status=200)
-        assert """AcmeDnsServerAccounts - Existing""" in res.body
+        assert """AcmeDnsServerAccounts - Existing""" in res.text
         assert (
             """href="/.well-known/admin/domain/%s/acme-dns-server-accounts""" % focus_id
-        ) in res.body
+        ) in res.text
 
         res = self.testapp.get(
             "/.well-known/admin/domain/%s/acme-dns-server-accounts" % focus_id,
             status=200,
         )
-        assert "/.well-known/admin/acme-dns-server/" in res.body
-        assert "/.well-known/admin/acme-dns-server-account/" in res.body
+        assert "/.well-known/admin/acme-dns-server/" in res.text
+        assert "/.well-known/admin/acme-dns-server-account/" in res.text
 
         # force a new AcmeDnsServerAccount, and it should fail
         res = self.testapp.get(
@@ -2756,11 +2758,11 @@ class FunctionalTests_Domain(AppTest):
         assert res2.status_code == 200
         assert (
             """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form.</span></div></div>"""
-            in res2.body
+            in res2.text
         )
         assert (
             """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">Existing record for this AcmeDnsServer.</span></div></div>"""
-            in res2.body
+            in res2.text
         )
 
     @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
@@ -3608,7 +3610,10 @@ class FunctionalTests_ServerCertificate(AppTest):
             res.headers["Content-Disposition"]
             == "attachment; filename= cert%s.zip" % focus_id
         )
-        z = zipfile.ZipFile(StringIO(res.body))
+        if six.PY2:
+            z = zipfile.ZipFile(StringIO(res.body))
+        else:
+            z = zipfile.ZipFile(BytesIO(res.body))
         assert len(z.infolist()) == 4
         expectations = [
             file_template % focus_id
