@@ -81,9 +81,11 @@
             % endif
 
             <p>
-                The domain queue is designed to allow for domains to be "queued in" for later batch processing.  A domain can have multiple entries, but only one "active" entry. 
+                The `Domain Queue` is designed to allow for external systems to queue domain names for later batch processing to generate multi-domain certificates.  A domain can have multiple entries in the queue, but only one "active" entry.
             </p>
-
+            <p>
+                To process the QueueDomain, select an AcmeAccount, PrivateKey, and the maximum number of domains per certificate - from 1 to 100.  The system will attempt to create an AcmeOrder for each batch of items in the queue.
+            </p>
             % if QueueDomains:
                 ${admin_partials.nav_pagination(pager)}
                 <table class="table table-striped">

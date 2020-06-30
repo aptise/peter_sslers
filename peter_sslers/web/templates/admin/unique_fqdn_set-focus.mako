@@ -79,6 +79,18 @@
                         </td>
                     </tr>
                     <tr>
+                        <th></th>
+                        <td>
+                            <form method="POST" id="form-update-recents" action="${admin_prefix}/unique-fqdn-set/${UniqueFQDNSet.id}/update-recents">
+                                <button class="btn btn-xs btn-primary">
+                                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                    Update Recents
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr>
+                    <tr>
                         <th>domains</th>
                         <td>
                             <table class="table table-striped table-condensed">

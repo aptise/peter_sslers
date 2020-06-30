@@ -221,6 +221,14 @@
                                     </td>
                                 </tr>
                             </table>
+
+                            <form method="POST" id="form-update-recents" action="${admin_prefix}/domain/${Domain.id}/update-recents">
+                                <button class="btn btn-xs btn-primary">
+                                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                    Update Recents
+                                </button>
+                            </form>
+
                         </td>
                     </tr>
                     <tr>

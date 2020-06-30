@@ -351,7 +351,7 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:domain:focus:nginx_cache_expire|json", renderer="json"
     )
-    def focus_nginx_expire(self):
+    def nginx_expire(self):
         dbDomain = self._focus(eagerload_web=True)
         if not self.request.registry.settings["app_settings"]["enable_nginx"]:
             raise HTTPSeeOther("%s?result=error&error=no+nginx" % self._focus_url)
@@ -368,7 +368,7 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:domain:focus:config|json", renderer="json")
-    def focus_config_json(self):
+    def config_json(self):
         dbDomain = self._focus()
         rval = dbDomain.as_json_config(
             id_only=self.request.params.get("id_only", None), active_only=True
@@ -380,7 +380,7 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:domain:focus:calendar|json", renderer="json")
-    def focus__calendar(self):
+    def calendar(self):
         rval = {}
         dbDomain = self._focus()
         weekly_certs = (
@@ -404,6 +404,39 @@ class View_Focus(Handler):
         for wc in weekly_certs:
             rval["issues"][str(wc[0])] = wc[1]
         return rval
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:domain:focus:update_recents", renderer=None)
+    @view_config(route_name="admin:domain:focus:update_recents|json", renderer="json")
+    def update_recents(self):
+        dbDomain = self._focus()
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["POST required"],
+                    "form_fields": {},
+                    "notes": [],
+                    "valid_options": {},
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=update-recents&message=POST+required"
+                % (self._focus_url,)
+            )
+        try:
+            operations_event = lib_db.actions.operations_update_recents__domains(
+                self.request.api_context, dbDomains=[dbDomain,]
+            )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "Domain": dbDomain.as_json,
+                }
+            return HTTPSeeOther(
+                "%s?result=success&operation=update-recents" % (self._focus_url,)
+            )
+        except Exception as exc:
+            raise
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -675,13 +708,13 @@ class View_Focus(Handler):
 class View_Focus_Manipulate(View_Focus):
     @view_config(route_name="admin:domain:focus:mark", renderer=None)
     @view_config(route_name="admin:domain:focus:mark|json", renderer="json")
-    def focus_mark(self):
+    def mark(self):
         dbDomain = self._focus()
         if self.request.method == "POST":
-            return self._focus_mark__submit(dbDomain)
-        return self._focus_mark__print(dbDomain)
+            return self._mark__submit(dbDomain)
+        return self._mark__print(dbDomain)
 
-    def _focus_mark__print(self, dbDomain):
+    def _mark__print(self, dbDomain):
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -696,7 +729,7 @@ class View_Focus_Manipulate(View_Focus):
         )
         return HTTPSeeOther(url_post_required)
 
-    def _focus_mark__submit(self, dbDomain):
+    def _mark__submit(self, dbDomain):
         action = "!MISSING or !INVALID"
         try:
             (result, formStash) = formhandling.form_validate(

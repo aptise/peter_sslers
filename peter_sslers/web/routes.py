@@ -709,6 +709,14 @@ def _admin_views(config):
         "admin:domain:focus:calendar|json", "/domain/{domain_identifier}/calendar.json"
     )
     config.add_route_7(
+        "admin:domain:focus:update_recents|json",
+        "/domain/{domain_identifier}/update-recents.json",
+    )
+    config.add_route_7(
+        "admin:domain:focus:update_recents",
+        "/domain/{domain_identifier}/update-recents",
+    )
+    config.add_route_7(
         "admin:domain:focus:acme_authorizations",
         "/domain/{domain_identifier}/acme-authorizations",
     )
@@ -1164,6 +1172,14 @@ def _admin_views(config):
     config.add_route_7(
         "admin:unique_fqdn_set:focus:calendar|json",
         "/unique-fqdn-set/{@id}/calendar.json",
+    )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:update_recents|json",
+        "/unique-fqdn-set/{id}/update-recents.json",
+    )
+    config.add_route_7(
+        "admin:unique_fqdn_set:focus:update_recents",
+        "/unique-fqdn-set/{id}/update-recents",
     )
     config.add_route_7(
         "admin:unique_fqdn_set:focus:acme_orders", "/unique-fqdn-set/{@id}/acme-orders",

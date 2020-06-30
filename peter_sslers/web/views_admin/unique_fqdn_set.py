@@ -72,12 +72,17 @@ class View_List(Handler):
 
 class View_Focus(Handler):
     def _focus(self):
-        dbItem = lib_db.get.get__UniqueFQDNSet__by_id(
+        dbUniqueFQDNSet = lib_db.get.get__UniqueFQDNSet__by_id(
             self.request.api_context, self.request.matchdict["id"]
         )
-        if not dbItem:
-            raise HTTPNotFound("the fqdn set was not found")
-        return dbItem
+        if not dbUniqueFQDNSet:
+            raise HTTPNotFound("the Unique FQDN Set was not found")
+        self._focus_item = dbUniqueFQDNSet
+        self._focus_url = "%s/unique-fqdn-set/%s" % (
+            self.request.registry.settings["app_settings"]["admin_prefix"],
+            dbUniqueFQDNSet.id,
+        )
+        return dbUniqueFQDNSet
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -87,15 +92,11 @@ class View_Focus(Handler):
     )
     @view_config(route_name="admin:unique_fqdn_set:focus|json", renderer="json")
     def focus(self):
-        dbFqdnSet = self._focus()
+        dbUniqueFQDNSet = self._focus()
         if self.request.wants_json:
-            _prefix = "%s/unique-fqdn-set/%s" % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
-                dbFqdnSet.id,
-            )
-            return {"UniqueFQDNSet": dbFqdnSet.as_json}
+            return {"UniqueFQDNSet": dbUniqueFQDNSet.as_json}
 
-        return {"project": "peter_sslers", "UniqueFQDNSet": dbFqdnSet}
+        return {"project": "peter_sslers", "UniqueFQDNSet": dbUniqueFQDNSet}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -126,6 +127,42 @@ class View_Focus(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    @view_config(route_name="admin:unique_fqdn_set:focus:update_recents", renderer=None)
+    @view_config(
+        route_name="admin:unique_fqdn_set:focus:update_recents|json", renderer="json"
+    )
+    def update_recents(self):
+        dbUniqueFQDNSet = self._focus()
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["POST required"],
+                    "form_fields": {},
+                    "notes": [],
+                    "valid_options": {},
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=update-recents&message=POST+required"
+                % (self._focus_url,)
+            )
+        try:
+            operations_event = lib_db.actions.operations_update_recents__domains(
+                self.request.api_context, dbUniqueFQDNSets=[dbUniqueFQDNSet,],
+            )
+            if self.request.wants_json:
+                return {
+                    "result": "success",
+                    "UniqueFQDNSet": dbUniqueFQDNSet.as_json,
+                }
+            return HTTPSeeOther(
+                "%s?result=success&operation=update-recents" % (self._focus_url,)
+            )
+
+        except Exception as exc:
+            raise
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     @view_config(
         route_name="admin:unique_fqdn_set:focus:acme_orders",
         renderer="/admin/unique_fqdn_set-focus-acme_orders.mako",
@@ -141,11 +178,7 @@ class View_Focus(Handler):
         )
         (pager, offset) = self._paginate(
             items_count,
-            url_template="%s/unique-fqdn-set/%s/acme-orders/{0}"
-            % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
-                dbUniqueFQDNSet.id,
-            ),
+            url_template="%s/acme-orders/{0}" % (self._focus_url, dbUniqueFQDNSet.id,),
         )
         items_paged = lib_db.get.get__AcmeOrder__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
@@ -178,11 +211,8 @@ class View_Focus(Handler):
         )
         (pager, offset) = self._paginate(
             items_count,
-            url_template="%s/unique-fqdn-set/%s/certificate-requests/{0}"
-            % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
-                dbUniqueFQDNSet.id,
-            ),
+            url_template="%s/certificate-requests/{0}"
+            % (self._focus_url, dbUniqueFQDNSet.id,),
         )
         items_paged = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
@@ -215,11 +245,8 @@ class View_Focus(Handler):
         )
         (pager, offset) = self._paginate(
             items_count,
-            url_template="%s/unique-fqdn-set/%s/server-certificates/{0}"
-            % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
-                dbUniqueFQDNSet.id,
-            ),
+            url_template="%s/server-certificates/{0}"
+            % (self._focus_url, dbUniqueFQDNSet.id,),
         )
         items_paged = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
@@ -252,11 +279,8 @@ class View_Focus(Handler):
         )
         (pager, offset) = self._paginate(
             items_count,
-            url_template="%s/unique-fqdn-set/%s/queue-certificates/{0}"
-            % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
-                dbUniqueFQDNSet.id,
-            ),
+            url_template="%s/queue-certificates/{0}"
+            % (self._focus_url, dbUniqueFQDNSet.id,),
         )
         items_paged = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__paginated(
             self.request.api_context,

@@ -2602,7 +2602,7 @@ class FunctionalTests_Domain(AppTest):
             "/.well-known/admin/domain/%s/calendar.json" % focus_id, status=200
         )
 
-    @tests_routes(("admin:domain:focus:mark",))
+    @tests_routes(("admin:domain:focus:mark", "admin:domain:focus:update_recents"))
     def test_manipulate_html(self):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Domain.test_manipulate_html
@@ -2640,7 +2640,27 @@ class FunctionalTests_Domain(AppTest):
         assert res.status_code == 303
         assert res.location.endswith("?result=success&operation=mark&action=active")
 
-    @tests_routes(("admin:domain:focus:mark|json",))
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/update-recents" % focus_id, status=303
+        )
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/domain/%s?result=error&operation=update-recents&message=POST+required"""
+            % focus_id
+        )
+
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/update-recents" % focus_id, status=303
+        )
+        assert (
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/domain/%s?result=success&operation=update-recents"""
+            % focus_id
+        )
+
+    @tests_routes(
+        ("admin:domain:focus:mark|json", "admin:domain:focus:update_recents|json")
+    )
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
 
@@ -2684,6 +2704,19 @@ class FunctionalTests_Domain(AppTest):
         assert "Domain" in res.json
         assert res.json["Domain"]["id"] == focus_id
         assert res.json["Domain"]["is_active"] is True
+
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/update-recents.json" % focus_id, status=200
+        )
+        assert "instructions" in res.json
+        assert "POST required" in res.json["instructions"]
+
+        res = self.testapp.post(
+            "/.well-known/admin/domain/%s/update-recents.json" % focus_id, status=200
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert "Domain" in res.json
 
     @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
     @tests_routes(
@@ -3971,6 +4004,49 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/unique-fqdn-set/%s/calendar.json" % focus_id, status=200
         )
+
+    @tests_routes(("admin:unique_fqdn_set:focus:update_recents",))
+    def test_manipulate_html(self):
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/update-recents" % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/%s?result=error&operation=update-recents&message=POST+required"
+            % focus_id
+        )
+
+        res = self.testapp.post(
+            "/.well-known/admin/unique-fqdn-set/%s/update-recents" % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/unique-fqdn-set/%s?result=success&operation=update-recents"
+            % focus_id
+        )
+
+    @tests_routes(("admin:unique_fqdn_set:focus:update_recents|json",))
+    def test_manipulate_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/update-recents.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "POST required" in res.json["instructions"]
+
+        res = self.testapp.post(
+            "/.well-known/admin/unique-fqdn-set/%s/update-recents.json" % focus_id,
+            status=200,
+        )
+        assert res.status_code == 200
+        assert res.json["result"] == "success"
+        assert "UniqueFQDNSet" in res.json
 
 
 class FunctionalTests_QueueCertificate(AppTest):

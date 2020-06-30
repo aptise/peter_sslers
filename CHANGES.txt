@@ -75,6 +75,7 @@
 		- run the entire ACME process using the global account key in a single request
 		- returns an openresty config payload
 - autocert support
+- added routes to update recents for a domain and fqdnset
 
 0.4.0
 unreleased (2020-01-23)

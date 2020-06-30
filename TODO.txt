@@ -22,7 +22,7 @@ TESTS:
 		test against different strategies
 		- dogpile defense
 		- repeat request, correct data
-
+		
 EDIT:
 	AcmeOrder:
 		change "PrivateKeyCycle - renewals"
@@ -35,8 +35,10 @@ EDIT:
 
 ====		
 
-* Queue Processing
-- include an offset of the last domain added, so there isn't a race condition
+* QueueDomain
+	* processing
+	- include an offset of the last domain added, so there isn't a race condition
+	- before creating an acme-order, run a HTTP test on all the domains(!) to ensure it works
 
 * ServerCertificate
 	* TESTS
@@ -56,6 +58,14 @@ EDIT:
 * AcmeOrder
 	- create an endpoint to sync all pending orders against ACME server
 	- this is needed on testing and large installs
+
+* UniqueFQDNSet
+	- allow a set to be decomposed into one or more sets
+	- for example:
+		- original set: [a.example.com, b.example.com, c.example.com,]
+		- new set(s): [a.example.com,]; [b.example.com, c.example.com,]
+		- new set(s): [a.example.com,]
+
 
 * ensure self-documenting endpoints POST on mako
     @view_config(route_name='admin:queue_domains:process', renderer=None)

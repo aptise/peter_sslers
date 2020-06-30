@@ -34,7 +34,7 @@ class ViewAdminOperations(Handler):
         return (event_type, event_type_id)
 
     def _parse__event_type_ids(self):
-        """turns the request's `event_type=operations__update_recents` into an id."""
+        """turns the request's `event_type=operations__update_recents__global` into an id."""
         event_type_id = None
         event_type = self.request.params.get("event_type", None)
         if event_type:

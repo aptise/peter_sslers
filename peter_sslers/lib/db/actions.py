@@ -11,6 +11,7 @@ import pdb
 from dateutil import parser as dateutil_parser
 import sqlalchemy
 import transaction
+from zope.sqlalchemy import mark_changed
 
 # localapp
 from ... import lib  # here for `lib.db`
@@ -114,7 +115,7 @@ def operations_deactivate_expired(ctx):
     )
 
     # update the recents, this will automatically create a subevent
-    subevent = operations_update_recents(ctx)
+    subevent = operations_update_recents__global(ctx)
 
     # okay, go!
 
@@ -145,24 +146,24 @@ def operations_deactivate_expired(ctx):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
+def operations_deactivate_duplicates(ctx, ran_operations_update_recents__global=None):
     """
     this is kind of weird.
     because we have multiple domains, it is hard to figure out which certs we should use
     the simplest approach is this:
 
-    1. cache the most recent certs via `operations_update_recents`
+    1. cache the most recent certs via `operations_update_recents__global`
     2. find domains that have multiple active certs
     3. don't turn off any certs that are a latest_single or latest_multi
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param ran_operations_update_recents: (optional) Default = `None`
+    :param ran_operations_update_recents__global: (optional) Default = `None`
     """
     raise ValueError("Don't run this. It's not needed anymore")
     raise errors.InvalidRequest("Not Compliant")
 
-    if ran_operations_update_recents is not True:
-        raise ValueError("MUST run `operations_update_recents` first")
+    if ran_operations_update_recents__global is not True:
+        raise ValueError("MUST run `operations_update_recents__global` first")
 
     # bookkeeping
     event_payload_dict = utils.new_event_payload_dict()
@@ -248,13 +249,27 @@ def operations_deactivate_duplicates(ctx, ran_operations_update_recents=None):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def operations_update_recents_domain(ctx, dbDomain=None):
+def operations_update_recents__domains(ctx, dbDomains=None, dbUniqueFQDNSets=None):
     """
     updates A SINGLE dbDomain record with recent values
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbDomain: (required) A :class:`model.objects.Domain` instance
+    :param dbDomains: (required) A list of :class:`model.objects.Domain` instances
+    :param dbUniqueFQDNSets: (optional) A list of :class:`model.objects.UniqueFQDNSet` instances
     """
+    # we need a list of domain ids
+    _domain_ids = [i.id for i in dbDomains] if dbDomains else []
+    _unique_fqdn_set_ids = [i.id for i in dbUniqueFQDNSets] if dbUniqueFQDNSets else []
+
+    domain_ids = set(_domain_ids)
+    if dbUniqueFQDNSets:
+        for _dbUniqueFQDNSet in dbUniqueFQDNSets:
+            for _domain in _dbUniqueFQDNSet.domains:
+                domain_ids.add(_domain.id)
+    domain_ids = list(domain_ids)
+    if not domain_ids:
+        raise ValueError("no Domains specified")
+
     #
     # Step1:
     # Update the cached `server_certificate_id__latest_single` data for each Domain
@@ -269,7 +284,7 @@ def operations_update_recents_domain(ctx, dbDomain=None):
             model_objects.ServerCertificate.is_active.is_(True),
             model_objects.ServerCertificate.is_single_domain_cert.is_(True),
             model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
-            model_objects.Domain.id == dbDomain.id,
+            model_objects.Domain.id.in_(domain_ids),
         )
         .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
         .limit(1)
@@ -277,9 +292,9 @@ def operations_update_recents_domain(ctx, dbDomain=None):
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
-        model_objects.Domain.__table__.update().values(
-            server_certificate_id__latest_single=_q_sub
-        )
+        model_objects.Domain.__table__.update()
+        .values(server_certificate_id__latest_single=_q_sub)
+        .where(model_objects.Domain.__table__.c.id.in_(domain_ids))
     )
 
     #
@@ -296,7 +311,7 @@ def operations_update_recents_domain(ctx, dbDomain=None):
             model_objects.ServerCertificate.is_active.is_(True),
             model_objects.ServerCertificate.is_single_domain_cert.is_(False),
             model_objects.UniqueFQDNSet2Domain.domain_id == model_objects.Domain.id,
-            model_objects.Domain.id == dbDomain.id,
+            model_objects.Domain.id.in_(domain_ids),
         )
         .order_by(model_objects.ServerCertificate.timestamp_not_after.desc())
         .limit(1)
@@ -304,13 +319,27 @@ def operations_update_recents_domain(ctx, dbDomain=None):
         .as_scalar()  # TODO: SqlAlchemy 1.4.0 - this becomes `scalar_subquery`
     )
     ctx.dbSession.execute(
-        model_objects.Domain.__table__.update().values(
-            server_certificate_id__latest_multi=_q_sub
-        )
+        model_objects.Domain.__table__.update()
+        .values(server_certificate_id__latest_multi=_q_sub)
+        .where(model_objects.Domain.__table__.c.id.in_(domain_ids))
     )
 
+    # bookkeeping, doing this will mark the session as changed!
+    event_payload_dict = utils.new_event_payload_dict()
+    event_payload_dict["domain.ids"] = _domain_ids
+    event_payload_dict["unique_fqdn_set.ids"] = _unique_fqdn_set_ids
+    dbOperationsEvent = log__OperationsEvent(
+        ctx,
+        model_utils.OperationsEventType.from_string(
+            "operations__update_recents__domains"
+        ),
+        event_payload_dict,
+    )
 
-def operations_update_recents(ctx):
+    return dbOperationsEvent
+
+
+def operations_update_recents__global(ctx):
     """
     updates all the objects to their most-recent relations
 
@@ -494,7 +523,10 @@ def operations_update_recents(ctx):
 
     # bookkeeping, doing this will mark the session as changed!
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("operations__update_recents"),
+        ctx,
+        model_utils.OperationsEventType.from_string(
+            "operations__update_recents__global"
+        ),
     )
 
     return dbOperationsEvent

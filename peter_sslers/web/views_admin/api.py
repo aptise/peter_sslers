@@ -126,7 +126,7 @@ class ViewAdminApi(Handler):
         if self.request.wants_json:
             if self.request.method != "POST":
                 return docs.json_docs_post_only
-        operations_event = lib_db.actions.operations_update_recents(
+        operations_event = lib_db.actions.operations_update_recents__global(
             self.request.api_context
         )
         if self.request.wants_json:
@@ -460,8 +460,8 @@ class ViewAdminApi_Domain(Handler):
                     return rval
                 else:
                     # sync the database, just be sure
-                    operations_event = lib_db.actions.operations_update_recents_domain(
-                        self.request.api_context, dbDomain=dbDomain
+                    operations_event = lib_db.actions.operations_update_recents__domains(
+                        self.request.api_context, dbDomains=[dbDomain,]
                     )
                     # commit so we expire the traits
                     self.request.api_context.pyramid_transaction_commit()
@@ -539,8 +539,8 @@ class ViewAdminApi_Domain(Handler):
                 )
                 if dbAcmeOrder.acme_status_order == "valid":
                     dbDomain = dbAcmeOrder.unique_fqdn_set.domains[0]
-                    operations_event = lib_db.actions.operations_update_recents_domain(
-                        self.request.api_context, dbDomain=dbDomain
+                    operations_event = lib_db.actions.operations_update_recents__domains(
+                        self.request.api_context, dbDomains=[dbDomain,]
                     )
 
                     # commit this so the domain will reload

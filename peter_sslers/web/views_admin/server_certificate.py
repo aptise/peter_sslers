@@ -714,7 +714,7 @@ class View_Focus_Manipulate(View_Focus):
             )
 
             if update_recents:
-                event_update = lib_db.actions.operations_update_recents(
+                event_update = lib_db.actions.operations_update_recents__global(
                     self.request.api_context
                 )
                 event_update.operations_event_id__child_of = dbOperationsEvent.id
