@@ -120,6 +120,10 @@
                                 <th><code>*404*</code></th>
                                 <td>Not an ACME RFC Status. Internal marker to signify the ACME Server returned a 404 response for the AuthoriationURL.</td>
                             </tr>
+                            <tr>
+                                <th><code>*406*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker to signify the ACME Server returned a status that is untracked/unknown.</td>
+                            </tr>
                         </table>
                     </td>
                 </tr>
@@ -151,6 +155,14 @@
                             <tr>
                                 <th><code>*404*</code></th>
                                 <td>Not an ACME RFC Status. Internal marker to signify the ACME Server returned a 404 response for the AuthoriationURL.</td>
+                            </tr>
+                            <tr>
+                                <th><code>*406*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker to signify the ACME Server returned a status that is untracked/unknown.</td>
+                            </tr>
+                            <tr>
+                                <th><code>*410*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker to signify the ACME Server no longer shows this AcmeChallenge as part of the AcmeAuthorization that had created it. The AcmeChallenge may still be synced and show another RFC code, or may <code>*404*</code>.</td>
                             </tr>
                         </table>
                     </td>
@@ -187,6 +199,10 @@
                             <tr>
                                 <th><code>*404*</code></th>
                                 <td>Not an ACME RFC Status. Internal marker to signify the ACME Server returned a 404 response for the AuthoriationURL.</td>
+                            </tr>
+                            <tr>
+                                <th><code>*406*</code></th>
+                                <td>Not an ACME RFC Status. Internal marker to signify the ACME Server returned a status that is untracked/unknown.</td>
                             </tr>
                         </table>
                     </td>
