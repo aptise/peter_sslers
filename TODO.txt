@@ -68,9 +68,16 @@ EDIT:
 
 
 * ensure self-documenting endpoints POST on mako
-    @view_config(route_name='admin:queue_domains:process', renderer=None)
-    @view_config(route_name='admin:queue_domains:process|json', renderer='json')
-    def queue_domain_process(self):
+
+    # TODO: POST REQUIRED
+
+* standardize "POST REQUIRED" string
+
+
+
+
+
+
 
 * cert_utils
 	figure out how to emulate openssl's `--text` with crypto in `parse_key`

@@ -61,16 +61,13 @@ class View_List(Handler):
             "admin:domains:expiring_paginated|json",
         ):
             sidenav_option = "expiring"
+            url_template = (
+                "%s/domains/expiring/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
             if self.request.wants_json:
-                url_template = (
-                    "%s/domains/expiring/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/domains/expiring/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
+                url_template = "%s.json" % url_template
+
             items_count = lib_db.get.get__Domain__count(
                 self.request.api_context, expiring_days=expiring_days
             )
@@ -88,16 +85,12 @@ class View_List(Handler):
             "admin:domains:challenged_paginated|json",
         ):
             sidenav_option = "challenged"
+            url_template = (
+                "%s/domains/challenged/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
             if self.request.wants_json:
-                url_template = (
-                    "%s/domains/challenged/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/domains/challenged/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
+                url_template = "%s.json" % url_template
             items_count = lib_db.get.get__Domains_challenged__count(
                 self.request.api_context
             )
@@ -107,16 +100,12 @@ class View_List(Handler):
             )
         else:
             sidenav_option = "all"
+            url_template = (
+                "%s/domains/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
             if self.request.wants_json:
-                url_template = (
-                    "%s/domains/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/domains/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
+                url_template = "%s.json" % url_template
             items_count = lib_db.get.get__Domain__count(self.request.api_context)
             (pager, offset) = self._paginate(items_count, url_template=url_template)
             items_paged = lib_db.get.get__Domain__paginated(
@@ -453,9 +442,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeAuthorization__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-authorizations/{0}" % self._focus_url
-        )
+        url_template = "%s/acme-authorizations/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeAuthorization__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
@@ -482,9 +470,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeChallenge__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-challenges/{0}" % self._focus_url
-        )
+        url_template = "%s/acme-challenges/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeChallenge__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
@@ -511,9 +498,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeOrder__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-orders/{0}" % self._focus_url
-        )
+        url_template = "%s/acme-orders/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
@@ -540,9 +526,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeOrderless__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-orderlesss/{0}" % self._focus_url
-        )
+        url_template = "%s/acme-orderlesss/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrderless__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
@@ -569,9 +554,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__DomainAutocert__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/domain-autocerts/{0}" % self._focus_url
-        )
+        url_template = "%s/domain-autocerts/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__DomainAutocert__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
@@ -598,9 +582,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__CertificateRequest__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/certificate-requests/{0}" % self._focus_url
-        )
+        url_template = "%s/certificate-requests/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__CertificateRequest__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
@@ -627,9 +610,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__ServerCertificate__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/server-certificates/{0}" % self._focus_url
-        )
+        url_template = "%s/server-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__ServerCertificate__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )
@@ -656,14 +638,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__QueueCertificate__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/domain/%s/queue-certificates/{0}"
-            % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
-                dbDomain.id,
-            ),
-        )
+        url_template = "%s/queue-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__QueueCertificate__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset,
         )
@@ -690,9 +666,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__UniqueFQDNSet__by_DomainId__count(
             self.request.api_context, dbDomain.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/unique-fqdn-sets/{0}" % self._focus_url
-        )
+        url_template = "%s/unique-fqdn-sets/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__UniqueFQDNSet__by_DomainId__paginated(
             self.request.api_context, dbDomain.id, limit=items_per_page, offset=offset
         )

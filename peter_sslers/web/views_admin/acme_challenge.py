@@ -51,65 +51,41 @@ class View_List(Handler):
         active_only = None
         resolved_only = None
         processing_only = None
+        url_status = None
         if wants_active:
             sidenav_option = "active"
+            url_status = "active"
             active_only = True
-            if self.request.wants_json:
-                url_template = (
-                    "%s/acme-challenges/{0}.json?status=active"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/acme-challenges/{0}?status=active"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
+
         elif wants_resolved:
             sidenav_option = "resolved"
+            url_status = "resolved"
             resolved_only = True
-            if self.request.wants_json:
-                url_template = (
-                    "%s/acme-challenges/{0}.json?status=resolved"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/acme-challenges/{0}?status=resolved"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
         elif wants_processing:
             sidenav_option = "processing"
+            url_status = "processing"
             processing_only = True
-            if self.request.wants_json:
-                url_template = (
-                    "%s/acme-challenges/{0}.json?status=processing"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/acme-challenges/{0}?status=processing"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
         else:
             sidenav_option = "all"
+            url_status = None
             active_only = False
-            if self.request.wants_json:
-                url_template = (
-                    "%s/acme-challenges/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/acme-challenges/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
+
+        url_template = (
+            "%s/acme-challenges/{0}"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
+        if url_status:
+            url_template = "%s?status=%s" % (url_template, url_status)
+
         items_count = lib_db.get.get__AcmeChallenge__count(
             self.request.api_context,
             active_only=active_only,
             resolved_only=resolved_only,
             processing_only=processing_only,
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template,)
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeChallenge__paginated(
             self.request.api_context,
             active_only=active_only,
@@ -177,6 +153,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Refresh should just update the record against the acme server.
         """
+        # TODO: POST REQUIRED
         dbAcmeChallenge = self._focus(eagerload_web=True)
         try:
             if not dbAcmeChallenge.is_can_acme_server_sync:
@@ -225,6 +202,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Trigger
         """
+        # TODO: POST REQUIRED
         dbAcmeChallenge = self._focus(eagerload_web=True)
         try:
             if not dbAcmeChallenge.is_can_acme_server_trigger:

@@ -42,17 +42,13 @@ class View_List(Handler):
     @view_config(route_name="admin:acme_accounts_paginated|json", renderer="json")
     def list(self):
         items_count = lib_db.get.get__AcmeAccount__count(self.request.api_context)
+        url_template = (
+            "%s/acme-accounts/{0}"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
         if self.request.wants_json:
-            url_template = (
-                "%s/acme-accounts/{0}.json"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
-            )
-        else:
-            url_template = (
-                "%s/acme-accounts/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
-            )
-        (pager, offset) = self._paginate(items_count, url_template=url_template,)
+            url_template = "%s.json" % url_template
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeAccount__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -310,7 +306,7 @@ class View_Focus(Handler):
     def focus(self):
         dbAcmeAccount = self._focus()
         if self.request.wants_json:
-            _prefix = "%s" % (self._focus_url)
+            _prefix = "%s" % self._focus_url
             return {
                 "AcmeAccount": dbAcmeAccount.as_json,
                 "raw": {
@@ -412,10 +408,9 @@ class View_Focus(Handler):
             active_only=active_only,
             expired_only=expired_only,
         )
+        url_template = "%s/acme-authorizations/{0}" % self._focus_url
         if self.request.wants_json:
-            url_template = "%s/acme-authorizations/{0}.json" % (self._focus_url)
-        else:
-            url_template = "%s/acme-authorizations/{0}" % (self._focus_url)
+            url_template = "%s.json" % url_template
 
         if url_status:
             url_template = "%s?status=%s" % (url_template, url_status)
@@ -457,9 +452,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeOrder__by_AcmeAccountId__count(
             self.request.api_context, dbAcmeAccount.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-orders/{0}" % (self._focus_url)
-        )
+        url_template = "%s/acme-orders/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
@@ -489,9 +483,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__PrivateKey__by_AcmeAccountIdOwner__count(
             self.request.api_context, dbAcmeAccount.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/private-keys/{0}" % (self._focus_url)
-        )
+        url_template = "%s/private-keys/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__PrivateKey__by_AcmeAccountIdOwner__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
@@ -521,9 +514,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__ServerCertificate__by_AcmeAccountId__count(
             self.request.api_context, dbAcmeAccount.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/server-certificates/{0}" % (self._focus_url)
-        )
+        url_template = "%s/server-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__ServerCertificate__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,
@@ -553,9 +545,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__QueueCertificate__by_AcmeAccountId__count(
             self.request.api_context, dbAcmeAccount.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/queue-certificates/{0}" % (self._focus_url)
-        )
+        url_template = "%s/queue-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__QueueCertificate__by_AcmeAccountId__paginated(
             self.request.api_context,
             dbAcmeAccount.id,

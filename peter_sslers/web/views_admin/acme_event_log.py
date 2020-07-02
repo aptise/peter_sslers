@@ -32,11 +32,11 @@ class View_List(Handler):
     @view_config(route_name="admin:acme_event_log_paginated|json", renderer="json")
     def list(self):
         items_count = lib_db.get.get__AcmeEventLog__count(self.request.api_context)
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/acme-event-logs/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"],
+        url_template = (
+            "%s/acme-event-logs/{0}"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeEventLog__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )

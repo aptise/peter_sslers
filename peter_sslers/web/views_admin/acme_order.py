@@ -251,9 +251,8 @@ class View_Focus_Manipulate(View_Focus):
         items_count = lib_db.get.get__AcmeEventLogs__by_AcmeOrderId__count(
             self.request.api_context, dbAcmeOrder.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-event-logs/{0}" % self._focus_url,
-        )
+        url_template = "%s/acme-event-logs/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeEventLogs__by_AcmeOrderId__paginated(
             self.request.api_context,
             dbAcmeOrder.id,
@@ -278,6 +277,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Refresh should just update the record against the acme server.
         """
+        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if not dbAcmeOrder.is_can_acme_server_sync:
@@ -322,6 +322,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         sync any auths on the server.
         """
+        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if not dbAcmeOrder.is_can_acme_server_sync:
@@ -367,6 +368,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         deactivate any auths on the server.
         """
+        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if not dbAcmeOrder.is_can_acme_server_deactivate_authorizations:
@@ -412,6 +414,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         This endpoint is for Immediately Renewing the AcmeOrder with overrides on the keys
         """
+        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
@@ -447,6 +450,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         only certain orders can be processed
         """
+        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if not dbAcmeOrder.is_can_acme_process:
@@ -483,6 +487,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         only certain orders can be finalized
         """
+        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if not dbAcmeOrder.is_can_acme_finalize:
@@ -521,6 +526,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         Mark an order
         """
+        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
         action = self.request.params.get("action", None)
         try:
@@ -586,6 +592,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         Retry should create a new order
         """
+        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if self.request.method != "POST":

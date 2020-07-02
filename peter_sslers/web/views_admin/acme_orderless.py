@@ -55,11 +55,11 @@ class View_List(Handler):
         if not self.request.registry.settings["app_settings"]["enable_acme_flow"]:
             raise HTTPNotFound("Acme-Flow is disabled on this system")
         items_count = lib_db.get.get__AcmeOrderless__count(self.request.api_context)
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/acme-orderlesss/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"],
+        url_template = (
+            "%s/acme-orderlesss/{0}"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrderless__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )

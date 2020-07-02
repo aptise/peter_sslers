@@ -57,23 +57,19 @@ class View_List(Handler):
         active_only = True if url_status == "active" else False
         expired_only = True if url_status == "active-expired" else False
 
+        url_template = (
+            "%s/acme-authorizations/{0}"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
         if self.request.wants_json:
-            url_template = (
-                "%s/acme-authorizations/{0}.json"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
-            )
-        else:
-            url_template = (
-                "%s/acme-authorizations/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
-            )
+            url_template = "%s.json" % url_template
         if url_status:
             url_template = "%s?status=%s" % (url_template, url_status)
 
         items_count = lib_db.get.get__AcmeAuthorization__count(
             self.request.api_context, active_only=active_only
         )
-        (pager, offset) = self._paginate(items_count, url_template=url_template,)
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeAuthorization__paginated(
             self.request.api_context,
             active_only=active_only,
@@ -144,9 +140,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeOrder__by_AcmeAuthorizationId__count(
             self.request.api_context, dbAcmeAuthorization.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-orders" % self._focus_url,
-        )
+        url_template = "%s/acme-orders" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_AcmeAuthorizationId__paginated(
             self.request.api_context,
             dbAcmeAuthorization.id,
@@ -176,9 +171,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeChallenge__by_AcmeAuthorizationId__count(
             self.request.api_context, dbAcmeAuthorization.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/acme-challenges" % self._focus_url,
-        )
+        url_template = "%s/acme-challenges" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
             self.request.api_context,
             dbAcmeAuthorization.id,
@@ -206,6 +200,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Refresh should just update the record against the acme server.
         """
+        # TODO: POST REQUIRED
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         try:
             if not dbAcmeAuthorization.is_can_acme_server_sync:
@@ -254,6 +249,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Deactivate
         """
+        # TODO: POST REQUIRED
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         try:
             if not dbAcmeAuthorization.is_can_acme_server_deactivate:
@@ -302,6 +298,7 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Trigger
         """
+        # TODO: POST REQUIRED
         dbAcmeAuthorization = self._focus(eagerload_web=True)
         try:
             if not dbAcmeAuthorization.is_can_acme_server_trigger:

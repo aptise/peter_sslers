@@ -541,14 +541,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__count(
             self.request.api_context, dbServerCertificate.unique_fqdn_set_id
         )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/server-certifivate/%s/queue-certificates/{0}"
-            % (
-                self.request.registry.settings["app_settings"]["admin_prefix"],
-                dbServerCertificate.id,
-            ),
-        )
+        url_template = "%s/queue-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbServerCertificate.unique_fqdn_set_id,

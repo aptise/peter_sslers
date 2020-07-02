@@ -49,10 +49,7 @@ class View_List(Handler):
             % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         if self.request.wants_json:
-            url_template = (
-                "%s/domains-blocklisted/{0}.json"
-                % self.request.registry.settings["app_settings"]["admin_prefix"]
-            )
+            url_template = "%s.json" % url_template
         items_count = lib_db.get.get__DomainBlocklisted__count(
             self.request.api_context,
         )

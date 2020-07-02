@@ -85,6 +85,8 @@ class View_List(Handler):
             self.request.registry.settings["app_settings"]["admin_prefix"],
             "unresolved" if unresolved_only else "all",
         )
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
         items_count = lib_db.get.get__CoverageAssuranceEvent__count(
             self.request.api_context, unresolved_only=unresolved_only
         )
@@ -154,9 +156,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__CoverageAssuranceEvent__by_parentId__count(
             self.request.api_context, dbCoverageAssuranceEvent.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/children/{0}" % (self._focus_url)
-        )
+        url_template = "%s/children/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__CoverageAssuranceEvent__by_parentId__paginated(
             self.request.api_context,
             dbCoverageAssuranceEvent.id,

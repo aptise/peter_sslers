@@ -67,28 +67,19 @@ class View_List(Handler):
             sidenav_option = "all"
             unprocessed_only = False
             show_all = True
-        if self.request.wants_json:
-            if wants_all:
-                url_template = (
-                    "%s/queue-domains/all/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/queue-domains/{0}.json"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
+
+        if wants_all:
+            url_template = (
+                "%s/queue-domains/all/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
         else:
-            if wants_all:
-                url_template = (
-                    "%s/queue-domains/all/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
-            else:
-                url_template = (
-                    "%s/queue-domains/{0}"
-                    % self.request.registry.settings["app_settings"]["admin_prefix"]
-                )
+            url_template = (
+                "%s/queue-domains/{0}"
+                % self.request.registry.settings["app_settings"]["admin_prefix"]
+            )
+        if self.request.wants_json:
+            url_template = "%s.json" % url_template
         items_count = lib_db.get.get__QueueDomain__count(
             self.request.api_context,
             show_all=show_all,

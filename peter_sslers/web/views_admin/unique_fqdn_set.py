@@ -38,18 +38,13 @@ class View_List(Handler):
     @view_config(route_name="admin:unique_fqdn_sets_paginated|json", renderer="json")
     def list(self):
         items_count = lib_db.get.get__UniqueFQDNSet__count(self.request.api_context)
+        url_template = (
+            "%s/unique-fqdn-sets/{0}"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
         if self.request.wants_json:
-            (pager, offset) = self._paginate(
-                items_count,
-                url_template="%s/unique-fqdn-sets/{0}.json"
-                % self.request.registry.settings["app_settings"]["admin_prefix"],
-            )
-        else:
-            (pager, offset) = self._paginate(
-                items_count,
-                url_template="%s/unique-fqdn-sets/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"],
-            )
+            url_template = "%s.json" % url_template
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__UniqueFQDNSet__paginated(
             self.request.api_context,
             limit=items_per_page,
@@ -176,10 +171,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeOrder__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/acme-orders/{0}" % (self._focus_url, dbUniqueFQDNSet.id,),
-        )
+        url_template = "%s/acme-orders/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
@@ -209,11 +202,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/certificate-requests/{0}"
-            % (self._focus_url, dbUniqueFQDNSet.id,),
-        )
+        url_template = "%s/certificate-requests/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__CertificateRequest__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
@@ -243,11 +233,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/server-certificates/{0}"
-            % (self._focus_url, dbUniqueFQDNSet.id,),
-        )
+        url_template = "%s/server-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__ServerCertificate__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,
@@ -277,11 +264,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__count(
             self.request.api_context, dbUniqueFQDNSet.id
         )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/queue-certificates/{0}"
-            % (self._focus_url, dbUniqueFQDNSet.id,),
-        )
+        url_template = "%s/queue-certificates/{0}" % self._focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__QueueCertificate__by_UniqueFQDNSetId__paginated(
             self.request.api_context,
             dbUniqueFQDNSet.id,

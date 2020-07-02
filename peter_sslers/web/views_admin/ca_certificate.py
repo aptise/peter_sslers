@@ -39,18 +39,13 @@ class View_List(Handler):
     @view_config(route_name="admin:ca_certificates_paginated|json", renderer="json")
     def list(self):
         items_count = lib_db.get.get__CACertificate__count(self.request.api_context)
+        url_template = (
+            "%s/ca-certificates/{0}"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
         if self.request.wants_json:
-            (pager, offset) = self._paginate(
-                items_count,
-                url_template="%s/ca-certificates/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"],
-            )
-        else:
-            (pager, offset) = self._paginate(
-                items_count,
-                url_template="%s/ca-certificates/{0}.json"
-                % self.request.registry.settings["app_settings"]["admin_prefix"],
-            )
+            url_template = "%s.json" % url_template
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__CACertificate__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -156,9 +151,8 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__ServerCertificate__by_CACertificateId__count(
             self.request.api_context, dbCACertificate.id
         )
-        (pager, offset) = self._paginate(
-            items_count, url_template="%s/server-certificates/{0}" % self.focus_url
-        )
+        url_template = "%s/server-certificates/{0}" % self.focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__ServerCertificate__by_CACertificateId__paginated(
             self.request.api_context,
             dbCACertificate.id,

@@ -44,18 +44,13 @@ class View_List(Handler):
         items_count = lib_db.get.get__CertificateRequest__count(
             self.request.api_context
         )
+        url_template = (
+            "%s/certificate-requests/{0}"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
         if self.request.wants_json:
-            (pager, offset) = self._paginate(
-                items_count,
-                url_template="%s/certificate-requests/{0}.json"
-                % self.request.registry.settings["app_settings"]["admin_prefix"],
-            )
-        else:
-            (pager, offset) = self._paginate(
-                items_count,
-                url_template="%s/certificate-requests/{0}"
-                % self.request.registry.settings["app_settings"]["admin_prefix"],
-            )
+            url_template = "%s.json" % url_template
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__CertificateRequest__paginated(
             self.request.api_context, limit=items_per_page, offset=offset
         )
@@ -133,11 +128,11 @@ class View_Focus(Handler):
         items_count = lib_db.get.get__AcmeOrder__by_CertificateRequest__count(
             self.request.api_context, dbCertificateRequest.id
         )
-        (pager, offset) = self._paginate(
-            items_count,
-            url_template="%s/certificate-request/{0}/acme-orders"
-            % self.request.registry.settings["app_settings"]["admin_prefix"],
+        url_template = (
+            "%s/certificate-request/{0}/acme-orders"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeOrder__by_CertificateRequest__paginated(
             self.request.api_context,
             dbCertificateRequest.id,
