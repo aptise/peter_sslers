@@ -229,7 +229,7 @@ class View_Process(Handler):
                 "requirements": [
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
                 ],
-                "instructions": ["""POST required"""],
+                "instructions": ["HTTP POST required",],
                 "extra": {
                     "queue.count": self.QueueDomains_count,
                     "queue.items_100": queue_items,

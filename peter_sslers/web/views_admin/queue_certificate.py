@@ -280,7 +280,7 @@ class View_New(Handler):
     def _new_structured__print(self):
         if self.request.wants_json:
             return {
-                "instructions": """POST required""",
+                "instructions": ["HTTP POST required",],
                 "form_fields": {
                     "queue_source": "what is the source of the queue item?",
                     "acme_order": "If queue_source is `AcmeOrder`, the corresponding id",
@@ -414,7 +414,7 @@ class View_New(Handler):
     def _new_freeform__print(self):
         if self.request.wants_json:
             return {
-                "instructions": """POST required""",
+                "instructions": ["HTTP POST required",],
                 "form_fields": {
                     "domain_names": "comma separated list of domain names",
                     "account_key_option": "How is the AcmeAccount specified?",

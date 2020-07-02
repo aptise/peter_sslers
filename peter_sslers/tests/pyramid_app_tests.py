@@ -2709,7 +2709,7 @@ class FunctionalTests_Domain(AppTest):
             "/.well-known/admin/domain/%s/update-recents.json" % focus_id, status=200
         )
         assert "instructions" in res.json
-        assert "POST required" in res.json["instructions"]
+        assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
             "/.well-known/admin/domain/%s/update-recents.json" % focus_id, status=200
@@ -4038,7 +4038,7 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
             status=200,
         )
         assert "instructions" in res.json
-        assert "POST required" in res.json["instructions"]
+        assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
             "/.well-known/admin/unique-fqdn-set/%s/update-recents.json" % focus_id,
@@ -6994,7 +6994,7 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/admin/api/queue-certificates/update.json", status=200
         )
         assert "instructions" in res.json
-        assert res.json["instructions"] == "POST required"
+        assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
             "/.well-known/admin/api/queue-certificates/update.json", status=200
@@ -7028,7 +7028,7 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/admin/api/queue-certificates/process.json", status=200
         )
         assert "instructions" in res.json
-        assert res.json["instructions"] == "POST required"
+        assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
             "/.well-known/admin/api/queue-certificates/process.json", status=200
@@ -7047,7 +7047,7 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/admin/api/domain/autocert.json", status=200
         )
         assert "instructions" in res.json
-        assert "POST required" in res.json["instructions"]
+        assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
             "/.well-known/admin/api/domain/autocert.json", {}, status=200

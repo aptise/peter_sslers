@@ -131,7 +131,7 @@ class View_Focus(Handler):
         if self.request.method != "POST":
             if self.request.wants_json:
                 return {
-                    "instructions": ["POST required"],
+                    "instructions": ["HTTP POST required",],
                     "form_fields": {},
                     "notes": [],
                     "valid_options": {},

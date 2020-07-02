@@ -65,7 +65,7 @@ class View_New(Handler):
     def _new__print(self):
         if self.request.wants_json:
             return {
-                "instructions": ["POST required"],
+                "instructions": ["HTTP POST required",],
                 "form_fields": {"root_url": "The root url of the api"},
                 "notes": [],
                 "valid_options": {},
@@ -146,8 +146,8 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "instructions": [
+                    "HTTP POST required",
                     """curl --form 'action=active' %s/check.json""" % self._focus_url,
-                    """POST required.""",
                 ],
             }
         url_post_required = (

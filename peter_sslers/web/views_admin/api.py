@@ -149,7 +149,7 @@ class ViewAdminApi_Domain(Handler):
 
     def _enable__print(self):
         return {
-            "instructions": """Submit `domain_names` via `POST`""",
+            "instructions": ["HTTP POST required",],
             "form_fields": {
                 "domain_names": "[required] a comma separated list of fully qualified domain names."
             },
@@ -188,7 +188,7 @@ class ViewAdminApi_Domain(Handler):
 
     def _disable__print(self):
         return {
-            "instructions": """Submit `domain_names` via `POST`""",
+            "instructions": ["HTTP POST required",],
             "form_fields": {
                 "domain_names": "[required] a comma separated list of fully qualified domain names."
             },
@@ -397,7 +397,7 @@ class ViewAdminApi_Domain(Handler):
     def _autocert__print(self):
         return {
             "instructions": [
-                "POST required",
+                "HTTP POST required",
                 "POST `domain_name` to automatically attempt a certificate provisioning",
                 """curl --form 'domain_name=example.com' %s/api/domain/autocert.json"""
                 % self.request.admin_url,
@@ -845,7 +845,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if self.request.wants_json:
                 if self.request.method != "POST":
                     return {
-                        "instructions": """POST required""",
+                        "instructions": ["HTTP POST required"],
                     }
             queue_results = lib_db.queues.queue_certificates__update(
                 self.request.api_context
@@ -883,7 +883,7 @@ class ViewAdminApi_QueueCertificate(Handler):
             if self.request.wants_json:
                 if self.request.method != "POST":
                     return {
-                        "instructions": """POST required""",
+                        "instructions": ["HTTP POST required",],
                     }
             queue_results = lib_db.queues.queue_certificates__process(
                 self.request.api_context

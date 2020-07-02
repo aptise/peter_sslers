@@ -77,6 +77,7 @@
 - autocert support
 - added routes to update recents for a domain and fqdnset
 - standardize url_template for json as just adding '.json' instead of calculating a whole new one
+- standardize "POST REQUIRED" string to "HTTP POST required"
 
 0.4.0
 unreleased (2020-01-23)
