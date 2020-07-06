@@ -314,7 +314,6 @@ class AuthenticatedUser(object):
         )
         protected64 = cert_utils._b64(json.dumps(protected).encode("utf8"))
         protected_input = "{0}.{1}".format(protected64, payload64).encode("utf8")
-
         try:
             signature = cert_utils.account_key__sign(
                 protected_input,

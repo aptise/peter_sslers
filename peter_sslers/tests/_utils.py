@@ -500,13 +500,9 @@ class FakeAuthenticatedUser(object):
         self.accountkey_thumbprint = accountkey_thumbprint
 
 
-class AppTestCore(unittest.TestCase):
-    _data_root = None
-    testapp = None
-    testapp_http = None
-    _session_factory = None
-    _DB_INTIALIZED = False
-    _settings = None
+class _Mixin_filedata(object):
+
+    _data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data")
 
     def _filepath_testfile(self, filename):
         return os.path.join(self._data_root, filename)
@@ -515,6 +511,14 @@ class AppTestCore(unittest.TestCase):
         with open(os.path.join(self._data_root, filename), "rt", encoding="utf-8") as f:
             data = f.read()
         return data
+
+
+class AppTestCore(unittest.TestCase, _Mixin_filedata):
+    testapp = None
+    testapp_http = None
+    _session_factory = None
+    _DB_INTIALIZED = False
+    _settings = None
 
     def setUp(self):
         self._settings = settings = get_appsettings(
@@ -545,9 +549,6 @@ class AppTestCore(unittest.TestCase):
         self.testapp = TestApp(
             app, extra_environ={"HTTP_HOST": "peter-sslers.example.com",}
         )
-        self._data_root = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "test_data"
-        )
         AppTestCore._DB_INTIALIZED = True
 
     def tearDown(self):
@@ -575,7 +576,6 @@ class AppTestCore(unittest.TestCase):
             _order = db.update.update_AcmeOrder_deactivate(self.ctx, _order)
             _changed = True
         if _changed:
-            print("turned off!")
             self.ctx.dbSession.commit()
 
     def _has_active_challenges(self):
@@ -1199,20 +1199,11 @@ class AppTest(AppTestCore):
 # ==============================================================================
 
 
-class AppTestWSGI(AppTest):
-    _data_root = None
+class AppTestWSGI(AppTest, _Mixin_filedata):
     testapp = None
     testapp_http = None
     _session_factory = None
     _DB_INTIALIZED = False
-
-    def _filepath_testfile(self, filename):
-        return os.path.join(self._data_root, filename)
-
-    def _filedata_testfile(self, filename):
-        with open(os.path.join(self._data_root, filename), "rt", encoding="utf-8") as f:
-            data = f.read()
-        return data
 
     def setUp(self):
         AppTest.setUp(self)

@@ -313,7 +313,7 @@ class View_Process(Handler):
         except Exception as exc:
             self.request.api_context.pyramid_transaction_rollback()
             if self.request.wants_json:
-                return {"result": "error", "error": exc.as_querystring}
+                return {"result": "error", "error": str(exc)}
             raise
 
 

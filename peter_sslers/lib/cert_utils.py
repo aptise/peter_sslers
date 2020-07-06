@@ -138,6 +138,8 @@ def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker
             csr_text = acme_crypto_util.make_csr(key_pem, domain_names)
         except Exception as exc:
             raise errors.OpenSslError_CsrGeneration(exc)
+        if six.PY3:
+            csr_text = csr_text.decode("utf8")
         return csr_text
 
     log.debug(".make_csr > openssl fallback")
@@ -263,7 +265,6 @@ def make_csr(domain_names, key_pem=None, key_pem_filepath=None, tmpfiles_tracker
             ) as proc:
                 csr_text, err = proc.communicate()
                 if err:
-                    pdb.set_trace()
                     raise errors.OpenSslError_CsrGeneration("could not create a CSR")
                 if six.PY3:
                     csr_text = csr_text.decode("utf8")
@@ -1291,7 +1292,8 @@ def account_key__sign(data, key_pem=None, key_pem_filepath=None):
     if openssl_crypto:
         pkey = openssl_crypto.load_privatekey(openssl_crypto.FILETYPE_PEM, key_pem)
         if six.PY3:
-            data = data.encode()
+            if not isinstance(data, bytes):
+                data = data.encode()
         signature = pkey.to_cryptography_key().sign(
             data,
             cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15(),
@@ -1307,7 +1309,8 @@ def account_key__sign(data, key_pem=None, key_pem_filepath=None):
         stderr=subprocess.PIPE,
     ) as proc:
         if six.PY3:
-            data = data.encode()
+            if not isinstance(data, bytes):
+                data = data.encode()
         signature, err = proc.communicate(data)
         if proc.returncode != 0:
             raise IOError("account_key__sign\n{1}".format(err))

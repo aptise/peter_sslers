@@ -22,6 +22,7 @@ import cryptography
 from ._utils import AppTestCore
 from ._utils import AppTest
 from ._utils import TEST_FILES
+from ._utils import _Mixin_filedata
 from ..lib import cert_utils
 from ..lib import utils
 from ..lib.db import get as lib_db_get
@@ -33,10 +34,9 @@ from ..model import utils as model_utils
 # ==============================================================================
 
 
-class UnitTest_CertUtils(unittest.TestCase):
+class UnitTest_CertUtils(unittest.TestCase, _Mixin_filedata):
     """python -m unittest peter_sslers.tests.unit_tests.UnitTest_CertUtils"""
 
-    _data_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_data")
     _account_sets = {
         "001": {
             "letsencrypt": True,
@@ -142,14 +142,6 @@ class UnitTest_CertUtils(unittest.TestCase):
             "pubkey_modulus_md5": "f4614ec52f34066ce074798cdc494d74",
         },
     }
-
-    def _filepath_testfile(self, filename):
-        return os.path.join(self._data_root, filename)
-
-    def _filedata_testfile(self, filename):
-        with open(os.path.join(self._data_root, filename), "rt", encoding="utf-8") as f:
-            data = f.read()
-        return data
 
     def test__parse_cert__domains(self):
         """
@@ -437,7 +429,7 @@ class UnitTest_CertUtils(unittest.TestCase):
             self.assertEqual(signature, expected)
 
 
-class UnitTest_OpenSSL(AppTestCore):
+class UnitTest_OpenSSL(unittest.TestCase, _Mixin_filedata):
     """python -m unittest peter_sslers.tests.unit_tests.UnitTest_OpenSSL"""
 
     def test_modulus_PrivateKey(self):

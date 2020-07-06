@@ -45,7 +45,7 @@ def nginx_flush_cache(request, ctx):
             reset_url = _server + _reset_path + "/all"
             response = sess.get(reset_url, timeout=timeout, verify=False)
             if response.status_code == 200:
-                response_json = json.loads(response.content)
+                response_json = json.loads(response.text)
                 status = response_json
                 if response_json["result"] != "success":
                     rval["errors"].append(_server)
@@ -58,7 +58,7 @@ def nginx_flush_cache(request, ctx):
                     "error": "response",
                     "response": {
                         "status_code": response.status_code,
-                        "text": response.content,
+                        "text": response.text,
                     },
                 }
         except Exception as exc:
@@ -93,7 +93,7 @@ def nginx_status(request, ctx):
             status_url = _server + status_path
             response = sess.get(status_url, timeout=timeout, verify=False)
             if response.status_code == 200:
-                response_json = json.loads(response.content)
+                response_json = json.loads(response.text)
                 status = response_json
                 rval["success"].append(_server)
             else:
@@ -103,7 +103,7 @@ def nginx_status(request, ctx):
                     "error": "response",
                     "response": {
                         "status_code": response.status_code,
-                        "text": response.content,
+                        "text": response.text,
                     },
                 }
         except Exception as exc:
@@ -135,7 +135,7 @@ def nginx_expire_cache(request, ctx, dbDomains=None):
                 reset_url = _server + _reset_path + "/domain/%s" % domain.domain_name
                 response = sess.get(reset_url, timeout=timeout, verify=False)
                 if response.status_code == 200:
-                    response_json = json.loads(response.content)
+                    response_json = json.loads(response.text)
                     if response_json["result"] == "success":
                         domain_ids["success"].add(domain.id)
                     else:
