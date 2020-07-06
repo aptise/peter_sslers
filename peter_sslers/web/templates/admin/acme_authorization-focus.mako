@@ -44,36 +44,38 @@
                     <tr>
                         <th>Sync</th>
                         <td>
-                            <p>
-                                <% sync_btn_class = '' if AcmeAuthorization.is_can_acme_server_sync else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/sync"
-                                    class="btn btn-xs btn-info ${sync_btn_class}"
-                                >
+                            <% _btn_class = '' if AcmeAuthorization.is_can_acme_server_sync else 'disabled' %>
+                            <form method="POST"
+                                action="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/sync"
+                                id="form-acme_server-sync"
+                            >
+                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_authorization-sync">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                    Sync AcmeAuthorization Against ACME Server
-                                </a>
-                            </p>
-                            <p>
-                                <% sync_btn_class = '' if AcmeAuthorization.is_can_acme_server_deactivate else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/deactivate"
-                                    class="btn btn-xs btn-info ${sync_btn_class}"
-                                >
+                                    Sync AcmeAuthorization Against ACME Server 
+                                </button>
+                            </form>
+
+                            <% _btn_class = '' if AcmeAuthorization.is_can_acme_server_deactivate else 'disabled' %>
+                            <form method="POST"
+                                action="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/deactivate"
+                                id="form-acme_server-deactivate"
+                            >
+                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_authorization-deactivate">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Deactivate Against ACME Server
-                                </a>
-                            </p>
-                            <p>
-                                <% trigger_btn_class = '' if AcmeAuthorization.is_can_acme_server_trigger else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/trigger"
-                                    class="btn btn-xs btn-info ${trigger_btn_class}"
-                                >
+                                </button>
+                            </form>
+
+                            <% _btn_class = '' if AcmeAuthorization.is_can_acme_server_trigger else 'disabled' %>
+                            <form method="POST"
+                                href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/trigger"
+                                id="form-acme_server-trigger"
+                            >
+                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_authorization-trigger">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Trigger ACME Server
-                                </a>
-                            </p>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 </tbody>

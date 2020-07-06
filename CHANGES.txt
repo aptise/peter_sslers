@@ -78,6 +78,8 @@
 - added routes to update recents for a domain and fqdnset
 - standardize url_template for json as just adding '.json' instead of calculating a whole new one
 - standardize "POST REQUIRED" string to "HTTP POST required"
+- update test suite to use POST when needed
+- changed tests to regex out buttons instead of forms
 
 0.4.0
 unreleased (2020-01-23)

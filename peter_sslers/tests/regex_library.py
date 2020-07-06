@@ -19,16 +19,16 @@ RE_AcmeAccount_deactivate_pending_success = re.compile(
 )
 
 
-# note: AcmeAuthorization
-
+# NOTE: AcmeAuthorization
+# !!!: the space after `btn-info ` and no `disabled` class
 RE_AcmeAuthorization_sync_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-authorization/(\d+)/acme-server/sync"[\n\s\ ]+class="btn btn-xs btn-info "'''
+    r"""<button class="btn btn-xs btn-info " id="btn-acme_authorization-sync">"""
 )
 RE_AcmeAuthorization_deactivate_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-authorization/(\d+)/acme-server/deactivate"[\n\s\ ]+class="btn btn-xs btn-info "'''
+    r"""<button class="btn btn-xs btn-info " id="btn-acme_authorization-deactivate">"""
 )
 RE_AcmeAuthorization_trigger_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-authorization/(\d+)/acme-server/trigger"[\n\s\ ]+class="btn btn-xs btn-info "'''
+    r"""<button class="btn btn-xs btn-info " id="btn-acme_authorization-trigger">"""
 )
 
 RE_AcmeAuthorization_deactivated = re.compile(
@@ -48,12 +48,12 @@ RE_AcmeAuthorization_synced = re.compile(
 
 
 # note: AcmeChallenge
-
+# !!!: the space after `btn-info ` and no `disabled` class
 RE_AcmeChallenge_sync_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-challenge/(\d+)/acme-server/sync"[\n\s\ ]+class="btn btn-xs btn-info"'''
+    r"""<button class="btn btn-xs btn-info " id="btn-acme_challenge-sync">"""
 )
 RE_AcmeChallenge_trigger_btn = re.compile(
-    r'''href="/\.well-known/admin/acme-challenge/(\d+)/acme-server/trigger"[\n\s\ ]+class="btn btn-xs btn-info "'''
+    r"""<button class="btn btn-xs btn-info " id="btn-acme_challenge-trigger">"""
 )
 RE_AcmeChallenge_triggered = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-challenge/\d+\?result=success&operation=acme\+server\+trigger"""
@@ -109,9 +109,11 @@ RE_AcmeOrder_invalidated = re.compile(
 RE_AcmeOrder_processed = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+process$"""
 )
-RE_AcmeOrder_can_process = re.compile(
-    r'''href="/\.well-known/admin/acme-order/\d+/acme-process"[\n\s\ ]+class="btn btn-xs btn-info "'''
+RE_AcmeOrder_btn_acme_process__can = re.compile(
+    r"""<button class="btn btn-xs btn-info " id="btn-acme_process">"""
 )
+
+
 RE_AcmeOrder_downloaded_certificate = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+server\+download\+certificate$"""
 )
@@ -127,12 +129,12 @@ RE_AcmeOrder_renew_custom = re.compile(
 
 # note the space after `btn-info ` and no `disabled` class
 RE_AcmeOrder_btn_deactive_authorizations = re.compile(
-    r'''href="/\.well-known/admin/acme-order/(\d+)/acme-server/deactivate-authorizations"[\n\s\ ]+class="btn btn-xs btn-info "'''
+    r"""<button class="btn btn-xs btn-info " id="btn-deactivate_authorizations">"""
 )
 
 # note the `disabled` class
 RE_AcmeOrder_btn_deactive_authorizations__off = re.compile(
-    r'''href="/\.well-known/admin/acme-order/(\d+)/acme-server/deactivate-authorizations"[\n\s\ ]+class="btn btn-xs btn-info disabled"'''
+    r"""<button class="btn btn-xs btn-info disabled" id="btn-deactivate_authorizations">"""
 )
 
 

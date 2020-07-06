@@ -44,7 +44,7 @@ class View_List(Handler):
         items_count = lib_db.get.get__AcmeChallengePoll__count(self.request.api_context)
         url_template = (
             "%s/acme-challenge-polls/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"],
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__AcmeChallengePoll__paginated(

@@ -231,7 +231,7 @@ class ViewAdminOperations(Handler):
         )
         url_template = (
             "%s/operations/nginx/log/{0}"
-            % self.request.registry.settings["app_settings"]["admin_prefix"],
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
         )
         (pager, offset) = self._paginate(
             items_count, url_template=url_template, items_per_page=_items_per_page,

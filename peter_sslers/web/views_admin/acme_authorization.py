@@ -200,8 +200,16 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Refresh should just update the record against the acme server.
         """
-        # TODO: POST REQUIRED
         dbAcmeAuthorization = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
             if not dbAcmeAuthorization.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
@@ -249,8 +257,16 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Deactivate
         """
-        # TODO: POST REQUIRED
         dbAcmeAuthorization = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+server+deactivate&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
             if not dbAcmeAuthorization.is_can_acme_server_deactivate:
                 raise errors.InvalidRequest(
@@ -298,8 +314,16 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Trigger
         """
-        # TODO: POST REQUIRED
         dbAcmeAuthorization = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+server+trigger&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
             if not dbAcmeAuthorization.is_can_acme_server_trigger:
                 raise errors.InvalidRequest(

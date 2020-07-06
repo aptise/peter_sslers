@@ -387,9 +387,12 @@ def _admin_views(config):
         "admin:acme_order:focus:acme_process|json",
         "/acme-order/{@id}/acme-process.json",
     )
-    config.add_route_7("admin:acme_order:focus:finalize", "/acme-order/{@id}/finalize")
     config.add_route_7(
-        "admin:acme_order:focus:finalize|json", "/acme-order/{@id}/finalize.json"
+        "admin:acme_order:focus:acme_finalize", "/acme-order/{@id}/acme-finalize"
+    )
+    config.add_route_7(
+        "admin:acme_order:focus:acme_finalize|json",
+        "/acme-order/{@id}/acme-finalize.json",
     )
     config.add_route_7(
         "admin:acme_order:focus:acme_server:sync", "/acme-order/{@id}/acme-server/sync"

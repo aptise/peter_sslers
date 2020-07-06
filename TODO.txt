@@ -71,7 +71,6 @@ EDIT:
 
     # TODO: POST REQUIRED
 
-* standardize "POST REQUIRED" string
 
 
 

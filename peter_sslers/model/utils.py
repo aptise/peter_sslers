@@ -521,6 +521,7 @@ class Acme_Status_Order(_Acme_Status_All):
         8: "ready",
         404: "*404*",  # "Not Found"; resource is not on the server
         406: "*406*",  # "Not Acceptable"; the server returned a status we don't track
+        410: "*410*",  # "Gone"; use when turning off Orders during testing
     }
 
 

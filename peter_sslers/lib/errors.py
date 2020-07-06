@@ -176,7 +176,12 @@ class AcmeDuplicateChallengesExisting(AcmeDuplicateChallenges):
     def __str__(self):
         return (
             """One or more domains already have active challenges: %s."""
-            % ", ".join(["`%s`" % ac.domain.domain_name for ac in self.args[0]])
+            % ", ".join(
+                [
+                    "`%s` (%s)" % (ac.domain.domain_name, ac.acme_challenge_type)
+                    for ac in self.args[0]
+                ]
+            )
         )
 
 

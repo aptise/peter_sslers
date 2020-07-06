@@ -45,26 +45,28 @@
                     <tr>
                         <th>Sync</th>
                         <td>
-                            <p>
-                                <% sync_btn_class = '' if AcmeChallenge.is_can_acme_server_sync else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/sync"
-                                    class="btn btn-xs btn-info"
-                                >
+                    
+                            <% _btn_class = '' if AcmeChallenge.is_can_acme_server_sync else 'disabled' %>
+                            <form method="POST"
+                                action="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/sync"
+                                id="form-acme_server-sync"
+                            >
+                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_challenge-sync">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Sync AcmeChallenge Against ACME Server
-                                </a>
-                            </p>
-                            <p>
-                                <% trigger_btn_class = '' if AcmeChallenge.is_can_acme_server_trigger else 'disabled' %>
-                                <a
-                                    href="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/trigger"
-                                    class="btn btn-xs btn-info ${trigger_btn_class}"
-                                >
+                                </button>
+                            </form>
+
+                            <% _btn_class = '' if AcmeChallenge.is_can_acme_server_trigger else 'disabled' %>
+                            <form method="POST"
+                                action="${admin_prefix}/acme-challenge/${AcmeChallenge.id}/acme-server/trigger"
+                                id="form-acme_server-trigger"
+                            >
+                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_challenge-trigger">
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Trigger ACME Server
-                                </a>
-                            </p>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 </tbody>

@@ -599,8 +599,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.wants_json:
             return {
                 "instructions": [
+                    """HTTP POST required""",
                     """curl --form 'action=active' %s/server-certificate/1/mark.json"""
-                    % self.request.admin_url
+                    % self.request.admin_url,
                 ],
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {

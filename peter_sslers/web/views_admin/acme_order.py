@@ -277,8 +277,16 @@ class View_Focus_Manipulate(View_Focus):
         """
         Acme Refresh should just update the record against the acme server.
         """
-        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
             if not dbAcmeOrder.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
@@ -322,8 +330,16 @@ class View_Focus_Manipulate(View_Focus):
         """
         sync any auths on the server.
         """
-        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+server+sync+authorizations&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
             if not dbAcmeOrder.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
@@ -368,8 +384,16 @@ class View_Focus_Manipulate(View_Focus):
         """
         deactivate any auths on the server.
         """
-        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+server+deactivate+authorizations&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
             if not dbAcmeOrder.is_can_acme_server_deactivate_authorizations:
                 raise errors.InvalidRequest(
@@ -414,8 +438,16 @@ class View_Focus_Manipulate(View_Focus):
         """
         This endpoint is for Immediately Renewing the AcmeOrder with overrides on the keys
         """
-        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+server+download+certificate&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
             dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__download_certificate(
                 self.request.api_context, dbAcmeOrder=dbAcmeOrder,
@@ -450,8 +482,16 @@ class View_Focus_Manipulate(View_Focus):
         """
         only certain orders can be processed
         """
-        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+process&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
             if not dbAcmeOrder.is_can_acme_process:
                 raise errors.InvalidRequest(
@@ -481,14 +521,24 @@ class View_Focus_Manipulate(View_Focus):
                 % (self._focus_url, exc.as_querystring)
             )
 
-    @view_config(route_name="admin:acme_order:focus:finalize", renderer=None)
-    @view_config(route_name="admin:acme_order:focus:finalize|json", renderer="json")
+    @view_config(route_name="admin:acme_order:focus:acme_finalize", renderer=None)
+    @view_config(
+        route_name="admin:acme_order:focus:acme_finalize|json", renderer="json"
+    )
     def finalize_order(self):
         """
         only certain orders can be finalized
         """
-        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+finalize&message=HTTP+POST+required"
+                % self._focus_url
+            )
         try:
             if not dbAcmeOrder.is_can_acme_finalize:
                 raise errors.InvalidRequest(
@@ -504,7 +554,7 @@ class View_Focus_Manipulate(View_Focus):
                     "AcmeOrder": dbAcmeOrder.as_json,
                 }
             return HTTPSeeOther(
-                "%s?result=success&operation=finalize+order" % self._focus_url
+                "%s?result=success&operation=acme+finalize" % self._focus_url
             )
         except (errors.AcmeError, errors.InvalidRequest,) as exc:
             if self.request.wants_json:
@@ -514,7 +564,7 @@ class View_Focus_Manipulate(View_Focus):
                     "error": str(exc),
                 }
             return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=finalize+order"
+                "%s?result=error&error=%s&operation=acme+finalize"
                 % (self._focus_url, exc.as_querystring)
             )
 
@@ -526,8 +576,16 @@ class View_Focus_Manipulate(View_Focus):
         """
         Mark an order
         """
-        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=mark&message=HTTP+POST+required"
+                % self._focus_url
+            )
         action = self.request.params.get("action", None)
         try:
             if action == "invalid":
@@ -592,11 +650,10 @@ class View_Focus_Manipulate(View_Focus):
         """
         Retry should create a new order
         """
-        # TODO: POST REQUIRED
         dbAcmeOrder = self._focus(eagerload_web=True)
         try:
             if self.request.method != "POST":
-                raise errors.InvalidRequest("This must be a POST request.")
+                raise errors.InvalidRequest("HTTP POST required")
             if not dbAcmeOrder.is_can_acme_server_sync:
                 raise errors.InvalidRequest(
                     "ACME Retry is not allowed for this AcmeOrder"
@@ -655,11 +712,9 @@ class View_Focus_Manipulate(View_Focus):
 
     def _renew_custom__print(self):
         dbAcmeOrder = self._focus()
-        if not dbAcmeOrder.is_renewable_custom:
-            raise errors.DisplayableError("This AcmeOrder can not use RenewCustom")
 
         if self.request.wants_json:
-            return {
+            rval = {
                 "form_fields": {
                     "processing_strategy": "How should the order be processed?",
                     "account_key_option": "How is the AcmeAccount specified?",
@@ -702,10 +757,18 @@ class View_Focus_Manipulate(View_Focus):
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
                 ],
                 "instructions": [
+                    "HTTP POST required",
                     """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/1/renew/custom.json"""
-                    % self.request.admin_url
+                    % self.request.admin_url,
                 ],
+                "notes": [],
             }
+            if not dbAcmeOrder.is_renewable_custom:
+                rval["notes"].append("This AcmeOrder can not use RenewCustom")
+            return rval
+
+        if not dbAcmeOrder.is_renewable_custom:
+            raise errors.DisplayableError("This AcmeOrder can not use RenewCustom")
 
         return render_to_response(
             "/admin/acme_order-focus-renew-custom.mako",
@@ -793,11 +856,8 @@ class View_Focus_Manipulate(View_Focus):
 
     def _renew_quick__print(self):
         dbAcmeOrder = self._focus()
-        if not dbAcmeOrder.is_renewable_quick:
-            raise errors.DisplayableError("This AcmeOrder can not use Quick Renew")
-
         if self.request.wants_json:
-            return {
+            rval = {
                 "form_fields": {
                     "processing_strategy": "How should the order be processed?",
                 },
@@ -805,10 +865,18 @@ class View_Focus_Manipulate(View_Focus):
                     "processing_strategy": model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL,
                 },
                 "instructions": [
+                    "HTTP POST required",
                     """curl --form 'processing_strategy=create_order' %s/acme-order/1/renew/quick.json"""
-                    % self.request.admin_url
+                    % self.request.admin_url,
                 ],
+                "notes": [],
             }
+            if not dbAcmeOrder.is_renewable_quick:
+                rval["notes"].append("This AcmeOrder can not use Quick Renew")
+            return rval
+
+        if not dbAcmeOrder.is_renewable_quick:
+            raise errors.DisplayableError("This AcmeOrder can not use Quick Renew")
 
         return render_to_response(
             "/admin/acme_order-focus-renew-quick.mako",
@@ -930,8 +998,9 @@ class View_New(Handler):
                     "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
                 ],
                 "instructions": [
+                    "HTTP POST required",
                     """curl --form 'account_key_option=account_key_reuse' --form 'account_key_reuse=ff00ff00ff00ff00' 'private_key_option=private_key_reuse' --form 'private_key_reuse=ff00ff00ff00ff00' %s/acme-order/new/freeform.json"""
-                    % self.request.admin_url
+                    % self.request.admin_url,
                 ],
             }
         return render_to_response(

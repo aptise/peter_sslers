@@ -97,11 +97,11 @@ def create__AcmeOrderless(
         active_challenges = []
         for (domain_name, dbDomain) in domain_objects.items():
             # error out on ANY acme_challenge_type_id
-            _active_challenges = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+            _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
                 ctx, dbDomain.id
             )
             if _active_challenges:
-                active_challenges.append(_active_challenges)
+                active_challenges.extend(_active_challenges)
         if active_challenges:
             raise errors.AcmeDuplicateChallengesExisting(active_challenges)
 
@@ -339,12 +339,12 @@ def create__AcmeChallenge(
         raise ValueError("invalid `acme_challenge_type_id`")
 
     if ctx.request.registry.settings["app_settings"]["block_competing_challenges"]:
-        _active_challenge = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+        _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
             ctx, dbDomain.id, acme_challenge_type_id=acme_challenge_type_id,
         )
-        if _active_challenge:
+        if _active_challenges:
             if not is_via_sync:
-                raise errors.AcmeDuplicateChallenge(_active_challenge)
+                raise errors.AcmeDuplicateChallenge(_active_challenges)
             else:
                 # TODO: edge case
                 raise ValueError("need to handle edge case")

@@ -578,7 +578,8 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "instructions": [
-                    """curl --form 'action=active' %s/mark.json""" % self._focus_url
+                    "HTTP POST required",
+                    """curl --form 'action=active' %s/mark.json""" % self._focus_url,
                 ],
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["cancel"]},

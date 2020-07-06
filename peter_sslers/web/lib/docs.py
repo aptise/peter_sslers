@@ -2,7 +2,7 @@
 
 
 json_docs_post_only = {
-    "instructions": """JSON endpoint requires a submission via `POST`""",
+    "instructions": ["HTTP POST required",],
     "form_fields": None,
 }
 

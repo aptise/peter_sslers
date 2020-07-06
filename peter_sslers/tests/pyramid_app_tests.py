@@ -209,11 +209,6 @@ class FunctionalTests_AcmeAccount(AppTest):
         _private_key_cycle = TEST_FILES["AcmeAccount"]["2"]["private_key_cycle"]
         key_filepath = self._filepath_testfile(_key_filename)
 
-        res = self.testapp.get(
-            "/.well-known/admin/acme-account/upload.json", status=200
-        )
-        assert "instructions" in res.json
-
         form = {}
         form["account__contact"] = TEST_FILES["AcmeAccount"]["2"]["contact"]
         form["account_key_file_pem"] = Upload(key_filepath)
@@ -464,12 +459,6 @@ class FunctionalTests_AcmeAccount(AppTest):
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
 
-        res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/mark.json" % focus_id, status=200,
-        )
-        assert "form_fields" in res.json
-        assert "instructions" in res.json
-
         if focus_item.is_global_default:
             raise ValueError("this should not be the global default")
 
@@ -545,10 +534,44 @@ class FunctionalTests_AcmeAccount(AppTest):
         assert res3.json["result"] == "success"
         assert "AcmeAccount" in res3.json
 
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
 
-class FunctionalTests_AcmeAuthorizations(AppTest):
+        # !!!: test `POST required` `acme-account/new.json`
+        res = self.testapp.get("/.well-known/admin/acme-account/new.json", status=200)
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-account/upload.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/upload.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-account/%s/mark.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/mark.json" % focus_id, status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-account/%s/acme-server/authenticate.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-account/%s/acme-server/authenticate.json"
+            % focus_id,
+            status=200,
+        )
+        assert res.location is None  # no redirect
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+
+class FunctionalTests_AcmeAuthorization(AppTest):
     """
-    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeAuthorizations
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeAuthorization
     """
 
     def _get_one(self):
@@ -625,10 +648,81 @@ class FunctionalTests_AcmeAuthorizations(AppTest):
         assert "AcmeAuthorization" in res.json
         assert res.json["AcmeAuthorization"]["id"] == focus_id
 
+    def test_post_required_html(self):
+        (focus_item, focus_id) = self._get_one()
 
-class FunctionalTests_AcmeChallenges(AppTest):
+        # !!!: test `POST required` `acme-authorization/%s/acme-server/sync`
+        # "admin:acme_authorization:focus:sync"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync" % focus_id,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+            % focus_id
+        )
+
+        # !!!: test `POST required` `acme-authorization/%s/acme-server/trigger`
+        # "admin:acme_authorization:focus:trigger"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger" % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=error&operation=acme+server+trigger&message=HTTP+POST+required"
+            % focus_id
+        )
+
+        # !!!: test `POST required` `acme-authorization/%s/acme-server/deactivate`
+        # "admin:acme_authorization:focus:deactivate"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate"
+            % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-authorization/%s?result=error&operation=acme+server+deactivate&message=HTTP+POST+required"
+            % focus_id
+        )
+
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `acme-authorization/%s/acme-server/sync.json`
+        # "admin:acme_authorization:focus:sync|json"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/sync.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-authorization/%s/acme-server/trigger.json`
+        # "admin:acme_authorization:focus:trigger|json"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/trigger.json"
+            % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-authorization/%s/acme-server/deactivate.json`
+        # "admin:acme_authorization:focus:deactivate|json"
+        res = self.testapp.get(
+            "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
+            % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+
+class FunctionalTests_AcmeChallenge(AppTest):
     """
-    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeChallenges
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeChallenge
     """
 
     def _get_one(self):
@@ -713,6 +807,64 @@ class FunctionalTests_AcmeChallenges(AppTest):
             "/.well-known/admin/acme-challenge/%s" % focus_id, status=200
         )
 
+    @tests_routes(("admin:acme_challenge:focus|json"))
+    def test_focus_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s.json" % focus_id, status=200
+        )
+        assert "AcmeChallenge" in res.json
+        assert res.json["AcmeChallenge"]["id"] == focus_id
+
+    def test_post_required_html(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `acme-challenge/%s/acme-server/sync`
+        # "admin:acme_challenge:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/sync" % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-challenge/%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+            % focus_id
+        )
+
+        # !!!: test `POST required` `acme-challenge/%s/acme-server/trigger`
+        # "admin:acme_challenge:focus:acme_server:trigger",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/trigger" % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-challenge/%s?result=error&operation=acme+server+trigger&message=HTTP+POST+required"
+            % focus_id
+        )
+
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `acme-challenge/%s/acme-server/sync.json`
+        # "admin:acme_challenge:focus:acme_server:sync|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/sync.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-challenge/%s/acme-server/trigger.json`
+        # "admin:acme_challenge:focus:acme_server:trigger|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
     @tests_routes(("public_challenge"))
     def test_public_challenge(self):
         (focus_item, focus_id) = self._get_one()
@@ -740,16 +892,6 @@ class FunctionalTests_AcmeChallenges(AppTest):
             status=200,
         )
         assert resp_2.text == keyauthorization
-
-    @tests_routes(("admin:acme_challenge:focus|json"))
-    def test_focus_json(self):
-        (focus_item, focus_id) = self._get_one()
-
-        res = self.testapp.get(
-            "/.well-known/admin/acme-challenge/%s.json" % focus_id, status=200
-        )
-        assert "AcmeChallenge" in res.json
-        assert res.json["AcmeChallenge"]["id"] == focus_id
 
 
 class FunctionalTests_AcmeChallengePolls(AppTest):
@@ -1223,11 +1365,6 @@ class FunctionalTests_AcmeDnsServer(AppTest):
     def test_against_acme_dns__json(self):
         (focus_item, focus_id) = self._get_one()
 
-        res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/%s/check.json" % focus_id, status=200
-        )
-        assert "instructions" in res.json
-
         res = self.testapp.post(
             "/.well-known/admin/acme-dns-server/%s/check.json" % focus_id,
             {},
@@ -1253,10 +1390,6 @@ class FunctionalTests_AcmeDnsServer(AppTest):
 
     @tests_routes(("admin:acme_dns_server:new|json",))
     def test_new_json(self):
-        res = self.testapp.get(
-            "/.well-known/admin/acme-dns-server/new.json", status=200
-        )
-        assert "instructions" in res.json
 
         res = self.testapp.post(
             "/.well-known/admin/acme-dns-server/new.json", {}, status=200
@@ -1272,6 +1405,23 @@ class FunctionalTests_AcmeDnsServer(AppTest):
         assert res.json["result"] == "success"
         assert res.json["is_created"] is True
         assert "AcmeDnsServer" in res.json
+
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `acme-dns-server/%s/check.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-dns-server/%s/check.json" % focus_id, status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-dns-server/new.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-dns-server/new.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
 
 
 class FunctionalTests_AcmeDnsServerAccount(AppTest):
@@ -1526,6 +1676,152 @@ class FunctionalTests_AcmeOrder(AppTest):
         assert "PrivateKey" in res.json["AuditReport"]
         assert "UniqueFQDNSet" in res.json["AuditReport"]
         assert "AcmeAuthorizations" in res.json["AuditReport"]
+
+    def test_post_required_html(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `acme-order/%s/acme-server/sync`
+        # "admin:acme_order:focus:acme_server:sync",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % focus_id, status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+            % focus_id
+        )
+
+        # !!!: test `POST required` `acme-order/%s/acme-server/sync-authorizations`
+        # "admin:acme_order:focus:acme_server:sync_authorizations",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations"
+            % focus_id,
+            status=303,
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+server+sync+authorizations&message=HTTP+POST+required"
+            % focus_id
+        )
+
+        # !!!: test `POST required` `acme-order/%s/acme-finalize`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-finalize" % focus_id, status=303
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+finalize&message=HTTP+POST+required"
+            % focus_id
+        )
+
+        # !!!: test `POST required` `acme-order/%s/acme-server/deactivate-authorizations`
+        # "admin:acme_order:focus:acme_server:deactivate_authorizations",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations"
+            % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+server+deactivate+authorizations&message=HTTP+POST+required"
+            % focus_id
+        )
+
+        # !!!: test `POST required` `acme-order/%s/mark`
+        # "admin:acme_order:focus:mark",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/mark?action=deactivate" % focus_id,
+            status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=mark&message=HTTP+POST+required"
+            % focus_id
+        )
+
+        # !!!: test `POST required` `acme-order/%s/acme-process`
+        # "admin:acme_order:focus:acme-process",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-process" % focus_id, status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=error&operation=acme+process&message=HTTP+POST+required"
+            % focus_id
+        )
+
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `acme-order/%s/acme-server/sync.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-order/%s/acme-server/sync-authorizations.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations.json"
+            % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-order/%s/acme-finalize.json`
+        # "admin:acme_order:focus:acme_finalize|json",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-finalize.json" % focus_id, status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-order/%s/acme-server/deactivate-authorizations.json`
+        # "admin:acme_order:focus:acme_server:deactivate_authorizations",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations.json"
+            % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-order/%s/mark.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/mark.json?action=deactivate" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-order/%s/acme-process.json`
+        # "admin:acme_order:focus:acme-process",
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/acme-process.json" % focus_id, status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-order/new/freeform.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/new/freeform.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-order/%s/renew/quick.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/renew/quick.json" % focus_id, status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `acme-order/%s/renew/custom.json`
+        res = self.testapp.get(
+            "/.well-known/admin/acme-order/%s/renew/custom.json" % focus_id, status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
 
 
 class FunctionalTests_AcmeOrderless(AppTest):
@@ -2664,15 +2960,6 @@ class FunctionalTests_Domain(AppTest):
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
 
-        # GET
-        res = self.testapp.get(
-            "/.well-known/admin/domain/%s/mark.json" % focus_id,
-            {"action": "active"},
-            status=200,
-        )
-        assert "form_fields" in res.json
-        assert "instructions" in res.json
-
         # the `focus_item` is active,
         if not focus_item.is_active:
             raise ValueError("NOT focus_item.is_active")
@@ -2704,12 +2991,6 @@ class FunctionalTests_Domain(AppTest):
         assert "Domain" in res.json
         assert res.json["Domain"]["id"] == focus_id
         assert res.json["Domain"]["is_active"] is True
-
-        res = self.testapp.get(
-            "/.well-known/admin/domain/%s/update-recents.json" % focus_id, status=200
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
             "/.well-known/admin/domain/%s/update-recents.json" % focus_id, status=200
@@ -2810,9 +3091,6 @@ class FunctionalTests_Domain(AppTest):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_Domain.test_acme_dns_server_new__json
         """
-        res = self.testapp.get("/.well-known/admin/domain/new.json", status=200)
-        assert "instructions" in res.json
-
         res = self.testapp.post("/.well-known/admin/domain/new.json", {}, status=200)
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
@@ -2843,7 +3121,8 @@ class FunctionalTests_Domain(AppTest):
             "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
             status=200,
         )
-        assert "instructions" in res.json
+        assert "instructions" in res.json  # already covered
+        assert "HTTP POST required" in res.json["instructions"]  # already covered
         assert "valid_options" in res.json
         assert "acme_dns_server_id" in res.json["valid_options"]
         assert 1 in res.json["valid_options"]["acme_dns_server_id"]
@@ -2921,6 +3200,42 @@ class FunctionalTests_Domain(AppTest):
             status=200,
         )
         assert res.json["result"] == "success"
+
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+        # the `focus_item` is active,
+        if not focus_item.is_active:
+            raise ValueError("NOT focus_item.is_active")
+
+        # !!!: test `POST required` `domain/%s/mark.json`
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/mark.json" % focus_id,
+            {"action": "active"},
+            status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `domain/%s/update-recents.json`
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/update-recents.json" % focus_id, status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `domain/%s/new.json`
+        res = self.testapp.get("/.well-known/admin/domain/new.json", status=200)
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `domain/%s/acme-dns-server/new.json`
+        res = self.testapp.get(
+            "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
 
 
 class FunctionalTests_DomainAutocert(AppTest):
@@ -3333,12 +3648,6 @@ class FunctionalTests_PrivateKey(AppTest):
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
 
-        res = self.testapp.get(
-            "/.well-known/admin/private-key/%s/mark.json" % focus_id, status=200,
-        )
-        assert "form_fields" in res.json
-        assert "instructions" in res.json
-
         # the `focus_item` is active, so it can't be compromised or inactive
         if focus_item.is_compromised:
             raise ValueError("focus_item.is_compromised")
@@ -3439,6 +3748,17 @@ class FunctionalTests_PrivateKey(AppTest):
         res2 = self.testapp.post("/.well-known/admin/private-key/new.json", form)
         assert res2.status_code == 200
         assert "PrivateKey" in res2.json
+
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `private-key/%s/mark.json`
+        res = self.testapp.get(
+            "/.well-known/admin/private-key/%s/mark.json" % focus_id, status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
 
 
 class FunctionalTests_ServerCertificate(AppTest):
@@ -3750,12 +4070,6 @@ class FunctionalTests_ServerCertificate(AppTest):
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
 
-        res = self.testapp.get(
-            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id, status=200,
-        )
-        assert "form_fields" in res.json
-        assert "instructions" in res.json
-
         # the `focus_item` is active, so it can't be revoked or inactive
         if focus_item.is_revoked:
             raise ValueError("focus_item.is_revoked")
@@ -3895,6 +4209,17 @@ class FunctionalTests_ServerCertificate(AppTest):
         )
         assert res.json["result"] == "success"
 
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `server-certificate/%s/mark.json`
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s/mark.json" % focus_id, status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
 
 class FunctionalTests_UniqueFQDNSet(AppTest):
     """
@@ -4033,13 +4358,6 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
 
-        res = self.testapp.get(
-            "/.well-known/admin/unique-fqdn-set/%s/update-recents.json" % focus_id,
-            status=200,
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
-
         res = self.testapp.post(
             "/.well-known/admin/unique-fqdn-set/%s/update-recents.json" % focus_id,
             status=200,
@@ -4047,6 +4365,17 @@ class FunctionalTests_UniqueFQDNSet(AppTest):
         assert res.status_code == 200
         assert res.json["result"] == "success"
         assert "UniqueFQDNSet" in res.json
+
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `unique-fqdn-set/%s/update-recents.json`
+        res = self.testapp.get(
+            "/.well-known/admin/unique-fqdn-set/%s/update-recents.json" % focus_id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
 
 
 class FunctionalTests_QueueCertificate(AppTest):
@@ -4251,12 +4580,6 @@ class FunctionalTests_QueueCertificate(AppTest):
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_QueueCertificate.test_manipulate_json
         """
         (focus_item, focus_id) = self._get_one()
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
-            {"action": "cancel"},
-            status=200,
-        )
-        assert "instructions" in res.json
 
         res2 = self.testapp.post(
             "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
@@ -4377,13 +4700,6 @@ class FunctionalTests_QueueCertificate(AppTest):
 
         # try with an AcmeOrder
         dbAcmeOrder = self._get_queueable_AcmeOrder()
-        res = self.testapp.get(
-            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=AcmeOrder&acme_order=%s"
-            % dbAcmeOrder.id,
-            status=200,
-        )
-        assert "instructions" in res.json
-
         form = {
             "queue_source": "AcmeOrder",
             "acme_order": dbAcmeOrder.id,
@@ -4503,6 +4819,52 @@ class FunctionalTests_QueueCertificate(AppTest):
         assert res3.json["result"] == "success"
         assert "QueueCertificate" in res3.json
         queue_id_1 = res3.json["QueueCertificate"]
+
+    def test_post_required_html(self):
+        pass
+
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+        dbAcmeOrder = self._get_queueable_AcmeOrder()
+
+        # !!!: test `POST required` `queue-certificate/%s/mark.json`
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `queue-certificates/process.json`
+        res = self.testapp.get(
+            "/.well-known/admin/api/queue-certificates/process.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `queue-certificates/update.json`
+        res = self.testapp.get(
+            "/.well-known/admin/api/queue-certificates/update.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `queue-certificate/new/structured.json`
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new/structured.json?queue_source=AcmeOrder&acme_order=%s"
+            % dbAcmeOrder.id,
+            status=200,
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `queue-certificate/new/freeform.json`
+        res = self.testapp.get(
+            "/.well-known/admin/queue-certificate/new/freeform.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
 
 
 class FunctionalTests_QueueDomains(AppTest):
@@ -4634,14 +4996,6 @@ class FunctionalTests_QueueDomains(AppTest):
     def test_manipulate_json(self):
         (focus_item, focus_id) = self._get_one()
 
-        res = self.testapp.get(
-            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
-            {"action": "cancel"},
-            status=200,
-        )
-        assert "form_fields" in res.json
-        assert "instructions" in res.json
-
         # make this inactive
         res2 = self.testapp.post(
             "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
@@ -4661,6 +5015,29 @@ class FunctionalTests_QueueDomains(AppTest):
         assert res3.json["result"] == "error"
         assert "form_errors" in res3.json
         assert res3.json["form_errors"]["action"] == "Already cancelled"
+
+    def test_post_required_html(self):
+        pass
+
+    def test_post_required_json(self):
+        (focus_item, focus_id) = self._get_one()
+
+        # !!!: test `POST required` `queue-domains/process.json`
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domains/process.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `queue-domain/mark.json`
+        res = self.testapp.get(
+            "/.well-known/admin/queue-domain/%s/mark.json" % focus_id,
+            {"action": "cancel"},
+            status=200,
+        )
+        assert "form_fields" in res.json
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
 
 
 class FunctionalTests_AcmeServer(AppTest):
@@ -4697,10 +5074,6 @@ class FunctionalTests_AcmeServer(AppTest):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccount_new_json
         """
-        res = self.testapp.get("/.well-known/admin/acme-account/new.json", status=200)
-        assert "form_fields" in res.json
-        assert "instructions" in res.json
-
         form = {}
         res2 = self.testapp.post("/.well-known/admin/acme-account/new.json", form)
         assert res2.json["result"] == "error"
@@ -4770,14 +5143,6 @@ class FunctionalTests_AcmeServer(AppTest):
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_AcmeAccount_authenticate_json
         """
         (focus_item, focus_id) = self._get_one_AcmeAccount()
-
-        res = self.testapp.get(
-            "/.well-known/admin/acme-account/%s/acme-server/authenticate.json"
-            % focus_id,
-            status=200,
-        )
-        assert res.location is None  # no redirect
-        assert "instructions" in res.json
 
         res = self.testapp.post(
             "/.well-known/admin/acme-account/%s/acme-server/authenticate.json"
@@ -5031,7 +5396,7 @@ class FunctionalTests_AcmeServer(AppTest):
             "admin:acme_challenge:focus",
             "admin:acme_challenge:focus:acme_server:sync",
             "admin:acme_challenge:focus:acme_server:trigger",
-            "admin:acme_order:focus:finalize",
+            "admin:acme_order:focus:acme_finalize",
             "admin:acme_order:focus:renew:custom",
             "admin:acme_order:focus:renew:quick",
             "admin:acme_order:focus:acme_server:deactivate_authorizations",
@@ -5052,8 +5417,8 @@ class FunctionalTests_AcmeServer(AppTest):
         res = self.testapp.get(obj_url, status=200)
 
         # "admin:acme_order:focus:acme_server:sync",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, status=303
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, {}, status=303
         )
         assert res.location == (
             "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
@@ -5061,8 +5426,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # "admin:acme_order:focus:acme_server:sync_authorizations",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations" % obj_id,
+            {},
             status=303,
         )
         assert res.location == (
@@ -5089,9 +5455,11 @@ class FunctionalTests_AcmeServer(AppTest):
         res = self.testapp.get(
             "/.well-known/admin/acme-authorization/%s" % auth_id_1, status=200
         )
+
         # "admin:acme_authorization:focus:sync"
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/sync" % auth_id_1,
+            {},
             status=303,
         )
         assert res.location == (
@@ -5100,8 +5468,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # "admin:acme_authorization:focus:trigger"
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/trigger" % auth_id_1,
+            {},
             status=303,
         )
         assert res.location == (
@@ -5110,8 +5479,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # "admin:acme_authorization:focus:trigger" AGAIN
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/trigger" % auth_id_1,
+            {},
             status=303,
         )
         assert res.location == (
@@ -5128,19 +5498,33 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # "admin:acme_challenge:focus:acme_server:sync",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-challenge/%s/acme-server/sync" % challenge_id_2,
+            {},
             status=303,
         )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-challenge/%s?result=success&operation=acme+server+sync"
+            % challenge_id_2
+        )
+
         # "admin:acme_challenge:focus:acme_server:trigger",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-challenge/%s/acme-server/trigger" % challenge_id_2,
+            {},
             status=303,
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/acme-challenge/%s?result=success&operation=acme+server+trigger"
+            % challenge_id_2
         )
 
         # "admin:acme_authorization:focus:sync"
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/sync" % auth_id_2,
+            {},
             status=303,
         )
         assert res.location == (
@@ -5156,20 +5540,21 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # "admin:acme_order:focus:acme_server:sync",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, status=303
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id, {}, status=303
         )
         assert res.location == (
             "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
             % obj_id
         )
 
-        # "admin:acme_order:focus:finalize",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/finalize" % obj_id, status=303
+        # "admin:acme_order:focus:acme_finalize",
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/acme-finalize" % obj_id, {}, status=303
         )
+
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=finalize+order"
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+finalize"
             % obj_id
         )
 
@@ -5198,14 +5583,16 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
         )
         # "admin:acme_order:focus:acme_server:sync",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id__quick,
+            {},
             status=303,
         )
         assert res.location == (
             "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+server+sync"
             % obj_id__quick
         )
+
         # "admin:acme_order:focus",
         res = self.testapp.get(
             "/.well-known/admin/acme-order/%s" % obj_id__quick, status=200
@@ -5216,11 +5603,13 @@ class FunctionalTests_AcmeServer(AppTest):
         # so we can either "process" or "finalize" here
 
         # let's call finalize
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/finalize" % obj_id__quick, status=303
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/acme-finalize" % obj_id__quick,
+            {},
+            status=303,
         )
         assert res.location == (
-            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=finalize+order"
+            "http://peter-sslers.example.com/.well-known/admin/acme-order/%s?result=success&operation=acme+finalize"
             % obj_id__quick
         )
 
@@ -5243,8 +5632,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert matched
         obj_id__custom = matched.groups()[0]
 
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync" % obj_id__custom,
+            {},
             status=303,
         )
         assert res.location == (
@@ -5299,9 +5689,10 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # sync_authorizations
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations"
             % obj_id__2,
+            {},
             status=303,
         )
         assert res.location == (
@@ -5317,9 +5708,10 @@ class FunctionalTests_AcmeServer(AppTest):
         assert RE_AcmeOrder_btn_deactive_authorizations.findall(res.text)
 
         # "admin:acme_order:focus:acme_server:deactivate_authorizations",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations"
             % obj_id__2,
+            {},
             status=303,
         )
         assert res.location == (
@@ -5368,8 +5760,10 @@ class FunctionalTests_AcmeServer(AppTest):
             'href="/.well-known/admin/acme-order/%s/mark?action=deactivate"' % obj_id
             in res.text
         )
-        res = self.testapp.get(
+
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/mark?action=deactivate" % obj_id,
+            {},
             status=303,
         )
         matched = RE_AcmeOrder_deactivated.match(res.location)
@@ -5383,8 +5777,10 @@ class FunctionalTests_AcmeServer(AppTest):
             'href="/.well-known/admin/acme-order/%s/mark?action=invalid"' % obj_id
             in res.text
         )
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/mark?action=invalid" % obj_id, status=303,
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/mark?action=invalid" % obj_id,
+            {},
+            status=303,
         )
         matched = RE_AcmeOrder_invalidated.match(res.location)
         assert matched
@@ -5468,29 +5864,29 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # /acme-order
         res = self.testapp.get(obj_url, status=200)
-        assert RE_AcmeOrder_can_process.findall(res.text)
+        assert RE_AcmeOrder_btn_acme_process__can.findall(res.text)
 
         process_url = "/.well-known/admin/acme-order/%s/acme-process" % obj_id
 
         # get the first process
-        res = self.testapp.get(process_url, status=303)
+        res = self.testapp.post(process_url, {}, status=303)
         assert RE_AcmeOrder_processed.match(res.location)
 
         # get the order again, then the second process
         res = self.testapp.get(obj_url, status=200)
-        assert RE_AcmeOrder_can_process.findall(res.text)
-        res_p = self.testapp.get(process_url, status=303)
+        assert RE_AcmeOrder_btn_acme_process__can.findall(res.text)
+        res_p = self.testapp.post(process_url, {}, status=303)
         assert RE_AcmeOrder_processed.match(res_p.location)
 
         # get the order again, then the third process
         res = self.testapp.get(obj_url, status=200)
-        assert RE_AcmeOrder_can_process.findall(res.text)
-        res_p = self.testapp.get(process_url, status=303)
+        assert RE_AcmeOrder_btn_acme_process__can.findall(res.text)
+        res_p = self.testapp.post(process_url, {}, status=303)
         assert RE_AcmeOrder_processed.match(res_p.location)
 
         # get the order again, it should be done
         res = self.testapp.get(obj_url, status=200)
-        assert not RE_AcmeOrder_can_process.findall(res.text)
+        assert not RE_AcmeOrder_btn_acme_process__can.findall(res.text)
         assert "<td><code>valid</code>" in res.text
         assert (
             """<td><span class="label label-default">certificate_downloaded</span></td>"""
@@ -5508,11 +5904,6 @@ class FunctionalTests_AcmeServer(AppTest):
         assert len(_test_data["acme-order/new/freeform#1"]["domain_names"]) == 2
 
         # "admin:acme_order:new:freeform",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/new/freeform.json", status=200
-        )
-        assert "instructions" in res.json
-
         form = {}
         form["account_key_option"] = "account_key_file"
         form["acme_account_provider_id"] = "1"
@@ -5557,7 +5948,7 @@ class FunctionalTests_AcmeServer(AppTest):
             "admin:acme_challenge:focus|json",
             "admin:acme_challenge:focus:acme_server:sync|json",
             "admin:acme_challenge:focus:acme_server:trigger|json",
-            "admin:acme_order:focus:finalize|json",
+            "admin:acme_order:focus:acme_finalize|json",
             "admin:acme_order:focus:renew:custom|json",
             "admin:acme_order:focus:renew:quick|json",
             "admin:acme_order:focus:acme_server:deactivate_authorizations|json",
@@ -5580,16 +5971,18 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         assert "AcmeOrder" in res.json
 
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
         assert res.json["operation"] == "acme-server/sync"
 
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations.json"
             % obj_id,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -5616,27 +6009,30 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "AcmeAuthorization" in res.json
 
         # "admin:acme_authorization:focus:sync|json"
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
             % auth_id_1,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
         assert res.json["operation"] == "acme-server/sync"
 
         # "admin:acme_authorization:focus:trigger|json"
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/trigger.json"
             % auth_id_1,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
         assert res.json["operation"] == "acme-server/trigger"
 
         # "admin:acme_authorization:focus:trigger|json" AGAIN
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/trigger.json"
             % auth_id_1,
+            {},
             status=200,
         )
         assert res.json["result"] == "error"
@@ -5656,27 +6052,30 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "AcmeChallenge" in res.json
 
         # "admin:acme_challenge:focus:acme_server:sync|json",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-challenge/%s/acme-server/sync.json"
             % challenge_id_2,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
         assert res.json["operation"] == "acme-server/sync"
 
         # "admin:acme_challenge:focus:acme_server:trigger|json",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
             % challenge_id_2,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
         assert res.json["operation"] == "acme-server/trigger"
 
         # "admin:acme_authorization:focus:sync|json"
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
             % auth_id_2,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -5693,16 +6092,19 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # "admin:acme_order:focus:acme_server:sync|json",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
         assert res.json["operation"] == "acme-server/sync"
 
-        # "admin:acme_order:focus:finalize|json",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/finalize.json" % obj_id, status=200
+        # "admin:acme_order:focus:acme_finalize|json",
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/acme-finalize.json" % obj_id,
+            {},
+            status=200,
         )
         assert res.json["result"] == "success"
         assert res.json["operation"] == "finalize-order"
@@ -5718,10 +6120,6 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # "admin:acme_order:focus:renew:quick|json",
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/renew/quick.json" % obj_id, status=200,
-        )
-        assert "instructions" in res.json
 
         form = {"processing_strategy": "process_multi"}
         res = self.testapp.post(
@@ -5740,8 +6138,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "AcmeOrder" in res.json
 
         # "admin:acme_order:focus:acme_server:sync|json",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id__quick,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -5758,8 +6157,10 @@ class FunctionalTests_AcmeServer(AppTest):
         # so we can either "process" or "finalize" here
 
         # let's call finalize
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/finalize.json" % obj_id__quick, status=200
+        res = self.testapp.post(
+            "/.well-known/admin/acme-order/%s/acme-finalize.json" % obj_id__quick,
+            {},
+            status=200,
         )
         assert res.json["result"] == "success"
         assert res.json["operation"] == "finalize-order"
@@ -5773,11 +6174,6 @@ class FunctionalTests_AcmeServer(AppTest):
         private_key_reuse = res.json["AcmeOrder"]["PrivateKey"]["key_pem_md5"]
 
         # "admin:acme_order:focus:renew:custom"
-        res = self.testapp.get(
-            "/.well-known/admin/acme-order/%s/renew/custom.json" % obj_id__quick,
-            status=200,
-        )
-        assert "instructions" in res.json
 
         form = {}
         form["processing_strategy"] = "process_multi"
@@ -5796,8 +6192,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "AcmeOrder" in res.json
         obj_id__custom = res.json["AcmeOrder"]["id"]
 
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync.json" % obj_id__custom,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -5848,9 +6245,10 @@ class FunctionalTests_AcmeServer(AppTest):
         )
         assert "AcmeOrder" in res.json
 
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/sync-authorizations.json"
             % obj_id__2,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -5868,9 +6266,10 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # "admin:acme_order:focus:acme_server:deactivate_authorizations",
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/acme-server/deactivate-authorizations.json"
             % obj_id__2,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -5893,7 +6292,7 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/admin/acme-order/%s/retry.json" % obj_id__2, status=200
         )
         assert res.json["result"] == "error"
-        assert res.json["error"] == "This must be a POST request."
+        assert res.json["error"] == "HTTP POST required"
 
         res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/retry.json" % obj_id__2, {}, status=200
@@ -5927,8 +6326,10 @@ class FunctionalTests_AcmeServer(AppTest):
 
         # "mark" deactivate
         assert res.json["AcmeOrder"]["is_processing"]
-        res = self.testapp.get(
+
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/mark.json?action=deactivate" % obj_id,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -5942,8 +6343,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "AcmeOrder" in res.json
 
         # "mark" invalid
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/mark.json?action=invalid" % obj_id,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -5964,7 +6366,7 @@ class FunctionalTests_AcmeServer(AppTest):
             "/.well-known/admin/acme-order/%s/retry.json" % obj_id, status=200
         )
         assert res.json["result"] == "error"
-        assert res.json["error"] == "This must be a POST request."
+        assert res.json["error"] == "HTTP POST required"
 
         res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/retry.json" % obj_id, {}, status=200
@@ -5987,8 +6389,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # "mark" manual
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/mark.json?action=renew_manual" % obj_id,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -5997,8 +6400,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["AcmeOrder"]["is_auto_renew"] is False
 
         # and toggle it the other way
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/mark.json?action=renew_auto" % obj_id,
+            {},
             status=200,
         )
         assert res.json["result"] == "success"
@@ -6007,8 +6411,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["AcmeOrder"]["is_auto_renew"] is True
 
         # lets make sure we can't do it again!
-        res = self.testapp.get(
+        res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/mark.json?action=renew_auto" % obj_id,
+            {},
             status=200,
         )
         assert res.json["result"] == "error"
@@ -6068,22 +6473,22 @@ class FunctionalTests_AcmeServer(AppTest):
 
         process_url = "/.well-known/admin/acme-order/%s/acme-process.json" % obj_id
 
-        # get the first process
-        res = self.testapp.get(process_url, status=200)
+        # post the first process
+        res = self.testapp.post(process_url, {}, status=200)
         assert res.json["result"] == "success"
         assert res.json["operation"] == "acme-process"
         assert "AcmeOrder" in res.json
         assert res.json["AcmeOrder"]["is_can_acme_process"] is True
 
-        # get the second process
-        res = self.testapp.get(process_url, status=200)
+        # post the second process
+        res = self.testapp.post(process_url, {}, status=200)
         assert res.json["result"] == "success"
         assert res.json["operation"] == "acme-process"
         assert "AcmeOrder" in res.json
         assert res.json["AcmeOrder"]["is_can_acme_process"] is True
 
-        # get the third process
-        res = self.testapp.get(process_url, status=200)
+        # post the third process
+        res = self.testapp.post(process_url, {}, status=200)
         assert res.json["result"] == "success"
         assert res.json["operation"] == "acme-process"
         assert "AcmeOrder" in res.json
@@ -6126,8 +6531,9 @@ class FunctionalTests_AcmeServer(AppTest):
         matched = RE_AcmeAuthorization_deactivate_btn.search(res.text)
         assert matched
 
-        res_deactivated = self.testapp.get(
+        res_deactivated = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/deactivate" % id_,
+            {},
             status=303,
         )
         assert RE_AcmeAuthorization_deactivated.match(res_deactivated.location)
@@ -6144,15 +6550,17 @@ class FunctionalTests_AcmeServer(AppTest):
         assert matched_btn
 
         # try again, and fail
-        res_deactivated = self.testapp.get(
+        res_deactivated = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/deactivate" % id_,
+            {},
             status=303,
         )
         assert RE_AcmeAuthorization_deactivate_fail.match(res_deactivated.location)
 
         # now sync
-        res_synced = self.testapp.get(
+        res_synced = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/sync" % id_,
+            {},
             status=303,
         )
         assert RE_AcmeAuthorization_synced.match(res_synced.location)
@@ -6166,8 +6574,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert matched_btn
 
         # now sync
-        res_synced = self.testapp.get(
+        res_synced = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/sync" % id_,
+            {},
             status=303,
         )
         assert RE_AcmeAuthorization_synced.match(res_synced.location)
@@ -6184,8 +6593,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert matched_btn
 
         # trigger
-        res_triggered = self.testapp.get(
+        res_triggered = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/trigger" % id_,
+            {},
             status=303,
         )
         assert RE_AcmeAuthorization_triggered.match(res_triggered.location)
@@ -6197,8 +6607,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert not matched_btn
 
         # deactivate; fails after a trigger
-        res_deactivated = self.testapp.get(
+        res_deactivated = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/deactivate" % id_,
+            {},
             status=303,
         )
         assert RE_AcmeAuthorization_deactivate_fail.match(res_deactivated.location)
@@ -6322,9 +6733,10 @@ class FunctionalTests_AcmeServer(AppTest):
         assert "AcmeAuthorization" in res.json
         assert res.json["AcmeAuthorization"]["url_acme_server_deactivate"] is not None
 
-        res_deactivated = self.testapp.get(
+        res_deactivated = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
             % id_,
+            {},
             status=200,
         )
         assert res_deactivated.json["result"] == "success"
@@ -6345,9 +6757,10 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # try again, and fail
-        res_deactivated = self.testapp.get(
+        res_deactivated = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
             % id_,
+            {},
             status=200,
         )
         assert res_deactivated.json["result"] == "error"
@@ -6358,8 +6771,9 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # now sync
-        res_synced = self.testapp.get(
+        res_synced = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/sync.json" % id_,
+            {},
             status=200,
         )
         assert res_synced.json["result"] == "success"
@@ -6374,8 +6788,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["AcmeAuthorization"]["url_acme_server_sync"] is not None
 
         # now sync
-        res_synced = self.testapp.get(
+        res_synced = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/sync.json" % id_,
+            {},
             status=200,
         )
         assert res_synced.json["result"] == "success"
@@ -6393,8 +6808,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res_synced.json["AcmeAuthorization"]["url_acme_server_sync"] is not None
 
         # trigger
-        res_triggered = self.testapp.get(
+        res_triggered = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/trigger.json" % id_,
+            {},
             status=200,
         )
         assert res_triggered.json["result"] == "success"
@@ -6404,9 +6820,10 @@ class FunctionalTests_AcmeServer(AppTest):
         )
 
         # deactivate
-        res_deactivated = self.testapp.get(
+        res_deactivated = self.testapp.post(
             "/.well-known/admin/acme-authorization/%s/acme-server/deactivate.json"
             % id_,
+            {},
             status=200,
         )
         assert res_deactivated.json["result"] == "error"
@@ -6456,9 +6873,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 status=200,
             )
             # sync it to load the challenge
-            res_auth = self.testapp.get(
+            res_auth = self.testapp.post(
                 "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
                 % authorization_id,
+                {},
                 status=200,
             )
             assert res_auth.json["result"] == "success"
@@ -6483,9 +6901,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 assert RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # sync
-                res_sync = self.testapp.get(
+                res_sync = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/sync"
                     % challenge_id,
+                    {},
                     status=303,
                 )
                 assert RE_AcmeChallenge_synced.match(res_sync.location)
@@ -6498,9 +6917,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 assert RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # trigger
-                res_trigger = self.testapp.get(
+                res_trigger = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/trigger"
                     % challenge_id,
+                    {},
                     status=303,
                 )
                 assert RE_AcmeChallenge_triggered.match(res_trigger.location)
@@ -6513,9 +6933,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 assert not RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # trigger fail
-                res_trigger = self.testapp.get(
+                res_trigger = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/trigger"
                     % challenge_id,
+                    {},
                     status=303,
                 )
                 assert RE_AcmeChallenge_trigger_fail.match(res_trigger.location)
@@ -6532,9 +6953,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 assert RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # trigger
-                res_trigger = self.testapp.get(
+                res_trigger = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/trigger"
                     % challenge_id,
+                    {},
                     status=303,
                 )
                 assert RE_AcmeChallenge_triggered.match(res_trigger.location)
@@ -6547,9 +6969,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 assert not RE_AcmeChallenge_trigger_btn.search(res_challenge.text)
 
                 # sync
-                res_sync = self.testapp.get(
+                res_sync = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/sync"
                     % challenge_id,
+                    {},
                     status=303,
                 )
                 assert RE_AcmeChallenge_synced.match(res_sync.location)
@@ -6592,9 +7015,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 status=200,
             )
             # sync it to load the challenge
-            res_auth = self.testapp.get(
+            res_auth = self.testapp.post(
                 "/.well-known/admin/acme-authorization/%s/acme-server/sync.json"
                 % authorization_id,
+                {},
                 status=200,
             )
             assert res_auth.json["result"] == "success"
@@ -6630,9 +7054,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 )
 
                 # sync
-                res_sync = self.testapp.get(
+                res_sync = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/sync.json"
                     % challenge_id,
+                    {},
                     status=200,
                 )
                 assert res_sync.json["result"] == "success"
@@ -6650,9 +7075,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 )
 
                 # trigger
-                res_trigger = self.testapp.get(
+                res_trigger = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
                     % challenge_id,
+                    {},
                     status=200,
                 )
                 assert res_trigger.json["result"] == "success"
@@ -6671,9 +7097,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 )
 
                 # trigger fail
-                res_trigger = self.testapp.get(
+                res_trigger = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
                     % challenge_id,
+                    {},
                     status=200,
                 )
                 assert res_trigger.json["result"] == "error"
@@ -6706,9 +7133,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 )
 
                 # trigger
-                res_trigger = self.testapp.get(
+                res_trigger = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/trigger.json"
                     % challenge_id,
+                    {},
                     status=200,
                 )
                 assert res_trigger.json["result"] == "success"
@@ -6727,9 +7155,10 @@ class FunctionalTests_AcmeServer(AppTest):
                 )
 
                 # sync
-                res_sync = self.testapp.get(
+                res_sync = self.testapp.post(
                     "/.well-known/admin/acme-challenge/%s/acme-server/sync.json"
                     % challenge_id,
+                    {},
                     status=200,
                 )
                 assert res_sync.json["result"] == "success"
@@ -6867,12 +7296,6 @@ class FunctionalTests_AcmeServer(AppTest):
             assert _domain in res2.json["domains"]
             assert res2.json["domains"][_domain] == "queued"
 
-        # nothing on GET
-        res = self.testapp.get(
-            "/.well-known/admin/queue-domains/process.json", status=200
-        )
-        assert "instructions" in res.json
-
         # try to process; a CREATE only
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
         form = {}
@@ -6927,12 +7350,6 @@ class FunctionalTests_AcmeServer(AppTest):
             _domain = _domain.lower()
             assert _domain in res2.json["domains"]
             assert res2.json["domains"][_domain] == "queued"
-
-        # nothing on GET
-        res = self.testapp.get(
-            "/.well-known/admin/queue-domains/process.json", status=200
-        )
-        assert "instructions" in res.json
 
         # try to process; PROCESS_SINGLE
         _test_data = TEST_FILES["AcmeOrder"]["test-extended_html"]
@@ -6990,11 +7407,6 @@ class FunctionalTests_AcmeServer(AppTest):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueCertificates_api_update_json
         """
-        res = self.testapp.get(
-            "/.well-known/admin/api/queue-certificates/update.json", status=200
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
             "/.well-known/admin/api/queue-certificates/update.json", status=200
@@ -7024,11 +7436,6 @@ class FunctionalTests_AcmeServer(AppTest):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_QueueCertificates_api_process_json
         """
-        res = self.testapp.get(
-            "/.well-known/admin/api/queue-certificates/process.json", status=200
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
 
         res = self.testapp.post(
             "/.well-known/admin/api/queue-certificates/process.json", status=200
@@ -7043,12 +7450,6 @@ class FunctionalTests_AcmeServer(AppTest):
         """
         python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AcmeServer.test_Api_Domain_autocert_json
         """
-        res = self.testapp.get(
-            "/.well-known/admin/api/domain/autocert.json", status=200
-        )
-        assert "instructions" in res.json
-        assert "HTTP POST required" in res.json["instructions"]
-
         res = self.testapp.post(
             "/.well-known/admin/api/domain/autocert.json", {}, status=200
         )
@@ -7056,9 +7457,9 @@ class FunctionalTests_AcmeServer(AppTest):
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
         assert res.json["form_errors"]["Error_Main"] == "Nothing submitted."
-        assert res.json["domain"] == None
-        assert res.json["server_certificate__latest_single"] == None
-        assert res.json["server_certificate__latest_multi"] == None
+        assert res.json["domain"] is None
+        assert res.json["server_certificate__latest_single"] is None
+        assert res.json["server_certificate__latest_multi"] is None
 
         # Test 1 -- autocert a domain we don't know, but want to pass
         res = self.testapp.post(
@@ -7110,9 +7511,9 @@ class FunctionalTests_AcmeServer(AppTest):
             res.json["form_errors"]["domain_name"]
             == "This domain_name has been blocklisted"
         )
-        assert res.json["domain"] == None
-        assert res.json["server_certificate__latest_single"] == None
-        assert res.json["server_certificate__latest_multi"] == None
+        assert res.json["domain"] is None
+        assert res.json["server_certificate__latest_single"] is None
+        assert res.json["server_certificate__latest_multi"] is None
 
         # Test 4 -- autocert an inactive domain
         # 4.1 add the domain
@@ -7150,9 +7551,9 @@ class FunctionalTests_AcmeServer(AppTest):
             res.json["form_errors"]["domain_name"]
             == "This domain_name has been disabled"
         )
-        assert res.json["domain"] == None
-        assert res.json["server_certificate__latest_single"] == None
-        assert res.json["server_certificate__latest_multi"] == None
+        assert res.json["domain"] is None
+        assert res.json["server_certificate__latest_single"] is None
+        assert res.json["server_certificate__latest_multi"] is None
 
 
 class FunctionalTests_API(AppTest):
@@ -7194,13 +7595,6 @@ class FunctionalTests_API(AppTest):
             "/.well-known/admin/operations/log?result=success&event.id=" in res.location
         )
 
-        res = self.testapp.get(
-            "/.well-known/admin/api/deactivate-expired.json", status=200
-        )
-        assert "instructions" in res.json
-        assert (
-            res.json["instructions"] == "JSON endpoint requires a submission via `POST`"
-        )
         res = self.testapp.post(
             "/.well-known/admin/api/deactivate-expired.json", {}, status=200
         )
@@ -7211,11 +7605,7 @@ class FunctionalTests_API(AppTest):
         assert (
             "/.well-known/admin/operations/log?result=success&event.id=" in res.location
         )
-        res = self.testapp.get("/.well-known/admin/api/update-recents.json", status=200)
-        assert "instructions" in res.json
-        assert (
-            res.json["instructions"] == "JSON endpoint requires a submission via `POST`"
-        )
+
         res = self.testapp.post(
             "/.well-known/admin/api/update-recents.json", {}, status=200
         )
@@ -7237,13 +7627,6 @@ class FunctionalTests_API(AppTest):
             in res.location
         )
 
-        res = self.testapp.get(
-            "/.well-known/admin/api/ca-certificate-probes/probe.json", status=200
-        )
-        assert "instructions" in res.json
-        assert (
-            res.json["instructions"] == "JSON endpoint requires a submission via `POST`"
-        )
         res = self.testapp.post(
             "/.well-known/admin/api/ca-certificate-probes/probe.json", {}, status=200,
         )
@@ -7269,12 +7652,6 @@ class FunctionalTests_API(AppTest):
         assert (
             "/.well-known/admin/operations/redis?result=success&operation=redis_prime&event.id="
             in res.location
-        )
-
-        res = self.testapp.get("/.well-known/admin/api/redis/prime.json", status=200)
-        assert "instructions" in res.json
-        assert (
-            res.json["instructions"] == "JSON endpoint requires a submission via `POST`"
         )
 
         res = self.testapp.post(
@@ -7309,6 +7686,43 @@ class FunctionalTests_API(AppTest):
 
         res = self.testapp.get("/.well-known/admin/api/nginx/status.json", status=200)
         assert res.json["result"] == "success"
+
+    def test_post_required_json(self):
+        # !!!: test `POST required` `api/domain/autocert.json`
+        res = self.testapp.get(
+            "/.well-known/admin/api/domain/autocert.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `api/deactivate-expired.json`
+        res = self.testapp.get(
+            "/.well-known/admin/api/deactivate-expired.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `api/update-recents.json`
+        res = self.testapp.get("/.well-known/admin/api/update-recents.json", status=200)
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        # !!!: test `POST required` `api/ca-certificate-probes/probe.json`
+        res = self.testapp.get(
+            "/.well-known/admin/api/ca-certificate-probes/probe.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        try:
+            res = self.testapp.get(
+                "/.well-known/admin/api/redis/prime.json", status=200
+            )
+            assert "instructions" in res.json
+            assert "HTTP POST required" in res.json["instructions"]
+        except:
+            if RUN_REDIS_TESTS:
+                raise
 
 
 class IntegratedTests_AcmeServer(AppTestWSGI):

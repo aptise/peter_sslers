@@ -259,6 +259,26 @@ This handles several types of certificate requests
 * "Admin" and "Public" functions are isolated from each other. By changing the config, you can run a public-only "validation" interface or enable the admin tools that broadcast certificate information.
 * the `Pyramid` server can query `Nginx` locations to clear out the shared cache 
 
+## Private Key Cycling
+
+PeterSSLers allows you to control how Private Keys are cycled on renewals or new orders.
+
+* `single_certificate` - This is what the official LetsEncrypt client, Certbot, uses. A new PrivateKey is generated for each certificate.
+
+PeterSSLers is designed to host large amounts of websites, and aggressively cache the certificates and keys into OpenResty/Nginx and Redis. Being able to recycle keys will use less memory and support more sites.  The following options are available:
+
+* `account_daily` - The order/certificate should use a PrivateKey generated for a unique ACME Account for the DAY the order is finalized.
+* `account_weekly` - The order/certificate should use a PrivateKey generated for a unique ACME Account for the WEEK the order is finalized.
+* `global_daily` - The order/certificate should use a PrivateKey generated for the entire installation for the DAY the order is finalized.
+* `global_weekly` - The order/certificate should use a PrivateKey generated for the entire installation for the WEEK the order is finalized.
+
+AcmeOrders and Queues can also specify
+
+* `account_key_default` - The order/certificate will use whatever option is set as the default strategy for the active AcmeAccount key.
+
+Using the weekly or daily options will allow you to constantly cycle new keys into your installation, while minimizing the total number of keys the system needs to operate.
+
+
 # Installation
 
 This is pretty much ready to go for development use.  Python should install everything for you.  If it doesn't, someone messed up. That someone was me. Sorry.

@@ -241,7 +241,8 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.wants_json:
             return {
                 "instructions": [
-                    """curl --form 'action=active' %s/mark.json""" % self._focus_url
+                    "HTTP POST required",
+                    """curl --form 'action=active' %s/mark.json""" % self._focus_url,
                 ],
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["compromised", "active", "inactive",]},
@@ -349,8 +350,11 @@ class View_New(Handler):
     def _new__print(self):
         if self.request.wants_json:
             return {
-                "instructions": '''curl %s/private-key/new.json --form "bits=????"'''
-                % (self.request.registry.settings["app_settings"]["admin_prefix"]),
+                "instructions": [
+                    "HTTP POST required",
+                    '''curl %s/private-key/new.json --form "bits=????"'''
+                    % (self.request.registry.settings["app_settings"]["admin_prefix"]),
+                ],
                 "form_fields": {"bits": "bits for the PrivateKey"},
                 "valid_options": {"bits": ["4096"]},
             }
@@ -412,8 +416,11 @@ class View_New(Handler):
     def _upload__print(self):
         if self.request.wants_json:
             return {
-                "instructions": """curl --form 'private_key_file_pem=@privkey1.pem' %s/private-key/upload.json"""
-                % (self.request.registry.settings["app_settings"]["admin_prefix"]),
+                "instructions": [
+                    "HTTP POST required",
+                    """curl --form 'private_key_file_pem=@privkey1.pem' %s/private-key/upload.json"""
+                    % (self.request.registry.settings["app_settings"]["admin_prefix"]),
+                ],
                 "form_fields": {"private_key_file_pem": "required"},
             }
 

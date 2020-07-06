@@ -79,6 +79,7 @@ class View_New(Handler):
         if self.request.wants_json:
             return {
                 "instructions": [
+                    """HTTP POST required""",
                     """curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/acme-account/upload.json"""
                     % self.request.admin_url,
                     """curl --form 'account_key_file_le_meta=@meta.json' 'account_key_file_le_pkey=@private_key.json' 'account_key_file_le_reg=@regr.json' %s/acme-account/upload.json"""
@@ -177,6 +178,7 @@ class View_New(Handler):
         if self.request.wants_json:
             return {
                 "instructions": [
+                    """HTTP POST required""",
                     """curl --form 'account_key_file_pem=@key.pem' --form 'acme_account_provider_id=1' %s/acme-account/new.json"""
                     % self.request.admin_url,
                 ],
@@ -575,6 +577,7 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.wants_json:
             return {
                 "instructions": [
+                    """HTTP POST required""",
                     """curl --form 'account__private_key_cycle=certificate' %s/acme-account/{ID}/edit.json"""
                     % self.request.admin_url,
                 ],
@@ -680,8 +683,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.wants_json:
             return {
                 "instructions": [
+                    """HTTP POST required""",
                     """curl -X POST %s/acme-server/authenticate.json"""
-                    % self._focus_url
+                    % self._focus_url,
                 ]
             }
         url_post_required = (
@@ -717,7 +721,8 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.wants_json:
             return {
                 "instructions": [
-                    """curl --form 'action=active' %s/mark.json""" % self._focus_url
+                    """HTTP POST required""",
+                    """curl --form 'action=active' %s/mark.json""" % self._focus_url,
                 ],
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["global_default", "active", "inactive"]},

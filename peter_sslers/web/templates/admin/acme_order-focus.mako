@@ -48,14 +48,16 @@
                             <table class="table table-condensed table-striped">
                                 <tr>
                                     <td>
-                                        <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
-                                        <a
-                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/sync"
-                                            class="btn btn-xs btn-info ${sync_btn_class}"
+                                        <% _btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
+                                        <form method="POST"
+                                            action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/sync"
+                                            id="form-acme_server-sync"
                                         >
-                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                            Sync Order Against ACME Server
-                                        </a>
+                                            <button class="btn btn-xs btn-info ${_btn_class}" id="btn-sync">
+                                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                Sync Order Against ACME Server
+                                            </button>
+                                        </form>
                                     </td>
                                     <td>
                                         Interrogates the ACME Server
@@ -63,14 +65,16 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <% sync_btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
-                                        <a
-                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/sync-authorizations"
-                                            class="btn btn-xs btn-info ${sync_btn_class}"
+                                        <% _btn_class = '' if AcmeOrder.is_can_acme_server_sync else 'disabled' %>
+                                        <form method="POST"
+                                            action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/sync-authorizations"
+                                            id="form-acme_server-sync_authorizations"
                                         >
-                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                            Sync Authorizations Against ACME Server
-                                        </a>
+                                            <button class="btn btn-xs btn-info ${_btn_class}" id="btn-sync_authorizations">
+                                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                Sync Authorizations Against ACME Server
+                                            </button>
+                                        </form>
                                     </td>
                                     <td>
                                         Loops pending/potentially pending authoriations to sync
@@ -78,14 +82,16 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <% process_btn_class = '' if AcmeOrder.is_can_acme_process else 'disabled' %>
-                                        <a
-                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-process"
-                                            class="btn btn-xs btn-info ${process_btn_class}"
+                                        <% _btn_class = '' if AcmeOrder.is_can_acme_process else 'disabled' %>
+                                        <form method="POST"
+                                            action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-process"
+                                            id="form-acme_process"
                                         >
-                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                            Process on AcmeServer
-                                        </a>
+                                            <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_process">
+                                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                Process on AcmeServer
+                                            </button>
+                                        </form>
                                     </td>
                                     <td>
                                         Starts processing
@@ -100,14 +106,16 @@
                             <table class="table table-condensed table-striped">
                                 <tr>
                                     <td>
-                                        <% deactivate_btn_class = '' if AcmeOrder.is_can_acme_server_deactivate_authorizations else 'disabled' %>
-                                        <a
-                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/deactivate-authorizations"
-                                            class="btn btn-xs btn-info ${deactivate_btn_class}"
+                                        <% _btn_class = '' if AcmeOrder.is_can_acme_server_deactivate_authorizations else 'disabled' %>
+                                        <form method="POST"
+                                            action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-server/deactivate-authorizations"
+                                            id="form-acme_server-deactivate_authorizations"
                                         >
-                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                            Deactivate Authorizations
-                                        </a>
+                                            <button class="btn btn-xs btn-info ${_btn_class}" id="btn-deactivate_authorizations">
+                                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                Deactivate Authorizations
+                                            </button>
+                                        </form>
                                     </td>
                                     <td>
                                         Loops pending/potentially pending Activations and deactivates them on the ACME Server
@@ -115,14 +123,16 @@
                                 </tr>
                                 <tr>
                                     <td>
-                                        <% finalize_btn_class = '' if AcmeOrder.is_can_acme_finalize else 'disabled' %>
-                                        <a
-                                            href="${admin_prefix}/acme-order/${AcmeOrder.id}/finalize"
-                                            class="btn btn-xs btn-info ${finalize_btn_class}"
+                                        <% _btn_class = '' if AcmeOrder.is_can_acme_finalize else 'disabled' %>
+                                        <form method="POST"
+                                            action="${admin_prefix}/acme-order/${AcmeOrder.id}/acme-finalize"
+                                            id="form-acme_finalize"
                                         >
-                                            <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                            Finalize Order
-                                        </a>
+                                            <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_finalize">
+                                                <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+                                                Finalize Order
+                                            </button>
+                                        </form>
                                     </td>
                                     <td>
                                         Only available if the order is "ready" to be finalized.
@@ -275,8 +285,8 @@
                             </span>
                             &nbsp;
 
-                            <% renew_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
-                            <a  class="btn btn-xs btn-primary ${renew_btn_class}"
+                            <% queue_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
+                            <a  class="btn btn-xs btn-primary ${queue_btn_class}"
                                 href="${admin_prefix}/queue-certificate/new/structured?queue_source=AcmeOrder&acme_order=${AcmeOrder.id}"
                                 title="Queue a Renewal."
                             >
@@ -285,8 +295,8 @@
                             </a>
                             &nbsp;
 
-                            <% renew_btn_class = '' if AcmeOrder.is_renewable_quick else 'disabled' %>
-                            <a  class="btn btn-xs btn-primary ${renew_btn_class}"
+                            <% quick_btn_class = '' if AcmeOrder.is_renewable_quick else 'disabled' %>
+                            <a  class="btn btn-xs btn-primary ${quick_btn_class}"
                                 href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/quick"
                                 title="Renew immediately."
                             >
@@ -295,8 +305,8 @@
                             </a>
                             &nbsp;
 
-                            <% renew_btn_class = '' if AcmeOrder.is_renewable_custom else 'disabled' %>
-                            <a  class="btn btn-xs btn-primary ${renew_btn_class}"
+                            <% custom_btn_class = '' if AcmeOrder.is_renewable_custom else 'disabled' %>
+                            <a  class="btn btn-xs btn-primary ${custom_btn_class}"
                                 href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/custom"
                                 title="Renew with options."
                             >

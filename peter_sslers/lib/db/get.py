@@ -462,13 +462,15 @@ def get__AcmeChallenge__by_AcmeAuthorizationId__paginated(
     return items_paged
 
 
-def get__AcmeChallenge__by_DomainId__active(
+def get__AcmeChallenges__by_DomainId__active(
     ctx, domain_id, acme_challenge_type_id=None
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_id: (required) An id for an instance of :class:`model.objects.Domain`
     :param acme_challenge_type_id: (optional) A specific type of challenge, referencing :class:`model.utils.AcmeChallengeType`
+    
+    returns: list
 
     AcmeStatus Codes
           Challenge["pending" or "processing"]

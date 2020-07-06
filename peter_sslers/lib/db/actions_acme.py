@@ -1675,7 +1675,7 @@ def _do__AcmeV2_AcmeOrder__core(
         # check each domain for an existing active challenge
         active_challenges = []
         for to_domain in dbUniqueFQDNSet.to_domains:
-            _active_challenges = lib.db.get.get__AcmeChallenge__by_DomainId__active(
+            _active_challenges = lib.db.get.get__AcmeChallenges__by_DomainId__active(
                 ctx, to_domain.domain_id
             )
             if _active_challenges:

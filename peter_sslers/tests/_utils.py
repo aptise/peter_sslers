@@ -25,6 +25,7 @@ import psutil
 import transaction
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
+import sqlalchemy
 
 # local
 from ..web import main
@@ -553,6 +554,100 @@ class AppTestCore(unittest.TestCase):
         if self.testapp is not None:
             pass
         self._session_factory = None
+
+        self._turnoff_items()
+
+    def _turnoff_items(self):
+        """when running multiple tests, ensure we turn off blocking items
+        
+        """
+        _query = self.ctx.dbSession.query(model_objects.AcmeOrder).filter(
+            model_objects.AcmeOrder.acme_status_order_id.in_(
+                model_utils.Acme_Status_Order.IDS_BLOCKING
+            ),
+        )
+        _changed = None
+        _orders = _query.all()
+        for _order in _orders:
+            _order.acme_status_order_id = model_utils.Acme_Status_Order.from_string(
+                "*410*"
+            )
+            _order = db.update.update_AcmeOrder_deactivate(self.ctx, _order)
+            _changed = True
+        if _changed:
+            print("turned off!")
+            self.ctx.dbSession.commit()
+
+    def _has_active_challenges(self):
+        """
+        utility function for debugging, not used by code
+        modified version of `lib.db.get.get__AcmeChallenges__by_DomainId__active`
+        """
+        query = (
+            self.ctx.dbSession.query(model_objects.AcmeChallenge)
+            # Path1: AcmeChallenge>AcmeAuthorization>AcmeOrder2AcmeAuthorization>AcmeOrder
+            .join(
+                model_objects.AcmeAuthorization,
+                model_objects.AcmeChallenge.acme_authorization_id
+                == model_objects.AcmeAuthorization.id,
+                isouter=True,
+            )
+            .join(
+                model_objects.AcmeOrder2AcmeAuthorization,
+                model_objects.AcmeAuthorization.id
+                == model_objects.AcmeOrder2AcmeAuthorization.acme_order_id,
+                isouter=True,
+            )
+            .join(
+                model_objects.AcmeOrder,
+                model_objects.AcmeOrder2AcmeAuthorization.acme_order_id
+                == model_objects.AcmeOrder.id,
+                isouter=True,
+            )
+            # Path2: AcmeChallenge>AcmeOrderless
+            .join(
+                model_objects.AcmeOrderless,
+                model_objects.AcmeChallenge.acme_orderless_id
+                == model_objects.AcmeOrderless.id,
+                isouter=True,
+            )
+            # shared filters
+            .join(
+                model_objects.Domain,
+                model_objects.AcmeChallenge.domain_id == model_objects.Domain.id,
+            )
+            .filter(
+                model_objects.Domain.domain_name.notin_(
+                    ("selfsigned-1.example.com", "acme-orderless.example.com")
+                ),
+                sqlalchemy.or_(
+                    # Path1 - Order Based Authorizations
+                    sqlalchemy.and_(
+                        model_objects.AcmeChallenge.acme_authorization_id.op("IS NOT")(
+                            None
+                        ),
+                        model_objects.AcmeChallenge.acme_status_challenge_id.in_(
+                            model_utils.Acme_Status_Challenge.IDS_POSSIBLY_ACTIVE
+                        ),
+                        model_objects.AcmeAuthorization.acme_status_authorization_id.in_(
+                            model_utils.Acme_Status_Authorization.IDS_POSSIBLY_PENDING
+                        ),
+                        model_objects.AcmeOrder.acme_status_order_id.in_(
+                            model_utils.Acme_Status_Order.IDS_BLOCKING
+                        ),
+                    ),
+                    # Path2 - Orderless
+                    sqlalchemy.and_(
+                        model_objects.AcmeChallenge.acme_orderless_id.op("IS NOT")(
+                            None
+                        ),
+                        model_objects.AcmeOrderless.is_processing.op("IS")(True),
+                    ),
+                ),
+            )
+        )
+        res = query.all()
+        return res
 
 
 # ==============================================================================

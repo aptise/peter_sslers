@@ -223,6 +223,7 @@ class View_New(Handler):
         if self.request.wants_json:
             return {
                 "instructions": [
+                    "HTTP POST required",
                     """curl --form 'domain_name=example.com' %s/domain/new.json"""
                     % self.request.admin_url,
                 ],
@@ -318,7 +319,7 @@ class View_Focus(Handler):
     @view_config(route_name="admin:domain:focus|json", renderer="json")
     def focus(self):
         dbDomain = self._focus(eagerload_web=True)
-        dbAcmeChallenges = lib_db.get.get__AcmeChallenge__by_DomainId__active(
+        dbAcmeChallenges = lib_db.get.get__AcmeChallenges__by_DomainId__active(
             self.request.api_context, dbDomain.id,
         )
         if self.request.wants_json:
@@ -693,8 +694,9 @@ class View_Focus_Manipulate(View_Focus):
         if self.request.wants_json:
             return {
                 "instructions": [
+                    "HTTP POST required",
                     """curl --form 'action=active' %s/domain/1/mark.json"""
-                    % self.request.admin_url
+                    % self.request.admin_url,
                 ],
                 "form_fields": {"action": "the intended action"},
                 "valid_options": {"action": ["active", "inactive"]},
@@ -823,7 +825,7 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
     def _new_print(self):
         if self.request.wants_json:
             return {
-                "instructions": [],
+                "instructions": ["HTTP POST required",],
                 "form_fields": {},
                 "valid_options": {
                     "acme_dns_server_id": [i.id for i in self.dbAcmeDnsServers]
