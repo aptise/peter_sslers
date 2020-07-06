@@ -2261,6 +2261,12 @@ class FunctionalTests_CACertificate(AppTest):
         form["le_x2_auth_file"] = Upload(
             self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x2_auth"])
         )
+        form["le_x3_auth_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x3_auth"])
+        )
+        form["le_x4_auth_file"] = Upload(
+            self._filepath_testfile(TEST_FILES["CACertificates"]["cert"]["le_x4_auth"])
+        )
         form["le_x1_cross_signed_file"] = Upload(
             self._filepath_testfile(
                 TEST_FILES["CACertificates"]["cert"]["le_x1_cross_signed"]
@@ -3398,8 +3404,8 @@ class FunctionalTests_Operations(AppTest):
     @tests_routes(
         (
             "admin:operations",
-            "admin:operations:ca_certificate_probes",
-            "admin:operations:ca_certificate_probes_paginated",
+            "admin:operations:ca_certificate_downloads",
+            "admin:operations:ca_certificate_downloads_paginated",
             "admin:operations:log",
             "admin:operations:log_paginated",
             "admin:operations:log:focus",
@@ -3435,10 +3441,10 @@ class FunctionalTests_Operations(AppTest):
         )
 
         res = self.testapp.get(
-            "/.well-known/admin/operations/ca-certificate-probes", status=200
+            "/.well-known/admin/operations/ca-certificate-downloads", status=200
         )
         res = self.testapp.get(
-            "/.well-known/admin/operations/ca-certificate-probes/1", status=200
+            "/.well-known/admin/operations/ca-certificate-downloads/1", status=200
         )
 
         res = self.testapp.get("/.well-known/admin/operations/log", status=200)
@@ -7611,24 +7617,25 @@ class FunctionalTests_API(AppTest):
         )
         assert res.json["result"] == "success"
 
-    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @tests_routes(
         (
-            "admin:api:ca_certificate_probes:probe",
-            "admin:api:ca_certificate_probes:probe|json",
+            "admin:api:ca_certificate:letsencrypt_download",
+            "admin:api:ca_certificate:letsencrypt_download|json",
         )
     )
-    def test_api__pebble(self):
-        res = self.testapp.get(
-            "/.well-known/admin/api/ca-certificate-probes/probe", status=303
+    def test_ca_download(self):
+        res = self.testapp.post(
+            "/.well-known/admin/api/ca-certificate/letsencrypt-download", {}, status=303
         )
         assert (
-            "/admin/operations/ca-certificate-probes?result=success&event.id="
+            "/admin/operations/ca-certificate-downloads?result=success&event.id="
             in res.location
         )
 
         res = self.testapp.post(
-            "/.well-known/admin/api/ca-certificate-probes/probe.json", {}, status=200,
+            "/.well-known/admin/api/ca-certificate/letsencrypt-download.json",
+            {},
+            status=200,
         )
         assert res.json["result"] == "success"
 
@@ -7687,6 +7694,15 @@ class FunctionalTests_API(AppTest):
         res = self.testapp.get("/.well-known/admin/api/nginx/status.json", status=200)
         assert res.json["result"] == "success"
 
+    def test_post_required_html(self):
+        res = self.testapp.get(
+            "/.well-known/admin/api/ca-certificate/letsencrypt-download", status=303
+        )
+        assert (
+            res.location
+            == "http://peter-sslers.example.com/.well-known/admin/operations/ca-certificate-downloads?result=error&operation=ca-certificate-proble&error=HTTP+POST+required"
+        )
+
     def test_post_required_json(self):
         # !!!: test `POST required` `api/domain/autocert.json`
         res = self.testapp.get(
@@ -7707,9 +7723,10 @@ class FunctionalTests_API(AppTest):
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]
 
-        # !!!: test `POST required` `api/ca-certificate-probes/probe.json`
+        # !!!: test `POST required` `api/ca-certificate/letsencrypt-download.json`
         res = self.testapp.get(
-            "/.well-known/admin/api/ca-certificate-probes/probe.json", status=200
+            "/.well-known/admin/api/ca-certificate/letsencrypt-download.json",
+            status=200,
         )
         assert "instructions" in res.json
         assert "HTTP POST required" in res.json["instructions"]

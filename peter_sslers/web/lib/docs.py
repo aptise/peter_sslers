@@ -8,9 +8,9 @@ json_docs_post_only = {
 
 
 api_endpoints = {
-    "/api/ca-certificate-probes/probe.json": {
-        "endpoint": "/api/ca-certificate-probes/probe.json",
-        "about": """Probes the LetsEncrypt website for certificates""",
+    "/api/ca-certificate/letsencrypt-download.json": {
+        "endpoint": "/api/ca-certificate/letsencrypt-download.json",
+        "about": """download from the LetsEncrypt website""",
         "POST": True,
         "GET": False,
         "args": None,

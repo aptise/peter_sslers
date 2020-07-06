@@ -7,13 +7,13 @@
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
         <li><a href="${admin_prefix}/operations/log">Operations</a></li>
-        <li class="active">Certificate Probes</li>
+        <li class="active">Certificate Downloads</li>
     </ol>
 </%block>
 
 
 <%block name="page_header_col">
-    <h2>Certificate Probes</h2>
+    <h2>Certificate Downloads</h2>
 </%block>
 
 
@@ -65,7 +65,7 @@
                 </table>
             % else:
                 <em>
-                    no certificate probes
+                    no certificate Downloads
                 </em>
             % endif
 
@@ -73,19 +73,22 @@
         <div class="col-sm-3">
             <ul class="nav nav-pills nav-stacked">
                 <li class="active">
-                    <a  href="${admin_prefix}/operations/ca-certificate-probes"
+                    <a  href="${admin_prefix}/operations/ca-certificate-downloads"
                     >
                         <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-                        Certificate Probes Log
+                        Certificate Downloads Log
                     </a>
                 </li>
                 <li>
-                    <a  href="${admin_prefix}/api/ca-certificate-probes/probe"
-                        title="Checks for new certs on the public internet"
+                    <form action="${admin_prefix}/api/ca-certificate/letsencrypt-download"
+                          method="POST"
+                          id="form-ca_certificate-letsencrypt_download"
                     >
-                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
-                        Probe for new certificates
-                    </a>
+                        <button class="btn btn-primary">
+                            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                            Download LetsEcnrypt CA-Certificates
+                        </button>
+                    </form>
                 </li>
                 <li>
                     <a  href="${admin_prefix}/operations/log"

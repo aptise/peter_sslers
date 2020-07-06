@@ -521,11 +521,12 @@ def _admin_views(config):
     )
     # -
     config.add_route_7(
-        "admin:api:ca_certificate_probes:probe", "/api/ca-certificate-probes/probe"
+        "admin:api:ca_certificate:letsencrypt_download",
+        "/api/ca-certificate/letsencrypt-download",
     )
     config.add_route_7(
-        "admin:api:ca_certificate_probes:probe|json",
-        "/api/ca-certificate-probes/probe.json",
+        "admin:api:ca_certificate:letsencrypt_download|json",
+        "/api/ca-certificate/letsencrypt-download.json",
     )
     config.add_route_7("admin:api:nginx:cache_flush", "/api/nginx/cache-flush")
     config.add_route_7(
@@ -841,11 +842,12 @@ def _admin_views(config):
     config.add_route_7("admin:operations", "/operations")
     # -
     config.add_route_7(
-        "admin:operations:ca_certificate_probes", "/operations/ca-certificate-probes"
+        "admin:operations:ca_certificate_downloads",
+        "/operations/ca-certificate-downloads",
     )
     config.add_route_7(
-        "admin:operations:ca_certificate_probes_paginated",
-        "/operations/ca-certificate-probes/{@page}",
+        "admin:operations:ca_certificate_downloads_paginated",
+        "/operations/ca-certificate-downloads/{@page}",
     )
     # -
     config.add_route_7("admin:operations:log", "/operations/log")

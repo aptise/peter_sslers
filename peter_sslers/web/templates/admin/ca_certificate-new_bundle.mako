@@ -47,7 +47,7 @@
             <h3>You only need this form if you are uploading OLD certificates</h3>
             <p>This form can import your old bundled certificates.</p>
             <p>New certificates are automatically recorded when discovered.</p>
-            <p>You can also "probe" the certificate authority to sync discovered certificates with human-readable information.</p>
+            <p>You can also "download" the certificate authority to sync discovered certificates with human-readable information.</p>
 
             <h3>This form is JSON capable</h3>
             <p>

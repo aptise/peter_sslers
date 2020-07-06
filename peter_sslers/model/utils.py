@@ -227,7 +227,7 @@ class _OperationsUnified(_mixin_mapping):
         2015: "ApiDomains__certificate_if_needed__certificate_exists",
         2016: "ApiDomains__certificate_if_needed__certificate_new_success",
         2017: "ApiDomains__certificate_if_needed__certificate_new_fail",
-        200: "CaCertificate__probe",
+        200: "CaCertificate__letsencrypt_download",
         210: "CaCertificate__insert",
         220: "CaCertificate__upload_bundle",
         610: "CertificateRequest__insert",

@@ -80,6 +80,8 @@
 - standardize "POST REQUIRED" string to "HTTP POST required"
 - update test suite to use POST when needed
 - changed tests to regex out buttons instead of forms
+- added LetsEncrypt recent certificates
+- changed "probe" to "download"
 
 0.4.0
 unreleased (2020-01-23)

@@ -56,17 +56,24 @@ class ViewAdminApi(Handler):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @view_config(route_name="admin:api:ca_certificate_probes:probe", renderer=None)
     @view_config(
-        route_name="admin:api:ca_certificate_probes:probe|json", renderer="json"
+        route_name="admin:api:ca_certificate:letsencrypt_download", renderer=None
     )
-    def ca_certificate_probes__probe(self):
-        if self.request.wants_json:
-            if self.request.method != "POST":
+    @view_config(
+        route_name="admin:api:ca_certificate:letsencrypt_download|json", renderer="json"
+    )
+    def ca_certificate__download(self):
+        if self.request.method != "POST":
+            if self.request.wants_json:
                 return docs.json_docs_post_only
+            return HTTPSeeOther(
+                "%s/operations/ca-certificate-downloads?result=error&operation=ca-certificate-proble&error=HTTP+POST+required"
+                % (self.request.registry.settings["app_settings"]["admin_prefix"],)
+            )
 
-        operations_event = lib_db.actions.ca_certificate_probe(self.request.api_context)
-
+        operations_event = lib_db.actions.ca_certificate_download(
+            self.request.api_context
+        )
         if self.request.wants_json:
             return {
                 "result": "success",
@@ -81,7 +88,7 @@ class ViewAdminApi(Handler):
                 },
             }
         return HTTPSeeOther(
-            "%s/operations/ca-certificate-probes?result=success&event.id=%s"
+            "%s/operations/ca-certificate-downloads?result=success&event.id=%s"
             % (
                 self.request.registry.settings["app_settings"]["admin_prefix"],
                 operations_event.id,

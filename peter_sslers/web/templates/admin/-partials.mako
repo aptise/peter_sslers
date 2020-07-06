@@ -1882,11 +1882,11 @@
                 <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
                 Operations Log: Nginx</a></li>
         % endif
-        <li class="${'active' if active =='/operations/ca-certificate-probes' else ''}">
-            <a  href="${admin_prefix}/operations/ca-certificate-probes"
+        <li class="${'active' if active =='/operations/ca-certificate-downloads' else ''}">
+            <a  href="${admin_prefix}/operations/ca-certificate-downloads"
             >
             <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
-            Operations Log: CA Certificate Probes</a></li>
+            Operations Log: CA Certificate Downloads</a></li>
         <li class="${'active' if active =='/operations/object-log' else ''}">
             <a  href="${admin_prefix}/operations/object-log"
             >

@@ -1676,25 +1676,29 @@ def get__OperationsEvent__by_id(ctx, event_id, eagerload_log=False):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__OperationsEvent__certificate_probe__count(ctx):
+def get__OperationsEvent__certificate_download__count(ctx):
     counted = (
         ctx.dbSession.query(model_objects.OperationsEvent)
         .filter(
             model_objects.OperationsEvent.operations_event_type_id
-            == model_utils.OperationsEventType.from_string("CaCertificate__probe")
+            == model_utils.OperationsEventType.from_string(
+                "CaCertificate__letsencrypt_download"
+            )
         )
         .count()
     )
     return counted
 
 
-def get__OperationsEvent__certificate_probe__paginated(ctx, limit=None, offset=0):
+def get__OperationsEvent__certificate_download__paginated(ctx, limit=None, offset=0):
     paged_items = (
         ctx.dbSession.query(model_objects.OperationsEvent)
         .order_by(model_objects.OperationsEvent.id.desc())
         .filter(
             model_objects.OperationsEvent.operations_event_type_id
-            == model_utils.OperationsEventType.from_string("CaCertificate__probe")
+            == model_utils.OperationsEventType.from_string(
+                "CaCertificate__letsencrypt_download"
+            )
         )
         .limit(limit)
         .offset(offset)

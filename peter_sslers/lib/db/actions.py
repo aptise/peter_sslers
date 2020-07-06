@@ -35,9 +35,9 @@ from .logger import _log_object_event
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def ca_certificate_probe(ctx):
+def ca_certificate_download(ctx):
     """
-    Probes the LetsEncrypt Certificate Authority for new certificates
+    Downloads from the LetsEncrypt Certificate Authority
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     """
@@ -45,10 +45,13 @@ def ca_certificate_probe(ctx):
     # create a bookkeeping object
     event_payload_dict = utils.new_event_payload_dict()
     dbOperationsEvent = log__OperationsEvent(
-        ctx, model_utils.OperationsEventType.from_string("CaCertificate__probe")
+        ctx,
+        model_utils.OperationsEventType.from_string(
+            "CaCertificate__letsencrypt_download"
+        ),
     )
 
-    certs = letsencrypt_info.probe_letsencrypt_certificates()
+    certs = letsencrypt_info.download_letsencrypt_certificates()
     certs_discovered = []
     certs_modified = []
     for c in certs:
