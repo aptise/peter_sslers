@@ -1294,6 +1294,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )  # see notes above
     is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=True)
     is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_save_alternate_chains = sa.Column(sa.Boolean, nullable=False, default=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     acme_order_type_id = sa.Column(
         sa.Integer, nullable=False
@@ -1792,6 +1793,11 @@ class CACertificate(Base, _Mixin_Timestamps_Pretty):
         "OperationsObjectEvent",
         primaryjoin="CACertificate.id==OperationsObjectEvent.ca_certificate_id",
         back_populates="ca_certificate",
+    )
+    server_certificate_alternates = sa_orm_relationship(
+        "ServerCertificateAlternateChain",
+        primaryjoin="CACertificate.id==ServerCertificateAlternateChain.ca_certificate_id",
+        uselist=True,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3073,6 +3079,11 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="ServerCertificate.ca_certificate_id__upchain==CACertificate.id",
         uselist=False,
     )
+    certificate_upchain_alternates = sa_orm_relationship(
+        "ServerCertificateAlternateChain",
+        primaryjoin="ServerCertificate.id==ServerCertificateAlternateChain.server_certificate_id",
+        uselist=True,
+    )
     coverage_assurance_events = sa_orm_relationship(
         "CoverageAssuranceEvent",
         primaryjoin="ServerCertificate.id==CoverageAssuranceEvent.server_certificate_id",
@@ -3268,6 +3279,9 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
 
     @property
     def as_json(self):
+        certificate_upchain_alternate_ids = [
+            i.ca_certificate_id for i in self.certificate_upchain_alternates
+        ]
         return {
             "id": self.id,
             "is_active": True if self.is_active else False,
@@ -3283,6 +3297,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             "cert_pem_md5": self.cert_pem_md5,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "ca_certificate_id__upchain": self.ca_certificate_id__upchain,
+            "ca_certificate_id__upchain_alternates": certificate_upchain_alternate_ids,
             "private_key_id": self.private_key_id,
             # "acme_account_id": self.acme_account_id,
             "domains_as_list": self.domains_as_list,
@@ -3291,6 +3306,37 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             if self.acme_order
             else None,
         }
+
+
+# ==============================================================================
+
+
+class ServerCertificateAlternateChain(Base):
+    """
+    It is possible for alternate chains to be provided for a ServerCertificate
+    """
+
+    __tablename__ = "server_certificate_alternate_chain"
+    id = sa.Column(sa.Integer, primary_key=True)
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=False
+    )
+    ca_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    ca_certificate = sa_orm_relationship(
+        "CACertificate",
+        primaryjoin="ServerCertificateAlternateChain.ca_certificate_id==CACertificate.id",
+        uselist=False,
+    )
+    server_certificate = sa_orm_relationship(
+        "ServerCertificate",
+        primaryjoin="ServerCertificateAlternateChain.server_certificate_id==ServerCertificate.id",
+        uselist=False,
+    )
 
 
 # ==============================================================================

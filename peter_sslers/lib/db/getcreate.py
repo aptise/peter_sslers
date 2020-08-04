@@ -1060,6 +1060,7 @@ def getcreate__ServerCertificate(
     is_active=None,
     dbAcmeOrder=None,
     dbCACertificate=None,
+    dbCACertificates_alt=None,
     dbCertificateRequest=None,
     dbPrivateKey=None,
     dbUniqueFQDNSet=None,
@@ -1075,6 +1076,7 @@ def getcreate__ServerCertificate(
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
         if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
     :param dbCACertificate: (required) The upstream :class:`model.objects.CACertificate` that signed the certificate
+    :param dbCACertificates_alt: (optional) Iterable. Alternate :class:`model.objects.CACertificate`s that signed this certificate
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
         if provivded, do not submit `dbAcmeOrder`
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
@@ -1163,6 +1165,7 @@ def getcreate__ServerCertificate(
                 ):
                     dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
                 ctx.dbSession.flush(objects=[dbServerCertificate, dbPrivateKey])
+        # TODO: ensure we register all the Alternte Chains
     elif not dbServerCertificate:
         dbServerCertificate = create__ServerCertificate(
             ctx,
@@ -1171,6 +1174,7 @@ def getcreate__ServerCertificate(
             is_active=is_active,
             dbAcmeOrder=dbAcmeOrder,
             dbCACertificate=dbCACertificate,
+            dbCACertificates_alt=dbCACertificates_alt,
             dbCertificateRequest=dbCertificateRequest,
             dbPrivateKey=dbPrivateKey,
             dbUniqueFQDNSet=dbUniqueFQDNSet,

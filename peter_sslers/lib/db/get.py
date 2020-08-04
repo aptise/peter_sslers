@@ -2261,22 +2261,65 @@ def get__ServerCertificate__by_AcmeAccountId__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__ServerCertificate__by_CACertificateId__count(ctx, cert_id):
+def get__ServerCertificate__by_CACertificateId__count(ctx, ca_cert_id):
     counted = (
         ctx.dbSession.query(model_objects.ServerCertificate)
-        .filter(model_objects.ServerCertificate.ca_certificate_id__upchain == cert_id)
+        .filter(
+            model_objects.ServerCertificate.ca_certificate_id__upchain == ca_cert_id
+        )
         .count()
     )
     return counted
 
 
 def get__ServerCertificate__by_CACertificateId__paginated(
-    ctx, cert_id, limit=None, offset=0
+    ctx, ca_cert_id, limit=None, offset=0
 ):
     items_paged = (
         ctx.dbSession.query(model_objects.ServerCertificate)
-        .filter(model_objects.ServerCertificate.ca_certificate_id__upchain == cert_id)
+        .filter(
+            model_objects.ServerCertificate.ca_certificate_id__upchain == ca_cert_id
+        )
         .order_by(model_objects.ServerCertificate.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return items_paged
+
+
+def get__ServerCertificate__by_CACertificateId__alt__count(ctx, ca_cert_id):
+    counted = (
+        ctx.dbSession.query(model_objects.ServerCertificate)
+        .join(
+            model_objects.ServerCertificateAlternateChain,
+            model_objects.ServerCertificate.id
+            == model_objects.ServerCertificateAlternateChain.server_certificate_id,
+        )
+        .filter(
+            model_objects.ServerCertificateAlternateChain.ca_certificate_id
+            == ca_cert_id
+        )
+        .count()
+    )
+    return counted
+
+
+def get__ServerCertificate__by_CACertificateId__alt__paginated(
+    ctx, ca_cert_id, limit=None, offset=0
+):
+    items_paged = (
+        ctx.dbSession.query(model_objects.ServerCertificate)
+        .join(
+            model_objects.ServerCertificateAlternateChain,
+            model_objects.ServerCertificate.id
+            == model_objects.ServerCertificateAlternateChain.server_certificate_id,
+        )
+        .filter(
+            model_objects.ServerCertificateAlternateChain.ca_certificate_id
+            == ca_cert_id
+        )
+        .order_by(model_objects.ServerCertificateAlternateChain.id.desc())
         .limit(limit)
         .offset(offset)
         .all()

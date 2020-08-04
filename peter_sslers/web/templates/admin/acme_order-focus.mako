@@ -30,7 +30,7 @@
 
 <%block name="content_main">
     ${admin_partials.handle_querystring_result()}
-    
+
     <div class="row">
         <div class="col-sm-12">
             <table class="table">
@@ -226,7 +226,7 @@
 
                     <tr>
                         <th>is_processing</th>
-                        <td>                        
+                        <td>
                             % if AcmeOrder.is_processing is True:
                                 <div class="label label-success">
                                     <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
@@ -285,16 +285,6 @@
                             </span>
                             &nbsp;
 
-                            <% queue_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
-                            <a  class="btn btn-xs btn-primary ${queue_btn_class}"
-                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=AcmeOrder&acme_order=${AcmeOrder.id}"
-                                title="Queue a Renewal."
-                            >
-                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                Queue a Renewal
-                            </a>
-                            &nbsp;
-
                             <% quick_btn_class = '' if AcmeOrder.is_renewable_quick else 'disabled' %>
                             <a  class="btn btn-xs btn-primary ${quick_btn_class}"
                                 href="${admin_prefix}/acme-order/${AcmeOrder.id}/renew/quick"
@@ -302,6 +292,16 @@
                             >
                                 <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
                                 Quick Renewal
+                            </a>
+                            &nbsp;
+
+                            <% queue_btn_class = '' if AcmeOrder.is_renewable_queue else 'disabled' %>
+                            <a  class="btn btn-xs btn-primary ${queue_btn_class}"
+                                href="${admin_prefix}/queue-certificate/new/structured?queue_source=AcmeOrder&acme_order=${AcmeOrder.id}"
+                                title="Queue a Renewal."
+                            >
+                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                Queue a Renewal
                             </a>
                             &nbsp;
 
@@ -521,7 +521,7 @@
                             ${admin_partials.table_AcmeAuthorizations(AcmeOrder, perspective='AcmeOrder.to_acme_authorizations')}
                         </td>
                     </tr>
-                    
+
                     <tr>
                         <th>ACME Events</th>
                         <td>
@@ -531,8 +531,7 @@
                             % endif
                         </td>
                     </tr>
-                    
-                    
+
                 </tbody>
         </div>
     </div>

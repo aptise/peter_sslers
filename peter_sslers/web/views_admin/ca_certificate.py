@@ -92,6 +92,9 @@ class View_Focus(Handler):
         items_paged = lib_db.get.get__ServerCertificate__by_CACertificateId__paginated(
             self.request.api_context, dbCACertificate.id, limit=10, offset=0
         )
+        items_paged_alt = lib_db.get.get__ServerCertificate__by_CACertificateId__alt__paginated(
+            self.request.api_context, dbCACertificate.id, limit=10, offset=0
+        )
         if self.request.wants_json:
             return {
                 "CACertificate": dbCACertificate.as_json,
@@ -101,6 +104,7 @@ class View_Focus(Handler):
             "CACertificate": dbCACertificate,
             "ServerCertificates_count": items_count,
             "ServerCertificates": items_paged,
+            "ServerCertificates_Alt": items_paged_alt,
         }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -154,6 +158,37 @@ class View_Focus(Handler):
         url_template = "%s/server-certificates/{0}" % self.focus_url
         (pager, offset) = self._paginate(items_count, url_template=url_template)
         items_paged = lib_db.get.get__ServerCertificate__by_CACertificateId__paginated(
+            self.request.api_context,
+            dbCACertificate.id,
+            limit=items_per_page,
+            offset=offset,
+        )
+        return {
+            "project": "peter_sslers",
+            "CACertificate": dbCACertificate,
+            "ServerCertificates_count": items_count,
+            "ServerCertificates": items_paged,
+            "pager": pager,
+        }
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:ca_certificate:focus:server_certificates_alt",
+        renderer="/admin/ca_certificate-focus-server_certificates_alt.mako",
+    )
+    @view_config(
+        route_name="admin:ca_certificate:focus:server_certificates_alt_paginated",
+        renderer="/admin/ca_certificate-focus-server_certificates_alt.mako",
+    )
+    def related__ServerCertificatesAlt(self):
+        dbCACertificate = self._focus()
+        items_count = lib_db.get.get__ServerCertificate__by_CACertificateId__alt__count(
+            self.request.api_context, dbCACertificate.id
+        )
+        url_template = "%s/server-certificates-alt/{0}" % self.focus_url
+        (pager, offset) = self._paginate(items_count, url_template=url_template)
+        items_paged = lib_db.get.get__ServerCertificate__by_CACertificateId__alt__paginated(
             self.request.api_context,
             dbCACertificate.id,
             limit=items_per_page,

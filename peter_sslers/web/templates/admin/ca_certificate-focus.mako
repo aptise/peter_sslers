@@ -167,6 +167,19 @@
                         </td>
                     </tr>
                 </tbody>
+                <tbody>
+                    <tr>
+                        <th>ServerCertificates - Alt</th>
+                        <td>
+                            % if ServerCertificates_Alt:
+                                ${admin_partials.table_ServerCertificates(ServerCertificates_Alt, show_domains=True)}
+                                ${admin_partials.nav_pager("%s/ca-certificate/%s/server-certificates-alt" % (admin_prefix, CACertificate.id))}
+                            % else:
+                                No known ServerCertificates.
+                            % endif
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>

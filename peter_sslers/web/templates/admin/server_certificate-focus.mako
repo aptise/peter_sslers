@@ -226,6 +226,24 @@
                                 CACertificate-${ServerCertificate.ca_certificate_id__upchain}</a>
                             <br/>
                             <em>The ServerCertificate is signed by this CACertificate.</em>
+
+                            % if ServerCertificate.certificate_upchain_alternates:
+                                <hr/>
+                                <em>Alternate Signing Chains are available:</em>
+                                <ul>
+                                    % for _alt in ServerCertificate.certificate_upchain_alternates:
+                                        <li>
+                                            <a class="label label-info" href="${admin_prefix}/ca-certificate/${_alt.ca_certificate_id}">
+                                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                CACertificate-${_alt.ca_certificate_id}</a>
+                                        </li>
+                                    % endfor
+                                </ul>
+                                <p>
+                                    ${ServerCertificate.certificate_upchain_alternates}
+                                </p>
+
+                            % endif
                         </td>
                     </tr>
                     <tr>

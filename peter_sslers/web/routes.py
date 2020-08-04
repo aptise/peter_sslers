@@ -579,6 +579,14 @@ def _admin_views(config):
         "admin:ca_certificate:focus:server_certificates_paginated",
         "/ca-certificate/{@id}/server-certificates/{@page}",
     )
+    config.add_route_7(
+        "admin:ca_certificate:focus:server_certificates_alt",
+        "/ca-certificate/{@id}/server-certificates-alt",
+    )
+    config.add_route_7(
+        "admin:ca_certificate:focus:server_certificates_alt_paginated",
+        "/ca-certificate/{@id}/server-certificates-alt/{@page}",
+    )
     config.add_route_7("admin:ca_certificate:upload", "/ca-certificate/upload")
     config.add_route_7(
         "admin:ca_certificate:upload|json", "/ca-certificate/upload.json"

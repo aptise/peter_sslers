@@ -1419,7 +1419,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
 
         # sign and download
         try:
-            fullchain_pem = authenticatedUser.acme_order_finalize(
+            fullchain_pems = authenticatedUser.acme_order_finalize(
                 ctx,
                 dbAcmeOrder=dbAcmeOrder,
                 update_order_status=updated_AcmeOrder_status,
@@ -1436,23 +1436,36 @@ def _do__AcmeV2_AcmeOrder__finalize(
             )
             raise
 
-        (certificate_pem, ca_chain_pem) = cert_utils.cert_and_chain_from_fullchain(
-            fullchain_pem
-        )
+        # we may have downloaded the alternate chains
+        # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
+        certificate_pem = None
+        dbCACertificates_chained = []
+        for fullchain_pem in fullchain_pems:
+            (
+                _certificate_pem,
+                _ca_chain_pem,
+            ) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
+            if certificate_pem is None:
+                certificate_pem = _certificate_pem
+            else:
+                if certificate_pem != _certificate_pem:
+                    raise ValueError("certificate mismatch!")
 
-        (
-            dbCACertificate,
-            is_created__CACertificate,
-        ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
-            ctx,
-            ca_chain_pem,
-            ca_chain_name="ACME Server Response",
-            le_authority_name=None,
-            is_authority_certificate=None,
-            is_cross_signed_authority_certificate=None,
-        )
-        if is_created__CACertificate:
-            ctx.pyramid_transaction_commit()
+            # get/create the CACertificate
+            (
+                dbCACertificate,
+                is_created__CACertificate,
+            ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
+                ctx,
+                _ca_chain_pem,
+                ca_chain_name="ACME Server Response",
+                le_authority_name=None,
+                is_authority_certificate=None,
+                is_cross_signed_authority_certificate=None,
+            )
+            if is_created__CACertificate:
+                ctx.pyramid_transaction_commit()
+            dbCACertificates_chained.append(dbCACertificate)
 
         dbServerCertificate = lib.db.create.create__ServerCertificate(
             ctx,
@@ -1460,10 +1473,10 @@ def _do__AcmeV2_AcmeOrder__finalize(
             cert_domains_expected=domain_names,
             is_active=True,
             dbAcmeOrder=dbAcmeOrder,
-            dbCACertificate=dbCACertificate,
+            dbCACertificate=dbCACertificates_chained[0],
+            dbCACertificates_alt=dbCACertificates_chained[1:],
             dbCertificateRequest=dbCertificateRequest,
         )
-
         ctx.pyramid_transaction_commit()
 
         # update the logger
@@ -2033,25 +2046,41 @@ def do__AcmeV2_AcmeOrder__download_certificate(
         # register the AcmeOrder into the logging utility
         authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
 
-        fullchain_pem = authenticatedUser.download_certificate(
-            dbAcmeOrder.certificate_url
+        fullchain_pems = authenticatedUser.download_certificate(
+            dbAcmeOrder.certificate_url,
+            is_save_alternate_chains=dbAcmeOrder.is_save_alternate_chains,
         )
-        (certificate_pem, ca_chain_pem) = cert_utils.cert_and_chain_from_fullchain(
-            fullchain_pem
-        )
-        (
-            dbCACertificate,
-            is_created__CACertificate,
-        ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
-            ctx,
-            ca_chain_pem,
-            ca_chain_name="ACME Server Response",
-            le_authority_name=None,
-            is_authority_certificate=None,
-            is_cross_signed_authority_certificate=None,
-        )
-        if is_created__CACertificate:
-            ctx.pyramid_transaction_commit()
+
+        # we may have downloaded the alternate chains
+        # this behavior is controlled by `dbAcmeOrder.is_save_alternate_chains`
+        certificate_pem = None
+        dbCACertificates_chained = []
+        for fullchain_pem in fullchain_pems:
+            (
+                _certificate_pem,
+                _ca_chain_pem,
+            ) = cert_utils.cert_and_chain_from_fullchain(fullchain_pem)
+            if certificate_pem is None:
+                certificate_pem = _certificate_pem
+            else:
+                if certificate_pem != _certificate_pem:
+                    raise ValueError("certificate mismatch!")
+
+            # get/create the CACertificate
+            (
+                dbCACertificate,
+                is_created__CACertificate,
+            ) = lib.db.getcreate.getcreate__CACertificate__by_pem_text(
+                ctx,
+                _ca_chain_pem,
+                ca_chain_name="ACME Server Response",
+                le_authority_name=None,
+                is_authority_certificate=None,
+                is_cross_signed_authority_certificate=None,
+            )
+            if is_created__CACertificate:
+                ctx.pyramid_transaction_commit()
+            dbCACertificates_chained.append(dbCACertificate)
 
         (
             dbServerCertificate,
@@ -2061,7 +2090,8 @@ def do__AcmeV2_AcmeOrder__download_certificate(
             cert_pem=certificate_pem,
             cert_domains_expected=dbAcmeOrder.domains_as_list,
             dbAcmeOrder=dbAcmeOrder,
-            dbCACertificate=dbCACertificate,
+            dbCACertificate=dbCACertificates_chained[0],
+            dbCACertificates_alt=dbCACertificates_chained[1:],
             dbPrivateKey=dbAcmeOrder.private_key,
         )
         if dbAcmeOrder.server_certificate:
