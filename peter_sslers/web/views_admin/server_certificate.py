@@ -36,6 +36,42 @@ from ...model import utils as model_utils
 # ==============================================================================
 
 
+def archive_zipfile(dbServerCertificate, ca_cert_id=None):
+    if ca_cert_id is None:
+        ca_cert_id = dbServerCertificate.ca_certificate_id__upchain
+
+    now = time.localtime(time.time())[:6]
+    tmpfile = tempfile.SpooledTemporaryFile()
+    with zipfile.ZipFile(tmpfile, "w") as archive:
+        # `cert1.pem`
+        info = zipfile.ZipInfo("cert%s.pem" % dbServerCertificate.id)
+        info.date_time = now
+        info.compress_type = zipfile.ZIP_DEFLATED
+        archive.writestr(info, dbServerCertificate.cert_pem)
+
+        # `chain1.pem`
+        info = zipfile.ZipInfo("chain%s.pem" % dbServerCertificate.id)
+        info.date_time = now
+        info.compress_type = zipfile.ZIP_DEFLATED
+        archive.writestr(
+            info, dbServerCertificate.valid_cert_chain_pem(ca_cert_id=ca_cert_id)
+        )
+        # `fullchain1.pem`
+        info = zipfile.ZipInfo("fullchain%s.pem" % dbServerCertificate.id)
+        info.date_time = now
+        info.compress_type = zipfile.ZIP_DEFLATED
+        archive.writestr(
+            info, dbServerCertificate.valid_cert_fullchain_pem(ca_cert_id=ca_cert_id)
+        )
+        # `privkey1.pem`
+        info = zipfile.ZipInfo("privkey%s.pem" % dbServerCertificate.id)
+        info.date_time = now
+        info.compress_type = zipfile.ZIP_DEFLATED
+        archive.writestr(info, dbServerCertificate.private_key.key_pem)
+    tmpfile.seek(0)
+    return tmpfile
+
+
 class View_List(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -374,7 +410,7 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:server_certificate:focus:parse|json", renderer="json"
     )
-    def focus_parse_json(self):
+    def parse_json(self):
         dbServerCertificate = self._focus()
         return {
             "ServerCertificate": {
@@ -388,7 +424,7 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:server_certificate:focus:chain:raw", renderer="string"
     )
-    def focus_chain(self):
+    def chain(self):
         dbServerCertificate = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
@@ -413,7 +449,7 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:server_certificate:focus:fullchain:raw", renderer="string"
     )
-    def focus_fullchain(self):
+    def fullchain(self):
         dbServerCertificate = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
@@ -427,7 +463,7 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:server_certificate:focus:privatekey:raw", renderer="string"
     )
-    def focus_privatekey(self):
+    def privatekey(self):
         dbServerCertificate = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
@@ -449,7 +485,7 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:server_certificate:focus:cert:raw", renderer="string"
     )
-    def focus_cert(self):
+    def cert(self):
         dbServerCertificate = self._focus()
         if self.request.matchdict["format"] == "pem":
             self.request.response.content_type = "application/x-pem-file"
@@ -471,7 +507,7 @@ class View_Focus(Handler):
     @view_config(
         route_name="admin:server_certificate:focus:config|json", renderer="json"
     )
-    def focus_config_json(self):
+    def config_json(self):
         dbServerCertificate = self._focus()
         if self.request.params.get("idonly", None):
             rval = dbServerCertificate.config_payload_idonly
@@ -482,37 +518,14 @@ class View_Focus(Handler):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @view_config(route_name="admin:server_certificate:focus:config|zip")
-    def focus_config_zip(self):
+    def config_zip(self):
         """
         generates a certbot style configuration
         note: there is no renderer, because we generate a `Response`
         """
         dbServerCertificate = self._focus()
         try:
-            now = time.localtime(time.time())[:6]
-            tmpfile = tempfile.SpooledTemporaryFile()
-            with zipfile.ZipFile(tmpfile, "w") as archive:
-                # `cert1.pem`
-                info = zipfile.ZipInfo("cert%s.pem" % dbServerCertificate.id)
-                info.date_time = now
-                info.compress_type = zipfile.ZIP_DEFLATED
-                archive.writestr(info, dbServerCertificate.cert_pem)
-                # `chain1.pem`
-                info = zipfile.ZipInfo("chain%s.pem" % dbServerCertificate.id)
-                info.date_time = now
-                info.compress_type = zipfile.ZIP_DEFLATED
-                archive.writestr(info, dbServerCertificate.cert_chain_pem)
-                # `fullchain1.pem`
-                info = zipfile.ZipInfo("fullchain%s.pem" % dbServerCertificate.id)
-                info.date_time = now
-                info.compress_type = zipfile.ZIP_DEFLATED
-                archive.writestr(info, dbServerCertificate.cert_fullchain_pem)
-                # `privkey1.pem`
-                info = zipfile.ZipInfo("privkey%s.pem" % dbServerCertificate.id)
-                info.date_time = now
-                info.compress_type = zipfile.ZIP_DEFLATED
-                archive.writestr(info, dbServerCertificate.private_key.key_pem)
-            tmpfile.seek(0)
+            tmpfile = archive_zipfile(dbServerCertificate)
             response = Response(
                 content_type="application/zip", body_file=tmpfile, status=200
             )
@@ -556,6 +569,95 @@ class View_Focus(Handler):
             "QueueCertificates": items_paged,
             "pager": pager,
         }
+
+
+class View_Focus_via_CaCert(View_Focus):
+    def _focus_via_CaCert(self):
+        dbServerCertificate = self._focus()
+        id_cacert = int(self.request.matchdict["id_cacert"])
+        if id_cacert not in dbServerCertificate.valid_certificate_upchain_ids:
+            raise HTTPNotFound("invalid CaCertificate")
+        return (dbServerCertificate, id_cacert)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:server_certificate:focus:via_ca_cert:config|json",
+        renderer="json",
+    )
+    def config_json(self):
+        (dbServerCertificate, id_cacert) = self._focus_via_CaCert()
+        if self.request.params.get("idonly", None):
+            rval = dbServerCertificate.custom_config_payload(
+                ca_cert_id=id_cacert, id_only=True
+            )
+        else:
+            rval = dbServerCertificate.custom_config_payload(
+                ca_cert_id=id_cacert, id_only=False
+            )
+        return rval
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(route_name="admin:server_certificate:focus:via_ca_cert:config|zip")
+    def config_zip(self):
+        (dbServerCertificate, id_cacert) = self._focus_via_CaCert()
+        try:
+            tmpfile = archive_zipfile(dbServerCertificate, ca_cert_id=id_cacert)
+            response = Response(
+                content_type="application/zip", body_file=tmpfile, status=200
+            )
+            response.headers["Content-Disposition"] = (
+                "attachment; filename= cert%s-chain%s.zip"
+                % (dbServerCertificate.id, id_cacert)
+            )
+            return response
+
+        except Exception as exc:
+            return HTTPSeeOther(
+                "%s?result=error&error=could+not+generate+zipfile" % self._focus_url
+            )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:server_certificate:focus:via_ca_cert:chain:raw",
+        renderer="string",
+    )
+    def chain(self):
+        (dbServerCertificate, id_cacert) = self._focus_via_CaCert()
+        cert_chain_pem = dbServerCertificate.valid_cert_chain_pem(id_cacert)
+        if self.request.matchdict["format"] == "pem":
+            self.request.response.content_type = "application/x-pem-file"
+            return cert_chain_pem
+        elif self.request.matchdict["format"] == "pem.txt":
+            return cert_chain_pem
+        elif self.request.matchdict["format"] in ("cer", "crt", "der"):
+            as_der = cert_utils.convert_pem_to_der(pem_data=cert_chain_pem)
+            response = Response()
+            if self.request.matchdict["format"] in ("crt", "der"):
+                response.content_type = "application/x-x509-ca-cert"
+            elif self.request.matchdict["format"] in ("cer",):
+                response.content_type = "application/pkix-cert"
+            response.body = as_der
+            return response
+        return "chain.pem"
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @view_config(
+        route_name="admin:server_certificate:focus:via_ca_cert:fullchain:raw",
+        renderer="string",
+    )
+    def fullchain(self):
+        (dbServerCertificate, id_cacert) = self._focus_via_CaCert()
+        cert_fullchain_pem = dbServerCertificate.valid_cert_fullchain_pem(id_cacert)
+        if self.request.matchdict["format"] == "pem":
+            self.request.response.content_type = "application/x-pem-file"
+            return cert_fullchain_pem
+        elif self.request.matchdict["format"] == "pem.txt":
+            return cert_fullchain_pem
+        return "fullchain.pem"
 
 
 class View_Focus_Manipulate(View_Focus):

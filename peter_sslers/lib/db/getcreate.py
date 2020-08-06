@@ -1165,7 +1165,34 @@ def getcreate__ServerCertificate(
                 ):
                     dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
                 ctx.dbSession.flush(objects=[dbServerCertificate, dbPrivateKey])
-        # TODO: ensure we register all the Alternte Chains
+
+        # ensure we have all the Alternate Chains connected to this ServerCerticiate
+        if dbCACertificates_alt:
+            _alts_existing = dbServerCertificate.certificate_upchain_alternate_ids
+            _alts_needed = []
+            # check the primary
+            if dbCACertificate.id != dbServerCertificate.ca_certificate_id__upchain:
+                if dbCACertificate.id not in _alts_existing:
+                    _alts_needed.append(dbCACertificate.id)
+            # check the alts
+            for _dbCACertificate_alt in dbCACertificates_alt:
+                if (
+                    _dbCACertificate_alt.id
+                    != dbServerCertificate.ca_certificate_id__upchain
+                ):
+                    if _dbCACertificate_alt.id not in _alts_existing:
+                        _alts_needed.append(_dbCACertificate_alt.id)
+            for _alt_needed in _alts_needed:
+                dbServerCertificateAlternateChain = (
+                    model_objects.ServerCertificateAlternateChain()
+                )
+                dbServerCertificateAlternateChain.server_certificate_id = (
+                    dbServerCertificate.id
+                )
+                dbServerCertificateAlternateChain.ca_certificate_id = _alt_needed
+                ctx.dbSession.add(dbServerCertificateAlternateChain)
+                ctx.dbSession.flush(objects=[dbServerCertificateAlternateChain])
+
     elif not dbServerCertificate:
         dbServerCertificate = create__ServerCertificate(
             ctx,

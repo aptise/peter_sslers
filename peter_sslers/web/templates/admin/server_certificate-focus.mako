@@ -429,6 +429,19 @@
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 config.json</a><br/>
                             <em>designed for downstream http config</em>
+                            <hr>
+
+                            <ul class="list list-unstyled">
+                                % for _certificate_upchain in ServerCertificate.iter_certificate_upchain:
+                                    <li>
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${_certificate_upchain.id}/config.json">
+                                            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                            CaCert-${_certificate_upchain.id}
+                                            config.json</a>
+                                    </li>
+                                % endfor
+                            </ul>
+
                         </td>
                     </tr>
                     <tr>
@@ -438,6 +451,19 @@
                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                                 config.zip</a><br/>
                             <em>designed for downstream http config</em>
+                            <hr>
+
+                            <ul class="list list-unstyled">
+                                % for _certificate_upchain in ServerCertificate.iter_certificate_upchain:
+                                    <li>
+                                        <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${_certificate_upchain.id}/config.zip">
+                                            <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                            CaCert-${_certificate_upchain.id}
+                                            config.zip</a>
+                                    </li>
+                                % endfor
+                            </ul>
+
                         </td>
                     </tr>
                     % if request.registry.settings["app_settings"]['enable_nginx']:
@@ -480,7 +506,7 @@
                     <tr>
                         <th>related payloads</th>
                         <td>
-                            <table class="table table-condensed">
+                            <table class="table table-condensed table-striped">
                                 <thead>
                                     <tr>
                                         <th>related</th>
@@ -489,7 +515,23 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td>chain (upstream)</td>
+                                        <th>privatekey</th>
+                                        <td>
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.pem.txt">
+                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                privkey.pem.txt</a>
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.pem">
+                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                privkey.pem</a>
+                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.key">
+                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                privkey.key (der)</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>chain (upstream)
+                                            <span class="label label-default">CaCert-${ServerCertificate.ca_certificate_id__upchain}</span>
+                                        </th>
                                         <td>
                                             <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/chain.pem.txt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
@@ -509,7 +551,9 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td>fullchain (cert+upstream chain)</td>
+                                        <th>fullchain (cert+upstream chain)
+                                            <span class="label label-default">CaCert-${ServerCertificate.ca_certificate_id__upchain}</span>
+                                        </th>
                                         <td>
                                             <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/fullchain.pem.txt">
                                                 <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
@@ -519,20 +563,51 @@
                                                 fullchain.pem</a>
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <td>privatekey</td>
-                                        <td>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.pem.txt">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                privkey.pem.txt</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.pem">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                privkey.pem</a>
-                                            <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/privkey.key">
-                                                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-                                                privkey.key (der)</a>
-                                        </td>
-                                    </tr>
+
+                                    % if ServerCertificate.certificate_upchain_alternates:
+                                        <tr>
+                                            <th colspan="2">Alternate Chains</th>
+                                        </tr>
+                                        % for toAltChain in ServerCertificate.certificate_upchain_alternates:
+                                            <tr>
+                                                <th>chain (upstream)
+                                                    <span class="label label-default">CaCert-${toAltChain.ca_certificate_id}</span>
+                                                </th>
+                                                <td>
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.pem.txt">
+                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                        chain.pem.txt</a>
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.pem">
+                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                        chain.pem</a>
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.cer">
+                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                        chain.cer (der)</a>
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.crt">
+                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                        chain.crt (der)</a>
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/chain.der">
+                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                        chain.der (der)</a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>fullchain (cert+upstream chain)
+                                                    <span class="label label-default">CaCert-${toAltChain.ca_certificate_id}</span>
+                                                </th>
+                                                <td>
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/fullchain.pem.txt">
+                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                        fullchain.pem.txt</a>
+                                                    <a class="btn btn-xs btn-info" href="${admin_prefix}/server-certificate/${ServerCertificate.id}/via-ca-cert/${toAltChain.ca_certificate_id}/fullchain.pem">
+                                                        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                                                        fullchain.pem</a>
+                                                </td>
+                                            </tr>
+
+                                        % endfor
+                                    % endif
+
                                 </tbody>
                             </table>
                         </td>
