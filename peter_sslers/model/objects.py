@@ -1294,6 +1294,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     )  # see notes above
     is_auto_renew = sa.Column(sa.Boolean, nullable=True, default=True)
     is_renewed = sa.Column(sa.Boolean, nullable=True, default=None)
+    is_save_alternate_chains = sa.Column(sa.Boolean, nullable=False, default=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     acme_order_type_id = sa.Column(
         sa.Integer, nullable=False
@@ -1792,6 +1793,11 @@ class CACertificate(Base, _Mixin_Timestamps_Pretty):
         "OperationsObjectEvent",
         primaryjoin="CACertificate.id==OperationsObjectEvent.ca_certificate_id",
         back_populates="ca_certificate",
+    )
+    server_certificate_alternates = sa_orm_relationship(
+        "ServerCertificateAlternateChain",
+        primaryjoin="CACertificate.id==ServerCertificateAlternateChain.ca_certificate_id",
+        uselist=True,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3073,6 +3079,11 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="ServerCertificate.ca_certificate_id__upchain==CACertificate.id",
         uselist=False,
     )
+    certificate_upchain_alternates = sa_orm_relationship(
+        "ServerCertificateAlternateChain",
+        primaryjoin="ServerCertificate.id==ServerCertificateAlternateChain.server_certificate_id",
+        uselist=True,
+    )
     coverage_assurance_events = sa_orm_relationship(
         "CoverageAssuranceEvent",
         primaryjoin="ServerCertificate.id==CoverageAssuranceEvent.server_certificate_id",
@@ -3174,8 +3185,27 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
         return "danger"
 
     @property
-    def config_payload(self):
+    def certificate_upchain_alternate_ids(self):
+        certificate_upchain_alternate_ids = [
+            i.ca_certificate_id for i in self.certificate_upchain_alternates
+        ]
+        return certificate_upchain_alternate_ids
+
+    def custom_config_payload(self, ca_cert_id=None, id_only=False):
+        # invoke this to trigger a invalid error
+        dbCaCertificate = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
+
         # the ids are strings so that the fullchain id can be split by a client without further processing
+
+        if id_only:
+            return {
+                "id": str(self.id),
+                "private_key": {"id": str(self.private_key.id)},
+                "certificate": {"id": str(self.id)},
+                "chain": {"id": str(ca_cert_id)},
+                "fullchain": {"id": "%s,%s" % (self.id, ca_cert_id)},
+            }
+
         return {
             "id": str(self.id),
             "private_key": {
@@ -3184,25 +3214,22 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             },
             "certificate": {"id": str(self.id), "pem": self.cert_pem},
             "chain": {
-                "id": str(self.certificate_upchain.id),
-                "pem": self.cert_chain_pem,
+                "id": str(ca_cert_id),
+                "pem": self.valid_cert_chain_pem(ca_cert_id=ca_cert_id),
             },
             "fullchain": {
-                "id": "%s,%s" % (self.id, self.certificate_upchain.id),
-                "pem": self.cert_fullchain_pem,
+                "id": "%s,%s" % (self.id, ca_cert_id),
+                "pem": self.valid_cert_fullchain_pem(ca_cert_id=ca_cert_id),
             },
         }
 
     @property
+    def config_payload(self):
+        return self.custom_config_payload(ca_cert_id=None, id_only=False)
+
+    @property
     def config_payload_idonly(self):
-        # the ids are strings so that the fullchain id can be split by a client without further processing
-        return {
-            "id": str(self.id),
-            "private_key": {"id": str(self.private_key.id)},
-            "certificate": {"id": str(self.id)},
-            "chain": {"id": str(self.certificate_upchain.id)},
-            "fullchain": {"id": "%s,%s" % (self.id, self.certificate_upchain.id)},
-        }
+        return self.custom_config_payload(ca_cert_id=None, id_only=True)
 
     @property
     def is_can_renew_letsencrypt(self):
@@ -3266,6 +3293,46 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
                 model_utils.PrivateKeyStrategy._DEFAULT_system_renewal
             )
 
+    @reify
+    def valid_certificate_upchain_ids(self):
+        """return a list of all the CaCertificate IDs that can be used as an intermediate"""
+        _allowed_ids = list(
+            set(
+                [self.ca_certificate_id__upchain,]
+                + self.certificate_upchain_alternate_ids
+            )
+        )
+        return _allowed_ids
+
+    def valid_certificate_upchain(self, ca_cert_id=None):
+        """return a single CaCertificate, or the default"""
+        if ca_cert_id == None:
+            ca_cert_id = self.ca_certificate_id__upchain
+        if ca_cert_id not in self.valid_certificate_upchain_ids:
+            raise ValueError(
+                "selected CACertificate did not sign this ServerCertificate"
+            )
+        if ca_cert_id == self.ca_certificate_id__upchain:
+            return self.certificate_upchain
+        for _to_upchain in self.certificate_upchain_alternates:
+            if _to_upchain.ca_certificate_id == ca_cert_id:
+                return _to_upchain.ca_certificate
+        raise ValueError("No CaCertificate available (?!?!)")
+
+    def valid_cert_chain_pem(self, ca_cert_id=None):
+        certificate_upchain = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
+        return certificate_upchain.cert_pem
+
+    def valid_cert_fullchain_pem(self, ca_cert_id=None):
+        certificate_upchain = self.valid_certificate_upchain(ca_cert_id=ca_cert_id)
+        return "\n".join((self.cert_pem, certificate_upchain.cert_pem))
+
+    @property
+    def iter_certificate_upchain(self):
+        yield self.certificate_upchain
+        for dbServerCertificateAlternateChain in self.certificate_upchain_alternates:
+            yield dbServerCertificateAlternateChain.ca_certificate
+
     @property
     def as_json(self):
         return {
@@ -3283,6 +3350,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             "cert_pem_md5": self.cert_pem_md5,
             "unique_fqdn_set_id": self.unique_fqdn_set_id,
             "ca_certificate_id__upchain": self.ca_certificate_id__upchain,
+            "ca_certificate_id__upchain_alternates": self.certificate_upchain_alternate_ids,
             "private_key_id": self.private_key_id,
             # "acme_account_id": self.acme_account_id,
             "domains_as_list": self.domains_as_list,
@@ -3291,6 +3359,37 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
             if self.acme_order
             else None,
         }
+
+
+# ==============================================================================
+
+
+class ServerCertificateAlternateChain(Base):
+    """
+    It is possible for alternate chains to be provided for a ServerCertificate
+    """
+
+    __tablename__ = "server_certificate_alternate_chain"
+    id = sa.Column(sa.Integer, primary_key=True)
+    ca_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("ca_certificate.id"), nullable=False
+    )
+    server_certificate_id = sa.Column(
+        sa.Integer, sa.ForeignKey("server_certificate.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    ca_certificate = sa_orm_relationship(
+        "CACertificate",
+        primaryjoin="ServerCertificateAlternateChain.ca_certificate_id==CACertificate.id",
+        uselist=False,
+    )
+    server_certificate = sa_orm_relationship(
+        "ServerCertificate",
+        primaryjoin="ServerCertificateAlternateChain.server_certificate_id==ServerCertificate.id",
+        uselist=False,
+    )
 
 
 # ==============================================================================

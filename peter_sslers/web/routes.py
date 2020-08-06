@@ -579,6 +579,14 @@ def _admin_views(config):
         "admin:ca_certificate:focus:server_certificates_paginated",
         "/ca-certificate/{@id}/server-certificates/{@page}",
     )
+    config.add_route_7(
+        "admin:ca_certificate:focus:server_certificates_alt",
+        "/ca-certificate/{@id}/server-certificates-alt",
+    )
+    config.add_route_7(
+        "admin:ca_certificate:focus:server_certificates_alt_paginated",
+        "/ca-certificate/{@id}/server-certificates-alt/{@page}",
+    )
     config.add_route_7("admin:ca_certificate:upload", "/ca-certificate/upload")
     config.add_route_7(
         "admin:ca_certificate:upload|json", "/ca-certificate/upload.json"
@@ -1140,6 +1148,25 @@ def _admin_views(config):
         "admin:server_certificate:focus:nginx_cache_expire|json",
         r"/server-certificate/{@id}/nginx-cache-expire.json",
     )
+    # via ca-cert routes
+    config.add_route_7(
+        "admin:server_certificate:focus:via_ca_cert:config|json",
+        "/server-certificate/{@id}/via-ca-cert/{id_cacert}/config.json",
+    )
+    config.add_route_7(
+        "admin:server_certificate:focus:via_ca_cert:config|zip",
+        "/server-certificate/{@id}/via-ca-cert/{id_cacert}/config.zip",
+    )
+    config.add_route_7(
+        "admin:server_certificate:focus:via_ca_cert:chain:raw",
+        "/server-certificate/{@id}/via-ca-cert/{id_cacert}/chain.{format:(cer|crt|der|pem|pem.txt)}",
+    )
+    config.add_route_7(
+        "admin:server_certificate:focus:via_ca_cert:fullchain:raw",
+        "/server-certificate/{@id}/via-ca-cert/{id_cacert}/fullchain.{format:(pem|pem.txt)}",
+    )
+    # end via ca-cert
+
     config.add_route_7("admin:server_certificate:upload", "/server-certificate/upload")
     config.add_route_7(
         "admin:server_certificate:upload|json", "/server-certificate/upload.json"

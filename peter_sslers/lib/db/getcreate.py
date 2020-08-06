@@ -1060,6 +1060,7 @@ def getcreate__ServerCertificate(
     is_active=None,
     dbAcmeOrder=None,
     dbCACertificate=None,
+    dbCACertificates_alt=None,
     dbCertificateRequest=None,
     dbPrivateKey=None,
     dbUniqueFQDNSet=None,
@@ -1075,6 +1076,7 @@ def getcreate__ServerCertificate(
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
         if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
     :param dbCACertificate: (required) The upstream :class:`model.objects.CACertificate` that signed the certificate
+    :param dbCACertificates_alt: (optional) Iterable. Alternate :class:`model.objects.CACertificate`s that signed this certificate
     :param dbCertificateRequest: (optional) The :class:`model.objects.CertificateRequest` the certificate was generated through.
         if provivded, do not submit `dbAcmeOrder`
     :param dbPrivateKey: (required) The :class:`model.objects.PrivateKey` that signed the certificate
@@ -1163,6 +1165,34 @@ def getcreate__ServerCertificate(
                 ):
                     dbPrivateKey.timestamp_last_certificate_issue = ctx.timestamp
                 ctx.dbSession.flush(objects=[dbServerCertificate, dbPrivateKey])
+
+        # ensure we have all the Alternate Chains connected to this ServerCerticiate
+        if dbCACertificates_alt:
+            _alts_existing = dbServerCertificate.certificate_upchain_alternate_ids
+            _alts_needed = []
+            # check the primary
+            if dbCACertificate.id != dbServerCertificate.ca_certificate_id__upchain:
+                if dbCACertificate.id not in _alts_existing:
+                    _alts_needed.append(dbCACertificate.id)
+            # check the alts
+            for _dbCACertificate_alt in dbCACertificates_alt:
+                if (
+                    _dbCACertificate_alt.id
+                    != dbServerCertificate.ca_certificate_id__upchain
+                ):
+                    if _dbCACertificate_alt.id not in _alts_existing:
+                        _alts_needed.append(_dbCACertificate_alt.id)
+            for _alt_needed in _alts_needed:
+                dbServerCertificateAlternateChain = (
+                    model_objects.ServerCertificateAlternateChain()
+                )
+                dbServerCertificateAlternateChain.server_certificate_id = (
+                    dbServerCertificate.id
+                )
+                dbServerCertificateAlternateChain.ca_certificate_id = _alt_needed
+                ctx.dbSession.add(dbServerCertificateAlternateChain)
+                ctx.dbSession.flush(objects=[dbServerCertificateAlternateChain])
+
     elif not dbServerCertificate:
         dbServerCertificate = create__ServerCertificate(
             ctx,
@@ -1171,6 +1201,7 @@ def getcreate__ServerCertificate(
             is_active=is_active,
             dbAcmeOrder=dbAcmeOrder,
             dbCACertificate=dbCACertificate,
+            dbCACertificates_alt=dbCACertificates_alt,
             dbCertificateRequest=dbCertificateRequest,
             dbPrivateKey=dbPrivateKey,
             dbUniqueFQDNSet=dbUniqueFQDNSet,

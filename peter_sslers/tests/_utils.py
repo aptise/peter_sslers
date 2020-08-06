@@ -459,6 +459,7 @@ TEST_FILES = {
             },
         },
         "Pebble": {
+            # these use `FormatA` and can be setup using `_setUp_ServerCertificates_FormatA`
             "1": {
                 "domain": "a.example.com",
                 "cert": "cert1.pem",
@@ -488,6 +489,20 @@ TEST_FILES = {
                 "cert": "cert5.pem",
                 "chain": "chain5.pem",
                 "pkey": "privkey5.pem",
+            },
+        },
+        "AlternateChains": {
+            # these use `FormatA` and can be setup using `_setUp_ServerCertificates_FormatA`
+            "1": {
+                # reseved for `FunctionalTests_AlternateChains`
+                "domain": "example.com",
+                "cert": "cert.pem",
+                "chain": "chain.pem",
+                "pkey": "privkey.pem",
+                "alternate_chains": {
+                    "1": {"chain": "chain.pem",},
+                    "2": {"chain": "chain.pem",},
+                },
             },
         },
     },
@@ -661,6 +676,90 @@ class AppTest(AppTestCore):
 
     _ctx = None
     _DB_SETUP_RECORDS = False
+
+    def _setUp_ServerCertificates_FormatA(self, payload_section, payload_key):
+        filename_template = None
+        if payload_section == "AlternateChains":
+            filename_template = "alternate_chains/%s/%%s" % payload_key
+        elif payload_section == "Pebble":
+            filename_template = "pebble-certs/%s"
+        else:
+            raise ValueError("invalid payload_section")
+        _pkey_filename = (
+            filename_template
+            % TEST_FILES["ServerCertificates"][payload_section][payload_key]["pkey"]
+        )
+        _pkey_pem = self._filedata_testfile(_pkey_filename)
+        (_dbPrivateKey, _is_created,) = db.getcreate.getcreate__PrivateKey__by_pem_text(
+            self.ctx,
+            _pkey_pem,
+            private_key_source_id=model_utils.PrivateKeySource.from_string("imported"),
+            private_key_type_id=model_utils.PrivateKeyType.from_string("standard"),
+        )
+        _chain_filename = (
+            filename_template
+            % TEST_FILES["ServerCertificates"][payload_section][payload_key]["chain"]
+        )
+        _chain_pem = self._filedata_testfile(_chain_filename)
+        (_dbChain, _is_created,) = db.getcreate.getcreate__CACertificate__by_pem_text(
+            self.ctx, _chain_pem, ca_chain_name=_chain_filename
+        )
+
+        dbCACertificates_alt = None
+        if (
+            "alternate_chains"
+            in TEST_FILES["ServerCertificates"][payload_section][payload_key]
+        ):
+            dbCACertificates_alt = []
+            for _chain_index in TEST_FILES["ServerCertificates"][payload_section][
+                payload_key
+            ]["alternate_chains"]:
+                _chain_subpath = "alternate_chains/%s/%s" % (
+                    payload_key,
+                    TEST_FILES["ServerCertificates"][payload_section][payload_key][
+                        "alternate_chains"
+                    ][_chain_index]["chain"],
+                )
+                _chain_filename = filename_template % _chain_subpath
+                _chain_pem = self._filedata_testfile(_chain_filename)
+                (
+                    _dbChainAlternate,
+                    _is_created,
+                ) = db.getcreate.getcreate__CACertificate__by_pem_text(
+                    self.ctx, _chain_pem, ca_chain_name=_chain_filename
+                )
+                dbCACertificates_alt.append(_dbChainAlternate)
+
+        _cert_filename = (
+            filename_template
+            % TEST_FILES["ServerCertificates"][payload_section][payload_key]["cert"]
+        )
+        _cert_domains_expected = [
+            TEST_FILES["ServerCertificates"][payload_section][payload_key]["domain"],
+        ]
+        (
+            _dbUniqueFQDNSet,
+            _is_created,
+        ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
+            self.ctx, _cert_domains_expected,
+        )
+        _cert_pem = self._filedata_testfile(_cert_filename)
+
+        (
+            _dbServerCertificate,
+            _is_created,
+        ) = db.getcreate.getcreate__ServerCertificate(
+            self.ctx,
+            _cert_pem,
+            cert_domains_expected=_cert_domains_expected,
+            dbCACertificate=_dbChain,
+            dbCACertificates_alt=dbCACertificates_alt,
+            dbUniqueFQDNSet=_dbUniqueFQDNSet,
+            dbPrivateKey=_dbPrivateKey,
+        )
+
+        # commit this!
+        self.ctx.pyramid_transaction_commit()
 
     def setUp(self):
         AppTestCore.setUp(self)
@@ -860,66 +959,6 @@ class AppTest(AppTestCore):
                     elif _id == "5":
                         _dbServerCertificate_5 = _dbServerCertificate
 
-                # note: pre-populate ServerCertificate 6-10
-                for _id in TEST_FILES["ServerCertificates"]["Pebble"].keys():
-                    # note: pre-populate PrivateKey
-                    # this should create `/private-key/1`
-                    _pkey_filename = (
-                        "pebble-certs/%s"
-                        % TEST_FILES["ServerCertificates"]["Pebble"][_id]["pkey"]
-                    )
-                    _pkey_pem = self._filedata_testfile(_pkey_filename)
-                    (
-                        _dbPrivateKey,
-                        _is_created,
-                    ) = db.getcreate.getcreate__PrivateKey__by_pem_text(
-                        self.ctx,
-                        _pkey_pem,
-                        private_key_source_id=model_utils.PrivateKeySource.from_string(
-                            "imported"
-                        ),
-                        private_key_type_id=model_utils.PrivateKeyType.from_string(
-                            "standard"
-                        ),
-                    )
-                    _chain_filename = (
-                        "pebble-certs/%s"
-                        % TEST_FILES["ServerCertificates"]["Pebble"][_id]["chain"]
-                    )
-                    _chain_pem = self._filedata_testfile(_chain_filename)
-                    (
-                        _dbChain,
-                        _is_created,
-                    ) = db.getcreate.getcreate__CACertificate__by_pem_text(
-                        self.ctx, _chain_pem, ca_chain_name=_chain_filename
-                    )
-
-                    _cert_filename = (
-                        "pebble-certs/%s"
-                        % TEST_FILES["ServerCertificates"]["Pebble"][_id]["cert"]
-                    )
-                    _cert_domains_expected = [
-                        TEST_FILES["ServerCertificates"]["Pebble"][_id]["domain"],
-                    ]
-                    (
-                        _dbUniqueFQDNSet,
-                        _is_created,
-                    ) = db.getcreate.getcreate__UniqueFQDNSet__by_domains(
-                        self.ctx, _cert_domains_expected,
-                    )
-                    _cert_pem = self._filedata_testfile(_cert_filename)
-                    (
-                        _dbServerCertificate,
-                        _is_created,
-                    ) = db.getcreate.getcreate__ServerCertificate(
-                        self.ctx,
-                        _cert_pem,
-                        cert_domains_expected=_cert_domains_expected,
-                        dbCACertificate=_dbChain,
-                        dbUniqueFQDNSet=_dbUniqueFQDNSet,
-                        dbPrivateKey=_dbPrivateKey,
-                    )
-
                 # note: pre-populate Domain
                 # ensure we have domains?
                 domains = db.get.get__Domain__paginated(self.ctx)
@@ -948,6 +987,11 @@ class AppTest(AppTestCore):
                         TEST_FILES["ServerCertificates"]["SelfSigned"]["1"]["domain"],
                     ],  # make it an iterable
                 )
+
+                # note: pre-populate ServerCertificate 6-10, via "Pebble"
+                for _id in TEST_FILES["ServerCertificates"]["Pebble"].keys():
+                    self._setUp_ServerCertificates_FormatA("Pebble", _id)
+
                 # self.ctx.pyramid_transaction_commit()
 
                 # note: pre-populate QueueDomain

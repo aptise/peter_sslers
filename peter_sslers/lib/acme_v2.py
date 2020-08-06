@@ -27,6 +27,10 @@ except ImportError:
     from urllib2 import urlopen, Request  # Python 2
     from urllib2 import URLError
 
+# pypi
+from requests.utils import parse_header_links
+
+
 # localapp
 from . import cert_utils
 from . import errors
@@ -222,6 +226,24 @@ class AcmeOrderRFC(object):
         self.rfc_object = rfc_object
         self.response_headers = response_headers
         self.dbUniqueFQDNSet = dbUniqueFQDNSet
+
+
+def get_header_links(response_headers, relation_type):
+    """
+    based on certbot's `_get_links`
+    https://github.com/certbot/certbot/pull/8080/files#diff-2ddf346e79198cd9bd28a8e8ee691b7b
+
+    :param headers: response headers
+    :param relation_type: the relation type sought
+    """
+    if not "Link" in response_headers:
+        return []
+    links = parse_header_links(response_headers["Link"])
+    return [
+        l["url"]
+        for l in links
+        if "rel" in l and "url" in l and l["rel"] == relation_type
+    ]
 
 
 # ------------------------------------------------------------------------------
@@ -780,6 +802,8 @@ class AuthenticatedUser(object):
         :param transaction_commit: (required) Boolean. Must indicate that we will invoke this outside of transactions
 
         :param csr_pem: (required) The CertitificateSigningRequest as PEM
+
+        :returns fullchain_pems: an array of the fullchain pems
         """
         # get the new certificate
         log.info("acme_v2.AuthenticatedUser.acme_order_finalize(")
@@ -845,10 +869,13 @@ class AuthenticatedUser(object):
             raise ValueError(
                 "The AcmeOrder server response should have a `certificate`."
             )
-        fullchain_pem = self.download_certificate(url_certificate)
-        return fullchain_pem
+        fullchain_pems = self.download_certificate(
+            url_certificate,
+            is_save_alternate_chains=dbAcmeOrder.is_save_alternate_chains,
+        )
+        return fullchain_pems
 
-    def download_certificate(self, url_certificate):
+    def download_certificate(self, url_certificate, is_save_alternate_chains=None):
         log.info("acme_v2.AuthenticatedUser.download_certificate(")
         if not url_certificate:
             raise ValueError("Must supply a url for the certificate")
@@ -862,8 +889,16 @@ class AuthenticatedUser(object):
         log.debug(
             ") download_certificate | _certificate_headers: %s" % _certificate_headers
         )
+        fullchain_pems = [
+            fullchain_pem,
+        ]
+        if is_save_alternate_chains:
+            alt_chains_urls = get_header_links(_certificate_headers, "alternate")
+            alt_chains = [self._send_signed_request(url)[0] for url in alt_chains_urls]
+            fullchain_pems.extend(alt_chains)
+
         log.info(") download_certificate | downloaded signed certificate!")
-        return fullchain_pem
+        return fullchain_pems
 
     def acme_authorization_process_url(
         self,

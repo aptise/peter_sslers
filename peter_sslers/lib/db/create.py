@@ -132,6 +132,7 @@ def create__AcmeOrder(
     private_key_cycle_id__renewal=None,
     private_key_strategy_id__requested=None,
     is_auto_renew=True,
+    is_save_alternate_chains=True,
     order_url=None,
     dbAcmeAccount=None,
     dbAcmeOrder_renewal_of=None,
@@ -155,6 +156,7 @@ def create__AcmeOrder(
     :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
     :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on?  Default: `True`
+    :param is_save_alternate_chains: (optional) should alternate chains be saved if detected?  Default: `True`
     :param order_url: (required) the url of the object
     :param dbAcmeAccount: (required) The :class:`model.objects.AcmeAccount` associated with the order
     :param dbAcmeOrder_retry_of: (optional) A :class:`model.objects.AcmeOrder` object
@@ -238,6 +240,7 @@ def create__AcmeOrder(
     dbAcmeOrder = model_objects.AcmeOrder()
     dbAcmeOrder.is_processing = True
     dbAcmeOrder.is_auto_renew = is_auto_renew
+    dbAcmeOrder.is_save_alternate_chains = is_save_alternate_chains
     dbAcmeOrder.timestamp_created = ctx.timestamp
     dbAcmeOrder.order_url = order_url
     dbAcmeOrder.acme_order_type_id = acme_order_type_id
@@ -903,6 +906,7 @@ def create__ServerCertificate(
     is_active=None,
     dbAcmeOrder=None,
     dbCACertificate=None,
+    dbCACertificates_alt=None,
     dbCertificateRequest=None,
     dbPrivateKey=None,
     dbUniqueFQDNSet=None,
@@ -916,6 +920,7 @@ def create__ServerCertificate(
     :param is_active: (optional) default `None`; do not activate a certificate when uploading unless specified.
 
     :param dbCACertificate: (required) The :class:`model.objects.CACertificate` that signed this certificate
+    :param dbCACertificates_alt: (optional) Iterable. Alternate :class:`model.objects.CACertificate`s that signed this certificate
 
     :param dbAcmeOrder: (optional) The :class:`model.objects.AcmeOrder` the certificate was generated through.
         if provivded, do not submit `dbCertificateRequest` or `dbPrivateKey`
@@ -1073,6 +1078,20 @@ def create__ServerCertificate(
 
             # final, just to be safe
             ctx.dbSession.flush()
+
+        if dbCACertificates_alt:
+            for _dbCACertificate in dbCACertificates_alt:
+                dbServerCertificateAlternateChain = (
+                    model_objects.ServerCertificateAlternateChain()
+                )
+                dbServerCertificateAlternateChain.server_certificate_id = (
+                    dbServerCertificate.id
+                )
+                dbServerCertificateAlternateChain.ca_certificate_id = (
+                    _dbCACertificate.id
+                )
+                ctx.dbSession.add(dbServerCertificateAlternateChain)
+                ctx.dbSession.flush(objects=[dbServerCertificateAlternateChain])
 
     except Exception as exc:
         raise

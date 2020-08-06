@@ -987,6 +987,26 @@ The payload might look like:
 If you start to see valid/invalid keys disappear it is often because the `expiries` or `maxitems` have removed them from the cache.
 
 
+Are Alternate Chains Supported?
+-------------------------------
+
+LetsEncrypt and other ACME Certificate Authorities may support "Alternate Chains" of their signed certificates that lead to different trusted roots.
+
+Alternate Chains are fully supported by PeterSSLers
+
+Support:
+
+* Alternate Certificate Chains are downloaded and tracked
+* Machine-readable Endpoints are available to detect and utilize the Alternate Chains
+
+However:
+
+* Overall UX, payloads and endpoints are optimized for the Primary Chain
+* Some advanced features such as Cache Priming only utilize the Primary Chain
+
+Pull Requests to bring the overall experience of Alternate Chains on-par with Primary Chains are welcome.
+
+
 What does it look like?
 -----------------------
 

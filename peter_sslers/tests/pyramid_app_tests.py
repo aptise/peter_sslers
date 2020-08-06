@@ -5046,6 +5046,152 @@ class FunctionalTests_QueueDomains(AppTest):
         assert "HTTP POST required" in res.json["instructions"]
 
 
+class FunctionalTests_AlternateChains(AppTest):
+    """
+    python -m unittest peter_sslers.tests.pyramid_app_tests.FunctionalTests_AlternateChains
+    """
+
+    def setUp(self):
+        AppTest.setUp(self)
+        self._setUp_ServerCertificates_FormatA("AlternateChains", "1")
+
+    def _get_one(self):
+        # grab an item
+        # iterate backwards because we just added the AlternateChains
+        focus_item = (
+            self.ctx.dbSession.query(model_objects.ServerCertificate)
+            .filter(model_objects.ServerCertificate.is_active.op("IS")(True))
+            .order_by(model_objects.ServerCertificate.id.desc())
+            .first()
+        )
+        assert focus_item is not None
+        assert focus_item.certificate_upchain_alternates
+        return focus_item
+
+    @tests_routes(
+        (
+            "admin:ca_certificate:focus:server_certificates_alt",
+            "admin:ca_certificate:focus:server_certificates_alt_paginated",
+        )
+    )
+    def test_CACertificate_view(self):
+        focus_ServerCertificate = self._get_one()
+        for _to_ca_cert_alt in focus_ServerCertificate.certificate_upchain_alternates:
+            ca_cert_alt_id = _to_ca_cert_alt.ca_certificate_id
+            res = self.testapp.get(
+                "/.well-known/admin/ca-certificate/%s" % ca_cert_alt_id, status=200
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/ca-certificate/%s/server-certificates-alt"
+                % ca_cert_alt_id,
+                status=200,
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/ca-certificate/%s/server-certificates-alt/1"
+                % ca_cert_alt_id,
+                status=200,
+            )
+
+    @tests_routes(
+        (
+            "admin:server_certificate:focus:via_ca_cert:config|json",
+            "admin:server_certificate:focus:via_ca_cert:config|zip",
+            "admin:server_certificate:focus:via_ca_cert:chain:raw",
+            "admin:server_certificate:focus:via_ca_cert:fullchain:raw",
+        )
+    )
+    def test_ServerCertificate_view(self):
+        focus_ServerCertificate = self._get_one()
+
+        server_certificate_id = focus_ServerCertificate.id
+        # this will have the primary root and the alternate roots;
+        # pre-cache this now
+        upchain_ids = [i.id for i in focus_ServerCertificate.iter_certificate_upchain]
+
+        res = self.testapp.get(
+            "/.well-known/admin/server-certificate/%s" % server_certificate_id,
+            status=200,
+        )
+
+        for ca_cert_id in upchain_ids:
+            focus_ids = (server_certificate_id, ca_cert_id)
+
+            # chain
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.cer"
+                % focus_ids,
+                status=200,
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.crt"
+                % focus_ids,
+                status=200,
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.der"
+                % focus_ids,
+                status=200,
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.pem"
+                % focus_ids,
+                status=200,
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/chain.pem.txt"
+                % focus_ids,
+                status=200,
+            )
+
+            # fullchain
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/fullchain.pem"
+                % focus_ids,
+                status=200,
+            )
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/fullchain.pem.txt"
+                % focus_ids,
+                status=200,
+            )
+
+            # configs
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/config.json"
+                % focus_ids,
+                status=200,
+            )
+
+            res = self.testapp.get(
+                "/.well-known/admin/server-certificate/%s/via-ca-cert/%s/config.zip"
+                % focus_ids,
+                status=200,
+            )
+            assert res.headers["Content-Type"] == "application/zip"
+            assert (
+                res.headers["Content-Disposition"]
+                == "attachment; filename= cert%s-chain%s.zip" % focus_ids
+            )
+            if six.PY2:
+                z = zipfile.ZipFile(StringIO(res.body))
+            else:
+                z = zipfile.ZipFile(BytesIO(res.body))
+            assert len(z.infolist()) == 4
+            expectations = [
+                file_template % server_certificate_id
+                for file_template in (
+                    "cert%s.pem",
+                    "chain%s.pem",
+                    "fullchain%s.pem",
+                    "privkey%s.pem",
+                )
+            ]
+            found = [zipped.filename for zipped in z.infolist()]
+            expectations.sort()
+            found.sort()
+            assert found == expectations
+
+
 class FunctionalTests_AcmeServer(AppTest):
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
     @under_pebble
