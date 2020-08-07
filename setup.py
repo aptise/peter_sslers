@@ -41,7 +41,7 @@ tests_require = [
 
 setup(
     name="peter_sslers",
-    version="0.4.0",
+    version="0.4.1-dev",
     description="peter_sslers",
     long_description=README + "\n\n" + CHANGES,
     classifiers=[
