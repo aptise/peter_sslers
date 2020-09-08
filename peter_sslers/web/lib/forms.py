@@ -238,6 +238,10 @@ class Form_AcmeDnsServer_edit(_Form_Schema_Base):
     root_url = UnicodeString(not_empty=True)
 
 
+class Form_AcmeDnsServer_ensure_domains(_Form_Schema_Base):
+    domain_names = UnicodeString(not_empty=True)
+
+
 class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
     domain_names = UnicodeString(not_empty=True)
     processing_strategy = OneOf(

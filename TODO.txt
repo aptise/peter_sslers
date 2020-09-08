@@ -50,8 +50,10 @@ EDIT:
 	- on form display, show only eligible transitions(resolutions)
 
 * AcmeDns
-	- finish support
 	- an AcmeOrder should be able to select domain names for DNS-01 challenges
+	- AcmeDNSServerAccount should be able to sync and update against the server
+		- /update is trivial
+		- sync is complex, because it requires a DNS lookup
 	
 * AcmeAccountKey
 	- letsencrypt_data - audit. refresh? log?

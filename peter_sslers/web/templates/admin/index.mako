@@ -143,6 +143,11 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-dns Servers</a></li>
+                <li><a href="${admin_prefix}/acme-dns-server-accounts"
+                       title="acme-dns Server Accounts"
+                    >
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                    acme-dns Server Accounts</a></li>
                 <li><a href="${admin_prefix}/ca-certificates"
                        title="CACertificates"
                     >

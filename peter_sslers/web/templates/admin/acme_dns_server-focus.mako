@@ -119,6 +119,14 @@
                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                 Edit
             </a>
+
+            <a href="${admin_prefix}/acme-dns-server/${AcmeDnsServer.id}/ensure-domains"
+               class="btn btn-info"
+            >
+                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                Ensure Domains
+            </a>
+
         </div>
     </div>
 </%block>

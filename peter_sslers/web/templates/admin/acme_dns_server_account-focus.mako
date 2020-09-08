@@ -34,7 +34,7 @@
             <table class='table table-striped table-condensed'>
                 <tr>
                     <th>id</th>
-                    <td>${AcmeDnsServerAccount.id}</td>
+                    <td><span class="label label-default">${AcmeDnsServerAccount.id}</span></td>
                 </tr>        
                 <tr>
                     <th>timestamp_created</th>
@@ -76,7 +76,7 @@
 
                 <tr>
                     <th>password</th>
-                    <td><code>${AcmeDnsServerAccount.password}</code></td>
+                    <td><code>${AcmeDnsServerAccount.password_sample}</code></td>
                 </tr>
                 <tr>
                     <th>fulldomain</th>
@@ -92,8 +92,12 @@
                 </tr>
             </table>
 
-
-
+            <a href="${admin_prefix}/acme-dns-server-account/${AcmeDnsServerAccount.id}/get"
+               class="btn btn-info"
+            >
+                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                GET
+            </a>
 
         </div>
     </div>

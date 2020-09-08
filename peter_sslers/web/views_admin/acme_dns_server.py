@@ -9,6 +9,10 @@ from pyramid.httpexceptions import HTTPNotFound
 import datetime
 
 # pypi
+try:
+    import pyacmedns
+except ImportError:
+    pyacmedns = None
 import requests
 import sqlalchemy
 
@@ -19,12 +23,28 @@ from ..lib import formhandling
 from ..lib.forms import Form_AcmeDnsServer_new
 from ..lib.forms import Form_AcmeDnsServer_mark
 from ..lib.forms import Form_AcmeDnsServer_edit
+from ..lib.forms import Form_AcmeDnsServer_ensure_domains
 from ..lib.handler import Handler
 from ..lib.handler import json_pagination
 from ...lib import utils
 from ...lib import errors
 
 # ==============================================================================
+
+
+def encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccounts):
+    domain_matrix = {}
+    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccounts:
+        _dbDomain = _dbAcmeDnsServerAccount.domain
+        domain_matrix[_dbDomain.domain_name] = {
+            "Domain": {"id": _dbDomain.id, "domain_name": _dbDomain.domain_name,},
+            "AcmeDnsServerAccount": {
+                "id": _dbAcmeDnsServerAccount.id,
+                "subdomain": _dbAcmeDnsServerAccount.subdomain,
+                "fulldomain": _dbAcmeDnsServerAccount.fulldomain,
+            },
+        }
+    return domain_matrix
 
 
 class View_List(Handler):
@@ -136,13 +156,13 @@ class View_Focus(Handler):
 
     @view_config(route_name="admin:acme_dns_server:focus:check", renderer=None)
     @view_config(route_name="admin:acme_dns_server:focus:check|json", renderer="json")
-    def focus_check(self):
+    def check(self):
         dbAcmeDnsServer = self._focus()
         if self.request.method == "POST":
-            return self._focus_check__submit(dbAcmeDnsServer)
-        return self._focus_check__print(dbAcmeDnsServer)
+            return self._check__submit(dbAcmeDnsServer)
+        return self._check__print(dbAcmeDnsServer)
 
-    def _focus_check__print(self, dbAcmeDnsServer):
+    def _check__print(self, dbAcmeDnsServer):
         if self.request.wants_json:
             return {
                 "instructions": [
@@ -155,7 +175,7 @@ class View_Focus(Handler):
         )
         return HTTPSeeOther(url_post_required)
 
-    def _focus_check__submit(self, dbAcmeDnsServer):
+    def _check__submit(self, dbAcmeDnsServer):
         try:
             resp = requests.get("%s/health" % dbAcmeDnsServer.root_url)
             if resp.status_code != 200:
@@ -206,6 +226,167 @@ class View_Focus(Handler):
             "AcmeDnsServerAccounts": items_paged,
             "AcmeDnsServerAccounts_count": items_count,
         }
+
+    @view_config(route_name="admin:acme_dns_server:focus:ensure_domains", renderer=None)
+    @view_config(
+        route_name="admin:acme_dns_server:focus:ensure_domains|json", renderer="json"
+    )
+    def ensure_domains(self):
+        dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
+        if self.request.method == "POST":
+            return self._ensure_domains__submit()
+        return self._ensure_domains__print()
+
+    def _ensure_domains__print(self):
+        dbAcmeDnsServer = self.dbAcmeDnsServer
+        if self.request.wants_json:
+            return {
+                "instructions": ["HTTP POST required",],
+                "form_fields": {"domains": "A comma separated list of domain names"},
+                "notes": [],
+                "valid_options": {},
+            }
+        # quick setup, we need a bunch of options for dropdowns...
+        return render_to_response(
+            "/admin/acme_dns_server-focus-ensure_domains.mako",
+            {"AcmeDnsServer": dbAcmeDnsServer},
+            self.request,
+        )
+
+    def _ensure_domains__submit(self):
+        dbAcmeDnsServer = self.dbAcmeDnsServer
+        try:
+            if pyacmedns is None:
+                raise formhandling.FormInvalid("`pyacmedns` is not installed")
+            (result, formStash) = formhandling.form_validate(
+                self.request,
+                schema=Form_AcmeDnsServer_ensure_domains,
+                validate_get=False,
+            )
+            if not result:
+                raise formhandling.FormInvalid()
+
+            try:
+                # this function checks the domain names match a simple regex
+                domain_names = utils.domains_from_string(
+                    formStash.results["domain_names"]
+                )
+            except ValueError as exc:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names", message="invalid domain names detected"
+                )
+            if not domain_names:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names",
+                    message="invalid or no valid domain names detected",
+                )
+            if len(domain_names) > 100:
+                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                formStash.fatal_field(
+                    field="domain_names",
+                    message="More than 100 domain names. There is a max of 100 domains per certificate.",
+                )
+
+            # initialize a client
+            client = pyacmedns.Client(dbAcmeDnsServer.root_url)
+
+            dbAcmeDnsServerAccounts = []
+            for _domain_name in domain_names:
+                _dbAcmeDnsServerAccount = None
+                _is_created__account = None
+                (
+                    _dbDomain,
+                    _is_created__domain,
+                ) = lib_db.getcreate.getcreate__Domain__by_domainName(
+                    self.request.api_context, _domain_name, is_from_queue_domain=False
+                )
+                if not _is_created__domain:
+                    _dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
+                        self.request.api_context,
+                        acme_dns_server_id=dbAcmeDnsServer.id,
+                        domain_id=_dbDomain.id,
+                    )
+                if not _dbAcmeDnsServerAccount:
+                    try:
+                        account = client.register_account(None)  # arg = allowlist ips
+                    except Exception as exc:
+                        raise ValueError("error registering an account with AcmeDns")
+                    _dbAcmeDnsServerAccount = lib_db.create.create__AcmeDnsServerAccount(
+                        self.request.api_context,
+                        dbAcmeDnsServer=dbAcmeDnsServer,
+                        dbDomain=_dbDomain,
+                        username=account["username"],
+                        password=account["password"],
+                        fulldomain=account["fulldomain"],
+                        subdomain=account["subdomain"],
+                        allowfrom=account["allowfrom"],
+                    )
+                    _is_created__account = True
+
+                dbAcmeDnsServerAccounts.append(_dbAcmeDnsServerAccount)
+
+            if self.request.wants_json:
+                result_matrix = encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccounts)
+                return {"result": "success", "result_matrix": result_matrix}
+
+            acme_dns_server_accounts = ",".join(
+                [
+                    str(_dbAcmeDnsServerAccount.id)
+                    for _dbAcmeDnsServerAccount in dbAcmeDnsServerAccounts
+                ]
+            )
+            url_success = "%s/ensure-domains-results?acme-dns-server-accounts=%s" % (
+                self._focus_url,
+                acme_dns_server_accounts,
+            )
+            return HTTPSeeOther(url_success)
+
+        except formhandling.FormInvalid as exc:
+            if self.request.wants_json:
+                return {"result": "error", "form_errors": formStash.errors}
+            return formhandling.form_reprint(self.request, self._ensure_domains__print)
+
+    @view_config(
+        route_name="admin:acme_dns_server:focus:ensure_domains_results",
+        renderer="/admin/acme_dns_server-focus-ensure_domains-results.mako",
+    )
+    @view_config(
+        route_name="admin:acme_dns_server:focus:ensure_domains_results|json",
+        renderer="json",
+    )
+    def ensure_domains_results(self):
+        try:
+            dbAcmeDnsServer = self.dbAcmeDnsServer = self._focus()
+            _AcmeDnsServerAccountIds = self.request.params.get(
+                "acme-dns-server-accounts", ""
+            )
+            _AcmeDnsServerAccountIds = [
+                int(i) for i in _AcmeDnsServerAccountIds.split(",")
+            ]
+            if not _AcmeDnsServerAccountIds:
+                raise ValueError("missing `acme-dns-server-accounts`")
+            if len(_AcmeDnsServerAccountIds) > 100:
+                raise ValueError("More than 100 AcmeDnsServerAccounts specified; this is not allowed.")
+            dbAcmeDnsServerAccounts = lib_db.get.get__AcmeDnsServerAccounts__by_ids(
+                self.request.api_context, _AcmeDnsServerAccountIds
+            )
+            if not dbAcmeDnsServerAccounts:
+                raise ValueError("invalid `acme-dns-server-accounts`")
+
+            if self.request.wants_json:
+                result_matrix = encode_AcmeDnsServerAccounts(dbAcmeDnsServerAccounts)
+                return {"result": "success", "result_matrix": result_matrix}
+
+            return {
+                "project": "peter_sslers",
+                "AcmeDnsServer": dbAcmeDnsServer,
+                "AcmeDnsServerAccounts": dbAcmeDnsServerAccounts,
+            }
+
+        except:
+            raise
 
 
 class View_Focus_Manipulate(View_Focus):

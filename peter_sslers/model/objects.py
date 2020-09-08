@@ -1105,6 +1105,10 @@ class AcmeDnsServerAccount(Base, _Mixin_Timestamps_Pretty):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
+    def password_sample(self):
+        return "%s...%s" % (self.password[:5], self.password[-5:])
+
+    @property
     def as_json(self):
         return {
             "AcmeDnsServer": self.acme_dns_server.as_json,

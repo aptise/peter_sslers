@@ -815,6 +815,16 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
     )
     def new(self):
         self.dbDomain = dbDomain = self._focus()
+
+        ## In the future this should support multiple accounts
+        ## however, right now we only care about one single account
+        if dbDomain.acme_dns_server_accounts__5:
+            _url = (
+                "%s/acme-dns-server-accounts?result=error&error=accounts-exist&operation=new"
+                % (self._focus_url,)
+            )
+            return HTTPSeeOther(_url)
+
         self.dbAcmeDnsServers = (
             dbAcmeDnsServers
         ) = lib_db.get.get__AcmeDnsServer__paginated(self.request.api_context)
@@ -864,6 +874,14 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                     field="acme_dns_server_id", message="Inactive AcmeDnsServer."
                 )
 
+            # In order to keep things simple, enforce two restrictions:
+            # Restriction A: Any given `AcmeDnsServer` can have one set of credentials for a given `Domain`
+            # Restriction B: Any given `Domain` can have one `AcmeDnsServerAccount`
+            # These restrictions are only required to simplify UX.
+            # In practice, there can be an infinite number AcmeDnsServerAccounts per Domain;
+            #    This applies to accounts on the same AcmeDnsServer or different AcmeDnsServers.
+
+            # Restriction A: Any given `AcmeDnsServer` can have one set of credentials for a given `Domain`
             dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(
                 self.request.api_context, dbAcmeDnsServer.id, self.dbDomain.id
             )
@@ -871,6 +889,16 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
                 formStash.fatal_field(
                     field="acme_dns_server_id",
                     message="Existing record for this AcmeDnsServer.",
+                )
+
+            # Restriction B: Any given `Domain` can have one `AcmeDnsServerAccount`
+            dbAcmeDnsServerAccount = lib_db.get.get__AcmeDnsServerAccount__by_DomainId(
+                self.request.api_context, self.dbDomain.id
+            )
+            if dbAcmeDnsServerAccount:
+                formStash.fatal_field(
+                    field="acme_dns_server_id",
+                    message="Existing record for this Domain on another AcmeDnsServer.",
                 )
 
             # wonderful! now we need to "register" against acme-dns

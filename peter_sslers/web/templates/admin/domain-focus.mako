@@ -171,6 +171,8 @@
                     <tr>
                         <th>AcmeDnsConfiguration</th>
                         <td>
+                            ## In the future this should support multiple accounts
+                            ## however, right now we only care about one single account
                             % if Domain.acme_dns_server_accounts__5:
                                 <a  class="btn btn-xs btn-primary"
                                     href="${admin_prefix}/domain/${Domain.id}/acme-dns-server-accounts"

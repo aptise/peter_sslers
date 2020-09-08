@@ -82,6 +82,13 @@ If you set up some domains pointing to localhost (such as `dev.aptise.com` which
 The testing environment will wrap certain tests with spinning up a dedicated instance of Redis and/or Pebble for each test. This strategy is necessary to ensure there is no stale data in these platforms.
 
 
+## ACME-DNS Testing
+
+use the test-config file:
+
+	sudo acme-dns -c ./peter_sslers/tests/test_data/acme-dns.config
+
+
 ## ACME v1 Testing
 
 ACME v1 is no longer supported in peter_sslers.

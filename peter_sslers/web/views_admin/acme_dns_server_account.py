@@ -9,6 +9,10 @@ from pyramid.httpexceptions import HTTPNotFound
 import datetime
 
 # pypi
+try:
+    import pyacmedns
+except ImportError:
+    pyacmedns = None
 import requests
 import sqlalchemy
 

@@ -35,8 +35,8 @@ def get__AcmeEventLog__paginated(ctx, limit=None, offset=0):
     return dbAcmeEventLogs
 
 
-def get__AcmeEventLog__by_id(ctx, id):
-    item = ctx.dbSession.query(model_objects.AcmeEventLog).get(id)
+def get__AcmeEventLog__by_id(ctx, id_):
+    item = ctx.dbSession.query(model_objects.AcmeEventLog).get(id_)
     return item
 
 
@@ -398,8 +398,8 @@ def get__AcmeChallenge__paginated(
     return dbAcmeChallenges
 
 
-def get__AcmeChallenge__by_id(ctx, id):
-    item = ctx.dbSession.query(model_objects.AcmeChallenge).get(id)
+def get__AcmeChallenge__by_id(ctx, id_):
+    item = ctx.dbSession.query(model_objects.AcmeChallenge).get(id_)
     return item
 
 
@@ -595,8 +595,8 @@ def get__AcmeChallengePoll__paginated(
     return dbAcmeChallengePolls
 
 
-def get__AcmeChallengePoll__by_id(ctx, id):
-    item = ctx.dbSession.query(model_objects.AcmeChallengePoll).get(id)
+def get__AcmeChallengePoll__by_id(ctx, id_):
+    item = ctx.dbSession.query(model_objects.AcmeChallengePoll).get(id_)
     return item
 
 
@@ -621,8 +621,8 @@ def get__AcmeChallengeUnknownPoll__paginated(
     return dbAcmeChallengeUnknownPolls
 
 
-def get__AcmeChallengeUnknownPoll__by_id(ctx, id):
-    item = ctx.dbSession.query(model_objects.AcmeChallengeUnknownPoll).get(id)
+def get__AcmeChallengeUnknownPoll__by_id(ctx, id_):
+    item = ctx.dbSession.query(model_objects.AcmeChallengeUnknownPoll).get(id_)
     return item
 
 
@@ -643,8 +643,8 @@ def get__AcmeDnsServer__GlobalDefault(ctx):
     return q.first()
 
 
-def get__AcmeDnsServer__by_id(ctx, id):
-    item = ctx.dbSession.query(model_objects.AcmeDnsServer).get(id)
+def get__AcmeDnsServer__by_id(ctx, id_):
+    item = ctx.dbSession.query(model_objects.AcmeDnsServer).get(id_)
     return item
 
 
@@ -668,9 +668,18 @@ def get__AcmeDnsServer__paginated(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def get__AcmeDnsServerAccount__by_id(ctx, id):
-    item = ctx.dbSession.query(model_objects.AcmeDnsServerAccount).get(id)
+def get__AcmeDnsServerAccount__by_id(ctx, id_):
+    item = ctx.dbSession.query(model_objects.AcmeDnsServerAccount).get(id_)
     return item
+
+
+def get__AcmeDnsServerAccounts__by_ids(ctx, ids):
+    items = (
+        ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
+        .filter(model_objects.AcmeDnsServerAccount.id.in_(ids))
+        .all()
+    )
+    return items
 
 
 def get__AcmeDnsServerAccount__count(ctx):
@@ -683,11 +692,31 @@ def get__AcmeDnsServerAccount__paginated(
 ):
     query = (
         ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
-        .order_by(model_objects.AcmeDnsServerAccount.id.desc())
+        .join(
+            model_objects.Domain,
+            model_objects.AcmeDnsServerAccount.domain_id == model_objects.Domain.id,
+        )
+        .order_by(
+            sqlalchemy.func.lower(model_objects.Domain.domain_name).asc(),
+            sqlalchemy.func.lower(model_objects.AcmeDnsServerAccount.fulldomain).asc(),
+            model_objects.AcmeDnsServerAccount.acme_dns_server_id.asc(),
+        )
+        .options(
+            sqlalchemy.orm.contains_eager(model_objects.AcmeDnsServerAccount.domain)
+        )
         .limit(limit)
         .offset(offset)
     )
     return query.all()
+
+
+def get__AcmeDnsServerAccount__by_DomainId(ctx, domain_id):
+    item = (
+        ctx.dbSession.query(model_objects.AcmeDnsServerAccount)
+        .filter(model_objects.AcmeDnsServerAccount.domain_id == domain_id,)
+        .first()
+    )
+    return item
 
 
 def get__AcmeDnsServerAccount__by_AcmeDnsServerId_DomainId(

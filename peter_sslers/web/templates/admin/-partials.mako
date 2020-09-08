@@ -368,7 +368,7 @@
                     <td>
                         <a href="${admin_prefix}/acme-dns-server-account/${a2d.id}" class="label label-info">
                             <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                            Focus
+                            acme-dns Account Focus
                         </a>
                     </td>
                     <td>

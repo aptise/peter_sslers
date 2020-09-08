@@ -289,6 +289,22 @@ def _admin_views(config):
     config.add_route_7(
         "admin:acme_dns_server:focus:edit|json", "/acme-dns-server/{@id}/edit.json"
     )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:ensure_domains",
+        "/acme-dns-server/{@id}/ensure-domains",
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:ensure_domains|json",
+        "/acme-dns-server/{@id}/ensure-domains.json",
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:ensure_domains_results",
+        "/acme-dns-server/{@id}/ensure-domains-results",
+    )
+    config.add_route_7(
+        "admin:acme_dns_server:focus:ensure_domains_results|json",
+        "/acme-dns-server/{@id}/ensure-domains-results.json",
+    )
 
     config.add_route_7(
         "admin:acme_dns_server:focus:acme_dns_server_accounts",
