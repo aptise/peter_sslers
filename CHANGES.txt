@@ -1,6 +1,10 @@
 0.4.1-dev
 	unreleased
 	added endpoint to enroll domains into acme-dns in preparation of an AcmeOrder
+	Support for specifying the AcmeChallenge on orders:
+		new: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
+		new: `model.objects.AcmeOrder.acme_order_2_acme_challenge_type_specifics`
+		new: `model.objects.Domain.acme_order_2_acme_challenge_type_specifics`
 
 0.4.0
 - 2020/08/06

@@ -1369,6 +1369,12 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_orders",
     )
+    acme_order_2_acme_challenge_type_specifics = sa_orm_relationship(
+        "AcmeOrder2AcmeChallengeTypeSpecific",
+        primaryjoin="AcmeOrder.id==AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id",
+        uselist=True,
+        back_populates="acme_order",
+    )
     certificate_request = sa_orm_relationship(
         "CertificateRequest",
         primaryjoin="AcmeOrder.certificate_request_id==CertificateRequest.id",
@@ -1689,6 +1695,46 @@ class AcmeOrder2AcmeAuthorization(Base):
         uselist=False,
         back_populates="to_acme_orders",
     )
+
+
+# ==============================================================================
+
+
+class AcmeOrder2AcmeChallengeTypeSpecific(Base):
+    __tablename__ = "acme_order_2_acme_challenge_type_specific"
+    acme_order_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_order.id"), nullable=False, primary_key=True
+    )
+    domain_id = sa.Column(
+        sa.Integer, sa.ForeignKey("domain.id"), nullable=False, primary_key=True
+    )
+    acme_challenge_type_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_challenge_type.id"), nullable=False
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_order = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id==AcmeOrder.id",
+        uselist=False,
+        back_populates="acme_order_2_acme_challenge_type_specifics",
+    )
+
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="AcmeOrder2AcmeChallengeTypeSpecific.domain_id==Domain.id",
+        uselist=False,
+        back_populates="acme_order_2_acme_challenge_type_specifics",
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def acme_challenge_type(self):
+        if self.acme_challenge_type_id:
+            return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
+        return None
 
 
 # ==============================================================================
@@ -2119,6 +2165,12 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
     acme_dns_server_accounts = sa_orm_relationship(
         "AcmeDnsServerAccount",
         primaryjoin="Domain.id==AcmeDnsServerAccount.domain_id",
+        uselist=True,
+        back_populates="domain",
+    )
+    acme_order_2_acme_challenge_type_specifics = sa_orm_relationship(
+        "AcmeOrder2AcmeChallengeTypeSpecific",
+        primaryjoin="Domain.id==AcmeOrder2AcmeChallengeTypeSpecific.domain_id",
         uselist=True,
         back_populates="domain",
     )
@@ -3310,7 +3362,7 @@ class ServerCertificate(Base, _Mixin_Timestamps_Pretty):
 
     def valid_certificate_upchain(self, ca_cert_id=None):
         """return a single CaCertificate, or the default"""
-        if ca_cert_id == None:
+        if ca_cert_id is None:
             ca_cert_id = self.ca_certificate_id__upchain
         if ca_cert_id not in self.valid_certificate_upchain_ids:
             raise ValueError(

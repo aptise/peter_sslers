@@ -3,26 +3,26 @@ Not Finished Yet
 
 Almost done:
 ------------
-	
+
 These sections still need to be audited:
 - queue certificates - process
 - automatic renewal - update to create queues
 - creating queue-certificates/freeform (domains)
 
 Audit/Remove "todo" markers
-	
+
 asap tasks
 ---------------
 
 TESTS:
 	AcmeAccount
 		submit a different key for an existing contact
-	
+
 	api/domain/autocert
 		test against different strategies
 		- dogpile defense
 		- repeat request, correct data
-		
+
 EDIT:
 	AcmeOrder:
 		change "PrivateKeyCycle - renewals"
@@ -34,7 +34,7 @@ EDIT:
 
 * integrate ALEMEBIC and migrate the database_migrations file to it
 
-====		
+====
 
 * QueueDomain
 	* processing
@@ -54,7 +54,28 @@ EDIT:
 	- AcmeDNSServerAccount should be able to sync and update against the server
 		- /update is trivial
 		- sync is complex, because it requires a DNS lookup
-	
+	- how to AcmeDNS?
+
+		/.well-known/admin/acme-order/{ID}
+			list the challenge types
+
+		/.well-known/admin/acme-order/new/freeform
+			domain_names -> domain_names_http01 + domain_names_dns01
+
+		/.well-known/admin/acme-order/{ID}/renew/quick
+			list the challenge types
+
+		/.well-known/admin/queue-certificate/new/structured
+			list the challenge types
+
+		/.well-known/admin/queue-certificate/new/structured
+			list the challenge types
+
+		/.well-known/admin/acme-order/{ID}/renew/custom
+			list the challenge types
+
+
+
 * AcmeAccountKey
 	- letsencrypt_data - audit. refresh? log?
 
@@ -105,7 +126,7 @@ deferred tasks
 
 Long Term Questions:
 ==================================
-* remove pyramidtm? migrate to autocommit?  
+* remove pyramidtm? migrate to autocommit?
 
 
 Test Cases to Write
