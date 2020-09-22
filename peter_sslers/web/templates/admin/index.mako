@@ -93,7 +93,7 @@
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                     acme-challenges</a></li>
-                <li><a href="${admin_prefix}/acme-orders"
+                <li><a href="${admin_prefix}/acme-orders/all"
                        title="ACME Orders"
                     >
                     <span class="glyphicon glyphicon-list" aria-hidden="true"></span>

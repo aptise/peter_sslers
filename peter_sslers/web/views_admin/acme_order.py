@@ -956,7 +956,8 @@ class View_New(Handler):
         if self.request.wants_json:
             return {
                 "form_fields": {
-                    "domain_names": "required; a comma separated list of domain names to process",
+                    "domain_names_http01": "required; a comma separated list of domain names to process",
+                    "domain_names_dns01": "required; a comma separated list of domain names to process",
                     "processing_strategy": "How should the order be processed?",
                     "account_key_option": "How is the AcmeAccount specified?",
                     "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
@@ -975,6 +976,7 @@ class View_New(Handler):
                 },
                 "form_fields_related": [
                     ["account_key_file_pem", "acme_account_provider_id"],
+                    ["domain_names_http01", "domain_names_dns01"],
                     [
                         "account_key_file_le_meta",
                         "account_key_file_le_pkey",
@@ -995,7 +997,8 @@ class View_New(Handler):
                     "private_key_cycle__renewal": model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
                 },
                 "requirements": [
-                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files."
+                    "Submit corresponding field(s) to account_key_option. If `account_key_file` is your intent, submit either PEM+ProviderID or the three LetsEncrypt Certbot files.",
+                    "Submit at least one of `domain_names_http01` or `domain_names_dns01`",
                 ],
                 "instructions": [
                     "HTTP POST required",
@@ -1023,22 +1026,9 @@ class View_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            try:
-                # this function checks the domain names match a simple regex
-                domain_names = utils.domains_from_string(
-                    formStash.results["domain_names"]
-                )
-            except ValueError as exc:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="invalid domain names detected"
-                )
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names",
-                    message="invalid or no valid domain names detected",
-                )
+            domains_challenged = form_utils.form_domains_challenge_typed(
+                self.request, formStash
+            )
 
             (acmeAccountSelection, privateKeySelection) = form_utils.form_key_selection(
                 self.request, formStash, require_contact=None,
@@ -1050,16 +1040,23 @@ class View_New(Handler):
 
                 # check for blocklists here
                 # this might be better in the AcmeOrder processor, but the orders are by UniqueFQDNSet
-                # this may raise errors.AcmeBlocklistedDomains
-                lib_db.validate.validate_domain_names(
-                    self.request.api_context, domain_names
-                )
-
+                # this may raise errors.AcmeDomainsBlocklisted
+                for (challenge_, domains_) in domains_challenged.items():
+                    if domains_:
+                        lib_db.validate.validate_domain_names(
+                            self.request.api_context, domains_
+                        )
+                        if challenge_ == "dns-01":
+                            # check to ensure the domains are configured for dns-01
+                            # this may raise errors.AcmeDomainsRequireConfigurationAcmeDNS
+                            lib_db.validate.ensure_domains_dns01(
+                                self.request.api_context, domains_
+                            )
                 try:
                     dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                         self.request.api_context,
                         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
-                        domain_names=domain_names,
+                        domains_challenged=domains_challenged,
                         private_key_cycle__renewal=private_key_cycle__renewal,
                         private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
                         processing_strategy=processing_strategy,
@@ -1105,19 +1102,23 @@ class View_New(Handler):
                     )
                 )
 
-            except errors.AcmeBlocklistedDomains as exc:
-                formStash.fatal_field(field="domain_names", message=str(exc))
+            except (
+                errors.AcmeDomainsBlocklisted,
+                errors.AcmeDomainsRequireConfigurationAcmeDNS,
+            ) as exc:
+                formStash.fatal_field(field="Error_Main", message=str(exc))
 
             except errors.AcmeDuplicateChallenges as exc:
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
-                formStash.fatal_field(field="domain_names", message=str(exc))
+                formStash.fatal_field(field="Error_Main", message=str(exc))
 
             except (errors.AcmeError, errors.InvalidRequest,) as exc:
                 if self.request.wants_json:
                     return {"result": "error", "error": str(exc)}
+
                 return HTTPSeeOther(
-                    "%s/acme-orders?result=error&error=%s&operation=new+freeform"
+                    "%s/acme-orders/all?result=error&error=%s&operation=new+freeform"
                     % (
                         self.request.registry.settings["app_settings"]["admin_prefix"],
                         exc.as_querystring,
@@ -1129,7 +1130,7 @@ class View_New(Handler):
                 # raise
                 if self.request.registry.settings["exception_redirect"]:
                     return HTTPSeeOther(
-                        "%s/acme-orders?result=error&operation=new-freeform"
+                        "%s/acme-orders/all?result=error&operation=new-freeform"
                         % self.request.registry.settings["app_settings"]["admin_prefix"]
                     )
                 raise

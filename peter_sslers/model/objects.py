@@ -515,7 +515,8 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
     wildcard = sa.Column(sa.Boolean, nullable=True, default=None)
 
-    # testing
+    # the RFC does not explicitly tie an AcmeAuthorization to a single AcmeOrder
+    # this is only used to quickly grab an AcmeAccount for an Authoriztion
     acme_order_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=False,
     )
@@ -563,6 +564,15 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
         uselist=True,
         back_populates="acme_authorization",
+    )
+
+    # acme_order_id__created
+    acme_challenge_type_specific__acme_order_created = sa_orm_relationship(
+        "AcmeOrder2AcmeChallengeTypeSpecific",
+        primaryjoin="""and_(AcmeAuthorization.acme_order_id__created==foreign(AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id),
+                            AcmeAuthorization.domain_id==foreign(AcmeOrder2AcmeChallengeTypeSpecific.domain_id))""",
+        uselist=False,
+        back_populates="acme_authorizations",
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -660,10 +670,6 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "url_acme_server_sync": "%s/acme-authorization/%s/acme-server/sync.json"
             % (admin_url, self.id)
             if self.is_can_acme_server_sync
-            else None,
-            "url_acme_server_trigger": "%s/acme-authorization/%s/acme-server/trigger.json"
-            % (admin_url, self.id)
-            if self.is_can_acme_server_trigger
             else None,
             "url_acme_server_deactivate": "%s/acme-authorization/%s/acme-server/deactivate.json"
             % (admin_url, self.id)
@@ -791,7 +797,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     # in all situations, we need to track these:
     acme_challenge_type_id = sa.Column(
         sa.Integer, nullable=False
-    )  # this library only does http-01, `model_utils.AcmeChallengeType`
+    )  #  `model_utils.AcmeChallengeType`
     acme_status_challenge_id = sa.Column(
         sa.Integer, nullable=False
     )  # Acme_Status_Challenge
@@ -860,6 +866,14 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     @property
     def domain_name(self):
         return self.domain.domain_name
+
+    @property
+    def challenge_instructions_short(self):
+        if self.acme_challenge_type == "http-01":
+            return "PeterSSLers is configured to answer this challenge."
+        elif self.acme_challenge_type == "dns-01":
+            return "This challenge may require DNS configuration."
+        return "PeterSSLers can not answer this challenge."
 
     @property
     def is_can_acme_server_sync(self):
@@ -1312,7 +1326,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     acme_order_processing_status_id = sa.Column(
         sa.Integer, nullable=False
     )  # see: `utils.AcmeOrder_ProcessingStatus`
-    order_url = sa.Column(sa.Unicode(255), nullable=True)
+    order_url = sa.Column(sa.Unicode(255), nullable=True, unique=True)
     finalize_url = sa.Column(sa.Unicode(255), nullable=True)
     certificate_url = sa.Column(sa.Unicode(255), nullable=True)
     timestamp_expires = sa.Column(sa.DateTime, nullable=True)
@@ -1517,6 +1531,27 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         return domain_names
 
     @property
+    def domains_challenged(self):
+        domain_names = self.domains_as_list
+        domains_challenged = model_utils.DomainsChallenged()
+        for _specified in self.acme_order_2_acme_challenge_type_specifics:
+            _domain_name = _specified.domain.domain_name
+            _acme_challenge_type = _specified.acme_challenge_type
+            if domains_challenged[_acme_challenge_type] is None:
+                domains_challenged[_acme_challenge_type] = []
+            domains_challenged[_acme_challenge_type].append(_domain_name)
+            if _domain_name in domain_names:
+                domain_names.remove(_domain_name)
+        if domain_names:
+            # default challenge type is http-01
+            domains_challenged.ENSURE_DEFAULT_HTTP01()
+            if domains_challenged["http-01"] is None:
+                domains_challenged["http-01"] = domain_names
+            else:
+                domains_challenged["http-01"].extend(domain_names)
+        return domains_challenged
+
+    @property
     def is_can_acme_server_sync(self):
         # note: is there a better test?
         if not self.order_url:
@@ -1617,6 +1652,7 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
             "acme_order_processing_strategy": self.acme_order_processing_strategy,
             "certificate_request_id": self.certificate_request_id,
             "domains_as_list": self.domains_as_list,
+            "domains_challenged": self.domains_challenged,
             "finalize_url": self.finalize_url,
             "certificate_url": self.certificate_url,
             "is_processing": True if self.is_processing else False,
@@ -1672,6 +1708,29 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
 
 
 class AcmeOrder2AcmeAuthorization(Base):
+    """
+    On first glance, it may seem like there is a duplication and potential for
+    consolidation between these two tables:
+        ``AcmeOrder2AcmeAuthorization``
+            acme_order_id
+            acme_authorization_id
+        ``AcmeOrder2AcmeChallengeTypeSpecific``
+            acme_order_id
+            domain_id
+            acme_challenge_type_id
+
+    If only!!
+
+    When an ``AcmeOrder`` is created, only the ``AcmeAuthorization``'s URL is
+    known to the Client. The Client does not know which ``Domain`` corresponds
+    to which ``AcmeAuthorization``. This correlation is only surfaced when the
+    ``AcmeAuthorization`` is "synced" to the ACME Server.
+
+    Similarly, users of The Client specify their preferred challenges in
+    regards to each ``Domain`` when an ``AcmeOrder`` is created.
+
+    """
+
     __tablename__ = "acme_order_2_acme_authorization"
 
     acme_order_id = sa.Column(
@@ -1701,6 +1760,10 @@ class AcmeOrder2AcmeAuthorization(Base):
 
 
 class AcmeOrder2AcmeChallengeTypeSpecific(Base):
+    """
+    See docstring for ``AcmeOrder2AcmeAuthorization```
+    """
+
     __tablename__ = "acme_order_2_acme_challenge_type_specific"
     acme_order_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_order.id"), nullable=False, primary_key=True
@@ -1709,7 +1772,11 @@ class AcmeOrder2AcmeChallengeTypeSpecific(Base):
         sa.Integer, sa.ForeignKey("domain.id"), nullable=False, primary_key=True
     )
     acme_challenge_type_id = sa.Column(
-        sa.Integer, sa.ForeignKey("acme_challenge_type.id"), nullable=False
+        sa.Integer, nullable=False
+    )  #  `model_utils.AcmeChallengeType`
+    # this is just for logging and reconciliation
+    acme_challenge_id__triggered = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_challenge.id"), nullable=True,
     )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1728,6 +1795,15 @@ class AcmeOrder2AcmeChallengeTypeSpecific(Base):
         back_populates="acme_order_2_acme_challenge_type_specifics",
     )
 
+    # acme_order_id__created
+    acme_authorizations = sa_orm_relationship(
+        "AcmeAuthorization",
+        primaryjoin="""and_(AcmeAuthorization.acme_order_id__created==foreign(AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id),
+                            AcmeAuthorization.domain_id==foreign(AcmeOrder2AcmeChallengeTypeSpecific.domain_id))""",
+        uselist=True,
+        back_populates="acme_challenge_type_specific__acme_order_created",
+    )
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
@@ -1735,6 +1811,17 @@ class AcmeOrder2AcmeChallengeTypeSpecific(Base):
         if self.acme_challenge_type_id:
             return model_utils.AcmeChallengeType.as_string(self.acme_challenge_type_id)
         return None
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @property
+    def as_json(self):
+        return {
+            "acme_order_id": self.acme_order_id,
+            "domain_id": self.domain_id,
+            "acme_challenge_type": self.acme_challenge_type,
+            "acme_challenge_id__triggered": self.acme_challenge_id__triggered,
+        }
 
 
 # ==============================================================================
@@ -3534,6 +3621,13 @@ class UniqueFQDNSet(Base, _Mixin_Timestamps_Pretty):
         return domain_names
 
     @property
+    def domain_objects(self):
+        domain_objects = {
+            to_d.domain.domain_name.lower(): to_d.domain for to_d in self.to_domains
+        }
+        return domain_objects
+
+    @property
     def as_json(self):
         return {
             "id": self.id,
@@ -3803,11 +3897,95 @@ AcmeAuthorization.acme_orders__5 = sa_orm_relationship(
                     == AcmeAuthorization.id
                 )
                 .order_by(AcmeOrder.id.desc())
+                .limit(5)
                 .correlate(AcmeOrder2AcmeAuthorization)
             ),
         )
     ),
     order_by=AcmeOrder.id.desc(),
+    viewonly=True,
+)
+
+
+# note: AcmeAuthorization.acme_order_2_acme_challenge_type_specifics
+AcmeAuthorization.acme_order_2_acme_challenge_type_specifics = sa_orm_relationship(
+    AcmeOrder2AcmeChallengeTypeSpecific,
+    primaryjoin="AcmeAuthorization.id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
+    secondary=(
+        """join(AcmeOrder2AcmeChallengeTypeSpecific,
+                AcmeOrder2AcmeAuthorization,
+                AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            AcmeOrder2AcmeAuthorization.acme_order_id
+            == sa.orm.foreign(AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id),
+            AcmeAuthorization.domain_id
+            == AcmeOrder2AcmeChallengeTypeSpecific.domain_id,
+        )
+    ),
+    order_by=AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id.desc(),
+    viewonly=True,
+)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+# note: AcmeChallenge.acme_orders
+AcmeChallenge.acme_orders = sa_orm_relationship(
+    AcmeOrder,
+    primaryjoin="AcmeChallenge.acme_authorization_id==AcmeOrder2AcmeAuthorization.acme_authorization_id",
+    secondary=(
+        """join(AcmeOrder,
+                AcmeOrder2AcmeAuthorization,
+                AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder.id
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            AcmeOrder2AcmeAuthorization.acme_order_id == sa.orm.foreign(AcmeOrder.id),
+        )
+    ),
+    order_by=AcmeOrder.id.desc(),
+    viewonly=True,
+)
+
+# note: AcmeChallenge.acme_order_2_acme_challenge_type_specifics
+"""
+this is a needlessly complex!
+we need to go from the challenge to the authorization to get the order
+then we need to go from the order to the 'challenge type specifics'
+then we need to filter the challenge type specific based on the authorization
+-
+primaryjoin: a > (b,c)
+secondary: [b > d], [c > d]
+secondaryjoin = [filter b=d]
+
+A AcmeChallenge
+B AcmeAuthorization
+C AcmeOrder2AcmeAuthorization
+D AcmeOrder2AcmeChallengeTypeSpecific
+
+"""
+AcmeChallenge.acme_order_2_acme_challenge_type_specifics = sa_orm_relationship(
+    AcmeOrder2AcmeChallengeTypeSpecific,
+    primaryjoin="AcmeChallenge.acme_authorization_id==AcmeAuthorization.id",
+    secondary=(
+        """join(AcmeAuthorization,
+                AcmeOrder2AcmeAuthorization,
+                AcmeAuthorization.id == foreign(AcmeOrder2AcmeAuthorization.acme_authorization_id)
+                )"""
+    ),
+    secondaryjoin=(
+        sa.and_(
+            AcmeOrder2AcmeAuthorization.acme_order_id
+            == sa.orm.foreign(AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id),
+            AcmeChallenge.domain_id == AcmeOrder2AcmeChallengeTypeSpecific.domain_id,
+        )
+    ),
+    order_by=AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id.desc(),
     viewonly=True,
 )
 
@@ -3930,6 +4108,8 @@ CertificateRequest.server_certificates__5 = sa_orm_relationship(
                 .where(
                     ServerCertificate.certificate_request_id == CertificateRequest.id
                 )
+                .order_by(ServerCertificate.id.desc())
+                .limit(5)
                 .correlate()
             ),
         )

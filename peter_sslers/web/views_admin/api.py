@@ -432,24 +432,15 @@ class ViewAdminApi_Domain(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            # this function checks the domain names match a simple regex
-            domain_names = utils.domains_from_string(formStash.results["domain_name"])
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_name", message="Found no domain names"
-                )
-            if len(domain_names) != 1:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_name",
-                    message="This endpoint currently supports only 1 domain name",
-                )
+            domains_challenged = form_utils.form_single_domain_challenge_typed(
+                self.request, formStash, challenge_type="http-01"
+            )
+            domain_name = domains_challenged["http-01"][0]
 
             # does the domain exist?
             # we should check to see if it does and has certs
             dbDomain = lib_db.get.get__Domain__by_name(
-                self.request.api_context, domain_names[0],
+                self.request.api_context, domain_name,
             )
             if dbDomain:
                 log.debug("autocert - domain known")
@@ -484,7 +475,7 @@ class ViewAdminApi_Domain(Handler):
 
             # Step 1- is the domain_name blocklisted?
             dbDomainBlocklisted = lib_db.get.get__DomainBlocklisted__by_name(
-                self.request.api_context, domain_names[0],
+                self.request.api_context, domain_name,
             )
             if dbDomainBlocklisted:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
@@ -524,7 +515,7 @@ class ViewAdminApi_Domain(Handler):
                 if not dbDomain:
                     # we need to start with a domain name in order to create the Autocert block
                     dbDomain = lib_db.getcreate.getcreate__Domain__by_domainName(
-                        self.request.api_context, domain_names[0]
+                        self.request.api_context, domain_name
                     )[
                         0
                     ]  # (dbDomain, _is_created)
@@ -537,7 +528,7 @@ class ViewAdminApi_Domain(Handler):
                 dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     self.request.api_context,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW,
-                    domain_names=domain_names,
+                    domains_challenged=domains_challenged,
                     private_key_cycle__renewal="account_key_default",
                     private_key_strategy__requested="deferred-associate",
                     processing_strategy="process_single",

@@ -6,10 +6,11 @@ from formencode.validators import (
     Email,
     FieldStorageUploadConverter,
     FormValidator,
+    Int,
     Invalid,
     OneOf,
+    RequireIfMissing,
     UnicodeString,
-    Int,
 )
 
 # local app
@@ -243,7 +244,9 @@ class Form_AcmeDnsServer_ensure_domains(_Form_Schema_Base):
 
 
 class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
-    domain_names = UnicodeString(not_empty=True)
+    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
+    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
+
     processing_strategy = OneOf(
         model_utils.AcmeOrder_ProcessingStrategy.OPTIONS_ALL, not_empty=True,
     )
@@ -253,6 +256,11 @@ class Form_AcmeOrder_new_freeform(_form_AcmeAccount_PrivateKey_core):
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
         not_empty=True,
     )
+
+    chained_validators = [
+        RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
+        RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
+    ]
 
 
 class Form_AcmeOrder_renew_quick(_Form_Schema_Base):
@@ -274,7 +282,8 @@ class Form_AcmeOrder_renew_custom(_form_AcmeAccount_PrivateKey_reuse):
 
 
 class Form_AcmeOrderless_new(_form_AcmeAccount_core):
-    domain_names = UnicodeString(not_empty=True)
+    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
+    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
     account_key_option = OneOf(
         (
             "none",
@@ -284,6 +293,11 @@ class Form_AcmeOrderless_new(_form_AcmeAccount_core):
         ),
         not_empty=False,
     )
+
+    chained_validators = [
+        RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
+        RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
+    ]
 
 
 class Form_AcmeOrderless_manage_domain(_Form_Schema_Base):
@@ -404,7 +418,13 @@ class Form_QueueCertificate_new_freeform(_form_AcmeAccount_PrivateKey_reuse):
         model_utils.PrivateKeyCycle._options_AcmeOrder_private_key_cycle,
         not_empty=True,
     )
-    domain_names = UnicodeString(not_empty=True)
+    domain_names_http01 = UnicodeString(not_empty=False, if_missing=None)
+    domain_names_dns01 = UnicodeString(not_empty=False, if_missing=None)
+
+    chained_validators = [
+        RequireIfMissing("domain_names_http01", missing="domain_names_dns01"),
+        RequireIfMissing("domain_names_dns01", missing="domain_names_http01"),
+    ]
 
 
 class Form_QueueCertificate_new_structured(_form_AcmeAccount_PrivateKey_reuse):
@@ -433,7 +453,7 @@ class Form_QueueCertificate_mark(_Form_Schema_Base):
 
 
 class Form_QueueDomains_add(_Form_Schema_Base):
-    domain_names = UnicodeString(not_empty=True)
+    domain_names_http01 = UnicodeString(not_empty=True)
 
 
 class Form_QueueDomain_mark(_Form_Schema_Base):

@@ -65,17 +65,6 @@
                                     Deactivate Against ACME Server
                                 </button>
                             </form>
-
-                            <% _btn_class = '' if AcmeAuthorization.is_can_acme_server_trigger else 'disabled' %>
-                            <form method="POST"
-                                href="${admin_prefix}/acme-authorization/${AcmeAuthorization.id}/acme-server/trigger"
-                                id="form-acme_server-trigger"
-                            >
-                                <button class="btn btn-xs btn-info ${_btn_class}" id="btn-acme_authorization-trigger">
-                                    <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
-                                    Trigger ACME Server
-                                </button>
-                            </form>
                         </td>
                     </tr>
                 </tbody>
@@ -143,29 +132,59 @@
                         <th>wildcard</th>
                         <td><code>${AcmeAuthorization.wildcard or ''}</code></td>
                     </tr>
-
+                    % if False:
+                        <tr>
+                            <th>AcmeChallenge - http01</th>
+                            <td>
+                                % if AcmeAuthorization.acme_challenge_http_01:
+                                    <a class="label label-info" href="${admin_prefix}/acme-challenge/${AcmeAuthorization.acme_challenge_http_01.id}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeChallenge-${AcmeAuthorization.acme_challenge_http_01.id}</a>
+                                % endif
+                            </td>
+                        </tr>
+                    % endif
                     <tr>
-                        <th>AcmeChallenge - http01</th>
-                        <td>
-                            % if AcmeAuthorization.acme_challenge_http_01:
-                                <a class="label label-info" href="${admin_prefix}/acme-challenge/${AcmeAuthorization.acme_challenge_http_01.id}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeChallenge-${AcmeAuthorization.acme_challenge_http_01.id}</a>
-                            % endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>AcmeOrder - created</th>
+                        <th>AcmeOrder - authz first created</th>
                         <td>
                             % if AcmeAuthorization.acme_order_id__created:
                                 <a class="label label-info" href="${admin_prefix}/acme-order/${AcmeAuthorization.acme_order_id__created}">
                                 <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                                 AcmeOrder-${AcmeAuthorization.acme_order_id__created}</a>
                             % endif
+                            <em>An AcmeAuthorization may be associated with more than one AcmeOrder.</em>
                         </td>
                     </tr>
-                    
-                    
+                    <tr>
+                        <th>AcmeOrder2AcmeChallengeTypeSpecific</th>
+                        <td>
+                            <em>If no ChallengeTypes are preferred, the default HTTP-01 challenge will be used.</em>
+                            % if AcmeAuthorization.acme_order_2_acme_challenge_type_specifics:
+                                <table class=" table-striped table-condensed">
+                                    <thead>
+                                        <tr>
+                                            <th>AcmeOrder</th>
+                                            <th>Preferred Challenge Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        % for order2Challenge in AcmeAuthorization.acme_order_2_acme_challenge_type_specifics:
+                                            <tr>
+                                                <td>
+                                                    <a class="label label-info" href="${admin_prefix}/acme-order/${order2Challenge.acme_order_id}">
+                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                    AcmeOrder-${order2Challenge.acme_order_id}</a>
+                                                </td>
+                                                <td>
+                                                    <code>${order2Challenge.acme_challenge_type}</code>
+                                                </td>
+                                            </tr>
+                                        % endfor
+                                    </tbody>
+                                </table>
+                            % endif
+                        </tr>
+                    </tr>
                 </tbody>
                 <thead>
                     <tr>

@@ -579,7 +579,7 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
 
     def _turnoff_items(self):
         """when running multiple tests, ensure we turn off blocking items
-        
+
         """
         _query = self.ctx.dbSession.query(model_objects.AcmeOrder).filter(
             model_objects.AcmeOrder.acme_status_order_id.in_(

@@ -79,7 +79,7 @@ def url_request(url, post_data=None, err_msg="Error", depth=0):
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
             context = ctx
-        resp = urlopen(Request(url, data=post_data, headers=headers), context=ctx)
+        resp = urlopen(Request(url, data=post_data, headers=headers), context=context)
         resp_data, status_code, headers = (
             resp.read().decode("utf8"),
             resp.getcode(),

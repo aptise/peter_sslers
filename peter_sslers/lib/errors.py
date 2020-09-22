@@ -150,14 +150,21 @@ class AcmeMissingChallenges(AcmeError):
     pass
 
 
-class AcmeInvalidDomains(AcmeError):
+class AcmeDomainsInvalid(AcmeError):
     def __str__(self):
         return "The following Domains are invalid: {0}".format(", ".join(self.args[0]))
 
 
-class AcmeBlocklistedDomains(AcmeInvalidDomains):
+class AcmeDomainsBlocklisted(AcmeDomainsInvalid):
     def __str__(self):
         return "The following Domains are blocklisted: {0}".format(
+            ", ".join(self.args[0])
+        )
+
+
+class AcmeDomainsRequireConfigurationAcmeDNS(AcmeDomainsInvalid):
+    def __str__(self):
+        return "The following Domains are not configured with ACME-DNS: {0}".format(
             ", ".join(self.args[0])
         )
 

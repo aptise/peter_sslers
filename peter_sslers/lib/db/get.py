@@ -469,7 +469,7 @@ def get__AcmeChallenges__by_DomainId__active(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_id: (required) An id for an instance of :class:`model.objects.Domain`
     :param acme_challenge_type_id: (optional) A specific type of challenge, referencing :class:`model.utils.AcmeChallengeType`
-    
+
     returns: list
 
     AcmeStatus Codes
@@ -870,6 +870,14 @@ def get__AcmeOrder__paginated(ctx, active_only=None, limit=None, offset=0):
 def get__AcmeOrder__by_id(ctx, order_id, eagerload_web=False):
     q = ctx.dbSession.query(model_objects.AcmeOrder).filter(
         model_objects.AcmeOrder.id == order_id
+    )
+    item = q.first()
+    return item
+
+
+def get__AcmeOrder__by_order_url(ctx, order_url):
+    q = ctx.dbSession.query(model_objects.AcmeOrder).filter(
+        model_objects.AcmeOrder.order_url == order_url
     )
     item = q.first()
     return item

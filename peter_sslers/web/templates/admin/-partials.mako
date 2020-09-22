@@ -1612,13 +1612,26 @@
 </%def>
 
 
-<%def name="formgroup__domain_names()">
+<%def name="formgroup__domain_names(specify_challenge=None)">
     <div class="form-group clearfix">
-        <label for="f1-domain_names">Domain Names</label>
-        <textarea class="form-control" rows="4" name="domain_names" id="f1-domain_names"></textarea>
-        <p class="help-block">
-            A comma(,) separated list of domain names.
-        </p>
+        % if specify_challenge:
+            <label for="f1-domain_names_http01">Domain Names - HTTP-01</label>
+            <textarea class="form-control" rows="4" name="domain_names_http01" id="f1-domain_names_http01"></textarea>
+            <p class="help-block">
+                A comma(,) separated list of domain names to use the default HTTP-01 challenge.
+            </p>
+            <label for="f1-domain_names_dns01">Domain Names - DNS-01</label>
+            <textarea class="form-control" rows="4" name="domain_names_dns01" id="f1-domain_names_dns01"></textarea>
+            <p class="help-block">
+                A comma(,) separated list of domain names to use the DNS-01 challenge. These domains must be registered with an ACME-DNS system known to this installation.
+            </p>
+        % else:
+            <label for="f1-domain_names">Domain Names</label>
+            <textarea class="form-control" rows="4" name="domain_names" id="f1-domain_names"></textarea>
+            <p class="help-block">
+                A comma(,) separated list of domain names.
+            </p>
+        % endif
     </div>
 </%def>
 

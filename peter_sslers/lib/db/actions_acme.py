@@ -548,6 +548,8 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     try:
         # the authorization could be on multiple AcmeOrders
         # see :method:`AcmeAuthorization.to_acme_orders`
+        # however the first order is cached onto the object so we can access the account
+        # the account-key will be the same across linked orders/auths
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
 
         # we need to use tmpfiles on the disk
@@ -597,6 +599,9 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
                 authorization_response,
                 transaction_commit=True,
             )
+
+            # TODO: Update associated AcmeOrder
+
             return True
         except errors.AcmeServer404 as exc:
             update_AcmeAuthorization_status(
@@ -634,6 +639,8 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     try:
         # the authorization could be on multiple AcmeOrders
         # see :method:`AcmeAuthorization.to_acme_orders`
+        # however the first order is cached onto the object so we can access the account
+        # the account-key will be the same across linked orders/auths
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
 
         if authenticatedUser is None:
@@ -705,25 +712,6 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
             tf.close()
 
 
-def do__AcmeV2_AcmeAuthorization__acme_server_trigger(
-    ctx, dbAcmeAuthorization=None,
-):
-    """
-    :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param dbAcmeAuthorization: (required) A :class:`model.objects.AcmeAuthorization` object to trigger against the server
-    """
-    if not dbAcmeAuthorization:
-        raise ValueError("Must submit `dbAcmeAuthorization`")
-    if not dbAcmeAuthorization.is_can_acme_server_trigger:
-        # ensures we have 'pending' status and
-        # http-01 challenge
-        # acme order, with acme_account
-        raise ValueError("Can not trigger this `AcmeAuthorization`")
-
-    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
-    return do__AcmeV2_AcmeChallenge__acme_server_trigger(ctx, dbAcmeChallenge)
-
-
 def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     ctx, dbAcmeChallenge=None, authenticatedUser=None,
 ):
@@ -751,6 +739,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
 
         # the authorization could be on multiple AcmeOrders
         # see :method:`AcmeAuthorization.to_acme_orders`
+        # however the first order is cached onto the object so we can access the account
+        # the account-key will be the same across linked orders/auths
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
         _passes = None
         for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
@@ -820,6 +810,7 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
             )
 
         finally:
+            # TODO: update the AcmeOrders
             for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
                 if (
                     _to_acme_order.acme_order.acme_order_processing_status_id
@@ -863,6 +854,9 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
         if not dbAcmeAuthorization.acme_order_id__created:
             raise ValueError("can not proceed without an order for this authorization")
 
+        # the authorization could be on multiple AcmeOrders
+        # see :method:`AcmeAuthorization.to_acme_orders`
+        # however the first order is cached onto the object so we can access the account
         # the account-key will be the same across linked orders/auths
         dbAcmeOrderCreated = dbAcmeAuthorization.acme_order_created
         if authenticatedUser is None:
@@ -906,6 +900,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
                 timestamp=ctx.timestamp,
                 transaction_commit=True,
             )
+
+        # TODO: update the AcmeOrders
 
         return True
 
@@ -1137,6 +1133,7 @@ def do__AcmeV2_AcmeAccount__acme_server_deactivate_authorizations(
                     transaction_commit=True,
                 )
 
+                # TODO: update the AcmeOrders
                 # this will transition the AcmeOrder to invalid
                 """
                 The order also moves to the "invalid"
@@ -1502,7 +1499,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
 def _do__AcmeV2_AcmeOrder__core(
     ctx,
     acme_order_type_id=None,
-    domain_names=None,
+    domains_challenged=None,
     private_key_cycle__renewal=None,
     private_key_strategy__requested=None,
     processing_strategy=None,
@@ -1517,7 +1514,7 @@ def _do__AcmeV2_AcmeOrder__core(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param acme_order_type_id: (required) What type of order is this? A value from :class:`model.objects.AcmeOrderType`
-    :param domain_names: (optional) An iteratble list of domain names
+    :param domains_challenged: (required) An dict of ACME challenge types (keys) and lists of domain names (values)
     :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
@@ -1533,9 +1530,22 @@ def _do__AcmeV2_AcmeOrder__core(
         dbAcmeOrder_renewal_of
         dbQueueCertificate__of
 
-    One and only one of the following items must be provided:
-        domain_names
-        dbUniqueFQDNSet
+    Audit:
+
+        new:
+            dbAcmeAccount
+            dbPrivateKey
+            dbQueueCertificate__of
+            dbUniqueFQDNSet (optional)
+            domains_challenged (required if dbUniqueFQDNSet)
+        renew custom
+            dbAcmeOrder_renewal_of=dbAcmeOrder,
+            dbAcmeAccount=dbAcmeAccount,
+            dbPrivateKey=dbPrivateKey,
+        retry:
+            dbAcmeOrder_retry_of=dbAcmeOrder,
+        renew quick
+            dbAcmeOrder_renewal_of=dbAcmeOrder,
 
     :returns: A class:`model.objects.AcmeOrder` object for the new AcmeOrder
     """
@@ -1550,19 +1560,24 @@ def _do__AcmeV2_AcmeOrder__core(
         private_key_strategy__requested
     )
 
-    # some things can't be triggered together
-    if all((domain_names, dbUniqueFQDNSet)) or not any((domain_names, dbUniqueFQDNSet)):
-        if dbAcmeOrder_retry_of or dbAcmeOrder_renewal_of or dbQueueCertificate__of:
-            if any((domain_names, dbUniqueFQDNSet)):
-                raise ValueError(
-                    "do not submit `dbAcmeOrder_retry_of` or `dbAcmeOrder_renewal_of` with either: `domain_names, dbUniqueFQDNSet`"
-                )
-        else:
-            raise ValueError(
-                "must submit one and only one of: `domain_names, dbUniqueFQDNSet`"
+    # at most, accept one of:
+    if (
+        sum(
+            bool(i)
+            for i in (
+                dbAcmeOrder_retry_of,
+                dbAcmeOrder_renewal_of,
+                dbQueueCertificate__of,
             )
-    if domain_names:
-        if any(
+        )
+        >= 2
+    ):
+        raise ValueError(
+            "At most, provide one of `(dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbQueueCertificate__of)`"
+        )
+
+    if not domains_challenged:
+        if not any(
             (
                 dbAcmeOrder_retry_of,
                 dbAcmeOrder_renewal_of,
@@ -1571,24 +1586,11 @@ def _do__AcmeV2_AcmeOrder__core(
             )
         ):
             raise ValueError(
-                "do not pass `domain_names` with any of `(dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbQueueCertificate__of, dbUniqueFQDNSet)`"
+                "`domains_challenged` is required unless one of `(dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbQueueCertificate__of, dbUniqueFQDNSet)` is passed"
             )
 
-    if (
-        sum(
-            bool(i)
-            for i in (
-                dbAcmeOrder_retry_of,
-                dbAcmeOrder_renewal_of,
-                dbQueueCertificate__of,
-                dbUniqueFQDNSet,
-            )
-        )
-        >= 2
-    ):
-        raise ValueError(
-            "At most, provide one of (`dbAcmeOrder_retry_of, dbAcmeOrder_renewal_of, dbQueueCertificate__of, dbUniqueFQDNSet`)"
-        )
+    # build this off domains_challenged
+    domain_names = None
 
     # switch this
     if dbAcmeOrder_retry_of:
@@ -1613,6 +1615,10 @@ def _do__AcmeV2_AcmeOrder__core(
         dbPrivateKey = dbAcmeOrder_retry_of.private_key
         dbUniqueFQDNSet = dbAcmeOrder_retry_of.unique_fqdn_set
         domain_names = dbAcmeOrder_retry_of.domains_as_list
+        if domains_challenged is None:
+            domains_challenged = dbAcmeOrder_retry_of.domains_challenged
+        # raise a ValueError
+        domains_challenged.ensure_parity(domain_names)
 
     elif dbAcmeOrder_renewal_of:
         # kwargs validation
@@ -1638,6 +1644,10 @@ def _do__AcmeV2_AcmeOrder__core(
         # re-use these related objects
         dbUniqueFQDNSet = dbAcmeOrder_renewal_of.unique_fqdn_set
         domain_names = dbAcmeOrder_renewal_of.domains_as_list
+        if domains_challenged is None:
+            domains_challenged = dbAcmeOrder_retry_of.domains_challenged
+        # raise a ValueError
+        domains_challenged.ensure_parity(domain_names)
 
     elif dbQueueCertificate__of:
         # kwargs validation
@@ -1655,6 +1665,10 @@ def _do__AcmeV2_AcmeOrder__core(
         dbPrivateKey = dbQueueCertificate__of.private_key
         dbUniqueFQDNSet = dbQueueCertificate__of.unique_fqdn_set
         domain_names = dbQueueCertificate__of.domains_as_list
+        if domains_challenged is None:
+            domains_challenged = dbAcmeOrder_retry_of.domains_challenged
+        # raise a ValueError
+        domains_challenged.ensure_parity(domain_names)
 
         # quick validation
         if not dbAcmeAccount.is_usable:
@@ -1666,6 +1680,16 @@ def _do__AcmeV2_AcmeOrder__core(
             raise ValueError("Must submit `dbAcmeAccount` with `dbUniqueFQDNSet`")
         if not dbPrivateKey:
             raise ValueError("Must submit `dbPrivateKey`")
+        if domains_challenged is None:
+            domains_challenged = dbAcmeOrder_retry_of.domains_challenged
+        domain_names = dbUniqueFQDNSet.domains_as_list
+        # raise a ValueError
+        domains_challenged.ensure_parity(domain_names)
+
+    else:
+        if domains_challenged is None:
+            raise ValueError("Must submit `domain_challenged` in this context")
+        domain_names = domains_challenged.domains_as_list()
 
     # ensure the PrivateKey is usable!
     if not dbPrivateKey.is_key_usable:
@@ -1674,7 +1698,7 @@ def _do__AcmeV2_AcmeOrder__core(
         )
 
     # ensure we have domains names!
-    if not any((domain_names, dbUniqueFQDNSet)):
+    if not domain_names:
         raise ValueError("No `domain_names` detected for this request")
 
     if not dbUniqueFQDNSet:
@@ -1712,37 +1736,63 @@ def _do__AcmeV2_AcmeOrder__core(
             dbUniqueFQDNSet=dbUniqueFQDNSet,
             transaction_commit=True,
         )
-        try:
-            order_url = acmeOrderRfcObject.response_headers["location"]
-        except:
-            order_url = None
+        order_url = acmeOrderRfcObject.response_headers["location"]
+        if not order_url:
+            raise ValueError("We must receive an `order_url` in the location")
 
-        # in the current application design, `authenticatedUser.acme_order_new` created the order on the acme server
-        acme_order_processing_status_id = model_utils.AcmeOrder_ProcessingStatus.from_string(
-            "created_acme"
-        )
+        # Boulder has an implementation detail to deal with buggy clients:
+        #   duplicate order submissions may return the same AcmeOrder
+        dbAcmeOrder = lib.db.get.get__AcmeOrder__by_order_url(ctx, order_url)
+        if not dbAcmeOrder:
+            # this is a new AcmeOrder
+            # in the current application design, `authenticatedUser.acme_order_new` created the order on the acme server
+            acme_order_processing_status_id = model_utils.AcmeOrder_ProcessingStatus.from_string(
+                "created_acme"
+            )
 
-        # enroll the Acme Order into our database
-        dbAcmeOrder = lib.db.create.create__AcmeOrder(
-            ctx,
-            acme_order_response=acmeOrderRfcObject.rfc_object,
-            acme_order_type_id=acme_order_type_id,
-            acme_order_processing_status_id=acme_order_processing_status_id,
-            acme_order_processing_strategy_id=acme_order_processing_strategy_id,
-            private_key_cycle_id__renewal=private_key_cycle_id__renewal,
-            private_key_strategy_id__requested=private_key_strategy_id__requested,
-            order_url=order_url,
-            dbAcmeAccount=dbAcmeAccount,
-            dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
-            dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
-            dbPrivateKey=dbPrivateKey,
-            dbEventLogged=dbAcmeOrderEventLogged,
-            dbUniqueFQDNSet=dbUniqueFQDNSet,
-            transaction_commit=True,
-        )
+            # enroll the Acme Order into our database
+            dbAcmeOrder = lib.db.create.create__AcmeOrder(
+                ctx,
+                acme_order_response=acmeOrderRfcObject.rfc_object,
+                acme_order_type_id=acme_order_type_id,
+                acme_order_processing_status_id=acme_order_processing_status_id,
+                acme_order_processing_strategy_id=acme_order_processing_strategy_id,
+                domains_challenged=domains_challenged,
+                private_key_cycle_id__renewal=private_key_cycle_id__renewal,
+                private_key_strategy_id__requested=private_key_strategy_id__requested,
+                order_url=order_url,
+                dbAcmeAccount=dbAcmeAccount,
+                dbAcmeOrder_retry_of=dbAcmeOrder_retry_of,
+                dbAcmeOrder_renewal_of=dbAcmeOrder_renewal_of,
+                dbPrivateKey=dbPrivateKey,
+                dbEventLogged=dbAcmeOrderEventLogged,
+                dbUniqueFQDNSet=dbUniqueFQDNSet,
+                transaction_commit=True,
+            )
 
-        # register the AcmeOrder into the logging utility
-        authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+            # register the AcmeOrder into the logging utility
+            authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+        else:
+            # the AcmeOrder is a duplicate of an existing order
+            # use the same flow here as `do__AcmeV2_AcmeOrder__acme_server_sync`
+
+            # register the AcmeOrder into the logging utility
+            authenticatedUser.acmeLogger.register_dbAcmeOrder(dbAcmeOrder)
+
+            # update the AcmeOrder if it's not the same on the database
+            # always invoke this, as it handles it's own cleanup of the model
+            result = updated_AcmeOrder_status(
+                ctx,
+                dbAcmeOrder,
+                acmeOrderRfcObject.rfc_object,
+                timestamp=ctx.timestamp,
+                transaction_commit=True,
+            )
+
+        # the AcmeOrder is already failed or valid, somehow...
+        if dbAcmeOrder.acme_status_order not in ("pending", "ready"):
+            return dbAcmeOrder
 
         if (
             acme_order_processing_strategy_id
@@ -1794,7 +1844,7 @@ def _do__AcmeV2_AcmeOrder__core(
             dbQueueCertificate__of.timestamp_process_attempt = ctx.timestamp
             dbQueueCertificate__of.timestamp_processed = ctx.timestamp
             dbQueueCertificate__of.process_result = True if dbAcmeOrder else None
-            dbQueueCertificate__of.is_active = False  # mark this as processed
+            dbQueueCertificate__of.is_active = False  # this as processed
 
             if dbAcmeOrder:
                 dbQueueCertificate__of.acme_order_id__generated = dbAcmeOrder.id
@@ -1974,7 +2024,7 @@ def do__AcmeV2_AcmeOrder__process(
 def do__AcmeV2_AcmeOrder__new(
     ctx,
     acme_order_type_id=None,
-    domain_names=None,
+    domains_challenged=None,
     processing_strategy=None,
     private_key_cycle__renewal=None,
     private_key_strategy__requested=None,
@@ -1988,7 +2038,7 @@ def do__AcmeV2_AcmeOrder__new(
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param acme_order_type_id: (required) What type of order is this? A value from :class:`model.objects.AcmeOrderType`
-    :param domain_names: (required) An iteratble list of domain names
+    :param domains_challenged: (required) An dict of ACME challenge types (keys) and lists of domain names (values)
     :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
@@ -1996,7 +2046,7 @@ def do__AcmeV2_AcmeOrder__new(
     :param dbPrivateKey: (required) A :class:`model.objects.PrivateKey` object used to sign the request.
     :param dbQueueCertificate__of: (optional) A :class:`model.objects.QueueCertificate` object
     :param dbUniqueFQDNSet: (optional) A :class:`model.objects.UniqueFQDNSet` object
-    
+
     :returns: A :class:`model.objects.AcmeOrder` object
     """
     dbOperationsEvent = log__OperationsEvent(
@@ -2004,7 +2054,7 @@ def do__AcmeV2_AcmeOrder__new(
     )
     return _do__AcmeV2_AcmeOrder__core(
         ctx,
-        domain_names=domain_names,
+        domains_challenged=domains_challenged,
         acme_order_type_id=acme_order_type_id,
         private_key_cycle__renewal=private_key_cycle__renewal,
         private_key_strategy__requested=private_key_strategy__requested,

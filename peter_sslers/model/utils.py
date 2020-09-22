@@ -560,7 +560,7 @@ class AcmeAccountKeySource(_mixin_mapping):
 
 class AcmeChallengeType(_mixin_mapping):
     """
-    Used for Acme Logging
+    ACME supports multiple Challenge types
     """
 
     http_01 = 1
@@ -572,6 +572,7 @@ class AcmeChallengeType(_mixin_mapping):
         3: "tls-alpn-01",
     }
 
+    DEFAULT = "http-01"
     _OPTIONS_AcmeOrderless_AddChallenge = ("http-01",)
 
 
@@ -728,6 +729,42 @@ class CoverageAssuranceResolution(_mixin_mapping):
 CoverageAssuranceResolution.OPTIONS_ALL = list(
     CoverageAssuranceResolution._mapping.values()
 )
+
+
+class DomainsChallenged(dict):
+    """
+    standardized mapping for `domains_challenged` items
+
+    keep in sync with `AcmeChallengeType._mapping`
+    """
+
+    DEFAULT = AcmeChallengeType.DEFAULT
+
+    def __init__(self, *args, **kwargs):
+        if args or kwargs:
+            raise ValueError("no args or kwargs")
+        self["http-01"] = None
+        self["dns-01"] = None
+        self["tls-alpn-01"] = None
+
+    def domains_as_list(self):
+        _domains = []
+        for v in self.values():
+            if v is not None:
+                _domains.extend(v)
+        return sorted(_domains)
+
+    def ensure_parity(self, domains_to_test):
+        """raise a ValueError if we do not have the exact set of domains"""
+        domain_names = self.domains_as_list
+        domains_to_test = sorted(domains_to_test)
+        if domain_names != domains_to_test:
+            raise ValueError("`%s` != `%s`" % (domain_names, domains_to_test))
+
+    def ENSURE_DEFAULT_HTTP01(self):
+        # default challenge type is http-01
+        if self.DEFAULT != "http-01":
+            raise ValueError("`DomainsChallenged.DEFAULT` must be `http-01`")
 
 
 class PrivateKeyCycle(_mixin_mapping):

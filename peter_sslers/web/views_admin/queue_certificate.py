@@ -491,7 +491,7 @@ class View_New(Handler):
             )
             try:
 
-                # this may raise errors.AcmeBlocklistedDomains
+                # this may raise errors.AcmeDomainsBlocklisted
                 (
                     dbUniqueFQDNSet,
                     is_created,
@@ -501,7 +501,7 @@ class View_New(Handler):
                     allow_blocklisted_domains=False,
                 )
 
-            except errors.AcmeBlocklistedDomains as exc:
+            except errors.AcmeDomainsBlocklisted as exc:
                 formStash.fatal_field(field="domain_names", message=str(exc))
 
             try:

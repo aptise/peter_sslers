@@ -25,6 +25,7 @@ from .logger import log__OperationsEvent
 from .logger import _log_object_event
 from .helpers import _certificate_parse_to_record
 from .validate import validate_domain_names
+from .validate import ensure_domains_dns01
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -81,7 +82,7 @@ def create__AcmeOrderless(
     if not domain_names:
         raise ValueError("Did not make a valid set of domain names")
 
-    # this may raise errors.AcmeBlocklistedDomains
+    # this may raise errors.AcmeDomainsBlocklisted
     validate_domain_names(ctx, domain_names)
 
     domain_objects = {
@@ -129,6 +130,7 @@ def create__AcmeOrder(
     acme_order_type_id=None,
     acme_order_processing_status_id=None,
     acme_order_processing_strategy_id=None,
+    domains_challenged=None,
     private_key_cycle_id__renewal=None,
     private_key_strategy_id__requested=None,
     is_auto_renew=True,
@@ -153,6 +155,7 @@ def create__AcmeOrder(
     :param acme_order_type_id: (required) What type of order is this? Valid options are in :class:`model.utils.AcmeOrderType`
     :param acme_order_processing_status_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStatus`
     :param acme_order_processing_strategy_id: (required) Valid options are in :class:`model.utils.AcmeOrder_ProcessingStrategy`
+    :param domains_challenged: (required) A listing of the preferred challenges. see :class:`model.utils.DomainsChallenged`
     :param private_key_cycle_id__renewal: (required) Valid options are in :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy_id__requested: (required) Valid options are in :class:`model.utils.PrivateKeyStrategy`
     :param is_auto_renew: (optional) should this AcmeOrder be created with the auto-renew toggle on?  Default: `True`
@@ -199,12 +202,10 @@ def create__AcmeOrder(
     if not dbPrivateKey:
         raise ValueError("`create__AcmeOrder` must be invoked with a `dbPrivateKey`.")
 
-    if not any((dbCertificateRequest, dbUniqueFQDNSet)):
-        raise ValueError(
-            "`create__AcmeOrder` must have at least one of (dbCertificateRequest, dbUniqueFQDNSet)."
-        )
+    if not dbUniqueFQDNSet:
+        raise ValueError("`create__AcmeOrder` requires `dbUniqueFQDNSet`")
 
-    if all((dbCertificateRequest, dbUniqueFQDNSet)):
+    if dbCertificateRequest:
         if dbCertificateRequest.unique_fqdn_set_id != dbUniqueFQDNSet.id:
             raise ValueError(
                 "`create__AcmeOrder` mismatch of (dbCertificateRequest, dbUniqueFQDNSet)."
@@ -225,6 +226,19 @@ def create__AcmeOrder(
     if dbPrivateKey.acme_account_id__owner:
         if dbAcmeAccount.id != dbPrivateKey.acme_account_id__owner:
             raise ValueError("The specified PrivateKey belongs to another AcmeAccount.")
+
+    # validate the domains that were submitted
+    # we already test for this on submission, but be safe!
+    _domain_names_all = domains_challenged.domains_as_list()
+
+    # this may raise errors.AcmeDomainsBlocklisted
+    validate_domain_names(ctx, _domain_names_all)
+
+    # we already test for this on submission, but be safe!
+    _dns01_domain_names = domains_challenged["dns-01"]
+    if _dns01_domain_names:
+        # this may raise errors.AcmeDomainsBlocklisted
+        ensure_domains_dns01(ctx, _dns01_domain_names)
 
     # acme_status_order_id = model_utils.Acme_Status_Order.ID_DEFAULT
     acme_status_order_id = model_utils.Acme_Status_Order.from_string(
@@ -272,6 +286,25 @@ def create__AcmeOrder(
     # then update the event with the order
     dbEventLogged.acme_order_id = dbAcmeOrder.id
     ctx.dbSession.flush(objects=[dbEventLogged])
+
+    # do we have any preferences in challenges?
+    domains_challenged.ENSURE_DEFAULT_HTTP01()
+    _dbDomainObjects = dbUniqueFQDNSet.domain_objects
+    for (act_, domains_) in domains_challenged.items():
+        if act_ == "http-01":
+            continue
+        if not domains_:
+            continue
+        acme_challenge_type_id = model_utils.AcmeChallengeType.from_string(act_)
+        for domain_name_ in domains_:
+            if domain_name_ not in _dbDomainObjects:
+                raise ValueError("did not load domain from database")
+            dbChallengePreference = model_objects.AcmeOrder2AcmeChallengeTypeSpecific()
+            dbChallengePreference.acme_order_id = dbAcmeOrder.id
+            dbChallengePreference.acme_challenge_type_id = acme_challenge_type_id
+            dbChallengePreference.domain_id = _dbDomainObjects[domain_name_].id
+            ctx.dbSession.add(dbChallengePreference)
+            ctx.dbSession.flush(objects=[dbChallengePreference])
 
     # now loop the authorization URLs to create stub records for this order
     for authorization_url in acme_order_response.get("authorizations"):
@@ -484,7 +517,7 @@ def create__CertificateRequest(
 ):
     """
     Create a new Certificate Signing Request (CSR)
-    
+
     If uploading, use the getcreate function, which also has docs regarding the formatting.
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance

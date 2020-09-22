@@ -46,7 +46,11 @@ class View_List(Handler):
                 "AcmeEventLogs": _auths,
                 "pagination": json_pagination(items_count, pager),
             }
-        return {"project": "peter_sslers", "AcmeEventLogs": items_paged}
+        return {
+            "project": "peter_sslers",
+            "AcmeEventLogs": items_paged,
+            "pager": pager,
+        }
 
 
 class View_Focus(Handler):
