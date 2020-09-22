@@ -23,10 +23,14 @@
         This library was developed against the Pebble ACME test server from LetsEncrypt.
         Boulder is the ACME production server from LetsEncrypt.
         There were several undocumented differences between the Pebble and Boulder servers.
+    Improvements:
+    	/admin/acme-challenge/{ID}/acme-server/trigger now requires a TOKEN to be submitted if the server can not answer the challenge
+    	This will never be needed for http-01;
+    	it is only needed for:
+    		* dns-01 for a domain without an acme-dns account
+    		* tls-alpn-01
 
     Still working:
-        remove  acme_challenge_type_specific__acme_order_created
-        de-emphasize acme_order_id__created
         see:                 # TODO: update the AcmeOrders
 
 

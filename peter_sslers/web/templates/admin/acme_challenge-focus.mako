@@ -68,6 +68,11 @@
                                 </button>
                                 % if AcmeChallenge.is_can_acme_server_trigger:
                                     <p><em>${AcmeChallenge.challenge_instructions_short}</em></p>
+                                    % if not AcmeChallenge.is_configured_to_answer:
+                                        This installation is NOT configured to answer this challenge.
+                                        You must submit the challenge <code>token</code> to trigger.
+                                        <input type="textfield" name="token" value="" class="form-control"/>
+                                    % endif
                                 % endif
                             </form>
                         </td>

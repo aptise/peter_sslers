@@ -225,6 +225,12 @@ class View_Focus_Manipulate(View_Focus):
                 raise errors.InvalidRequest(
                     "ACME Server Trigger is not allowed for this AcmeChallenge"
                 )
+            if not dbAcmeChallenge.is_configured_to_answer:
+                _token_submitted = self.request.params.get("token")
+                if _token_submitted != dbAcmeChallenge.token:
+                    raise errors.InvalidRequest(
+                        "This installation is NOT configured to answer this challenge. You must submit the challenge token to trigger."
+                    )
             result = lib_db.actions_acme.do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 self.request.api_context, dbAcmeChallenge=dbAcmeChallenge,
             )

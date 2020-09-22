@@ -242,6 +242,7 @@ def get__AcmeAuthorizations__by_ids(ctx, item_ids, acme_account_id=None):
         model_objects.AcmeAuthorization.id.in_(item_ids)
     )
     if acme_account_id is not None:
+        # use the acme_order_id__created to filter down to the account
         q = q.join(
             model_objects.AcmeOrder,
             model_objects.AcmeAuthorization.acme_order_id__created

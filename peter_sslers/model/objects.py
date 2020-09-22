@@ -566,15 +566,6 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         back_populates="acme_authorization",
     )
 
-    # acme_order_id__created
-    acme_challenge_type_specific__acme_order_created = sa_orm_relationship(
-        "AcmeOrder2AcmeChallengeTypeSpecific",
-        primaryjoin="""and_(AcmeAuthorization.acme_order_id__created==foreign(AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id),
-                            AcmeAuthorization.domain_id==foreign(AcmeOrder2AcmeChallengeTypeSpecific.domain_id))""",
-        uselist=False,
-        back_populates="acme_authorizations",
-    )
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
@@ -598,7 +589,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         if not self.authorization_url:
             return False
         if not self.acme_order_id__created:
-            # order_id is needed for the key
+            # order_id is needed for the AcmeAccount
             return False
         if (
             self.acme_status_authorization
@@ -903,6 +894,17 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         ):
             return False
         return True
+
+    @property
+    def is_configured_to_answer(self):
+        if not self.is_can_acme_server_trigger:
+            return False
+        if self.acme_challenge_type == "http-01":
+            return True
+        elif self.acme_challenge_type == "dns-01":
+            if self.domain.acme_dns_server_account__active:
+                return True
+        return False
 
     def _as_json(self, admin_url=""):
         return {
@@ -1795,15 +1797,6 @@ class AcmeOrder2AcmeChallengeTypeSpecific(Base):
         back_populates="acme_order_2_acme_challenge_type_specifics",
     )
 
-    # acme_order_id__created
-    acme_authorizations = sa_orm_relationship(
-        "AcmeAuthorization",
-        primaryjoin="""and_(AcmeAuthorization.acme_order_id__created==foreign(AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id),
-                            AcmeAuthorization.domain_id==foreign(AcmeOrder2AcmeChallengeTypeSpecific.domain_id))""",
-        uselist=True,
-        back_populates="acme_challenge_type_specific__acme_order_created",
-    )
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
@@ -2254,6 +2247,11 @@ class Domain(Base, _Mixin_Timestamps_Pretty):
         primaryjoin="Domain.id==AcmeDnsServerAccount.domain_id",
         uselist=True,
         back_populates="domain",
+    )
+    acme_dns_server_account__active = sa_orm_relationship(
+        "AcmeDnsServerAccount",
+        primaryjoin="and_(Domain.id==AcmeDnsServerAccount.domain_id, AcmeDnsServerAccount.is_active.op('is')(True))",
+        uselist=False,
     )
     acme_order_2_acme_challenge_type_specifics = sa_orm_relationship(
         "AcmeOrder2AcmeChallengeTypeSpecific",
