@@ -1,38 +1,37 @@
 0.4.1-dev
     unreleased
-    added endpoint to enroll domains into acme-dns in preparation of an AcmeOrder
-    Support for specifying the AcmeChallenge on orders:
-        new: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
-        new: `model.objects.AcmeOrder.acme_order_2_acme_challenge_type_specifics`
-        new: `model.objects.Domain.acme_order_2_acme_challenge_type_specifics`
-    The following now accepts a dict `domains_challeged` instead of `domains`
-        `do__AcmeV2_AcmeOrder__new()`
-        `api_domains__certificate_if_needed()`
-    Fixed legacy links to `/acme/orders` with the updated ``/acme/orders/all`
-    Removed "Trigger" action from Authorization
-        lib.db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger
-        web.views_admin.acme_authorization.acme_server_trigger
-        route_name="admin:acme_authorization:focus:acme_server:trigger"
-        route_name="admin:acme_authorization:focus:acme_server:trigger|json"
-        "/acme-authorization/{@id}/acme-server/trigger"
-        "/acme-authorization/{@id}/acme-server/trigger.json"
-    New relationships
-        AcmeAuthorization.acme_order_2_acme_challenge_type_specifics
-        AcmeChallenge.acme_order_2_acme_challenge_type_specifics
+    Changes:
+		The following now accepts a dict-like object ``utils.DomainsChallenged`` in a `domains_challeged` kwarg, instead of `domains`
+			`do__AcmeV2_AcmeOrder__new()`
+			`api_domains__certificate_if_needed()`
+		added endpoint to enroll domains into acme-dns in preparation of an AcmeOrder
+    Model changes
+		Support for specifying the AcmeChallenge on orders:
+			new obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
+			new rel: `model.objects.AcmeOrder.acme_order_2_acme_challenge_type_specifics`
+			new rel: `model.objects.Domain.acme_order_2_acme_challenge_type_specifics`
+	        new rel: `model.objects.AcmeAuthorization.acme_order_2_acme_challenge_type_specifics`
+        	new rel: `model.objects.AcmeChallenge.acme_order_2_acme_challenge_type_specifics`
     Bugfixes:
-        This library was developed against the Pebble ACME test server from LetsEncrypt.
-        Boulder is the ACME production server from LetsEncrypt.
-        There were several undocumented differences between the Pebble and Boulder servers.
+	    Fixed legacy links to `/acme/orders` with the updated ``/acme/orders/all`
+		There were several undocumented differences between the Pebble and Boulder servers.
+	        This library was developed against the Pebble ACME test server from LetsEncrypt.
+			Boulder is the ACME production server from LetsEncrypt.
     Improvements:
     	/admin/acme-challenge/{ID}/acme-server/trigger now requires a TOKEN to be submitted if the server can not answer the challenge
-    	This will never be needed for http-01;
-    	it is only needed for:
-    		* dns-01 for a domain without an acme-dns account
-    		* tls-alpn-01
-
-    Still working:
-        see:                 # TODO: update the AcmeOrders
-
+			This will never be needed for http-01;
+			it is only needed for:
+				* dns-01 for a domain without an acme-dns account
+				* tls-alpn-01
+		Removed "Trigger" action from Authorization
+			A Challenge should be triggered, as an order may want a specific challenge type
+			Removals:
+				lib.db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger
+				web.views_admin.acme_authorization.acme_server_trigger
+				route_name="admin:acme_authorization:focus:acme_server:trigger"
+				route_name="admin:acme_authorization:focus:acme_server:trigger|json"
+				"/acme-authorization/{@id}/acme-server/trigger"
+				"/acme-authorization/{@id}/acme-server/trigger.json"
 
 
 

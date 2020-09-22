@@ -747,6 +747,7 @@ class DomainsChallenged(dict):
         self["dns-01"] = None
         self["tls-alpn-01"] = None
 
+    @property
     def domains_as_list(self):
         _domains = []
         for v in self.values():

@@ -229,7 +229,7 @@ def create__AcmeOrder(
 
     # validate the domains that were submitted
     # we already test for this on submission, but be safe!
-    _domain_names_all = domains_challenged.domains_as_list()
+    _domain_names_all = domains_challenged.domains_as_list
 
     # this may raise errors.AcmeDomainsBlocklisted
     validate_domain_names(ctx, _domain_names_all)

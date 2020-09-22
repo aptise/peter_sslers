@@ -123,7 +123,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
 
     contact = sa.Column(sa.Unicode(255), nullable=True)
     terms_of_service = sa.Column(sa.Unicode(255), nullable=True)
-    account_url = sa.Column(sa.Unicode(255), nullable=True)
+    account_url = sa.Column(sa.Unicode(255), nullable=True, unique=True)
 
     count_acme_orders = sa.Column(sa.Integer, nullable=True, default=0)
     count_server_certificates = sa.Column(sa.Integer, nullable=True, default=0)
@@ -505,7 +505,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
 
     __tablename__ = "acme_authorization"
     id = sa.Column(sa.Integer, primary_key=True)
-    authorization_url = sa.Column(sa.Unicode(255), nullable=False)
+    authorization_url = sa.Column(sa.Unicode(255), nullable=False, unique=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     acme_status_authorization_id = sa.Column(
         sa.Integer, nullable=False
@@ -794,7 +794,7 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     )  # Acme_Status_Challenge
 
     # this is on the acme server
-    challenge_url = sa.Column(sa.Unicode(255), nullable=True)
+    challenge_url = sa.Column(sa.Unicode(255), nullable=True, unique=True)
 
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     timestamp_updated = sa.Column(sa.DateTime, nullable=True)
