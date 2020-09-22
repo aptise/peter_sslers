@@ -176,11 +176,13 @@ def update_AcmeAuthorization_status(
     _edited = False
     status_text = status_text.lower()
     if dbAcmeAuthorization.acme_status_authorization != status_text:
-        if not timestamp:
-            timestamp = datetime.datetime.utcnow()
         dbAcmeAuthorization.acme_status_authorization_id = model_utils.Acme_Status_Authorization.from_string(
             status_text
         )
+        _edited = True
+    if _edited:
+        if not timestamp:
+            timestamp = datetime.datetime.utcnow()
         dbAcmeAuthorization.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
@@ -203,11 +205,13 @@ def update_AcmeChallenge_status(
     _edited = False
     status_text = status_text.lower()
     if dbAcmeChallenge.acme_status_challenge != status_text:
-        if not timestamp:
-            timestamp = datetime.datetime.utcnow()
         dbAcmeChallenge.acme_status_challenge_id = model_utils.Acme_Status_Challenge.from_string(
             status_text
         )
+        _edited = True
+    if _edited:
+        if not timestamp:
+            timestamp = datetime.datetime.utcnow()
         dbAcmeChallenge.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
@@ -283,6 +287,7 @@ def updated_AcmeOrder_status(
 def updated_AcmeOrder_ProcessingStatus(
     ctx,
     dbAcmeOrder,
+    acme_status_order_id=None,
     acme_order_processing_status_id=None,
     timestamp=None,
     transaction_commit=None,
@@ -290,16 +295,28 @@ def updated_AcmeOrder_ProcessingStatus(
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param dbAcmeOrder: (required) A :class:`model.objects.AcmeOrder` object
+    :param acme_status_order: (optional) If provided, update the `acme_status_order_id` of the order
     :param acme_order_processing_status_id: (required) If provided, update the `acme_order_processing_status_id` of the order
     :param timestamp: (required) `datetime.datetime`.
     :param transaction_commit: (required) Boolean. Must indicate that we will commit this.
     """
     if transaction_commit is not True:
         raise ValueError("must invoke this knowing it will commit")
+    _edited = False
+    if acme_status_order_id is not None:
+        if dbAcmeOrder.acme_status_order_id != acme_status_order_id:
+            dbAcmeOrder.acme_status_order_id = acme_status_order_id
+            _edited = True
+            _status_text = model_utils.Acme_Status_Order.as_string(acme_status_order_id)
+            if _status_text in model_utils.Acme_Status_Order.OPTIONS_UPDATE_DEACTIVATE:
+                if dbAcmeOrder.is_processing is True:
+                    dbAcmeOrder.is_processing = None
     if dbAcmeOrder.acme_order_processing_status_id != acme_order_processing_status_id:
+        dbAcmeOrder.acme_order_processing_status_id = acme_order_processing_status_id
+        _edited = True
+    if _edited:
         if not timestamp:
             timestamp = datetime.datetime.utcnow()
-        dbAcmeOrder.acme_order_processing_status_id = acme_order_processing_status_id
         dbAcmeOrder.timestamp_updated = timestamp
         if transaction_commit:
             ctx.pyramid_transaction_commit()
@@ -808,9 +825,10 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                 timestamp=ctx.timestamp,
                 transaction_commit=True,
             )
+            # re-raise, so the Order can fail
+            raise
 
         finally:
-            # TODO: update the AcmeOrders
             for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
                 if (
                     _to_acme_order.acme_order.acme_order_processing_status_id
@@ -823,6 +841,24 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
                         timestamp=ctx.timestamp,
                         transaction_commit=True,
                     )
+
+    except errors.AcmeAuthorizationFailure as exc:
+        for _to_acme_order in dbAcmeAuthorization.to_acme_orders:
+            if (
+                _to_acme_order.acme_order.acme_order_processing_status_id
+                != model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure
+            ):
+                updated_AcmeOrder_ProcessingStatus(
+                    ctx,
+                    _to_acme_order.acme_order,
+                    acme_status_order_id=model_utils.Acme_Status_Order.from_string(
+                        "invalid"
+                    ),
+                    acme_order_processing_status_id=model_utils.AcmeOrder_ProcessingStatus.processing_completed_failure,
+                    timestamp=ctx.timestamp,
+                    transaction_commit=True,
+                )
+
     finally:
         # cleanup tmpfiles
         for tf in tmpfiles:
