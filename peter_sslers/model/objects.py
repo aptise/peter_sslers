@@ -657,6 +657,9 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
             "acme_challenge_http_01_id": self.acme_challenge_http_01.id
             if self.acme_challenge_http_01
             else None,
+            "acme_challenge_dns_01_id": self.acme_challenge_dns_01.id
+            if self.acme_challenge_dns_01
+            else None,
             "domain": {"id": self.domain_id, "domain_name": self.domain.domain_name,}
             if self.domain_id
             else None,

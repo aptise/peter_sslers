@@ -32,8 +32,15 @@
 				route_name="admin:acme_authorization:focus:acme_server:trigger|json"
 				"/acme-authorization/{@id}/acme-server/trigger"
 				"/acme-authorization/{@id}/acme-server/trigger.json"
-
-
+		Tracking the submission of AcmeOrders in `AcmeOrderSubmission`
+			This is because Boulder may reuse identical orders:
+				1. duplicate pending
+				2. transitioning "invalid" back to "valid"
+			This is likely handled by the AcmeEvents log and may be removed in the future
+		Added a 'deduplication' routine to AcmeAccounts.
+			It is possible we try to register a new account with information already known to the acme server. In this situation, the "new" account key we submitted should be merged onto the existing acme account.
+	+ other fixes and improvements
+			
 
 0.4.0
 - 2020/08/06
