@@ -34,6 +34,7 @@ tests_require = [
     "cryptography",
     "pycrypto",
     "josepy",
+    "pre-commit",
     "pyramid-debugtoolbar-ajax",
     "pyramid_debugtoolbar>=4.4",
     "webtest",
