@@ -36,12 +36,14 @@ tests_require = [
     "josepy",
     "pyramid-debugtoolbar-ajax",
     "pyramid_debugtoolbar>=4.4",
+    "webtest",
+    "redis",
 ]
 
 
 setup(
     name="peter_sslers",
-    version="0.4.1-dev",
+    version="0.4.1.dev0",
     description="peter_sslers",
     long_description=README + "\n\n" + CHANGES,
     classifiers=[
