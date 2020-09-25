@@ -135,6 +135,14 @@ def get__AcmeAccount__GlobalDefault(ctx, active_only=None):
     return item
 
 
+def get__AcmeAccount__by_account_url(ctx, account_url):
+    q = ctx.dbSession.query(model_objects.AcmeAccount).filter(
+        model_objects.AcmeAccount.account_url == account_url
+    )
+    item = q.first()
+    return item
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 

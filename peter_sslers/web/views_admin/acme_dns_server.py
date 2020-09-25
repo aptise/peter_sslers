@@ -242,7 +242,9 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "instructions": ["HTTP POST required",],
-                "form_fields": {"domains": "A comma separated list of domain names"},
+                "form_fields": {
+                    "domain_names": "A comma separated list of domain names"
+                },
                 "notes": [],
                 "valid_options": {},
             }

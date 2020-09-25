@@ -27,9 +27,6 @@ RE_AcmeAuthorization_sync_btn = re.compile(
 RE_AcmeAuthorization_deactivate_btn = re.compile(
     r"""<button class="btn btn-xs btn-info " id="btn-acme_authorization-deactivate">"""
 )
-RE_AcmeAuthorization_trigger_btn = re.compile(
-    r"""<button class="btn btn-xs btn-info " id="btn-acme_authorization-trigger">"""
-)
 
 RE_AcmeAuthorization_deactivated = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-authorization/\d+\?result=success&operation=acme\+server\+deactivate"""
@@ -90,7 +87,9 @@ RE_AcmeDnsServer_edited = re.compile(
 RE_AcmeDnsServer_checked = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)\?result=success&operation=check$"""
 )
-
+RE_AcmeDnsServer_ensure_domains_results = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-dns-server/(\d+)/ensure-domains-results\?acme-dns-server-accounts=[\d,]+$"""
+)
 
 # note: AcmeOrder
 

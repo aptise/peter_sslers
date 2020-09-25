@@ -659,7 +659,6 @@ def api_domains__certificate_if_needed(
         2016: 'ApiDomains__certificate_if_needed__certificate_new_success',
         2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
-    raise ValueError("migrate to domains_challenged")
 
     # validate this first!
     acme_order_processing_strategy_id = model_utils.AcmeOrder_ProcessingStrategy.from_string(
@@ -691,7 +690,7 @@ def api_domains__certificate_if_needed(
         raise errors.DisplayableError("missing PrivateKey")
 
     # this function checks the domain names match a simple regex
-    domain_names = utils.domains_from_list(domain_names)
+    domain_names = domains_challenged.domains_as_list
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for _domain_name in domain_names:
@@ -782,10 +781,13 @@ def api_domains__certificate_if_needed(
             _logger_args["dbServerCertificate"] = _dbServerCertificate
         else:
             try:
+                _domains_challenged__single = model_utils.DomainsChallenged.new_http01(
+                    [_domain_name,]
+                )
                 dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__new(
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW__CIN,
-                    domains_challenged=domains_challenged,
+                    domains_challenged=_domains_challenged__single,
                     private_key_cycle__renewal=private_key_cycle__renewal,
                     private_key_strategy__requested=private_key_strategy__requested,
                     processing_strategy=processing_strategy,

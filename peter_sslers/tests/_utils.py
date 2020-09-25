@@ -276,11 +276,17 @@ TEST_FILES = {
     },
     "AcmeOrderless": {
         "new-1": {
-            "domains": ["acme-orderless-1.example.com", "acme-orderless-2.example.com"],
+            "domain_names_http01": [
+                "acme-orderless-1.example.com",
+                "acme-orderless-2.example.com",
+            ],
             "AcmeAccount": None,
         },
         "new-2": {
-            "domains": ["acme-orderless-1.example.com", "acme-orderless-2.example.com"],
+            "domain_names_http01": [
+                "acme-orderless-1.example.com",
+                "acme-orderless-2.example.com",
+            ],
             "AcmeAccount": {
                 "type": "upload",
                 "private_key_cycling": "single_certificate",
@@ -298,7 +304,7 @@ TEST_FILES = {
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
-                "domain_names": [
+                "domain_names_http01": [
                     "new-freeform-1-a.example.com",
                     "new-freeform-1-b.example.com",
                 ],
@@ -312,7 +318,7 @@ TEST_FILES = {
                 "account__contact": "AcmeAccountKey-1@example.com",
                 "private_key_cycle": "account_daily",
                 "private_key_option": "private_key_for_account_key",
-                "domain_names": [
+                "domain_names_http01": [
                     "new-freeform-1-c.example.com",
                     "new-freeform-1-d.example.com",
                 ],
@@ -395,7 +401,13 @@ TEST_FILES = {
                 "add": "qadd1.example.com, qadd2.example.com, qadd3.example.com",
                 "add.json": "qaddjson1.example.com, qaddjson2.example.com, qaddjson3.example.com",
             },
-        }
+        },
+        "AcmeDnsServer": {
+            "1": {
+                "ensure-domains.html": "ensure1-html.example.com, ensure2-html.example.com, ensure1.example.com",
+                "ensure-domains.json": "ensure1-json.example.com, ensure2-json.example.com, ensure1.example.com",
+            },
+        },
     },
     "PrivateKey": {
         "1": {
@@ -1106,6 +1118,9 @@ class AppTest(AppTestCore):
                     accountkey_thumbprint="accountkey_thumbprint"
                 )
 
+                _domains_challenged = model_utils.DomainsChallenged.new_http01(
+                    _dbUniqueFQDNSet_1.domains_as_list
+                )
                 _dbAcmeOrder_1 = db.create.create__AcmeOrder(
                     self.ctx,
                     acme_order_response=_acme_order_response,
@@ -1119,6 +1134,7 @@ class AppTest(AppTestCore):
                     dbEventLogged=_dbAcmeEventLog,
                     dbPrivateKey=_dbPrivateKey_1,
                     dbUniqueFQDNSet=_dbUniqueFQDNSet_1,
+                    domains_challenged=_domains_challenged,
                     transaction_commit=True,
                 )
 
@@ -1174,9 +1190,12 @@ class AppTest(AppTestCore):
                 )
 
                 # note: pre-populate AcmeOrderless
+                _domains_challenged = model_utils.DomainsChallenged.new_http01(
+                    ["acme-orderless.example.com",]
+                )
                 dbAcmeOrderless = db.create.create__AcmeOrderless(
                     self.ctx,
-                    domain_names=("acme-orderless.example.com",),
+                    domains_challenged=_domains_challenged,
                     dbAcmeAccount=None,
                 )
 

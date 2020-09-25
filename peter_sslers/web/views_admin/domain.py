@@ -14,6 +14,7 @@ import sqlalchemy
 # localapp
 from .. import lib
 from ..lib import formhandling
+from ..lib import form_utils as form_utils
 from ..lib.forms import Form_Domain_mark
 from ..lib.forms import Form_Domain_new
 from ..lib.forms import Form_Domain_search
@@ -242,21 +243,10 @@ class View_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            try:
-                # this function checks the domain names match a simple regex
-                domain_names = utils.domains_from_string(
-                    formStash.results["domain_name"]
-                )
-            except ValueError as exc:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="invalid domain names detected"
-                )
-            if len(domain_names) != 1:
-                formStash.fatal_field(
-                    field="domain_names", message="detected more than one domain name"
-                )
-            domain_name = domain_names[0]
+            domains_challenged = form_utils.form_single_domain_challenge_typed(
+                self.request, formStash, challenge_type="http-01"
+            )
+            domain_name = domains_challenged["http-01"][0]
 
             # TODO: check the queue
             (

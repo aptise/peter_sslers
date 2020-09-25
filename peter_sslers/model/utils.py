@@ -757,10 +757,18 @@ class DomainsChallenged(dict):
 
     def ensure_parity(self, domains_to_test):
         """raise a ValueError if we do not have the exact set of domains"""
-        domain_names = self.domains_as_list
+        if not isinstance(domains_to_test, list):
+            raise ValueErrr("`domains_to_test` must be a list")
         domains_to_test = sorted(domains_to_test)
+        domain_names = self.domains_as_list
         if domain_names != domains_to_test:
             raise ValueError("`%s` != `%s`" % (domain_names, domains_to_test))
+
+    @classmethod
+    def new_http01(cls, domains_list):
+        _domains_challenged = DomainsChallenged()
+        _domains_challenged["http-01"] = domains_list
+        return _domains_challenged
 
     def ENSURE_DEFAULT_HTTP01(self):
         # default challenge type is http-01

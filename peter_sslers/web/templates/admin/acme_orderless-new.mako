@@ -40,7 +40,7 @@
 
                 <div class="form-group">
                     <label for="f1-domain_names">Domain Names</label>
-                    <textarea class="form-control" rows="3" name="domain_names" id="f1-domain_names"></textarea>
+                    <textarea class="form-control" rows="3" name="domain_names_http01" id="f1-domain_names"></textarea>
                     <p class="help-block">enter domain_names above, separated by commas. <b>This should be EXACTLY what you typed in the LetsEncrypt Certbot client.</p>
                 </div>
 

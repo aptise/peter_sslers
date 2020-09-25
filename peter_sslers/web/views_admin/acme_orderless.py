@@ -95,11 +95,11 @@ class View_New(Handler):
         if self.request.wants_json:
             return {
                 "instructions": [
-                    """curl --form 'domain_names=@domain_names' 'account_key_option=none' %s/acme-orderless/new.json"""
+                    """curl --form 'domain_names_http01=@domain_names' 'account_key_option=none' %s/acme-orderless/new.json"""
                     % self.request.registry.settings["app_settings"]["admin_prefix"]
                 ],
                 "form_fields": {
-                    "domain_names": "a comma separated list of domain names",
+                    "domain_names_http01": "a comma separated list of domain names for http01 challenge",
                     "account_key_option": "How is the AcmeAccount specified?",
                     "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
                     "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
@@ -152,13 +152,9 @@ class View_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            # this function checks the domain names match a simple regex
-            domain_names = utils.domains_from_string(formStash.results["domain_names"])
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="missing valid domain names"
-                )
+            domains_challenged = form_utils.form_domains_challenge_typed(
+                self.request, formStash, http01_only=True,
+            )
 
             acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
                 self.request,
@@ -182,16 +178,15 @@ class View_New(Handler):
                 acmeAccountSelection.AcmeAccount = _dbAcmeAccount
 
             dbAcmeAccount = acmeAccountSelection.AcmeAccount
-
             try:
                 dbAcmeOrderless = lib_db.create.create__AcmeOrderless(
                     self.request.api_context,
-                    domain_names=domain_names,
+                    domains_challenged=domains_challenged,
                     dbAcmeAccount=dbAcmeAccount,
                 )
             except errors.AcmeDomainsBlocklisted as exc:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(field="domain_names", message=str(exc))
+                formStash.fatal_field(field="domain_names_http01", message=str(exc))
             except errors.AcmeDuplicateChallenges as exc:
                 # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
                 formStash.fatal_form(message=str(exc))

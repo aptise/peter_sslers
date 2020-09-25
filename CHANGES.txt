@@ -35,7 +35,6 @@
 
 
 
-
 0.4.0
 - 2020/08/06
 - Added routes for auditing certificate procurement

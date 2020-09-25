@@ -297,19 +297,10 @@ class ViewAdminApi_Domain(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            # this function checks the domain names match a simple regex
-            domain_names = utils.domains_from_string(formStash.results["domain_name"])
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_name", message="Found no domain names"
-                )
-            if len(domain_names) != 1:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_name",
-                    message="This endpoint currently supports only 1 domain name",
-                )
+            domains_challenged = form_utils.form_single_domain_challenge_typed(
+                self.request, formStash, challenge_type="http-01"
+            )
+            domain_name = domains_challenged["http-01"][0]
 
             acmeAccountSelection = form_utils.parse_AcmeAccountSelection(
                 self.request,
@@ -368,7 +359,7 @@ class ViewAdminApi_Domain(Handler):
 
             api_results = lib_db.actions.api_domains__certificate_if_needed(
                 self.request.api_context,
-                domain_names=domain_names,
+                domains_challenged=domains_challenged,
                 private_key_cycle__renewal=private_key_cycle__renewal,
                 private_key_strategy__requested=privateKeySelection.private_key_strategy__requested,
                 processing_strategy=processing_strategy,

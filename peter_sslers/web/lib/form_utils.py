@@ -480,13 +480,13 @@ def form_key_selection(request, formStash, require_contact=None):
     return (acmeAccountSelection, privateKeySelection)
 
 
-def form_domains_challenge_typed(request, formStash):
+def form_domains_challenge_typed(request, formStash, http01_only=False):
     domains_challenged = model_utils.DomainsChallenged()
     domain_names_all = []
     try:
         # 1: iterate over the submitted domains by segment
         for (target_, source_) in DOMAINS_CHALLENGED_FIELDS.items():
-            submitted_ = formStash.results[source_]
+            submitted_ = formStash.results.get(source_)
             if submitted_:
                 # this function checks the domain names match a simple regex
                 # it will raise a `ValueError("invalid domain")` on the first invalid domain
@@ -510,6 +510,18 @@ def form_domains_challenge_typed(request, formStash):
                 field="Error_Main",
                 message="a domain name can only be associated to one challenge type",
             )
+
+        # 4: maybe we only want http01 domains submitted?
+        if http01_only:
+            for (k, v) in domains_challenged.items():
+                if k == "http-01":
+                    continue
+                if v:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="Error_Main",
+                        message="only http-01 domains are accepted by this form",
+                    )
 
     except ValueError as exc:
         # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`

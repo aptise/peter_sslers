@@ -154,6 +154,7 @@ class AcmeAccount(Base, _Mixin_Timestamps_Pretty):
         "AcmeAccountKey",
         primaryjoin="and_(AcmeAccount.id==AcmeAccountKey.acme_account_id, AcmeAccountKey.is_active.is_(True))",
         uselist=False,
+        viewonly=True,  # the `AcmeAccountKey.is_active` join complicates things
     )
     acme_account_keys_all = sa_orm_relationship(
         "AcmeAccountKey",
@@ -516,7 +517,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     wildcard = sa.Column(sa.Boolean, nullable=True, default=None)
 
     # the RFC does not explicitly tie an AcmeAuthorization to a single AcmeOrder
-    # this is only used to quickly grab an AcmeAccount for an Authoriztion
+    # this is only used to easily grab an AcmeAccount
     acme_order_id__created = sa.Column(
         sa.Integer, sa.ForeignKey("acme_order.id", use_alter=True), nullable=False,
     )
@@ -554,6 +555,7 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         % model_utils.AcmeChallengeType.from_string("tls-alpn-01"),
         uselist=False,
     )
+    # this is only used to easily grab an AcmeAccount
     acme_order_created = sa_orm_relationship(
         "AcmeOrder",
         primaryjoin="AcmeAuthorization.acme_order_id__created==AcmeOrder.id",
@@ -930,6 +932,59 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self):
         return self._as_json()
+
+
+# ==============================================================================
+
+
+class AcmeChallengeCompeting(Base, _Mixin_Timestamps_Pretty):
+    # This is for tracking an EdgeCase
+    __tablename__ = "acme_challenge_competing"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+    domain_id = sa.Column(sa.Integer, sa.ForeignKey("domain.id"), nullable=True)
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    domain = sa_orm_relationship(
+        "Domain",
+        primaryjoin="AcmeChallengeCompeting.domain_id==Domain.id",
+        uselist=False,
+    )
+
+    acme_challenge_competing_2_acme_challenge = sa_orm_relationship(
+        "AcmeChallengeCompeting2AcmeChallenge",
+        primaryjoin="AcmeChallengeCompeting.id==AcmeChallengeCompeting2AcmeChallenge.acme_challenge_competing_id",
+        uselist=True,
+        back_populates="acme_challenge_competing",
+    )
+
+
+class AcmeChallengeCompeting2AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
+    __tablename__ = "acme_challenge_competing_2_acme_challenge"
+
+    acme_challenge_competing_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_challenge_competing.id"), primary_key=True
+    )
+    acme_challenge_id = sa.Column(
+        sa.Integer, sa.ForeignKey("acme_challenge.id"), primary_key=True
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    acme_challenge_competing = sa_orm_relationship(
+        "AcmeChallengeCompeting",
+        primaryjoin="AcmeChallengeCompeting2AcmeChallenge.acme_challenge_competing_id==AcmeChallengeCompeting.id",
+        uselist=False,
+        back_populates="acme_challenge_competing_2_acme_challenge",
+    )
+
+    acme_challenge = sa_orm_relationship(
+        "AcmeChallenge",
+        primaryjoin="AcmeChallengeCompeting2AcmeChallenge.acme_challenge_id==AcmeChallenge.id",
+        uselist=False,
+    )
 
 
 # ==============================================================================
@@ -1385,6 +1440,12 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
         uselist=False,
         back_populates="acme_orders",
     )
+    acme_order_submissions = sa_orm_relationship(
+        "AcmeOrderSubmission",
+        primaryjoin="AcmeOrder.id==AcmeOrderSubmission.acme_order_id",
+        uselist=True,
+        back_populates="acme_order",
+    )
     acme_order_2_acme_challenge_type_specifics = sa_orm_relationship(
         "AcmeOrder2AcmeChallengeTypeSpecific",
         primaryjoin="AcmeOrder.id==AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id",
@@ -1704,6 +1765,28 @@ class AcmeOrder(Base, _Mixin_Timestamps_Pretty):
     @property
     def as_json(self):
         return self._as_json()
+
+
+class AcmeOrderSubmission(Base):
+    """
+    Boulder (LetsEncrypt) may re-use the same AcmeOrder in certain situations.
+    Usually this is to:
+        * defend against buggy clients who submit multiple consecutive PENDING orders
+        * turn an INVALID order for a given Account + Unique Set of Domains into "PENDING"
+    """
+
+    __tablename__ = "acme_order_submission"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    acme_order_id = sa.Column(sa.Integer, sa.ForeignKey("acme_order.id"), nullable=True)
+    timestamp_created = sa.Column(sa.DateTime, nullable=False)
+
+    acme_order = sa_orm_relationship(
+        "AcmeOrder",
+        primaryjoin="AcmeOrderSubmission.acme_order_id==AcmeOrder.id",
+        uselist=False,
+        back_populates="acme_order_submissions",
+    )
 
 
 # ==============================================================================

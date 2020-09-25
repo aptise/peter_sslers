@@ -253,7 +253,7 @@ def queue_domains__process(
         try:
             domain_names = [d.domain_name for d in domainObjects]
 
-            raise ValueError("migrate to domains_challenged")
+            domains_challenged = model_utils.DomainsChallenged.new_http01(domain_names)
 
             # processing_strategy: AcmeOrder_ProcessingStrategy('create_order', 'process_single', 'process_multi')
             try:
