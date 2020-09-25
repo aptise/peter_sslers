@@ -416,7 +416,7 @@ class View_New(Handler):
             return {
                 "instructions": ["HTTP POST required",],
                 "form_fields": {
-                    "domain_names": "comma separated list of domain names",
+                    "domain_names_http01": "comma separated list of domain names for http01 validation",
                     "account_key_option": "How is the AcmeAccount specified?",
                     "account_key_reuse": "pem_md5 of the existing account key. Must/Only submit if `account_key_option==account_key_reuse`",
                     "account_key_global_default": "pem_md5 of the Global Default account key. Must/Only submit if `account_key_option==account_key_global_default`",
@@ -465,22 +465,9 @@ class View_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            try:
-                # this function checks the domain names match a simple regex
-                domain_names = utils.domains_from_string(
-                    formStash.results["domain_names"]
-                )
-            except ValueError as exc:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="invalid domain names detected"
-                )
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names",
-                    message="invalid or no valid domain names detected",
-                )
+            domains_challenged = form_utils.form_domains_challenge_typed(
+                self.request, formStash, http01_only=True,
+            )
 
             (acmeAccountSelection, privateKeySelection) = form_utils.form_key_selection(
                 self.request, formStash, require_contact=None,
@@ -491,18 +478,18 @@ class View_New(Handler):
             )
             try:
 
-                # this may raise errors.AcmeBlocklistedDomains
+                # this may raise errors.AcmeDomainsBlocklisted
                 (
                     dbUniqueFQDNSet,
                     is_created,
                 ) = lib_db.getcreate.getcreate__UniqueFQDNSet__by_domains(
                     self.request.api_context,
-                    domain_names,
+                    domains_challenged.domains_as_list,
                     allow_blocklisted_domains=False,
                 )
 
-            except errors.AcmeBlocklistedDomains as exc:
-                formStash.fatal_field(field="domain_names", message=str(exc))
+            except errors.AcmeDomainsBlocklisted as exc:
+                formStash.fatal_field(field="Error_Main", message=str(exc))
 
             try:
                 dbQueueCertificate = lib_db.create.create__QueueCertificate(

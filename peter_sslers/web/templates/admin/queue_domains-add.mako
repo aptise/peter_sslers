@@ -39,7 +39,7 @@
                 <% form = request.pyramid_formencode_classic.get_form() %>
                 ${form.html_error_main_fillable()|n}
 
-                ${admin_partials.formgroup__domain_names()}
+                ${admin_partials.formgroup__domain_names(specify_challenge=True, http01_only=True)}
                 <hr/>
 
                 <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-upload"></span> Submit</button>

@@ -242,7 +242,9 @@ class View_Focus(Handler):
         if self.request.wants_json:
             return {
                 "instructions": ["HTTP POST required",],
-                "form_fields": {"domains": "A comma separated list of domain names"},
+                "form_fields": {
+                    "domain_names": "A comma separated list of domain names"
+                },
                 "notes": [],
                 "valid_options": {},
             }
@@ -368,7 +370,9 @@ class View_Focus(Handler):
             if not _AcmeDnsServerAccountIds:
                 raise ValueError("missing `acme-dns-server-accounts`")
             if len(_AcmeDnsServerAccountIds) > 100:
-                raise ValueError("More than 100 AcmeDnsServerAccounts specified; this is not allowed.")
+                raise ValueError(
+                    "More than 100 AcmeDnsServerAccounts specified; this is not allowed."
+                )
             dbAcmeDnsServerAccounts = lib_db.get.get__AcmeDnsServerAccounts__by_ids(
                 self.request.api_context, _AcmeDnsServerAccountIds
             )

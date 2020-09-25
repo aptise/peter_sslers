@@ -135,6 +135,14 @@ def get__AcmeAccount__GlobalDefault(ctx, active_only=None):
     return item
 
 
+def get__AcmeAccount__by_account_url(ctx, account_url):
+    q = ctx.dbSession.query(model_objects.AcmeAccount).filter(
+        model_objects.AcmeAccount.account_url == account_url
+    )
+    item = q.first()
+    return item
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -242,6 +250,7 @@ def get__AcmeAuthorizations__by_ids(ctx, item_ids, acme_account_id=None):
         model_objects.AcmeAuthorization.id.in_(item_ids)
     )
     if acme_account_id is not None:
+        # use the acme_order_id__created to filter down to the account
         q = q.join(
             model_objects.AcmeOrder,
             model_objects.AcmeAuthorization.acme_order_id__created
@@ -469,7 +478,7 @@ def get__AcmeChallenges__by_DomainId__active(
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param domain_id: (required) An id for an instance of :class:`model.objects.Domain`
     :param acme_challenge_type_id: (optional) A specific type of challenge, referencing :class:`model.utils.AcmeChallengeType`
-    
+
     returns: list
 
     AcmeStatus Codes
@@ -870,6 +879,14 @@ def get__AcmeOrder__paginated(ctx, active_only=None, limit=None, offset=0):
 def get__AcmeOrder__by_id(ctx, order_id, eagerload_web=False):
     q = ctx.dbSession.query(model_objects.AcmeOrder).filter(
         model_objects.AcmeOrder.id == order_id
+    )
+    item = q.first()
+    return item
+
+
+def get__AcmeOrder__by_order_url(ctx, order_url):
+    q = ctx.dbSession.query(model_objects.AcmeOrder).filter(
+        model_objects.AcmeOrder.order_url == order_url
     )
     item = q.first()
     return item

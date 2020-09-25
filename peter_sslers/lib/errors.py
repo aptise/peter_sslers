@@ -68,6 +68,47 @@ class AcmeError(_UrlSafeException):
     pass
 
 
+class AcmeDuplicateAccount(AcmeError):
+    """
+    args[0] MUST be the duplicate AcmeAccount
+    """
+
+    pass
+
+
+class AcmeDuplicateChallenges(AcmeError):
+    pass
+
+
+class AcmeDuplicateChallengesExisting(AcmeDuplicateChallenges):
+    """the first arg should be a list of the active challenges"""
+
+    def __str__(self):
+        return (
+            """One or more domains already have active challenges: %s."""
+            % ", ".join(
+                [
+                    "`%s` (%s)" % (ac.domain.domain_name, ac.acme_challenge_type)
+                    for ac in self.args[0]
+                ]
+            )
+        )
+
+
+class AcmeDuplicateChallenge(AcmeDuplicateChallenges):
+    """the first arg should be a single active challenge"""
+
+    def __str__(self):
+        return (
+            """This domain already has active challenges: `%s`."""
+            % self.args[0].domain.domain_name
+        )
+
+
+class AcmeDuplicateOrderlessDomain(AcmeDuplicateChallenges):
+    pass
+
+
 class AcmeServerError(AcmeError):
     pass
 
@@ -150,53 +191,27 @@ class AcmeMissingChallenges(AcmeError):
     pass
 
 
-class AcmeInvalidDomains(AcmeError):
+class AcmeChallengeFailure(AcmeError):
+    pass
+
+
+class AcmeDomainsInvalid(AcmeError):
     def __str__(self):
         return "The following Domains are invalid: {0}".format(", ".join(self.args[0]))
 
 
-class AcmeBlocklistedDomains(AcmeInvalidDomains):
+class AcmeDomainsBlocklisted(AcmeDomainsInvalid):
     def __str__(self):
         return "The following Domains are blocklisted: {0}".format(
             ", ".join(self.args[0])
         )
 
 
-class AcmeDuplicateChallenges(AcmeError):
-    pass
-
-
-class AcmeDuplicateOrderlessDomain(AcmeDuplicateChallenges):
-    pass
-
-
-class AcmeDuplicateChallengesExisting(AcmeDuplicateChallenges):
-    """the first arg should be a list of the active challenges"""
-
+class AcmeDomainsRequireConfigurationAcmeDNS(AcmeDomainsInvalid):
     def __str__(self):
-        return (
-            """One or more domains already have active challenges: %s."""
-            % ", ".join(
-                [
-                    "`%s` (%s)" % (ac.domain.domain_name, ac.acme_challenge_type)
-                    for ac in self.args[0]
-                ]
-            )
+        return "The following Domains are not configured with ACME-DNS: {0}".format(
+            ", ".join(self.args[0])
         )
-
-
-class AcmeDuplicateChallenge(AcmeDuplicateChallenges):
-    """the first arg should be a single active challenge"""
-
-    def __str__(self):
-        return (
-            """This domain already has active challenges: `%s`."""
-            % self.args[0].domain.domain_name
-        )
-
-
-class AcmeChallengeFailure(AcmeError):
-    pass
 
 
 class DomainVerificationError(AcmeError):

@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-orders">AcmeOrder</a></li>
+        <li><a href="${admin_prefix}/acme-orders/all">AcmeOrders</a></li>
         <li class="active">Focus [${AcmeOrder.id}]</li>
     </ol>
 </%block>
@@ -451,6 +451,32 @@
                             </a>
                             <br/>
                             <code>${', '.join(AcmeOrder.domains_as_list)}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Preferred Challenges</th>
+                        <td>
+                            <em>http-01 is the default challenge, and will be used for all domains not specified below</em>
+                            % if not AcmeOrder.acme_order_2_acme_challenge_type_specifics:
+                                No preferred challenges.
+                            % else:
+                                <table class="table table-striped table-condensed">
+                                    <thead>
+                                        <tr>
+                                            <th>Domain</th>
+                                            <th>ACME Challenge</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        % for spec in AcmeOrder.acme_order_2_acme_challenge_type_specifics:
+                                            <tr>
+                                                <td><code>${spec.domain.domain_name}</code></td>
+                                                <td><code>${spec.acme_challenge_type}</code></td>
+                                            </tr>
+                                        % endfor
+                                    </tbody>
+                                </table>
+                            % endif
                         </td>
                     </tr>
                     <tr>

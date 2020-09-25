@@ -194,14 +194,6 @@ def _admin_views(config):
         "admin:acme_authorization:focus:acme_server:sync|json",
         "/acme-authorization/{@id}/acme-server/sync.json",
     )
-    config.add_route_7(
-        "admin:acme_authorization:focus:acme_server:trigger",
-        "/acme-authorization/{@id}/acme-server/trigger",
-    )
-    config.add_route_7(
-        "admin:acme_authorization:focus:acme_server:trigger|json",
-        "/acme-authorization/{@id}/acme-server/trigger.json",
-    )
 
     # !!!: AcmeChallenge
     config.add_route_7("admin:acme_challenges", "/acme-challenges")

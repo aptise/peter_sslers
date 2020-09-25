@@ -1,21 +1,61 @@
 0.4.1-dev
-	unreleased
-	added endpoint to enroll domains into acme-dns in preparation of an AcmeOrder
+    unreleased
+    Changes:
+		The following now accepts a dict-like object ``utils.DomainsChallenged`` in a `domains_challeged` kwarg, instead of `domains`
+			`do__AcmeV2_AcmeOrder__new()`
+			`api_domains__certificate_if_needed()`
+		added endpoint to enroll domains into acme-dns in preparation of an AcmeOrder
+    Model changes
+		Support for specifying the AcmeChallenge on orders:
+			new obj: `model.objects.AcmeOrder2AcmeChallengeTypeSpecific`
+			new rel: `model.objects.AcmeOrder.acme_order_2_acme_challenge_type_specifics`
+			new rel: `model.objects.Domain.acme_order_2_acme_challenge_type_specifics`
+	        new rel: `model.objects.AcmeAuthorization.acme_order_2_acme_challenge_type_specifics`
+        	new rel: `model.objects.AcmeChallenge.acme_order_2_acme_challenge_type_specifics`
+    Bugfixes:
+	    Fixed legacy links to `/acme/orders` with the updated ``/acme/orders/all`
+		There were several undocumented differences between the Pebble and Boulder servers.
+	        This library was developed against the Pebble ACME test server from LetsEncrypt.
+			Boulder is the ACME production server from LetsEncrypt.
+    Improvements:
+    	/admin/acme-challenge/{ID}/acme-server/trigger now requires a TOKEN to be submitted if the server can not answer the challenge
+			This will never be needed for http-01;
+			it is only needed for:
+				* dns-01 for a domain without an acme-dns account
+				* tls-alpn-01
+		Removed "Trigger" action from Authorization
+			A Challenge should be triggered, as an order may want a specific challenge type
+			Removals:
+				lib.db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger
+				web.views_admin.acme_authorization.acme_server_trigger
+				route_name="admin:acme_authorization:focus:acme_server:trigger"
+				route_name="admin:acme_authorization:focus:acme_server:trigger|json"
+				"/acme-authorization/{@id}/acme-server/trigger"
+				"/acme-authorization/{@id}/acme-server/trigger.json"
+		Tracking the submission of AcmeOrders in `AcmeOrderSubmission`
+			This is because Boulder may reuse identical orders:
+				1. duplicate pending
+				2. transitioning "invalid" back to "valid"
+			This is likely handled by the AcmeEvents log and may be removed in the future
+		Added a 'deduplication' routine to AcmeAccounts.
+			It is possible we try to register a new account with information already known to the acme server. In this situation, the "new" account key we submitted should be merged onto the existing acme account.
+	+ other fixes and improvements
+			
 
 0.4.0
 - 2020/08/06
 - Added routes for auditing certificate procurement
-	`/acme-order/{ID}/audit`
-	`/acme-order/{ID}/audit.json`
+    `/acme-order/{ID}/audit`
+    `/acme-order/{ID}/audit.json`
 - tests for PrivateKey cycling
 - renamed form fields for clarity:
-	- "private_key_cycle" -> "account_key__private_key_cycle"
-	- "contact" -> "account__contact"
+    - "private_key_cycle" -> "account_key__private_key_cycle"
+    - "contact" -> "account__contact"
 - added "resolved" AcmeChallenge search
 - added "processing" AcmeChallenge search
 - updated config validation on:
-	`queue_domains_min_per_cert`
-	`queue_domains_max_per_cert`
+    `queue_domains_min_per_cert`
+    `queue_domains_max_per_cert`
 - removed "returned" exception objects, which were a terrible idea
 - updated (json.dumps) to use `sort_keys=True` as needed
 - (queue-domains/process(.json)?) working and tested
@@ -24,30 +64,30 @@
 - creating queue-certificates/structured largely done
 - consolidated domain blacklist checks to a new `validate` file
 - split AcmeAccountKey into AcmeAccount+AcmeAccountKey to support key cycling/rollover (in the future)
-	- "account_key__private_key_cycle" -> "account__private_key_cycle"
-	AcmeOrder: 
-		acme_account_key_id -> acme_account_id
-		acme_account_key -> acme_account
-	ServerCertificate: 
-		acme_account_key_id -> acme_account_id
-		acme_account_key -> acme_account
-	QueueCertificate: 
-		acme_account_key_id -> acme_account_id
-		acme_account_key -> acme_account
-	AcmeOrderless: 
-		acme_account_key_id -> acme_account_id
-		acme_account_key -> acme_account
-	OperationsObjectEvent
-		acme_account_key_id -> acme_account_id
-		acme_account_key -> acme_account
-	PrivateKey
-		acme_account_key_id__owner -> acme_account_id__owner
-		acme_account_key__owner -> acme_account__owner
-	AcmeEventLog
-		acme_account_key_id -> acme_account_id
-		acme_account_key -> acme_account
-	AcmeAccountProvider
-		acme_account_keys -> acme_accounts
+    - "account_key__private_key_cycle" -> "account__private_key_cycle"
+    AcmeOrder:
+        acme_account_key_id -> acme_account_id
+        acme_account_key -> acme_account
+    ServerCertificate:
+        acme_account_key_id -> acme_account_id
+        acme_account_key -> acme_account
+    QueueCertificate:
+        acme_account_key_id -> acme_account_id
+        acme_account_key -> acme_account
+    AcmeOrderless:
+        acme_account_key_id -> acme_account_id
+        acme_account_key -> acme_account
+    OperationsObjectEvent
+        acme_account_key_id -> acme_account_id
+        acme_account_key -> acme_account
+    PrivateKey
+        acme_account_key_id__owner -> acme_account_id__owner
+        acme_account_key__owner -> acme_account__owner
+    AcmeEventLog
+        acme_account_key_id -> acme_account_id
+        acme_account_key -> acme_account
+    AcmeAccountProvider
+        acme_account_keys -> acme_accounts
 - dropped the text_library
 - consolidate `standard_error_display` into `handle_querystring_result`
 - sketching out some acme-dns support
@@ -59,26 +99,26 @@
 - removed cert_subject_hash, cert_issuer_hash
 -- they were neat, but not very useful and the openssl/bindings showed different info
 - Server/CA Certificate fieldname changes to reflect certificate terminology:
-	- timestamp_signed > timestamp_not_before
-	- timestamp_expires > timestamp_not_after
+    - timestamp_signed > timestamp_not_before
+    - timestamp_expires > timestamp_not_after
 - ServerCertificate: track private-key requested
 - Challenges removed from an AcmeAuthorization will now show a status of "*410*" (gone)
 - Deactivating an AcmeAuthorization will update the AcmeChallenges (most likely to "*410*")
 - Deactivating an AcmeAuthorization will update the AcmeOrder to "invalid"
 - support for LetsEncrypt bugs where an order is "deactivated" not "invalid"
-- added test for "x-Peter-SSLers" custom header 
+- added test for "x-Peter-SSLers" custom header
 - added test for AcmeOrder
-	- mark renew_auto
-	- mark renew_manual
+    - mark renew_auto
+    - mark renew_manual
 - added routes:
-	"admin:api:domain:autocert", "/api/domain/autocert"
-		html docs/info
-	"admin:api:domain:autocert|json", "/api/domain/autocert.json"
-		get: self documenting
-		post: process
-		- just accepts a single domain,
-		- run the entire ACME process using the global account key in a single request
-		- returns an openresty config payload
+    "admin:api:domain:autocert", "/api/domain/autocert"
+        html docs/info
+    "admin:api:domain:autocert|json", "/api/domain/autocert.json"
+        get: self documenting
+        post: process
+        - just accepts a single domain,
+        - run the entire ACME process using the global account key in a single request
+        - returns an openresty config payload
 - autocert support
 - added routes to update recents for a domain and fqdnset
 - standardize url_template for json as just adding '.json' instead of calculating a whole new one
@@ -95,9 +135,9 @@ unreleased (2020-01-23)
 - removed support for ACME v1
 - added `pyproject.yaml`
 - Python3 support
-	- most file usage moved to context managers
-	- subprocess.Popen replaced now wrapped in context manager
-	- subprocess.Popen replaced with psutil.Popen, which provides a contextmanger on Python2
+    - most file usage moved to context managers
+    - subprocess.Popen replaced now wrapped in context manager
+    - subprocess.Popen replaced with psutil.Popen, which provides a contextmanger on Python2
 - several changes to the database design; please start with a new database
 - standardizes newlines for storage
 - reorganized code, so Pyramid App is now a sub-package
@@ -148,9 +188,9 @@ unreleased (2020-01-23)
 - SQLITE Check
     PRAGMA table_info(ssl_private_key);
     PRAGMA table_info(ssl_queue_renewal);
-	PRAGMA table_info(ssl_certificate_request);
-	PRAGMA table_info(ssl_server_certificate);
-	PRAGMA table_info(ssl_operations_object_event);
+    PRAGMA table_info(ssl_certificate_request);
+    PRAGMA table_info(ssl_server_certificate);
+    PRAGMA table_info(ssl_operations_object_event);
 
 - centralized some json list views into the main views
 - centralized json representation into the model. used as_json instead of the encoder hook for now.
@@ -182,9 +222,9 @@ unreleased (2020-01-23)
 - you MUST set `certificate_authority_agreement = 'https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf'` in the settings in order to agree. Otherwise this will fail.
 - used pyramid's @reify to memoize some @property items in the model
 - the following items now use the actual endpoint for the account:
-	acme_register_account
-	acme_verify_domains
-	acme_sign_certificate
+    acme_register_account
+    acme_verify_domains
+    acme_sign_certificate
 - system should configure based on acme provider, not url
 - update account/key authentication system to hit the right endpoint for the actual account
 - renamed `getcreate__SslAcmeAccountKey__by_pem_text` to `getcreate__SslAcmeAccountKey`
@@ -210,7 +250,7 @@ unreleased (2020-01-23)
 * fqdn renewal in addition to certificate renewal
 * the queue-renewals works on fqdns, not just certificates
 * account-key auth can happen at any time; also via json
-* tests - api_events	
+* tests - api_events    
 * search for pending validations
 
 
@@ -257,8 +297,8 @@ unreleased (2020-01-23)
 0.1
 ---
 -  Added a request param `request.api_context` and replaced passing around the raw dbSession with the context object
-	At this point the context object merely contains a dbSession, timestamp, and some information about the current api transactions
-	Any object that implements this interface can be used.
+    At this point the context object merely contains a dbSession, timestamp, and some information about the current api transactions
+    Any object that implements this interface can be used.
 
 
 0.0

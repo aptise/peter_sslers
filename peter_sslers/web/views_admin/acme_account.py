@@ -244,15 +244,32 @@ class View_New(Handler):
             key_create_args[
                 "acme_account_key_source_id"
             ] = model_utils.AcmeAccountKeySource.from_string("generated")
-            (dbAcmeAccount, _is_created,) = lib_db.getcreate.getcreate__AcmeAccount(
-                self.request.api_context, **key_create_args
-            )
 
-            # result is either: `new-account` or `existing-account`
-            # failing will raise an exception
-            authenticatedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_register(
-                self.request.api_context, dbAcmeAccount
-            )
+            dbAcmeAccount = None
+            _dbAcmeAccount = None
+            try:
+                (
+                    _dbAcmeAccount,
+                    _is_created,
+                ) = lib_db.getcreate.getcreate__AcmeAccount(
+                    self.request.api_context, **key_create_args
+                )
+
+                # result is either: `new-account` or `existing-account`
+                # failing will raise an exception
+                authenticatedUser = lib_db.actions_acme.do__AcmeAccount_AcmeV2_register(
+                    self.request.api_context, _dbAcmeAccount
+                )
+                dbAcmeAccount = _dbAcmeAccount
+            except errors.AcmeDuplicateAccount as exc:
+                # args[0] MUST be the duplicate AcmeAccount
+                _dbAcmeAccountDuplicate = exc.args[0]
+                # the 'Duplicate' account was the earlier account and therefore
+                # it is our merge Target
+                lib_db.update.update_AcmeAccount_from_new_duplicate(
+                    self.request.api_context, _dbAcmeAccountDuplicate, _dbAcmeAccount
+                )
+                dbAcmeAccount = _dbAcmeAccountDuplicate
 
             if self.request.wants_json:
                 return {

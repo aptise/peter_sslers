@@ -3,6 +3,7 @@ import six
 
 # local
 from ...lib import db as lib_db
+from ...lib import utils
 from ...model import objects as model_objects
 from ...model import utils as model_utils
 from . import formhandling
@@ -20,6 +21,13 @@ def decode_args(getcreate_args):
             if isinstance(v, bytes):
                 getcreate_args[k] = v.decode("utf8")
     return getcreate_args
+
+
+# standardized mapping for `model_utils.DomainsChallenged` to a formStash
+DOMAINS_CHALLENGED_FIELDS = {
+    "http-01": "domain_names_http01",
+    "dns-01": "domain_names_dns01",
+}
 
 
 class AcmeAccountUploadParser(object):
@@ -470,3 +478,75 @@ def form_key_selection(request, formStash, require_contact=None):
         privateKeySelection.PrivateKey = dbPrivateKey
 
     return (acmeAccountSelection, privateKeySelection)
+
+
+def form_domains_challenge_typed(request, formStash, http01_only=False):
+    domains_challenged = model_utils.DomainsChallenged()
+    domain_names_all = []
+    try:
+        # 1: iterate over the submitted domains by segment
+        for (target_, source_) in DOMAINS_CHALLENGED_FIELDS.items():
+            submitted_ = formStash.results.get(source_)
+            if submitted_:
+                # this function checks the domain names match a simple regex
+                # it will raise a `ValueError("invalid domain")` on the first invalid domain
+                submitted_ = utils.domains_from_string(submitted_)
+                if submitted_:
+                    domain_names_all.extend(submitted_)
+                    domains_challenged[target_] = submitted_
+
+        # 2: ensure there are domains
+        if not domain_names_all:
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="Error_Main", message="no domain names submitted",
+            )
+
+        # 3: ensure there is no overlap
+        domain_names_all_set = set(domain_names_all)
+        if len(domain_names_all) != len(domain_names_all_set):
+            # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+            formStash.fatal_field(
+                field="Error_Main",
+                message="a domain name can only be associated to one challenge type",
+            )
+
+        # 4: maybe we only want http01 domains submitted?
+        if http01_only:
+            for (k, v) in domains_challenged.items():
+                if k == "http-01":
+                    continue
+                if v:
+                    # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+                    formStash.fatal_field(
+                        field="Error_Main",
+                        message="only http-01 domains are accepted by this form",
+                    )
+
+    except ValueError as exc:
+        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_field(
+            field="Error_Main", message="invalid domain names detected"
+        )
+
+    return domains_challenged
+
+
+def form_single_domain_challenge_typed(request, formStash, challenge_type="http-01"):
+    domains_challenged = model_utils.DomainsChallenged()
+
+    # this function checks the domain names match a simple regex
+    domain_names = utils.domains_from_string(formStash.results["domain_name"])
+    if not domain_names:
+        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_field(field="domain_name", message="Found no domain names")
+    if len(domain_names) != 1:
+        # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
+        formStash.fatal_field(
+            field="domain_name",
+            message="This endpoint currently supports only 1 domain name",
+        )
+
+    domains_challenged[challenge_type] = domain_names
+
+    return domains_challenged

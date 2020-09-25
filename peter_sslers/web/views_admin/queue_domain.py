@@ -119,8 +119,8 @@ class View_New(Handler):
     def _add__print(self):
         if self.request.wants_json:
             return {
-                "instructions": """POST `domain_names""",
-                "form_fields": {"domain_names": "required"},
+                "instructions": """POST `domain_names_http01""",
+                "form_fields": {"domain_names_http01": "required"},
             }
         return render_to_response("/admin/queue_domains-add.mako", {}, self.request)
 
@@ -132,16 +132,12 @@ class View_New(Handler):
             if not result:
                 raise formhandling.FormInvalid()
 
-            # this function checks the domain names match a simple regex
-            domain_names = utils.domains_from_string(formStash.results["domain_names"])
-            if not domain_names:
-                # `formStash.fatal_field()` will raise `FormFieldInvalid(FormInvalid)`
-                formStash.fatal_field(
-                    field="domain_names", message="Found no domain names"
-                )
+            domains_challenged = form_utils.form_domains_challenge_typed(
+                self.request, formStash, http01_only=True,
+            )
 
             queue_results = lib_db.queues.queue_domains__add(
-                self.request.api_context, domain_names
+                self.request.api_context, domains_challenged["http-01"]
             )
 
             if self.request.wants_json:

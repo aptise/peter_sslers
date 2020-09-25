@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # logging
 import logging
 
@@ -5,11 +7,13 @@ log = logging.getLogger(__name__)
 
 # stdlib
 import datetime
+import pdb
 
 # pypi
 from dateutil import parser as dateutil_parser
 
 # localapp
+from ...model import objects as model_objects
 from ...model import utils as model_utils
 from ...lib import errors
 from ... import lib
@@ -51,6 +55,101 @@ def update_AcmeAccountProvider__set_is_enabled(ctx, dbAcmeAccountProvider):
     return event_status
 
 
+def update_AcmeAccount_from_new_duplicate(
+    ctx, dbAcmeAccountTarget, dbAcmeAccountDuplicate
+):
+    """
+    Invoke this to migrate the duplicate `AcmeAccount`'s information onto the original account
+    
+    ONLY INVOKE THIS ON A NEWLY CREATED DUPLICATE
+
+    Account Fields:
+        - account_url
+        - terms_of_service
+    """
+    if dbAcmeAccountTarget.id == dbAcmeAccountDuplicate.id:
+        raise ValueError("The Target and Duplicate `AcmeAccount` must be different")
+
+    # make sure this is the right provider
+    if (
+        dbAcmeAccountTarget.acme_account_provider_id
+        != dbAcmeAccountDuplicate.acme_account_provider_id
+    ):
+        raise ValueError(
+            "New Account `deduplication` requires a single `AcmeAccountProvider`"
+        )
+
+    with ctx.dbSession.no_autoflush:
+        print("Attempting to migrate the following:")
+        print("TARGET record:")
+        print(" dbAcmeAccountTarget.id", dbAcmeAccountTarget.id)
+        print(" dbAcmeAccountTarget.account_url", dbAcmeAccountTarget.account_url)
+        print(
+            " dbAcmeAccountTarget.acme_account_key.id",
+            dbAcmeAccountTarget.acme_account_key.acme_account_id,
+        )
+        print("SOURCE record:")
+        print(" dbAcmeAccountDuplicate.id", dbAcmeAccountDuplicate.id)
+        print(" dbAcmeAccountDuplicate.account_url", dbAcmeAccountDuplicate.account_url)
+        print(
+            " dbAcmeAccountDuplicate.acme_account_key.id",
+            dbAcmeAccountDuplicate.acme_account_key.acme_account_id,
+        )
+
+        # stash & clear the account_url
+        account_url = dbAcmeAccountDuplicate.account_url
+        dbAcmeAccountDuplicate.account_url = None
+        ctx.dbSession.flush([dbAcmeAccountDuplicate])
+
+        # Migrate the Account fields:
+        dbAcmeAccountTarget.account_url = account_url
+        dbAcmeAccountTarget.terms_of_service = dbAcmeAccountDuplicate.terms_of_service
+        ctx.dbSession.flush([dbAcmeAccountTarget])
+
+        # Migrate the AcmeAccountKey
+        # alias the keys
+        dbAcmeAccountKey_old = dbAcmeAccountTarget.acme_account_key
+        dbAcmeAccountKey_new = dbAcmeAccountDuplicate.acme_account_key
+        if not dbAcmeAccountKey_new.is_active:
+            raise ValueError(
+                "the Duplicate AcmeAccount's AcmeAccountKey should be active!"
+            )
+        # Step 1 - Disable the Target's OLD key
+        dbAcmeAccountKey_old.is_active = False
+
+        # Step 2: ReAssociate the NEW key
+        dbAcmeAccountKey_new.acme_account_id = dbAcmeAccountTarget.id
+        dbAcmeAccountTarget.acme_account_key = dbAcmeAccountKey_new
+        ctx.dbSession.flush()
+
+        # now, handle the OperationsObject logs:
+        # first, get all the logs for the Duplicate account
+        logs = (
+            ctx.dbSession.query(model_objects.OperationsObjectEvent)
+            .filter(
+                model_objects.OperationsObjectEvent.acme_account_id
+                == dbAcmeAccountDuplicate.id
+            )
+            .all()
+        )
+        for _log in logs:
+            if _log.acme_account_key_id == dbAcmeAccountKey_new.id:
+                # if the record references the new key, upgrade the account id to the Target
+                _log.acme_account_id = dbAcmeAccountTarget.id
+            elif _log.acme_account_key_id is None:
+                # if the record does not mention the key, it is safe to delete
+                ctx.dbSession.delete(_log)
+            else:
+                raise ValueError("this should not happen")
+        ctx.dbSession.flush()
+
+        # finally, delete the duplicate
+        ctx.dbSession.delete(dbAcmeAccountDuplicate)
+        ctx.dbSession.flush()
+
+    return True
+
+
 def update_AcmeAccount__set_active(ctx, dbAcmeAccount):
     if dbAcmeAccount.is_active:
         raise errors.InvalidTransition("Already activated.")
@@ -64,7 +163,7 @@ def update_AcmeAccount__unset_active(ctx, dbAcmeAccount):
         raise errors.InvalidTransition("Already deactivated.")
     if dbAcmeAccount.is_global_default:
         raise errors.InvalidTransition(
-            "You can not deactivate the global default. Make another AcmeAccount as the global default first."
+            "You can not deactivate the global default. Set another `AcmeAccount` as the global default first."
         )
     dbAcmeAccount.is_active = False
     event_status = "AcmeAccount__mark__inactive"
@@ -137,7 +236,7 @@ def update_AcmeAuthorization_from_payload(
         dbDomain = get__Domain__by_name(ctx, domain_name, preload=False)
         if not dbDomain:
             raise ValueError(
-                "this domain name has not been seen before. this should not be possible."
+                "This `Domain` name has not been seen before. This should not be possible."
             )
 
         if dbAcmeAuthorization.domain_id != dbDomain.id:
@@ -173,7 +272,7 @@ def update_AcmeDnsServer__unset_active(ctx, dbAcmeDnsServer):
         raise errors.InvalidTransition("Already deactivated.")
     if dbAcmeDnsServer.is_global_default:
         raise errors.InvalidTransition(
-            "You can not deactivate the global default. Make another AcmeDnsServer as the global default first."
+            "You can not deactivate the global default. Set another `AcmeDnsServer` as the global default first."
         )
     dbAcmeDnsServer.is_active = False
     ctx.dbSession.flush(objects=[dbAcmeDnsServer])
@@ -211,7 +310,7 @@ def update_AcmeDnsServer__root_url(ctx, dbAcmeDnsServer, root_url):
     dbAcmeDnsServerAlt = get__AcmeDnsServer__by_root_url(ctx, root_url)
     if dbAcmeDnsServerAlt:
         raise errors.InvalidTransition(
-            "Another acme-dns server is enrolled with this same root url."
+            "Another acme-dns Server is enrolled with this same root url."
         )
     dbAcmeDnsServer.root_url = root_url
     ctx.dbSession.flush(objects=[dbAcmeDnsServer])
@@ -224,7 +323,7 @@ def update_AcmeOrder_deactivate(ctx, dbAcmeOrder):
         `is_processing = False`
     """
     if dbAcmeOrder.is_processing is not True:
-        raise errors.InvalidTransition("This AcmeOrder is not processing.")
+        raise errors.InvalidTransition("This `AcmeOrder` is not processing.")
     dbAcmeOrder.is_processing = False
     dbAcmeOrder.timestamp_updated = ctx.timestamp
     ctx.dbSession.flush(objects=[dbAcmeOrder])
@@ -233,7 +332,7 @@ def update_AcmeOrder_deactivate(ctx, dbAcmeOrder):
 
 def update_AcmeOrder_set_renew_auto(ctx, dbAcmeOrder):
     if dbAcmeOrder.is_auto_renew:
-        raise errors.InvalidTransition("Can not mark this order for renewal.")
+        raise errors.InvalidTransition("Can not mark this `AcmeOrder` for renewal.")
     # set the renewal
     dbAcmeOrder.is_auto_renew = True
     # cleanup options
@@ -243,7 +342,7 @@ def update_AcmeOrder_set_renew_auto(ctx, dbAcmeOrder):
 
 def update_AcmeOrder_set_renew_manual(ctx, dbAcmeOrder):
     if not dbAcmeOrder.is_auto_renew:
-        raise errors.InvalidTransition("Can not unmark this order for renewal.")
+        raise errors.InvalidTransition("Can not unmark this `AcmeOrder` for renewal.")
     # unset the renewal
     dbAcmeOrder.is_auto_renew = False
     # cleanup options
@@ -363,7 +462,7 @@ def update_DomainAutocert_with_AcmeOrder(
     ctx, dbDomainAutocert, dbAcmeOrder=None,
 ):
     if not dbAcmeOrder:
-        raise errors.InvalidTransition("missing AcmeOrder")
+        raise errors.InvalidTransition("missing `AcmeOrder`")
     dbDomainAutocert.acme_order_id = dbAcmeOrder.id
     dbDomainAutocert.timestamp_finished = datetime.datetime.utcnow()
     if dbAcmeOrder.acme_status_order == "valid":

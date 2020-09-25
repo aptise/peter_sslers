@@ -627,7 +627,7 @@ def api_domains__disable(ctx, domain_names):
 
 def api_domains__certificate_if_needed(
     ctx,
-    domain_names,
+    domains_challenged,
     processing_strategy=None,
     private_key_cycle__renewal=None,
     private_key_strategy__requested=None,
@@ -638,7 +638,7 @@ def api_domains__certificate_if_needed(
     Adds Domains if needed
 
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
-    :param domain_names: (required) An iteratble list of domain names
+    :param domains_challenged: (required) An dict of ACME challenge types (keys) matched to a list of domain names
     :param processing_strategy: (required)  A value from :class:`model.utils.AcmeOrder_ProcessingStrategy`
     :param private_key_cycle__renewal: (required)  A value from :class:`model.utils.PrivateKeyCycle`
     :param private_key_strategy__requested: (required)  A value from :class:`model.utils.PrivateKeyStrategy`
@@ -659,6 +659,7 @@ def api_domains__certificate_if_needed(
         2016: 'ApiDomains__certificate_if_needed__certificate_new_success',
         2017: 'ApiDomains__certificate_if_needed__certificate_new_fail',
     """
+
     # validate this first!
     acme_order_processing_strategy_id = model_utils.AcmeOrder_ProcessingStrategy.from_string(
         processing_strategy
@@ -689,7 +690,7 @@ def api_domains__certificate_if_needed(
         raise errors.DisplayableError("missing PrivateKey")
 
     # this function checks the domain names match a simple regex
-    domain_names = utils.domains_from_list(domain_names)
+    domain_names = domains_challenged.domains_as_list
     results = {d: None for d in domain_names}
     _timestamp = dbOperationsEvent.timestamp_event
     for _domain_name in domain_names:
@@ -780,10 +781,13 @@ def api_domains__certificate_if_needed(
             _logger_args["dbServerCertificate"] = _dbServerCertificate
         else:
             try:
+                _domains_challenged__single = model_utils.DomainsChallenged.new_http01(
+                    [_domain_name,]
+                )
                 dbAcmeOrder = actions_acme.do__AcmeV2_AcmeOrder__new(
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_NEW__CIN,
-                    domain_names=domain_names,
+                    domains_challenged=_domains_challenged__single,
                     private_key_cycle__renewal=private_key_cycle__renewal,
                     private_key_strategy__requested=private_key_strategy__requested,
                     processing_strategy=processing_strategy,

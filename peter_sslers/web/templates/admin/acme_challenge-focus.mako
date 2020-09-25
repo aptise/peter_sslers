@@ -66,6 +66,14 @@
                                     <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
                                     Trigger ACME Server
                                 </button>
+                                % if AcmeChallenge.is_can_acme_server_trigger:
+                                    <p><em>${AcmeChallenge.challenge_instructions_short}</em></p>
+                                    % if not AcmeChallenge.is_configured_to_answer:
+                                        This installation is NOT configured to answer this challenge.
+                                        You must submit the challenge <code>token</code> to trigger.
+                                        <input type="textfield" name="token" value="" class="form-control"/>
+                                    % endif
+                                % endif
                             </form>
                         </td>
                     </tr>
@@ -93,6 +101,50 @@
                                     AcmeAuthorization-${AcmeChallenge.acme_authorization_id}
                                 </a>
                                 <hr/>
+                            % endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeOrders</th>
+                        <td>
+                            % for acmeOrder in AcmeChallenge.acme_orders:
+                                <a  class="label label-info"
+                                    href="${admin_prefix}/acme-order/${acmeOrder.id}"
+                                >
+                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${acmeOrder.id}
+                                </a>
+                                <hr/>
+                            % endfor
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AcmeOrder2AcmeChallengeTypeSpecifics</th>
+                        <td>
+                            <em>If no ChallengeTypes are preferred, the default HTTP-01 challenge will be used.</em>
+                            % if AcmeChallenge.acme_order_2_acme_challenge_type_specifics:
+                                <table class=" table-striped table-condensed">
+                                    <thead>
+                                        <tr>
+                                            <th>AcmeOrder</th>
+                                            <th>Preferred Challenge Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        % for order2Challenge in AcmeChallenge.acme_order_2_acme_challenge_type_specifics:
+                                            <tr>
+                                                <td>
+                                                    <a class="label label-info" href="${admin_prefix}/acme-order/${order2Challenge.acme_order_id}">
+                                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                                    AcmeOrder-${order2Challenge.acme_order_id}</a>
+                                                </td>
+                                                <td>
+                                                    <code>${order2Challenge.acme_challenge_type}</code>
+                                                </td>
+                                            </tr>
+                                        % endfor
+                                    </tbody>
+                                </table>
                             % endif
                         </td>
                     </tr>

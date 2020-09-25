@@ -12,6 +12,16 @@ Most of the functionality is working (in production!) and everything is covered 
 WE ARE ALMOST THERE!!!
 
 
+IMPORTANT PYTHON3 INFORMATION
+================================
+
+This package relies on Formencode. Formencode has some issues running under Python3.
+
+You will need to run a custom version of Formencode until that project updates the release
+
+	https://github.com/jvanasco/formencode/tree/fix-python3
+	pip install -e git://github.com/jvanasco/formencode@8401bc9440ce743063c1e66cfc7811bf129042b0#egg=formencode
+
 peter_sslers README
 ================================
 

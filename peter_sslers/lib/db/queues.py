@@ -253,12 +253,14 @@ def queue_domains__process(
         try:
             domain_names = [d.domain_name for d in domainObjects]
 
+            domains_challenged = model_utils.DomainsChallenged.new_http01(domain_names)
+
             # processing_strategy: AcmeOrder_ProcessingStrategy('create_order', 'process_single', 'process_multi')
             try:
                 dbAcmeOrder = lib.db.actions_acme.do__AcmeV2_AcmeOrder__new(
                     ctx,
                     acme_order_type_id=model_utils.AcmeOrderType.QUEUE_DOMAINS,
-                    domain_names=domain_names,
+                    domains_challenged=domains_challenged,
                     private_key_cycle__renewal=private_key_cycle__renewal,
                     private_key_strategy__requested=private_key_strategy__requested,
                     processing_strategy=processing_strategy,

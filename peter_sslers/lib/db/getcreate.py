@@ -743,7 +743,7 @@ def getcreate__CertificateRequest__by_pem_text(
 ):
     """
     getcreate for a CSR
-    
+
     This is only used for inserting test records.
     If uploading CSR is enabled, ensure it conforms to LetsEncrypt practices:
         * CN=/
@@ -1225,7 +1225,7 @@ def getcreate__UniqueFQDNSet__by_domains(
     :param allow_blocklisted_domains: boolean, default `False`. If `True`, disables check against domains blocklist
 
     :returns: A tuple consisting of (:class:`model.objects.UniqueFQDNSet`, :bool:`is_created`)
-    :raises: `errors.AcmeBlocklistedDomains`
+    :raises: `errors.AcmeDomainsBlocklisted`
     """
     # we should have cleaned this up before submitting, but just be safe!
     domain_names = [i.lower() for i in [d.strip() for d in domain_names] if i]
@@ -1235,7 +1235,7 @@ def getcreate__UniqueFQDNSet__by_domains(
 
     if not allow_blocklisted_domains:
         # ensure they are not blocklisted:
-        # this may raise errors.AcmeBlocklistedDomains
+        # this may raise errors.AcmeDomainsBlocklisted
         validate_domain_names(ctx, domain_names)
 
     # ensure the domains are registered into our system

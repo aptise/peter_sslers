@@ -22,6 +22,7 @@ from ...lib import cert_utils
 from ...lib import db as lib_db
 from ...lib import errors
 from ...lib import utils
+from ...model import objects as model_objects
 from ...model import utils as model_utils
 
 
@@ -117,13 +118,54 @@ class View_Focus(Handler):
     )
     def focus(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
+
+        # now we need to get the AcmeOrder2AcmeChallengeTypeSpecific
+        """
+        if AcmeAuthorization.domain_id:
+            .join(AcmeOrder2AcmeAuthorization,
+                  AcmeAuthorization.id == AcmeOrder2AcmeAuthorization.acme_authorization_id
+                  )
+            .join(AcmeOrder2AcmeChallengeTypeSpecific,
+                  AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id
+                  )
+            .filter(AcmeOrder2AcmeChallengeTypeSpecific.domain_id == AcmeAuthorization.domain_id)
+            AcmeAuthorization.id == 
+        
+        """
+        dbAcmeOrder2AcmeChallengeTypeSpecifics = None
+        if dbAcmeAuthorization.domain_id:
+            dbAcmeOrder2AcmeChallengeTypeSpecifics = (
+                self.request.api_context.dbSession.query(
+                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific
+                )
+                .join(
+                    model_objects.AcmeOrder2AcmeAuthorization,
+                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id
+                    == model_objects.AcmeOrder2AcmeAuthorization.acme_order_id,
+                )
+                .filter(
+                    model_objects.AcmeOrder2AcmeChallengeTypeSpecific.domain_id
+                    == model_objects.AcmeAuthorization.domain_id
+                )
+                .all()
+            )
+
         if self.request.wants_json:
             return {
                 "AcmeAuthorization": dbAcmeAuthorization._as_json(
                     admin_url=self.request.admin_url
-                )
+                ),
+                "AcmeOrder2AcmeChallengeTypeSpecifics": [
+                    i.as_json() for i in dbAcmeOrder2AcmeChallengeTypeSpecifics
+                ]
+                if dbAcmeOrder2AcmeChallengeTypeSpecifics
+                else None,
             }
-        return {"project": "peter_sslers", "AcmeAuthorization": dbAcmeAuthorization}
+        return {
+            "project": "peter_sslers",
+            "AcmeAuthorization": dbAcmeAuthorization,
+            "AcmeOrder2AcmeChallengeTypeSpecifics": dbAcmeOrder2AcmeChallengeTypeSpecifics,
+        }
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -298,62 +340,5 @@ class View_Focus_Manipulate(View_Focus):
                 }
             return HTTPSeeOther(
                 "%s?result=error&error=%s&operation=acme+server+deactivate"
-                % (self._focus_url, exc.as_querystring)
-            )
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @view_config(
-        route_name="admin:acme_authorization:focus:acme_server:trigger", renderer=None,
-    )
-    @view_config(
-        route_name="admin:acme_authorization:focus:acme_server:trigger|json",
-        renderer="json",
-    )
-    def acme_server_trigger(self):
-        """
-        Acme Trigger
-        """
-        dbAcmeAuthorization = self._focus(eagerload_web=True)
-        if self.request.method != "POST":
-            if self.request.wants_json:
-                return {
-                    "instructions": ["HTTP POST required",],
-                }
-            return HTTPSeeOther(
-                "%s?result=error&operation=acme+server+trigger&message=HTTP+POST+required"
-                % self._focus_url
-            )
-        try:
-            if not dbAcmeAuthorization.is_can_acme_server_trigger:
-                raise errors.InvalidRequest(
-                    "ACME Server Trigger is not allowed for this AcmeAuthorization"
-                )
-            result = lib_db.actions_acme.do__AcmeV2_AcmeAuthorization__acme_server_trigger(
-                self.request.api_context, dbAcmeAuthorization=dbAcmeAuthorization,
-            )
-            if self.request.wants_json:
-                return {
-                    "result": "success",
-                    "operation": "acme-server/trigger",
-                    "AcmeAuthorization": dbAcmeAuthorization.as_json,
-                }
-            return HTTPSeeOther(
-                "%s?result=success&operation=acme+server+trigger" % self._focus_url
-            )
-        except (
-            errors.AcmeCommunicationError,
-            errors.AcmeServerError,
-            errors.DomainVerificationError,
-            errors.InvalidRequest,
-        ) as exc:
-            if self.request.wants_json:
-                return {
-                    "result": "error",
-                    "operation": "acme-server/trigger",
-                    "error": str(exc),
-                }
-            return HTTPSeeOther(
-                "%s?result=error&error=%s&operation=acme+server+trigger"
                 % (self._focus_url, exc.as_querystring)
             )

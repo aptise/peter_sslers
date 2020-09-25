@@ -6,7 +6,7 @@
     <ol class="breadcrumb">
         ${request.breadcrumb_prefix|n}
         <li><a href="${admin_prefix}">Admin</a></li>
-        <li><a href="${admin_prefix}/acme-orders">AcmeOrder</a></li>
+        <li><a href="${admin_prefix}/acme-orders/all">AcmeOrders</a></li>
         <li class="active">New</li>
     </ol>
 </%block>
@@ -53,7 +53,7 @@
                 ${admin_partials.formgroup__PrivateKey_selector__advanced(option_account_key_default=True, option_generate_new=True, default="private_key_for_account_key")}
                 <hr/>
 
-                ${admin_partials.formgroup__domain_names()}
+                ${admin_partials.formgroup__domain_names(specify_challenge=True)}
                 <hr/>
 
                 ${admin_partials.formgroup__private_key_cycle__renewal()}
