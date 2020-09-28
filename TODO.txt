@@ -9,7 +9,12 @@ These sections still need to be audited:
 - automatic renewal - update to create queues
 - creating queue-certificates/freeform (domains)
 
+- remove checks for `.acme_order_id__created` as it is not-null
+`
+
+
 Audit/Remove "todo" markers
+
 
 asap tasks
 ---------------

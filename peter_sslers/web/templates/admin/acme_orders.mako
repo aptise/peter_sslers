@@ -36,6 +36,18 @@
             <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
             .json
         </a>
+    
+        % if sidenav_option == 'active':
+            <p></p>
+            <p></p>
+            <form action="${admin_prefix}/acme-orders/active/acme-server/sync" id="acme_orders-acme_server_sync" method="POST" style="display:inline-block;">
+                <button class="btn btn-xs btn-primary"
+                    <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+                    Sync Active Orders
+                </button>
+            </form>
+        % endif
+
     </p>
 </%block>
 

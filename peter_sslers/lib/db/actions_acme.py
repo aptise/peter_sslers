@@ -832,8 +832,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
             ):
                 _passes = True
         if not _passes:
-            raise ValueError(
-                "Can not process AcmeChallenges for any associated AcmeOrders"
+            raise errors.AcmeOrphanedObject(
+                "The selected AcmeChallenge is not associated to an active AcmeOrder."
             )
 
         if authenticatedUser is None:
@@ -1638,7 +1638,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             tf.close()
 
 
-def _do__AcmeV2_AcmeOrder__core(
+def _do__AcmeV2_AcmeOrder__new_core(
     ctx,
     acme_order_type_id=None,
     domains_challenged=None,
@@ -2200,7 +2200,7 @@ def do__AcmeV2_AcmeOrder__new(
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Automated"),
     )
-    return _do__AcmeV2_AcmeOrder__core(
+    return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
         domains_challenged=domains_challenged,
         acme_order_type_id=acme_order_type_id,
@@ -2341,7 +2341,7 @@ def do__AcmeV2_AcmeOrder__retry(
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Retry"),
     )
-    return _do__AcmeV2_AcmeOrder__core(
+    return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_RETRY,
         private_key_cycle__renewal=dbAcmeOrder.private_key_cycle__renewal,
@@ -2377,7 +2377,7 @@ def do__AcmeV2_AcmeOrder__renew_custom(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Custom"),
     )
     # private_key_strategy__requested - pull off the original
-    return _do__AcmeV2_AcmeOrder__core(
+    return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_RENEW_CUSTOM,
         private_key_cycle__renewal=private_key_cycle__renewal,
@@ -2406,7 +2406,7 @@ def do__AcmeV2_AcmeOrder__renew_quick(
     )
     # private_key_strategy__requested - pull off the original
     # private_key_cycle__renewal = pull off the original,
-    return _do__AcmeV2_AcmeOrder__core(
+    return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
         dbAcmeOrder_renewal_of=dbAcmeOrder,
         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_RENEW_QUICK,

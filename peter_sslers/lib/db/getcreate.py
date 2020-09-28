@@ -317,12 +317,15 @@ def getcreate__AcmeAccount(
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
-def getcreate__AcmeAuthorizationUrl(ctx, authorization_url=None, dbAcmeOrder=None):
+def getcreate__AcmeAuthorizationUrl(
+    ctx, authorization_url=None, dbAcmeOrder=None, is_via_new_order=None
+):
     """
     used to create auth objects
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
     :param authorization_url: (required) the url of an RFC-8555 authorization
     :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
+    :param is_via_new_order: Boolean was this discovered during a new AcmeOrder? It should always be yes.
     """
     log.info("getcreate__AcmeAuthorizationUrl(")
     if not dbAcmeOrder:
@@ -367,6 +370,7 @@ def getcreate__AcmeAuthorizationUrl(ctx, authorization_url=None, dbAcmeOrder=Non
         dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
         dbOrder2Auth.acme_order_id = dbAcmeOrder.id
         dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
+        dbOrder2Auth.is_present_on_new_order = is_via_new_order
         ctx.dbSession.add(dbOrder2Auth)
         ctx.dbSession.flush(
             objects=[dbOrder2Auth,]
@@ -388,6 +392,7 @@ def getcreate__AcmeAuthorization(
     authenticatedUser=None,
     dbAcmeOrder=None,
     transaction_commit=None,
+    is_via_new_order=None,
 ):
     """
     :param ctx: (required) A :class:`lib.utils.ApiContext` instance
@@ -396,6 +401,7 @@ def getcreate__AcmeAuthorization(
     :param authenticatedUser: (optional) an object which contains a `accountkey_thumbprint` attribute
     :param dbAcmeOrder: (required) The :class:`model.objects.AcmeOrder` associated with the discovered item
     :param transaction_commit: (required) Boolean value. required to indicate this persists to the database.
+    :param is_via_new_order: Boolean was this discovered during a new AcmeOrder? It should always be yes.
 
     https://tools.ietf.org/html/rfc8555#section-7.1.4
     Authorization Payload Contents:
@@ -436,6 +442,7 @@ def getcreate__AcmeAuthorization(
         dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
         dbOrder2Auth.acme_order_id = dbAcmeOrder.id
         dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
+        dbOrder2Auth.is_present_on_new_order = is_via_new_order
         ctx.dbSession.add(dbOrder2Auth)
         ctx.dbSession.flush(
             objects=[dbOrder2Auth,]
@@ -491,6 +498,7 @@ def process__AcmeAuthorization_payload(
         dbOrder2Auth = model_objects.AcmeOrder2AcmeAuthorization()
         dbOrder2Auth.acme_order_id = dbAcmeOrder.id
         dbOrder2Auth.acme_authorization_id = dbAcmeAuthorization.id
+        dbOrder2Auth.is_present_on_new_order = False
         ctx.dbSession.add(dbOrder2Auth)
         ctx.dbSession.flush(
             objects=[dbOrder2Auth,]

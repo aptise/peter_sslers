@@ -510,6 +510,17 @@ class Acme_Status_Order(_Acme_Status_All):
         "*404*",
     )
     OPTIONS_BLOCKING = ("pending",)
+
+    OPTIONS_active = (
+        "pending",
+        "ready",
+        "processing",
+    )
+    OPTIONS_finished = (
+        "invalid",
+        "valid",
+    )
+
     IDS_BLOCKING = None  # define after declaring the class
 
     _mapping = {
@@ -544,6 +555,12 @@ Acme_Status_Order.IDS_BLOCKING = [
 ]
 Acme_Status_Order.IDS_RENEW = [
     Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_RENEW
+]
+Acme_Status_Order.IDS_active = [
+    Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_active
+]
+Acme_Status_Order.IDS_finished = [
+    Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_finished
 ]
 
 

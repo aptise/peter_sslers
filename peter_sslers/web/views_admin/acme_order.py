@@ -129,6 +129,54 @@ class View_List(Handler):
             "sidenav_option": sidenav_option,
         }
 
+    @view_config(route_name="admin:acme_orders:active:acme_server:sync",)
+    @view_config(
+        route_name="admin:acme_orders:active:acme_server:sync|json", renderer="json"
+    )
+    def active_acme_server_sync(self):
+        base_url = (
+            "%s/acme-orders/active"
+            % self.request.registry.settings["app_settings"]["admin_prefix"]
+        )
+        if self.request.method != "POST":
+            if self.request.wants_json:
+                return {
+                    "instructions": ["HTTP POST required",],
+                }
+            return HTTPSeeOther(
+                "%s?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+                % base_url
+            )
+        # todo: bath this with limits and offsets?
+        items_paged = lib_db.get.get__AcmeOrder__paginated(
+            self.request.api_context, active_only=True, limit=None, offset=0,
+        )
+        _order_ids_pass = []
+        _order_ids_fail = []
+        for dbAcmeOrder in items_paged:
+            try:
+                dbAcmeOrder = lib_db.actions_acme.do__AcmeV2_AcmeOrder__acme_server_sync(
+                    self.request.api_context, dbAcmeOrder=dbAcmeOrder,
+                )
+                self.request.api_context.pyramid_transaction_commit()
+                _order_ids_pass.append(dbAcmeOrder.id)
+            except Exception as exc:
+                _order_ids_fail.append(dbAcmeOrder.id)
+        if self.request.wants_json:
+            admin_url = self.request.admin_url
+            return {
+                "AcmeOrderIds.success": _order_ids_pass,
+                "AcmeOrderIds.error": _order_ids_fail,
+            }
+        return HTTPSeeOther(
+            "%s?result=success&operation=acme+server+sync&acme_order_ids.success=%s&acme_order_ids.error=%s"
+            % (
+                base_url,
+                ",".join(["%s" % i for i in _order_ids_pass]),
+                ",".join(["%s" % i for i in _order_ids_fail]),
+            )
+        )
+
 
 # ------------------------------------------------------------------------------
 

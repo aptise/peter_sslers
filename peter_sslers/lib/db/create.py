@@ -320,7 +320,10 @@ def create__AcmeOrder(
             _is_auth_created,
             _is_auth_2_order_created,
         ) = lib.db.getcreate.getcreate__AcmeAuthorizationUrl(
-            ctx, authorization_url=authorization_url, dbAcmeOrder=dbAcmeOrder
+            ctx,
+            authorization_url=authorization_url,
+            dbAcmeOrder=dbAcmeOrder,
+            is_via_new_order=True,
         )
 
     # persist this to the db

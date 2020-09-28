@@ -383,6 +383,7 @@ class AuthenticatedUser(object):
         log.info("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
         _result, _t0 = None, time.time()
         while _result is None or _result["status"] in _pending_statuses:
+            log.debug(") polling...")
             assert time.time() - _t0 < 3600, "Polling timeout"  # 1 hour timeout
             time.sleep(0 if _result is None else 2)
             _result, _status_code, _headers = self._send_signed_request(
@@ -864,6 +865,8 @@ class AuthenticatedUser(object):
             transaction_commit=transaction_commit,
         )
 
+        # todo: should we ensure every Authorization is already tracked?
+
         url_certificate = acme_order_finalized.get("certificate")
         if not url_certificate:
             raise ValueError(
@@ -1253,6 +1256,7 @@ class AuthenticatedUser(object):
             raise ValueError("we must invoke this knowing it will commit")
 
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
+        acme_challenge_type = dbAcmeChallenge.acme_challenge_type
 
         # note that we are about to trigger the challenge:
         self.acmeLogger.log_challenge_trigger(
@@ -1328,7 +1332,8 @@ class AuthenticatedUser(object):
                  u'identifier': {u'type': u'dns', u'value': u'a.example.com'},
                  u'status': u'invalid'}
 
-        Because PeterSSlers only handles http01 challenges, we will opt for the authorization url
+        If we poll the Authorization instead of the Challenge, we won't have to
+        issue a second query for the Authorization data.
         """
         authorization_response = self._poll_until_not(
             dbAcmeChallenge.acme_authorization.authorization_url,
@@ -1360,10 +1365,10 @@ class AuthenticatedUser(object):
 
             # update the challenge
             acme_challenges = get_authorization_challenges(
-                authorization_response, required_challenges=["http-01",]
+                authorization_response, required_challenges=[acme_challenge_type,]
             )
             _acme_challenge_selected = filter_specific_challenge(
-                acme_challenges, dbAcmeChallenge.acme_challenge_type
+                acme_challenges, acme_challenge_type
             )
             if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
                 raise ValueError(
@@ -1383,31 +1388,33 @@ class AuthenticatedUser(object):
                 "v2", dbAcmeChallenge, "fail-2", transaction_commit=True,
             )
 
-            # kill the authorization
+            # update the challenge
+            # 1. find the challenge
+            acme_challenges = get_authorization_challenges(
+                authorization_response, required_challenges=[acme_challenge_type,],
+            )
+            _acme_challenge_selected = filter_specific_challenge(
+                acme_challenges, acme_challenge_type
+            )
+            if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
+                raise ValueError(
+                    "IntegryError on challenge payload; this should never happen."
+                )
+            # 2. update the challenge
+            update_AcmeChallenge_status(
+                ctx,
+                dbAcmeChallenge,
+                _acme_challenge_selected["status"],
+                transaction_commit=True,
+            )
+
+            # update the authorization, since we can
             update_AcmeAuthorization_status(
                 ctx,
                 dbAcmeChallenge.acme_authorization,
                 authorization_response["status"],
                 transaction_commit=True,
             )
-
-            # kill the challenge
-            acme_challenges = get_authorization_challenges(
-                authorization_response, required_challenges=["http-01",],
-            )
-            _acme_challenge_selected = filter_specific_challenge(
-                acme_challenges, dbAcmeChallenge.acme_challenge_type
-            )
-            if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
-                raise ValueError(
-                    "IntegryError on challenge payload; this should never happen."
-                )
-                update_AcmeChallenge_status(
-                    ctx,
-                    dbAcmeChallenge,
-                    _acme_challenge_selected["status"],
-                    transaction_commit=True,
-                )
 
             # a future version may want to log this failure somewhere
             # why? the timestamp on our AuthorizationObject may get replaced during a server-sync

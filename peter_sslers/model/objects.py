@@ -1817,6 +1817,9 @@ class AcmeOrder2AcmeAuthorization(Base):
     Similarly, users of The Client specify their preferred challenges in
     regards to each ``Domain`` when an ``AcmeOrder`` is created.
 
+    Also!!
+
+    We track `is_present_on_new_order` now.
     """
 
     __tablename__ = "acme_order_2_acme_authorization"
@@ -1827,6 +1830,7 @@ class AcmeOrder2AcmeAuthorization(Base):
     acme_authorization_id = sa.Column(
         sa.Integer, sa.ForeignKey("acme_authorization.id"), primary_key=True
     )
+    is_present_on_new_order = sa.Column(sa.Boolean, default=None)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

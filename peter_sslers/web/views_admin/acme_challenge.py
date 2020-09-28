@@ -246,6 +246,7 @@ class View_Focus_Manipulate(View_Focus):
         except (
             errors.AcmeCommunicationError,
             errors.AcmeServerError,
+            errors.AcmeOrphanedObject,
             errors.DomainVerificationError,
             errors.InvalidRequest,
         ) as exc:
