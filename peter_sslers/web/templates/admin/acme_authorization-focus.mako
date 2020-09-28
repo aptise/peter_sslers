@@ -147,12 +147,10 @@
                     <tr>
                         <th>AcmeOrder - authz first created</th>
                         <td>
-                            % if AcmeAuthorization.acme_order_id__created:
-                                <a class="label label-info" href="${admin_prefix}/acme-order/${AcmeAuthorization.acme_order_id__created}">
-                                <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                AcmeOrder-${AcmeAuthorization.acme_order_id__created}</a>
-                            % endif
                             <em>An AcmeAuthorization may be associated with more than one AcmeOrder.</em>
+                            <a class="label label-info" href="${admin_prefix}/acme-order/${AcmeAuthorization.acme_order_id__created}">
+                            <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                            AcmeOrder-${AcmeAuthorization.acme_order_id__created}</a>
                         </td>
                     </tr>
                     <tr>

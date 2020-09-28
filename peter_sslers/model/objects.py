@@ -590,9 +590,6 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         # ???: is there a better way to test this?
         if not self.authorization_url:
             return False
-        if not self.acme_order_id__created:
-            # order_id is needed for the AcmeAccount
-            return False
         if (
             self.acme_status_authorization
             not in model_utils.Acme_Status_Authorization.OPTIONS_DEACTIVATE
@@ -623,9 +620,6 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
         """
         if not self.authorization_url:
             return False
-        if not self.acme_order_id__created:
-            # order_id is needed for the AcmeAccount
-            return False
         if (
             self.acme_status_authorization
             not in model_utils.Acme_Status_Authorization.OPTIONS_TRIGGER
@@ -644,9 +638,6 @@ class AcmeAuthorization(Base, _Mixin_Timestamps_Pretty):
     def is_can_acme_server_sync(self):
         # ???: is there a better way to test this?
         if not self.authorization_url:
-            return False
-        if not self.acme_order_id__created:
-            # order_id is needed for the AcmeAccount
             return False
         return True
 
@@ -878,9 +869,6 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         if not self.acme_authorization_id:
             # auth's order_id needed for the AcmeAccount
             return False
-        if not self.acme_authorization.acme_order_id__created:
-            # auth's order_id needed for the AcmeAccount
-            return False
         return True
 
     @property
@@ -888,9 +876,6 @@ class AcmeChallenge(Base, _Mixin_Timestamps_Pretty):
         if not self.challenge_url:
             return False
         if not self.acme_authorization_id:
-            # auth's order_id needed for the AcmeAccount
-            return False
-        if not self.acme_authorization.acme_order_id__created:
             # auth's order_id needed for the AcmeAccount
             return False
         if (

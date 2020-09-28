@@ -605,9 +605,6 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     if not dbAcmeAuthorization.is_can_acme_server_deactivate:
         raise ValueError("Can not deactivate this `AcmeAuthorization`")
 
-    if not dbAcmeAuthorization.acme_order_id__created:
-        raise ValueError("can not proceed without an order for this authorization")
-
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
@@ -712,9 +709,6 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     if not dbAcmeAuthorization.is_can_acme_server_sync:
         raise ValueError("Can not sync this `AcmeAuthorization`")
 
-    if not dbAcmeAuthorization.acme_order_id__created:
-        raise ValueError("can not proceed without an order for this authorization")
-
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
@@ -815,9 +809,6 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
     try:
         # this is used a bit
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
-
-        if not dbAcmeAuthorization.acme_order_id__created:
-            raise ValueError("can not proceed without an order for this authorization")
 
         # the authorization could be on multiple AcmeOrders
         # see :method:`AcmeAuthorization.to_acme_orders`
@@ -947,16 +938,10 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     if not dbAcmeChallenge.is_can_acme_server_sync:
         raise ValueError("Can not sync this `dbAcmeChallenge` (0)")
 
-    if not dbAcmeChallenge.acme_authorization.acme_order_id__created:
-        raise ValueError("can not proceed without an order for this challenge")
-
     tmpfiles = []
     try:
         # this is used a bit
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
-
-        if not dbAcmeAuthorization.acme_order_id__created:
-            raise ValueError("can not proceed without an order for this authorization")
 
         # the authorization could be on multiple AcmeOrders
         # see :method:`AcmeAuthorization.to_acme_orders`
