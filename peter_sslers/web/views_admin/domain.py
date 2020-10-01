@@ -809,6 +809,14 @@ class View_Focus_AcmeDnsServerAccounts(View_Focus):
         ## In the future this should support multiple accounts
         ## however, right now we only care about one single account
         if dbDomain.acme_dns_server_accounts__5:
+            if self.request.wants_json:
+                return {
+                    "result": "error",
+                    "form_errors": {
+                        "Error_Main": "There was an error with your form.",
+                        "acme_dns_server_id": "Existing record for this AcmeDnsServer.",
+                    },
+                }
             _url = (
                 "%s/acme-dns-server-accounts?result=error&error=accounts-exist&operation=new"
                 % (self._focus_url,)

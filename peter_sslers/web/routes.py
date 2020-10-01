@@ -359,6 +359,14 @@ def _admin_views(config):
     config.add_route_7("admin:acme_orders:active", "/acme-orders/active")
     config.add_route_7("admin:acme_orders:active|json", "/acme-orders/active.json")
     config.add_route_7(
+        "admin:acme_orders:active:acme_server:sync",
+        "/acme-orders/active/acme-server/sync",
+    )
+    config.add_route_7(
+        "admin:acme_orders:active:acme_server:sync|json",
+        "/acme-orders/active/acme-server/sync.json",
+    )
+    config.add_route_7(
         "admin:acme_orders:active_paginated", "/acme-orders/active/{@page}"
     )
     config.add_route_7(

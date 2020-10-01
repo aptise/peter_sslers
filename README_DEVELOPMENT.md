@@ -84,6 +84,8 @@ The testing environment will wrap certain tests with spinning up a dedicated ins
 
 ## ACME-DNS Testing
 
+The testing suite can not reliably spin-up acme-dns, so it must run in it's own process
+
 use the test-config file:
 
 	sudo acme-dns -c ./peter_sslers/tests/test_data/acme-dns.config

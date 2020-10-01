@@ -383,6 +383,7 @@ class AuthenticatedUser(object):
         log.info("acme_v2.AuthenticatedUser._poll_until_not {0}".format(_log_message))
         _result, _t0 = None, time.time()
         while _result is None or _result["status"] in _pending_statuses:
+            log.debug(") polling...")
             assert time.time() - _t0 < 3600, "Polling timeout"  # 1 hour timeout
             time.sleep(0 if _result is None else 2)
             _result, _status_code, _headers = self._send_signed_request(
@@ -763,13 +764,13 @@ class AuthenticatedUser(object):
         )
 
         # verify each domain
+        domains_challenged = dbAcmeOrder.domains_challenged
         for authorization_url in acmeOrderRfcObject.rfc_object["authorizations"]:
             auth_result = self.acme_authorization_process_url(
                 ctx,
                 authorization_url,
-                acme_challenge_type_id__preferred=model_utils.AcmeChallengeType.from_string(
-                    "http-01"
-                ),
+                acme_challenge_type_id__preferred=None,
+                domains_challenged=domains_challenged,
                 handle_authorization_payload=handle_authorization_payload,
                 update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
@@ -864,6 +865,8 @@ class AuthenticatedUser(object):
             transaction_commit=transaction_commit,
         )
 
+        # todo: should we ensure every Authorization is already tracked?
+
         url_certificate = acme_order_finalized.get("certificate")
         if not url_certificate:
             raise ValueError(
@@ -905,6 +908,7 @@ class AuthenticatedUser(object):
         ctx,
         authorization_url,
         acme_challenge_type_id__preferred=None,
+        domains_challenged=None,
         handle_authorization_payload=None,
         update_AcmeAuthorization_status=None,
         update_AcmeChallenge_status=None,
@@ -920,7 +924,9 @@ class AuthenticatedUser(object):
 
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param authorization_url: (required) The url of the authorization
-        :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallengeType` challenge
+
+        :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallengeType` challenge; `domains_challenged`
+        :param domains_challenged: An instance of :class:`model.utils.DomainsChallenged` that can indicate which challenge is preferred; or `acme_challenge_type_id__preferred`
 
         :param handle_authorization_payload: (required) Callable function. expects (authorization_url, authorization_response, dbAcmeAuthorization=?, transaction_commit=?)
 
@@ -939,17 +945,24 @@ class AuthenticatedUser(object):
         If the challenge fails, we raise a `errors.DomainVerificationError`.
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_process_url(")
-        if (
-            acme_challenge_type_id__preferred
-            not in model_utils.AcmeChallengeType._mapping
+        if all((acme_challenge_type_id__preferred, domains_challenged)) or not any(
+            (acme_challenge_type_id__preferred, domains_challenged)
         ):
-            raise ValueError("invalid `acme_challenge_type_id__preferred`")
+            raise ValueError(
+                "only submit one of acme_challenge_type_id__preferred, domains_challenged"
+            )
+        if acme_challenge_type_id__preferred:
+            if (
+                acme_challenge_type_id__preferred
+                not in model_utils.AcmeChallengeType._mapping
+            ):
+                raise ValueError("invalid `acme_challenge_type_id__preferred`")
 
         # scoping, our todo list
         _todo__complete_challenge = None
 
         # in v1, we know the domain before the authorization request
-        # in v2, we hit an order's authorization url to get the domain
+        # in v2, we must query an order's authorization url to get the domain
         (
             authorization_response,
             _status_code,
@@ -982,6 +995,11 @@ class AuthenticatedUser(object):
         if dbAcmeAuthorization.domain.domain_name != _response_domain:
             raise ValueError("mismatch on a domain name")
 
+        if not acme_challenge_type_id__preferred:
+            acme_challenge_type_id__preferred = domains_challenged.domain_to_challenge_type_id(
+                _response_domain
+            )
+
         # once we inspect the url, we have the domain
         # the domain is in our `authorization_response`
         # but also on our `dbAcmeAuthorization` object
@@ -997,32 +1015,23 @@ class AuthenticatedUser(object):
             pass
         elif _authorization_status == "valid":
             # noting to do, one or more challenges is valid
-            # _todo_complete_challenges = False
             return False
         elif _authorization_status == "invalid":
             # this failed once, we need to auth again !
-            # _todo_complete_challenges = False
             raise errors.AcmeOrderFatal("AcmeAuthorization already `invalid`")
         elif _authorization_status == "deactivated":
             # this has been removed from the order?
-            # _todo_complete_challenges = False
             raise errors.AcmeOrderFatal("AcmeAuthorization already `deactivated`")
         elif _authorization_status == "expired":
             # this passed once, BUT we need to auth again
-            # _todo_complete_challenges = True
             raise errors.AcmeOrderFatal("AcmeAuthorization already `expired`")
         elif _authorization_status == "revoked":
             # this failed once, we need to auth again?
-            # _todo_complete_challenges = True
             raise errors.AcmeOrderFatal("AcmeAuthorization already `revoked`")
         else:
             raise ValueError(
                 "unexpected authorization status: `%s`" % _authorization_status
             )
-
-        # if not _todo_complete_challenges:
-        #    # short-circuit out of completing the challenge
-        #    return False
 
         # we could parse the challenge
         # however, the call to `process_discovered_auth` should have updated the challenge object already
@@ -1253,6 +1262,7 @@ class AuthenticatedUser(object):
             raise ValueError("we must invoke this knowing it will commit")
 
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
+        acme_challenge_type = dbAcmeChallenge.acme_challenge_type
 
         # note that we are about to trigger the challenge:
         self.acmeLogger.log_challenge_trigger(
@@ -1328,7 +1338,8 @@ class AuthenticatedUser(object):
                  u'identifier': {u'type': u'dns', u'value': u'a.example.com'},
                  u'status': u'invalid'}
 
-        Because PeterSSlers only handles http01 challenges, we will opt for the authorization url
+        If we poll the Authorization instead of the Challenge, we won't have to
+        issue a second query for the Authorization data.
         """
         authorization_response = self._poll_until_not(
             dbAcmeChallenge.acme_authorization.authorization_url,
@@ -1360,10 +1371,10 @@ class AuthenticatedUser(object):
 
             # update the challenge
             acme_challenges = get_authorization_challenges(
-                authorization_response, required_challenges=["http-01",]
+                authorization_response, required_challenges=[acme_challenge_type,]
             )
             _acme_challenge_selected = filter_specific_challenge(
-                acme_challenges, dbAcmeChallenge.acme_challenge_type
+                acme_challenges, acme_challenge_type
             )
             if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
                 raise ValueError(
@@ -1383,31 +1394,33 @@ class AuthenticatedUser(object):
                 "v2", dbAcmeChallenge, "fail-2", transaction_commit=True,
             )
 
-            # kill the authorization
+            # update the challenge
+            # 1. find the challenge
+            acme_challenges = get_authorization_challenges(
+                authorization_response, required_challenges=[acme_challenge_type,],
+            )
+            _acme_challenge_selected = filter_specific_challenge(
+                acme_challenges, acme_challenge_type
+            )
+            if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
+                raise ValueError(
+                    "IntegryError on challenge payload; this should never happen."
+                )
+            # 2. update the challenge
+            update_AcmeChallenge_status(
+                ctx,
+                dbAcmeChallenge,
+                _acme_challenge_selected["status"],
+                transaction_commit=True,
+            )
+
+            # update the authorization, since we can
             update_AcmeAuthorization_status(
                 ctx,
                 dbAcmeChallenge.acme_authorization,
                 authorization_response["status"],
                 transaction_commit=True,
             )
-
-            # kill the challenge
-            acme_challenges = get_authorization_challenges(
-                authorization_response, required_challenges=["http-01",],
-            )
-            _acme_challenge_selected = filter_specific_challenge(
-                acme_challenges, dbAcmeChallenge.acme_challenge_type
-            )
-            if _acme_challenge_selected["url"] != dbAcmeChallenge.challenge_url:
-                raise ValueError(
-                    "IntegryError on challenge payload; this should never happen."
-                )
-                update_AcmeChallenge_status(
-                    ctx,
-                    dbAcmeChallenge,
-                    _acme_challenge_selected["status"],
-                    transaction_commit=True,
-                )
 
             # a future version may want to log this failure somewhere
             # why? the timestamp on our AuthorizationObject may get replaced during a server-sync

@@ -194,12 +194,10 @@
                             % elif c == 'authorization_url':
                                 <code>${acme_authorization.authorization_url or ''}</code>
                             % elif c == 'acme_order_id__created':
-                                % if acme_authorization.acme_order_id__created:
-                                    <a class="label label-info" href="${admin_prefix}/acme-order/${acme_authorization.acme_order_id__created}">
-                                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
-                                        AcmeOrder-${acme_authorization.acme_order_id__created}
-                                    </a>
-                                % endif
+                                <a class="label label-info" href="${admin_prefix}/acme-order/${acme_authorization.acme_order_id__created}">
+                                    <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                                    AcmeOrder-${acme_authorization.acme_order_id__created}
+                                </a>
                             % endif
                         </td>
                     % endfor

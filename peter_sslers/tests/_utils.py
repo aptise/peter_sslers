@@ -35,6 +35,7 @@ from ..model import objects as model_objects
 from ..model import utils as model_utils
 from ..model import meta as model_meta
 from ..lib import db
+from ..lib import errors
 from ..lib import utils
 
 
@@ -601,11 +602,17 @@ class AppTestCore(unittest.TestCase, _Mixin_filedata):
         _changed = None
         _orders = _query.all()
         for _order in _orders:
-            _order.acme_status_order_id = model_utils.Acme_Status_Order.from_string(
-                "*410*"
-            )
-            _order = db.update.update_AcmeOrder_deactivate(self.ctx, _order)
-            _changed = True
+            _acme_status_order_id = model_utils.Acme_Status_Order.from_string("*410*")
+            if _order.acme_status_order_id != _acme_status_order_id:
+                _order.acme_status_order_id = _acme_status_order_id
+                _order.timestamp_updated = self.ctx.timestamp
+                _changed = True
+            try:
+                _order = db.update.update_AcmeOrder_deactivate(self.ctx, _order)
+                _changed = True
+            except errors.InvalidTransition as exc:
+                # don't fret on this having an invalid
+                pass
         if _changed:
             self.ctx.dbSession.commit()
 

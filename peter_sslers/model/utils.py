@@ -510,6 +510,17 @@ class Acme_Status_Order(_Acme_Status_All):
         "*404*",
     )
     OPTIONS_BLOCKING = ("pending",)
+
+    OPTIONS_active = (
+        "pending",
+        "ready",
+        "processing",
+    )
+    OPTIONS_finished = (
+        "invalid",
+        "valid",
+    )
+
     IDS_BLOCKING = None  # define after declaring the class
 
     _mapping = {
@@ -544,6 +555,12 @@ Acme_Status_Order.IDS_BLOCKING = [
 ]
 Acme_Status_Order.IDS_RENEW = [
     Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_RENEW
+]
+Acme_Status_Order.IDS_active = [
+    Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_active
+]
+Acme_Status_Order.IDS_finished = [
+    Acme_Status_Order.from_string(i) for i in Acme_Status_Order.OPTIONS_finished
 ]
 
 
@@ -774,6 +791,14 @@ class DomainsChallenged(dict):
         # default challenge type is http-01
         if self.DEFAULT != "http-01":
             raise ValueError("`DomainsChallenged.DEFAULT` must be `http-01`")
+
+    def domain_to_challenge_type_id(self, domain_name):
+        for _acme_challenge_type in self.keys():
+            if self[_acme_challenge_type]:
+                for _domain_name in self[_acme_challenge_type]:
+                    if _domain_name == domain_name:
+                        return AcmeChallengeType.from_string(_acme_challenge_type)
+        raise ValueError("domain is not challenged")
 
 
 class PrivateKeyCycle(_mixin_mapping):

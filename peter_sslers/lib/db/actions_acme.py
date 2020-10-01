@@ -605,9 +605,6 @@ def do__AcmeV2_AcmeAuthorization__acme_server_deactivate(
     if not dbAcmeAuthorization.is_can_acme_server_deactivate:
         raise ValueError("Can not deactivate this `AcmeAuthorization`")
 
-    if not dbAcmeAuthorization.acme_order_id__created:
-        raise ValueError("can not proceed without an order for this authorization")
-
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
@@ -712,9 +709,6 @@ def do__AcmeV2_AcmeAuthorization__acme_server_sync(
     if not dbAcmeAuthorization.is_can_acme_server_sync:
         raise ValueError("Can not sync this `AcmeAuthorization`")
 
-    if not dbAcmeAuthorization.acme_order_id__created:
-        raise ValueError("can not proceed without an order for this authorization")
-
     tmpfiles = []
     try:
         # the authorization could be on multiple AcmeOrders
@@ -816,9 +810,6 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
         # this is used a bit
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
 
-        if not dbAcmeAuthorization.acme_order_id__created:
-            raise ValueError("can not proceed without an order for this authorization")
-
         # the authorization could be on multiple AcmeOrders
         # see :method:`AcmeAuthorization.to_acme_orders`
         # however the first order is cached onto the object so we can access the account
@@ -832,8 +823,8 @@ def do__AcmeV2_AcmeChallenge__acme_server_trigger(
             ):
                 _passes = True
         if not _passes:
-            raise ValueError(
-                "Can not process AcmeChallenges for any associated AcmeOrders"
+            raise errors.AcmeOrphanedObject(
+                "The selected AcmeChallenge is not associated to an active AcmeOrder."
             )
 
         if authenticatedUser is None:
@@ -947,16 +938,10 @@ def do__AcmeV2_AcmeChallenge__acme_server_sync(
     if not dbAcmeChallenge.is_can_acme_server_sync:
         raise ValueError("Can not sync this `dbAcmeChallenge` (0)")
 
-    if not dbAcmeChallenge.acme_authorization.acme_order_id__created:
-        raise ValueError("can not proceed without an order for this challenge")
-
     tmpfiles = []
     try:
         # this is used a bit
         dbAcmeAuthorization = dbAcmeChallenge.acme_authorization
-
-        if not dbAcmeAuthorization.acme_order_id__created:
-            raise ValueError("can not proceed without an order for this authorization")
 
         # the authorization could be on multiple AcmeOrders
         # see :method:`AcmeAuthorization.to_acme_orders`
@@ -1638,7 +1623,7 @@ def _do__AcmeV2_AcmeOrder__finalize(
             tf.close()
 
 
-def _do__AcmeV2_AcmeOrder__core(
+def _do__AcmeV2_AcmeOrder__new_core(
     ctx,
     acme_order_type_id=None,
     domains_challenged=None,
@@ -2106,6 +2091,7 @@ def do__AcmeV2_AcmeOrder__process(
                     ctx, authenticatedUser, dbAcmeOrder
                 )
 
+                domains_challenged = dbAcmeOrder.domains_challenged
                 if (
                     dbAcmeAuthorization.acme_status_authorization_id
                     == model_utils.Acme_Status_Authorization.ID_DISCOVERED
@@ -2113,9 +2099,8 @@ def do__AcmeV2_AcmeOrder__process(
                     _result = authenticatedUser.acme_authorization_process_url(
                         ctx,
                         dbAcmeAuthorization.authorization_url,
-                        acme_challenge_type_id__preferred=model_utils.AcmeChallengeType.from_string(
-                            "http-01"
-                        ),
+                        acme_challenge_type_id__preferred=None,
+                        domains_challenged=domains_challenged,
                         handle_authorization_payload=handle_authorization_payload,
                         update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                         update_AcmeChallenge_status=update_AcmeChallenge_status,
@@ -2124,7 +2109,15 @@ def do__AcmeV2_AcmeOrder__process(
                         transaction_commit=True,
                     )
                 else:
-                    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
+                    _challenge_type_id = domains_challenged.domain_to_challenge_type_id(
+                        dbAcmeAuthorization.domain.domain_name
+                    )
+                    if _challenge_type_id == model_utils.AcmeChallengeType.http_01:
+                        dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
+                    elif _challenge_type_id == model_utils.AcmeChallengeType.dns_01:
+                        dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_dns_01
+                    else:
+                        raise ValueError("Can not process the selecte challenge type")
                     if not dbAcmeChallenge:
                         raise ValueError("Can not trigger this `AcmeChallenge`")
 
@@ -2200,7 +2193,7 @@ def do__AcmeV2_AcmeOrder__new(
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Automated"),
     )
-    return _do__AcmeV2_AcmeOrder__core(
+    return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
         domains_challenged=domains_challenged,
         acme_order_type_id=acme_order_type_id,
@@ -2341,7 +2334,7 @@ def do__AcmeV2_AcmeOrder__retry(
     dbOperationsEvent = log__OperationsEvent(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_New_Retry"),
     )
-    return _do__AcmeV2_AcmeOrder__core(
+    return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_RETRY,
         private_key_cycle__renewal=dbAcmeOrder.private_key_cycle__renewal,
@@ -2377,7 +2370,7 @@ def do__AcmeV2_AcmeOrder__renew_custom(
         ctx, model_utils.OperationsEventType.from_string("AcmeOrder_Renew_Custom"),
     )
     # private_key_strategy__requested - pull off the original
-    return _do__AcmeV2_AcmeOrder__core(
+    return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_RENEW_CUSTOM,
         private_key_cycle__renewal=private_key_cycle__renewal,
@@ -2406,7 +2399,7 @@ def do__AcmeV2_AcmeOrder__renew_quick(
     )
     # private_key_strategy__requested - pull off the original
     # private_key_cycle__renewal = pull off the original,
-    return _do__AcmeV2_AcmeOrder__core(
+    return _do__AcmeV2_AcmeOrder__new_core(
         ctx,
         dbAcmeOrder_renewal_of=dbAcmeOrder,
         acme_order_type_id=model_utils.AcmeOrderType.ACME_AUTOMATED_RENEW_QUICK,

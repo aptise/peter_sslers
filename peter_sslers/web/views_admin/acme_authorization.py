@@ -118,20 +118,7 @@ class View_Focus(Handler):
     )
     def focus(self):
         dbAcmeAuthorization = self._focus(eagerload_web=True)
-
         # now we need to get the AcmeOrder2AcmeChallengeTypeSpecific
-        """
-        if AcmeAuthorization.domain_id:
-            .join(AcmeOrder2AcmeAuthorization,
-                  AcmeAuthorization.id == AcmeOrder2AcmeAuthorization.acme_authorization_id
-                  )
-            .join(AcmeOrder2AcmeChallengeTypeSpecific,
-                  AcmeOrder2AcmeAuthorization.acme_order_id == AcmeOrder2AcmeChallengeTypeSpecific.acme_order_id
-                  )
-            .filter(AcmeOrder2AcmeChallengeTypeSpecific.domain_id == AcmeAuthorization.domain_id)
-            AcmeAuthorization.id == 
-        
-        """
         dbAcmeOrder2AcmeChallengeTypeSpecifics = None
         if dbAcmeAuthorization.domain_id:
             dbAcmeOrder2AcmeChallengeTypeSpecifics = (

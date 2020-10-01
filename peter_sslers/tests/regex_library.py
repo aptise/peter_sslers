@@ -105,6 +105,10 @@ RE_AcmeOrder_deactivated = re.compile(
 RE_AcmeOrder_invalidated = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=mark&action=invalid$"""
 )
+RE_AcmeOrder_invalidated_error = re.compile(
+    r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=error&error=Can\+not\+mark\+this\+order\+as\+'invalid'\.&operation=mark&action=invalid$"""
+)
+
 RE_AcmeOrder_processed = re.compile(
     r"""^http://peter-sslers\.example\.com/\.well-known/admin/acme-order/(\d+)\?result=success&operation=acme\+process$"""
 )

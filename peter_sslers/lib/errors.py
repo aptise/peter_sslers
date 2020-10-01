@@ -127,6 +127,10 @@ class AcmeAuthorizationFailure(AcmeError):
     pass
 
 
+class AcmeOrphanedObject(AcmeError):
+    pass
+
+
 class AcmeOrderError(AcmeError):
     pass
 

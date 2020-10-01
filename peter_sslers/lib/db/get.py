@@ -864,10 +864,24 @@ def get__AcmeOrder__count(ctx, active_only=None):
 
 
 def get__AcmeOrder__paginated(ctx, active_only=None, limit=None, offset=0):
+    """
+    active_only: how this is invoked:
+        None: all
+        True: 'active'
+        False; finished
+    """
     query = ctx.dbSession.query(model_objects.AcmeOrder)
-    if active_only is not None:
+    if active_only is True:
         query = query.filter(
-            model_objects.AcmeOrder.is_processing.op("IS")(active_only)
+            model_objects.AcmeOrder.acme_status_order_id.in_(
+                model_utils.Acme_Status_Order.IDS_active
+            )
+        )
+    elif active_only is False:
+        query = query.filter(
+            model_objects.AcmeOrder.acme_status_order_id.in_(
+                model_utils.Acme_Status_Order.IDS_finished
+            )
         )
     query = (
         query.order_by(model_objects.AcmeOrder.id.desc()).limit(limit).offset(offset)

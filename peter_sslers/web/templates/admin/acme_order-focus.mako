@@ -320,13 +320,19 @@
                         <th>status</th>
                         <td><code>${AcmeOrder.acme_status_order or ''}</code>
                             % if AcmeOrder.is_can_mark_invalid:
-                                <a
-                                    href="${admin_prefix}/acme-order/${AcmeOrder.id}/mark?action=invalid"
-                                    class="btn btn-xs btn-danger"
+                                <form
+                                    action="${admin_prefix}/acme-order/${AcmeOrder.id}/mark"
+                                    method="POST"
+                                    id="form-acme_order-mark_invalid"
                                 >
-                                    <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
-                                    Mark 'invalid'
-                                </a>
+                                    <input type="hidden" name="action" value="invalid"/>
+                                    <button
+                                        class="btn btn-xs btn-danger"
+                                    >
+                                        <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                                        Mark 'invalid'
+                                    </a>
+                                </form>
                             % endif
                         </td>
                     </tr>
