@@ -1692,6 +1692,42 @@ class FunctionalTests_AcmeOrder(AppTest):
             )
             assert "AcmeOrders" in res.json
 
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:acme_orders:active:acme_server:sync",))
+    def test_active_acme_server_sync_html(self):
+        res = self.testapp.get(
+            "/.well-known/admin/acme-orders/active/acme-server/sync", status=303
+        )
+        assert res.location == (
+            "http://peter-sslers.example.com/.well-known/admin/acme-orders/active?result=error&operation=acme+server+sync&message=HTTP+POST+required"
+        )
+        res = self.testapp.post(
+            "/.well-known/admin/acme-orders/active/acme-server/sync", {}, status=303
+        )
+        assert res.location.startswith(
+            "http://peter-sslers.example.com/.well-known/admin/acme-orders/active?result=success&operation=acme+server+sync&acme_order_ids.success="
+        )
+
+    @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble
+    @tests_routes(("admin:acme_orders:active:acme_server:sync|json",))
+    def test_active_acme_server_sync_json(self):
+        res = self.testapp.get(
+            "/.well-known/admin/acme-orders/active/acme-server/sync.json", status=200
+        )
+        assert "instructions" in res.json
+        assert "HTTP POST required" in res.json["instructions"]
+
+        res = self.testapp.post(
+            "/.well-known/admin/acme-orders/active/acme-server/sync.json",
+            {},
+            status=200,
+        )
+        assert "result" in res.json
+        assert "AcmeOrderIds.success" in res.json
+        assert "AcmeOrderIds.error" in res.json
+
     @tests_routes(
         (
             "admin:acme_order:focus",
@@ -3128,25 +3164,15 @@ class FunctionalTests_Domain(AppTest):
         assert "/.well-known/admin/acme-dns-server-account/" in res.text
 
         # force a new AcmeDnsServerAccount, and it should fail
+        # originally this had a 200 return with errors
+        # now we do a 303 redirect
         res = self.testapp.get(
-            "/.well-known/admin/domain/%s/acme-dns-server/new" % focus_id, status=200
-        )
-        assert "form-acme_dns_server-new" in res.forms
-        form = res.forms["form-acme_dns_server-new"]
-        form.submit_fields()
-        _options = [int(opt[0]) for opt in form["acme_dns_server_id"].options]
-        if 1 not in _options:
-            raise ValueError("we should have a `1` in _options")
-        form["acme_dns_server_id"] = "1"
-        res2 = form.submit()
-        assert res2.status_code == 200
-        assert (
-            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">There was an error with your form.</span></div></div>"""
-            in res2.text
+            "/.well-known/admin/domain/%s/acme-dns-server/new" % focus_id, status=303
         )
         assert (
-            """<div class="alert alert-danger"><div class="control-group error"><span class="help-inline">Existing record for this AcmeDnsServer.</span></div></div>"""
-            in res2.text
+            res.location
+            == """http://peter-sslers.example.com/.well-known/admin/domain/%s/acme-dns-server-accounts?result=error&error=accounts-exist&operation=new"""
+            % focus_id
         )
 
     @unittest.skipUnless(RUN_API_TESTS__ACME_DNS_API, "not running against acme-dns")
@@ -3235,7 +3261,7 @@ class FunctionalTests_Domain(AppTest):
         res = self.testapp.post(
             "/.well-known/admin/domain/%s/acme-dns-server/new.json" % focus_id,
             _payload,
-            status=200,
+            # status=200,
         )
         assert res.json["result"] == "error"
         assert "form_errors" in res.json
@@ -5996,16 +6022,19 @@ class FunctionalTests_AcmeServer(AppTest):
         res = self.testapp.get("/.well-known/admin/acme-order/%s" % obj_id, status=200)
 
         # "mark" invalid
-        assert (
-            'href="/.well-known/admin/acme-order/%s/mark?action=invalid"' % obj_id
-            in res.text
-        )
+        assert "form-acme_order-mark_invalid" in res.forms
+        form = res.forms["form-acme_order-mark_invalid"]
+        res = form.submit()
+        matched = RE_AcmeOrder_invalidated.match(res.location)
+        assert matched
+
+        # now try a manual post. it must fail.
         res = self.testapp.post(
             "/.well-known/admin/acme-order/%s/mark?action=invalid" % obj_id,
             {},
             status=303,
         )
-        matched = RE_AcmeOrder_invalidated.match(res.location)
+        matched = RE_AcmeOrder_invalidated_error.match(res.location)
         assert matched
 
         # grab the order
@@ -8077,8 +8106,8 @@ class IntegratedTests_AcmeServer(AppTestWSGI):
                 "cleanup_pending_authorizations"
             ] = True
 
-    @under_pebble_strict
     @unittest.skipUnless(RUN_API_TESTS__PEBBLE, "Not Running Against Pebble API")
+    @under_pebble_strict
     @tests_routes(("admin:api:domain:certificate-if-needed",))
     def test_domain_certificate_if_needed(self):
         """

@@ -4,13 +4,13 @@ Not Finished Yet
 Almost done:
 ------------
 
-These sections still need to be audited:
-- queue certificates - process
-- automatic renewal - update to create queues
-- creating queue-certificates/freeform (domains)
+These sections still need to be audited and streamlined.
+	They work and are tested, but the UX could potentially be cleaner
+	- queue certificates - process
+	- automatic renewal - update to create queues
+	- creating queue-certificates/freeform (domains)
 
 Audit/Remove "todo" markers
-
 
 asap tasks
 ---------------
@@ -20,7 +20,7 @@ TESTS:
 		submit a different key for an existing contact
 
 	api/domain/autocert
-		test against different strategies
+		test against different strategies to ensure correct behavior
 		- dogpile defense
 		- repeat request, correct data
 
@@ -90,17 +90,6 @@ EDIT:
 		- original set: [a.example.com, b.example.com, c.example.com,]
 		- new set(s): [a.example.com,]; [b.example.com, c.example.com,]
 		- new set(s): [a.example.com,]
-
-
-* ensure self-documenting endpoints POST on mako
-
-    # TODO: POST REQUIRED
-
-
-
-
-
-
 
 
 * cert_utils

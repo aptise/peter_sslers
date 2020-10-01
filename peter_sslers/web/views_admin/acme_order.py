@@ -165,6 +165,7 @@ class View_List(Handler):
         if self.request.wants_json:
             admin_url = self.request.admin_url
             return {
+                "result": "success",
                 "AcmeOrderIds.success": _order_ids_pass,
                 "AcmeOrderIds.error": _order_ids_fail,
             }

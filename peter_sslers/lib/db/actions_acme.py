@@ -2091,6 +2091,7 @@ def do__AcmeV2_AcmeOrder__process(
                     ctx, authenticatedUser, dbAcmeOrder
                 )
 
+                domains_challenged = dbAcmeOrder.domains_challenged
                 if (
                     dbAcmeAuthorization.acme_status_authorization_id
                     == model_utils.Acme_Status_Authorization.ID_DISCOVERED
@@ -2098,9 +2099,8 @@ def do__AcmeV2_AcmeOrder__process(
                     _result = authenticatedUser.acme_authorization_process_url(
                         ctx,
                         dbAcmeAuthorization.authorization_url,
-                        acme_challenge_type_id__preferred=model_utils.AcmeChallengeType.from_string(
-                            "http-01"
-                        ),
+                        acme_challenge_type_id__preferred=None,
+                        domains_challenged=domains_challenged,
                         handle_authorization_payload=handle_authorization_payload,
                         update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                         update_AcmeChallenge_status=update_AcmeChallenge_status,
@@ -2109,7 +2109,15 @@ def do__AcmeV2_AcmeOrder__process(
                         transaction_commit=True,
                     )
                 else:
-                    dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
+                    _challenge_type_id = domains_challenged.domain_to_challenge_type_id(
+                        dbAcmeAuthorization.domain.domain_name
+                    )
+                    if _challenge_type_id == model_utils.AcmeChallengeType.http_01:
+                        dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_http_01
+                    elif _challenge_type_id == model_utils.AcmeChallengeType.dns_01:
+                        dbAcmeChallenge = dbAcmeAuthorization.acme_challenge_dns_01
+                    else:
+                        raise ValueError("Can not process the selecte challenge type")
                     if not dbAcmeChallenge:
                         raise ValueError("Can not trigger this `AcmeChallenge`")
 

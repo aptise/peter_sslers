@@ -792,6 +792,14 @@ class DomainsChallenged(dict):
         if self.DEFAULT != "http-01":
             raise ValueError("`DomainsChallenged.DEFAULT` must be `http-01`")
 
+    def domain_to_challenge_type_id(self, domain_name):
+        for _acme_challenge_type in self.keys():
+            if self[_acme_challenge_type]:
+                for _domain_name in self[_acme_challenge_type]:
+                    if _domain_name == domain_name:
+                        return AcmeChallengeType.from_string(_acme_challenge_type)
+        raise ValueError("domain is not challenged")
+
 
 class PrivateKeyCycle(_mixin_mapping):
     """

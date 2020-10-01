@@ -764,13 +764,13 @@ class AuthenticatedUser(object):
         )
 
         # verify each domain
+        domains_challenged = dbAcmeOrder.domains_challenged
         for authorization_url in acmeOrderRfcObject.rfc_object["authorizations"]:
             auth_result = self.acme_authorization_process_url(
                 ctx,
                 authorization_url,
-                acme_challenge_type_id__preferred=model_utils.AcmeChallengeType.from_string(
-                    "http-01"
-                ),
+                acme_challenge_type_id__preferred=None,
+                domains_challenged=domains_challenged,
                 handle_authorization_payload=handle_authorization_payload,
                 update_AcmeAuthorization_status=update_AcmeAuthorization_status,
                 update_AcmeChallenge_status=update_AcmeChallenge_status,
@@ -908,6 +908,7 @@ class AuthenticatedUser(object):
         ctx,
         authorization_url,
         acme_challenge_type_id__preferred=None,
+        domains_challenged=None,
         handle_authorization_payload=None,
         update_AcmeAuthorization_status=None,
         update_AcmeChallenge_status=None,
@@ -923,7 +924,9 @@ class AuthenticatedUser(object):
 
         :param ctx: (required) A :class:`lib.utils.ApiContext` instance
         :param authorization_url: (required) The url of the authorization
-        :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallengeType` challenge
+
+        :param acme_challenge_type_id__preferred: An `int` representing a :class:`model.utils.AcmeChallengeType` challenge; `domains_challenged`
+        :param domains_challenged: An instance of :class:`model.utils.DomainsChallenged` that can indicate which challenge is preferred; or `acme_challenge_type_id__preferred`
 
         :param handle_authorization_payload: (required) Callable function. expects (authorization_url, authorization_response, dbAcmeAuthorization=?, transaction_commit=?)
 
@@ -942,17 +945,24 @@ class AuthenticatedUser(object):
         If the challenge fails, we raise a `errors.DomainVerificationError`.
         """
         log.info("acme_v2.AuthenticatedUser.acme_authorization_process_url(")
-        if (
-            acme_challenge_type_id__preferred
-            not in model_utils.AcmeChallengeType._mapping
+        if all((acme_challenge_type_id__preferred, domains_challenged)) or not any(
+            (acme_challenge_type_id__preferred, domains_challenged)
         ):
-            raise ValueError("invalid `acme_challenge_type_id__preferred`")
+            raise ValueError(
+                "only submit one of acme_challenge_type_id__preferred, domains_challenged"
+            )
+        if acme_challenge_type_id__preferred:
+            if (
+                acme_challenge_type_id__preferred
+                not in model_utils.AcmeChallengeType._mapping
+            ):
+                raise ValueError("invalid `acme_challenge_type_id__preferred`")
 
         # scoping, our todo list
         _todo__complete_challenge = None
 
         # in v1, we know the domain before the authorization request
-        # in v2, we hit an order's authorization url to get the domain
+        # in v2, we must query an order's authorization url to get the domain
         (
             authorization_response,
             _status_code,
@@ -985,6 +995,11 @@ class AuthenticatedUser(object):
         if dbAcmeAuthorization.domain.domain_name != _response_domain:
             raise ValueError("mismatch on a domain name")
 
+        if not acme_challenge_type_id__preferred:
+            acme_challenge_type_id__preferred = domains_challenged.domain_to_challenge_type_id(
+                _response_domain
+            )
+
         # once we inspect the url, we have the domain
         # the domain is in our `authorization_response`
         # but also on our `dbAcmeAuthorization` object
@@ -1000,32 +1015,23 @@ class AuthenticatedUser(object):
             pass
         elif _authorization_status == "valid":
             # noting to do, one or more challenges is valid
-            # _todo_complete_challenges = False
             return False
         elif _authorization_status == "invalid":
             # this failed once, we need to auth again !
-            # _todo_complete_challenges = False
             raise errors.AcmeOrderFatal("AcmeAuthorization already `invalid`")
         elif _authorization_status == "deactivated":
             # this has been removed from the order?
-            # _todo_complete_challenges = False
             raise errors.AcmeOrderFatal("AcmeAuthorization already `deactivated`")
         elif _authorization_status == "expired":
             # this passed once, BUT we need to auth again
-            # _todo_complete_challenges = True
             raise errors.AcmeOrderFatal("AcmeAuthorization already `expired`")
         elif _authorization_status == "revoked":
             # this failed once, we need to auth again?
-            # _todo_complete_challenges = True
             raise errors.AcmeOrderFatal("AcmeAuthorization already `revoked`")
         else:
             raise ValueError(
                 "unexpected authorization status: `%s`" % _authorization_status
             )
-
-        # if not _todo_complete_challenges:
-        #    # short-circuit out of completing the challenge
-        #    return False
 
         # we could parse the challenge
         # however, the call to `process_discovered_auth` should have updated the challenge object already
